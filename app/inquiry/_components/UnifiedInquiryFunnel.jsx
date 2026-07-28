@@ -20,7 +20,7 @@ import OrganIcon from "../../_components/OrganIcon";
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
-import { event } from "@/lib/ga";
+import { event, GA_EVENTS } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
 
@@ -183,9 +183,9 @@ export default function UnifiedInquiryFunnel() {
 
   // GA 이벤트 — 폼 단계 진입 시에만 트리거
   useEffect(() => {
-    if (phase === "step1") safeEvent("inquiry_step1_started");
-    if (phase === "channel-select") safeEvent("inquiry_channel_view");
-    if (phase === "human-channels") safeEvent("inquiry_human_channels_view");
+    if (phase === "step1") safeEvent(GA_EVENTS.STEP1_STARTED);
+    if (phase === "channel-select") safeEvent(GA_EVENTS.CHANNEL_VIEW);
+    if (phase === "human-channels") safeEvent(GA_EVENTS.HUMAN_CHANNELS_VIEW);
   }, [phase]);
 
   function safeEvent(name, params) {
@@ -227,7 +227,10 @@ export default function UnifiedInquiryFunnel() {
   async function handleStep1Submit() {
     if (!validateStep1()) return;
     setSubmitting(true);
-    safeEvent("inquiry_step1_submitted");
+    // 「눌렀다」와 「저장됐다」는 다른 사건이다. 예전엔 여기서 성공 이벤트를 쐈는데,
+    // 서버가 실패해도 GA 에는 제출 성공으로 찍혀 전환수가 부풀었다(2026-07-28 수정).
+    // → 여기는 시도(분모), 성공 이벤트는 저장 확인 후에만 쏜다.
+    safeEvent(GA_EVENTS.STEP1_ATTEMPTED);
 
     try {
       const nameParts = form1.name.trim().split(/\s+/);
@@ -286,8 +289,16 @@ export default function UnifiedInquiryFunnel() {
 
       setInquiryId(result.inquiryId);
       setPublicToken(result.publicToken || null);
+      // ⭐ 핵심 전환 — 서버 저장이 확인된 이 지점에서만 발화.
+      safeEvent(GA_EVENTS.INQUIRY_SUBMITTED, {
+        cancer_type: form1.cancerType || null,
+        nationality: form1.nationality || null,
+        preferred_language: form1.preferredLanguage || null,
+        from_ai_chat: !!fromChat,
+      });
       setPhase("step1-success");
     } catch (_e) {
+      safeEvent(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 1 });
       // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
       setError(tl("genericError", lang));
     } finally {
@@ -322,7 +333,7 @@ export default function UnifiedInquiryFunnel() {
   // ─── Step 2 제출 ─────────────────────────────────────────────────
   async function handleStep2Submit() {
     setSubmitting(true);
-    safeEvent("inquiry_step2_submitted");
+    safeEvent(GA_EVENTS.STEP2_ATTEMPTED); // 시도(분모). 성공은 저장 확인 후 아래에서.
 
     try {
       const body = {
@@ -345,8 +356,14 @@ export default function UnifiedInquiryFunnel() {
       const result = await res.json();
       if (!result.ok) throw new Error(result.error || "step2_failed");
 
+      // ⭐ 상세정보까지 완주 — 저장 확인 후에만 발화.
+      safeEvent(GA_EVENTS.INQUIRY_DETAIL_SUBMITTED, {
+        has_attachments: uploadedFiles.length > 0,
+        attachment_count: uploadedFiles.length,
+      });
       setPhase("step2-success");
     } catch (_e) {
+      safeEvent(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 2 });
       // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
       setError(tl("genericError", lang));
     } finally {
@@ -356,18 +373,18 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── 가입 처리 ───────────────────────────────────────────────────
   function handleSignupGoogle() {
-    safeEvent("inquiry_signup_clicked", { method: "google" });
+    safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "google" });
     router.push("/signup?provider=google&from=inquiry");
   }
 
   function handleSignupEmail() {
-    safeEvent("inquiry_signup_clicked", { method: "email" });
+    safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "email" });
     const email = form1.email || "";
     router.push(`/signup?from=inquiry${email ? `&email=${encodeURIComponent(email)}` : ""}`);
   }
 
   function handleDropoff(fromPhase) {
-    safeEvent("inquiry_dropoff", { phase: fromPhase });
+    safeEvent(GA_EVENTS.DROPOFF, { phase: fromPhase });
     setPhase("done");
   }
 
@@ -461,7 +478,7 @@ export default function UnifiedInquiryFunnel() {
         <div className="space-y-3">
           <button
             onClick={() => {
-              safeEvent("inquiry_step2_started");
+              safeEvent(GA_EVENTS.STEP2_STARTED);
               setPhase("step2");
             }}
             className="w-full py-3.5 bg-teal-700 text-white rounded-xl font-bold hover:bg-teal-800 transition flex items-center justify-center gap-2"
@@ -693,7 +710,7 @@ export default function UnifiedInquiryFunnel() {
         iconBg: "bg-teal-50",
         hoverBorder: "hover:border-teal-500",
         onClick: () => {
-          safeEvent("inquiry_choose_channel", { channel: "ai" });
+          safeEvent(GA_EVENTS.CHOOSE_CHANNEL, { channel: "ai" });
           setPhase("ai-chat");
         },
       },
@@ -706,7 +723,7 @@ export default function UnifiedInquiryFunnel() {
         iconBg: "bg-green-50",
         hoverBorder: "hover:border-green-500",
         onClick: () => {
-          safeEvent("inquiry_choose_channel", { channel: "human" });
+          safeEvent(GA_EVENTS.CHOOSE_CHANNEL, { channel: "human" });
           // 설정된 메신저만 노출. 1개뿐이면(현재 WhatsApp) picker 화면을 건너뛰고 바로 연결 —
           // 미설정 채널을 '준비 중' 빈 카드로 보여 미완성 인상 주지 않게. 2개 이상이면 picker.
           const m = SITE_INFO.messenger;
@@ -717,7 +734,7 @@ export default function UnifiedInquiryFunnel() {
             { key: "line", url: m.line },
           ].filter((c) => c.url);
           if (configured.length === 1) {
-            safeEvent("inquiry_messenger_click", { channel: configured[0].key, direct: true });
+            safeEvent(GA_EVENTS.MESSENGER_CLICK, { channel: configured[0].key, direct: true });
             window.open(configured[0].url, "_blank", "noopener,noreferrer");
           } else {
             setPhase("human-channels");
@@ -733,7 +750,7 @@ export default function UnifiedInquiryFunnel() {
         iconBg: "bg-blue-50",
         hoverBorder: "hover:border-blue-500",
         onClick: () => {
-          safeEvent("inquiry_choose_channel", { channel: "form" });
+          safeEvent(GA_EVENTS.CHOOSE_CHANNEL, { channel: "form" });
           setPhase("step1");
         },
       },
@@ -863,7 +880,7 @@ export default function UnifiedInquiryFunnel() {
                   href={c.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => safeEvent("inquiry_messenger_click", { channel: c.key })}
+                  onClick={() => safeEvent(GA_EVENTS.MESSENGER_CLICK, { channel: c.key })}
                   className={`${baseCls} hover:shadow-md hover:border-[var(--brand-hover)]`}
                   style={{ "--brand-hover": c.color }}
                 >
@@ -884,7 +901,7 @@ export default function UnifiedInquiryFunnel() {
           <p className="text-sm text-gray-500 mb-3">{tl("humanFallbackText", lang)}</p>
           <button
             type="button"
-            onClick={() => { safeEvent("inquiry_human_fallback_to_form"); setPhase("step1"); }}
+            onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); setPhase("step1"); }}
             className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
           >
             <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
