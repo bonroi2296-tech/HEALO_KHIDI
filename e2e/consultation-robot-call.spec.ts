@@ -126,7 +126,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       // 없으니 즉시 stdout 으로 흘린다(원격 진단 원칙, POSTMORTEMS #61 과 같은 부류 예방).
       robot.on("pageerror", (err) => console.log(`[robot-call] ${name} pageerror: ${err.message}`));
       robot.on("console", (m) => {
-        if (m.type() === "error") console.log(`[robot-call] ${name} console: ${m.text().slice(0, 300)}`);
+        // warning 도 본다 — 통역·자막 경로의 실패는 전부 `console.warn` 으로 나간다
+        // (`[LiveTranslate] …`). error 만 보던 탓에 2026-07-28 진단에서 이 줄들을 통째로
+        // 놓쳤다: 봇은 자막을 보냈는데 화면엔 없고, 이유는 warn 에 있었을 자리다.
+        const t = m.type();
+        if (t === "error" || t === "warning")
+          console.log(`[robot-call] ${name} ${t}: ${m.text().slice(0, 300)}`);
       });
       await robot.goto(robotEntryUrl, { waitUntil: "domcontentloaded" });
       const nameInput = robot.locator('input[type="text"]').first();
