@@ -3,6 +3,65 @@
 
 
 
+
+## 🔖 세션 핸드오프 (2026-07-27 밤 — **PageSpeed 성능 최적화: 홈 JS 624→365KB · LCP 7.0→3.4초 · CLS 0.057→0** 세션 종료)
+
+> PO 가 PageSpeed 리포트 링크 2개를 던지며 *"페이지 스피드 인사인튼가 뭔가 했더니 이렇대. 워크트리 새로 파서 개선점 도출하고 최적화 해봐"* 로 시작. 만진 영역 = 공개 프론트 로딩 경로(폰트·이미지·번들·캐시)만. 워크트리 3개 사용(`perf-pagespeed`·`perf-mobile`·`i18n-split`·`fcp-probe`). **코드 머지 5건 + 문서 머지 5건, 전부 CI 초록 후 squash·프로덕션 배포 완료.**
+
+**1. 이번 세션 한 일**
+
+- **[#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011) 1차 — 홈 전송량 2,959KB → 1,009KB** : ①`healo-tokens.css` 의 `@import pretendard.min.css` 제거(풀폰트 774KB 를 dynamic-subset 과 **이중 로드**하고 있었고 `@import` 라 렌더까지 막았다) ②의료진 PNG 4장을 날 `<img>` → `next/image`(−900KB, `/hospitals/immune` 6곳 동반) ③`splitChunks` 의 `name:'vendor'` 제거 — 이름을 고정하면 안 걸린 node_modules 전부가 **사이트 단 하나의 406KB 덩어리**로 뭉쳐 모든 페이지가 통째로 받는다(홈에선 80% 미사용) ④Supabase·Sentry preconnect.
+- **[#1018](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1018) 2차** : ①`ClientShell` 이 전 페이지를 감싸며 supabase 클라이언트를 static import → 공개 홈에도 43KB(gz) 딸려오던 것을 마운트 뒤 동적 import + 알림종 `dynamic({ssr:false})` ②**최적화 이미지 캐시 1시간→30일** ③병원 썸네일 화질 75→60.
+- **[#1025](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1025) 3차 — i18n 사전 통짜 로딩 제거** : `src/lib/i18n/index.js` 가 **21개 언어 사전을 한 파일(12,594줄)** 로 들고 있어 통째로 브라우저 청크가 됐다(프로덕션 `chunks/5612` = **264KB br**). 사전을 `dictionary.js`(서버 전용)로 분리 + `next.config.js` 가 클라이언트 빌드에서만 빈 껍데기로 별칭. **CI 가드 §33 신설**.
+- **[#1039](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1039) 4차 — 사전을 HTML 인라인으로** : 3차 직후 구글 점수가 **69 → 66·68 로 제자리**였다. JS 는 줄었는데 FCP 가 2.3→3.5초로 나빠져 상쇄되고 있었다. 진범 = 사전을 별도 파일로 내리면 Next 가 head 에 `<link rel="preload" as="script">` 를 넣는데 **High 우선순위**라 CSS·히어로와 첫 화면 대역폭을 다툰다. → `src/lib/i18n/inlineScript.js` 로 HTML 인라인(요청 자체 제거). FCP 중앙 3527→2468ms.
+- **[#1048](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1048) 5차 — 히어로 폰트 조각 미리받기** : 언어별로 「히어로가 실제 받는」 woff2 만 preload(**ru·kz 2개 40KB / en 3개**, ko·zh·ja 는 조각이 8~14개라 제외). FCP 2451→1645ms. **부수 효과로 CLS 0.057 → 0**(글자가 폰트 바뀌며 밀리던 것 소멸).
+- **문서 머지 5건**: [#1013](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1013)·[#1021](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1021)·[#1028](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1028)·[#1044](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1044)·[#1054](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1054). **반성문 `POSTMORTEMS.md` #131** 신설.
+
+**2. 왜 그렇게 했는지**
+
+- **인라인(4차)을 고른 근거** = 3안을 같은 조건에서 재고 골랐다(로컬 프로덕션 빌드·모바일 3회·FCP 시뮬): 외부파일 3894~3942ms / 사전없음(대조군) 1226~3284ms / **인라인 2440~2482ms**. 인라인은 요청이 없어 preload 경쟁이 사라지고 편차도 가장 작다.
+- **ko·zh·ja 를 폰트 미리받기에서 뺀 이유**: 한글·한자는 필요한 조각이 8~14개(170KB)라 미리받기가 이득보다 낭비. 라틴·키릴(핵심 타겟 러·카)만 확실히 이득.
+- **Sentry(252KB)를 안 건드린 이유**: 감이 아니라 실측 — 통째로 차단해도 LCP 5953ms(대조군 5369ms)로 **개선 없음**. 의료 플랫폼 관측을 줄이는 값이 안 된다.
+- **자체호스팅을 안 만든 이유**: PO가 고른 안이었으나 「폰트를 빨리 오게」 부류라 무효임을 **만들기 전에 검증**했다(아래 4번 표).
+
+**3. 안 끝났거나 보류**
+
+- **TBT(멈칫) 미착수** — 오늘은 바이트·폰트·이미지만 팠다. 구글 실측에서 TBT 가 80~3,850ms 로 튀고 그게 점수 편차(55~85)의 유일한 원인이다. **다음 세션 1순위.**
+- **`/hospitals/immune` 개선치 미측정** — 이 PC AdGuard 오염 때문에 한 번 실패한 뒤 재시도 안 함.
+- **ko·zh·ja 홈의 FCP 개선분 미측정** — 폰트 미리받기 대상이 아니라 변화 없음이 예상되나 실제로 안 쟀다.
+
+**4. 주의·함정 (다음 세션이 밟기 쉬운 것)**
+
+- 🔴 **LCP 는 더 못 내린다 — 실험 5종 전부 무효 판정. 재시도 금지.** `KNOWN_ISSUES.md` 최상단 표 참조: 폰트 미리받기·차단형 CSS·히어로 제목만 시스템글꼴·히어로 섹션 전체 시스템글꼴 → **전부 LCP 5316~5403ms 로 제자리**. 유일하게 듣는 건 폰트를 아예 안 받는 것(4103ms)이고 그건 값이 안 맞는다. **자체호스팅도 같은 부류라 무효.**
+- ⭐ **PSI 리포트 주소(`/analysis/…/<id>`)는 「그때 그 측정」이 박제된 스냅샷이다.** 배포해도 영원히 같은 점수를 보여준다. 내가 이 주소를 PO 에게 주며 "눌러서 확인해달라"고 해서 PO 가 옛 69점을 보고 *"아직도 69잖아"* 라고 했다. **새로 도는 주소는 `/analysis?url=…&form_factor=mobile&hl=ko`.**
+- 🔧 **백그라운드 탭에서 PSI 돌리는 법**: 창이 뒤에 있으면 `document.hidden=true` 라 「분석 실행 중」에서 안 끝난다. 우회 = `/analysis?url=…` 이동 → 100초 대기 → `read_network_requests(urlPattern:"batchexecute")` 의 응답 본문 첫 문자열이 **분석 ID** → `/analysis/https-…/<ID>` 로 이동(**저장된 리포트는 백그라운드에서도 렌더된다**).
+- ⚠️ **프리뷰 빌드에는 Sentry 가 없다**(`NEXT_PUBLIC_SENTRY_DSN` 프로덕션 전용, 청크 252KB 차이). 프리뷰 총량을 프로덕션과 직접 빼면 **성과 과대보고**. 비교는 프리뷰↔프리뷰 또는 로컬(양쪽 Sentry 포함)로.
+- ⚠️ **로컬 `next start` 는 아무것도 압축하지 않는다**(청크도). 로컬 Lighthouse 타이밍을 프로덕션과 직접 비교하지 마라. 또 **로컬 리그는 TBT·점수를 재현 못 한다**(FCP·LCP 는 PSI 와 거의 일치).
+- ⚠️ **이 PC 는 AdGuard 데스크톱앱이 1.6~2.1MB 를 주입**한다(시크릿·헤드리스·새 프로필로 못 막고 HTTPS 도 뚫음). Lighthouse 에 `--blocked-url-patterns="*adguard*"` 를 붙여라. 매 실행 리포트의 `network-requests` 에서 `adguard` 확인 필수.
+- ⚠️ **사전 편집 위치가 바뀌었다**: `src/lib/i18n/index.js` → **`src/lib/i18n/dictionary.js`**. 검사 스크립트 3종도 이 경로를 읽는다. `next.config.js` 의 dictionary 별칭을 지우면 264KB 가 **조용히** 전 페이지로 돌아온다(§33 가드가 감시).
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저** — ①`/hospitals/immune` 를 프로덕션에서 한 번 재라(AdGuard 차단 옵션 붙여서). ②ko·zh·ja 홈 FCP 가 en·ru 만큼 좋아졌는지 확인(폰트 미리받기 대상이 아니라 안 좋아졌을 것 — 그러면 그 언어들도 preload 를 넣을지 판단).
+2. 🔴 **TBT(멈칫) 파기 — PO 지시, 이번 세션 최우선.** 구글 실측 TBT 80~3,850ms. 시작점: 홈 첫 화면 JS 365KB 중 **Sentry 청크 252KB** 가 최대 덩어리이나 **차단 실험에서 LCP 는 안 움직였다** → TBT 관점에서 다시 재라(`--blocked-url-patterns="*sentry*"` 로 TBT 비교). 그다음 `long-tasks` 감사의 상위 작업이 어느 청크인지 보고 그 청크를 쪼개거나 지연 로드.
+3. 성능 외 남은 것은 `KNOWN_ISSUES.md` 최상단 참조.
+
+**6. 검증 상태**
+
+- **머지·CI**: 코드 5건·문서 5건 **전부 CI 초록 후 squash 머지**(2026-07-27 확인). main 최신 CI = `CI`·`E2E Tests`·`Mirror to GitLab`·`Uptime (prod)` 전부 success. 열린 PR 없음(내 것 기준).
+- **프로덕션 실검증(curl)**: CSS 번들에 `pretendard.min.css` 0건 / 의료진 사진 `_next/image` 11.3KB AVIF(원본 295KB) / 최적화 이미지 `max-age=2592000`·`/images/hospitals` 는 1시간 유지 / 홈 초기 HTML 에 supabase 청크 0 / 6개 언어 사전 주입 1개씩·키 1,655~1,717·**교차오염 0**.
+- **인증 실클릭**: 로그인(admin@test.com) → 쿠키 발급 → `/admin` 실데이터 렌더 → 로그아웃 → 쿠키 삭제까지 통과(지연 로드가 세션·signOut 둘 다 안 깨뜨림). 콘솔 에러 0.
+- **테스트**: 761개 통과. `check:content` 통과(§33 가드 발화 시험 포함).
+- **구글 PSI(2026-07-27 22:21·22:23 실측)**: LCP **3.4·3.6초**(시작 7.0초), FCP **1.7·1.4초**(시작 2.3초), CLS **0·0**(시작 0.057), 접근성 **100**. 점수는 **55·78** 로 갈렸는데 원인은 **TBT 3,850ms vs 460ms** — 우리 코드가 아니라 구글 측정 서버의 튐.
+- ❌ **검증 못 한 것**: ①안정된 구글 점수(TBT 튐 때문에 단일 값으로 못 말한다 — 여러 번 돌려 중앙값을 봐야 한다) ②`/hospitals/immune` 개선치 ③ko·zh·ja 홈의 FCP 개선분 ④폰트 미리받기 후 **사람 눈으로 6개 언어 화면 확인 안 함**(변경이 preload 힌트뿐이라 시각 변화는 없어야 하나 직접 안 봤다).
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. ⚠️**LCP 는 건드리지 마라 — 실험 5종 무효 판정이 `KNOWN_ISSUES.md` 최상단에 표로 있다.** 할 일은 ①직전 미검증분(`/hospitals/immune` 실측 · ko·zh·ja 홈 FCP) 확인 ②**TBT(멈칫) 파기** — 구글 TBT 가 80~3,850ms 로 튀고 그게 점수 편차의 유일한 원인이다. Sentry 청크(252KB)를 TBT 관점에서 다시 재고, `long-tasks` 상위 작업이 어느 청크인지 짚어서 쪼개거나 지연 로드해라. 측정할 땐 Lighthouse 에 `--blocked-url-patterns="*adguard*"` 필수(이 PC AdGuard 오염), 프리뷰↔프로덕션 총량 직접 비교 금지(프리뷰엔 Sentry 없음).
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-27 저녁 — **medguide.kz 상담방 링크 만료 실사고 복구 + 「링크가 미팅보다 먼저 죽는」 구조 봉인** 세션 종료)
 
 > PO 요청 *"내일 오후 5시 medguide.kz 미팅인데 오늘로 연기됐다. 상담방이 만료됐대, 다시 살려줘"* 로 시작. 만진 영역 = 상담 초대 토큰(발급 만료 계산) + 상담 생성 모달 안내문. **고객(카자흐 에이전시)이 먼저 발견한 실사고**라 복구가 1순위였고, 그다음 같은 부류를 코드로 막았다.
