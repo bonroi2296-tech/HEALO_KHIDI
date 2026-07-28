@@ -34,7 +34,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 1
+          # ⚠️ 0(전체 이력) 이어야 한다. 1(얕은 복제)로 두면 «다른 브랜치로 미는 것»이 통째로 깨진다:
+          #    깃이 production 의 조상 관계를 알 수 없어 정상 fast-forward 도 non-fast-forward 로 거부한다.
+          #    2026-07-28 실제 증상 — production 을 «처음 만드는» 첫 실행만 성공하고
+          #    그 뒤 모든 실행이 실패(그날 배포가 통째로 안 나갔다). 되돌리지 마라.
+          fetch-depth: 0
 
       - name: 오늘 머지된 게 있는지 확인
         id: check
@@ -42,7 +46,8 @@ jobs:
           set -uo pipefail
           # production 이 이미 main 과 같으면 그날 머지된 게 없다는 뜻 → 빌드 낭비 방지.
           # (production 브랜치가 아직 없으면 fetch 가 실패한다 → 그냥 배포 진행 = 「모르면 짓는다」.)
-          git fetch --depth=1 origin production >/dev/null 2>&1 || true
+          # --depth=1 을 쓰지 마라(위 fetch-depth 주석과 같은 이유 — 조상 관계를 잃는다).
+          git fetch origin production >/dev/null 2>&1 || true
           prod="$(git rev-parse FETCH_HEAD 2>/dev/null || true)"
           if [ -n "$prod" ] && [ "$prod" = "$(git rev-parse HEAD)" ]; then
             echo "새 머지 없음 (production 이 이미 main 과 동일) — 배포 생략"
