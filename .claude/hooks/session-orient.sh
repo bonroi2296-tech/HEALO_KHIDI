@@ -107,6 +107,8 @@ if command -v gh >/dev/null 2>&1; then
       short=${ref#origin/}
       # ② 후보에 대해서만 GitHub 를 묻는다(보통 0건 → 망 호출 0). 전체 PR 목록을 받으면
       #    800건이 넘어 느리고, --limit 에 잘리면 «PR 있는데 없다»고 거짓 경보가 난다.
+      # 한계: gh 호출은 최신 8개 후보까지만(훅이 느려지지 않게). 오래 방치된 브랜치가 8개를 넘으면
+      # 그 아래는 못 본다 — 갇힌 작업은 보통 최근 것이라 이 정도로 충분. 자주 잘리면 상한을 올릴 것.
       checked=$((checked+1)); [ "$checked" -gt 8 ] && break
       pr=$(timeout 10 gh pr list --state all --head "$short" --limit 1 --json number,state,mergedAt,closedAt \
              -q '.[]|"\(.number)|\(.state)|\(.mergedAt // .closedAt // "")"' 2>/dev/null) || continue
