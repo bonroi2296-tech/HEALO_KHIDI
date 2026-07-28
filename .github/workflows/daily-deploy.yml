@@ -32,18 +32,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 2
+          fetch-depth: 1
 
       - name: 오늘 머지된 게 있는지 확인
         id: check
         run: |
           set -euo pipefail
-          # 직전 [deploy] 커밋 이후로 새 커밋이 있나. 없으면 빌드를 낭비하지 않는다.
-          last="$(git log --grep='\[deploy\]' --format=%H -1 || true)"
-          if [ -n "$last" ] && [ "$last" = "$(git rev-parse HEAD)" ]; then
-            echo "새 머지 없음 — 배포 생략"
-            echo "skip=1" >> "$GITHUB_OUTPUT"
-          fi
+          # 아무것도 안 머지됐으면 main 의 맨 위가 «지난번 창구 커밋» 그대로다 → 빌드 낭비 방지.
+          #
+          # ⚠️ 반드시 **제목(%s)** 만 본다. 처음엔 `git log --grep='[deploy]'` 를 썼는데
+          #    --grep 은 커밋 **본문**까지 뒤져서, PR 설명에 사용법 예시로 적어둔
+          #    「chore: 긴급 배포 [deploy]」 한 줄에 걸려 창구가 통째로 스킵됐다(2026-07-28 실측).
+          subject="$(git log -1 --format=%s)"
+          case "$subject" in
+            "chore: 오늘치 배포 창구"*)
+              echo "새 머지 없음 ($subject) — 배포 생략"
+              echo "skip=1" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: 배포 창구 열기 ([deploy] 커밋 푸시)
         if: steps.check.outputs.skip != '1'
