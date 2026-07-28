@@ -3,7 +3,10 @@
  *
  * 실측(live): 제미나이 토큰·비용 / Supabase DB·스토리지 용량 / 알림 채널별 발송(Resend·SES·
  *             Twilio·Telegram) / LiveKit 상담방 수.
- * 콘솔(console): Vercel·Sentry — 벤더 Management API 키 미보유 → 무료 한도·콘솔 링크만.
+ * Vercel: 토큰이 있으면 live — **요금제·청구주기·포함 크레딧은 청구 API 실값**,
+ *         배포 건수·빌드 시간은 배포 API 전수 집계, **빌드비만 추정**(벤더가 소진액 API 를
+ *         안 준다 — 2026-07-28 전수 시도 확인). 토큰 없으면 콘솔 링크만.
+ * 콘솔(console): Sentry 토큰이 없을 때 — 무료 한도·콘솔 링크만.
  *
  * 모든 DB 접근은 service_role(supabaseAdmin) — RLS 우회. 실패는 errors 로 표면화(조용한 0 방지).
  */
