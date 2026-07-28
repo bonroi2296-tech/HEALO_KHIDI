@@ -104,3 +104,7 @@ if (SENTRY_DSN && typeof window !== "undefined") {
   if (document.readyState === "complete") schedule();
   else window.addEventListener("load", schedule, { once: true });
 }
+
+// 이 파일은 «켜는 일»만 하고 내보낼 게 없다. 다만 정적 import 가 사라져서(센트리를 동적으로 받게
+// 바꿨다) TypeScript 가 «모듈이 아닌 스크립트»로 보고 import 를 거부한다 → 빈 export 로 모듈임을 알린다.
+export {};
