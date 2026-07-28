@@ -5,6 +5,10 @@ import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Papercl
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
+import { event, GA_EVENTS } from "@/lib/ga";
+
+// GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
+const ga = (name, params) => { try { event(name, params); } catch {} };
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
@@ -503,6 +507,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
 
   const handleThumbsUp = async (messageId) => {
     if (feedbackDone[messageId] || !threadId || !publicToken) return;
+    ga(GA_EVENTS.CHAT_FEEDBACK, { rating: "up" });
     setFeedbackDone((prev) => ({ ...prev, [messageId]: "positive" }));
     setFeedbackThanks(messageId);
     setTimeout(() => setFeedbackThanks(null), 2000);
@@ -519,6 +524,8 @@ export function ThreadChat({ onBack, backLabel } = {}) {
 
   const handleThumbsDown = (messageId) => {
     if (feedbackDone[messageId] || !threadId || !publicToken) return;
+    // 「AI 답이 별로였다」 — 환각·오답을 찾아 고치는 출발점.
+    ga(GA_EVENTS.CHAT_FEEDBACK, { rating: "down" });
     setFeedbackModal({ messageId });
   };
 
@@ -555,6 +562,8 @@ export function ThreadChat({ onBack, backLabel } = {}) {
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "start_failed");
+      // AI 상담이 실제로 열렸다 — 「이걸 쓰긴 하나」의 분모.
+      ga(GA_EVENTS.CHAT_STARTED, { entry: "anonymous" });
       setThreadId(json.thread_id);
       setPublicToken(json.public_token);
       writeCookie(TOKEN_COOKIE, json.public_token);
@@ -776,6 +785,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || "start_failed");
 
+        ga(GA_EVENTS.CHAT_STARTED, { entry: "identified" });
         setThreadId(json.thread_id);
         setPublicToken(json.public_token);
         setGuest({ name, email, country });
@@ -831,7 +841,13 @@ export function ThreadChat({ onBack, backLabel } = {}) {
       content: trimmed,
       attachments: outgoingFiles,
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => {
+      // message_index = 이 사람이 보낸 몇 번째 메시지인가. 「2번 만에 다 나간다」면
+      // AI 첫 답이 시원찮다는 뜻 — 어디를 고쳐야 하는지가 이 숫자로 보인다.
+      const sentCount = prev.filter((m) => m.role === "user").length + 1;
+      ga(GA_EVENTS.CHAT_MESSAGE_SENT, { message_index: sentCount, has_attachment: outgoingFiles.length > 0 });
+      return [...prev, userMsg];
+    });
     // 빠른 행동은 사용자가 입력 중이던 텍스트를 지우지 않는다(칩만 보냄).
     if (!isOverride) setInput("");
     setAttachments([]);
@@ -1037,7 +1053,11 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
-                onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
+                onClick={() => {
+                  // AI 가 못 푼 질문 = 우리가 AI 를 어디까지 못 가르쳤는지 알려주는 신호.
+                  ga(GA_EVENTS.CHAT_REQUEST_HUMAN);
+                  handleSend(t("chat.action.coordinatorMsg", langCode));
+                }}
                 disabled={sending || uploading}
                 className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1046,7 +1066,11 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               </button>
               <button
                 type="button"
-                onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+                onClick={() => {
+                  // AI 상담이 실제로 «문의»를 만들어내는지 — AI 를 계속 키울 근거가 되는 숫자.
+                  ga(GA_EVENTS.CHAT_TO_INQUIRY);
+                  handleSend(t("chat.action.registerMsg", langCode));
+                }}
                 disabled={sending || uploading}
                 className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
