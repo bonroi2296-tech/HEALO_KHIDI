@@ -260,6 +260,15 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 - **고친다면**: ①`ROLES` 에 `["hospital", "E2E_HOSPITAL_EMAIL"]` 추가 ②`e2e/fixtures/auth.ts` 의 `Role` 타입·로그인 경로에 hospital 반영 ③`.env.example` 에 `E2E_*` 키 6개를 주석과 함께 등재 ④병원 계정 1개 발급.
 - **왜 중요한가**: 이게 막혀 있는 동안 국내병원 백오피스는 **"직접 동작 검증 못 함"** 상태로만 보고할 수 있다. 옛 지침의 *"로그인 뒤 화면은 로컬에서 못 연다"* 는 서술이 이 구멍을 덮고 있었다(→ `docs/rules/PREVIEW.md` 에서 정정).
 
+- ✅ **2026-07-28 배선 완료 (남은 건 PO 손 1가지)**:
+  - `e2e/auth.setup.ts` 역할 목록에 `hospital` 추가 · `e2e/fixtures/auth.ts` 에 `HOSPITAL_USER` + `Role` 타입 확장
+  - `e2e/hospital-portal.spec.ts` 신설 — 포털 진입 + `/hospital/profile`·`/hospital/treatments` 가 열리는지. **「홈으로 되돌아감」 증상을 경로로 직접 잡는다.**
+  - `.env.example` 에 `E2E_*` 계정 키 12개 등재 (그동안 어디에도 없어서 장치 존재 자체를 몰랐다) · `docs/E2E_SECRETS_SETUP.md` 표에 한 줄 추가
+  - 🔑 **남은 것**: `E2E_HOSPITAL_EMAIL`/`E2E_HOSPITAL_PASSWORD` 를 GitHub Actions Secrets 에 등록. **등록 전까지 이 스펙은 조용히 스킵된다**(= 검사가 없는 것과 같다).
+- 🔍 **실측으로 갈라진 것 (2026-07-28)**: 「`hospital@test.com` 이 첫 화면으로 되돌아간다」는 **데이터 문제가 아니다.** 문지기(`checkHospitalAuth`)가 보는 값은 `hospital_users.is_active` 인데 두 계정 다 `true`, `disabled` 도 안 찍혀 있다.
+  - 한때 `hospitals.is_active=false`(TEST 병원)를 원인으로 의심했으나 **문지기는 그 값을 안 본다** — 반증 검사에서 걸러졌다. 원인은 아직 미규명이고 **재현이 필요**하다(비밀번호는 Secrets 보관).
+  - 참고: `hospital@test.com` = TEST 병원(`is_active=false`) owner / `hospital@test.healo.kr` = 면력한방병원 마곡점 manager.
+
 ## 🔸 GA4 가 **실제로 데이터를 보내는지 아직 사람 눈으로 확인 못 했다** (2026-07-28, GA4 정비 [#1131] 직후)
 
 - **무엇**: CSP 구멍·전환 이벤트 정확도·측정 확장을 전부 고쳐 머지했으나, **브라우저로 「진짜 신호가 나가는지」는 못 쟀다.** 이 작업 환경의 외부접속 정책이 자동 브라우저(헤드리스 크로미움)를 막았고, 우회하지 않았다.
