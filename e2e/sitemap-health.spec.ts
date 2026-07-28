@@ -31,10 +31,21 @@ test("사이트맵이 광고하는 모든 URL(hreflang 포함)이 그 자체로 
   // 광고해도 200 으로 통과했다. 실제로 면력 지점 4개(×6언어=24 URL)가 /hospitals/immune 으로
   // 301 되면서 몇 주째 사이트맵에 실렸고, 구글은 「리디렉션이 포함된 페이지 = 색인 안 함」으로
   // 처리했다. 사이트맵에 실을 URL 은 그 자체가 200 이어야 한다 → 3xx 도 실패로 본다.
+  // ⚠️ 단, «경로는 그대로인 호스트 정규화»(www→apex, http→https)는 리디렉션이 아니라 주소
+  // 정규화다 — 프로덕션 나이틀리는 www 로 들어가므로 이걸 실패로 치면 전 URL 이 매일 밤 빨강이
+  // 된다(독립 리뷰 지적). 판정 기준은 「상태코드가 3xx 인가」가 아니라 **「경로가 옮겨지는가」**다.
   const fetchStatus = async (path: string): Promise<number> => {
     try {
       const r = await request.get(path, { failOnStatusCode: false, timeout: 60_000, maxRedirects: 0 });
-      return r.status();
+      const status = r.status();
+      if (status < 300 || status >= 400) return status;
+      const loc = r.headers()["location"];
+      if (!loc) return status;
+      const target = new URL(loc, r.url());
+      if (target.pathname !== path) return status; // 경로가 바뀐다 = 진짜 리디렉션 → 실패
+      // 경로 동일(호스트만 정규화) → 그 주소로 한 번 따라가 실제 상태를 본다
+      const r2 = await request.get(target.href, { failOnStatusCode: false, timeout: 60_000, maxRedirects: 0 });
+      return r2.status();
     } catch {
       return -1; // 네트워크 오류 — 재시도 대상
     }

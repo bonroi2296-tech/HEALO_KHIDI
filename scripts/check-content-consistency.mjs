@@ -2229,13 +2229,34 @@ const BACKOFFICE_SHARED = [
     } else {
       // source 패턴을 정규식으로. `${b}` 같은 보간부는 «같은 블록에 적힌 slug 리터럴들»로만
       // 넓힌다(.+ 로 넓히면 /treatments/${s} 가 살아있는 암종 목록까지 삼켜 오탐).
-      const literals = [...block[1].matchAll(/"([a-z0-9][a-z0-9-]*)"/g)].map((m) => m[1]);
+      const literals = [...block[1].matchAll(/['"]([a-z0-9][a-z0-9-]*)['"]/g)].map((m) => m[1]);
+      if (!literals.length) {
+        // 리터럴을 하나도 못 뽑으면 아래 정규식이 «빈 문자열» 로 넓혀져 조용히 아무것도 안 잡는다.
+        // 가드가 죽은 채 초록이 되는 게 제일 나쁘다 → 명시적으로 실패시킨다.
+        errors.push(`[사이트맵-리디렉션] redirects() 에서 slug 리터럴을 못 뽑았다(따옴표 스타일 변경?) — 이 가드가 무력화됐다. 룰을 고칠 것.`);
+      }
       const anyLiteral = `(?:${literals.join("|")})`;
+      const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       // (:locale 접두 패턴은 언어 prefix 라 경로 비교에서 제외)
-      const sources = [...block[1].matchAll(/source:\s*[`"']([^`"']+)[`"']/g)]
-        .map((m) => m[1])
-        .filter((s) => !s.startsWith("/:locale"))
-        .map((s) => new RegExp("^" + s.replace(/\$\{[^}]+\}/g, anyLiteral) + "$"));
+      const sources = literals.length
+        ? [...block[1].matchAll(/source:\s*[`"']([^`"']+)[`"']/g)]
+            .map((m) => m[1])
+            .filter((s) => !s.startsWith("/:locale"))
+            .map((s) => {
+              // Next.js 경로 패턴 지원: `${x}` → 위 리터럴 union, `:p*` → 나머지 전부, `:p` → 한 세그먼트.
+              // (안 하면 정규식 특수문자 때문에 조용히 안 맞거나 new RegExp 이 던진다 — 독립 리뷰 지적)
+              const body = s
+                .split(/(\$\{[^}]+\}|:[a-zA-Z]\w*\*?)/)
+                .map((part) => {
+                  if (/^\$\{/.test(part)) return anyLiteral;
+                  if (/^:\w+\*$/.test(part)) return ".*";
+                  if (/^:\w+$/.test(part)) return "[^/]+";
+                  return escapeRe(part);
+                })
+                .join("");
+              return new RegExp("^" + body + "$");
+            })
+        : [];
       const { getAllPartnerSlugs } = await import(
         pathToFileURL(join(ROOT, "src/lib/data/partnerHospitals.js")).href
       );
@@ -2247,11 +2268,13 @@ const BACKOFFICE_SHARED = [
       ];
       // DB에서 오는 병원 slug 는 정적 검사로 볼 수 없다 → 사이트맵이 제외목록을 «쓰는지»만 확인.
       // (면력 지점은 DB 행이 살아있어서, 이 필터가 빠지면 리디렉션 URL 24개가 되살아난다)
-      if (!/REDIRECTED_PARTNER_SLUGS/.test(sitemapSrc)) {
-        errors.push(
-          `[사이트맵-리디렉션] app/sitemap.js 가 REDIRECTED_PARTNER_SLUGS 를 안 쓴다 → DB에 행이 남은 ` +
-            `영구이동 slug(면력 지점 등)가 사이트맵에 다시 실린다. DB 루프에서 제외할 것.`
-        );
+      for (const listName of ["REDIRECTED_PARTNER_SLUGS", "REDIRECTED_TREATMENT_SLUGS"]) {
+        if (!sitemapSrc.includes(listName)) {
+          errors.push(
+            `[사이트맵-리디렉션] app/sitemap.js 가 ${listName} 를 안 쓴다 → DB에 행이 남거나 되살아난 ` +
+              `영구이동 slug 가 사이트맵에 다시 실린다. 해당 DB 루프에서 제외할 것.`
+          );
+        }
       }
       for (const [path, where] of advertised) {
         if (sources.some((re) => re.test(path))) {

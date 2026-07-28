@@ -1,6 +1,10 @@
 import { getTreatmentList } from "@/lib/data/treatments";
 import { getHospitalList } from "@/lib/data/hospitals";
-import { getAllPartnerSlugs, REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
+import {
+  getAllPartnerSlugs,
+  REDIRECTED_PARTNER_SLUGS,
+  REDIRECTED_TREATMENT_SLUGS,
+} from "@/lib/data/partnerHospitals";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_LIMIT = 1000;
@@ -135,6 +139,8 @@ export default async function sitemap() {
   for (const t of treatments || []) {
     const slugOrId = t?.slug || t?.id;
     if (!slugOrId) continue;
+    // 영구이동된 옛 프로그램은 행이 되살아나도 사이트맵에 싣지 않는다(위 병원과 같은 이유).
+    if (REDIRECTED_TREATMENT_SLUGS.includes(slugOrId)) continue;
     const lastModified = t?.updated_at || t?.created_at || now;
     urls.push(
       ...localized(`/treatments/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 })

@@ -370,6 +370,19 @@ export const REDIRECTED_PARTNER_SLUGS = [
   "immunehospital-seongdong",
 ];
 
+// 피벗 때 비운 옛 한방 프로그램 slug — next.config.js 가 /specialties/korean-medicine 으로
+// 영구이동시킨다. 지금은 treatments 테이블이 비어 사이트맵에 안 실리지만, 시드 스크립트
+// (scripts/seed-myeonryeok.cjs)나 백업 복원으로 행이 되살아나면 곧바로 「리디렉션 URL 광고」가
+// 재현된다(독립 리뷰 지적) → 사이트맵이 이 목록을 항상 걸러낸다.
+export const REDIRECTED_TREATMENT_SLUGS = [
+  "immune-boost-program",
+  "pediatric-growth-immune-program",
+  "wellness-detox-body-rebalance",
+  "anti-aging-herbal-therapy",
+  "fertility-support-program",
+  "postpartum-recovery-program",
+];
+
 /** 실제로 200 을 내는 제휴 병원 slug (영구이동 대상 제외) */
 export function getAllPartnerSlugs() {
   return Object.keys(PARTNER_HOSPITALS).filter((s) => !REDIRECTED_PARTNER_SLUGS.includes(s));
