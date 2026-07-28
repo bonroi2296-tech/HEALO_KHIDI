@@ -20,7 +20,9 @@
 >   - **몰래 녹화가 구조적으로 불가능**하게 만들었다 — LiveKit 이 방 전원에게 녹화 상태를 알리고 그걸 그대로 빨간 배지로 띄운다. 이 배지 지우지 마라.
 >   - **PO 추가 지시(같은 날): "정책을 만든 다음에 활성화하자. 일단 연결만 해둬."** → 배선을 실제로 다 붙였다: **저장 버킷 생성 완료**(Supabase Storage `consultation-recordings`, 비공개·서울 리전) · **파기 배치 cron 신설**(`purge-recordings`, 매일 02:30 KST) · `egress_ended` 웹훅 처리. **남은 건 딱 2개 = ①PO 의 S3 키 발급(대시보드 클릭) ②정책 확정 후 스위치 ON.**
 >   - ⚠️ **함정(문서에 못 박음)**: S3 endpoint 호스트가 `<ref>.supabase.co` 가 아니라 **`<ref>.storage.supabase.co`** 다. 틀리면 업로드가 통째로 실패한다.
->   - 🔴 **켜기 전 PO 가 정해야 할 것 5가지** = `docs/CONSULT_RECORDING_SETUP.md` 체크리스트(동의 방식·보관기간·열람권한·국외이전 고지 등). **실제 녹화는 한 번도 안 돌려봤다**(스위치가 꺼져 있어 못 돈다) — 켜는 날 첫 검증이다.
+>   - ✅ **배선 100% 완료** — PO 가 S3 키 발급 + Vercel env 4개 등록까지 끝(production·preview, sensitive 확인). **남은 건 스위치 2줄 + 배포뿐.**
+>   - 🛑 **PO 결정 — 정책은 «녹화가 실제로 필요해지는 시점»에 정한다.** *"지금 다 만들어놔도 나중에 어떤 상황이 발생할지 무의미할 것 같은데."* → **동의 UI·열람 화면·보관정책을 미리 만들지 마라.** `CONSULT_RECORDING_SETUP.md` 의 빈 체크박스는 **의도적으로 비워둔 것**이지 숙제가 아니다(이 저장소는 «빠진 것 = 채울 것» 오판이 반복된 이력이 있다 — 바로 아래 7/28 새벽 블록 참조).
+>   - ⚠️ **실제 녹화는 한 번도 안 돌려봤다**(스위치가 꺼져 있어 못 돈다). env 값도 sensitive 라 어시가 못 읽어 **오타는 켜는 날 첫 녹화에서만 드러난다.** 켤 땐 **production 만** 켤 것 — 키가 preview 에도 있어 프리뷰(시험) 녹화가 실저장소에 섞인다.
 >   - 📌 부수 정정: `docs/CRON_STATUS.md` 의 **「vercel.json crons 절대 추가 금지 — Hobby 한도」 경고가 낡았다**. Hobby 가 막던 건 개수가 아니라 «하루 1회보다 잦은 주기»이고 개수 한도는 두 플랜 다 100개(공식 문서 실확인). 우린 Pro다.
 >
 > **📌 중간 저장 (2026-07-28 — [성능] 홈 멈칫(TBT) 329→120ms · 센트리를 「에러·첫 조작·15초」에 켜게 [#1063](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1063)+[#1070](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1070) 머지)** — 워크트리 `HEALO_worktrees/fcp-probe`, 브랜치 `perf/tbt`→`perf/tbt3`. 어제 핸드오프 1순위(TBT 파기)의 결말.
