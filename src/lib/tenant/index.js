@@ -88,22 +88,28 @@ const IMMUNE = {
     line: "",
     wechat: "",
   },
+  // ⚠️ **모르는 값은 빈 문자열로 둔다.** 자리표시자(PLACEHOLDER)를 넣었더니 그 글자가
+  //    푸터·문의 버튼에 그대로 떴다(2026-07-28 1차 목업 실측). 화면은 빈 값이면 그 줄을
+  //    통째로 안 그린다 → **모르는 사실은 «아무 말도 안 하는» 쪽이 맞다**(지어내면 허위 표시).
+  //    실제 구축 때 병원에서 받아 채울 칸: 법인명·대표자·사업자번호·유치기관 등록·보험·이메일.
   legal: {
     serviceName: "면력한방병원",
-    operatedBy: "PLACEHOLDER — 의료법인명 미확인",
-    representative: "PLACEHOLDER",
-    representativeKo: "PLACEHOLDER",
-    businessRegistrationNumber: "PLACEHOLDER-000-00-00000",
-    foreignPatientAttractionRegistration: "PLACEHOLDER",
-    guaranteeInsurer: "PLACEHOLDER",
-    guaranteeInsurerKo: "PLACEHOLDER",
+    operatedBy: "",
+    representative: "",
+    representativeKo: "",
+    businessRegistrationNumber: "",
+    foreignPatientAttractionRegistration: "",
+    guaranteeInsurer: "",
+    guaranteeInsurerKo: "",
     // 본원(강서점) 실주소 — hospitals 테이블 값.
     addressLine1: "93 Magokjungang 6-ro, Gangseo-gu,",
     addressLine2: "Seoul, Republic of Korea",
     addressKo: "서울특별시 강서구 마곡중앙6로 93, 열린프라자 6,7,10층",
-    contactEmail: "PLACEHOLDER@example.com",
-    privacyOfficer: "PLACEHOLDER",
-    privacyOfficerKo: "PLACEHOLDER",
+    contactEmail: "",
+    // 대표번호는 공개 정보라 그대로 쓴다(immunehospital.com · hospitals 테이블 일치).
+    contactPhone: "1588-2915",
+    privacyOfficer: "",
+    privacyOfficerKo: "",
     copyright: "© Immune Hospital. All rights reserved.",
     copyrightKo: "© 면력한방병원. All rights reserved.",
   },

@@ -112,8 +112,37 @@ describe("테넌트 — 면력 목업으로 전환했을 때", () => {
   it("목업 표식이 붙어 있다 — 실서비스 전환 전에 반드시 지워야 할 신호", async () => {
     const m = await loadTenant("immune");
     expect(m.getTenant().isMockup).toBe(true);
-    // 법인정보가 자리표시자인지 — 진짜 값인 척하면 허위 표시가 된다.
-    expect(m.getTenant().legal.businessRegistrationNumber).toContain("PLACEHOLDER");
+  });
+
+  it("🔒 모르는 법인정보는 «빈칸»이지 자리표시자 글자가 아니다", async () => {
+    // 왜: 처음엔 "PLACEHOLDER" 를 넣었는데 그 글자가 **푸터와 문의 버튼에 그대로 떴다**
+    //     (2026-07-28 목업 실측). 화면은 빈 값이면 그 줄을 안 그리므로,
+    //     모르는 사실은 지어내지도 자리표시자로 채우지도 말고 **아무 말도 안 하는** 게 맞다.
+    const m = await loadTenant("immune");
+    const legal = m.getTenant().legal;
+    for (const key of [
+      "operatedBy",
+      "representative",
+      "representativeKo",
+      "businessRegistrationNumber",
+      "foreignPatientAttractionRegistration",
+      "guaranteeInsurer",
+      "contactEmail",
+      "privacyOfficer",
+    ]) {
+      expect(legal[key]).toBe("");
+    }
+    // 확인된 공개 정보는 반대로 채워져 있어야 한다.
+    expect(legal.serviceName).toBe("면력한방병원");
+    expect(legal.contactPhone).toBe("1588-2915");
+    expect(legal.addressKo).toContain("마곡중앙6로");
+  });
+
+  it("자리표시자 글자가 테넌트 설정 어디에도 없다", async () => {
+    const m = await loadTenant("immune");
+    const dump = JSON.stringify(m.getTenant());
+    expect(dump).not.toContain("PLACEHOLDER");
+    expect(dump).not.toContain("example.com");
   });
 });
 
