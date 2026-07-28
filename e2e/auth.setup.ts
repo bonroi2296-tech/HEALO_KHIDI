@@ -28,6 +28,8 @@ const ROLES: Array<[Role, string]> = [
   ["coordinator", "E2E_COORDINATOR_EMAIL"],
   ["agency", "E2E_AGENCY_EMAIL"],
   ["clinic", "E2E_CLINIC_EMAIL"],
+  // 2026-07-28 추가 — 유일하게 빠져 있던 역할. 이게 없어서 /hospital/* 을 아무도 못 봤다.
+  ["hospital", "E2E_HOSPITAL_EMAIL"],
 ];
 
 for (const [role, envKey] of ROLES) {

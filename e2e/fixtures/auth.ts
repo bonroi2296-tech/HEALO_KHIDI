@@ -6,6 +6,9 @@
  *   E2E_TEST_USER_PASSWORD
  *   E2E_ADMIN_EMAIL        — 어드민 테스트 계정 (더미)
  *   E2E_ADMIN_PASSWORD
+ *   E2E_HOSPITAL_EMAIL     — 국내 병원 테스트 계정 (더미)
+ *   E2E_HOSPITAL_PASSWORD
+ *   (전체 목록·설명은 .env.example 의 「E2E 테스트 계정」 절)
  */
 
 import { type Page } from "@playwright/test";
@@ -48,7 +51,17 @@ export const CLINIC_USER = {
   password: process.env.E2E_CLINIC_PASSWORD || "E2eClinic1234!",
 };
 
-export type Role = "patient" | "admin" | "coordinator" | "agency" | "clinic";
+// 국내 병원 테스트 계정 (hospital_users 로 병원에 연결된 계정)
+//
+// 왜 뒤늦게 추가됐나(2026-07-28): 역할 목록에 hospital 만 **아예 없어서** /hospital/* 화면은
+// 어떤 방법으로도 자동 확인이 안 됐다. 핸드오프에 "계정 접근 불가로 못 봄" 으로 반복 기록됐는데
+// 원인은 계정을 몰라서가 아니라 «목록에 없어서» 였다(docs/KNOWN_ISSUES.md).
+export const HOSPITAL_USER = {
+  email: process.env.E2E_HOSPITAL_EMAIL || "e2e-hospital@healo-test.invalid",
+  password: process.env.E2E_HOSPITAL_PASSWORD || "E2eHospital1234!",
+};
+
+export type Role = "patient" | "admin" | "coordinator" | "agency" | "clinic" | "hospital";
 
 /**
  * 역할별 로그인 — 저장된 세션(쿠키) 재사용이 기본, 없으면 UI 로그인 폴백.
@@ -86,7 +99,9 @@ export async function uiLoginAs(page: Page, role: Role = "patient"): Promise<voi
           ? AGENCY_USER
           : role === "clinic"
             ? CLINIC_USER
-            : TEST_USER;
+            : role === "hospital"
+              ? HOSPITAL_USER
+              : TEST_USER;
 
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
