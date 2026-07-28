@@ -26,6 +26,7 @@
     "check:legal": "node scripts/check-legal-parity.mjs",
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
+    "check:rules": "node scripts/check-rules.mjs",
     "check:handoff": "node scripts/check-handoff.mjs",
     "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:live-meetings": "node scripts/check-live-meetings.mjs",
