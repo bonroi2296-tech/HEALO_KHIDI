@@ -206,22 +206,68 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         throw e;
       }
 
-      // 봇 디스패치는 토큰 발급 시점에 걸리지만 워커가 방에 붙기까지 몇 초 걸린다.
-      // 토글을 껐다 켜며 최대 ~40초 재확인 — 매번 새 토스트가 현재 재실 상태로 다시 뜬다.
+      // ⚠️ 토스트로 «봇 재실»을 묻지 마라 (2026-07-28 프리뷰 실측으로 배운 것).
+      //    토스트는 클릭해야 뜨는데, 이제 **클릭 자체가 봇을 부르고/내보낸다**(on-demand
+      //    디스패치). 옛 루프는 「켜서 토스트 보고 → 다시 꺼서 다음 회차 준비」였는데,
+      //    그 «다시 끄기»가 매번 봇을 쫓아내 **봇이 방에 붙을 8초를 스스로 없애 버렸다**
+      //    (실측: 4회 전부 pending 토스트 → 봇=false. 앱은 멀쩡했다).
+      //    → 클릭 없이 읽히는 신호로 판정한다: 봇 대기 배지(`voice-bot-pending`)는
+      //      `!agentPresent` 일 때만 그려지므로, **사라짐 = 봇 입장**이다.
+      const pendingBadge = robotB.getByTestId("voice-bot-pending").first();
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
-      for (let attempt = 0; attempt < 4 && !botPresent; attempt++) {
-        if (attempt > 0) await robotB.waitForTimeout(10_000);
-        await voiceBtn.click();
-        const toast = robotB.getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`)).first();
-        try {
-          await toast.waitFor({ state: "visible", timeout: 8_000 });
-          lastToast = (await toast.innerText()).trim();
-          botPresent = BOT_PRESENT.test(lastToast);
-        } catch {
-          /* 토스트를 놓쳤으면 다음 회차에서 다시 켜 본다 */
-        }
-        await voiceBtn.click().catch(() => {}); // 다시 꺼서 다음 회차가 새 토스트를 만들게
+
+      await voiceBtn.click(); // 통역 켜기 = 이 순간 서버가 봇을 부른다
+      const toast = robotB
+        .getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`))
+        .first();
+      lastToast = await toast
+        .waitFor({ state: "visible", timeout: 8_000 })
+        .then(() => toast.innerText())
+        .then((t) => t.trim())
+        .catch(() => "(토스트 못 봄)");
+
+      // 워커가 방에 붙기까지 수 초 — 배지가 사라지길 기다린다(끄지 않고 그냥 본다).
+      try {
+        await pendingBadge.waitFor({ state: "hidden", timeout: 45_000 });
+        botPresent = true;
+      } catch {
+        botPresent = false;
+      }
+
+      // ── 자막(STT→번역) «관측» — 봇을 내보내기 «전»에 본다 ────────────────
+      //   가짜 마이크에 흘리는 건 합성 음성(piper)이라 Gemini STT 가 이 목소리를 얼마나 잘
+      //   받아적는지가 **미검증**이다. 첫날부터 하드 실패로 걸면 «봇은 멀쩡한데 합성음 인식이
+      //   약해서» 매일 밤 빨간불이 뜰 수 있다(가드 신뢰도를 갉아먹는 부류). 며칠치 annotation 을
+      //   보고 실제로 잘 잡히면 그때 expect 로 승격할 것. ← TODO(승격 판단)
+      //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로, 자막 관측을 «끄기» 뒤로 두면 항상 못 본다.
+      let captionText = "(관측 안 함 — 봇 미입장)";
+      if (botPresent) {
+        await robotB.waitForTimeout(12_000); // 합성음이 STT→번역을 한 바퀴 돌 시간
+        captionText = await robotB
+          .locator("body")
+          .innerText()
+          .then((t) => (t.match(/위암|수술|회복|операц|восстанов/) ? "자막 후보 발견" : "자막 못 봄"))
+          .catch(() => "(본문 읽기 실패)");
+      }
+      test.info().annotations.push({
+        type: "interpreter-caption",
+        description: `${captionText} (합성음 STT 관측 — 승격 전 단계)`,
+      });
+
+      // 끄면 나가는가 — PO 요구사항의 나머지 절반(2026-07-28). 봇이 들어온 경우에만 의미.
+      let botLeft: boolean | null = null;
+      if (botPresent) {
+        await voiceBtn.click(); // 통역 끄기 = 방에 원하는 사람이 없으면 봇 퇴장
+        botLeft = await pendingBadge
+          .waitFor({ state: "visible", timeout: 45_000 })
+          .then(() => true)
+          .catch(() => false);
+        console.log(`[robot-call] 통역봇 퇴장=${botLeft}`);
+        test.info().annotations.push({
+          type: "interpreter-bot-leave",
+          description: `끄면 나가는가=${botLeft}`,
+        });
       }
 
       // ⚠️ 판정 결과는 **assert 앞에서 즉시** stdout 으로 찍는다.
@@ -241,21 +287,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         `통역봇(agent-*)이 상담방에 들어오지 않았다 — 워커 배포·LIVE_TRANSLATE_ENABLED 확인 필요. ` +
           `마지막 토스트: "${lastToast}"`
       ).toBeTruthy();
+      expect(
+        botLeft,
+        `통역을 껐는데 봇이 방에 남아 있다 (분당 과금이 계속 난다). ` +
+          `interpreter 라우트의 «아무도 원하지 않으면 퇴장» 판정을 볼 것.`
+      ).toBe(true);
 
-      // ── 자막(STT→번역)은 «관측만» 한다, 아직 실패로 치지 않는다 ──
-      //   가짜 마이크에 흘리는 건 합성 음성(piper)이라 Gemini STT 가 이 목소리를 얼마나 잘
-      //   받아적는지가 **미검증**이다. 첫날부터 하드 실패로 걸면 «봇은 멀쩡한데 합성음 인식이
-      //   약해서» 매일 밤 빨간불이 뜰 수 있다(가드 신뢰도를 갉아먹는 부류 — KNOWN_ISSUES flaky 참조).
-      //   며칠치 annotation 을 보고 실제로 잘 잡히면 그때 expect 로 승격할 것. ← TODO(승격 판단)
-      const captionText = await robotB
-        .locator("body")
-        .innerText()
-        .then((t) => (t.match(/위암|수술|회복|операц|восстанов/) ? "자막 후보 발견" : "자막 못 봄"))
-        .catch(() => "(본문 읽기 실패)");
-      test.info().annotations.push({
-        type: "interpreter-caption",
-        description: `${captionText} (합성음 STT 관측 — 승격 전 단계)`,
-      });
       console.log(`[robot-call] 통역봇=${botPresent} / 자막관측=${captionText}`);
     }
   });

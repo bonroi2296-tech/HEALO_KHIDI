@@ -2886,8 +2886,15 @@ export default function ConsultationRoomPage() {
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
+        {/* 봇 대기 배지 — 봇이 방에 들어오면 사라진다. 야간 로봇 통화가 «봇이 실제로
+            들어왔나/나갔나»를 이 배지로 판정한다(토스트는 클릭해야 뜨는데, 이제 클릭 자체가
+            봇을 부르고 내보내므로 토스트로 재실을 물으면 검사가 봇을 쫓아내 버린다 —
+            2026-07-28 첫 프리뷰 실행에서 실제로 그렇게 실패했다). */}
         {!agentPresent && (
-          <span className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full">
+          <span
+            data-testid="voice-bot-pending"
+            className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full"
+          >
             ···
           </span>
         )}
