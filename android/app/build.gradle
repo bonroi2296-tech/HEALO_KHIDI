@@ -27,7 +27,12 @@ android {
                 storeFile file(System.getenv("CM_KEYSTORE_PATH"))
                 storePassword System.getenv("CM_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("CM_KEY_ALIAS")
-                keyPassword System.getenv("CM_KEY_PASSWORD")
+                // ⚠️ 2026-07-28 실측: CM_KEY_PASSWORD 가 비었거나 어긋나면 gradle 이
+                //    «Get Key failed: Given final block not properly padded» 로 죽는다
+                //    (에러 문구에 «비밀번호» 얘기가 없어서 암호화 문제로 오해하기 쉽다).
+                //    healwith-upload.jks 는 스토어 비밀번호와 키 비밀번호가 동일하게 만들어졌으므로
+                //    스토어 것을 그대로 쓴다. 두 값이 다른 키스토어로 바꾸면 이 줄을 되돌릴 것.
+                keyPassword System.getenv("CM_KEYSTORE_PASSWORD")
             }
         }
     }
