@@ -31,7 +31,9 @@ import { pathToFileURL } from "node:url";
 const RULES = [
   { re: /\bPRs?\b|pull request/i, need: /신청서/, say: "합치기 신청서(PR)" },
   { re: /\bCI\b/, need: /검사/, say: "자동 검사(CI)" },
-  { re: /머지|\bmerges?\b|\bmerged\b/i, need: /합치|본판/, say: "본판에 합침(머지)" },
+  // ⚠️ 「나머지」의 뒷글자를 「머지」로 세면 안 된다(2026-07-28 실제 오탐 — 멀쩡한 문장이 걸렸다).
+  //    이런 오탐이 한 번이라도 나면 사람이 검사를 무시하게 된다(#148 에서 배운 것).
+  { re: /(?<![나])머지|\bmerges?\b|\bmerged\b/i, need: /합치|본판/, say: "본판에 합침(머지)" },
   { re: /\bdeploys?\b|\bdeployment\b/i, need: /실서비스|배포/, say: "실서비스 반영(배포)" },
   { re: /브랜치|\bbranch(es)?\b/i, need: /작업본/, say: "작업본(브랜치)" },
   { re: /롤백|\brollback\b/i, need: /되돌리/, say: "되돌리기(롤백)" },
@@ -93,6 +95,8 @@ function selfTest() {
     ["신청서 3개를 봤다. PR 마다 검사가 달랐다.", 0, "앞에서 한 번 풀었으면 뒤는 원어만 써도 통과"],
     ["`daily-deploy.yml` 파일을 고쳤다", 0, "코드블록 안 파일명은 검사 제외"],
     ["브랜치 6개가 동시에 떴다", 1, "「작업본」 없으면 위반"],
+    ["나머지는 기계가 본다", 0, "「나머지」를 「머지」로 잘못 세면 안 된다 (실제 오탐)"],
+    ["머지했다", 1, "진짜 「머지」는 그대로 잡아야 한다"],
   ];
   let bad = 0;
   for (const [text, want, why] of cases) {
