@@ -2271,7 +2271,8 @@ const BACKOFFICE_SHARED = [
       // DB에서 오는 병원 slug 는 정적 검사로 볼 수 없다 → 사이트맵이 제외목록을 «쓰는지»만 확인.
       // (면력 지점은 DB 행이 살아있어서, 이 필터가 빠지면 리디렉션 URL 24개가 되살아난다)
       for (const listName of ["REDIRECTED_PARTNER_SLUGS", "REDIRECTED_TREATMENT_SLUGS"]) {
-        if (!sitemapSrc.includes(listName)) {
+        // import 만 남기고 실제 필터를 지우는 퇴화까지 잡으려면 «호출»을 봐야 한다.
+        if (!sitemapSrc.includes(`${listName}.includes(`)) {
           errors.push(
             `[사이트맵-리디렉션] app/sitemap.js 가 ${listName} 를 안 쓴다 → DB에 행이 남거나 되살아난 ` +
               `영구이동 slug 가 사이트맵에 다시 실린다. 해당 DB 루프에서 제외할 것.`
