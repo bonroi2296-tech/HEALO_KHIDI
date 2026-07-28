@@ -171,8 +171,11 @@ npm run dev                # dev 서버는 Turbopack 정상
 
 - **Production: 「머지는 자유, 배포만 하루 한 번」 (2026-07-28 PO 결정).**
   **PR 은 평소대로 바로 머지해라.** main 에 머지돼도 **실서비스 빌드가 돌지 않는다.**
-  하루 한 번 **KST 오후 3시**에 `Daily Deploy` 워크플로가 main 위에 `[deploy]` 빈 커밋을
-  얹고, **그 한 건만** 빌드된다 — 그날 머지된 것 전부가 그 한 건에 들어간다.
+  하루 한 번 **KST 오후 3시**에 `Daily Deploy` 워크플로가 main 을 **`production` 브랜치**로
+  밀고, **그 한 건만** 빌드된다 — 그날 머지된 것 전부가 그 한 건에 들어간다.
+  (Vercel 의 Production Branch = `production`. main 은 보호 브랜치라 로봇이 못 민다 —
+   깃허브가 로봇이 만든 커밋에 검사를 안 돌려줘서 「검사 통과」 조건을 영원히 못 채운다.
+   자물쇠를 푸는 대신 옆문을 냈다. **`production` 브랜치는 창구 말고 아무도 건드리지 마라.**)
   - 급한 것(**장애·보안·PO가 지금 보자고 한 것**)은 기다리지 마라:
     ```bash
     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push
