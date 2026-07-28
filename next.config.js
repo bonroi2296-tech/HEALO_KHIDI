@@ -285,12 +285,29 @@ const nextConfig = {
   // 지점 페이지는 서버 HTML 이 얇아 구글엔 빈 페이지였고, 가짜 의료진("Medical Team")·
   // 한국어 이름만 떴다. 브랜드 페이지가 "Immune Hospital" 이름·대표원장 4명·전 콘텐츠를
   // 담고 있어 그리로 모은다. permanent=true → 308(구글은 301 처럼 취급, 링크 신호 이관).
+  // 피벗 전 한방 프로그램 상세 6개 → 한방 특화 페이지. treatments 테이블을 비우면서
+  // 상세가 통째로 사라져 구글이 옛 URL 을 계속 훑다 404(2026-07 GSC «찾을 수 없음» 6건).
+  // 사이트 안엔 이 링크가 없다 = 구글의 옛 기억 → 301 로 주제 상위 페이지에 흡수시킨다.
   async redirects() {
     const branches = ["magok", "sinchon", "gwangmyeong", "seongdong"];
-    return branches.flatMap((b) => [
-      { source: `/hospitals/immunehospital-${b}`, destination: "/hospitals/immune", permanent: true },
-      { source: `/:locale/hospitals/immunehospital-${b}`, destination: "/:locale/hospitals/immune", permanent: true },
-    ]);
+    const oldPrograms = [
+      "immune-boost-program",
+      "pediatric-growth-immune-program",
+      "wellness-detox-body-rebalance",
+      "anti-aging-herbal-therapy",
+      "fertility-support-program",
+      "postpartum-recovery-program",
+    ];
+    return [
+      ...branches.flatMap((b) => [
+        { source: `/hospitals/immunehospital-${b}`, destination: "/hospitals/immune", permanent: true },
+        { source: `/:locale/hospitals/immunehospital-${b}`, destination: "/:locale/hospitals/immune", permanent: true },
+      ]),
+      ...oldPrograms.flatMap((s) => [
+        { source: `/treatments/${s}`, destination: "/specialties/korean-medicine", permanent: true },
+        { source: `/:locale/treatments/${s}`, destination: "/:locale/specialties/korean-medicine", permanent: true },
+      ]),
+    ];
   },
 };
 
