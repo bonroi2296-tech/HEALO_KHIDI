@@ -79,7 +79,7 @@ workflows:
       android_signing:
         - healwith_keystore     # ← Codemagic Code signing identities 의 reference 이름
       node: 22   # Capacitor CLI 8.x 는 NodeJS >=22 요구(2026-07-27 빌드 실패로 확인)
-      java: 17
+      java: 21   # capacitor.build.gradle 이 VERSION_21 을 강제(17이면 «invalid source release: 21», 2026-07-28 실측)
     scripts:
       - name: npm 의존성 설치
         script: npm ci
@@ -109,7 +109,7 @@ workflows:
     max_build_duration: 45
     environment:
       node: 22
-      java: 17
+      java: 21   # capacitor.build.gradle 이 VERSION_21 을 강제(17이면 «invalid source release: 21», 2026-07-28 실측)
     scripts:
       - name: npm 의존성 설치
         script: npm ci
