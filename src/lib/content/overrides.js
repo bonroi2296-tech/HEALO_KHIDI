@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { HOME_CONTENT } from "./homeContent";
-import { applyTenantBrand, isDefaultTenant } from "@/lib/tenant";
+import { applyTenantBrand, isDefaultTenant, getTenant } from "@/lib/tenant";
 
 // 코디 편집 오버라이드를 기본 콘텐츠에 병합한다(서버 전용).
 // content_key 예: "home.stats.title" → HOME_CONTENT.stats.title 의 [lang] 을 덮어씀.
@@ -49,6 +49,10 @@ const getHomeOverridesCached = unstable_cache(
 
 export async function getMergedHomeContent() {
   const merged = deepClone(HOME_CONTENT);
+  // 테넌트 전용 홈 이야기가 있으면 먼저 덮어쓴다(코디 편집보다 아래 — 편집이 항상 최우선).
+  // 없는 섹션은 기본값이 그대로 남아 화면이 안 깨진다.
+  const tenantHome = getTenant().homeContent;
+  if (tenantHome) deepMerge(merged, tenantHome);
   const rows = await getHomeOverridesCached();
   for (const row of rows) {
     if (row?.content_key && row?.lang) setByPath(merged, row.content_key, row.lang, row.value);
@@ -57,6 +61,24 @@ export async function getMergedHomeContent() {
   // (2026-07-28 면력 목업 실험에서 «제목은 갈렸는데 본문은 healwith» 로 드러난 구멍).
   // healwith 테넌트면 아래 순회는 원본을 그대로 돌려준다.
   return isDefaultTenant() ? merged : brandifyLangMap(merged);
+}
+
+// 테넌트 콘텐츠를 기본 콘텐츠 위에 깊게 덮어쓴다.
+// 배열(stats.items 등)은 «항목 수와 의미가 통째로 다르므로» 병합하지 않고 갈아끼운다.
+function deepMerge(target, source) {
+  for (const [key, value] of Object.entries(source)) {
+    if (Array.isArray(value)) {
+      target[key] = deepClone(value);
+    } else if (value && typeof value === "object") {
+      if (!target[key] || typeof target[key] !== "object" || Array.isArray(target[key])) {
+        target[key] = {};
+      }
+      deepMerge(target[key], value);
+    } else {
+      target[key] = value;
+    }
+  }
+  return target;
 }
 
 // { ko: "…", en: "…" } 꼴의 언어맵을 만나면 각 값에 그 언어로 브랜드 치환을 건다.

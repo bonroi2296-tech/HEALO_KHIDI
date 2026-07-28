@@ -39,7 +39,15 @@ const TEXT_LOGO_SIZES = {
 
 function TextLogo({ tone, size, lang, className }) {
   const name = tenantBrandName(lang || "en");
-  const sizeCls = TEXT_LOGO_SIZES[size] || TEXT_LOGO_SIZES.md;
+  // 긴 이름은 한 단계 줄인다 — 다만 **이것만으로는 안 풀린다.**
+  // 2026-07-28 실측: 로고를 줄여도 러시아어 헤더의 겹침 2쌍이 그대로였다.
+  // 진짜 원인은 로고 폭이 아니라 **메뉴 항목 총 길이**다(러시아어는 단어가 길다).
+  // healwith(8자)일 땐 겨우 들어가던 것이 이름이 길어지자 넘친 것뿐 — 로고는 방아쇠지 원인이 아니다.
+  // 제대로 고치려면 헤더를 좁은 폭에서 접히게 다시 짜야 한다 = 목업 범위 밖.
+  // 기획서 §10-4-B 7번에 «미해결»로 남겨뒀다. 실제 구축 때 그 병원 이름으로 헤더를 눈으로 볼 것.
+  const isLongName = name.length > 12;
+  const effectiveSize = isLongName && size === "lg" ? "md" : size;
+  const sizeCls = `${TEXT_LOGO_SIZES[effectiveSize] || TEXT_LOGO_SIZES.md}${isLongName ? " md:text-base" : ""}`;
   const color = tone === "dark" ? "text-white" : "text-teal-700";
   return (
     <span className={`inline-flex items-center font-extrabold tracking-tight notranslate ${sizeCls} ${color} ${className}`}>

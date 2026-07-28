@@ -14,6 +14,8 @@
  *   - 푸터·법인정보·연락처가 한 곳(SITE_INFO)에서 갈리는지
  */
 
+import { IMMUNE_HOME_CONTENT } from "./content/immune";
+
 // 브랜드명은 언어마다 다르다(면력한방병원 / Immune Hospital / Иммунная Клиника …).
 // 사전 치환도 언어별이어야 해서 이름을 언어 맵으로 들고 있다.
 const HEALWITH = {
@@ -67,6 +69,9 @@ const HEALWITH = {
 const IMMUNE = {
   key: "immune",
   isMockup: true, // 목업 표식 — 실서비스 전환 시 반드시 제거하고 실제 정보로 교체
+  // 홈 이야기를 통째로 갈아끼운다. 브랜드명만 바꾸면 «이름은 면력, 이야기는 healwith» 가 된다
+  // (2026-07-28 1차 목업의 실패). 화자가 «중개자» 에서 «병원 본인» 으로 바뀌므로 섹션째 새로 씀.
+  homeContent: IMMUNE_HOME_CONTENT,
   name: {
     ko: "면력한방병원",
     en: "Immune Hospital",
