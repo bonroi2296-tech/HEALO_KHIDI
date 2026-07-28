@@ -4,8 +4,12 @@
 > PO 지시(2026-07-28): *"녹화는 정책을 만든 다음에 활성화하자. 일단 연결만 해둬."*
 > 지금 상담방은 **이 기능이 없던 때와 100% 동일하게** 동작한다 — 버튼도 안 뜨고 API 는 503 이다.
 >
-> **남은 것은 딱 2개**: ①PO 가 S3 키 발급(대시보드 클릭, 아래 「켜기」 1단계) ②정책 확정 후 스위치 ON.
-> 그 외 배선(버킷·테이블·API·UI·파기 배치)은 **전부 실제로 붙어 있다.**
+> **✅ 2026-07-28: 배선 100% 완료.** S3 키 발급(PO)·Vercel env 4개 등록까지 끝났다
+> (`RECORDING_S3_ENDPOINT`·`REGION`·`ACCESS_KEY`·`SECRET` — production·preview, sensitive 로 확인).
+> **남은 것은 하나뿐: 정책 확정 후 스위치 2개 ON + 재배포.**
+>
+> ⚠️ env 값은 Vercel 에 **암호화 보관(sensitive)**되어 어시가 못 읽는다 →
+> **오타가 있어도 지금은 알 수 없고, 켜는 날 첫 녹화에서 드러난다.** 3단계 검증을 꼭 하라는 이유.
 
 ---
 
@@ -74,22 +78,29 @@ Supabase Storage 의 **전역 업로드 상한이 50MB** 다(프로젝트 spend 
 
 ## 켜기 (3단계)
 
-1. **S3 접근키 발급 (PO — 대시보드에서만 됨, API 로는 못 만든다)**
+1. ~~**S3 접근키 발급**~~ **✅ 완료(2026-07-28)** — 아래는 다시 발급해야 할 때를 위한 기록.
+
+   **S3 접근키 발급 (PO — 대시보드에서만 됨, API 로는 못 만든다)**
    [Supabase → Storage → S3 Connection](https://supabase.com/dashboard/project/hvwwlkawaxabhtumjhrg/settings/storage)
    에서 **New access key** → Access key ID / Secret 을 복사(Secret 은 그때 한 번만 보인다).
    > 버킷은 이미 만들어 뒀다(`consultation-recordings`, 비공개). 키만 있으면 된다.
    > ⚠️ 세션토큰 방식(anon 키 + 사용자 JWT)은 쓰지 마라 — 사용자 토큰이 만료되면
    >   장시간 녹화 업로드가 중간에 끊긴다. 서버 전용 S3 키가 맞다.
-2. **Vercel Production env 6개**:
+2. **Vercel env** — 저장소 4개는 **✅ 등록 완료**(2026-07-28):
+   ```
+   RECORDING_S3_ENDPOINT=https://hvwwlkawaxabhtumjhrg.storage.supabase.co/storage/v1/s3
+   RECORDING_S3_REGION=ap-northeast-2
+   RECORDING_S3_ACCESS_KEY=✅   RECORDING_S3_SECRET=✅
+   ```
+   (endpoint 호스트가 `...supabase.co` 가 아니라 **`....storage.supabase.co`** 다 — 틀리면 업로드가 통째로 실패한다.)
+
+   **아직 안 넣은 것 = 스위치 2개.** 정책 확정되면 이것만 추가하고 재배포하면 켜진다:
    ```
    CONSULT_RECORDING_ENABLED=true
    NEXT_PUBLIC_CONSULT_RECORDING_ENABLED=true
-   RECORDING_S3_ENDPOINT=https://hvwwlkawaxabhtumjhrg.storage.supabase.co/storage/v1/s3
-   RECORDING_S3_REGION=ap-northeast-2
-   RECORDING_S3_ACCESS_KEY=...
-   RECORDING_S3_SECRET=...
    ```
-   → 재배포. (endpoint 호스트가 `...supabase.co` 가 아니라 **`....storage.supabase.co`** 다 — 틀리면 업로드가 통째로 실패한다.)
+   > 💡 **켤 땐 production 만 켜라.** 저장소 키는 preview 에도 들어가 있어서, 스위치까지 preview 에
+   > 켜면 **프리뷰(시험용) 배포에서 찍은 녹화가 실제 저장소에 섞여 들어간다.**
 3. **실상담 1건으로 검증**: 코디 계정으로 「녹화」 → 방 전원 화면에 **빨간 「녹화 중」** 뜨는지 →
    중지 → 버킷에 `.ogg` 파일이 올라왔는지 → `consultation_recordings` 행 `status='stopped'` 확인.
 

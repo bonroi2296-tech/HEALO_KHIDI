@@ -1928,6 +1928,37 @@ export default function ConsultationRoomPage() {
     return t ? { Authorization: `Bearer ${t}` } : null;
   }, [isGuestMode, inviteToken]);
 
+  // ── 녹화 (기본 꺼짐 — PO 지시 2026-07-28 "준비만") ──────────────────────
+  // 스위치가 꺼져 있으면 버튼 자체가 안 뜬다 = 지금 상담방과 동작이 완전히 같다.
+  // 켤 수 있는 사람도 운영자(어드민·코디)뿐 — 환자·게스트 의사에겐 안 보인다.
+  // ⚠️ 위치 주의: 이 컴포넌트는 아래쪽에 조기 return 이 여럿 있다(대기화면·로딩 등).
+  //    훅은 **모든 조기 return 보다 위**에 있어야 한다 — 아래에 두면 어떤 렌더에선 훅이
+  //    실행되고 어떤 렌더에선 안 돼서 리액트가 상태를 뒤섞는다(lint 가 실제로 잡아냈다).
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const toggleRecording = useCallback(async () => {
+    if (recordingBusy) return;
+    setRecordingBusy(true);
+    try {
+      const headers = await getConsultAuthHeaders();
+      if (!headers) return;
+      const res = await fetch(`/api/khidi/consultation/${consultationId}/recording`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: isRecording ? "stop" : "start" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) toast.error(c.recordingFailed);
+      // 성공했다고 버튼을 미리 바꾸지 않는다 — 표시는 방의 실제 녹화 상태(RecordingBadge)만
+      // 따른다. 낙관적 갱신을 하면 «켜진 줄 알았는데 안 찍히는»(또는 그 반대) 상태가 생기고,
+      // 녹화에서 그건 곧 «몰래 찍힘»으로 읽힌다.
+    } catch {
+      toast.error(c.recordingFailed);
+    } finally {
+      setRecordingBusy(false);
+    }
+  }, [recordingBusy, isRecording, consultationId, getConsultAuthHeaders, c]);
+
   // ── 클라이언트 오류 자동 보고 (진단 비콘) ──
   // 원격 기기(환자 폰 등)의 연결 실패 원인이 아무 데도 안 남아 진단이 이틀 밀렸던
   // 'invalid token: revoked' 장애(POSTMORTEMS #61) 재발 방지. 실패해도 조용히 무시(UX 영향 0).
@@ -2830,34 +2861,8 @@ export default function ConsultationRoomPage() {
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
-  // ── 녹화 (기본 꺼짐 — PO 지시 2026-07-28 "준비만") ──────────────────────
-  // 스위치가 꺼져 있으면 버튼 자체가 안 뜬다 = 지금 상담방과 동작이 완전히 같다.
-  // 켤 수 있는 사람도 운영자(어드민·코디)뿐 — 환자·게스트 의사에겐 안 보인다.
+  // 녹화 버튼 표시 여부 — 훅이 아니라 계산값이라 여기 둬도 된다(위 훅들과 달리 순서 무관).
   const recordingFeatureOn = isRecordingEnabledClient() && RECORDING_ROLES.includes(myRole);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingBusy, setRecordingBusy] = useState(false);
-  const toggleRecording = useCallback(async () => {
-    if (recordingBusy) return;
-    setRecordingBusy(true);
-    try {
-      const headers = await getConsultAuthHeaders();
-      if (!headers) return;
-      const res = await fetch(`/api/khidi/consultation/${consultationId}/recording`, {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ action: isRecording ? "stop" : "start" }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) toast.error(c.recordingFailed);
-      // 성공했다고 버튼을 미리 바꾸지 않는다 — 표시는 방의 실제 녹화 상태(RecordingBadge)만
-      // 따른다. 낙관적 갱신을 하면 «켜진 줄 알았는데 안 찍히는»(또는 그 반대) 상태가 생기고,
-      // 녹화에서 그건 곧 «몰래 찍힘»으로 읽힌다.
-    } catch {
-      toast.error(c.recordingFailed);
-    } finally {
-      setRecordingBusy(false);
-    }
-  }, [recordingBusy, isRecording, consultationId, getConsultAuthHeaders, c]);
 
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
   // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
