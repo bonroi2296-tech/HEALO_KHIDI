@@ -16,8 +16,14 @@ import { test, expect } from "@playwright/test";
  *    조상들의 overflow 상자와 교집합을 낸 **「화면에 보이는 영역」**으로 겹침을 잰다.
  */
 
-const 겹침세기 = `() => {
-  const 보이는영역 = (el) => {
+/**
+ * ⚠️ 이 함수는 반드시 «함수 그대로» `page.evaluate()` 에 넘긴다.
+ *    처음엔 문자열(`` `() => {...}` ``)로 넘겼는데, 문자열을 주면 Playwright 는 그걸
+ *    **식(expression)으로 평가**한다 → 결과가 «함수 객체»라 직렬화가 안 돼 `undefined` 가 온다.
+ *    그래서 첫 자동 검사가 `Cannot read properties of undefined (reading 'join')` 로 죽었다.
+ */
+function 겹침세기() {
+  const 보이는영역 = (el: Element) => {
     const b = el.getBoundingClientRect();
     const box = { l: b.left, r: b.right, t: b.top, bo: b.bottom };
     let p = el.parentElement;
@@ -36,11 +42,11 @@ const 겹침세기 = `() => {
   };
   const hdr = document.querySelector("header");
   if (!hdr) return ["헤더를 못 찾음"];
-  const items = [...hdr.querySelectorAll("a,button")].filter((e) => {
+  const items = Array.from(hdr.querySelectorAll("a,button")).filter((e) => {
     const b = e.getBoundingClientRect();
-    return b.width > 8 && b.height > 8 && e.offsetParent !== null;
+    return b.width > 8 && b.height > 8 && (e as HTMLElement).offsetParent !== null;
   });
-  const over = [];
+  const over: string[] = [];
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
       if (items[i].contains(items[j]) || items[j].contains(items[i])) continue;
@@ -48,12 +54,14 @@ const 겹침세기 = `() => {
       const c = 보이는영역(items[j]);
       if (a.r <= a.l || c.r <= c.l) continue; // 완전히 잘린 것은 화면에 없다
       if (a.r > c.l + 1 && c.r > a.l + 1 && a.bo > c.t + 1 && c.bo > a.t + 1) {
-        over.push(items[i].textContent.trim().slice(0, 16) + " ✕ " + items[j].textContent.trim().slice(0, 16));
+        over.push(
+          (items[i].textContent || "").trim().slice(0, 16) + " ✕ " + (items[j].textContent || "").trim().slice(0, 16),
+        );
       }
     }
   }
   return over;
-}`;
+}
 
 for (const lang of ["ru", "kz"]) {
   for (const width of [1280, 1366, 1440]) {
@@ -64,6 +72,8 @@ for (const lang of ["ru", "kz"]) {
       await page.waitForTimeout(800);
 
       const 겹침 = await page.evaluate(겹침세기);
+      // 판정 함수가 값을 못 돌려주면 «통과»가 아니라 «검사 실패»다(빈 배열과 구분).
+      expect(Array.isArray(겹침), "판정 함수가 배열을 못 돌려줬다 — 검사 자체가 안 돈 것").toBe(true);
       expect(겹침, `헤더 항목이 겹쳤다: ${겹침.join(" | ")}`).toEqual([]);
 
       // 「회원가입」 버튼이 오른쪽 끝에서 잘리지 않았는지 — 실제로 잘려 있었다.
