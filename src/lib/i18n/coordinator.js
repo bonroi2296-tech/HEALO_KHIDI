@@ -114,10 +114,10 @@ const CT = {
   cStatusScheduled: { ko: "예정", en: "Scheduled", ru: "Запланировано", kz: "Жоспарланған", zh: "已排期", ja: "予定" },
   // KHIDI 실적 집계 표시 (2026-07-29) — 「이 상담이 숫자에 잡히는지」를 코디가 화면에서 바로 알게.
   cCountedYes: { ko: "실적 집계됨", en: "Counted", ru: "Учтено", kz: "Есептелді", zh: "已计入", ja: "実績に計上" },
-  cCountedNoInquiry: { ko: "문의 미연결 — 실적 안 잡힘", en: "No inquiry linked — not counted", ru: "Заявка не привязана — не учитывается", kz: "Өтінім байланбаған — есептелмейді", zh: "未关联咨询 — 不计入", ja: "問い合わせ未連携 — 計上されません" },
-  cCountedNotDone: { ko: "완료 표시 필요 — 아직 안 잡힘", en: "Mark complete — not counted yet", ru: "Отметьте «завершено» — пока не учтено", kz: "«Аяқталды» деп белгілеңіз — әзірге есептелмейді", zh: "需标记完成 — 尚未计入", ja: "「完了」が必要 — まだ計上されません" },
+  cCountedNoLink: { ko: "문의 미연결 — 유치 추적 끊김", en: "No inquiry linked — attraction tracking broken", ru: "Заявка не привязана — цепочка привлечения прервана", kz: "Өтінім байланбаған — тарту тізбегі үзілген", zh: "未关联咨询 — 招引追踪中断", ja: "問い合わせ未連携 — 誘致追跡が切れます" },
+  cCountedNotCounted: { ko: "완료 표시 안 함 — 실적 0", en: "Not marked complete — counts as zero", ru: "Нет отметки «завершено» — считается нулём", kz: "«Аяқталды» белгісі жоқ — нөл болып саналады", zh: "未标记完成 — 计为 0", ja: "「完了」未設定 — 実績は 0" },
   cUnclosedTitle: { ko: "지난 상담인데 「완료」를 안 눌렀습니다", en: "Past consultations still not marked complete", ru: "Прошедшие консультации без отметки «завершено»", kz: "Өткен кеңестер «аяқталды» деп белгіленбеген", zh: "已过期但未标记完成的会诊", ja: "終了予定を過ぎたのに「完了」が未設定です" },
-  cLinkInquiryLabel: { ko: "문의 연결 (실적 집계에 필요)", en: "Link an inquiry (required to count)", ru: "Привязать заявку (нужно для учёта)", kz: "Өтінім байланыстыру (есепке қажет)", zh: "关联咨询（计入指标所需）", ja: "問い合わせを連携（実績計上に必要）" },
+  cLinkInquiryLabel: { ko: "문의 연결 (유치 전환 추적에 필요)", en: "Link an inquiry (needed for attraction tracking)", ru: "Привязать заявку (нужно для отслеживания привлечения)", kz: "Өтінім байланыстыру (тартуды бақылауға қажет)", zh: "关联咨询（招引追踪所需）", ja: "問い合わせを連携（誘致追跡に必要）" },
   cLinkInquiryPlaceholder: { ko: "— 문의 선택 —", en: "— Select inquiry —", ru: "— Выбрать заявку —", kz: "— Өтінім таңдау —", zh: "— 选择咨询 —", ja: "— 問い合わせを選択 —" },
   cLinkInquiryDone: { ko: "문의를 연결했습니다", en: "Inquiry linked", ru: "Заявка привязана", kz: "Өтінім байланыстырылды", zh: "已关联咨询", ja: "問い合わせを連携しました" },
   cLinkInquiryFail: { ko: "문의 연결 실패", en: "Failed to link inquiry", ru: "Не удалось привязать заявку", kz: "Өтінімді байланыстыру сәтсіз", zh: "关联咨询失败", ja: "問い合わせの連携に失敗しました" },
