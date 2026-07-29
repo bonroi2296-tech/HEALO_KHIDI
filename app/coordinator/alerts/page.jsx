@@ -225,7 +225,7 @@ export default function AlertsPage() {
               onClick={() => { setLoading(true); setFilter(tab.key); }}
               className={`px-4 py-3 text-sm font-medium transition border-b-2 ${
                 filter === tab.key
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-teal-600 text-teal-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -330,7 +330,7 @@ export default function AlertsPage() {
                       <button
                         onClick={() => handleAcknowledge(alert.id)}
                         disabled={actionLoading === alert.id}
-                        className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-medium bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg transition disabled:opacity-50"
                       >
                         {actionLoading === alert.id ? L.processing : L.alAcknowledge}
                       </button>
