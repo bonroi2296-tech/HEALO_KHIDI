@@ -259,6 +259,7 @@ export async function GET(request: NextRequest) {
         started_at,
         ended_at,
         status,
+        inquiry_id,
         patient_language,
         doctor_language,
         livekit_room_name,
