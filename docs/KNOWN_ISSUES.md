@@ -274,7 +274,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   - **반증 검사(단정 전에 먼저 확인한 것)**: *플래그가 진짜 원인이면 ①같은 포털인데 플래그가 없는 `/hospital/leads` 는 안 튕겨야 하고 ②플래그만 `true` 로 바꾸면 두 화면이 그대로 열려야 한다.* → **둘 다 참**. 실측: 꺼짐 = `/hospital/profile`·`/hospital/treatments` → `/hospital`(튕김), `/hospital/leads` → 그대로. 켜짐 = 셋 다 그대로. (플래그는 측정 후 원복, 커밋 없음)
   - **인증·데이터는 결백**: 로그인 성공(`/auth/v1/token` 200) → `/api/partner/whoami` 가 `{"isHospitalUser":true, hospitalName:"TEST 병원", role:"owner"}` 를 되돌려주고 로그인 직후 착지도 `/hospital` 이다. 「홈(`/`)으로 되돌아간다」는 **한 번도 재현되지 않았다** — 되돌아간 곳은 홈이 아니라 **포털 대시보드**였고, 옛 기록의 「첫 화면」이 그걸 가리켰다.
   - **덤으로 잡은 구멍**: 새 스펙의 판정이 `pathname.toContain("/hospital")` 이라 **`/hospital` 과 `/hospital/profile` 을 못 갈랐다** → 튕겨도 통과. 정확한 경로 비교 + 플래그 연동으로 교체(`e2e/hospital-portal.spec.ts`). 첫 스펙의 본문 검사도 「접근 권한 없음」 카드에 「병원」이 들어 있어 통과할 수 있어 카드 부재를 따로 잠갔다.
-  - **남은 판단(PO 몫)**: 「병원 정보」·「시술 카탈로그」를 열지 말지 = 공개 프론트 연동 여부. 지금은 **고칠 것이 없다**(의도대로 동작 중).
+  - ✅ **PO 재확인 2026-07-29: 「그대로 잠가 둔다」** — 공개 프론트가 병원 자가입력 내용을 아직 안 보여주므로 2026-06-24 결정 유지. **고칠 것 없음. 이 증상을 다시 버그로 올리지 말 것.**
 
 ## 🔸 GA4 가 **실제로 데이터를 보내는지 아직 사람 눈으로 확인 못 했다** (2026-07-28, GA4 정비 [#1131] 직후)
 
