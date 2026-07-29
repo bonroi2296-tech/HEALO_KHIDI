@@ -8,7 +8,8 @@
  */
 
 import { HospitalHeader, HospitalFooter, PageHero } from "./HospitalChrome";
-import MessengerRail from "./MessengerRail";
+import QuickRail, { AnnouncementBar, MobileBar } from "./QuickRail";
+import InquiryForm from "./InquiryForm";
 import { Block } from "./blocks";
 
 const pick = (v, lang) => {
@@ -27,7 +28,8 @@ export default function HospitalPage({ site, page, slug, lang = "en", onInquiry,
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
 
   return (
-    <div className="bg-[#FBF8F3] text-[#16211C] antialiased min-h-screen flex flex-col">
+    <div className="bg-[#FBF8F3] text-[#16211C] antialiased min-h-screen flex flex-col pb-[52px] sm:pb-0">
+      <AnnouncementBar text={t(site.announcement?.text)} href={site.announcement?.href} darkTone={darkTone} />
       <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} current={slug} />
       <PageHero title={t(page.title)} subtitle={t(page.subtitle)} darkTone={darkTone} />
 
@@ -45,21 +47,48 @@ export default function HospitalPage({ site, page, slug, lang = "en", onInquiry,
         ))}
       </main>
 
-      {/* 어느 페이지에 있든 상담으로 돌아올 길 — 병원 사이트의 목적은 상담 요청 하나다. */}
-      <section className="py-16 md:py-20" style={{ backgroundColor: darkTone }}>
-        <div className="max-w-6xl mx-auto px-5 md:px-8 text-center">
-          <h2
-            className="text-white text-2xl md:text-4xl font-semibold tracking-tight"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            {t(site.closing?.title)}
-          </h2>
-          {t(site.closing?.subtitle) && (
-            <p className="mt-4 text-white/60 text-base leading-relaxed max-w-2xl mx-auto whitespace-pre-line">
-              {t(site.closing.subtitle)}
-            </p>
-          )}
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      {/* 어느 페이지에 있든 상담으로 «돌아올 길»이 아니라 «신청할 자리»가 있어야 한다.
+          탭에만 버튼을 두면 홈에서 폼을 본 사람이 탭으로 들어온 순간 다시 버튼만 남는다
+          (검색으로 속 페이지에 바로 들어오는 사람이 많다). 홈과 같은 폼을 그대로 쓴다. */}
+      <section className="py-16 md:py-24" style={{ backgroundColor: darkTone }}>
+        <div className="max-w-6xl mx-auto px-5 md:px-8 grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-16 items-start">
+          <div>
+            <h2
+              className="text-white text-3xl md:text-5xl font-semibold leading-[1.08]"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
+            >
+              {t(site.closing?.title)}
+            </h2>
+            {t(site.closing?.subtitle) && (
+              <p className="mt-5 text-white/60 text-base leading-relaxed whitespace-pre-line">
+                {t(site.closing.subtitle)}
+              </p>
+            )}
+            <dl className="mt-8 space-y-4 text-[15px]">
+              {[
+                [site.labels?.address, t(site.contact?.address)],
+                [site.labels?.phone, site.contact?.phone],
+                [site.labels?.hours, t(site.contact?.hours)],
+              ].map(([k, v], i) =>
+                v ? (
+                  <div key={i} className="flex gap-5">
+                    <dt className="w-24 shrink-0 text-white/35 text-[13px] pt-0.5">{t(k)}</dt>
+                    <dd className="text-white/80 leading-relaxed">{v}</dd>
+                  </div>
+                ) : null,
+              )}
+            </dl>
+          </div>
+
+          {site.inquiryForm ? (
+            <InquiryForm
+              form={site.inquiryForm}
+              contact={site.contact}
+              lang={lang}
+              accent={accent}
+              labels={site.inquiryForm.labels || {}}
+            />
+          ) : (
             <button
               onClick={onInquiry}
               className="px-9 py-4 rounded-full text-white text-base font-medium shadow-xl transition-transform hover:scale-[1.02]"
@@ -67,30 +96,28 @@ export default function HospitalPage({ site, page, slug, lang = "en", onInquiry,
             >
               {t(site.hero?.primaryCta) || "Consult Now"}
             </button>
-            {site.contact?.phone && (
-              <a
-                href={`tel:${String(site.contact.phone).replace(/[^0-9+]/g, "")}`}
-                className="px-9 py-4 rounded-full border border-white/25 text-white text-base font-medium hover:bg-white/10 transition-colors"
-              >
-                {site.contact.phone}
-              </a>
-            )}
-          </div>
+          )}
         </div>
       </section>
 
       <HospitalFooter site={site} lang={lang} darkTone={darkTone} />
 
-      {/* 상시 상담 채널 — 해외 환자는 전화보다 메신저를 쓴다(국제전화 요금·시차·언어). */}
-      <MessengerRail channels={site.contact?.channels} accent={accent} label={t(site.labels?.chat)} />
-
-      <button
-        onClick={onInquiry}
-        className="fixed bottom-5 right-5 z-40 md:hidden px-6 py-3.5 rounded-full text-white text-sm font-medium shadow-2xl"
-        style={{ backgroundColor: accent }}
-      >
-        {t(site.hero?.primaryCta) || "Consult Now"}
-      </button>
+      {/* 오른쪽 고정 묶음(상담예약 + 메신저 + 전화). 폰에서는 아래 가로 바로 대신한다. */}
+      <QuickRail
+        channels={site.contact?.channels}
+        accent={accent}
+        label={t(site.labels?.chat)}
+        onInquiry={onInquiry}
+        phone={site.contact?.phone}
+        ctaLabel={t(site.labels?.quickCta)}
+      />
+      <MobileBar
+        channels={site.contact?.channels}
+        accent={accent}
+        onInquiry={onInquiry}
+        phone={site.contact?.phone}
+        ctaLabel={t(site.hero?.primaryCta)}
+      />
     </div>
   );
 }

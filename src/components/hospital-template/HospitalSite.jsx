@@ -25,7 +25,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import { HospitalHeader, HospitalFooter } from "./HospitalChrome";
-import MessengerRail from "./MessengerRail";
+import QuickRail, { AnnouncementBar, MobileBar } from "./QuickRail";
+import TreatmentMenu from "./TreatmentMenu";
+import InquiryForm from "./InquiryForm";
 import { Reveal, SnapRow } from "./motion";
 
 // 판 기본 강조색. 병원마다 `brand.accent` 로 덮어쓴다 — 색은 판이 정하는 게 아니라
@@ -113,7 +115,11 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
   const darkTone = site.brand?.darkTone || "#0C2233";
 
   return (
-    <div className="bg-[#FBF8F3] text-[#16211C] antialiased">
+    <div className="bg-[#FBF8F3] text-[#16211C] antialiased pb-[52px] sm:pb-0">
+      {/* 맨 위 공지 띠 — 「지금 무슨 일이 있나」. 유앤아이의원이 확장 오픈을 여기에 건다.
+          해외 환자용으로는 «이번 달 통역·항공 안내» 같은 게 이 자리다. 값 없으면 안 뜬다. */}
+      <AnnouncementBar text={t(site.announcement?.text)} href={site.announcement?.href} darkTone={darkTone} />
+
       {/* 헤더는 속 페이지와 공용(HospitalChrome) — 홈만 다른 헤더면 «다른 사이트»로 읽힌다. */}
       <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} />
 
@@ -247,6 +253,28 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
               </Reveal>
             ))}
           </div>
+        </Section>
+      )}
+
+      {/* ══ 치료 메뉴 — 「내 경우엔 뭘 받나」를 골라 본다 ══
+          유앤아이의원(uni114.co.kr) 화면 한가운데가 **필터 칩 + 카드 격자**였다. 방문자가
+          «리프팅»을 누르면 그것만 남는다 = 묻지 않고 고르게 하는 구조.
+          우리는 성형이 아니라 암이라 **할인가 대신 기간·포함내역·입원 여부**를 박는다. */}
+      {site.menu?.items?.length > 0 && (
+        <Section id="menu" tone="sand">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.menu) || "Treatments"}
+            title={t(site.menu.title)}
+            lead={t(site.menu.lead)}
+          />
+          <TreatmentMenu
+            menu={site.menu}
+            lang={lang}
+            accent={accent}
+            onInquiry={onInquiry}
+            labels={site.menu.labels || {}}
+          />
         </Section>
       )}
 
@@ -591,8 +619,71 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
-      {/* ══ 마무리 CTA ══ */}
+      {/* ══ 마무리 — 「말만 걸어두는 자리」가 아니라 실제로 신청하는 자리 ══
+          ⚠️ 여기가 판의 제일 큰 구멍이었다. 전에는 버튼 두 개뿐이라 **다른 데로 보내기만** 했다.
+             유앤아이의원은 홈 맨 아래에 이름·연락처·내용 폼이 **그 자리에** 있고 옆에 지도가 있다.
+             한 번 더 누르게 할수록 사람이 샌다. */}
       <Section tone="ink" darkTone={darkTone} id="contact" pad="loose">
+        <div className="grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-16 items-start">
+          <Reveal>
+            <Heading tone="light" size="xl">{t(site.closing?.title)}</Heading>
+            {t(site.closing?.subtitle) && (
+              <p className="mt-5 text-white/65 text-base md:text-lg leading-relaxed whitespace-pre-line">
+                {t(site.closing.subtitle)}
+              </p>
+            )}
+            {/* 주소·전화·시간은 «찾아오는 사람»의 정보다. 빈 값은 그 줄이 안 뜬다. */}
+            <dl className="mt-9 space-y-4 text-[15px]">
+              {[
+                [site.labels?.address, t(site.contact?.address)],
+                [site.labels?.phone, site.contact?.phone],
+                [site.labels?.hours, t(site.contact?.hours)],
+              ].map(([k, v], i) =>
+                v ? (
+                  <div key={i} className="flex gap-5">
+                    <dt className="w-24 shrink-0 text-white/35 text-[13px] pt-0.5">{t(k)}</dt>
+                    <dd className="text-white/80 leading-relaxed">{v}</dd>
+                  </div>
+                ) : null,
+              )}
+            </dl>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              {site.contact?.phone && (
+                <a
+                  href={`tel:${String(site.contact.phone).replace(/[^0-9+]/g, "")}`}
+                  className="px-8 py-3.5 rounded-full border border-white/25 text-white text-[15px] font-medium text-center hover:bg-white/10 transition-colors"
+                >
+                  {site.contact.phone}
+                </a>
+              )}
+              {site.contact?.mapUrl && (
+                <a
+                  href={site.contact.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-8 py-3.5 rounded-full border border-white/25 text-white text-[15px] font-medium text-center hover:bg-white/10 transition-colors"
+                >
+                  {t(site.labels?.directions) || "Directions"}
+                </a>
+              )}
+            </div>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <InquiryForm
+              form={site.inquiryForm}
+              contact={site.contact}
+              lang={lang}
+              accent={accent}
+              labels={site.inquiryForm?.labels || {}}
+            />
+          </Reveal>
+        </div>
+      </Section>
+
+      {/* 폼이 없는 병원(아직 자료를 못 받은 경우)엔 예전처럼 버튼만 그린다. */}
+      {!site.inquiryForm && (
+        <Section tone="ink" darkTone={darkTone} pad="normal">
         <Reveal className="text-center max-w-2xl mx-auto">
           <Heading tone="light" size="xl">{t(site.closing?.title)}</Heading>
           {t(site.closing?.subtitle) && (
@@ -621,21 +712,28 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
             <p className="mt-6 text-[13px] text-white/40">{t(site.contact.hours)}</p>
           )}
         </Reveal>
-      </Section>
-
-      {/* ══ 따라다니는 상담 버튼 — 해외 환자용 사이트의 사실상 표준 ══ */}
-      <button
-        onClick={onInquiry}
-        className="fixed bottom-5 right-5 z-40 md:hidden px-6 py-3.5 rounded-full text-white text-sm font-medium shadow-2xl"
-        style={{ backgroundColor: accent }}
-      >
-        {t(site.hero?.primaryCta) || "Consult Now"}
-      </button>
+        </Section>
+      )}
 
       <HospitalFooter site={site} lang={lang} darkTone={darkTone} />
 
-      {/* 상시 상담 채널 — 해외 환자는 전화보다 메신저를 쓴다(국제전화 요금·시차·언어). */}
-      <MessengerRail channels={site.contact?.channels} accent={accent} label={t(site.labels?.chat)} />
+      {/* 오른쪽 고정 묶음(상담예약 + 메신저 + 전화) — 해외 환자는 전화보다 메신저를 쓴다
+          (국제전화 요금·시차·언어). 폰에서는 아래 가로 바로 대신한다. */}
+      <QuickRail
+        channels={site.contact?.channels}
+        accent={accent}
+        label={t(site.labels?.chat)}
+        onInquiry={onInquiry}
+        phone={site.contact?.phone}
+        ctaLabel={t(site.labels?.quickCta)}
+      />
+      <MobileBar
+        channels={site.contact?.channels}
+        accent={accent}
+        onInquiry={onInquiry}
+        phone={site.contact?.phone}
+        ctaLabel={t(site.hero?.primaryCta)}
+      />
     </div>
   );
 }
