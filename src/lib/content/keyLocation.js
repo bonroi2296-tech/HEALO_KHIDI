@@ -38,38 +38,38 @@ const BY_PREFIX = {
   chat:           { screen: "문의 채팅창", path: "/inquiry" },
 
   // ── 로그인 뒤 환자 화면(주소를 줘도 코디는 못 연다) ───────────
-  patientChatUI:   { screen: "환자 화면 · AI 채팅", path: null, note: "환자 로그인 후 화면" },
-  patientVisa:     { screen: "환자 화면 · 비자", path: null, note: "환자 로그인 후 화면" },
-  patientConsults: { screen: "환자 화면 · 상담 목록", path: null, note: "환자 로그인 후 화면" },
-  visaApps:        { screen: "환자 화면 · 비자 신청 목록", path: null, note: "환자 로그인 후 화면" },
-  visaAppDetail:   { screen: "환자 화면 · 비자 신청 상세", path: null, note: "환자 로그인 후 화면" },
-  costDetail:      { screen: "환자 화면 · 견적 상세", path: null, note: "환자 로그인 후 화면" },
+  patientChatUI:   { screen: "환자 화면 · AI 채팅", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
+  patientVisa:     { screen: "환자 화면 · 비자", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
+  patientConsults: { screen: "환자 화면 · 상담 목록", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
+  visaApps:        { screen: "환자 화면 · 비자 신청 목록", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
+  visaAppDetail:   { screen: "환자 화면 · 비자 신청 상세", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
+  costDetail:      { screen: "환자 화면 · 견적 상세", path: null, note: "환자 로그인 후 화면", noteId: "patientOnly" },
 
   // ── 화면에서 쓰는 곳을 못 찾은 문구(옛 흔적으로 보인다) ────────
   //    2026-07-29 실측: 사전에는 있는데 app/·src/ 어디서도 불러 쓰지 않는다(동적 조립도 없음).
   //    고쳐도 아무 화면에도 안 나오므로 **미리 알려서 헛수고를 막는다.**
   //    ⚠️ 「확실히 죽었다」가 아니라 「쓰는 곳을 못 찾았다」로 적는다 — 내가 놓쳤을 수 있다.
-  success:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
-  inquiry:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
-  faq:         { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금 「자주 묻는 질문」은 faqData 를 씁니다" },
-  meta:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금은 seo 를 씁니다" },
-  search:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 옛 검색결과 화면 잔재(홈 검색창 2개만 예외)" },
-  list:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
-  social:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
-  howItWorks:  { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
+  success:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", noteId: "deadGeneric" },
+  inquiry:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", noteId: "deadGeneric" },
+  faq:         { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금 「자주 묻는 질문」은 faqData 를 씁니다", noteId: "deadFaq" },
+  meta:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금은 seo 를 씁니다", noteId: "deadMeta" },
+  search:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 옛 검색결과 화면 잔재(홈 검색창 2개만 예외)", noteId: "deadSearch" },
+  list:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", noteId: "deadGeneric" },
+  social:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", noteId: "deadGeneric" },
+  howItWorks:  { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", noteId: "deadGeneric" },
 
   // ── 화면에 안 보이는 것(검색엔진·구글용) ─────────────────────
   //    ⚠️ meta 를 여기 또 적지 마라 — 위(52줄대)에 이미 있고, 뒤엣것이 이겨서
   //       실사용 0건인 meta.* 에 「검색엔진용」이라는 **틀린 이름**이 붙었다
   //       (2026-07-29 린트 no-dupe-keys 가 잡음). 지금 쓰는 건 seo 뿐이다.
-  seo:  { screen: "검색엔진용 설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다" },
+  seo:  { screen: "검색엔진용 설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다", noteId: "seoOnly" },
 };
 
 // 앞머리 전체는 죽었는데 **몇 개만 살아 있는** 예외. 앞머리 표보다 먼저 본다.
 // (search.* 13키 중 이 둘만 홈 히어로에서 실제로 쓰인다 — 나머지는 2026-07-21 삭제된 검색결과 화면 잔재)
 const BY_KEY = {
-  "search.placeholder": { screen: "홈 검색창", path: "/" },
-  "search.button":      { screen: "홈 검색창", path: "/" },
+  "search.placeholder": { screen: "홈 검색창", path: "/", id: "homeSearch" },
+  "search.button":      { screen: "홈 검색창", path: "/", id: "homeSearch" },
 };
 
 /**
@@ -81,7 +81,11 @@ const BY_KEY = {
 export function describeKey(key, homeLabel) {
   if (!key || typeof key !== "string") return { screen: null, path: null, where: null, note: null };
   const head = key.split(".")[0];
-  const hit = BY_KEY[key] || BY_PREFIX[head] || null;
+  const byKey = BY_KEY[key];
+  const hit = byKey || BY_PREFIX[head] || null;
+  // 화면 이름·비고를 코디 언어로 보여주려면 «번역할 이름표»가 필요하다 — 한국어 문자열이 아니라 id 로 준다.
+  // (사전에 없으면 화면이 아래 한국어 screen/note 로 폴백하므로 새 항목을 넣어도 안 깨진다)
+  const screenId = hit ? (byKey ? byKey.id || null : head) : null;
 
   // 홈 문구는 레지스트리에 사람이 읽는 이름이 이미 있다(예: 「통계 / 항목1 · 문구」).
   let where = null;
@@ -92,9 +96,11 @@ export function describeKey(key, homeLabel) {
 
   return {
     screen: hit ? hit.screen : null,
+    screenId,
     path: hit ? hit.path || null : null,
     where,
     note: hit && hit.note ? hit.note : null,
+    noteId: hit && hit.noteId ? hit.noteId : null,
   };
 }
 

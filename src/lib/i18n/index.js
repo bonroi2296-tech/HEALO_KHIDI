@@ -102,17 +102,23 @@ export const setLangCookie = (code) => {
 // 왜 분리: 공개 사이트는 브라우저/URL 언어로 healo_lang 을 en 등으로 심는다(프록시·미들웨어).
 // 스태프 화면(admin·coordinator)이 그 healo_lang 을 따르면 한국인 운영자·어드민이 영어로 떠 회귀한다.
 // → 스태프는 이 healo_bo_lang 만 본다. 기본은 한국어, 포털 상단 스위처로 고른 값만 여기 저장.
+// ⚠️ 2026-07-29 수리: 아래 두 함수가 `DICTIONARY[code]` 로 코드 유효성을 봤다. 그런데 이 함수들은
+//    **브라우저에서만** 돌고(document 가 있어야 함), 브라우저 번들엔 거대 사전이 실려 있지 않다
+//    → 검사가 **항상 실패** = 쿠키를 심어도 못 읽고, 스위처로 골라도 저장되지 않았다.
+//    즉 스태프 포털(어드민·코디) 언어 전환이 통째로 죽어 있었다. 실측: 쿠키 healo_bo_lang=ru 를
+//    직접 넣고 열어도 화면 전체가 한국어(왼쪽 메뉴 포함).
+//    공개 사이트 쪽은 같은 함정을 이미 isKnownLangCode 로 고쳐 뒀는데 백오피스만 남아 있었다.
 export const getBackofficeLangFromCookie = () => {
   if (typeof document === "undefined") return null;
   const row = document.cookie.split(";").find((r) => r.trim().startsWith("healo_bo_lang="));
   if (!row) return null;
   const code = row.split("=")[1].trim();
-  return DICTIONARY[code] ? code : null;
+  return isKnownLangCode(code) ? code : null;
 };
 
 export const setBackofficeLangCookie = (code) => {
   if (typeof document === "undefined") return;
-  if (!DICTIONARY[code]) return;
+  if (!isKnownLangCode(code)) return;
   document.cookie = `healo_bo_lang=${code}; path=/; max-age=31536000`;
 };
 
