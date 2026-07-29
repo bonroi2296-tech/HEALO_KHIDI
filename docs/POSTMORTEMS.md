@@ -14,7 +14,7 @@
 
 ---
 
-## #145 — 「서명 AAB」라는 이름만 믿고 **서명 안 된 앱 파일**을 PO에게 올리게 시킴 (2026-07-28, Play 업로드 거부로 발각)
+## #154 — 「서명 AAB」라는 이름만 믿고 **서명 안 된 앱 파일**을 PO에게 올리게 시킴 (2026-07-28, Play 업로드 거부로 발각)
 
 - **무슨 일**: 구글 플레이 첫 출시용으로 Codemagic 워크플로 `android-signed`(표시명 «healwith Android (서명 AAB · Play 업로드 없음)»)를 신설해 빌드를 돌렸다. 빌드 성공 + `Set up code signing identities` 단계 초록 + 산출물 `app-release.aab` 55.14MB 생성 → **나는 «서명된 AAB 확보»라고 보고**했다. PO가 Play 콘솔에 올리자 **「업로드된 모든 번들에 서명해야 합니다」로 거부**. 실제로는 도장이 안 찍힌 파일이었다.
 - **왜 그랬나(근본원인)**: Codemagic 의 `environment.android_signing` 은 **키스토어를 빌드 머신 디스크에 놓고 `CM_KEYSTORE_PATH` 등 환경변수를 채워줄 뿐**이다. 그 값을 실제로 쓰는 건 `android/app/build.gradle` 의 `signingConfigs` 인데, **Capacitor 가 생성한 기본 build.gradle 에는 그 블록이 아예 없다.** 그래서 `gradlew bundleRelease` 는 아무 경고 없이 *서명 없는* release 번들을 만들고 정상 종료한다. 즉 **실패 신호가 하나도 없는 실패**였다.

@@ -30,7 +30,7 @@
   - 🚧 마지막에 **「불완전한 광고 ID 선언」**이 전송을 막았다(Android 13+ 타겟 필수 신고). **코드 실측 후 「아니요」**: `android/app/build.gradle`·`capacitor.build.gradle` 에 광고·분석 SDK 없음(플러그인 = keyboard·push-notifications·splash-screen·status-bar), 매니페스트에 `com.google.android.gms.permission.AD_ID` 선언 없음.
   - ✅ **「검토를 위해 변경사항 15개 전송」 완료 → 화면 상태 「검토 중인 변경사항」.** 구글 검토는 일반적으로 7일 이내.
 - 🧹 **잘못 넣었던 PO 계정을 내부 테스터에서 제거** — 2번 참조.
-- 📄 **[#1121](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1121) 충돌 해소** — 그새 본판이 앞서가 `docs/POSTMORTEMS.md`·`docs/PO_PREFERENCES.md` 가 부딪혔다. **반성문 번호가 겹쳐(양쪽 다 `#144`) 내 쪽을 `#145` 로 바꿔 둘 다 살렸고**, 취향 원장도 양쪽 항목 전부 보존.
+- 📄 **[#1121](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1121) 충돌 해소** — 그새 본판이 앞서가 `docs/POSTMORTEMS.md`·`docs/PO_PREFERENCES.md` 가 부딪혔다. **반성문 번호가 겹쳐(#143 → #144 → #145 순으로 계속 밀렸고, 2026-07-29 본판 합류 때 최종 `#154`) 양쪽 다 살렸고**, 취향 원장도 양쪽 항목 전부 보존.
 
 **2. 왜 그렇게 했는지**
 
@@ -87,7 +87,7 @@
 - 🤖 **안드로이드 앱 Google Play 내부 테스트 게시 완료** — `1.0 (1) — 첫 내부 테스트`, 2026-07-28 16:36 게시, 트랙 **활성**. **PO 실기기(갤럭시 S25 Ultra)에 설치·실행까지 확인됨**(홈·하단 메뉴 정상 렌더).
   - 테스터 이메일 목록 `healwith 내부 테스터` 생성 — `bonroi2296@gmail.com`, `tempest1220@gmail.com` 2명.
   - 참여(설치) 링크: `https://play.google.com/apps/internaltest/4701057108856859894`
-- 🔴 **「서명 AAB」가 실제로는 서명이 안 되고 있던 사고를 발각·수리** (반성문 **#144**) — 상세는 4번.
+- 🔴 **「서명 AAB」가 실제로는 서명이 안 되고 있던 사고를 발각·수리** (반성문 **#154**) — 상세는 4번.
   - `android/app/build.gradle` 에 `signingConfigs.release` 추가(`CM_KEYSTORE_PATH` 있을 때만 적용 → 로컬 빌드 영향 0)
   - 키 비밀번호를 **스토어 비밀번호로** 사용 — Codemagic 키스토어 등록 시 「key password」 칸이 비어 `Get Key failed: Given final block not properly padded` 로 죽었다
   - **가드 신설**: `codemagic.yaml` 에 「도장(서명) 실제로 찍혔는지 검사」 단계 — AAB 안에 `META-INF/*.{RSA,EC,DSA}` 없으면 즉시 실패
@@ -129,7 +129,7 @@
 
 **4. 주의·함정**
 
-- 🔴 **「워크플로 이름에 서명이라고 적혀 있다」 ≠ 서명된다** (반성문 #144). Codemagic 의 `android_signing` 은 키스토어를 빌드 머신에 놓고 `CM_*` 환경변수만 채울 뿐, **그걸 쓰게 만드는 건 `android/app/build.gradle` 의 `signingConfigs`**. Capacitor 기본 build.gradle 엔 그게 없어서 **경고 하나 없이 서명 없는 AAB 가 정상 종료로 나온다.** Play 가 거부해서야 알게 됐고 **PO 손이 두 번 갔다.** → 이제 빌드 단계 검사가 먼저 잡는다. **이 검사 단계를 지우지 마라.**
+- 🔴 **「워크플로 이름에 서명이라고 적혀 있다」 ≠ 서명된다** (반성문 #154). Codemagic 의 `android_signing` 은 키스토어를 빌드 머신에 놓고 `CM_*` 환경변수만 채울 뿐, **그걸 쓰게 만드는 건 `android/app/build.gradle` 의 `signingConfigs`**. Capacitor 기본 build.gradle 엔 그게 없어서 **경고 하나 없이 서명 없는 AAB 가 정상 종료로 나온다.** Play 가 거부해서야 알게 됐고 **PO 손이 두 번 갔다.** → 이제 빌드 단계 검사가 먼저 잡는다. **이 검사 단계를 지우지 마라.**
 - 🔴 **Play Console 은 URL 을 손으로 찍으면 튕긴다** — `api-access`·`closed-testing` 등을 직접 입력하면 앱 목록으로 되돌아가거나 *"예기치 않은 오류(6EE57728)"* 가 뜬다. **반드시 왼쪽 메뉴·대시보드 링크를 클릭해서 이동하라.**
 - ⚠️ **크롬 기본 계정이 PO 계정이 아니다.** 참여 링크를 열면 **「초대되지 않음」**이 뜨는데 이건 오류가 아니라 **다른 구글 계정(「석민」)으로 로그인돼 있어서**다. Play Console 은 `u/2`(bonroi2296) 프로필로 열려 있다.
 - ⚠️ **내부 테스트는 12명 카운트에 안 들어간다.** 프로덕션 자물쇠를 여는 건 **비공개 테스트 트랙뿐**이다. 대시보드의 「현재 참여를 선택한 테스터 N명」은 **비공개 테스트 기준**이라 내부 테스트에 몇 명을 넣어도 0으로 보인다(정상).
