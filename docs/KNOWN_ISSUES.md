@@ -230,6 +230,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   - `src/lib/data/immuneCancerDetails.js:122`·`:332` — 치료 항목 목록 안의 `"NK-клеточная терапия"`
   - `src/lib/data/immuneCancerDetails.js:471` — FAQ 문답 (`НК-клеточная терапия` 질문·답변 양쪽)
   - 렌더되는 화면: `/treatments/[slug]`(`app/treatments/[slug]/CancerDetailClient.jsx`)·`/dev/cancer-preview`
+- 🛑 **「2클릭 거리」는 광고그룹에 따라 틀린다 (2026-07-29 추가 발견)**: 암종 상세 중 **`female`(유방·여성암)·`etc`(기타암)** 본문에는 NK세포치료가 **그대로 있다** → 그 페이지를 광고 착지로 쓰면 **심사관이 보는 첫 화면**이다(0클릭). ✅ **PO 결정: 이 두 그룹은 암종 상세가 아니라 착지 페이지(`for-russian-patients`·`for-kazakh-patients`)로 보낸다** — 콘텐츠는 안 지우고 광고 경로만 피한다. 상세: `docs/광고_캠페인_플랜.md` §5-1.
 - **출처**: [구글 세포·유전자 치료 정책](https://support.google.com/adspolicy/answer/15596627?hl=en) · [의료·의약품 정책](https://support.google.com/adspolicy/answer/176031?hl=en)
 
 ## 🔸 착지 페이지 「24시간 내 답변」 약속 — **그대로 유지 (PO 결정 2026-07-29)**
