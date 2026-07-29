@@ -344,9 +344,13 @@ export const IMMUNE_SITE = {
     zh: "三大专业中心",
     ja: "3つの専門センター",
   },
+  /* 3개 센터 카드 사진 — 원래 «빈 방» 3장이었다(2026-07-29 교체).
+     면력 공식 블로그에서 **각 센터가 실제로 쓰는 장비** 사진을 찾아 바꿨다:
+     고압산소챔버(병원 로고가 박혀 있다) · 초음파 진단기 · 도수치료 침대.
+     빈 방은 어느 병원이나 비슷하지만 «그 병원 장비»는 그 병원만의 것이다. */
   specialties: [
     {
-      image: "/images/hospitals/immunehospital-magok/2.jpg",
+      image: "/immune/life/equip-o2-chamber.jpg",
       title: {
         ko: "암면역센터",
         en: "Cancer Immunity Center",
@@ -365,7 +369,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
-      image: "/images/hospitals/immunehospital-magok/4.jpg",
+      image: "/immune/life/equip-ultrasound.jpg",
       title: {
         ko: "신경면역센터",
         en: "Neuro-Immunity Center",
@@ -384,7 +388,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
-      image: "/images/hospitals/immunehospital-magok/5.jpg",
+      image: "/immune/life/equip-manual-therapy.jpg",
       title: {
         ko: "재활센터",
         en: "Rehabilitation Center",
