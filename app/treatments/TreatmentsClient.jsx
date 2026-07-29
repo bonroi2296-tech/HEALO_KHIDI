@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight, ChevronDown, Stethoscope, Leaf, Shield,
   Activity, Clock, FileText, CheckCircle,
+  Atom, Zap, Bot, Dna,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
@@ -20,6 +21,18 @@ export const CANCERS = [
   { organ: 'lung' },
   { organ: 'thyroid' },
   { organ: 'colon' },
+];
+
+// 한국에서 받을 수 있는 선진 암 치료 — 제휴 병원 여부와 무관하게 「접수·연결 대행」으로 소개한다
+// (우리는 외국인환자 유치 등록기관 A-2026-01-02-06761). 문구는 treatmentsPage.advanced.* i18n 키.
+// 사실만 적고 결과·완치는 약속하지 않는다 — check:content 의료광고 금지문구 룰과 같은 선.
+const ADVANCED_TREATMENTS = [
+  { icon: Atom, key: 'heavyIon' },
+  { icon: Zap, key: 'proton' },
+  { icon: Bot, key: 'robot' },
+  { icon: Shield, key: 'immuno' },
+  { icon: Dna, key: 'precision' },
+  { icon: Leaf, key: 'kmCare' },
 ];
 
 const PROCESS_STEPS = [
@@ -147,6 +160,47 @@ export default function TreatmentsClient() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* 한국에서 받을 수 있는 선진 암 치료 */}
+      <section className="max-w-5xl mx-auto px-4 py-12">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-3">{tr('advanced.title')}</h2>
+          <p className="text-gray-500 text-sm max-w-2xl mx-auto">{tr('advanced.subtitle')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {ADVANCED_TREATMENTS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.key} className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-teal-200 transition">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center shrink-0">
+                    <Icon size={20} className="text-teal-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-base mb-1">{tr(`advanced.items.${item.key}.name`)}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed mb-2">{tr(`advanced.items.${item.key}.desc`)}</p>
+                    <p className="text-xs text-teal-700 font-medium">{tr(`advanced.items.${item.key}.where`)}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-gray-400 text-center mt-6 max-w-2xl mx-auto leading-relaxed">
+          {tr('advanced.note')}
+        </p>
+
+        <div className="text-center mt-6">
+          <button
+            onClick={() => router.push('/intake')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition text-sm font-semibold"
+          >
+            {tr('advanced.cta')} <ArrowRight size={16} />
+          </button>
         </div>
       </section>
 
