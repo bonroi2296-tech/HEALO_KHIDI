@@ -192,19 +192,18 @@ export const LoginPage = ({ setView }) => {
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
                                     
-                                    const { data, error } = await supabase.auth.signInWithOAuth({
+                                    const { error } = await supabase.auth.signInWithOAuth({
                                         provider: 'google',
                                         options: {
                                             redirectTo: redirectUrl,
                                         },
                                     });
-                                    
-                                    
+
+                                    // 성공하면 구글로 넘어가므로 여기서 할 일이 없다(로딩 표시도 그대로 둔다).
                                     if (error) {
                                         console.error('[LoginPage] ❌ OAuth error:', error);
                                         toast.error(t("login.googleError", langCode));
                                         setOauthLoading(false);
-                                    } else {
                                     }
                                 } catch (err) {
                                     console.error('[LoginPage] ❌ Google OAuth exception:', err);

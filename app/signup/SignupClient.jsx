@@ -486,11 +486,11 @@ export const SignUpPage = ({ setView }) => {
                                     },
                                 });
                                 
+                                // 성공하면 구글로 넘어가므로 여기서 할 일이 없다(로딩 표시도 그대로 둔다).
                                 if (error) {
                                     console.error('[SignUpPage] ❌ OAuth error:', error);
                                     toast.error(t("signup.googleError", langCode));
                                     setLoading(false);
-                                } else {
                                 }
                             } catch (err) {
                                 console.error('[SignUpPage] ❌ Google OAuth exception:', err);
