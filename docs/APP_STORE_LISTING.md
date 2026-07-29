@@ -143,6 +143,7 @@
 - ✅ **스토어 등록정보 연락처** — 이메일 `admin@healwith.co.kr` · 웹사이트 `https://healwith.co.kr`. **전화번호는 일부러 비워뒀다**(Play 는 선택 항목이고, 애플 EU 거래자 정보로 이미 공개 중인 **PO 개인 휴대폰**을 한 군데 더 노출할 이유가 없다). 사업자 대표번호가 생기면 그때 넣을 것.
 - ⬜ **남은 앱 설정 과제 (진행률 10/11)**: **스토어 등록정보 설정** 하나 — 짧은 설명·전체 설명(6개 언어) + **이미지 업로드**(앱 아이콘 512×512 · 피처 그래픽 1024×500 · 폰 스크린샷 최소 2장) → 그 다음 AAB 업로드(내부 테스트).
   - 🔴 **선행 조건: 피처 그래픽 3장(ko/en/ru) PO 승인 미완.** 승인 전에 업로드하지 마라.
+  - 📌 **2026-07-29 재생성 완료** — 3장 다 만들어 PO 에게 보냄(글자 잘림 0, 러시아어만 2줄로 감김). 만드는 법은 §0 참고.
 - ⬜ **남은 앱 설정 과제 (진행률 8/11)**: **데이터 보안**(위 blocker 해소 후) · 앱 카테고리·연락처 · 스토어 등록정보(설명·스크린샷·피처그래픽 업로드) → 그 다음 AAB 업로드(내부 테스트).
   - ⚠️ **URL 을 손으로 찍지 마라** — `app-content/government-app`·`target-audience` 같은 추측 경로는 앱 목록으로 튕긴다. 대시보드 「할 일 보기」의 링크를 클릭할 것(실제 경로는 `government-apps`·`finance`·`health`·`target-audience-content` 처럼 제각각).
 
@@ -153,6 +154,22 @@
 - ✅ **도메인** — healwith.co.kr 정식 가동(2026-06-22 컷오버). ~~미등록 경고~~는 폐기.
 - ✅ **데이터 안전/개인정보 라벨 답변지** — `docs/APP_STORE_REVIEW_ANSWERS.md`(문항별 답 완성).
 - ✅ 계정 삭제 요건(애플 5.1.1(v)) — `/patient/account`에 구현 확인.
+
+---
+
+## 0) 그림 만들 때 — 브라우저 실행 파일 경로 (2026-07-29 추가)
+
+`play-feature-graphic.mjs`·`appstore-screenshots.mjs` 는 브라우저로 화면을 찍어 그림을 만든다.
+클라우드 실행 환경(원격 세션)은 브라우저를 미리 깔아두고 경로만 알려주는데 **폴더 이름이 달라서**
+`Executable doesn't exist` 로 죽는다. 그럴 땐 경로를 알려주면 된다:
+
+```bash
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome \
+  node scripts/play-feature-graphic.mjs ko
+```
+
+⚠️ **PO 컴퓨터(윈도우)에선 평소대로** 돌리면 된다 — 이 환경변수를 안 주면 예전과 똑같이 동작한다.
+🚫 `npx playwright install` 은 돌리지 마라(이미 깔린 브라우저를 또 받는다).
 
 ---
 
