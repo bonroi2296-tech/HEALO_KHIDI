@@ -211,6 +211,11 @@ export async function POST(
           .select("id", { count: "exact", head: true })
           .eq("consultation_id", consultationId)
           .eq("requester_ip", ip)
+          // ⚠️ 나 자신의 옛 입장 기록은 빼야 한다. 회선이 끊겨 새로고침하면 퇴장 시각을
+          //    채우는 신호(LiveKit 알림)가 몇 초 늦게 오는데, 그 사이에 다시 들어오면
+          //    «같은 회선에 한 대 있음»이 되어 **자기 자신 때문에 소리가 꺼진다**.
+          //    같은 기기는 identity 가 같으므로(deviceId 기반) 그걸로 걸러낸다.
+          .neq("participant_identity", identity)
           .is("left_at", null)
           .gte("requested_at", new Date(Date.now() - 3 * 3600 * 1000).toISOString());
         sameNetworkPeers = count || 0;

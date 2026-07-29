@@ -1505,7 +1505,10 @@ export default function ConsultationRoomPage() {
       setTranslations((prev) => [
         ...prev.slice(-299),
         {
-          id: `local-${identity}-${seq ?? Date.now()}`,
+          // ⚠️ 줄 번호는 «마이크(파이프라인)» 단위로 만든다. 화자 이름은 이제 «말하는 사람»으로
+          //    바뀔 수 있어서, identity 로 만들면 서로 다른 마이크의 같은 번호가 겹쳐
+          //    목록에 같은 번호 두 줄이 생긴다(React 가 줄을 잘못 그린다).
+          id: `local-${pipelineId || identity}-${seq ?? Date.now()}`,
           original_text: transcript,
           translated_text: translated,
           source_language: lang,
@@ -2620,7 +2623,7 @@ export default function ConsultationRoomPage() {
               fd.append("lang", myLang);
               fd.append("targetLang", targetLang);
               // 직전 대화 문맥 — 전사(동음이의)·번역(대명사) 양쪽 정확도에 기여. ref 라 의존성 불변.
-              fd.append("context", JSON.stringify(convoContextRef.current.slice(-6)));
+              fd.append("context", JSON.stringify(contextForApi(convoContextRef.current)));
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
@@ -2628,8 +2631,16 @@ export default function ConsultationRoomPage() {
               const result = await res.json();
               if (result.ok && result.transcript && !isHallucinatedRepeat(result.transcript)) {
                 if (result.translated) {
-                  // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영
-                  applyTranslationRef.current(result.transcript, result.translated, result.detectedLang);
+                  // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영.
+                  // startedAt(= 녹음 시작 = 말한 시각)을 같이 넘긴다 — 안 넘기면 이 경로(아이폰·
+                  // 삼성인터넷·카자흐어)만 도착 시각으로 찍혀 기록 순서가 상대 줄과 어긋난다.
+                  applyTranslationRef.current(
+                    result.transcript,
+                    result.translated,
+                    result.detectedLang,
+                    undefined,
+                    startedAt
+                  );
                 } else {
                   // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백
                   translateTextRef.current(result.transcript);
