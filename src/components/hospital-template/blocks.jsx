@@ -198,6 +198,11 @@ function GalleryBlock({ block, t }) {
           </Reveal>
         ))}
       </div>
+      {/* 2026-07-29 추가 — 여기 `note` 를 **안 그리고 있었다.** 표 블록은 그리는데 사진 격자만 빠져 있어서,
+          데이터에 적어 놓은 설명이 화면에 안 뜨고 조용히 사라졌다(내가 쓴 한 문단을 화면에서 잃고 발견).
+          판이 데이터를 말없이 버리는 건 오타보다 나쁘다 — 쓴 사람은 «썼다»고 믿기 때문이다.
+          → 표 블록과 같은 규격으로 맞췄다. 앞으로 «적었는데 안 나오는 칸» 은 `tenant.test.ts` 가 막는다. */}
+      {t(block.note) && <p className="mt-6 text-[13px] text-black/40 max-w-3xl leading-relaxed">{t(block.note)}</p>}
     </>
   );
 }

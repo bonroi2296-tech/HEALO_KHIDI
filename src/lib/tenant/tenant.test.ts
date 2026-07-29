@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
 
 /**
  * 테넌트 설정의 **안전 계약**을 지키는 테스트.
@@ -397,5 +398,43 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
       const dup = [...new Set(imgs.filter((v, i) => imgs.indexOf(v) !== i))];
       expect(dup, `${slug} 페이지에서 같은 사진이 두 번: ${dup.join(", ")}`).toEqual([]);
     }
+  });
+  /* 2026-07-29 추가 — 실제로 당한 것: 사진 격자 블록에 `note` 를 적었는데 **화면이 그걸 안 읽었다.**
+     표 블록은 그리고 사진 격자는 안 그렸던 것이라, 데이터엔 한 문단이 있는데 화면엔 없었다.
+     오타면 눈에 띄지만 이건 «조용히 사라진다» — 쓴 사람은 썼다고 믿고 다음 일로 넘어간다.
+     ⚠️ 읽는 칸 목록을 여기 손으로 베끼면 판이 바뀔 때 이 검사부터 낡는다.
+        그래서 **`blocks.jsx` 원본에서 `block.무엇` 을 직접 뽑아** 대조한다. */
+  it("🧾 데이터에 적어 놓고 화면이 안 읽는 칸이 없다", async () => {
+    const 판 = fs.readFileSync("src/components/hospital-template/blocks.jsx", "utf8");
+    const 등록 = 판.match(/const BLOCKS\s*=\s*\{([^}]*)\}/);
+    expect(등록, "BLOCKS 등록표를 못 찾았다 — 검사가 안 돈 것").toBeTruthy();
+
+    // 블록 타입 → 그 렌더러가 실제로 읽는 칸 이름
+    const 읽는칸: Record<string, string[]> = {};
+    const 조각 = 판.split(/\nfunction (\w+)/);
+    const 이름표: Record<string, string> = {};
+    // ⚠️ matchAll 한 건은 [전체일치, 1번괄호, 2번괄호] 다 — 앞자리를 버려야 한다.
+    //    처음에 `[k, v]` 로 받아 «전체일치»를 이름으로 써서 표가 통째로 비었고, 검사가 스스로 빨개졌다.
+    for (const [, 타입, 컴포넌트] of [...등록![1].matchAll(/(\w+)\s*:\s*(\w+)/g)]) 이름표[컴포넌트] = 타입;
+    for (let i = 1; i < 조각.length; i += 2) {
+      const 타입 = 이름표[조각[i]];
+      if (!타입) continue;
+      읽는칸[타입] = ["type", ...new Set([...조각[i + 1].matchAll(/block\.(\w+)/g)].map((m) => m[1]))];
+    }
+    expect(Object.keys(읽는칸).length, "렌더러를 하나도 못 읽었다 — 검사가 안 돈 것").toBeGreaterThan(0);
+
+    const pages = await import("./content/immunePages.js");
+    const 버려짐: string[] = [];
+    let 검사한블록 = 0;
+    for (const [slug, page] of Object.entries(pages.IMMUNE_PAGES as Record<string, any>)) {
+      for (const b of page.blocks || []) {
+        검사한블록 += 1;
+        const ok = 읽는칸[b.type];
+        if (!ok) { 버려짐.push(`${slug}: 모르는 블록 «${b.type}» — 통째로 안 그려진다`); continue; }
+        for (const k of Object.keys(b)) if (!ok.includes(k)) 버려짐.push(`${slug}/${b.type}: «${k}» 를 적었는데 화면이 안 읽는다`);
+      }
+    }
+    expect(검사한블록, "블록을 하나도 못 찾았다 — 검사가 안 돈 것").toBeGreaterThan(0);
+    expect(버려짐, `적어 놓고 화면에 안 나오는 칸이 있다:\n${버려짐.join("\n")}`).toEqual([]);
   });
 });
