@@ -35,11 +35,49 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useTracks } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { useRoomContext, useTracks } from "@livekit/components-react";
+import { RoomEvent, Track } from "livekit-client";
 
-const DC_SUPPRESS_MS = 60000; // DataChannel 자막 수신 후 이 시간 동안 청취 모드 억제
+// DataChannel 자막 수신 후 이 시간 동안 청취 모드 억제.
+// 60초 → 20초 (2026-07-29): 상대가 자기 기기 자막을 껐거나 그쪽 STT 가 조용히 죽어도
+// 우리 쪽 자막이 «1분 통째로» 멈춰 있었다. 이중 자막은 몇 초 겹치는 게 최악이지만
+// 무자막 1분은 회의가 안 돌아간다 — 실패 방향을 바꾼다.
+const DC_SUPPRESS_MS = 20000;
 const MIN_BLOB_BYTES = 4000;
+
+// ── 화자 귀속: «화면 테두리와 같은 신호»를 쓴다 ──
+// 왜: 참가자별로 트랙을 따로 전사하므로, 한 사무실에 기기가 여럿이면 같은 목소리를
+//   여러 마이크가 잡는다. 예전 규칙은 «STT 응답이 먼저 도착한 트랙이 그 발화의 주인» —
+//   도착 순서는 망·모델 지연이 정하는 사실상 난수다. 2026-07-29 실회의 기록에서
+//   러시아어를 한 마디도 안 한 한국인 참가자 이름으로 러시아어 자막 8줄이 붙었다.
+//   화면의 «말하는 사람 테두리»는 이미 정확하다 — LiveKit 서버가 오디오 레벨로 고른
+//   활성 화자를 쓰기 때문. 자막도 같은 신호로 귀속한다.
+const SPEAKER_LOG_MS = 60000;
+
+/**
+ * 발화 구간 [from, to] 동안 «말하는 사람»으로 가장 강하게 잡힌 참가자.
+ * 단위시험 대상이라 export (실통화 없이 검증 가능한 유일한 층).
+ * @param {Array<{at:number, identity:string, name:string, level:number}>} log
+ */
+export function dominantSpeaker(log, from, to) {
+  // 녹음 시작 직전 1초 / 끝난 뒤 0.5초까지 인정 — VAD 가 말머리를 조금 늦게 잡는다.
+  const score = new Map();
+  for (const e of log) {
+    if (e.at < from - 1000 || e.at > to + 500) continue;
+    const cur = score.get(e.identity) || { n: 0, level: 0, name: e.name };
+    cur.n += 1;
+    cur.level += e.level || 0;
+    score.set(e.identity, cur);
+  }
+  let best = null;
+  for (const [identity, v] of score) {
+    // 누적 오디오 레벨 우선, 동률이면 잡힌 횟수. (레벨을 안 주는 브라우저는 0 → 횟수로 갈린다)
+    if (!best || v.level > best.level || (v.level === best.level && v.n > best.n)) {
+      best = { identity, name: v.name, n: v.n, level: v.level };
+    }
+  }
+  return best;
+}
 
 // ── 말하는 중 자막(부분 전사) ──
 // 왜: 예전엔 「말 끝 → 1.2초 무음 확인 → 업로드 → Gemini」라서 5초 문장이면 말 시작 후
@@ -52,9 +90,13 @@ const MIN_BLOB_BYTES = 4000;
 //   예전 값(조각 2.5초 · 최소 3초)이면 첫 요청이 실제로는 5초째에나 나갔다
 //   (조각이 2.5/5.0/7.5초에 떨어지는데 2.5초는 «3초 미만»이라 걸러졌기 때문).
 //   짧은 조각은 AI 응답도 빨라(출력 토큰이 적다) 첫 글자가 2~3초대에 보인다.
-const PARTIAL_SLICE_MS = 1200; // MediaRecorder 조각 주기
-const PARTIAL_MIN_SPEECH_MS = 1200; // 이만큼 이어진 발화부터 부분 자막 시도
-const PARTIAL_MIN_INTERVAL_MS = 1500; // 갱신 주기(너무 잦으면 깜빡임·비용)
+// 2026-07-29 3차 조정(PO "올라오는 속도가 너무 느려" · "타이핑하듯 실시간이 아니다"):
+//   조각을 더 잘게 떠서 첫 자막을 앞당기고 갱신을 촘촘히 한다. 조각이 짧으면 출력 토큰도
+//   적어 모델 왕복 자체가 빨라진다. ponytail: 비용은 조각 수에 비례 — 10초 발화당 부분
+//   요청 3~5회. 더 못 줄인다(모델 왕복 1~2초가 하한이라 이 밑으론 요청만 겹친다).
+const PARTIAL_SLICE_MS = 700; // MediaRecorder 조각 주기
+const PARTIAL_MIN_SPEECH_MS = 700; // 이만큼 이어진 발화부터 부분 자막 시도
+const PARTIAL_MIN_INTERVAL_MS = 900; // 갱신 주기(너무 잦으면 깜빡임·비용)
 
 // ── 같은 목소리가 여러 마이크에 잡히는 것 억제 ──
 // 왜: 참가자별로 트랙을 따로 듣기 때문에, 한 공간에 기기가 여럿이면 한 사람 발화가
@@ -99,6 +141,9 @@ export function ListenModeBridge({
 }) {
   // 원격 참가자 마이크 트랙 (본인 제외)
   const trackRefs = useTracks([Track.Source.Microphone]);
+  const room = useRoomContext();
+  // «지금 말하는 사람» 로그 — 화면 테두리를 만드는 그 신호. 화자 귀속에 쓴다.
+  const speakerLogRef = useRef([]);
   const pipelinesRef = useRef(new Map()); // key → stop()
   const audioCtxRef = useRef(null); // 브릿지당 1개 공유
   // 최근 확정 전사 [{ identity, text, at }] — 파이프라인 간 중복(같은 목소리 여러 마이크) 억제용
@@ -157,15 +202,38 @@ export function ListenModeBridge({
           mediaStreamTrack: t.publication.track.mediaStreamTrack,
           identity: t.participant.identity,
           name: t.participant.name || t.participant.identity,
+          pipeKey: key,
           liveRef,
           audioCtxRef,
           recentRef,
+          speakerLogRef,
         })
       );
     }
     // remoteKeys 문자열이 트랙 증감(교체 포함)을 대표 — trackRefs 배열 자체는 매 렌더 새 참조
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, remoteKeys]);
+
+  // ── «말하는 사람» 기록 ── 화면 테두리와 같은 출처(LiveKit 활성 화자)를 쌓아둔다.
+  useEffect(() => {
+    if (!enabled || !room) return;
+    const onSpeakers = (speakers) => {
+      const now = Date.now();
+      const log = speakerLogRef.current;
+      while (log.length && now - log[0].at > SPEAKER_LOG_MS) log.shift();
+      for (const p of speakers || []) {
+        if (p?.isLocal || p?.identity?.startsWith("agent-")) continue;
+        log.push({
+          at: now,
+          identity: p.identity,
+          name: p.name || p.identity,
+          level: p.audioLevel || 0,
+        });
+      }
+    };
+    room.on(RoomEvent.ActiveSpeakersChanged, onSpeakers);
+    return () => room.off(RoomEvent.ActiveSpeakersChanged, onSpeakers);
+  }, [enabled, room]);
 
   // 언마운트에만 전체 정리
   useEffect(() => {
@@ -229,7 +297,16 @@ export function ListenModeBridge({
 }
 
 // 원격 트랙 1개에 대한 발화 단위 녹음 → 서버 STT → 자막 콜백. stop 함수를 반환.
-function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef, recentRef }) {
+function startPipeline({
+  mediaStreamTrack,
+  identity,
+  name,
+  pipeKey,
+  liveRef,
+  audioCtxRef,
+  recentRef,
+  speakerLogRef,
+}) {
   let stopped = false;
   let recorder = null;
   let vadTimer = null;
@@ -282,7 +359,10 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef,
     if (Date.now() - dcAt < DC_SUPPRESS_MS) return null;
     const headers = await live.getAuthHeaders();
     if (!headers) return null;
-    const ctx = (live.contextRef?.current || []).slice(-6);
+    // 내부용 필드(norm·at)는 빼고 보낸다 — 프롬프트·전송량을 안 늘리려고
+    const ctx = (live.contextRef?.current || [])
+      .slice(-6)
+      .map(({ speaker, lang, text }) => ({ speaker, lang, text }));
     // 강제 컷으로 잘린 앞조각을 문맥 맨 뒤에 붙여 뒷조각이 문장을 이어받게 한다
     if (carryOver) ctx.push({ speaker: "other", lang: live.langHint, text: carryOver });
     const fd = new FormData();
@@ -302,20 +382,33 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef,
     return { ...result, mySeq, startedAt, partial: !!partial };
   };
 
-  const emit = (result) =>
+  const emit = (result) => {
+    // 이 트랙이 잡은 소리지만, 발화 구간의 «말하는 사람»이 다른 참가자였다면 그 사람이 화자다
+    // (같은 방 다른 기기의 마이크가 대신 잡은 것). 화면 테두리와 같은 판정 → 둘이 안 어긋난다.
+    const dom = dominantSpeaker(speakerLogRef?.current || [], result.startedAt, Date.now());
+    const speaker = dom || { identity, name };
     liveRef.current.onSubtitle?.({
       transcript: result.transcript,
       translated: result.translated,
       lang: result.detectedLang || liveRef.current.langHint,
-      name,
-      identity,
+      name: speaker.name,
+      identity: speaker.identity,
+      // 순서(늦게 온 옛 조각) 판정은 **파이프라인 단위**로 — seq 는 파이프라인마다 1부터
+      // 세는 값이라, 귀속된 identity 로 묶으면 두 마이크의 카운터가 서로를 막아 자막이
+      // 통째로 사라진다(2026-07-29 «자막이 꼬이더니 멈췄다»의 한 갈래).
+      pipelineId: pipeKey || identity,
       seq: result.mySeq,
       startedAt: result.startedAt,
       interim: result.partial,
     });
+  };
+
+  // 마지막으로 녹음 사이클이 시작된 시각 — 아래 워치독이 «조용한 정지»를 되살리는 근거.
+  let lastCycleAt = Date.now();
 
   const recordCycle = () => {
     if (stopped) return;
+    lastCycleAt = Date.now();
     const chunks = [];
     let voicedFrames = 0;
     let silentStreak = 0;
@@ -430,8 +523,21 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef,
 
   recordCycle();
 
+  // ── 파이프라인 워치독 ── 사이클이 한 번 끊기면 이 트랙 자막은 «영영» 안 나온다:
+  //   MediaRecorder 생성 실패, onstop 미발화(탭 백그라운드 스로틀·기기 슬립 복귀) 등
+  //   재시작 경로가 없는 구멍이 여럿이다. 실제로 2026-07-29 회의에서 "자막이 나오다 멈췄다".
+  //   최대 사이클 길이가 12초이므로 20초 무활동이면 확실히 끊긴 것 → 다시 건다.
+  const watchdog = setInterval(() => {
+    if (stopped) return;
+    if (Date.now() - lastCycleAt < 20000) return;
+    if (recorder && recorder.state === "recording") return;
+    clearInterval(vadTimer);
+    recordCycle();
+  }, 5000);
+
   return () => {
     stopped = true;
+    clearInterval(watchdog);
     clearInterval(vadTimer);
     try {
       if (recorder && recorder.state !== "inactive") recorder.stop();

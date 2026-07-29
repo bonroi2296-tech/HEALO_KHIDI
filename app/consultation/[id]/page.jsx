@@ -26,17 +26,24 @@ import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason, Conn
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
-// degradationPreference 'maintain-resolution': 대역폭·CPU 부족 시 프레임을 양보하고 해상도는 유지
-//   → 의료상담은 '부드러움'보다 '선명함'(얼굴·환부 디테일)이 우선이라 이 쪽이 맞다.
-// simulcast 는 저대역(h360) 폴백 1개만 둠 — 1:1~3인 상담에서 3계층은 폰 인코딩 CPU만 잡아먹어 역효과.
+//
+// ⚠️ 2026-07-29 조정 — «상대 쪽 연결이 자꾸 끊긴다» 진단 뒤:
+//   그날 기록상 끊긴 건 해외 참가자 한 명뿐이고(40분에 3번 입장 = 끊김 2회), 같은 시간
+//   같은 사무실 3명은 한 번도 안 끊겼다 → 원인은 상대 회선이다. 다만 **우리가 상대 업링크에
+//   1080p(≈3Mbps) 를 강제하면서 `maintain-resolution` 까지 걸어** 회선이 좁아져도 화질을
+//   안 내리게 만들어 뒀다. 그러면 남는 대응책이 «프레임 버리기»뿐이라 패킷 손실 →
+//   연결 끊김으로 굴러떨어진다. 회선이 나쁜 쪽에게 이건 우리가 얹은 짐이다.
+//   → ① 저대역 계층(h180) 하나 추가: 서버가 내려보낼 «싼 화질»이 생긴다.
+//     ② degradationPreference 'balanced': 좁아지면 해상도를 먼저 내리고 연결을 지킨다.
+//   화질 손해는 «회선이 나쁠 때만» 생기고, 좋을 때는 그대로 1080p 다. 끊기는 것보다 낫다.
 const ROOM_OPTIONS = {
   adaptiveStream: true,
   dynacast: true,
   videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
   publishDefaults: {
-    videoSimulcastLayers: [VideoPresets.h360, VideoPresets.h1080],
+    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h1080],
     videoEncoding: VideoPresets.h1080.encoding, // 명시 1080p(≈3Mbps) — 기본 720p 압축 탈출
-    degradationPreference: "maintain-resolution",
+    degradationPreference: "balanced",
     // 화면 공유는 글자·이미지가 선명해야 함 → 1080p 인코딩
     screenShareEncoding: VideoPresets.h1080.encoding,
   },
@@ -663,6 +670,42 @@ const SUBTITLE_SIZE_CLASS = {
 // 자막 크기 선택 저장 키 — 재입장해도 유지 (hw_device_id 와 같은 localStorage 패턴)
 const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
+// 문맥 링버퍼 → API 로 보낼 형태. 내부용 필드(norm·at)는 빼서 프롬프트·전송량을 안 늘린다.
+function contextForApi(buf, n = 6) {
+  return (buf || []).slice(-n).map(({ speaker, lang, text }) => ({ speaker, lang, text }));
+}
+
+// ── 목록 «맨 아래 붙어 있기» ──
+// 세 가지 제보를 한 번에 고친다(2026-07-29 PO):
+//   ③ 패널을 닫았다 열면 스크롤이 맨 위 — 컨테이너가 새로 만들어지는데 아무도 안 내려줬다.
+//      (게다가 채팅 탭엔 자동 스크롤이 아예 없었다 — 번역 탭에만 있었음)
+//   ⑩ 줄이 쌓이면 «지멋대로 올라갔다 내려갔다 춤춘다» — 새 줄마다 부드러운 스크롤 애니메이션을
+//      걸어서, 4초 폴링·자막이 겹칠 때마다 애니메이션이 서로를 덮어썼다. 즉시 이동으로 바꾼다.
+//   + 읽으려고 위로 올려놔도 다시 바닥으로 끌어내리던 것도 같이 해소.
+// 규칙: 바닥 근처(120px)에 있으면 따라 내려가고, 위로 올려놨으면 가만둔다. 열 때는 즉시 바닥.
+function useStickToBottom(dep) {
+  const elRef = useRef(null);
+  const stickRef = useRef(true);
+  // 콜백 ref: 패널을 열거나 탭을 바꿔 컨테이너가 새로 붙는 «그 순간» 바닥으로 (효과로는 못 잡는다)
+  const setRef = useCallback((el) => {
+    elRef.current = el;
+    if (el) {
+      stickRef.current = true;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, []);
+  const onScroll = useCallback(() => {
+    const el = elRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+  useEffect(() => {
+    const el = elRef.current;
+    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [dep]);
+  return { setRef, onScroll };
+}
+
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
 // remoteSubtitles: [{ key, text, lang, name }] — 상대방 자막 (DataChannel·청취모드),
@@ -725,7 +768,21 @@ function SubtitleOverlay({
                   옆의 AI 면책 배너도 사용자 언어(키릴 등)라, 본문만 따로 잡지 않으면
                   «라벨을 자막으로 오인»한다(2026-07-28 실측). */}
               <span data-testid="subtitle-text">{rs.text}</span>
-              {rs.interim ? " …" : ""}
+              {/* «아직 말하는 중» 표시. 예전엔 문장 뒤에 말줄임표 «…»를 붙였는데, 그게
+                  «문장을 애매하게 끊어놓은 것»처럼 읽혔다(2026-07-29 PO 제보 ⑥).
+                  깜빡이는 점 세 개는 «계속 오는 중»이라는 뜻이 그대로 통한다 —
+                  글자가 아니라 움직임이라 문장의 일부로 안 읽힌다. */}
+              {rs.interim && (
+                <span aria-hidden="true" className="inline-flex items-end gap-0.5 ml-1 align-baseline">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-1 h-1 rounded-full bg-current opacity-70 animate-bounce"
+                      style={{ animationDelay: `${i * 150}ms`, animationDuration: "1s" }}
+                    />
+                  ))}
+                </span>
+              )}
             </p>
           </div>
         );
@@ -826,6 +883,18 @@ export default function ConsultationRoomPage() {
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
+  // 이름 기억 — 회선이 끊겨 입장 화면으로 되돌아왔을 때 이름을 다시 치게 하지 않는다.
+  // 2026-07-29 실회의 기록: 상대 참가자가 40분 동안 3번 입장했고(끊김 2회), 마지막 두 번은
+  // 이름을 손으로 다시 쳐서 «Эльдар → эльдар»로 대소문자까지 달라졌다(기록에서 다른 사람처럼
+  // 갈렸다). 끊김 자체는 상대 회선 문제지만, 되돌아오는 마찰은 우리가 없앨 수 있다.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("hw_guest_name");
+      if (saved) setGuestName(saved);
+    } catch (_e) {
+      /* 시크릿 모드 등 — 기억 못 해도 입장은 그대로 */
+    }
+  }, []);
   const [guestJoining, setGuestJoining] = useState(false);
   const [guestError, setGuestError] = useState("");
   // 입장 전 셀프뷰(카메라 미리보기) — 환자가 카메라 각도·권한을 미리 확인.
@@ -1121,7 +1190,6 @@ export default function ConsultationRoomPage() {
   const [myLang, setMyLang] = useState("ko");
   const [targetLang, setTargetLang] = useState("ru");
 
-  const translationsEndRef = useRef(null);
   const subtitleTimerRef = useRef(null);
   // DataChannel publish 함수 ref (LiveKitRoom 내부 DataChannelBridge 에서 주입)
   const publishSubtitleRef = useRef(null);
@@ -1145,17 +1213,33 @@ export default function ConsultationRoomPage() {
   // 반전 등) 대응. ref 라 리렌더·의존성 오염 없음. 세션 스코프(재입장 시 초기화)라
   // 과거 통화 로그가 섞일 일도 없음.
   const convoContextRef = useRef([]);
+  // ── 대화 문맥 링버퍼 ── 매 전사·번역 요청에 직전 6줄을 문맥으로 붙인다.
+  // 2026-07-29 PO «번역 품질이 갈 수록 안 좋아진다» — 원인은 이 버퍼의 오염이다:
+  //   ① 같은 방 마이크가 여럿이라 같은 말이 여러 경로(청취모드·DataChannel·통역봇)로
+  //      들어와 8칸이 «같은 문장 4벌»로 차면, 모델이 보는 문맥은 사실상 한 줄뿐이다.
+  //   ② 오래된 줄이 계속 남아 «용어를 일관되게 유지하라»는 지시와 맞물려, 초반 오인식이
+  //      스스로를 재강화한다(틀린 단어가 계속 되돌아온다).
+  // → 중복은 안 넣고, 3분 지난 줄은 버린다. (상한 8은 그대로)
+  const CONTEXT_TTL_MS = 180000;
   const pushConvoContext = useCallback((speaker, lang, text) => {
     if (!text) return;
+    const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
+    if (!norm) return;
     const buf = convoContextRef.current;
-    buf.push({ speaker, lang, text });
+    const now = Date.now();
+    // 기간 만료 먼저 — 오래된 줄이 중복 판정을 붙잡고 있지 않게
+    for (let i = buf.length - 1; i >= 0; i--) {
+      if (now - (buf[i].at || 0) > CONTEXT_TTL_MS) buf.splice(i, 1);
+    }
+    if (buf.some((b) => b.norm === norm)) return; // 같은 발화가 다른 경로로 또 들어옴
+    buf.push({ speaker, lang, text, norm, at: now });
     if (buf.length > 8) buf.splice(0, buf.length - 8);
   }, []);
 
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
   const applyTranslation = useCallback(
-    (original, translated, srcLangOverride, utter) => {
+    (original, translated, srcLangOverride, utter, spokenAt) => {
       const entry = {
         id: Date.now(),
         original_text: original,
@@ -1164,7 +1248,10 @@ export default function ConsultationRoomPage() {
         source_language: srcLangOverride || myLang,
         target_language: targetLang,
         speaker_role: "self",
-        created_at: new Date().toISOString(),
+        // ⚠️ «말한 시각»으로 찍는다. 도착 시각으로 찍으면 내 줄만 번역 왕복(1~2초)만큼 뒤로
+        //    밀리는데, 상대 줄은 이미 말한 시각으로 찍혀 있어 기록 순서가 서로 어긋난다
+        //    (2026-07-29 PO «자막 순서도 좀 꼬이는거 같고»). 두 줄이 같은 시계를 쓰게 맞춘다.
+        created_at: new Date(spokenAt || Date.now()).toISOString(),
       };
 
       // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
@@ -1217,8 +1304,9 @@ export default function ConsultationRoomPage() {
         // 백채널 사전 매칭 항목 — API 호출 없이 즉시 반영하되, 반드시 '큐 순서대로'
         // 처리한다(직전 긴 문장 번역이 끝나기 전에 "네"가 먼저 뜨면 대화 순서·문맥이 꼬임).
         // DB 번역 로그에도 기록 — 회의록·상대방 폴링 로그에서 예/아니오 답변이 빠지면 안 됨.
+        const spokenAt = typeof item === "string" ? undefined : item.at;
         if (typeof item !== "string" && item.pre) {
-          applyTranslation(text, item.pre, undefined, item.utter);
+          applyTranslation(text, item.pre, undefined, item.utter, spokenAt);
           if (consultationId) {
             fetch(`/api/khidi/consultation/${consultationId}/translate`, {
               method: "POST",
@@ -1251,7 +1339,7 @@ export default function ConsultationRoomPage() {
               consultationId,
               speakerRole: "self",
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
-              context: convoContextRef.current.slice(-6),
+              context: contextForApi(convoContextRef.current),
             }),
           });
           const result = await res.json();
@@ -1262,7 +1350,8 @@ export default function ConsultationRoomPage() {
             text,
             result.translated,
             undefined,
-            typeof item === "string" ? undefined : item.utter
+            typeof item === "string" ? undefined : item.utter,
+            spokenAt
           );
         } catch (err) {
           console.error("[Translation] Error:", err);
@@ -1288,7 +1377,9 @@ export default function ConsultationRoomPage() {
       const q = translateQueueRef.current;
       // 사전 매칭도 큐를 태워 발화 순서를 보존한다 (즉시 반영하면 앞 문장보다 먼저 뜸).
       // utter(발화 세대)는 확정 자막의 순서 역전 필터용 — 수동입력 등 utter 없는 경로는 undefined.
-      q.push(quick ? { text: trimmed, pre: quick, utter } : { text: trimmed, utter });
+      // at = «말한 시각». 번역 왕복 뒤에 찍으면 내 줄만 뒤로 밀려 기록 순서가 어긋난다.
+      const at = Date.now();
+      q.push(quick ? { text: trimmed, pre: quick, utter, at } : { text: trimmed, utter, at });
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 15) q.splice(0, q.length - 15);
       drainTranslateQueue();
@@ -1384,15 +1475,18 @@ export default function ConsultationRoomPage() {
   //   (2026-07-27 PO 제보). DC 경로엔 있던 세대 필터가 청취모드엔 없었다 — 같은 규칙으로 맞춤.
   const listenSeqRef = useRef(new Map());
   const handleListenSubtitle = useCallback(
-    ({ transcript, translated, lang, name, identity, seq, startedAt, interim }) => {
-      if (typeof seq === "number" && identity) {
+    ({ transcript, translated, lang, name, identity, pipelineId, seq, startedAt, interim }) => {
+      // 순서 판정 키는 **파이프라인(마이크 트랙)** — seq 는 트랙마다 1부터 세는 값이라
+      // 화자 이름으로 묶으면 두 마이크의 카운터가 서로를 «낡음»으로 막아 자막이 사라진다.
+      const seqKey = pipelineId || identity;
+      if (typeof seq === "number" && seqKey) {
         // 판정 규칙·근거는 transcriptOrder.ts (단위 테스트로 고정 — 실통화 없이 검증 가능한 층)
         const { show, nextRank } = shouldShowChunk(
-          listenSeqRef.current.get(identity) || 0,
+          listenSeqRef.current.get(seqKey) || 0,
           seq,
           interim
         );
-        listenSeqRef.current.set(identity, nextRank);
+        listenSeqRef.current.set(seqKey, nextRank);
         if (!show) return; // 늦게 도착한 옛 조각 — 버린다
       }
       showRemoteSubtitle({ key: identity, text: translated, lang, name, interim });
@@ -1562,10 +1656,9 @@ export default function ConsultationRoomPage() {
     }
   }, [myMicOn, translationEnabled, forceServerStt, myLang, stt.isSupported, stt.failed, stt.start, stt.stop]);
 
-  // Scroll to bottom of translations
-  useEffect(() => {
-    translationsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [translations]);
+  // 목록은 «바닥에 붙어» 있는다 — 부드러운 애니메이션 없이 즉시(겹치면 화면이 춤춘다).
+  const transScroll = useStickToBottom(translations);
+  const chatScroll = useStickToBottom(messages);
 
   // ── Guest join (invite 토큰으로 계정 없이 입장) ──
   const joinAsGuest = useCallback(async () => {
@@ -1573,6 +1666,13 @@ export default function ConsultationRoomPage() {
     if (!guestName.trim() || guestName.trim().length < 2) {
       setGuestError(c.nameTooShort);
       return;
+    }
+
+    // 이름 기억 — 끊겨서 되돌아오면 다시 안 치게 (같은 이름 = 기록에서도 같은 사람으로 남는다)
+    try {
+      localStorage.setItem("hw_guest_name", guestName.trim());
+    } catch (_e) {
+      /* 저장 실패는 무시 */
     }
 
     // 미리보기 카메라를 먼저 놓아줘야 LiveKit이 카메라를 잡을 수 있음 (장치 점유 충돌 방지)
@@ -2984,17 +3084,19 @@ export default function ConsultationRoomPage() {
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
-        {/* 봇 대기 배지 — 봇이 방에 들어오면 사라진다. 야간 로봇 통화가 «봇이 실제로
-            들어왔나/나갔나»를 이 배지로 판정한다(토스트는 클릭해야 뜨는데, 이제 클릭 자체가
-            봇을 부르고 내보내므로 토스트로 재실을 물으면 검사가 봇을 쫓아내 버린다 —
-            2026-07-28 첫 프리뷰 실행에서 실제로 그렇게 실패했다). */}
-        {!agentPresent && (
+        {/* 봇 대기 배지 — «통역을 켠 뒤 봇이 들어오기 전»에만 그린다. 봇이 들어오면 사라진다.
+            2026-07-29 PO: "통역버튼 우상단에 ...은 왜 있는거야?" — 예전엔 통역을 켜지도
+            않은 평상시에 항상 떠 있어서, 아무 맥락 없는 점 세 개가 «고장 표시»처럼 읽혔다.
+            켠 뒤에만 = «부르는 중»이라는 뜻이 그 자리에서 통한다. 모양도 점 세 개 대신
+            도는 고리(연결 중의 만국 공통 기호)로 바꾼다. 뜻풀이는 버튼 툴팁에 있다.
+            야간 로봇 통화가 «봇이 실제로 들어왔나»를 이 배지의 사라짐으로 판정한다
+            (토스트는 클릭해야 뜨는데, 클릭 자체가 봇을 부르고 내보낸다 — 2026-07-28). */}
+        {voiceOn && !agentPresent && (
           <span
             data-testid="voice-bot-pending"
-            className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full"
-          >
-            ···
-          </span>
+            aria-label={c.voiceOnPendingMsg}
+            className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-teal-300 border-t-transparent animate-spin"
+          />
         )}
       </button>
       {/* 녹화 토글 — 스위치 ON + 운영자일 때만 존재. 켜져 있으면 방 전원에게 「녹화 중」이 보인다. */}
@@ -3574,7 +3676,11 @@ export default function ConsultationRoomPage() {
           {/* Chat panel */}
           {activePanel === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div
+                ref={chatScroll.setRef}
+                onScroll={chatScroll.onScroll}
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+              >
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
                     {c.chatEmpty}
@@ -3701,7 +3807,11 @@ export default function ConsultationRoomPage() {
               <p className="px-4 pt-2 text-[10px] text-gray-500 leading-tight">
                 {c.aiSubtitleDisclaimer}
               </p>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div
+                ref={transScroll.setRef}
+                onScroll={transScroll.onScroll}
+                className="flex-1 overflow-y-auto p-4 space-y-3"
+              >
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
                     <Languages size={32} className="mx-auto mb-3 text-gray-600" />
@@ -3797,7 +3907,6 @@ export default function ConsultationRoomPage() {
                       );
                     })
                 )}
-                <div ref={translationsEndRef} />
               </div>
 
               {/* Translation status bar */}

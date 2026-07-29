@@ -74,7 +74,7 @@ export function SameRoomGuard({ copy }) {
   const autoMutedRef = useRef(false);      // 이번 음소거가 자동(하울링)으로 걸린 것인가
   const autoMuteOptOutRef = useRef(false); // 자동 음소거를 사람이 되돌렸으면 재-자동뮤트 중단(무한루프 방지)
 
-  const { sameRoomWith, feedbackOnset } = useSameRoomDetect({
+  const { sameRoomWith, feedbackOnset, feedbackPeers } = useSameRoomDetect({
     localTrack,
     remoteTracks,
     enabled: !!localTrack && !dismissed && !screenOnly,
@@ -99,27 +99,28 @@ export function SameRoomGuard({ copy }) {
   };
 
   // ── 구글미트식 자동 음소거 (하울링 즉발 시) ──
-  // '끌 한 대'는 identity 사전순으로 정한다 — 양쪽이 같은 비교(내 id > 상대 id)를 하므로
-  // 정확히 한 대만 꺼진다(둘 다/아무도 안 꺼지는 일 불가). LiveKit joinedAt 은 participantInfo 가
-  // 잠깐 없을 때 'new Date()'(현재시각)를 돌려줘 오판 소지가 있어 안 쓴다(독립리뷰 #2).
-  // 되돌리면 autoMuteOptOut 으로 재-자동뮤트를 멈춘다(무한루프 방지).
+  // '남길 한 대'는 같은 방 그룹 전체에서 identity 사전순 **최소** 하나다 — 모든 기기가 같은
+  // 그룹을 보고 같은 계산을 하므로 정확히 한 대만 남는다.
+  //   ⚠️ 예전 규칙(`내 id > 상대 id` 하나만 비교)은 **두 대일 때만** 맞았다. 2026-07-29 실회의는
+  //   같은 사무실에서 3대가 들어왔는데(admissions 로 확인: 같은 IP 3명), 그때 A<B<C 중 A 는
+  //   «B 하나»만 감지하면 안 끄고, C 도 «A 하나»만 감지하면 끄는 식으로 판정이 감지 순서에
+  //   좌우돼 두 대가 살아남을 수 있었다 → 하울링이 그대로 남는다("아직도 하울링이 개선 안 됨").
+  // LiveKit joinedAt 은 participantInfo 가 잠깐 없을 때 'new Date()'(현재시각)를 돌려줘
+  // 오판 소지가 있어 안 쓴다(독립리뷰 #2). 되돌리면 autoMuteOptOut 으로 재-자동뮤트를 멈춘다.
+  const peerKey = feedbackPeers.join(",");
   useEffect(() => {
-    if (
-      !feedbackOnset ||
-      !sameRoomWith ||
-      screenOnly ||
-      dismissed ||
-      autoMuteOptOutRef.current
-    )
-      return;
+    if (!feedbackOnset || screenOnly || dismissed || autoMuteOptOutRef.current) return;
     const myId = room?.localParticipant?.identity ?? "";
-    if (myId > sameRoomWith) {
+    const group = peerKey ? peerKey.split(",") : sameRoomWith ? [sameRoomWith] : [];
+    if (!group.length) return;
+    const keeper = [myId, ...group].sort()[0]; // 이 한 대만 소리를 유지한다
+    if (myId !== keeper) {
       autoMutedRef.current = true;
       setScreenOnly(true);
     }
     // setScreenOnly 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbackOnset, sameRoomWith, screenOnly, dismissed, room]);
+  }, [feedbackOnset, sameRoomWith, peerKey, screenOnly, dismissed, room]);
 
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
