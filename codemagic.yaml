@@ -98,6 +98,42 @@ workflows:
         track: internal        # internal → 검증 후 production 으로 승격
         submit_as_draft: true
 
+  # ── 서명은 하되 Play 자동업로드는 안 하는 워크플로 (첫 출시용) ─────────────────
+  #    왜: android-release 는 Play 서비스계정(GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)이 있어야
+  #        돌아가는데, 그 계정은 구글 클라우드에서 따로 만들어야 한다(PO 손). 그게 없어도
+  #        «서명된 AAB» 자체는 지금 만들 수 있고, 그 파일을 Play 콘솔에 직접 올리면 첫 출시가 된다.
+  #        서비스계정이 준비되면 android-release 로 갈아타면 그 뒤부터 완전 자동.
+  android-signed:
+    name: healwith Android (서명 AAB · Play 업로드 없음)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - healwith_keystore     # Codemagic → Settings → Code signing identities 의 reference 이름
+      node: 22
+      java: 21   # capacitor.build.gradle 이 VERSION_21 을 강제
+    scripts:
+      - name: npm 의존성 설치
+        script: npm ci
+      - name: Capacitor Android 동기화
+        script: npx cap sync android
+      - name: AAB 빌드 (서명)
+        script: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew bundleRelease
+      - name: 도장(서명) 실제로 찍혔는지 검사
+        # ⚠️ 2026-07-28: 워크플로 이름이 «서명»이어도 android/app/build.gradle 에 signingConfigs 가
+        #    없으면 조용히 «서명 안 된» AAB 가 나온다. Play 에 올려봐야 거부당해서 알게 되므로
+        #    (PO 손이 한 번 더 감) 빌드 단계에서 끝낸다. 서명된 AAB 는 META-INF/*.RSA 를 갖는다.
+        script: |
+          AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -1)
+          unzip -l "$AAB" | grep -qE 'META-INF/.*\.(RSA|EC|DSA)' \
+            || { echo "❌ 서명 안 된 AAB 다 — build.gradle 의 signingConfigs 확인"; exit 1; }
+          echo "✅ 서명 확인됨: $AAB"
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+
   # ── 서명·업로드 없이 «안드로이드가 컴파일되는가»만 확인하는 검증용 워크플로 ──────
   #    왜: 키스토어·Play 서비스계정은 PO 계정 작업이라 준비되기 전엔 android-release 를 못 돌린다.
   #        그런데 정작 «코드가 빌드되는지»는 그것들과 무관하게 지금 확인할 수 있다.
