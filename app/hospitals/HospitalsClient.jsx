@@ -679,7 +679,7 @@ export default function HospitalsClient() {
             고아였다(2026-07-22 실측: 목록·홈에서 링크 0). 목록 → 대표 페이지 동선을 만든다. */}
         <Link
           href="/hospitals/immune"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 mb-8"
+          className="touch-link inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 mb-8"
         >
           {t('hospitalsPage.immuneOverview', lang)} <ArrowRight size={15} />
         </Link>
