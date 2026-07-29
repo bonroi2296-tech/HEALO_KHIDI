@@ -10,4 +10,15 @@
 
 # 핸드오프 문서는 여러 세션이 «맨 위 같은 자리»에 각자 기록을 끼워 넣어 매일 충돌한다.
 # 문서라서 양쪽 글이 다 남아도 무해하므로, git 이 손들지 말고 둘 다 남기게 한다.
+#
+# 2026-07-28 실측으로 나머지 3개도 같이 넣는다. 7/20 이후 «여러 합치기 신청서가 동시에 만진 파일»
+# 상위 5개가 전부 이 기록 문서들이었다 — 코드가 아니라 여기서 부딪힌다:
+#   PROJECT_CONTEXT 97건 · KNOWN_ISSUES 52건 · POSTMORTEMS 51건 · PO_PREFERENCES 47건
+#   (1위 코드 파일은 35건). 그런데 막아둔 건 PROJECT_CONTEXT 하나뿐이었다.
+# 넷 다 «맨 위에 새 항목을 쌓는» 누적 기록이라 양쪽 글이 다 남아도 무해하다는 근거가 동일하다.
+# ⚠️ 한계: 같은 줄을 양쪽이 고치면 두 줄이 다 남는다(중복). 손실보다 중복이 낫다는 판단.
 docs/PROJECT_CONTEXT.md merge=union
+docs/KNOWN_ISSUES.md merge=union
+docs/POSTMORTEMS.md merge=union
+docs/PO_PREFERENCES.md merge=union
+docs/archive/PROJECT_CONTEXT_handoffs.md merge=union
