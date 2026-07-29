@@ -42,7 +42,14 @@ const html = `<!doctype html><meta charset="utf-8">
 <div><h1>healwith</h1><p>${tagline}</p></div>`;
 
 mkdirSync("appstore-assets", { recursive: true });
-const browser = await chromium.launch();
+// 브라우저 실행 파일 위치를 환경변수로 덮어쓸 수 있게 둔다.
+// 왜: 클라우드 실행 환경(원격 세션·CI)은 브라우저를 미리 깔아두고 그 경로만 알려주는 경우가 있는데,
+//     playwright 가 기대하는 버전 폴더와 이름이 달라 「Executable doesn't exist」로 죽는다.
+//     PLAYWRIGHT_CHROMIUM_PATH 를 주면 그걸 쓰고, 없으면 평소대로 playwright 가 찾은 것을 쓴다.
+const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
+  ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+  : {};
+const browser = await chromium.launch(launchOpts);
 const page = await browser.newPage({ viewport: { width: 1024, height: 500 } });
 await page.setContent(html, { waitUntil: "load" });
 await page.waitForTimeout(400); // 폰트 안착

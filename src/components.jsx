@@ -10,6 +10,7 @@ import {
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video, KeyRound
 } from 'lucide-react';
 import { setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import { event as gaEvent, GA_EVENTS } from "./lib/ga";
 import { useLang } from "./lib/i18n/LangContext";
 import { localeSwitchTarget } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";
@@ -142,6 +143,9 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
   const handleLanguageChange = (code) => {
     if (langCode === code) { setIsLangOpen(false); return; }
+    // 「어느 언어에서 어느 언어로 바꿨나」 = 그 언어 번역이 부족하다는 신호.
+    // 예: ru → en 이 많으면 러시아어 번역부터 손봐야 한다(핵심 시장인데 영어로 도망감).
+    try { gaEvent(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {}
     setLangCookie(code);
     setIsLangOpen(false);
     // URL 언어화: 공개 페이지면 새 언어 주소로 이동(미들웨어가 쿠키를 URL언어로 덮어쓰므로 reload론 안 바뀜)
