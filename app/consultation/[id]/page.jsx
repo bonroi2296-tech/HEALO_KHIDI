@@ -3437,7 +3437,7 @@ export default function ConsultationRoomPage() {
 
             {/* ── 문서 뷰어 (하단 시트) — 위 25%는 영상이 계속 보이고, 음성은 그대로 이어짐 ── */}
             {viewerDoc && (
-              <div className="fixed inset-x-0 bottom-0 top-[25dvh] z-40 bg-gray-900 rounded-t-2xl border-t border-gray-700 flex flex-col shadow-2xl">
+              <div className="fixed inset-x-0 bottom-0 top-[25dvh] z-40 pb-safe-area bg-gray-900 rounded-t-2xl border-t border-gray-700 flex flex-col shadow-2xl">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-700">
                   <FileText size={15} className="text-teal-400 shrink-0" />
                   <span className="flex-1 min-w-0 truncate text-sm text-white">{viewerDoc.file_name}</span>

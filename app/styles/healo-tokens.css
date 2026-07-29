@@ -262,6 +262,24 @@ p, .body { font-size: var(--body-size); line-height: var(--body-leading); }
    MOBILE / ACCESSIBILITY
    ========================================================== */
 
+/* 포털 고정 상단바가 가리는 만큼 본문을 밀어주는 여백 — **단일 SoR**.
+ * 상단바(app/ClientShell.jsx PortalTopBar)는 `pt-safe-area` + 안쪽 `h-14 md:h-16` 이므로
+ * 실제 높이 = 안전영역 + 바 높이. 예전엔 본문이 `pt-14 md:pt-16` 만 줘서 상태표시줄이 있는
+ * 기기(앱·노치 폰)에서 본문 윗부분이 상단바에 가렸다. 바 높이를 바꾸면 여기도 같이 바꿔라. */
+.healo-portal-offset {
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0));
+}
+@media (min-width: 768px) {
+  .healo-portal-offset {
+    padding-top: calc(4rem + env(safe-area-inset-top, 0));
+  }
+}
+
+/* ※ 상단바 «바로 아래»에 붙는 고정/스티키 요소는 전용 클래스를 만들지 않고
+ *   Tailwind 임의값 `top-[calc(3.5rem+env(safe-area-inset-top,0px))]` 을 쓴다.
+ *   왜: 전용 클래스의 `@media(min-width:768px)` 가 Tailwind 의 `lg:top-0` 보다 늦게 실려
+ *   데스크톱 값을 덮어버릴 수 있다(둘 다 클래스 1개라 우선순위가 같아 «순서»가 이긴다). */
+
 /* iOS safe area — HEALO Nav/Footer 에 적용 권장 */
 .healo-safe-top    { padding-top:    env(safe-area-inset-top); }
 .healo-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -283,11 +301,17 @@ a, button {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 모바일에서 최소 터치 타겟 44px 보장 (a11y WCAG 2.5.5) */
+/* 모바일에서 최소 터치 타겟 44px 보장 (a11y WCAG 2.5.5)
+ *
+ * ⚠️ 2026-07-28: 같은 규칙이 `src/index.css` 에도 있는데 **여기만 예외 통로(`.no-touch-target`)가
+ *    빠져 있었다.** 그래서 아이콘 버튼에 예외 딱지를 붙여도 절반만 먹었고, 손수 위치를 잡은
+ *    아이콘 버튼(비밀번호 「눈」 등)이 모바일에서만 밀려나는 버그의 뿌리가 됐다.
+ *    → 두 파일의 선택자를 동일하게 맞춘다. **한쪽만 고치지 마라.** */
 @media (max-width: 768px) {
-  button,
+  button:not(.no-touch-target),
   a[role="button"],
-  .healo-tap-target {
+  .healo-tap-target,
+  .touch-target {
     min-height: 44px;
   }
 

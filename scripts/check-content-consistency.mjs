@@ -66,6 +66,13 @@ const FORBIDDEN = [
   // 보안: 비밀키를 NEXT_PUBLIC_ 접두사로 두면 클라이언트 번들에 그대로 박혀 노출된다
   // (2026-06-20 NEXT_PUBLIC_CRON_SECRET 누출 사고). 공개돼도 되는 값만 NEXT_PUBLIC_ 사용.
   { re: /NEXT_PUBLIC_[A-Z0-9_]*SECRET/, msg: "비밀키가 NEXT_PUBLIC_ 접두사로 클라이언트에 노출됨 — 서버 전용(CRON_SECRET 등)으로 옮기고 관리자 인증 라우트로 감쌀 것" },
+  // 「보이지 않는데 눌리는 버튼」 차단 (2026-07-28 발견).
+  // opacity-0 은 «안 보이게»만 할 뿐 «못 누르게» 하지 않는다. 마우스가 없는 모바일에선
+  // group-hover 가 영영 안 걸려 버튼이 계속 투명한 채로 남는데, 클릭은 그대로 먹는다.
+  // 실제 피해: 병원·치료 사진 썸네일(약 70px) 위에 44px 투명 삭제 버튼이 얹혀 있어
+  // 폰으로 사진을 누르면 사진이 목록에서 빠졌다(의료진 사진은 inset-0 이라 전체가 삭제 버튼).
+  // → opacity-0 으로 감출 거면 pointer-events-none 을 같이 걸어라.
+  { re: /^(?=.*<button)(?=.*\bopacity-0\b)(?=.*group-hover:opacity-100)(?!.*pointer-events-none).*$/, msg: "투명한데 눌리는 버튼 — `opacity-0` 은 클릭을 막지 않는다(모바일엔 hover 가 없어 영영 투명). `pointer-events-none group-hover:pointer-events-auto` 를 같이 걸 것" },
   // 조작된 환자 후기 시그니처 차단 (2026-06-20 홈에 가짜 후기 라이브 사고, POSTMORTEMS #11).
   // "이니셜 / 국가 / 암종" 형식(예: "A.K. / Kazakhstan / Stomach Cancer", "A.K. / 카자흐스탄 / 위암").
   // 실제 후기는 동의받은 것만, 출처표시 또는 외부 플랫폼 링크로.
@@ -400,6 +407,37 @@ for (const file of walk("app")) {
       errors.push(`[직원→퍼널] ${norm}:${i + 1} — 직원/포털 화면이 환자용 공개 퍼널(/inquiry·/intake)로 보냄. 직원은 자기 도구(상담 생성 모달 등)로 작업해야 함(POSTMORTEMS #33).\n    ${line.trim().slice(0, 120)}`);
     }
   });
+}
+
+// ── 5-b) public/ 의 .html 도 금지토큰 검사 (2026-07-28 신설) ─────────────
+// 왜: walk() 가 CODE_EXT(js|jsx|ts|tsx)만 담아서 **.html 은 통째로 사각지대**였다.
+//     `public/` 에는 사용자가 실제로 보는 정적 화면이 있다(오프라인 화면 등). 죽은 옛 도메인이나
+//     옛 이메일이 여기 박히면 **어떤 검사에도 안 걸린다** — 게다가 오프라인 화면은 인터넷이
+//     끊겼을 때만 뜨므로 사람 눈에도 거의 안 띈다(2026-07-28 전수 조사에서 발견).
+//     이 파일들은 손으로 만든 정적 화면이라 i18n 검사 대상은 아니지만, 금지토큰은 똑같이 적용한다.
+//     ※ 동작 확인 방법: offline.html 의 healwith.co.kr 을 healo-khidi.vercel.app 으로 바꾸면 빨간불.
+{
+  const htmlDir = join(ROOT, "public");
+  const stack = ["public"];
+  while (stack.length) {
+    const rel = stack.pop();
+    for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+      const child = `${rel}/${e.name}`;
+      if (e.isDirectory()) {
+        if (!/node_modules/.test(child)) stack.push(child);
+      } else if (e.name.endsWith(".html")) {
+        const lines = readFileSync(join(ROOT, child), "utf8").split("\n");
+        lines.forEach((line, i) => {
+          for (const f of FORBIDDEN) {
+            if (f.re.test(line) && !(f.allow && f.allow.test(child))) {
+              errors.push(`[금지토큰:html] ${child}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);
+            }
+          }
+        });
+      }
+    }
+  }
+  void htmlDir;
 }
 
 // ── 6) tt("키") 존재 검사 — 로컬 TR 패턴 파일 한정 ───────────────────

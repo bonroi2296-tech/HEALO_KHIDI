@@ -106,6 +106,14 @@ export default function ClientShell({ children, initialLang = "en" }) {
       .catch(() => { /* 네이티브 아님/플러그인 없음 → 무시 */ });
   }, []);
 
+  // 스토어 앱: 웹이 실제로 그려진 순간 시작화면을 걷는다(저속 회선에서 흰 화면 방지).
+  // 설정에도 3초 안전망(launchAutoHide)이 있어, 이게 안 돌아도 앱이 갇히지 않는다.
+  useEffect(() => {
+    import("@/lib/app/hideSplash")
+      .then((m) => m.hideSplashWhenReady())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
+  }, []);
+
   // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
   // pathname-only 이펙트는 네비게이션을 유발하지 않아 안전). 동의("all")가 있고 gtag 존재할 때만.
   // ga.ts의 pageview()가 window.gtag 없으면 no-op이라 이중 안전.
@@ -469,7 +477,11 @@ function ClientShellContent({
    ────────────────────────────────────────────── */
 function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm flex items-center justify-between px-4 pt-safe-area">
+    // ⚠️ 안전영역 여백(pt-safe-area)은 «바깥», 바 높이(h-14)는 «안쪽» 이어야 한다.
+    //    한 칸에 같이 걸면 padding 이 height 안으로 먹혀(border-box) 바가 안 내려가고
+    //    로고만 찌그러진다(2026-07-28 실기기 발견). 본문 여백은 .healo-portal-offset 이 같은 값을 쓴다.
+    <header className="fixed top-0 left-0 right-0 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm pt-safe-area">
+     <div className="h-14 md:h-16 flex items-center justify-between px-4">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
           <img src={siteConfig.logo} alt={SITE_INFO.brand.name} className="h-8 w-auto object-contain" />
@@ -498,6 +510,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
           <span className="hidden sm:inline">{t("auth.logout", langCode)}</span>
         </button>
       </div>
+     </div>
     </header>
   );
 }

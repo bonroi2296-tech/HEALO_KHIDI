@@ -21,6 +21,15 @@ vi.mock("@/lib/notifications/inApp", () => ({
   sendInAppNotification: vi.fn(async () => {}),
 }));
 
+// 같은 이유로 리마인더 예약도 차단한다 (2026-07-28 추가).
+// 상담 생성 뒤 30분 전 리마인더를 reminders_scheduled 에 넣는데, 그 insert 가
+// mock supabase 의 캡처를 덮어써서 «상담 insert 계약» 검사가 엉뚱하게 실패했다.
+// 이 시험의 관심사는 consultation_sessions 에 들어가는 컬럼이지 리마인더가 아니다.
+vi.mock("@/lib/reminders/scheduleReminder", () => ({
+  scheduleConsultationReminder: vi.fn(async () => ({ inserted: 0, skipped: 0, errors: [] })),
+  autoScheduleReminders: vi.fn(async () => ({ inserted: 0, skipped: 0, errors: [] })),
+}));
+
 beforeAll(() => {
   // 32 bytes hex — 테스트 전용 키 (encryptionV2 는 호출 시점에 env 를 읽음)
   process.env.ENCRYPTION_KEY_V1 =

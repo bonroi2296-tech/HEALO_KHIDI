@@ -202,6 +202,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── 상담 30분 전 리마인더 «예약» ────────────────────────────────────────
+    // ⚠️ 2026-07-28: 여기가 비어 있어서 **리마인드가 한 번도 나간 적이 없었다.**
+    //    발송기(`/api/cron/dispatch-reminders`)와 예약함수(scheduleConsultationReminder)는
+    //    둘 다 만들어져 있었는데 **아무도 예약을 넣지 않아** 보낼 게 영원히 0건이었다.
+    //    (실측: scheduleConsultationReminder 호출처 0곳 / reminders_scheduled 에 상담 리마인드 0건)
+    //    노쇼는 KHIDI 성과지표(사전상담·사후관리 120건)에 직결되므로 여기서 반드시 예약한다.
+    //    best-effort — 실패해도 상담 생성은 성공시킨다.
+    if (patientUserId && patientUserId !== auth.userId) {
+      try {
+        const { scheduleConsultationReminder } = await import("@/lib/reminders/scheduleReminder");
+        await scheduleConsultationReminder({
+          sessionId: data.id,
+          scheduledAt: scheduledAt,
+          targets: [
+            { userId: patientUserId, role: "patient", lang: (patientLanguage as string) || "ru" },
+          ],
+        });
+      } catch (remErr: any) {
+        console.warn("[consultation] 리마인더 예약 실패:", remErr?.message);
+      }
+    }
+
     return Response.json({ ok: true, data });
   } catch (error: any) {
     console.error("[api/khidi/consultation] Exception:", error?.message);

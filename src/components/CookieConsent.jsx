@@ -70,7 +70,7 @@ export default function CookieConsent() {
   if (!show) return null;
 
   return (
-    <div ref={boxRef} className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 shadow-2xl p-4 md:p-6 animate-in slide-in-from-bottom">
+    <div ref={boxRef} className="fixed bottom-0 left-0 right-0 z-[9999] pb-safe-area bg-white border-t border-gray-200 shadow-2xl p-4 md:p-6 animate-in slide-in-from-bottom">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="flex-1 text-sm text-gray-600">
           <p className="font-semibold text-gray-900 mb-1">{tr("title")}</p>

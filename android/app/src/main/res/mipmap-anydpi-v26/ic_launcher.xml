@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  적응형 아이콘(adaptive icon) — 배경 겹 + 앞면 겹을 폰이 원하는 모양(동그라미·둥근네모)으로 오려낸다.
+
+  2026-07-28 수리: 예전에는 (1)앞면 겹에 «완성된 아이콘»(흰 둥근 카드 + h)이 통째로 들어 있고
+     (2)배경·앞면 둘 다에 inset 16.7% 가 걸려 있었다. 여기에 런처의 동그라미 오리기까지 더해져
+     3중으로 깎이면서 「큰 흰 동그라미 안의 작은 h」가 됐다(PO 실기기 제보).
+     -> 앞면 겹을 «투명 배경 + h 로고만, 캠버스의 64%»로 다시 만들고 inset 을 없앨다.
+        (규격상 가운데 72/108 = 66.7% 가 항상 보이는 안전영역이라 64% 는 그 안쪽.)
+     앞면 그림을 다시 만들 땐 로고 크기를 이 비율로 맞춰라. inset 을 되살리지 말 것.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background>
-        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.7%" />
-    </background>
-    <foreground>
-        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
-    </foreground>
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
 </adaptive-icon>

@@ -193,7 +193,7 @@ function ProfileEditor() {
       )}
 
       {/* Page header */}
-      <div className="sticky top-14 lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">병원 정보</h1>
@@ -239,7 +239,7 @@ function ProfileEditor() {
               {galleryImages.map((url, idx) => (
                 <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                   <img src={url} alt="gallery" className="w-full h-full object-cover"/>
-                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition shadow-sm"><X size={10}/></button>
                 </div>
               ))}
             </div>
@@ -287,7 +287,7 @@ function ProfileEditor() {
               {doctorProfile.image ? (
                 <div className="relative group w-16 h-16 rounded-full overflow-hidden border">
                   <img src={doctorProfile.image} alt="doc" className="w-full h-full object-cover"/>
-                  <button onClick={() => setDoctorProfile({ ...doctorProfile, image: "" })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><X size={16}/></button>
+                  <button onClick={() => setDoctorProfile({ ...doctorProfile, image: "" })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"><X size={16}/></button>
                 </div>
               ) : (
                 <div>
