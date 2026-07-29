@@ -97,6 +97,16 @@ export function dominantSpeaker(log, from, to) {
 const PARTIAL_SLICE_MS = 700; // MediaRecorder 조각 주기
 const PARTIAL_MIN_SPEECH_MS = 700; // 이만큼 이어진 발화부터 부분 자막 시도
 const PARTIAL_MIN_INTERVAL_MS = 900; // 갱신 주기(너무 잦으면 깜빡임·비용)
+// ⚠️ 발화 하나가 쓸 수 있는 «말하는 중» 요청 상한.
+// 왜 필요한가(2026-07-29 실측): 부분 요청은 매번 «발화 처음부터 지금까지» 오디오를 통째로
+//   다시 올린다(이어붙인 webm 은 앞을 못 자른다). 그래서 발화가 길수록 같은 소리를 몇 번씩
+//   다시 전사하고, 비용은 길이의 제곱으로 튄다. 갱신 주기를 1.5초 → 0.9초로 당기면서 이걸
+//   안 막으면 12초 발화 하나가 요청 12번이 된다.
+//   실측 근거: 오늘 31분 회의가 AI 호출 1,163회(분당 37.5회)를 썼고 상담 1건당 상한은
+//   5,000회 — 상한까지 133분이었다. 상한을 넘기면 «회의 도중 자막이 죽는다».
+//   4회면 짧은 발화(대부분)는 영향이 없고 긴 발화의 폭주만 잘린다. 뒷부분은 어차피
+//   확정 자막이 곧 제자리에서 교체한다.
+const PARTIAL_MAX_PER_UTTERANCE = 4;
 
 // ── 같은 목소리가 여러 마이크에 잡히는 것 억제 ──
 // 왜: 참가자별로 트랙을 따로 듣기 때문에, 한 공간에 기기가 여럿이면 한 사람 발화가
@@ -416,6 +426,7 @@ function startPipeline({
     const mySeq = ++seq;
     let partialInFlight = false;
     let lastPartialAt = 0;
+    let partialCount = 0; // 이 발화가 쓴 «말하는 중» 요청 수 (PARTIAL_MAX_PER_UTTERANCE 상한)
     let cutting = false; // 컷 결정 후 들어오는 마지막 조각으로 부분 요청을 또 쏘지 않게
 
     try {
@@ -434,11 +445,13 @@ function startPipeline({
         voicedFrames >= 3 &&
         now - startedAt >= PARTIAL_MIN_SPEECH_MS &&
         !partialInFlight &&
+        partialCount < PARTIAL_MAX_PER_UTTERANCE &&
         now - lastPartialAt >= PARTIAL_MIN_INTERVAL_MS
       ) {
         const blob = new Blob(chunks, { type: mime || "audio/webm" });
         if (blob.size <= MIN_BLOB_BYTES) return;
         partialInFlight = true;
+        partialCount += 1;
         lastPartialAt = now;
         sendChunk({ blob, partial: true, mySeq, startedAt })
           .then((r) => r && emit(r))

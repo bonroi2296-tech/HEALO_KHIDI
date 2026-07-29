@@ -89,22 +89,45 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   });
 
   /**
-   * 이 기기를 "화면 전용"으로 — 마이크 끄고 상대 음성도 안 듣는다(양방향 차단해야 순환이 끊긴다).
+   * 이 기기를 "화면 전용"으로 — 내 마이크를 끄고 이 기기 스피커도 침묵시킨다.
+   * (하울링 순환은 «내 마이크»와 «내 스피커»를 둘 다 빼야 끊긴다.)
+   *
+   * ⚠️ 스피커를 «소리 크기 0»으로 죽인다 — 트랙 수신 자체를 끊으면(setEnabled(false))
+   *    안 된다. 그건 서버에 «이 트랙 보내지 마»라고 알리는 명령이라 소리 데이터가 아예
+   *    안 온다 → 그 데이터로 만들던 **자막이 같이 죽는다**. 그런데 이 기기는 바로
+   *    «소리는 끄고 자막만 읽는» 기기다(PO 실사용 방식). 소리 데이터는 계속 받고
+   *    스피커만 침묵시켜야 «조용한데 자막은 나오는» 상태가 된다.
+   *    (2026-07-29 자가감사에서 발견 — 예전 코드는 수신을 끊어 자막까지 죽였다.)
    * @param {boolean} off  true=끄기, false=되돌리기
    */
   const setScreenOnly = async (off) => {
     try {
       await room?.localParticipant?.setMicrophoneEnabled(!off);
       for (const p of room?.remoteParticipants?.values?.() ?? []) {
-        for (const pub of p.trackPublications?.values?.() ?? []) {
-          if (pub.kind === "audio") pub.setEnabled?.(!off);
-        }
+        p.setVolume?.(off ? 0 : 1);
       }
     } catch {
       /* 실패해도 상태만 바꾼다 — 사용자는 하단 버튼으로 수동 조작 가능 */
     }
     setScreenOnly_(off);
   };
+
+  // 조용히 들어간 뒤 «나중에 들어온 사람»의 소리는 기본값(1)로 시작한다 → 그 사람 목소리만
+  // 스피커로 새어 나와 하울링이 되살아난다. 침묵 상태인 동안엔 새로 붙는 사람에게도 0을 건다.
+  useEffect(() => {
+    if (!screenOnly || !room) return;
+    const silence = () => {
+      for (const p of room.remoteParticipants?.values?.() ?? []) p.setVolume?.(0);
+    };
+    silence();
+    const events = [
+      RoomEvent.ParticipantConnected,
+      RoomEvent.TrackSubscribed,
+      RoomEvent.Reconnected,
+    ];
+    events.forEach((e) => room.on(e, silence));
+    return () => events.forEach((e) => room.off(e, silence));
+  }, [screenOnly, room]);
 
   // ── ①번 방어선: 같은 인터넷 회선이면 «울리기 전에» 조용히 들어간다 ──
   // 하울링은 «마이크 하나 + 스피커 하나»가 같은 방에 있으면 난다 — 두 대로 충분하다
