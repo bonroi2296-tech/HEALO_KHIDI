@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { speakerColor, speakerInitial, SPEAKER_COLORS } from "./speakerColor";
+import { speakerColor, speakerInitial, SPEAKER_COLORS, resetSpeakerColors } from "./speakerColor";
 
 describe("speakerColor — 자막 화자 구분(사람 단위)", () => {
   it("같은 화자면 항상 같은 색 (재입장·새로고침에도 안 바뀜)", () => {
@@ -53,5 +53,27 @@ describe("speakerInitial — 기록 패널 아바타 글자", () => {
     expect(speakerInitial("")).toBe("?");
     expect(speakerInitial(undefined)).toBe("?");
     expect(speakerInitial(null)).toBe("?");
+  });
+});
+
+/**
+ * 2026-07-29 실측: 회선이 끊겨 다시 들어온 참가자가 이름을 손으로 다시 쳐서
+ * «Эльдар» → «эльдар» 로 대소문자만 달라졌다 → 색이 갈려 한 사람이 두 사람처럼 보였다.
+ */
+describe("speakerColor — 같은 사람은 대소문자가 달라도 같은 색", () => {
+  it("대소문자만 다른 이름은 같은 색", () => {
+    resetSpeakerColors();
+    expect(speakerColor("Эльдар")).toBe(speakerColor("эльдар"));
+  });
+
+  it("앞뒤·중간 공백 차이도 같은 색", () => {
+    resetSpeakerColors();
+    expect(speakerColor(" Assel ")).toBe(speakerColor("Assel"));
+    expect(speakerColor("ROY  KANG")).toBe(speakerColor("Roy Kang"));
+  });
+
+  it("다른 사람은 여전히 다른 색", () => {
+    resetSpeakerColors();
+    expect(speakerColor("Assel")).not.toBe(speakerColor("Эльдар"));
   });
 });
