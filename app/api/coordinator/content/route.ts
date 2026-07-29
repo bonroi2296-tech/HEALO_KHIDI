@@ -52,6 +52,11 @@ export async function GET(request: NextRequest) {
         .from("content_change_log")
         .select("*", { count: "exact" })
         .order("changed_at", { ascending: false })
+        // ⚠️ 2차 정렬 필수: 한 번의 저장이 배치 전체에 **같은 changed_at** 을 박는다
+        //    (실측: 같은 시각 묶음 14개, 가장 큰 묶음 37줄 → 50건 경계에 반드시 걸친다).
+        //    시각만으로 정렬하면 페이지마다 동률 순서가 달라져 **같은 줄이 두 번 뜨고 다른 줄은 빠진다**
+        //    (독립 리뷰 지적). id 는 uuid 라 의미는 없지만 «항상 같은 순서»를 보장한다.
+        .order("id", { ascending: false })
         .range(offset, offset + limit - 1);
       // 2026-07-28: 이력의 「이전 값」이 (없음) 으로만 뜨던 것 수리 — 사유는 changeLog.ts 주석.
       const enriched = withOldValueDefaults(logs || [], {
@@ -62,7 +67,7 @@ export async function GET(request: NextRequest) {
       // 「이게 어느 화면의 무엇인가」를 같이 내려준다 — 코드 이름만으로는 코디가 못 찾는다.
       const withPlace = enriched.map((lg: any) => ({
         ...lg,
-        place: describeKey(lg?.content_key, (k: string) => homeLabelOf(k)),
+        place: describeKey(lg?.content_key, homeLabelOf),
       }));
       return NextResponse.json({
         ok: true,

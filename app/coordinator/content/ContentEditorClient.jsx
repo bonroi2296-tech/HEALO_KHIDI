@@ -217,6 +217,7 @@ export default function ContentEditorClient() {
     setConfirming(false);
     setShowLog(true);
     setLogs([]);
+    setLogTotal(0);   // 이전에 보던 건수가 남아 「전체 247건 중 0건」 처럼 어긋나 보이던 것(독립 리뷰 지적)
     await loadLogs(0);
   };
 

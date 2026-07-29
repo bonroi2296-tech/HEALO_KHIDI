@@ -16,17 +16,17 @@ const BY_PREFIX = {
   // ── 공개 화면 ─────────────────────────────────────────────
   home:           { screen: "홈 화면", path: "/" },
   socialProof:    { screen: "홈·치료 여정 화면의 「신뢰 지표」 구역", path: "/" },
-  search:         { screen: "홈 검색창 구역", path: "/" },
   telemedicine:   { screen: "원격협진 안내", path: "/telemedicine" },
   careJourney:    { screen: "치료 여정 안내", path: "/care-journey" },
   costCalc:       { screen: "비용 계산기", path: "/cost-calculator" },
   hospitalsPage:  { screen: "병원 목록", path: "/hospitals" },
   treatmentsPage: { screen: "치료 안내 목록", path: "/treatments" },
-  faq:            { screen: "자주 묻는 질문", path: "/faq" },
   faqData:        { screen: "자주 묻는 질문(문답 내용)", path: "/faq" },
   about:          { screen: "회사 소개", path: "/about" },
   km:             { screen: "한방 특화 안내", path: "/specialties/korean-medicine" },
-  detail:         { screen: "병원·치료 상세 화면", path: "/hospitals" },
+  // 병원 상세·치료 상세 **양쪽**에서 쓴다(실사용 50건). 어느 쪽인지 알 수 없어 링크는 안 준다
+  // — 치료 상세 문구를 고친 코디를 병원 목록으로 보내면 헤맨다(독립 리뷰 지적).
+  detail:         { screen: "병원·치료 상세 화면", path: null },
   signup:         { screen: "회원가입 화면", path: "/signup" },
   nav:            { screen: "화면 위쪽 메뉴(전 화면 공통)", path: "/" },
   footer:         { screen: "화면 맨 아래 정보(전 화면 공통)", path: "/" },
@@ -34,7 +34,6 @@ const BY_PREFIX = {
 
   // ── 문의폼 ────────────────────────────────────────────────
   inquiryFunnel:  { screen: "문의폼", path: "/inquiry" },
-  inquiry:        { screen: "문의폼 입력칸", path: "/inquiry" },
   intakeLabels:   { screen: "문의폼 선택 버튼(암종·병기 등)", path: "/inquiry" },
   chat:           { screen: "문의 채팅창", path: "/inquiry" },
 
@@ -51,6 +50,10 @@ const BY_PREFIX = {
   //    고쳐도 아무 화면에도 안 나오므로 **미리 알려서 헛수고를 막는다.**
   //    ⚠️ 「확실히 죽었다」가 아니라 「쓰는 곳을 못 찾았다」로 적는다 — 내가 놓쳤을 수 있다.
   success:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
+  inquiry:     { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
+  faq:         { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금 「자주 묻는 질문」은 faqData 를 씁니다" },
+  meta:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 지금은 seo 를 씁니다" },
+  search:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 옛 검색결과 화면 잔재(홈 검색창 2개만 예외)" },
   list:        { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
   social:      { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
   howItWorks:  { screen: null, path: null, note: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다" },
@@ -58,6 +61,13 @@ const BY_PREFIX = {
   // ── 화면에 안 보이는 것(검색엔진·구글용) ─────────────────────
   seo:  { screen: "검색엔진용 설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다" },
   meta: { screen: "검색엔진용 제목·설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다" },
+};
+
+// 앞머리 전체는 죽었는데 **몇 개만 살아 있는** 예외. 앞머리 표보다 먼저 본다.
+// (search.* 13키 중 이 둘만 홈 히어로에서 실제로 쓰인다 — 나머지는 2026-07-21 삭제된 검색결과 화면 잔재)
+const BY_KEY = {
+  "search.placeholder": { screen: "홈 검색창", path: "/" },
+  "search.button":      { screen: "홈 검색창", path: "/" },
 };
 
 /**
@@ -69,7 +79,7 @@ const BY_PREFIX = {
 export function describeKey(key, homeLabel) {
   if (!key || typeof key !== "string") return { screen: null, path: null, where: null, note: null };
   const head = key.split(".")[0];
-  const hit = BY_PREFIX[head] || null;
+  const hit = BY_KEY[key] || BY_PREFIX[head] || null;
 
   // 홈 문구는 레지스트리에 사람이 읽는 이름이 이미 있다(예: 「통계 / 항목1 · 문구」).
   let where = null;
