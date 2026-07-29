@@ -13,6 +13,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { loginAs } from "./fixtures/auth";
+import { HOSPITAL_CONTENT_ENABLED } from "../app/hospital/_components/featureFlags";
 
 test.describe("국내 병원 백오피스 @smoke", () => {
   test.beforeEach(async ({ page }) => {
@@ -30,15 +31,23 @@ test.describe("국내 병원 백오피스 @smoke", () => {
     // 홈으로 되돌아가는 증상(핸드오프 기록)을 정확히 잡는다 — 경로가 살아 있어야 한다.
     expect(new URL(page.url()).pathname).toContain("/hospital");
     // 문지기가 막으면 "권한 없음" 카드가 뜬다 → 그 카드가 아니라 포털 본문이 보여야 통과.
+    // (그 카드에도 "병원"이 들어 있어 아래 정규식만으론 못 가른다 → 카드 부재를 따로 잠근다.)
+    await expect(page.getByText("접근 권한 없음")).toHaveCount(0);
     await expect(page.getByText(/리드|병원|프로필|진료/).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("병원 프로필·진료항목 화면이 열린다", async ({ page }) => {
+  // 2026-07-29 실측으로 정정: 이 둘이 «대시보드로 되돌아가는» 것은 버그가 아니라 기능 플래그다
+  // (`featureFlags.js` HOSPITAL_CONTENT_ENABLED=false, PO 결정 2026-06-24 — 공개 프론트 미연동).
+  // 이전 판정(`toContain("/hospital")`)은 /hospital 과 /hospital/profile 을 못 갈라서
+  // 되돌아가도 통과했다 — 정확한 경로로 잠근다. 플래그를 켜면 기대값이 자동으로 뒤집힌다.
+  test("병원 정보·시술 카탈로그는 플래그대로 동작한다(꺼짐=대시보드로, 켜짐=그대로)", async ({ page }) => {
     for (const path of ["/hospital/profile", "/hospital/treatments"]) {
       await page.goto(path);
       await page.waitForLoadState("domcontentloaded");
       expect(page.url()).not.toContain("/login");
-      expect(new URL(page.url()).pathname).toContain("/hospital");
+      await expect
+        .poll(() => new URL(page.url()).pathname, { timeout: 10_000 })
+        .toBe(HOSPITAL_CONTENT_ENABLED ? path : "/hospital");
     }
   });
 });
