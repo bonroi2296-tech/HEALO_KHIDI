@@ -64,9 +64,21 @@ export function AdminGateClient({ children }) {
             router.push(loginUrl());
           }
         } else {
+          // 2026-07-29: 5xx·네트워크 오류도 그대로 /login 으로 보내고 있었다(위 재시도는 403 에만
+          // 걸린다) — 서버가 한 번 삐끗하면 어드민이 로그인 화면으로 튕긴다. 서버 잘못(5xx)일 때만
+          // 1회 더 물어보고, 그래도 안 되면 예전대로 로그인으로.
           const errBody = await response.json().catch(() => ({}));
           console.warn('[AdminGate] Auth failed', response.status, errBody?.hint || '');
-          router.push(loginUrl());
+          let recovered = false;
+          if (response.status >= 500) {
+            const again = await fetch('/api/admin/whoami', { credentials: 'include', headers }).catch(() => null);
+            if (again?.ok) {
+              const result = await again.json().catch(() => null);
+              if (result?.isAdmin) { setIsAuthorized(true); recovered = true; }
+              else if (result?.email) { setDeniedEmail(result.email); recovered = true; }
+            }
+          }
+          if (!recovered) router.push(loginUrl());
         }
       } catch (error) {
         console.error('[AdminGate] Error:', error);

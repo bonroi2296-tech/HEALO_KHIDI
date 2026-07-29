@@ -29,6 +29,7 @@
 import type { NextRequest } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient, createSupabaseServerClientFromRequest } from "../supabase/server";
+import { askOnceMoreOnError } from "./retryTransient";
 
 /**
  * ✅ 환경변수에서 관리자 이메일 화이트리스트 로드
@@ -98,9 +99,12 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
         try {
           // supabaseAdmin으로 토큰 검증
           const { supabaseAdmin } = await import("../rag/supabaseAdmin");
-          const { data, error } = await supabaseAdmin.auth.getUser(token);
-          
-          user = data?.user;
+          // 오류면 1회 더 물어본다 — 인증 서버가 한 번 삐끗한 것을 「권한 없음」으로 바꾸지 않기 위해
+          // (2026-07-29 전수 스캔, retryTransient.ts 참고). 두 번 다 실패면 예전과 동일하게 거부.
+          const res = await askOnceMoreOnError(() => supabaseAdmin.auth.getUser(token));
+          const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
+
+          user = data?.user ?? null;
           userError = error;
           authMethod = "bearer_token";
           
@@ -121,8 +125,9 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
     if (!user && request?.cookies) {
       try {
         const supabase = createSupabaseServerClientFromRequest(request);
-        const { data, error } = await supabase.auth.getUser();
-        user = data?.user;
+        const res = await askOnceMoreOnError(() => supabase.auth.getUser());
+        const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
+        user = data?.user ?? null;
         userError = error;
         authMethod = "cookie_request";
         if (isDev) {
@@ -138,8 +143,9 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
     if (!user) {
       try {
         const supabase = await createSupabaseServerClient();
-        const { data, error } = await supabase.auth.getUser();
-        user = data?.user;
+        const res = await askOnceMoreOnError(() => supabase.auth.getUser());
+        const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
+        user = data?.user ?? null;
         userError = error;
         if (!authMethod || authMethod === "unknown") authMethod = "cookie";
         if (isDev) {

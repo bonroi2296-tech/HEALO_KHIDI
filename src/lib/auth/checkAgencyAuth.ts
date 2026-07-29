@@ -6,6 +6,7 @@
 import "server-only"; // service_role 접근 모듈 — 클라이언트 번들 유입 차단(독립 리뷰 2026-07-24 권고)
 import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
+import { askOnceMoreOnError } from "./retryTransient";
 
 export interface AgencyAuthResult {
   isAgencyUser: boolean;
@@ -30,8 +31,10 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
         const token = authHeader.substring(7);
         try {
           const { supabaseAdmin } = await import("../rag/supabaseAdmin");
-          const { data, error } = await supabaseAdmin.auth.getUser(token);
-          user = data?.user;
+          // 오류면 1회 더 (retryTransient.ts) — 인증 서버 한 번 삐끗 ≠ 권한 없음
+          const res = await askOnceMoreOnError(() => supabaseAdmin.auth.getUser(token));
+          const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
+          user = data?.user ?? null;
           userError = error;
         } catch (err: unknown) {
           userError = err;
@@ -41,8 +44,9 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
     if (!user) {
       try {
         const supabase = await createSupabaseServerClient();
-        const { data, error } = await supabase.auth.getUser();
-        user = data?.user;
+        const res = await askOnceMoreOnError(() => supabase.auth.getUser());
+        const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
+        user = data?.user ?? null;
         userError = error;
       } catch (err: unknown) {
         userError = err;
@@ -64,13 +68,17 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
     const userId = user.id;
     // service_role 클라이언트: agency_users 테이블/조인이 생성 스키마 타입에 없어 캐스팅 유지
     const serviceClient = createServiceRoleClient() as any;
-    const { data: au, error: auErr } = await serviceClient
-      .from("agency_users")
-      .select("agency_id, role, is_active, agencies(id, name, is_active, partner_type)")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .limit(1)
-      .single();
+    // DB 삐끗을 「파트너 포털 권한 없음」으로 바꾸지 않는다 — 진짜 미소속(PGRST116)은 그대로 거부.
+    const auRes = await askOnceMoreOnError(() =>
+      serviceClient
+        .from("agency_users")
+        .select("agency_id, role, is_active, agencies(id, name, is_active, partner_type)")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1)
+        .single()
+    );
+    const { data: au, error: auErr } = auRes ?? { data: null, error: new Error("db_unreachable") };
 
     if (auErr || !au) {
       return { isAgencyUser: false, userId, email: user.email, error: "not_agency_user" };

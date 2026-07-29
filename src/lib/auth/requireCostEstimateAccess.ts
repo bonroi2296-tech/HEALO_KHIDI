@@ -9,6 +9,7 @@ import { NextRequest } from "next/server";
 import { checkAdminAuth } from "./checkAdminAuth";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../rateLimit";
+import { askOnceMoreOnError } from "./retryTransient";
 
 const COST_RATE = {
   windowMs: 60 * 1000,
@@ -38,12 +39,11 @@ export type CostAccessResult =
   | { success: false; response: Response };
 
 async function isCoordinatorUser(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .maybeSingle();
-  return (data as { role?: string } | null)?.role === "coordinator";
+  // 오류를 아예 안 받아서 DB 삐끗 = 「코디 아님」 = 403 이었다 → 1회 더 물어본다(retryTransient.ts).
+  const res = await askOnceMoreOnError(() =>
+    supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).maybeSingle()
+  );
+  return (res?.data as { role?: string } | null)?.role === "coordinator";
 }
 
 export async function requireCostEstimateAccess(
