@@ -200,6 +200,7 @@ export const IMMUNE_PAGES = {
           { src: "/immune/life/sauna-cabin-1.jpg", caption: D("사우나 캐빈", "Sauna cabin", "Кабина сауны", "Сауна кабинасы", "桑拿房", "サウナキャビン") },
           { src: "/immune/life/rest-booth-1.jpg", caption: D("1인 휴식 부스", "Single rest booths", "Индивидуальные кабинки отдыха", "Жеке демалыс орындары", "单人休息位", "一人用の休憩ブース") },
           { src: "/immune/life/bike-1.jpg", caption: D("실내 자전거", "Exercise bikes", "Велотренажёры", "Велотренажёрлар", "室内单车", "エアロバイク") },
+          { src: "/immune/life/dining-sauce-1.jpg", caption: D("약선 다이닝은 병원 주방에서 나옵니다", "The therapeutic course comes from the hospital's own kitchen", "Лечебное меню готовится на кухне клиники", "Емдік ас клиниканың өз асханасында дайындалады", "药膳套餐出自院内厨房", "薬膳ダイニングは院内の厨房から出ます") },
         ],
       },
     ],

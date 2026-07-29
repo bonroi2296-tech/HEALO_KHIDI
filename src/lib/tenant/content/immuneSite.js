@@ -535,6 +535,16 @@ export const IMMUNE_SITE = {
       src: "/immune/life/sauna-entrance-1.jpg",
       caption: { ko: "사우나 입구", en: "Sauna entrance", ru: "Вход в сауну", kz: "Саунаға кіреберіс", zh: "桑拿入口", ja: "サウナ入口" },
     },
+    /* 성동점 약선다이닝 촬영(2026-07-13, 드라이브 33장) 중 **접시와 손만 나오는** 3장.
+       같은 폴더의 홀 사진 `C1_09009` 에는 항암 환자(두건)의 얼굴이 그대로 나와 안 썼다. */
+    {
+      src: "/immune/life/dining-plated-1.jpg",
+      caption: { ko: "약선 다이닝 한 접시", en: "A plate from the therapeutic course", ru: "Блюдо из лечебного меню", kz: "Емдік ас мәзірінен бір табақ", zh: "药膳套餐中的一道", ja: "薬膳ダイニングの一皿" },
+    },
+    {
+      src: "/immune/life/dining-pass-1.jpg",
+      caption: { ko: "코스가 나가는 자리", en: "Plating for service", ru: "Раздача блюд", kz: "Тағам таратылатын орын", zh: "出餐台", ja: "コースが出ていく場所" },
+    },
   ],
 
   whyUsTitle: {
