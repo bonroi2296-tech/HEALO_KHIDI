@@ -18,7 +18,7 @@
 | 3 | 광고 착지 페이지 합류 (#1128) | 🔴 | `app/ru/**` · `app/kk/**` | ✕ |
 | 4 | 측정(GA4)이 진짜 도는지 실증 + 광고 꼬리표 | 🔴 | `docs/GA4_SETUP.md` · `src/lib/ga.ts` | **○ 필수** |
 | 5 | 배포 창구 잔재 브랜치 6개 정리 + 오늘 15시 실동작 확인 | 🟠 | `.github/workflows/**` | ✕ |
-| 6 | 방치된 문서 신청서 3건 합치기 (#1111·#1126·#1129) | 🟠 | `docs/**` (문서만) | ✕ |
+| ~~6~~ | ~~방치된 문서 신청서 3건 합치기~~ ✅ **2026-07-29 완료** (#1126·#1129 합침 / #1111 은 #1145 로 대체 후 닫음) | — | — | — |
 | 7 | 국내병원(hospital) 자동 확인 구멍 마무리 | 🟡 | `e2e/**` | ✕ |
 | 8 | KHIDI 8/27 중간평가 준비 | 🟡 | `docs/KHIDI_*` · `app/admin/khidi/**` | ✕ |
 
@@ -77,13 +77,11 @@
 
 ---
 
-## 6. 방치된 문서 신청서 3건 합치기 🟠
+## ~~6. 방치된 문서 신청서 3건 합치기~~ ✅ 완료 (2026-07-29)
 
-> 문서만 바뀌는 합치기 신청서 3건이 방치돼 있다. **하나씩 순서대로** 합쳐라(문서가 겹쳐서 동시에 하면 충돌난다).
-> - **[#1111](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1111)** — SEO 세션 PO 취향 3건. ⚠️ **`docs/PO_PREFERENCES.md` 는 어제 대대적으로 정리(활성 186→21개)돼서 이 신청서와 크게 어긋난다.** 그대로 합치면 정리한 게 되돌아간다 — **취향 3건을 「분류 대기실」에 태그 붙여 넣는 방식으로 옮겨 담아라**(`CLAUDE.md` 「어디에 쓸까」 5칸 판정). 그 뒤 `node scripts/check-rules.mjs` 로 대기실 상한(25개)을 안 넘는지 확인.
-> - **[#1126](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1126)** — 공공 포털 등재 조사. **PO 가 그대로 보낼 수 있는 메일 초안 2건**이 들어 있다. 합친 뒤 PO 에게 「한국관광공사 의료관광안내센터에 이 메일 보낼지」를 버튼으로 물어라(발송은 PO 몫).
-> - **[#1129](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1129)** — CloudHospital 도입 검토 기록 + 제안서 원본. 그냥 합치면 된다.
-> 🚫 **함정**: 본판 최신을 끌어올 때 **`git checkout origin/main -- .gitattributes` 를 먼저** 해라 · **반성문 번호 겹침**을 매번 확인해라(어제 하루에 세 번 겹쳤다).
+- **[#1126](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1126)** 공공 포털 등재 — 합침. ➡️ **PO 몫 남음**: 문서에 든 메일 초안 2건을 한국관광공사 의료관광안내센터(`medicaltourism@knto.or.kr` · ☎ 02-752-2102~3)에 보낼지 결정.
+- **[#1129](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1129)** CloudHospital 검토 — 충돌 풀고 합침.
+- **[#1111](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1111)** SEO 취향 3건 — 그대로 합치면 규칙 다이어트가 되돌아가서 **[#1145](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1145) 로 다시 짜서 합치고 원본은 닫았다.** 새로운 것 1건은 **말투 훅 8번**으로 승격, 재탕 2건은 원문만 보관(삭제 0건).
 
 ---
 
