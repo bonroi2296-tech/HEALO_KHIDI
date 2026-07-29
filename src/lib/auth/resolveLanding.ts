@@ -13,6 +13,7 @@
 
 import "server-only";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
+import { askOnceMoreOnError } from "./retryTransient";
 
 export async function resolveLandingPath(opts: {
   userId?: string | null;
@@ -44,15 +45,19 @@ export async function resolveLandingPath(opts: {
 
   // 병원 담당자는 app_metadata.role 이 아니라 hospital_users 테이블로 판정
   if (opts.userId) {
+    const uid = opts.userId;
     try {
-      const { data } = await supabaseAdmin
-        .from("hospital_users")
-        .select("hospital_id")
-        .eq("user_id", opts.userId)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      if (data) return "/hospital";
+      // 조회가 삐끗하면 병원 담당자가 홈으로 착지한다(자기 포털을 못 찾는다) → 1회 더.
+      const res = await askOnceMoreOnError(() =>
+        supabaseAdmin
+          .from("hospital_users")
+          .select("hospital_id")
+          .eq("user_id", uid)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+      );
+      if (res?.data) return "/hospital";
     } catch {
       /* 조회 실패 시 환자로 폴백 */
     }

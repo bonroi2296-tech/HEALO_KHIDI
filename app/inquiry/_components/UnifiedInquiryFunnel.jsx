@@ -520,7 +520,7 @@ export default function UnifiedInquiryFunnel() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="text-center mb-8">
-          <span className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200 mb-3">Step 2 / 2</span>
+          <span className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200 mb-3">{tl("step2of2", lang)}</span>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{tl("step2Title", lang)}</h2>
         </div>
 
@@ -945,7 +945,7 @@ export default function UnifiedInquiryFunnel() {
       )}
 
       <div className="text-center mb-8">
-        <span className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200 mb-3">Step 1 / 2</span>
+        <span className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200 mb-3">{tl("step1of2", lang)}</span>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{tl("step1Title", lang)}</h1>
         <p className="text-gray-500 text-sm">{tl("step1Subtitle", lang)}</p>
       </div>

@@ -104,6 +104,35 @@ export function describeKey(key, homeLabel) {
   };
 }
 
+/**
+ * 홈 문구 키를 「구역 / 낱말 · 낱말」의 **부품**으로 쪼갠다 (예: home.stats.items.0.label
+ * → { sectionKey:"stats", words:[{f:"items",n:1},{f:"label"}] }).
+ *
+ * 왜 부품인가: 화면에 보여줄 이름을 **코디 언어로** 조립해야 한다. 서버가 한국어 문장을
+ * 만들어 보내면(예전 방식) 러시아어 화면에도 「통계 / 항목1 · 문구」가 그대로 박힌다
+ * (실측 2026-07-29: 휴대폰 폭에서 72칸 중 22칸이 한국어로 남아 있었다).
+ * 낱말 번역은 코디 사전의 ceSec_* · ceFld_* 가 갖고 있고, 사전에 없으면 원래 낱말로 폴백한다.
+ *
+ * ⚠️ 조립 규칙은 `src/lib/content/registry.js` 의 labelFor() 와 **같은 규칙**이다
+ *    (숫자는 앞 낱말에 붙여 「항목1」). 한쪽만 고치면 두 화면의 이름이 어긋난다.
+ */
+export function homeWhereParts(key) {
+  if (typeof key !== "string" || !key.startsWith("home.")) return null;
+  const parts = key.split(".").slice(1);
+  if (parts.length === 0) return null;
+  const words = [];
+  for (const p of parts.slice(1)) {
+    if (/^\d+$/.test(p)) {
+      // 숫자는 «앞 낱말 + 번호» 로 붙는다. 앞 낱말이 없으면 「항목」이 기본.
+      if (words.length === 0) words.push({ f: "items" });
+      words[words.length - 1] = { ...words[words.length - 1], n: Number(p) + 1 };
+      continue;
+    }
+    words.push({ f: p });
+  }
+  return { sectionKey: parts[0], words };
+}
+
 /** 표에 없는 앞머리 목록(점검용) — 새 화면이 생기면 여기서 드러난다. */
 export function unknownPrefixes(keys) {
   const out = new Set();
