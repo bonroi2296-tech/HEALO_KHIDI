@@ -335,7 +335,16 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   - `e2e/auth.setup.ts` 역할 목록에 `hospital` 추가 · `e2e/fixtures/auth.ts` 에 `HOSPITAL_USER` + `Role` 타입 확장
   - `e2e/hospital-portal.spec.ts` 신설 — 포털 진입 + `/hospital/profile`·`/hospital/treatments` 가 열리는지. **「홈으로 되돌아감」 증상을 경로로 직접 잡는다.**
   - `.env.example` 에 `E2E_*` 계정 키 12개 등재 (그동안 어디에도 없어서 장치 존재 자체를 몰랐다) · `docs/E2E_SECRETS_SETUP.md` 표에 한 줄 추가
-  - 🔑 **남은 것**: `E2E_HOSPITAL_EMAIL`/`E2E_HOSPITAL_PASSWORD` 를 GitHub Actions Secrets 에 등록. **등록 전까지 이 스펙은 조용히 스킵된다**(= 검사가 없는 것과 같다).
+  - ✅ **2026-07-29 검사 켜짐(실측 확인)**: PO 가 `E2E_HOSPITAL_EMAIL`/`E2E_HOSPITAL_PASSWORD` 를 Actions Secrets 에 등록. **다만 시크릿 등록만으론 안 켜졌다** — `.github/workflows/e2e.yml` 의 계정 목록(env)에 다른 5역할은 있는데 **hospital 만 없어서** 값이 검사로 전달되지 않았다(두 잡에 2줄 추가로 수리). 실행 [30414920829](https://github.com/bonroi2296-tech/HEALO_KHIDI/actions/runs/30414920829) 로그에서 `hospital 세션 저장` + 병원 스펙 2건이 **스킵이 아니라 실제 통과**한 것을 확인. **교훈: 「시크릿 등록」과 「워크플로 env 전달」은 다른 두 개다 — 등록만 보고 「켜졌다」고 하면 거짓말이 된다.**
+
+## 🔸 로그인한 사용자가 **가끔 로그인 화면으로 튕긴다** — 문 앞 검사(proxy)가 「인증 서버 오류 = 미로그인」으로 처리 (2026-07-29, 새 병원 검사가 잡아냄)
+
+- **어떻게 드러났나(실측)**: [실행 30416062300](https://github.com/bonroi2296-tech/HEALO_KHIDI/actions/runs/30416062300) 스모크에서 병원 스펙이 **1차 실패 → 재시도 통과**. 실패 내용은 `/hospital/treatments` 로 갔는데 `**/login?redirect=%2Fhospital%2Ftreatments**` 에 떨어진 것. **로그인 상태였는데 로그인 화면으로 되돌려진 것이다.**
+- **어디서 나온 되돌림인지는 확정**: 주소 모양이 증거다. 화면 쪽 문지기(`HospitalGateClient`)는 목적지를 **`/hospital` 로 고정**해 붙이는데, 실패한 주소엔 **실제 경로가 그대로** 들어 있다 → `proxy.ts:335~341`(서버 문 앞 검사)에서 나온 것. 같은 코드가 `/admin`·`/patient`·`/coordinator` 에도 똑같이 있다.
+- **구조상 위험(코드로 확인)**: `checkSessionInMiddleware`(`proxy.ts:159~184`)는 `supabase.auth.getUser()` 를 부르고 **`error` 가 있으면 무조건 `hasSession=false`**, `catch` 도 `false` 다. 즉 **인증 서버가 잠깐 느리거나 한 번 삐끗하면 «로그인 안 한 사람»으로 취급**돼 멀쩡히 로그인한 사용자가 로그인 화면으로 튕긴다. 재시도·유예가 없다.
+- ⚠️ **아직 미증명(정직)**: 그 순간 인증 호출이 왜 실패했는지는 **모른다**(CI 에선 인증 서버 쪽 로그를 못 본다). 「인증 서버 일시 오류가 원인」은 **가설**이고, 확정된 건 「되돌린 주체는 proxy 다」까지. 정반대 가능성도 남아 있다 — 검사 환경이 주입한 세션 쿠키가 그 시점에만 무효였을 수도 있다(그렇다면 사용자 피해는 없다).
+- **왜 중요한가**: 2026-07-28 핸드오프의 「병원 계정이 튕긴다」와 **증상 가족이 같다.** 그때 「홈으로 튕김」은 재현되지 않았지만(원인 = 기능 플래그, 위 항목), **로그인 화면으로 튕기는 쪽은 이번에 실제로 한 번 재현됐다.**
+- **고친다면(작게)**: 문 앞 검사에서 **오류일 때 1회 재시도** 후에만 로그인 화면으로 보낸다. 보안은 안 풀린다(여전히 유효한 사용자만 통과). 다만 **인증 경로**라 PO 확인 후 착수 — 미착수.
 - 🔍 **실측으로 갈라진 것 (2026-07-28)**: 「`hospital@test.com` 이 첫 화면으로 되돌아간다」는 **데이터 문제가 아니다.** 문지기(`checkHospitalAuth`)가 보는 값은 `hospital_users.is_active` 인데 두 계정 다 `true`, `disabled` 도 안 찍혀 있다.
   - 한때 `hospitals.is_active=false`(TEST 병원)를 원인으로 의심했으나 **문지기는 그 값을 안 본다** — 반증 검사에서 걸러졌다.
   - 참고: `hospital@test.com` = TEST 병원(`is_active=false`) owner / `hospital@test.healo.kr` = 면력한방병원 **강서점** manager(마곡점 아님 — 실DB 확인).
