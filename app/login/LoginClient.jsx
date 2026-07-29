@@ -39,6 +39,15 @@ export const LoginPage = ({ setView }) => {
         if (params.get('error')) {
             toast.error(t("login.googleError", langCode));
         }
+        // 진단용 훅: `?focus=email` 이면 이메일 칸에 커서를 둔다.
+        // 왜: 아이폰 시뮬레이터는 «탭»을 시킬 수 없어서 키보드를 못 띄운다 → 키보드가 올라온
+        //     상태의 배치를 확인할 방법이 없었다. 앱 웹뷰는 사용자 동작 없이도 포커스로 키보드가
+        //     뜨므로, 이 한 줄이 클라우드 맥 화면확인(codemagic ios-simulator-screenshots)을 가능하게 한다.
+        //     기본 동작은 그대로 — 주소에 이 값을 붙였을 때만 걸린다(모바일에서 자동 확대되면
+        //     성가시므로 평소엔 절대 켜지 않는다).
+        if (params.get('focus') === 'email') {
+            requestAnimationFrame(() => document.getElementById('login-email')?.focus());
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -153,7 +162,7 @@ export const LoginPage = ({ setView }) => {
                                 type="button"
                                 aria-label={showPassword ? "Hide password" : "Show password"}
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                className="absolute right-0 inset-y-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
                                 {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
                             </button>

@@ -8,7 +8,7 @@
 
 | 경로 | 목적 | 권장 주기 |
 |------|------|-----------|
-| `POST /api/cron/dispatch-reminders` | 리마인더 발송 (fire_at 도래 건 처리) | **5분** |
+| `GET/POST /api/cron/dispatch-reminders` | 리마인더 발송 (fire_at 도래 건 처리) | **5분 — 2026-07-28 `vercel.json` 정기작업으로 이관(외부 스케줄러 의존 종료)** |
 | `GET /api/cron/consultation-reminders` | 레거시: guest_token 기반 이메일 리마인더 | 15분 |
 | `GET /api/cron/automation` | 자동화 기타 작업 | 필요 시 |
 | `GET /api/cron/purge-recordings` | 상담 녹화 보관기간(90일) 만료분 파기 | 매일 1회 (02:30 KST) |

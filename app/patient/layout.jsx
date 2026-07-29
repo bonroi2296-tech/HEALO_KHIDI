@@ -62,7 +62,7 @@ export default function PatientLayout({ children }) {
   const isMoreActive = MORE_TABS.some(tab => pathname === tab.href || pathname.startsWith(tab.href + '/'));
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14 md:pt-16 pb-[calc(5rem+var(--cookie-banner-h,0px))] lg:pb-0">
+    <div className="min-h-screen bg-gray-50 healo-portal-offset pb-[calc(5rem+var(--cookie-banner-h,0px)+env(safe-area-inset-bottom,0px))] lg:pb-0">
       <PatientNotificationBell />
       {children}
 

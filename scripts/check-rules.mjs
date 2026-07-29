@@ -140,7 +140,10 @@ const SKIP =
 const walk = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
     const p = path.join(dir, d.name);
+    // .claude/worktrees = 다른 세션의 작업 폴더(추적 안 함). 저장소 밖 남의 사본을 세면
+    // 로컬에서만 수십 건이 뜨고 CI 에선 0 건이라 「내 잘못인가」 헷갈린다.
     if (d.name === "node_modules" || d.name.startsWith(".git")) return [];
+    if (path.relative(ROOT, p).split(path.sep).join("/") === ".claude/worktrees") return [];
     return d.isDirectory() ? walk(p) : /\.(md|mjs|js|ts|tsx|sh)$/.test(d.name) ? [p] : [];
   });
 const dead = [];

@@ -26,6 +26,23 @@ export async function registerPushNotifications(): Promise<void> {
   }
   if (perm.receive !== "granted") return;
 
+  // 알림을 «눌렀을 때» 해당 화면으로 이동 (2026-07-28 추가).
+  // 이게 없어서 알림을 눌러도 홈만 열렸다. 보낼 때 `data.route` 에 담아 보낸 주소를 쓴다
+  // (서버 쪽: src/lib/notifications/pushBridge.ts — 알림에 원래 있던 link 를 그대로 실어 보낸다).
+  // 이 앱은 라이브 로드라 «앱 = 웹» 이므로 그 주소로 옮기기만 하면 된다.
+  PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+    const route = (action?.notification?.data as Record<string, string> | undefined)?.route;
+    // 외부로 새지 않게 «우리 사이트 안 경로»만 허용 (`//evil.com`·`/\evil.com` 차단).
+    if (
+      typeof route === "string" &&
+      route.startsWith("/") &&
+      !route.startsWith("//") &&
+      !route.startsWith("/\\")
+    ) {
+      window.location.assign(route);
+    }
+  });
+
   // 토큰 수신 → 서버 등록
   PushNotifications.addListener("registration", async (token) => {
     try {

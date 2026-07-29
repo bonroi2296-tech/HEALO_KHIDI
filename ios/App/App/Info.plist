@@ -72,5 +72,20 @@
 	     (스위즐링을 켜두면 APNs 원시 토큰과 FCM 토큰이 이중 발화해 서버가 iOS 에서 못 쓰는 토큰을 저장할 수 있음) -->
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<!-- 커스텀 주소체계 healwith:// — 유니버설 링크가 안 걸리는 상황(앱 미검증·일부 인앱
+	     브라우저)에서 앱을 여는 예비 통로. ios.scheme 설정과 짝을 맞춘다. (2026-07-28 추가) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>kr.co.healwith.app</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>healwith</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

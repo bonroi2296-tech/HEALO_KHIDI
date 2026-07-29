@@ -4,5 +4,17 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
+	<!-- 유니버설 링크 — healwith.co.kr 주소를 앱이 받는다 (2026-07-28 추가).
+	     없으면 가입 인증 메일·상담방 초대 링크가 앱이 아니라 사파리로 열려서,
+	     앱을 깔아둔 사람도 정작 상담은 앱 밖에서 하게 된다.
+	     ⚠️ 이것만으로는 안 되고 서버가 아래 파일을 200 으로 내려줘야 한다:
+	        https://healwith.co.kr/.well-known/apple-app-site-association
+	        (app/.well-known/apple-app-site-association/route.ts — 환경변수 APPLE_TEAM_ID 필요)
+	     ⚠️ 애플 개발자 계정에서 이 앱 ID 의 「Associated Domains」 기능도 켜져 있어야 한다. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:healwith.co.kr</string>
+		<string>applinks:www.healwith.co.kr</string>
+	</array>
 </dict>
 </plist>
