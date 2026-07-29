@@ -1022,7 +1022,11 @@ export default function UnifiedInquiryFunnel() {
               value={form1.phone}
               onChange={(e) => setForm1((p) => ({ ...p, phone: e.target.value }))}
               placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567" : "701 234 5678"}
-              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+              // ⚠️ min-w-0 을 빼면 폰에서 이 칸이 화면 밖으로 잘린다 (2026-07-29 실측: 375px 화면에서
+              //    오른쪽 끝 403px = 28px 잘림). 가로 스크롤도 안 생겨서 «잘린 줄도 모른다».
+              //    이유: flex 안의 입력칸은 기본값(min-width:auto)이라 «글자가 들어갈 만큼»보다
+              //    작아지길 거부한다. 국가번호 칸이 w-44(176px)를 이미 먹어서 자리가 모자랐다.
+              className="flex-1 min-w-0 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
             />
           </div>
         </div>
@@ -1113,7 +1117,10 @@ export default function UnifiedInquiryFunnel() {
             { key: "crossBorder", labelKey: "consentCrossBorder" },
             { key: "marketing", labelKey: "consentMarketing" },
           ].map((row) => (
-            <label key={row.key} className="flex items-start gap-2 cursor-pointer text-[12.5px] leading-snug text-gray-600">
+            // py-2: 누를 수 있는 높이를 18px → 34px 로. 글자가 12.5px 이라 label 이 그대로면
+            // 손가락으로 누르기엔 너무 얇다(접근성 하한 24px 미달, 2026-07-29 폰 실측).
+            // 필수 동의 항목이라 «잘 안 눌리는» 것 자체가 문의 이탈로 이어진다.
+            <label key={row.key} className="flex items-start gap-2 py-2 cursor-pointer text-[12.5px] leading-snug text-gray-600">
               <input
                 type="checkbox"
                 checked={consents[row.key]}
@@ -1124,7 +1131,7 @@ export default function UnifiedInquiryFunnel() {
             </label>
           ))}
         </div>
-        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11.5px] text-teal-700 underline">
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="touch-link mt-2 inline-block text-[11.5px] text-teal-700 underline">
           {tl("consentDetails", lang)} · /privacy
         </a>
         <p className="mt-2.5 text-[11px] leading-snug text-gray-400">{tl("consentDisclaimer", lang)}</p>
