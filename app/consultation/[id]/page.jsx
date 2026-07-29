@@ -2646,7 +2646,7 @@ export default function ConsultationRoomPage() {
   // ── 이중 접속으로 밀려난 화면 — 새 세션에 양보하고 여기서 정지 (재연결 핑퐁 금지) ──
   if (sessionTakenOver) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-900 text-white">
+      <div className="w-full h-[100dvh] flex items-center justify-center bg-gray-900 text-white">
         <div className="text-center max-w-sm px-6">
           <div className="w-14 h-14 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center mx-auto mb-4">
             <Users size={26} />
@@ -2888,7 +2888,7 @@ export default function ConsultationRoomPage() {
   // ── Loading / Error states ──
   if (loading || checkingAuth) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-900">
+      <div className="w-full h-[100dvh] flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">
           <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p>{c.connecting}</p>
@@ -2900,7 +2900,7 @@ export default function ConsultationRoomPage() {
   // 게스트는 consultation 상세를 못 가져오지만 livekitToken 만 있으면 접속 가능
   if (!consultation && !isGuestMode) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-900">
+      <div className="w-full h-[100dvh] flex items-center justify-center bg-gray-900">
         <div className="text-white text-center max-w-sm px-6">
           {/* 입장권(?invite=) 없는 맨 주소로 온 경우 — "세션 없음"이 아니라 원인+해결책을 정확히.
               (주소창 URL 을 복사·공유하면 이 화면에 막히던 함정 — 2026-07-02 '남들만 안 됨' 원인) */}
@@ -3044,7 +3044,11 @@ export default function ConsultationRoomPage() {
   );
 
   return (
-    <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
+    // ⚠️ h-screen(=100vh) 을 쓰지 마라 — 폰 브라우저에서 100vh 는 «주소창이 숨었을 때»의 큰 높이라
+    //    하단 채팅·통역 입력칸이 화면 밖으로 밀린다. 2026-07-29 안드로이드 흉내기 실측:
+    //    100vh 칸은 입력칸 아래끝 857px vs 실제 보이는 높이 811px → 46px 잘림(키보드를 안 올려도).
+    //    키보드를 올리면 훨씬 더 잘린다. 100dvh 는 그때그때 «진짜 보이는 높이»라 안 잘렸다(실측 801px).
+    <div className="w-full h-[100dvh] bg-gray-900 text-white flex flex-col">
       {/* ── «아직 계신가요?» — 대기 화면·통화 화면 어디서든 뜨게 최상위에 겹친다 ──
           바로 끊지 않고 먼저 묻는 이유: 의료 상담이라 오작동으로 끊기면 안 된다(구글 미트 방식). */}
       {idlePrompt && (
