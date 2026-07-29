@@ -80,7 +80,7 @@ const TR_LABEL = { ko: "한글 번역", en: "Translation", ru: "Перевод" 
 
 // 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
 // @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
-function printTranslation(doc, name, lang = "ko") {
+function printTranslation(doc, name, lang = "ko", msgPopupBlocked = "") {
   const sections = (doc.sections || []).map((s) => {
     let inner = "";
     if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
@@ -117,7 +117,7 @@ ${sections}
 </body></html>`;
 
   const w = window.open("", "_blank");
-  if (!w) { alert("팝업이 차단됐어요. 팝업 허용 후 다시 눌러주세요."); return; }
+  if (!w) { alert(msgPopupBlocked); return; }
   w.document.open();
   w.document.write(html);
   w.document.close();
@@ -128,6 +128,8 @@ ${sections}
 // 외국 검사지 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤(반응형).
 // 기능: 숫자검증(원본 대조) · 수정(코디 교정→저장) · 용어 사전 등록(다음 번역에 반영).
 function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, verify, onSave, onGlossary }) {
+  // 화면 글자는 코디 언어로(번역 결과물의 언어 lang 과는 별개다 — 섞지 말 것).
+  const L = useCoordinatorL();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -171,22 +173,22 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
                 {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={13} />} 저장
               </button>
               <button onClick={cancelEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
-                <X size={13} /> 취소
+                <X size={13} /> {L.atCancel}
               </button>
             </>
           ) : (
             <>
-              <button onClick={onVerify} disabled={verify?.loading} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition disabled:opacity-50" title="번역표 숫자를 원본과 대조">
+              <button onClick={onVerify} disabled={verify?.loading} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition disabled:opacity-50" title={L.atVerifyTitle}>
                 {verify?.loading ? <span className="w-3 h-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /> : <ShieldCheck size={13} />} 숫자검증
               </button>
-              <button onClick={startEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="번역 수정(저장 시 보존)">
-                <Pencil size={13} /> 수정
+              <button onClick={startEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title={L.atEditNote}>
+                <Pencil size={13} /> {L.atEdit}
               </button>
-              <button onClick={onPdf} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="PDF로 저장 (인쇄 → PDF로 저장 선택)">
+              <button onClick={onPdf} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title={L.atPdfTitle}>
                 <FileText size={13} /> PDF
               </button>
               <button onClick={onCopy} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
-                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
+                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L.atCopied : L.atCopy}
               </button>
             </>
           )}
@@ -196,22 +198,22 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
       {/* 숫자검증 결과 배너 — 어긋난 항목만 (번역값 / 원본재판독값) 쌍으로 */}
       {verify && !verify.loading && (
         verify.error ? (
-          <p className="text-xs text-amber-700 mb-2">숫자검증에 실패했어요. 잠시 후 다시 시도해 주세요.</p>
+          <p className="text-xs text-amber-700 mb-2">{L.atErrVerify}</p>
         ) : verify.mismatches?.length ? (
           <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mb-2 space-y-1">
             <div className="font-medium">⚠️ 원본과 다르게 읽힌 숫자 {verify.mismatches.length}곳 — 원본을 직접 확인하세요</div>
             <ul className="space-y-0.5">
               {verify.mismatches.map((m, i) => (
                 <li key={i} className="flex flex-wrap gap-x-2">
-                  <span className="text-amber-900">{m.item || "(항목)"}</span>
-                  <span>번역 <b>{m.translated}</b> / 원본재판독 <b>{m.source}</b></span>
+                  <span className="text-amber-900">{m.item || L.atItemFallback}</span>
+                  <span>{L.atTranslate} <b>{m.translated}</b> {L.atVerifyReread} <b>{m.source}</b></span>
                 </li>
               ))}
             </ul>
-            <div className="text-[11px] text-amber-600">※ 검증기도 AI라 원본을 잘못 읽었을 수 있어요 — 원본이 맞으면 무시하세요.</div>
+            <div className="text-[11px] text-amber-600">{L.atVerifyWarn}</div>
           </div>
         ) : (
-          <p className="text-xs text-teal-700 mb-2">✓ 번역 숫자가 원본 재판독과 일치했어요 (참고용 — 최종은 원본 대조).</p>
+          <p className="text-xs text-teal-700 mb-2">{L.atVerifyOk}</p>
         )
       )}
 
@@ -273,20 +275,20 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
       {editing && (
         <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-end gap-2">
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-500 mb-0.5">원문 용어</span>
-            <input value={gSrc} onChange={(e) => setGSrc(e.target.value)} placeholder="예: эндоцервикоз"
+            <span className="text-[11px] text-gray-500 mb-0.5">{L.atGlossarySrc}</span>
+            <input value={gSrc} onChange={(e) => setGSrc(e.target.value)} placeholder={L.atGlossarySrcPh}
               className="border border-gray-200 rounded px-1.5 py-1 text-xs w-40" />
           </div>
           <div className="flex flex-col">
             <span className="text-[11px] text-gray-500 mb-0.5">번역({langLabel})</span>
-            <input value={gTgt} onChange={(e) => setGTgt(e.target.value)} placeholder="고정할 번역"
+            <input value={gTgt} onChange={(e) => setGTgt(e.target.value)} placeholder={L.atGlossaryTgtPh}
               className="border border-gray-200 rounded px-1.5 py-1 text-xs w-48" />
           </div>
           <button onClick={submitGlossary} disabled={!gSrc.trim() || !gTgt.trim()}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition disabled:opacity-40">
-            ＋사전 등록
+            {L.atGlossaryAdd}
           </button>
-          {gDone && <span className="text-xs text-teal-700">등록됨 — 다음 번역부터 적용</span>}
+          {gDone && <span className="text-xs text-teal-700">{L.atGlossaryDone}</span>}
         </div>
       )}
     </div>
@@ -607,7 +609,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         setTimeout(() => setCaseSaved(false), 2000);
       } else if (result?.error === "status_would_go_backward") {
         // 확인창을 거치지 않고(예: 저장 버튼 재시도) 서버 가드에 막힌 경우 — 화면 상태를 서버 기준으로 되돌림
-        alert("이전 단계로는 되돌릴 수 없어요. 단계 버튼을 다시 눌러 확인 후 저장해주세요.");
+        alert(L.atErrStageBack);
         setCaseStatus(result.current || "");
       }
     } catch (e) {
@@ -1039,7 +1041,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       onClick={() => viewAttachment(path)}
                       disabled={!path || attLoadingPath === path}
                       className="flex-1 min-w-0 flex items-center gap-3 text-left disabled:opacity-50"
-                      title="새 탭에서 미리보기"
+                      title={L.atPreviewTitle}
                     >
                       <FileText size={18} className="text-teal-600 shrink-0" />
                       <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
@@ -1053,7 +1055,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       )}
                     </button>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
-                    <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label="번역 언어">
+                    <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label={L.atLangGroup}>
                       {OUT_LANGS.map((o) => (
                         <button
                           key={o.key}
@@ -1071,7 +1073,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       onClick={() => translateAttachment(path, name, curLang, !!entry?.doc)}
                       disabled={!path || transLoadingKey === curKey}
                       className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
-                      title="병원·환자 전달용 번역 (요약 아님·원문 그대로)"
+                      title={L.atConvertTitle}
                     >
                       {transLoadingKey === curKey ? (
                         <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
@@ -1079,7 +1081,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <Languages size={14} />
                       )}
                       <span className="hidden sm:inline">
-                        {entry?.doc ? "다시 변환" : "변환"}
+                        {entry?.doc ? L.atReconvert : L.atConvert}
                       </span>
                     </button>
                     {/* 다운로드(원본 파일명으로 바로 저장) */}
@@ -1094,7 +1096,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       ) : (
                         <Download size={14} />
                       )}
-                      <span className="hidden sm:inline">다운로드</span>
+                      <span className="hidden sm:inline">{L.atDownload}</span>
                     </button>
                   </div>
                   {/* 번역 결과 패널(선택 언어) */}
@@ -1103,8 +1105,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       {entry.error ? (
                         <p className="text-sm text-amber-700">
                           {entry.error === "unsupported_type"
-                            ? "이 형식(doc·docx 등)은 자동 번역이 안 돼요. 원본을 직접 확인해 주세요."
-                            : "번역 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요."}
+                            ? L.atErrFormat
+                            : L.atErrTranslate}
                         </p>
                       ) : (
                         <TranslatedDocView
@@ -1113,7 +1115,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           lang={curLang}
                           copied={copiedTransPath === curKey}
                           onCopy={() => copyTranslation(curKey, entry.doc)}
-                          onPdf={() => printTranslation(entry.doc, name, curLang)}
+                          onPdf={() => printTranslation(entry.doc, name, curLang, L.atErrPopup)}
                           onVerify={() => verifyNumbers(path, name, curKey, entry.doc)}
                           verify={verifyResults[curKey]}
                           onSave={(edited) => saveEdit(path, curLang, curKey, edited)}
@@ -1147,7 +1149,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   // "되돌리기"로 취급하지 않는다(그래야 확인창 문구가 실제 방향과 맞음, POSTMORTEM #80).
                   if (s.key !== "on_hold" && caseStatus !== "on_hold" && s.order < curOrder) {
                     const ok = window.confirm(
-                      `"${caseStatusLabelL(caseStatus, lang)}" 단계에서 "${caseStatusLabelL(s.key, lang)}" 단계로 되돌립니다. 되돌릴까요?`
+                      L.atStageBackConfirm.replace("{from}", caseStatusLabelL(caseStatus, lang)).replace("{to}", caseStatusLabelL(s.key, lang))
                     );
                     if (!ok) return;
                     setCaseStatusForce(true);
