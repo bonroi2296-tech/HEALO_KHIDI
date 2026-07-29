@@ -134,23 +134,26 @@ export const IMMUNE_SITE = {
 
   // 화면 폭을 꽉 채우는 사진 한 장. 해외 환자는 «한국 병원이 어떤 곳인지»를 여기서 판단한다.
   showcase: {
-    image: "/immune/facility/facility-vip-room-1.jpg",
+    /* 원래 «빈 1인 병실»이었다. 2026-07-29 PO 지적으로 네이버 블로그(면력 공식)를 캐서
+       **옥상 잔디에서 열리는 모닝 요가 클래스** 사진으로 바꿨다.
+       해외 환자에게 「치료 중에도 일상을 지킨다」는 말은 문장이 아니라 이 사진이 증명한다. */
+    image: "/immune/life/rooftop-yoga-1.jpg",
     eyebrow: { ko: "입원 · 회복", en: "Stay & Recovery", ru: "Пребывание и восстановление", kz: "Болу және қалпына келу", zh: "住院·康复", ja: "入院・回復" },
     title: {
-      ko: "치료받는 동안\n쉴 수 있는 공간",
-      en: "A Place to Rest\nWhile You Are Treated",
-      ru: "Место, где можно\nотдохнуть во время лечения",
-      kz: "Ем кезінде\nдемалатын кеңістік",
-      zh: "治疗期间\n可以休息的空间",
-      ja: "治療の間も\n休める空間",
+      ko: "치료받는 동안에도\n하루가 비어 있지 않게",
+      en: "So the days in treatment\nare never empty",
+      ru: "Чтобы дни лечения\nне были пустыми",
+      kz: "Ем күндері\nбос болмауы үшін",
+      zh: "让治疗期间的每一天\n都不空虚",
+      ja: "治療の日々が\n空にならないように",
     },
     desc: {
-      ko: "1인 병실과 회복 라운지. 보호자가 함께 머무를 수 있습니다.",
-      en: "Private rooms and a recovery lounge — a carer can stay with you.",
-      ru: "Одноместные палаты и лаундж для восстановления — сопровождающий может остаться с вами.",
-      kz: "Жеке палаталар мен қалпына келу лаунжы — ілесіп жүруші сізбен бірге бола алады.",
-      zh: "单人病房与康复休息区，陪同人员可一同停留。",
-      ja: "個室と回復ラウンジ。付き添いの方も一緒に滞在できます。",
+      ko: "옥상 정원에서 여는 모닝 요가, 맨발 산책길, 사우나와 라운지. 병원 안에 하루를 보낼 곳이 있습니다.",
+      en: "Morning yoga on the rooftop garden, a barefoot walking path, a sauna and lounges — there is somewhere to spend the day inside the hospital.",
+      ru: "Утренняя йога в саду на крыше, дорожка для ходьбы босиком, сауна и лаунджи — внутри больницы есть где провести день.",
+      kz: "Шатыр бақшасында таңғы йога, жалаңаяқ серуен жолы, сауна мен лаунж — ауруханада күнді өткізетін орын бар.",
+      zh: "屋顶花园的晨间瑜伽、赤足步道、桑拿与休息区——院内有可以度过一天的地方。",
+      ja: "屋上庭園のモーニングヨガ、裸足で歩く小道、サウナとラウンジ。病院の中に一日を過ごす場所があります。",
     },
   },
 
@@ -161,6 +164,61 @@ export const IMMUNE_SITE = {
   //    히어로에 쓴 «치료 중에도 일상을 지킨다»가 말이 아니라 실제로 하고 있는 일이었다.
   // ⚠️ 영상은 전부 **한국어**다. 음식·공예는 보면 알기에 실었지만, 그 사실을 아래 note 로 밝힌다.
   //    (자막이 붙으면 훨씬 강해진다 — 병원에 제안할 것.)
+
+  /* ══ 병원 안에서 보내는 하루 — «사진으로 보여주는» 자리 ══
+     2026-07-29 PO: *"네이버 블로그에 콘텐츠 많이 올린댔어 거기꺼 가져와봐"* → 맞았다.
+     면력 공식 블로그에 **매주 올라오는 실제 프로그램 기록**이 있었다(요가·어싱워크·약선다이닝).
+     그전까지 이 섹션은 한국어 유튜브 영상뿐이라 «읽어야 아는» 자리였는데, 이제 사진으로 보인다.
+     ⚠️ 병원이 실제로 «하고 있는 것»만 싣는다 — 블로그에 기록이 있는 것만 골랐다. */
+  lifeTitle: {
+    ko: "병원 안에서 보내는 하루",
+    en: "A day inside the hospital",
+    ru: "День внутри клиники",
+    kz: "Клиника ішіндегі бір күн",
+    zh: "在医院里的一天",
+    ja: "病院で過ごす一日",
+  },
+  lifeLead: {
+    ko: "치료는 하루 중 일부입니다. 나머지 시간을 어디서 어떻게 보내는지가 회복에 남습니다.",
+    en: "Treatment takes up only part of the day. Where and how you spend the rest is what stays with your recovery.",
+    ru: "Лечение занимает лишь часть дня. То, где и как проходит остальное время, и остаётся в восстановлении.",
+    kz: "Ем күннің бір бөлігі ғана. Қалған уақытты қайда әрі қалай өткізу — қалпына келуде із қалдырады.",
+    zh: "治疗只占一天中的一部分。其余时间在哪里、怎样度过，才是留在康复里的东西。",
+    ja: "治療は一日の一部にすぎません。残りの時間をどこでどう過ごすかが、回復に残ります。",
+  },
+  life: [
+    {
+      image: "/immune/life/rooftop-yoga-3.jpg",
+      title: { ko: "모닝 요가 클래스", en: "Morning Yoga Class", ru: "Утренняя йога", kz: "Таңғы йога сабағы", zh: "晨间瑜伽课", ja: "モーニングヨガクラス" },
+      desc: { ko: "성동점 옥상 잔디에서 아침에 엽니다.", en: "Held in the morning on the rooftop lawn of the Seongdong branch.", ru: "Проходит утром на газоне крыши филиала Сондон.", kz: "Сондон филиалының шатыр көгалында таңертең өтеді.", zh: "于城东院区屋顶草坪的清晨举行。", ja: "城東院の屋上芝生で朝に行われます。" },
+    },
+    {
+      image: "/immune/life/earthing-walk-2.jpg",
+      title: { ko: "맨발 산책길 · 어싱워크", en: "Barefoot Walking (Earthing Walk)", ru: "Ходьба босиком (Earthing Walk)", kz: "Жалаңаяқ серуен (Earthing Walk)", zh: "赤足步行（Earthing Walk）", ja: "裸足の散歩（アーシングウォーク）" },
+      desc: { ko: "1,100평 이뮨포레스트 안의 흙길을 맨발로 걷습니다.", en: "A soil path inside the 3,600 m² Immune Forest, walked barefoot.", ru: "Земляная тропа в «Иммунном лесу» площадью 3 600 м², по которой ходят босиком.", kz: "3 600 м² «Иммундық орман» ішіндегі топырақ жол — жалаңаяқ жүреді.", zh: "在3,600平方米的免疫森林中赤足行走的土路。", ja: "3,600㎡のイミューンフォレスト内の土の道を裸足で歩きます。" },
+    },
+    {
+      image: "/immune/life/chef-1.jpg",
+      title: { ko: "셰프가 만드는 약선 다이닝", en: "Chef-prepared Therapeutic Dining", ru: "Лечебное меню от шефа", kz: "Аспаз дайындайтын емдік ас", zh: "主厨制作的药膳餐饮", ja: "シェフが作る薬膳ダイニング" },
+      desc: { ko: "병원 안 주방에서 코스로 냅니다. 치료식이 «참는 밥»이 되지 않게.", en: "Served as a course from the hospital's own kitchen — so therapeutic food is not something to endure.", ru: "Подаётся курсом из собственной кухни клиники — чтобы лечебное питание не было испытанием.", kz: "Клиниканың өз асханасынан курс ретінде беріледі — емдік тамақ азап болмауы үшін.", zh: "由院内厨房以套餐形式供应——让治疗餐不再是「忍着吃」。", ja: "院内の厨房からコースで提供します。治療食が«我慢する食事»にならないように。" },
+    },
+    {
+      image: "/immune/life/pergola-3.jpg",
+      title: { ko: "옥상 정원 · 스카이가든", en: "Rooftop Garden", ru: "Сад на крыше", kz: "Шатыр бақшасы", zh: "屋顶花园", ja: "屋上庭園" },
+      desc: { ko: "보호자와 앉아 있을 수 있는 자리가 실내·실외 모두 있습니다.", en: "Places to sit with your carer, both indoors and outdoors.", ru: "Места, где можно посидеть с сопровождающим — и внутри, и снаружи.", kz: "Ілесіп жүрушімен бірге отыратын орындар — іште де, сыртта да.", zh: "室内外均设有可与陪同者同坐的空间。", ja: "付き添いの方と座れる場所が屋内・屋外の両方にあります。" },
+    },
+    {
+      image: "/immune/life/sauna-stones.jpg",
+      title: { ko: "사우나 · 안마 라운지", en: "Sauna & Massage Lounge", ru: "Сауна и массажный лаундж", kz: "Сауна және массаж лаунжы", zh: "桑拿·按摩休息区", ja: "サウナ・マッサージラウンジ" },
+      desc: { ko: "치료 사이에 몸을 풀 수 있는 공간입니다.", en: "A place to loosen up between treatments.", ru: "Место, где можно расслабиться между процедурами.", kz: "Емдер арасында денені босататын орын.", zh: "可在治疗之间放松身体的空间。", ja: "治療の合間に体をほぐせる空間です。" },
+    },
+    {
+      image: "/immune/life/massage-chair-2.jpg",
+      title: { ko: "안마 라운지", en: "Massage Lounge", ru: "Массажный лаундж", kz: "Массаж лаунжы", zh: "按摩休息区", ja: "マッサージラウンジ" },
+      desc: { ko: "치료 사이 대기 시간에 쓸 수 있습니다.", en: "Free to use while waiting between treatments.", ru: "Можно пользоваться в перерывах между процедурами.", kz: "Емдер арасында күту кезінде пайдалануға болады.", zh: "可在治疗间隙的等待时间使用。", ja: "治療の合間の待ち時間に使えます。" },
+    },
+  ],
+
   videosTitle: {
     ko: "치료 밖의 시간",
     en: "Life Beyond Treatment",
@@ -265,6 +323,7 @@ export const IMMUNE_SITE = {
     programs: "Treatments",
     menu: "Treatment Menu",
     branches: "Locations",
+    life: "Life Inside",
     gallery: "Our Space",
     chat: "Chat",
     videos: "Life at the Hospital",
@@ -406,6 +465,46 @@ export const IMMUNE_SITE = {
     {
       src: "/immune/facility/facility-healing-space-7.jpg",
       caption: { ko: "회복 라운지", en: "Recovery lounge", ru: "Лаунж для восстановления", kz: "Қалпына келу лаунджы", zh: "康复休息区", ja: "回復ラウンジ" },
+    },
+    /* ↓ 2026-07-29 추가 — PO: *"네이버 블로그에 콘텐츠 많이 올린댔어 거기꺼 가져와봐"*
+       면력 공식 네이버 블로그(blog.naver.com/olbodiuai)에서 267장을 받아 **한글 글자가 없는
+       실사진 32장**을 골랐다. 그전까지 우리 사진은 거의 «빈 방»이었는데, 여기엔
+       옥상 요가·맨발 산책길·사우나·셰프 조리 같은 **사람이 있는 장면**이 있다. */
+    {
+      src: "/immune/life/rooftop-yoga-4.jpg",
+      caption: { ko: "옥상 정원 모닝 요가", en: "Morning yoga, rooftop garden", ru: "Утренняя йога в саду на крыше", kz: "Шатыр бақшасындағы таңғы йога", zh: "屋顶花园晨间瑜伽", ja: "屋上庭園のモーニングヨガ" },
+    },
+    {
+      src: "/immune/life/earthing-walk-1.jpg",
+      caption: { ko: "맨발 산책길 (어싱워크)", en: "Barefoot walking path", ru: "Дорожка для ходьбы босиком", kz: "Жалаңаяқ серуен жолы", zh: "赤足步道", ja: "裸足の散歩道" },
+    },
+    {
+      src: "/immune/life/indoor-garden-1.jpg",
+      caption: { ko: "실내 정원", en: "Indoor garden", ru: "Крытый сад", kz: "Ішкі бақ", zh: "室内花园", ja: "屋内庭園" },
+    },
+    {
+      src: "/immune/life/pergola-2.jpg",
+      caption: { ko: "옥상 정원 라운지", en: "Rooftop garden lounge", ru: "Лаундж в саду на крыше", kz: "Шатыр бақшасының лаунжы", zh: "屋顶花园休息区", ja: "屋上庭園ラウンジ" },
+    },
+    {
+      src: "/immune/life/sauna-1.jpg",
+      caption: { ko: "사우나", en: "Sauna", ru: "Сауна", kz: "Сауна", zh: "桑拿", ja: "サウナ" },
+    },
+    {
+      src: "/immune/life/gym-1.jpg",
+      caption: { ko: "운동 공간", en: "Fitness room", ru: "Тренажёрный зал", kz: "Жаттығу залы", zh: "健身空间", ja: "フィットネスルーム" },
+    },
+    {
+      src: "/immune/life/massage-chairs-1.jpg",
+      caption: { ko: "안마 라운지", en: "Massage lounge", ru: "Массажный лаундж", kz: "Массаж лаунжы", zh: "按摩休息区", ja: "マッサージラウンジ" },
+    },
+    {
+      src: "/immune/life/garden-path-1.jpg",
+      caption: { ko: "정원 산책로", en: "Garden path", ru: "Садовая дорожка", kz: "Бақ соқпағы", zh: "花园步道", ja: "庭園の小道" },
+    },
+    {
+      src: "/immune/life/rooftop-view-1.jpg",
+      caption: { ko: "옥상에서 보는 서울", en: "Seoul from the rooftop", ru: "Сеул с крыши", kz: "Шатырдан көрінетін Сеул", zh: "从屋顶眺望首尔", ja: "屋上から見るソウル" },
     },
   ],
 

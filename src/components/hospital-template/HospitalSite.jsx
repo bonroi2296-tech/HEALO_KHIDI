@@ -461,6 +461,39 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
+      {/* ══ 병원 안에서 보내는 하루 — 사진으로 보여주는 자리 ══
+          영상 섹션은 한국어 유튜브라 «읽어야 아는» 자리였다. 사진은 언어가 필요 없다.
+          가로로 흐르는 줄이라 칸이 늘어도 화면이 길어지지 않는다. */}
+      {has(site.life) && (
+        <Section pad="normal">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.life) || "Life Inside"}
+            title={t(site.lifeTitle)}
+            lead={t(site.lifeLead)}
+          />
+          <SnapRow>
+            {site.life.map((x, i) => (
+              <figure key={i} className="group shrink-0 snap-start w-[78vw] sm:w-[340px]">
+                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
+                  <Image
+                    src={x.image}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 78vw, 340px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  />
+                </div>
+                <figcaption>
+                  <h3 className="text-[17px] font-semibold tracking-tight mb-1.5">{t(x.title)}</h3>
+                  <p className="text-[14px] text-black/55 leading-relaxed">{t(x.desc)}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </SnapRow>
+        </Section>
+      )}
+
       {/* ══ 병원에서의 시간 — 영상 ══
           왜 이 섹션이 생겼나: 면력 유튜브를 열어보니 홍보 영상이 아니라 **환자 생활 콘텐츠**였다
           (셰프특식·면역밥상·원데이클래스). «치료 중에도 일상을 지킨다»는 말의 실제 증거라
