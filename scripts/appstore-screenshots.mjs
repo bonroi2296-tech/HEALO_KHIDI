@@ -22,6 +22,9 @@ const DEVICES = {
   // 아이패드 13형 — 애플이 「심사에 추가」를 막는 필수 규격(2026-07-29 실측: 없으면 제출 불가)
   "ios-ipad-13": { width: 1032, height: 1376, scale: 2, tablet: true }, // 2064×2752
   "android": { width: 360, height: 800, scale: 3 },   // 1080×2400
+  // 구글 태블릿 2종도 필수(별표) — 비율이 «정확히» 9:16 이어야 해서 크기를 딱 떨어지게 잡았다
+  "android-tablet-7": { width: 540, height: 960, scale: 2, tablet: true },   // 1080×1920
+  "android-tablet-10": { width: 720, height: 1280, scale: 2, tablet: true }, // 1440×2560
 };
 
 const IPAD_UA =
