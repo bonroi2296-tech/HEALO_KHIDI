@@ -28,6 +28,10 @@ const config: CapacitorConfig = {
     url: 'https://healwith.co.kr',
     androidScheme: 'https',
   },
+  // 웹이 «지금 앱 안에서 열렸는지» 확실히 알 수 있게 표식을 붙인다(브라우저 주소창 문자열에 추가).
+  // 라이브로드라 웹과 앱이 같은 화면을 쓰는데, 앱에선 빼야 하는 UI(예: 쿠키 동의 배너)가 있다.
+  // ⚠️ 이 문자열을 바꾸면 src/lib/isNativeApp.ts 도 같이 바꿔라(둘이 짝).
+  appendUserAgent: 'healwith-app',
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
