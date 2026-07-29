@@ -564,19 +564,19 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               {(hospital?.external_ratings?.phone || hospital?.external_ratings?.website) && (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1.5">
                   {hospital.external_ratings.phone && (
-                    <a href={`tel:${hospital.external_ratings.phone}`} className="flex items-center gap-1 hover:text-teal-700 transition">
+                    <a href={`tel:${hospital.external_ratings.phone}`} className="touch-link flex items-center gap-1 hover:text-teal-700 transition">
                       <Phone size={14} className="text-gray-400" />
                       <span>{hospital.external_ratings.phone}</span>
                     </a>
                   )}
                   {hospital.external_ratings.website && (
-                    <a href={hospital.external_ratings.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-700 transition">
+                    <a href={hospital.external_ratings.website} target="_blank" rel="noopener noreferrer" className="touch-link flex items-center gap-1 hover:text-teal-700 transition">
                       <ExternalLink size={14} className="text-gray-400" />
                       <span className="truncate max-w-[200px]">{t("detail.website", langCode)}</span>
                     </a>
                   )}
                   {hospital.external_ratings.google_maps_url && (
-                    <a href={hospital.external_ratings.google_maps_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-700 transition">
+                    <a href={hospital.external_ratings.google_maps_url} target="_blank" rel="noopener noreferrer" className="touch-link flex items-center gap-1 hover:text-teal-700 transition">
                       <MapPin size={14} className="text-gray-400" />
                       <span>{t("detail.googleMaps", langCode)}</span>
                     </a>

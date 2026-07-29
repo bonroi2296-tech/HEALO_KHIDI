@@ -174,6 +174,27 @@ export async function PATCH(
         updateData.doctor_user_id = payload.doctorId;
       if (payload.translatorId !== undefined)
         updateData.translator_id = payload.translatorId;
+
+      // 📌 문의 «소급» 연결 (2026-07-29 신설).
+      // 왜: KHIDI 실적 집계 조건이 「문의 연결 + 완료」인데, 지금까지 PATCH 가 inquiry_id 를
+      //     아예 안 받아서 «만들 때 안 골랐으면 영원히 못 고치는» 상태였다. 실측 결과
+      //     사전상담 방 66개가 전부 문의 미연결 → 실적이 구조적으로 0.
+      // 안전: staff(admin·coordinator) 만. 빈 값(null)이면 연결 해제로 취급한다.
+      const inquiryIdRaw = payload.inquiryId ?? payload.inquiry_id;
+      if (inquiryIdRaw !== undefined) {
+        if (inquiryIdRaw === null || inquiryIdRaw === "") {
+          updateData.inquiry_id = null;
+        } else {
+          const n = Number(inquiryIdRaw);
+          if (!Number.isInteger(n) || n <= 0) {
+            return Response.json(
+              { ok: false, error: "invalid_inquiry_id" },
+              { status: 400 }
+            );
+          }
+          updateData.inquiry_id = n;
+        }
+      }
     }
 
     if (Object.keys(updateData).length === 0) {

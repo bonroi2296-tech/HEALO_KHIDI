@@ -267,7 +267,29 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         apiAnswers.push(`${res.status()} ${body.slice(0, 200)}`);
       });
 
+      // ── 기능이 꺼져 있으면 «스스로» 건너뛴다 (2026-07-28, 반성문 #138 의 교훈) ──
+      //   통역 스위치(`LIVE_TRANSLATE_ENABLED`)는 PO 판단으로 켜졌다 꺼졌다 한다. 예전엔
+      //   워크플로 플래그를 **사람이 같이 내려야** 했고, 그걸 잊은 하루가 새벽 긴급 이메일로
+      //   돌아왔다(이슈 #1061). 이제 서버 응답이 정답을 들고 있으므로(`enabled:false`)
+      //   가드가 자기 전제를 스스로 확인한다 — 꺼져 있으면 조용히 통과, 켜지는 순간 자동 검증.
+      const firstAnswer = robotB
+        .waitForResponse((r) => r.url().includes("/interpreter"), { timeout: 20_000 })
+        .catch(() => null);
       await voiceBtn.click(); // 통역 켜기 = 이 순간 서버가 봇을 부른다
+      const answerBody = await firstAnswer
+        .then((r) => (r ? r.json() : null))
+        .catch(() => null);
+      if (answerBody && answerBody.enabled === false) {
+        console.log(
+          "[robot-call] 통역 기능 꺼짐(LIVE_TRANSLATE_ENABLED=false) — 통역 단계 건너뜀(정상)"
+        );
+        test.info().annotations.push({
+          type: "interpreter-skipped",
+          description: "서버가 enabled:false — 통역이 의도적으로 꺼져 있어 검증 생략",
+        });
+        return;
+      }
+
       const toast = robotB
         .getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`))
         .first();

@@ -410,7 +410,7 @@ function OpinionItem({ opinion, patientLang }) {
             <button
               onClick={publish}
               disabled={releasing || !draft.trim()}
-              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
               {releasing ? "공개 중…" : "에이전시에 공개"}
             </button>

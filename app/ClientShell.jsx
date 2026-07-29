@@ -362,7 +362,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.company.map((item) => (
                   <li key={item.href}>
-                    <a className="hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={item.href}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>
@@ -372,12 +372,12 @@ function ClientShellContent({
                     동어반복이고, 링크를 눌러 도착한 페이지 제목과도 안 맞아 오작동처럼 보였다(코디 문의 2026-07-22). */}
                 {langCode === "ru" && (
                   <li>
-                    <a className="hover:text-teal-700" href="/ru/for-russian-patients">Лечение рака в Корее</a>
+                    <a className="touch-link hover:text-teal-700" href="/ru/for-russian-patients">Лечение рака в Корее</a>
                   </li>
                 )}
                 {langCode === "kz" && (
                   <li>
-                    <a className="hover:text-teal-700" href="/kk/for-kazakh-patients">Кореяда онкология емдеу</a>
+                    <a className="touch-link hover:text-teal-700" href="/kk/for-kazakh-patients">Кореяда онкология емдеу</a>
                   </li>
                 )}
               </ul>
@@ -389,7 +389,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.legal.map((item) => (
                   <li key={item.href}>
-                    <a className="hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={item.href}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>

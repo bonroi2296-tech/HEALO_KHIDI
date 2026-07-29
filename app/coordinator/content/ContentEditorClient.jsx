@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const LANG_LABEL = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語" };
@@ -20,6 +21,9 @@ function Field({ value, onChange, dirty, size = "sm" }) {
 }
 
 export default function ContentEditorClient() {
+  // 화면 글자는 코디 포털 공유 사전에서(6개 언어). 상단바 언어 스위처를 바꾸면 즉시 바뀐다.
+  const L = useCoordinatorL();
+  const dateLoc = useDateLocale();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +43,9 @@ export default function ContentEditorClient() {
   const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [logTotal, setLogTotal] = useState(0);      // 전체 이력 건수(«몇 건 중 몇 건» 표시용)
+  const [logQ, setLogQ] = useState("");             // 이력 안에서 글자로 찾기
+  const [logLoading, setLogLoading] = useState(false);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
   const [blockView, setBlockView] = useState(false);
   const debounceRef = useRef();
@@ -166,9 +173,9 @@ export default function ContentEditorClient() {
           for (const u of updates) n.set(`${u.key}|${u.lang}`, (u.value ?? "") !== "");
           return n;
         });
-        setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
-      } else setMsg({ type: "err", text: "저장 실패 (권한 또는 서버 오류)." });
-    } catch { setMsg({ type: "err", text: "저장 실패 (네트워크)." }); } finally { setSaving(false); }
+        setMsg({ type: "ok", text: L.ceSaved.replace("{n}", data.saved) });
+      } else setMsg({ type: "err", text: L.ceSaveFail });
+    } catch { setMsg({ type: "err", text: L.ceSaveFailNet }); } finally { setSaving(false); }
   };
 
   // 확인창: ESC 로 닫기 + 열릴 때 포커스를 창 안으로, 닫힐 때 원래 자리로.
@@ -196,15 +203,78 @@ export default function ContentEditorClient() {
     };
   }, [confirming]);
 
+  // 2026-07-29: 50건 고정이라 그 앞 이력이 통째로 안 보였다(실측 247건 중 50건).
+  // 「더 보기」로 이어붙이고, 머릿글에 «전체 몇 건 중 몇 건» 을 보여준다.
+  const PAGE = 50;
+  const loadLogs = async (offset = 0) => {
+    setLogLoading(true);
+    try {
+      const res = await fetch(`/api/coordinator/content?logs=1&offset=${offset}&limit=${PAGE}`);
+      const data = await res.json();
+      if (data.ok) {
+        setLogs((prev) => (offset === 0 ? (data.logs || []) : [...prev, ...(data.logs || [])]));
+        setLogTotal(typeof data.total === "number" ? data.total : (data.logs || []).length);
+      }
+    } catch {} finally { setLogLoading(false); }
+  };
+
   const openLogs = async () => {
     setConfirming(false);
     setShowLog(true);
-    try {
-      const res = await fetch("/api/coordinator/content?logs=1");
-      const data = await res.json();
-      if (data.ok) setLogs(data.logs || []);
-    } catch {}
+    setLogs([]);
+    setLogTotal(0);   // 이전에 보던 건수가 남아 「전체 247건 중 0건」 처럼 어긋나 보이던 것(독립 리뷰 지적)
+    setLogQ("");
+    await loadLogs(0);
   };
+
+  // 이력 검색(2026-07-29 PO 요청) — 247건을 눈으로 훑을 순 없다.
+  // ⚠️ 「불러온 것만」 걸러내면 **없는데 없다고 보이는** 거짓말이 된다(197건이 아직 안 왔으니).
+  //    그래서 검색을 시작하면 먼저 나머지를 다 불러온 뒤 거른다.
+  // ponytail: 서버 검색이 아니라 «전부 받아서 화면에서 거르기». 실측 247건 = 2번 요청이면 끝난다.
+  //           이력이 수천 건이 되면 그때 서버 검색으로 바꿔라(그 전엔 코드만 늘어난다).
+  // ⚠️ 한 글자 칠 때마다 부르면 **같은 줄이 여러 번 붙는다**(«췌장» = 두 번 호출 = 이력 두 벌).
+  //    그래서 도는 동안엔 다시 들어오지 못하게 막는다.
+  const loadingAllRef = useRef(false);
+  const loadAllLogs = async () => {
+    if (loadingAllRef.current) return;
+    loadingAllRef.current = true;
+    try {
+      await loadAllLogsInner();
+    } finally {
+      loadingAllRef.current = false;
+    }
+  };
+  const loadAllLogsInner = async () => {
+    let have = logs.length;
+    let total = logTotal;
+    while (have < total) {
+      setLogLoading(true);
+      try {
+        const res = await fetch(`/api/coordinator/content?logs=1&offset=${have}&limit=200`);
+        const data = await res.json();
+        if (!data.ok) break;
+        const got = data.logs || [];
+        if (got.length === 0) break;
+        setLogs((prev) => [...prev, ...got]);
+        have += got.length;
+        total = typeof data.total === "number" ? data.total : total;
+        setLogTotal(total);
+      } catch { break; } finally { setLogLoading(false); }
+    }
+  };
+
+  const onLogQ = (v) => {
+    setLogQ(v);
+    if (v.trim() && logs.length < logTotal) loadAllLogs();
+  };
+
+  const logNeedle = logQ.trim().toLowerCase();
+  const shownLogs = !logNeedle
+    ? logs
+    : logs.filter((lg) =>
+        [lg.new_value, lg.old_value, lg.content_key, lg.editor_email, lg.place?.screen, lg.place?.where]
+          .some((s) => String(s || "").toLowerCase().includes(logNeedle))
+      );
 
   const refLang = editLang === "ko" ? "en" : "ko";
 
@@ -237,46 +307,115 @@ export default function ContentEditorClient() {
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">콘텐츠 편집 · 전 화면</h1>
-          <p className="text-sm text-gray-500 mt-0.5">문구를 검색해 고치면 해당 화면에 바로 반영됩니다.</p>
+          <h1 className="text-xl font-bold text-gray-900">{L.ceTitle}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{L.ceSubtitle}</p>
         </div>
         <button
           onClick={() => (showLog ? setShowLog(false) : openLogs())}
           className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
         >
-          {showLog ? "편집으로" : "변경 이력"}
+          {showLog ? L.ceEditBtn : L.ceLogBtn}
         </button>
       </div>
 
       {showLog ? (
         <div className="space-y-2">
-          {logs.length === 0 && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
-          {logs.map((lg) => (
+          {logs.length === 0 && !logLoading && <p className="text-sm text-gray-500">{L.ceLogEmpty}</p>}
+          {logTotal > 0 && (
+            <input
+              type="search"
+              value={logQ}
+              onChange={(e) => onLogQ(e.target.value)}
+              placeholder={L.ceLogSearchPh}
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          )}
+          {logTotal > 0 && (
+            <p className="text-xs text-gray-600 mb-1">
+              {logNeedle
+                ? logLoading
+                  ? L.ceLogLoadingAll.replace("{t}", logTotal)
+                  : L.ceLogCountFound.replace("{t}", logTotal).replace("{n}", shownLogs.length)
+                : L.ceLogCountAll.replace("{t}", logTotal).replace("{n}", logs.length)}
+            </p>
+          )}
+          {logNeedle && !logLoading && shownLogs.length === 0 && (
+            <p className="text-sm text-gray-500 py-4 text-center">{L.ceLogNoMatch.replace("{q}", logQ)}</p>
+          )}
+          {shownLogs.map((lg) => {
+            // 화면 이름·비고는 사전에서(6개 언어). 사전에 없는 새 항목은 서버가 준 한국어로 폴백한다.
+            const scrName = (lg.place?.screenId && L["ceScr_" + lg.place.screenId]) || lg.place?.screen || null;
+            const noteText = (lg.place?.noteId && L["ceNote_" + lg.place.noteId]) || lg.place?.note || null;
+            return (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
+              {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
+                  코디는 그게 어느 화면인지 알 방법이 없었다(PO: «코디한테 코드 까뒤집어보라고 할까?»).
+                  → 사람이 읽는 화면 이름 + 자리 + 「화면 열기」 링크를 앞에 세우고, 코드 이름은 뒤로 뺀다. */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                {scrName ? (
+                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
+                    {scrName}
+                  </span>
+                ) : (
+                  <span
+                    className="text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded"
+                    title={noteText || L.ceScreenUnknownTitle}
+                  >
+                    {noteText ? L.ceScreenNotFound : L.ceScreenUnknown}
+                  </span>
+                )}
+                {lg.place?.where && <span className="text-[11px] text-gray-700">{lg.place.where}</span>}
+                <span className="text-[11px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">{LANG_LABEL[lg.lang] || lg.lang}</span>
+                {lg.place?.path && (
+                  <a
+                    href={lg.place.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-teal-700 underline hover:no-underline"
+                  >
+                    {L.ceOpenScreen}
+                  </a>
+                )}
+                {noteText && <span className="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{noteText}</span>}
+              </div>
               <div className="flex flex-wrap gap-2 text-gray-500 mb-1">
-                <span>{new Date(lg.changed_at).toLocaleString("ko-KR")}</span>
+                <span>{new Date(lg.changed_at).toLocaleString(dateLoc)}</span>
                 <span>·</span><span>{lg.editor_email}</span>
-                <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
+                <span>·</span><span className="font-mono text-gray-500 break-all">{lg.content_key}</span>
               </div>
               {/* 전후 비교: 취소선은 원문 글자를 가려 「원래 뭐였는지」가 안 읽혔다(PO 지적).
                   줄을 긋지 않고 색으로만 구분 — 이전=연빨강, 이후=연초록. 글씨는 700번대(AA). */}
               <div className="flex flex-wrap items-start gap-1.5 text-gray-700">
                 {/* whitespace-pre-wrap: 줄바꿈만 바뀐 수정이 «이전=이후» 로 똑같아 보이지 않게 */}
                 <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 whitespace-pre-wrap break-words">
-                  {lg.old_value || "(빈칸)"}
+                  {lg.old_value || L.ceEmptyValue}
                 </span>
                 {lg.from_default && (
-                  <span className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded" title="이 문구를 처음 고친 것 — 이전 값은 원래 기본 문구입니다">
-                    기본값
+                  <span className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded" title={L.ceDefaultBadgeTitle}>
+                    {L.ceDefaultBadge}
                   </span>
                 )}
                 <span className="text-gray-600">→</span>
                 <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 whitespace-pre-wrap break-words">
-                  {lg.new_value || "(기본값으로 되돌림)"}
+                  {lg.new_value || L.ceRevertedToDefault}
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
+          {logLoading && <p className="text-sm text-gray-500 py-2">{L.ceLoading}</p>}
+          {/* 찾는 중엔 이미 전부 불러온 상태라 「더 보기」·「여기까지」를 띄우지 않는다(건수가 두 벌이라 헷갈린다) */}
+          {!logNeedle && !logLoading && logs.length < logTotal && (
+            <button
+              onClick={() => loadLogs(logs.length)}
+              className="w-full text-sm py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-[44px]"
+            >
+              {L.ceLoadMore.replace("{n}", logTotal - logs.length)}
+            </button>
+          )}
+          {!logNeedle && !logLoading && logTotal > 0 && logs.length >= logTotal && (
+            <p className="text-xs text-gray-600 text-center py-2">{L.ceLogEnd.replace("{n}", logTotal)}</p>
+          )}
         </div>
       ) : (
         <>
@@ -286,12 +425,12 @@ export default function ContentEditorClient() {
               <input
                 value={query}
                 onChange={(e) => onQuery(e.target.value)}
-                placeholder="전 화면 텍스트 검색 (예: 상담, консультация)"
+                placeholder={L.ceSearchPh}
                 className="flex-1 text-sm focus:outline-none"
               />
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[11px] text-gray-500 mr-1">편집 언어</span>
+              <span className="text-[11px] text-gray-500 mr-1">{L.ceEditLang}</span>
               {LANGS.map((l) => (
                 <button
                   key={l}
@@ -304,16 +443,16 @@ export default function ContentEditorClient() {
             </div>
           </div>
           <p className="text-[11px] text-gray-600 mb-1">
-            언어는 한 번 고르면 유지됩니다 · 줄마다 <span className="text-teal-700 font-semibold">진한 언어 표시</span>가 «직접 고친 언어»입니다(눌러서 그 언어로 전환) · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다
+            {L.ceLangHint}
           </p>
-          <p className="text-[11px] text-gray-500 mb-4">줄바꿈(Enter)은 화면에 그대로 반영됩니다 · 줄바꿈 없이 길게 쓰면 화면 폭에 맞춰 자동 줄바꿈 · 줄바꿈이 안 먹는 화면을 발견하면 알려주세요</p>
+          <p className="text-[11px] text-gray-500 mb-4">{L.ceLinebreakHint}</p>
 
-          {loading && <p className="text-sm text-gray-500">검색 중…</p>}
+          {loading && <p className="text-sm text-gray-500">{L.ceSearching}</p>}
           {!loading && query.trim() && results.length === 0 && (
-            <p className="text-sm text-gray-500">"{query}" 로 찾은 문구가 없습니다.</p>
+            <p className="text-sm text-gray-500">{L.ceNoResult.replace("{q}", query)}</p>
           )}
           {!query.trim() && (
-            <p className="text-sm text-gray-500">위에서 바꾸고 싶은 문구를 검색하세요 (한국어·러시아어 등 아무 언어).</p>
+            <p className="text-sm text-gray-500">{L.ceStartHint}</p>
           )}
 
           {results.length > 0 && (hiddenCount > 0 || blockView) && (
@@ -321,9 +460,9 @@ export default function ContentEditorClient() {
               <button
                 onClick={toggleBlockView}
                 className={`text-xs px-2.5 py-1 rounded-full border ${blockView ? "border-teal-400 text-teal-700 bg-teal-50" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}
-                title="같은 화면 블록의 다른 문구(제목·부제·카드)를 함께 보고 한 번에 고칠 수 있습니다"
+                title={L.ceBlockTitle}
               >
-                {blockView ? "일치한 것만 보기" : `같은 블록 함께 보기 (+${hiddenCount}줄)`}
+                {blockView ? L.ceMatchedOnly : L.ceBlockShow.replace("{n}", hiddenCount)}
               </button>
             </div>
           )}
@@ -341,14 +480,14 @@ export default function ContentEditorClient() {
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-xs text-gray-500 truncate">{r.label}</span>
                     {r.matched === false && (
-                      <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
+                      <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title={L.ceBlockBadgeTitle}>{L.ceBlockBadge}</span>
                     )}
                     {dupKeys.has(r.key) && (
                       <span
                         className="text-[11px] text-red-700 bg-red-50 px-2 py-0.5 rounded"
-                        title="같은 묶음의 다른 선택지와 문구가 똑같습니다. 선택 버튼끼리 글자가 겹치면 환자가 무엇을 고르는지 알 수 없습니다 — 확인해 주세요."
+                        title={L.ceDupTitle}
                       >
-                        문구 중복
+                        {L.ceDup}
                       </span>
                     )}
                     {/* 언어 배지 (2026-07-28) — 접힌 줄은 「한국어 + 지금 고치는 언어」 두 칸만 보여준다.
@@ -371,8 +510,8 @@ export default function ContentEditorClient() {
                             type="button"
                             tabIndex={-1}
                             aria-pressed={now}
-                            aria-label={`${LANG_LABEL[l]} — ${now ? "지금 편집 중" : edited ? "직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
-                            title={`${LANG_LABEL[l]} — ${now ? "지금 편집 중" : edited ? "코디가 직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
+                            aria-label={`${LANG_LABEL[l]} — ${now ? L.ceLangNow : edited ? L.ceLangEdited : L.ceLangDefault} · ${L.ceLangSwitchHint}`}
+                            title={`${LANG_LABEL[l]} — ${now ? L.ceLangNow : edited ? L.ceLangEditedLong : L.ceLangDefault} · ${L.ceLangSwitchHint}`}
                             className={`text-[10px] leading-none px-1.5 py-1 rounded transition-colors ${
                               now
                                 // 지금 편집 중이면서 «고친 언어» 이면 테두리를 더해 두 정보를 동시에 보인다
@@ -392,7 +531,7 @@ export default function ContentEditorClient() {
                       onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
                       className="text-[11px] text-gray-500 hover:text-gray-600 flex-shrink-0"
                     >
-                      {isOpen ? "접기 ▲" : "6개어 펼치기 ▾"}
+                      {isOpen ? L.ceCollapse : L.ceExpand}
                     </button>
                   </div>
 
@@ -443,7 +582,7 @@ export default function ContentEditorClient() {
               sm 이상은 라벨까지(≈158px). 한 값으로 박으면 모바일에서 2배를 헛되게 먹는다. */}
           <div className="sticky bottom-[var(--cookie-banner-h,0px)] bg-white/90 backdrop-blur border-t border-gray-200 py-3 pr-20 sm:pr-36 flex items-center justify-between mt-6">
             <span className="text-sm text-gray-500">
-              {dirty.length > 0 ? `${dirty.length}곳 변경됨` : "변경 없음"}
+              {dirty.length > 0 ? L.ceChangedCount.replace("{n}", dirty.length) : L.ceNoChange}
               {msg && <span className={`ml-3 ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</span>}
             </span>
             <button
@@ -451,7 +590,7 @@ export default function ContentEditorClient() {
               disabled={dirty.length === 0 || saving}
               className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {saving ? "저장 중…" : "저장"}
+              {saving ? L.ceSaving : L.ceSave}
             </button>
           </div>
 
@@ -475,14 +614,14 @@ export default function ContentEditorClient() {
                 tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
-                aria-label="저장 전 확인"
+                aria-label={L.ceConfirmTitle}
                 className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[85vh] focus:outline-none"
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="px-5 pt-5 pb-3 border-b border-gray-100">
-                  <h2 className="text-base font-bold text-gray-900">이렇게 바꿉니다 · {pending.length}곳</h2>
+                  <h2 className="text-base font-bold text-gray-900">{L.ceConfirmHead.replace("{n}", pending.length)}</h2>
                   <p className="text-xs text-gray-600 mt-1">
-                    항목과 바뀌는 내용을 한 번만 확인해 주세요. 엉뚱한 줄이 바뀌고 있진 않은지 보는 자리입니다.
+                    {L.ceConfirmDesc}
                   </p>
                 </div>
 
@@ -499,11 +638,11 @@ export default function ContentEditorClient() {
                           줄바꿈은 화면 레이아웃을 바꾸는 실제 차이라 확인창에서 보여야 한다. */}
                       <div className="flex flex-wrap items-start gap-1.5 text-gray-700">
                         <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 whitespace-pre-wrap break-words">
-                          {d.old || "(빈칸)"}
+                          {d.old || L.ceEmptyValue}
                         </span>
                         <span className="text-gray-600">→</span>
                         <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 whitespace-pre-wrap break-words">
-                          {d.value || "(기본값으로 되돌림)"}
+                          {d.value || L.ceRevertedToDefault}
                         </span>
                       </div>
                     </div>
@@ -515,14 +654,14 @@ export default function ContentEditorClient() {
                     onClick={() => setConfirming(false)}
                     className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
                   >
-                    다시 볼게요
+                    {L.ceConfirmBack}
                   </button>
                   <button
                     onClick={save}
                     disabled={saving || pending.length === 0}
                     className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    이대로 저장
+                    {L.ceConfirmSave}
                   </button>
                 </div>
               </div>
