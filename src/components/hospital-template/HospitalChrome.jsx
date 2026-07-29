@@ -76,21 +76,36 @@ export function HospitalHeader({ site, lang, accent, onInquiry, basePath = "", c
         </div>
       </div>
 
-      {/* 좁은 화면 메뉴 — 가로로 흐른다(접이식 메뉴보다 한 번에 보인다). */}
+      {/* 좁은 화면 메뉴 — 가로로 흐른다(접이식 메뉴보다 한 번에 보인다).
+          ⚠️ 2026-07-29 휴대폰(390px)에서 실제로 보니, 마지막 항목이 **단어 중간에서 뚝 잘려** 있었다
+             (러시아어 «Иностранным пацие…»). 넘길 수 있는 줄인데 그 표시가 없어서
+             «옆으로 더 있다»가 아니라 «깨졌다»로 읽힌다 — 이름이 긴 언어일수록 심하다.
+          → 오른쪽 끝에 **흐려지는 띠**를 얹어 «여기서 끝이 아니다»를 보이게 하고,
+             마지막 항목 뒤에 여백을 둬 띠에 글자가 묻히지 않게 한다.
+             띠는 `pointer-events-none` 이라 누르는 걸 막지 않는다. */}
       {nav.length > 0 && (
-        <div className="lg:hidden border-t border-black/[0.05] overflow-x-auto">
-          <nav className="flex items-center gap-5 px-5 py-3 min-w-max">
-            {nav.map((n) => (
-              <Link
-                key={n.slug}
-                href={`${basePath}/${n.slug}${q}`}
-                className="text-[13px] whitespace-nowrap"
-                style={{ color: current === n.slug ? accent : "rgba(0,0,0,0.55)", fontWeight: current === n.slug ? 600 : 400 }}
-              >
-                {t(n.label)}
-              </Link>
-            ))}
-          </nav>
+        <div className="lg:hidden relative border-t border-black/[0.05]">
+          <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <nav className="flex items-center gap-5 px-5 py-3 min-w-max">
+              {nav.map((n) => (
+                <Link
+                  key={n.slug}
+                  href={`${basePath}/${n.slug}${q}`}
+                  className="text-[13px] whitespace-nowrap last:pr-8"
+                  style={{ color: current === n.slug ? accent : "rgba(0,0,0,0.55)", fontWeight: current === n.slug ? 600 : 400 }}
+                >
+                  {t(n.label)}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-10"
+            /* ⚠️ 헤더 배경(`bg-[#FBF8F3]`)과 **똑같은 색**이어야 한다 — 한 끗만 달라도 띠가 «얼룩»으로 보인다.
+               (처음엔 #FAF7F2 로 적었다가 배경을 확인하고 맞췄다.) */
+            style={{ background: "linear-gradient(to right, rgba(251,248,243,0), rgba(251,248,243,1))" }}
+          />
         </div>
       )}
     </header>
