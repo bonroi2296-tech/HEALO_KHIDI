@@ -98,6 +98,16 @@ const IMMUNE = {
     // ⚠️ 2026-07-29 정정: 앞서 나는 이 칸들을 「병원에서 받아야 채워진다」고 적었는데,
     //    **이미 immunehospital.com 푸터에 공개돼 있었다.** 「없다」고 단정하기 전에 찾아봤어야 했다.
     //    출처: https://immunehospital.com/pages/hospital/nonpayment.php 푸터(법정 공개 정보).
+    //
+    // 🔴 **지점 4곳이 전부 다른 법인이다** (2026-07-29, 지점별 사이트를 직접 열어 확인):
+    //      강서(마곡)  대표자 황이준  645-92-01641   ← 아래 값 = 이것
+    //      신촌        대표자 유형진  789-99-01601   (sc.immunehospital.com)
+    //      광명        대표자 배길준  520-97-01783   (km.immunehospital.com)
+    //      성동        대표자 강주안  469-24-02294   (sd.immunehospital.com)
+    //    지금 판은 브랜드 하나로 묶인 사이트라 **강서 본원 값 하나만** 싣는다(병원 본사이트도 그렇게 한다).
+    //    ⚠️ 다만 **외국인환자 유치 등록은 의료기관 단위**라, 나중에 등록번호를 채울 때
+    //       「한 병원 = 한 번호」로 생각하면 틀린다. 어느 지점에서 치료받는지에 따라 달라진다.
+    //       → `foreignPatientAttractionRegistration` 을 채울 때 반드시 지점을 먼저 정하고 그 지점 번호를 넣어라.
     representative: "Hwang Yi-jun",
     representativeKo: "황이준",
     businessRegistrationNumber: "645-92-01641",
