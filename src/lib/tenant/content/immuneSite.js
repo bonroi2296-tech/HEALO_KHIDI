@@ -154,6 +154,110 @@ export const IMMUNE_SITE = {
     },
   },
 
+
+  // ── 병원에서의 시간 (유튜브) ────────────────────────────────────
+  // 🔎 면력 유튜브 채널을 실제로 열어 30편을 훑어보니 홍보 영상이 아니라 **환자 생활 콘텐츠**였다:
+  //    셰프특식(호텔 다이닝급 병원 식사) · 면역밥상(환자용 레시피) · 원데이클래스(공예·정서 프로그램).
+  //    히어로에 쓴 «치료 중에도 일상을 지킨다»가 말이 아니라 실제로 하고 있는 일이었다.
+  // ⚠️ 영상은 전부 **한국어**다. 음식·공예는 보면 알기에 실었지만, 그 사실을 아래 note 로 밝힌다.
+  //    (자막이 붙으면 훨씬 강해진다 — 병원에 제안할 것.)
+  videosTitle: {
+    ko: "치료 밖의 시간",
+    en: "Life Beyond Treatment",
+    ru: "Жизнь вне лечения",
+    kz: "Емнен тыс өмір",
+    zh: "治疗之外的时间",
+    ja: "治療の外の時間",
+  },
+  videosNote: {
+    ko: "병원에서 실제로 진행하는 식단과 프로그램입니다. 영상은 한국어로 제작되었습니다.",
+    en: "Meals and programmes that actually run at the hospital. The videos are in Korean.",
+    ru: "Питание и программы, которые действительно проводятся в клинике. Видео на корейском языке.",
+    kz: "Клиникада шынымен өткізілетін тағам мен бағдарламалар. Бейнелер корей тілінде.",
+    zh: "这些是医院实际进行的餐食与项目。视频为韩语制作。",
+    ja: "病院で実際に行っている食事とプログラムです。動画は韓国語です。",
+  },
+  videos: [
+    {
+      id: "IWmJCs_mW8w",
+      thumb: "/immune/video/IWmJCs_mW8w.jpg",
+      tag: { ko: "셰프특식", en: "Chef's Table", ru: "Шеф-меню", kz: "Шеф мәзірі", zh: "主厨特餐", ja: "シェフ特食" },
+      title: {
+        ko: "병원에서 맛보는 호텔 다이닝 — 연어웰링턴 & 버섯리조또",
+        en: "Hotel dining at the hospital — salmon Wellington & mushroom risotto",
+        ru: "Ресторанный ужин в клинике — лосось Веллингтон и грибное ризотто",
+        kz: "Клиникадағы қонақүй асханасы — Веллингтон албырты мен саңырауқұлақ ризоттосы",
+        zh: "在医院品尝酒店级料理——惠灵顿三文鱼与蘑菇烩饭",
+        ja: "病院で味わうホテルダイニング — サーモンウェリントン＆きのこリゾット",
+      },
+    },
+    {
+      id: "HerihoNTKvY",
+      thumb: "/immune/video/HerihoNTKvY.jpg",
+      tag: { ko: "셰프특식", en: "Chef's Table", ru: "Шеф-меню", kz: "Шеф мәзірі", zh: "主厨特餐", ja: "シェフ特食" },
+      title: {
+        ko: "환자를 위한 중식 한 상 — 왕갈비 짜장 · 삼선짬뽕 · 삼색 탕수육",
+        en: "A Chinese course for patients — jjajang, seafood jjamppong and sweet-and-sour pork",
+        ru: "Китайский обед для пациентов — чачжан, морской чампон и свинина в кисло-сладком соусе",
+        kz: "Науқастарға арналған қытай асы — чачжан, теңіз чампоны және қышқыл-тәтті шошқа еті",
+        zh: "为患者准备的中餐——黑椒排骨炸酱·三鲜炒码面·三色糖醋肉",
+        ja: "患者さんのための中華一膳 — カルビジャージャー・海鮮チャンポン・三色酢豚",
+      },
+    },
+    {
+      id: "8ensMKRE9fw",
+      thumb: "/immune/video/8ensMKRE9fw.jpg",
+      tag: { ko: "면역밥상", en: "Immune Table", ru: "Иммунный стол", kz: "Иммундық дастархан", zh: "免疫餐桌", ja: "免疫ごはん" },
+      title: {
+        ko: "초간단 호박죽 — 맛 차이를 만드는 한 가지 비밀",
+        en: "Simple pumpkin porridge — the one thing that changes the taste",
+        ru: "Простая тыквенная каша — секрет, который меняет вкус",
+        kz: "Қарапайым асқабақ ботқасы — дәмді өзгертетін бір құпия",
+        zh: "超简单南瓜粥——决定味道的一个秘诀",
+        ja: "超簡単かぼちゃ粥 — 味の差を生む一つの秘密",
+      },
+    },
+    {
+      id: "818HiZt53mA",
+      thumb: "/immune/video/818HiZt53mA.jpg",
+      tag: { ko: "면역밥상", en: "Immune Table", ru: "Иммунный стол", kz: "Иммундық дастархан", zh: "免疫餐桌", ja: "免疫ごはん" },
+      title: {
+        ko: "색다른 재료로 면역력 UP — 메밀 포케 샐러드",
+        en: "Buckwheat poke salad for immunity",
+        ru: "Гречневый поке-салат для иммунитета",
+        kz: "Иммунитетке арналған қарақұмық поке салаты",
+        zh: "用不同食材提升免疫力——荞麦波奇沙拉",
+        ja: "違う食材で免疫力アップ — そば粉のポキサラダ",
+      },
+    },
+    {
+      id: "mIfa-CTkA_Y",
+      thumb: "/immune/video/mIfa-CTkA_Y.jpg",
+      tag: { ko: "원데이클래스", en: "One-day Class", ru: "Мастер-класс", kz: "Шеберлік сабақ", zh: "一日课程", ja: "ワンデイクラス" },
+      title: {
+        ko: "손끝에 담은 나전칠기 — 자개공예 원데이 클래스",
+        en: "Korean mother-of-pearl inlay — a one-day craft class",
+        ru: "Корейская перламутровая инкрустация — мастер-класс на один день",
+        kz: "Корей седеп өнері — бір күндік шеберлік сабағы",
+        zh: "指尖上的螺钿漆器——贝壳工艺一日课程",
+        ja: "指先に宿る螺鈿 — 螺鈿工芸ワンデイクラス",
+      },
+    },
+    {
+      id: "19q9-hEjeSs",
+      thumb: "/immune/video/19q9-hEjeSs.jpg",
+      tag: { ko: "원데이클래스", en: "One-day Class", ru: "Мастер-класс", kz: "Шеберлік сабақ", zh: "一日课程", ja: "ワンデイクラス" },
+      title: {
+        ko: "병원에서 피어난 작은 쉼표 — 앙금 컵케이크 클래스",
+        en: "A small pause at the hospital — bean-paste cupcake class",
+        ru: "Небольшая пауза в клинике — мастер-класс по капкейкам",
+        kz: "Клиникадағы шағын үзіліс — капкейк шеберлік сабағы",
+        zh: "在医院绽放的小小逗号——豆沙杯子蛋糕课程",
+        ja: "病院で咲いた小さな休符 — あんこカップケーキ教室",
+      },
+    },
+  ],
+
   labels: {
     specialties: "Centers",
     whyUs: "Why Immune Hospital",
@@ -161,6 +265,7 @@ export const IMMUNE_SITE = {
     programs: "Treatments",
     gallery: "Our Space",
     chat: "Chat",
+    videos: "Life at the Hospital",
     credentials: "Certifications",
     faq: "FAQ",
   },

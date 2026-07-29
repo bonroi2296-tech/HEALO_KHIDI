@@ -374,6 +374,69 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
+      {/* ══ 병원에서의 시간 — 영상 ══
+          왜 이 섹션이 생겼나: 면력 유튜브를 열어보니 홍보 영상이 아니라 **환자 생활 콘텐츠**였다
+          (셰프특식·면역밥상·원데이클래스). «치료 중에도 일상을 지킨다»는 말의 실제 증거라
+          글로 설명하는 것보다 강하다. 병원이 이미 콘텐츠를 갖고 있으면 판이 바로 실어준다.
+          ⚠️ 썸네일은 유튜브 도메인이라 next/image 가 아니라 <img> 를 쓴다(외부 도메인 설정을
+             실서비스에 추가하지 않으려고 — 판 때문에 본 사이트 설정을 건드리면 안 된다). */}
+      {has(site.videos) && (
+        <Section>
+          <div className="max-w-2xl mb-12">
+            <Eyebrow accent={accent}>{t(site.labels?.videos) || "Life at the Hospital"}</Eyebrow>
+            <Heading>{t(site.videosTitle)}</Heading>
+            {t(site.videosNote) && (
+              <p className="mt-4 text-[14px] text-black/45 leading-relaxed">{t(site.videosNote)}</p>
+            )}
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {site.videos.map((v, i) => (
+              <a
+                key={i}
+                href={`https://www.youtube.com/watch?v=${v.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block"
+              >
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#EDE6DA] mb-3.5">
+                  {/* 썸네일은 **우리가 저장한 파일**을 쓴다(`v.thumb`). 유튜브에서 직접 불러오면
+                      ①외부 도메인이라 CSP·이미지 최적화 설정을 건드려야 하고 ②유튜브가 주소를
+                      바꾸면 조용히 깨지며 ③실제로 로컬에서 안 떴다(2026-07-28 실측).
+                      thumb 이 없으면 유튜브 주소로 폴백한다. */}
+                  <Image
+                    src={v.thumb || `https://img.youtube.com/vi/${v.id}/hqdefault.jpg`}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    unoptimized={!v.thumb}
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  />
+                  <span className="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors" />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 ml-0.5" style={{ fill: accent }} aria-hidden="true">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </span>
+                  </span>
+                  {t(v.tag) && (
+                    <span
+                      className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {t(v.tag)}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-[15px] font-medium leading-snug group-hover:opacity-70 transition-opacity">
+                  {t(v.title)}
+                </h3>
+              </a>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* ══ 환자 후기 — 없으면 통째로 안 그린다 ══ */}
       {has(site.testimonials) && (
         <Section tone="ink" darkTone={darkTone}>
