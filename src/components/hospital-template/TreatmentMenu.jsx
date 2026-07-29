@@ -119,8 +119,14 @@ export default function TreatmentMenu({ menu, lang = "en", accent, onInquiry, la
                   [labels.stay, it.stay],
                 ].map(([k, v], j) =>
                   t(v) ? (
-                    <div key={j} className="flex gap-3">
-                      <dt className="w-20 shrink-0 text-black/40">{t(k)}</dt>
+                    /* ⚠️ 이름표 칸이 `w-20`(80px) 고정이라 **긴 낱말이 단어 중간에서 잘렸다.**
+                       2026-07-29 휴대폰에서 러시아어를 보니 「Пребывание」(체류)이 «Пребыван / ие» 로
+                       쪼개져 오타처럼 보였다. 한국어(3~4자)만 보고 정한 폭이라 안 드러났던 것 —
+                       **칸 폭을 글자 수로 정하면 언어가 바뀔 때 반드시 깨진다.**
+                       → 좁은 화면에서는 위아래로 쌓고(이름표 한 줄, 값 한 줄), 넓은 화면에서만 두 칸으로.
+                       `break-keep` 으로 낱말 중간 줄바꿈도 막는다. */
+                    <div key={j} className="flex flex-col sm:flex-row gap-0.5 sm:gap-3">
+                      <dt className="sm:w-24 sm:shrink-0 text-black/40 [word-break:keep-all]">{t(k)}</dt>
                       <dd className="text-black/70 flex-1">{t(v)}</dd>
                     </div>
                   ) : null,
