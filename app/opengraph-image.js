@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
+import { applyTenantBrand } from "@/lib/tenant";
 
 // 소셜 공유(OG) 미리보기 이미지 — 빌드시 자동 생성(1200x630).
 // Next App Router가 이 파일을 감지해 og:image / twitter:image 메타를 자동 주입.
 // 브랜드: healwith (heal=teal / with=slate), 흰 배경 Legacy 톤.
-export const alt = "healwith — Korea Cancer Care for International Patients";
+export const alt = applyTenantBrand("healwith — Korea Cancer Care for International Patients", "en");
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
