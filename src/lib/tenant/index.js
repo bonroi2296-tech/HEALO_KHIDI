@@ -95,9 +95,13 @@ const IMMUNE = {
   legal: {
     serviceName: "면력한방병원",
     operatedBy: "",
-    representative: "",
-    representativeKo: "",
-    businessRegistrationNumber: "",
+    // ⚠️ 2026-07-29 정정: 앞서 나는 이 칸들을 「병원에서 받아야 채워진다」고 적었는데,
+    //    **이미 immunehospital.com 푸터에 공개돼 있었다.** 「없다」고 단정하기 전에 찾아봤어야 했다.
+    //    출처: https://immunehospital.com/pages/hospital/nonpayment.php 푸터(법정 공개 정보).
+    representative: "Hwang Yi-jun",
+    representativeKo: "황이준",
+    businessRegistrationNumber: "645-92-01641",
+    // 외국인환자 유치기관 등록번호는 아직 못 찾음 — 비워 두면 화면에 안 뜬다(지어내지 않는다).
     foreignPatientAttractionRegistration: "",
     guaranteeInsurer: "",
     guaranteeInsurerKo: "",
@@ -108,8 +112,8 @@ const IMMUNE = {
     contactEmail: "",
     // 대표번호는 공개 정보라 그대로 쓴다(immunehospital.com · hospitals 테이블 일치).
     contactPhone: "1588-2915",
-    privacyOfficer: "",
-    privacyOfficerKo: "",
+    privacyOfficer: "Son Hyo-jun",
+    privacyOfficerKo: "손효준",
     copyright: "© Immune Hospital. All rights reserved.",
     copyrightKo: "© 면력한방병원. All rights reserved.",
   },

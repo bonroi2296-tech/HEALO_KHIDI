@@ -120,22 +120,25 @@ describe("테넌트 — 면력 목업으로 전환했을 때", () => {
     //     모르는 사실은 지어내지도 자리표시자로 채우지도 말고 **아무 말도 안 하는** 게 맞다.
     const m = await loadTenant("immune");
     const legal = m.getTenant().legal;
+    // ⚠️ 2026-07-29 정정: 아래 목록에서 대표자·사업자등록번호·개인정보보호책임자를 뺐다.
+    //    전에는 「모르는 값」이라 빈칸이었는데, **병원 사이트 푸터에 이미 공개돼 있었다.**
+    //    즉 그때 빈칸이었던 건 «모르는 사실»이어서가 아니라 **내가 안 찾아봐서**였다.
+    //    교훈: 「없다」로 확정하기 전에 그 병원 사이트를 먼저 뒤진다.
     for (const key of [
       "operatedBy",
-      "representative",
-      "representativeKo",
-      "businessRegistrationNumber",
-      "foreignPatientAttractionRegistration",
+      "foreignPatientAttractionRegistration", // 유치기관 등록번호는 아직 못 찾음
       "guaranteeInsurer",
       "contactEmail",
-      "privacyOfficer",
     ]) {
       expect(legal[key]).toBe("");
     }
-    // 확인된 공개 정보는 반대로 채워져 있어야 한다.
+    // 확인된 공개 정보는 반대로 채워져 있어야 한다(출처: immunehospital.com 푸터·법정 공개).
     expect(legal.serviceName).toBe("면력한방병원");
     expect(legal.contactPhone).toBe("1588-2915");
     expect(legal.addressKo).toContain("마곡중앙6로");
+    expect(legal.representativeKo).toBe("황이준");
+    expect(legal.businessRegistrationNumber).toBe("645-92-01641");
+    expect(legal.privacyOfficerKo).toBe("손효준");
   });
 
   it("자리표시자 글자가 테넌트 설정 어디에도 없다", async () => {
