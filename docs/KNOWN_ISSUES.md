@@ -266,8 +266,15 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   - `.env.example` 에 `E2E_*` 계정 키 12개 등재 (그동안 어디에도 없어서 장치 존재 자체를 몰랐다) · `docs/E2E_SECRETS_SETUP.md` 표에 한 줄 추가
   - 🔑 **남은 것**: `E2E_HOSPITAL_EMAIL`/`E2E_HOSPITAL_PASSWORD` 를 GitHub Actions Secrets 에 등록. **등록 전까지 이 스펙은 조용히 스킵된다**(= 검사가 없는 것과 같다).
 - 🔍 **실측으로 갈라진 것 (2026-07-28)**: 「`hospital@test.com` 이 첫 화면으로 되돌아간다」는 **데이터 문제가 아니다.** 문지기(`checkHospitalAuth`)가 보는 값은 `hospital_users.is_active` 인데 두 계정 다 `true`, `disabled` 도 안 찍혀 있다.
-  - 한때 `hospitals.is_active=false`(TEST 병원)를 원인으로 의심했으나 **문지기는 그 값을 안 본다** — 반증 검사에서 걸러졌다. 원인은 아직 미규명이고 **재현이 필요**하다(비밀번호는 Secrets 보관).
-  - 참고: `hospital@test.com` = TEST 병원(`is_active=false`) owner / `hospital@test.healo.kr` = 면력한방병원 마곡점 manager.
+  - 한때 `hospitals.is_active=false`(TEST 병원)를 원인으로 의심했으나 **문지기는 그 값을 안 본다** — 반증 검사에서 걸러졌다.
+  - 참고: `hospital@test.com` = TEST 병원(`is_active=false`) owner / `hospital@test.healo.kr` = 면력한방병원 **강서점** manager(마곡점 아님 — 실DB 확인).
+
+- ✅ **2026-07-29 원인 규명 — 버그가 아니라 「기능 플래그」였다 (로컬 실재현)**
+  - **진짜 원인**: `app/hospital/_components/featureFlags.js` 의 `HOSPITAL_CONTENT_ENABLED = false`. `app/hospital/profile/page.jsx:10`·`app/hospital/treatments/page.jsx:10` 이 **`if (!HOSPITAL_CONTENT_ENABLED) redirect("/hospital")`** 로 직접 URL 접근을 대시보드로 되돌린다. **PO 결정 2026-06-24**(공개 프론트 미연동 → 메뉴 숨김 + 직접 접근 차단)의 **의도된 동작**이다.
+  - **반증 검사(단정 전에 먼저 확인한 것)**: *플래그가 진짜 원인이면 ①같은 포털인데 플래그가 없는 `/hospital/leads` 는 안 튕겨야 하고 ②플래그만 `true` 로 바꾸면 두 화면이 그대로 열려야 한다.* → **둘 다 참**. 실측: 꺼짐 = `/hospital/profile`·`/hospital/treatments` → `/hospital`(튕김), `/hospital/leads` → 그대로. 켜짐 = 셋 다 그대로. (플래그는 측정 후 원복, 커밋 없음)
+  - **인증·데이터는 결백**: 로그인 성공(`/auth/v1/token` 200) → `/api/partner/whoami` 가 `{"isHospitalUser":true, hospitalName:"TEST 병원", role:"owner"}` 를 되돌려주고 로그인 직후 착지도 `/hospital` 이다. 「홈(`/`)으로 되돌아간다」는 **한 번도 재현되지 않았다** — 되돌아간 곳은 홈이 아니라 **포털 대시보드**였고, 옛 기록의 「첫 화면」이 그걸 가리켰다.
+  - **덤으로 잡은 구멍**: 새 스펙의 판정이 `pathname.toContain("/hospital")` 이라 **`/hospital` 과 `/hospital/profile` 을 못 갈랐다** → 튕겨도 통과. 정확한 경로 비교 + 플래그 연동으로 교체(`e2e/hospital-portal.spec.ts`). 첫 스펙의 본문 검사도 「접근 권한 없음」 카드에 「병원」이 들어 있어 통과할 수 있어 카드 부재를 따로 잠갔다.
+  - **남은 판단(PO 몫)**: 「병원 정보」·「시술 카탈로그」를 열지 말지 = 공개 프론트 연동 여부. 지금은 **고칠 것이 없다**(의도대로 동작 중).
 
 ## 🔸 GA4 가 **실제로 데이터를 보내는지 아직 사람 눈으로 확인 못 했다** (2026-07-28, GA4 정비 [#1131] 직후)
 
@@ -331,7 +338,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 - 참고(고칠 대상 아님): `app/hospital/leads/page.jsx` 의 sticky 는 자기 모달의 `overflow-y-auto` 안이라 **정상 작동**한다.
 - **상태(2026-07-28)**: 두 레이아웃의 `overflow-auto` 제거 + 병원 sticky 헤더 블리드 `lg:-mx-10 → lg:-mx-8`(3곳) 머지 완료. **단 실서비스에는 아직 안 나갔다** — 「머지는 자유, 배포는 하루 한 번 오후 3시 창구」 정책이라 다음 창구에 나간다(PO 판단: 화면 손질이라 급하지 않음). 나간 뒤 확인할 것: `/admin/hospitals` 의 sticky 조상에 `MAIN` 이 안 잡히는지, 병원 상세 헤더가 붙는지·블리드가 안 넘치는지.
 - ⚠️ **측정 함정(실제로 걸림)**: `document.querySelector('main')` 으로 재면 **문서의 첫 번째 `<main>`** 을 잡는다. 포털 화면엔 `<main>` 이 둘 이상 있어서, 엉뚱한 것을 재고 «`overflow: visible` → 배포됐다»고 오판했다. **sticky 요소에서 부모를 거슬러 올라가 이름(className)까지 찍어** 확인할 것.
-- **못 들어가 본 화면(정직)**: `/hospital/profile`·`/hospital/treatments` — `hospital@test.com` 은 `/hospital` 로 되돌아가고, 병원이 연결된 `hospital@test.healo.kr` 은 비밀번호를 모른다.
+- **~~못 들어가 본 화면(정직)~~ → 정정(2026-07-29)**: `/hospital/profile`·`/hospital/treatments` 가 `/hospital` 로 되돌아간 것은 계정 문제가 아니라 **기능 플래그(`HOSPITAL_CONTENT_ENABLED=false`)의 의도된 차단**이다(위 항목 참조). 플래그를 잠시 켜서 두 화면을 실제로 띄워 봤다 — `hospital@test.com` 으로 정상 렌더. **즉 이 sticky 확인은 이제 로컬에서 가능하다**(플래그를 켠 채 확인 → 원복).
 
 ## ~~🔸 콘텐츠 편집기에 「저장 전 미리보기」가 없다 — 한 줄 밀린 수정을 아무도 못 잡는다~~ ✅ **해결 (2026-07-28, PO 지시로 같은 날 구현)**
 
