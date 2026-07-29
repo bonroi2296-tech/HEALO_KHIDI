@@ -43,6 +43,25 @@ describe("테넌트 — 기본값 안전 계약", () => {
     expect(m.isDefaultTenant()).toBe(true);
   });
 
+  /* 🔴 healwith 에는 `homeContent` 가 «없어야» 한다 — 이건 취향이 아니라 안전선이다.
+     `getMergedHomeContent()`(src/lib/content/overrides.js)는 이렇게 생겼다:
+
+         const tenantHome = getTenant().homeContent;
+         if (tenantHome) deepMerge(merged, tenantHome);      ← ①
+         …
+         return isDefaultTenant() ? merged : brandifyLangMap(merged);   ← ②
+
+     ②는 healwith 를 지켜 준다(원본 그대로 반환). 그런데 **①은 ② 앞에서 돈다.**
+     즉 누가 healwith 테넌트에 `homeContent` 를 한 줄 붙이는 순간, 설정을 아무것도 안 켰는데도
+     **실서비스 홈 문구가 조용히 바뀐다.** 화면도 안 깨지고 검사도 안 울려서 아무도 모른다.
+     그래서 「비어 있음」 자체를 검사로 박는다.
+     ⚠️ 이 검사가 빨개졌다면 「검사를 고치는」 게 아니라 **①을 ② 뒤로 옮기거나
+        기본 테넌트일 때 건너뛰게** 고쳐야 한다. */
+  it("🔒 기본(healwith) 테넌트에는 homeContent 가 없다 — 있으면 실서비스 홈이 조용히 바뀐다", async () => {
+    const m = await loadTenant(undefined);
+    expect(m.getTenant().homeContent).toBeUndefined();
+  });
+
   it("기본 테넌트에서 브랜드 치환은 원본을 «그대로» 돌려준다", async () => {
     const m = await loadTenant(undefined);
     const samples = [
