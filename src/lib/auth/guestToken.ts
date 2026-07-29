@@ -21,6 +21,7 @@ import "server-only";
 
 import { randomBytes, createHash } from "node:crypto";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
+import { askOnceMoreOnError } from "./retryTransient";
 
 // "guest" = 범용 참여자(통합 초대 링크). 누구나 이 링크로 입장 → 이름 직접 입력.
 export type GuestRole = "patient" | "doctor" | "translator" | "coordinator" | "observer" | "guest";
@@ -122,13 +123,18 @@ export async function verifyAndConsumeGuestToken(
 
   const tokenHash = hashToken(tokenPlain);
 
-  const { data: row, error } = await supabaseAdmin
-    .from("consultation_guest_tokens")
-    .select(
-      "id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at, max_uses, used_count"
-    )
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
+  // DB 가 한 번 삐끗하면 환자 화면엔 「초대 링크가 만료되었습니다」가 뜬다(모든 사유를
+  // invalid_or_expired_invite 로 뭉갬) — 멀쩡한 링크인데 환자가 포기한다. 오류면 1회 더 물어본다.
+  const tokenRes = await askOnceMoreOnError(() =>
+    supabaseAdmin
+      .from("consultation_guest_tokens")
+      .select(
+        "id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at, max_uses, used_count"
+      )
+      .eq("token_hash", tokenHash)
+      .maybeSingle()
+  );
+  const { data: row, error } = tokenRes ?? { data: null, error: new Error("db_unreachable") };
 
   if (error) {
     console.error("[guestToken] DB error:", error.message);
@@ -200,11 +206,15 @@ export async function verifyGuestTokenReadOnly(
 
   const tokenHash = hashToken(tokenPlain);
 
-  const { data: row, error } = await supabaseAdmin
-    .from("consultation_guest_tokens")
-    .select("id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
+  // 위와 같은 이유 — 상담 중 API 가 DB 한 번 삐끗에 403 으로 끊기지 않게 1회 더.
+  const tokenRes = await askOnceMoreOnError(() =>
+    supabaseAdmin
+      .from("consultation_guest_tokens")
+      .select("id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at")
+      .eq("token_hash", tokenHash)
+      .maybeSingle()
+  );
+  const { data: row, error } = tokenRes ?? { data: null, error: new Error("db_unreachable") };
 
   if (error) {
     console.error("[guestToken/readOnly] DB error:", error.message);

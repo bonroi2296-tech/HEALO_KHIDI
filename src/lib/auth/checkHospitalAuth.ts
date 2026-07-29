@@ -7,6 +7,7 @@
 
 import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
+import { askOnceMoreOnError } from "./retryTransient";
 
 export interface HospitalAuthResult {
   isHospitalUser: boolean;
@@ -30,7 +31,9 @@ export async function checkHospitalAuth(request?: NextRequest): Promise<Hospital
         const token = authHeader.substring(7);
         try {
           const { supabaseAdmin } = await import("../rag/supabaseAdmin");
-          const { data, error } = await supabaseAdmin.auth.getUser(token);
+          // 오류면 1회 더 (retryTransient.ts) — 인증 서버 한 번 삐끗 ≠ 권한 없음
+          const res = await askOnceMoreOnError(() => supabaseAdmin.auth.getUser(token));
+          const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
           user = data?.user;
           userError = error;
         } catch (err: unknown) {
@@ -44,7 +47,8 @@ export async function checkHospitalAuth(request?: NextRequest): Promise<Hospital
     if (!user) {
       try {
         const supabase = await createSupabaseServerClient();
-        const { data, error } = await supabase.auth.getUser();
+        const res = await askOnceMoreOnError(() => supabase.auth.getUser());
+        const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
         user = data?.user;
         userError = error;
       } catch (err: unknown) {
@@ -72,13 +76,18 @@ export async function checkHospitalAuth(request?: NextRequest): Promise<Hospital
     // 3. hospital_users 테이블에서 연결 정보 조회
     const serviceClient = createServiceRoleClient();
 
-    const { data: hospitalUser, error: huError } = await serviceClient
-      .from("hospital_users")
-      .select("hospital_id, role, is_active, hospitals(id, name)")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .limit(1)
-      .single();
+    // DB 가 삐끗한 것을 「이 계정은 병원 소속이 아니다」로 바꾸지 않는다 —
+    // 진짜 미소속(행 0개, PGRST116)은 재시도 없이 그대로 거부된다(retryTransient.ts).
+    const huRes = await askOnceMoreOnError(() =>
+      serviceClient
+        .from("hospital_users")
+        .select("hospital_id, role, is_active, hospitals(id, name)")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1)
+        .single()
+    );
+    const { data: hospitalUser, error: huError } = huRes ?? { data: null, error: new Error("db_unreachable") };
 
     if (huError || !hospitalUser) {
       return {
