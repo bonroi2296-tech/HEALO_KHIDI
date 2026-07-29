@@ -49,10 +49,10 @@ export const HOME_CONTENT = {
     title: { ko: "왜 한국에서 암 치료인가요?", en: "Why Cancer Treatment in Korea?", ru: "Почему лечение рака в Корее?", kz: "Неге Кореяда рак емдеу?", zh: "为什么选择韩国治疗癌症？", ja: "なぜ韓国でがん治療？" },
     subtitle: { ko: "한국은 세계 최고 수준의 암 생존율과 최첨단 의료 기술을 보유하고 있습니다", en: "Korea leads the world in cancer survival rates and cutting-edge medical technology", ru: "Корея — мировой лидер по выживаемости при раке и передовым медицинским технологиям", kz: "Корея рак бойынша тірі қалу көрсеткіштері мен озық медициналық технологиялар бойынша әлем көшбасшысы", zh: "韩国在癌症生存率和尖端医疗技术方面处于世界领先地位", ja: "韓国はがん生存率と最先端医療技術で世界をリード" },
     items: [
-      { value: "78.4%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
+      { value: "78.6%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
       { value: { ko: "201만+", en: "2.01M+", ru: "2,01 млн+", kz: "2,01 млн+", zh: "201万+", ja: "201万+" }, label: { ko: "2025 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2025", ru: "Иностранных\nпациентов в Корее\nв 2025", kz: "2025 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2025年访韩\n外国患者", ja: "2025年韓国訪問\n外国人患者" } },
-      { value: "60~80%", label: { ko: "미국 대비\n치료비 절감", en: "Cost Savings\nvs. United States", ru: "Экономия\nvs. США", kz: "АҚШ-қа қарағанда\nүнемдеу", zh: "与美国相比\n节省费用", ja: "米国比\nコスト削減" } },
-      { value: "Top 10", label: { ko: "의료 시설 품질\n세계 순위", en: "Global Ranking\nHealthcare Quality\n& Facilities", ru: "Мировой рейтинг\nкачества медицины", kz: "Медицина сапасы\nбойынша әлемдік\nрейтинг", zh: "医疗设施质量\n世界排名", ja: "医療施設の質\n世界ランキング" } },
+      { value: "40~60%", label: { ko: "미국 대비\n치료비 절감", en: "Cost Savings\nvs. United States", ru: "Экономия\nvs. США", kz: "АҚШ-қа қарағанда\nүнемдеу", zh: "与美国相比\n节省费用", ja: "米国比\nコスト削減" } },
+      { value: { ko: "세계 2위", en: "#2", ru: "№2", kz: "№2", zh: "世界第2", ja: "世界2位" }, label: { ko: "의료 시스템 품질\nCEOWORLD 지수 2025", en: "Healthcare System Quality\nCEOWORLD Index 2025", ru: "Качество системы\nздравоохранения\nИндекс CEOWORLD 2025", kz: "Денсаулық сақтау жүйесі\nсапасы\nCEOWORLD индексі 2025", zh: "医疗体系质量\nCEOWORLD指数 2025", ja: "医療システムの質\nCEOWORLD指数 2025" } },
     ],
   },
   /* ── 의사 섹션 ── */
