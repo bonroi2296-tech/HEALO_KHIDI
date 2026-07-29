@@ -117,12 +117,15 @@ async function checkAdminInMiddleware(request: NextRequest): Promise<{
       }
     );
 
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    // 아래 checkSessionInMiddleware 와 같은 이유로 1회 재시도 — 인증 서버가 한 번 삐끗하면
+    // 어드민이 /login 으로 튕긴다(error 면 email 도 안 채워져 «권한 없음 안내»가 아니라 로그인 벽).
+    let result = await supabase.auth.getUser().catch(() => null);
+    if (!result || result.error) {
+      result = await supabase.auth.getUser().catch(() => null);
+    }
+    const user = result?.data.user;
 
-    if (error || !user) {
+    if (!result || result.error || !user) {
       return { isAdmin: false, response };
     }
 
