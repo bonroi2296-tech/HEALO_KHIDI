@@ -75,7 +75,7 @@ export default function CookieConsent() {
         <div className="flex-1 text-sm text-gray-600">
           <p className="font-semibold text-gray-900 mb-1">{tr("title")}</p>
           <p>{tr("body")}{" "}
-            <a href="/cookies" className="text-teal-700 underline">{tr("learnMore")}</a>
+            <a href="/cookies" className="touch-inline text-teal-700 underline">{tr("learnMore")}</a>
           </p>
         </div>
         <div className="flex gap-2 shrink-0">

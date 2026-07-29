@@ -126,7 +126,7 @@ export const LoginPage = ({ setView }) => {
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="login-email" className="block text-sm font-bold text-gray-700">{t("login.email", langCode)}</label>
-                            <Link href="/find-id" className="text-xs font-bold text-teal-700 hover:underline">{FIND_ID_LABEL[langCode] || FIND_ID_LABEL.en}</Link>
+                            <Link href="/find-id" className="touch-link text-xs font-bold text-teal-700 hover:underline">{FIND_ID_LABEL[langCode] || FIND_ID_LABEL.en}</Link>
                         </div>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
@@ -145,7 +145,7 @@ export const LoginPage = ({ setView }) => {
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="login-password" className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
-                            <Link href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</Link>
+                            <Link href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"} className="touch-link text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</Link>
                         </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
