@@ -671,6 +671,9 @@ const SUBTITLE_SIZE_CLASS = {
 // 자막 크기 선택 저장 키 — 재입장해도 유지 (hw_device_id 와 같은 localStorage 패턴)
 const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
+// 발화 하나가 쓸 수 있는 «말하는 중» 번역 횟수 (내 마이크 송신 경로).
+const PARTIAL_TRANSLATE_MAX = 5;
+
 // 문맥 링버퍼 → API 로 보낼 형태. 내부용 필드(norm·at)는 빼서 프롬프트·전송량을 안 늘린다.
 function contextForApi(buf, n = 6) {
   return (buf || []).slice(-n).map(({ speaker, lang, text }) => ({ speaker, lang, text }));
@@ -1120,7 +1123,8 @@ export default function ConsultationRoomPage() {
   const showRemoteSubtitle = useCallback(({ key, text, lang, role, name, interim }) => {
     const k = key || "dc";
     setRemoteSubtitles((prev) => {
-      const entry = { key: k, text, lang, role, name, interim };
+      // updatedAt = 이 사람이 마지막으로 말한 시각. 자리가 모자랄 때 «누구를 밀어낼지» 판단 기준.
+      const entry = { key: k, text, lang, role, name, interim, updatedAt: Date.now() };
       const at = prev.findIndex((s) => s.key === k);
       // 이미 화면에 있는 화자면 **제자리 교체** — 슬롯 순서(=좌/우 위치)를 사람에 고정한다.
       // 예전엔 지웠다 뒤에 붙여서, 두 사람이 교대로 말할 때마다 자막이 위아래·좌우로 튀었다.
@@ -1129,7 +1133,23 @@ export default function ConsultationRoomPage() {
         next[at] = entry;
         return next;
       }
-      return [...prev, entry].slice(-3); // 최근 화자 3명까지
+      const next = [...prev, entry];
+      if (next.length <= 3) return next; // 최근 화자 3명까지
+      // ⚠️ 넘치면 «가장 오래 말이 없던 사람»을 밀어낸다. 예전엔 배열 앞쪽을 잘랐는데
+      //    (`slice(-3)`), 자리는 «처음 나타난 순서»로 고정돼 있어서 **방금 말한 사람이
+      //    맨 앞자리면 그 사람이 밀려나고 한참 전에 말한 사람이 남았다**(2026-07-29 자가감사).
+      //    4명 이상 회의에서만 보이던 것 — 오늘 회의가 딱 4명이라 경계에 걸려 있었다.
+      let oldest = 0;
+      for (let i = 1; i < next.length; i++) {
+        if ((next[i].updatedAt || 0) < (next[oldest].updatedAt || 0)) oldest = i;
+      }
+      const dropped = next[oldest].key;
+      const timers = remoteSubtitleTimersRef.current;
+      if (timers.has(dropped)) {
+        clearTimeout(timers.get(dropped)); // 밀려난 자리의 숨김 타이머도 같이 정리
+        timers.delete(dropped);
+      }
+      return next.filter((_, i) => i !== oldest);
     });
     // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
     // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
@@ -1523,7 +1543,7 @@ export default function ConsultationRoomPage() {
   //   상대 화면에서 자막이 점점 자라다가, 발화 확정 시 기존 확정 경로(품질·기록·문맥)가 교체한다.
   //   부분 번역은 화면 표시 전용: 기록·DB·TTS·문맥 축적 없음(서버도 partial 플래그로 저장 스킵).
   const utterRef = useRef(1); // 발화 세대 — 확정되면 +1 → 날아오던 부분 번역 응답은 폐기
-  const partialRef = useRef({ lastText: "", lastAt: 0, inFlight: false });
+  const partialRef = useRef({ lastText: "", lastAt: 0, inFlight: false, count: 0, utter: 0 });
   const maybeTranslatePartial = useCallback(
     (text) => {
       const t = (text || "").trim();
@@ -1533,8 +1553,19 @@ export default function ConsultationRoomPage() {
       if (myLang === targetLang) return;
       const st = partialRef.current;
       const now = Date.now();
+      // 발화 하나가 쓸 수 있는 «말하는 중» 번역 횟수 상한.
+      // 수신 자막(ListenModeBridge)엔 같은 상한을 뒀는데 **송신(내 마이크) 쪽엔 없었다**
+      // (2026-07-29 자가감사). 길게 이어 말하면 1.2초마다 계속 나가서 한 사람이 60분
+      // 회의에서 1,000회 넘게 쓸 수 있다 — 상담 1건 상한이 5,000회이고, 넘기면 회의 도중
+      // 자막이 죽는다. 브라우저 음성인식은 대개 몇 초마다 문장을 확정하므로 5회면 넉넉하다.
+      if (st.utter !== utterRef.current) {
+        st.utter = utterRef.current; // 새 발화 — 횟수 초기화
+        st.count = 0;
+      }
+      if (st.count >= PARTIAL_TRANSLATE_MAX) return;
       if (st.inFlight || now - st.lastAt < 1200 || t === st.lastText) return;
       st.inFlight = true;
+      st.count += 1;
       st.lastAt = now;
       st.lastText = t;
       const uid = utterRef.current;
@@ -1551,7 +1582,7 @@ export default function ConsultationRoomPage() {
           consultationId, // 인증용 — partial 이라 서버는 기록하지 않는다
           speakerRole: "self",
           partial: true,
-          context: convoContextRef.current.slice(-6),
+          context: contextForApi(convoContextRef.current),
         }),
       })
         .then((r) => r.json())

@@ -570,11 +570,26 @@ function startPipeline({
   // ── 파이프라인 워치독 ── 사이클이 한 번 끊기면 이 트랙 자막은 «영영» 안 나온다:
   //   MediaRecorder 생성 실패, onstop 미발화(탭 백그라운드 스로틀·기기 슬립 복귀) 등
   //   재시작 경로가 없는 구멍이 여럿이다. 실제로 2026-07-29 회의에서 "자막이 나오다 멈췄다".
-  //   최대 사이클 길이가 12초이므로 20초 무활동이면 확실히 끊긴 것 → 다시 건다.
+  //   한 사이클은 길어야 12초이므로 20초 넘게 «새 사이클이 시작되지 않았다» = 확실히 멈춘 것.
+  //
+  // ⚠️ 처음엔 «녹음 중이면 건드리지 않는다»로 짰는데, 그러면 **정작 제일 위험한 멈춤을
+  //    못 잡는다**: 트랙이 죽어도 MediaRecorder 는 «녹음 중» 상태로 남을 수 있어서
+  //    조건이 영원히 참이 되고 워치독이 한 번도 안 돈다(2026-07-29 자가감사).
+  //    → 20초를 넘겼으면 «녹음 중»이라도 일단 세운다. 세우면 onstop 이 다음 사이클을 연다.
+  //      그 onstop 마저 안 오면(10초 더 기다려 확인) 직접 새로 건다.
+  let stallStopAt = 0;
   const watchdog = setInterval(() => {
     if (stopped) return;
     if (Date.now() - lastCycleAt < 20000) return;
-    if (recorder && recorder.state === "recording") return;
+    if (recorder && recorder.state !== "inactive" && Date.now() - stallStopAt > 10000) {
+      stallStopAt = Date.now();
+      try {
+        recorder.stop(); // onstop 이 다음 사이클을 시작한다
+      } catch {
+        /* 못 세우면 아래 직접 시작으로 넘어간다(다음 tick) */
+      }
+      return;
+    }
     clearInterval(vadTimer);
     recordCycle();
   }, 5000);
