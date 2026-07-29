@@ -223,6 +223,19 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
     expect(missing, `없는 사진 파일: ${missing.join(", ")}`).toEqual([]);
   });
 
+  /* 🔴 2026-07-29 — 「해외 환자 안내」 탭에 사진이 **0장**이었다. 다른 탭은 4~25장인데 거기만 글자뿐.
+     하필 **외국인 환자가 보라고 만든 바로 그 페이지**였다. 아무것도 안 깨져서 아무도 몰랐다
+     (없는 사진은 화면에 아무 자국도 안 남긴다 — 「없는 파일」 검사와 정반대로 조용하다).
+     병원을 새로 넣을 때마다 탭을 하나씩 채우게 되는데, 마지막에 남는 탭이 늘 이렇게 빈다.
+     ⚠️ 이 검사가 빨개지면 «최소 몇 장» 기준을 낮추지 말고 **그 탭에 사진을 넣어라.** */
+  it("사진이 한 장도 없는 속 페이지가 없다 — 조용히 비는 자리", async () => {
+    const { IMMUNE_PAGES } = await import("./content/immunePages.js");
+    const entries = Object.entries(IMMUNE_PAGES);
+    expect(entries.length, "속 페이지를 하나도 못 읽었다 — 검사 자체가 안 돈 것").toBeGreaterThan(0);
+    const 빈페이지 = entries.filter(([, page]) => collectImages(page).length === 0).map(([slug]) => slug);
+    expect(빈페이지, `사진이 0장인 속 페이지: ${빈페이지.join(", ")}`).toEqual([]);
+  });
+
   it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
     // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
     const { IMMUNE_PAGES } = await import("./content/immunePages.js");

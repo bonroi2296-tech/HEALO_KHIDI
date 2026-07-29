@@ -483,6 +483,27 @@ export const IMMUNE_PAGES = {
           },
         ],
       },
+      /* 2026-07-29 추가 — 이 페이지에 사진이 **0장**이었다(다른 탭은 4~25장).
+         해외 환자가 보라고 만든 바로 그 페이지가 글자만 있었던 셈이다.
+         가 본 적 없는 나라의 병원을 결정하는 사람에게 「글로 설명한 절차」보다 필요한 건
+         «내가 도착하면 뭘 보게 되는가»다. 그래서 도착 순서대로 놓았다 —
+         건물 입구 → 병실 → 치료실 → 라운지 → 정원.
+         ⚠️ 캡션은 사진에 실제로 보이는 것만 적는다(없는 편의시설을 만들어 붙이지 않는다).
+            처음엔 여섯 번째로 `rooftop-view-2` 를 넣고 「옥상에서 보는 서울」이라 적었는데,
+            **화면에서 보니 그 사진은 파고라와 하늘이고 서울 시내가 안 보였다** — 캡션이 사진을 앞질렀다.
+            빼면서 격자도 맞았다(큰 것 1 + 작은 것 4 = 다섯 장이 한 판). */
+      {
+        type: "gallery",
+        eyebrow: "What You'll See",
+        title: D("도착하시면 보시게 될 곳", "What you'll see when you arrive", "Что вы увидите по приезде", "Келгенде не көресіз", "抵达后您会看到的地方", "到着したら目にする場所"),
+        items: [
+          { src: "/immune/facility/seongdong-entrance-1.jpg", caption: D("병원 입구", "Hospital entrance", "Вход в клинику", "Клиникаға кіреберіс", "医院入口", "病院の入口") },
+          { src: "/immune/facility/facility-vip-room-1.jpg", caption: D("1인 병실", "Private room", "Одноместная палата", "Жеке палата", "单人病房", "個室") },
+          { src: "/immune/facility/facility-treatment-room-1.jpg", caption: D("치료실", "Treatment room", "Процедурный кабинет", "Ем бөлмесі", "治疗室", "治療室") },
+          { src: "/immune/life/lounge-2.jpg", caption: D("라운지", "Lounge", "Лаундж", "Лаундж", "休息区", "ラウンジ") },
+          { src: "/immune/life/garden-path-1.jpg", caption: D("정원 산책로", "Garden path", "Садовая дорожка", "Бақ соқпағы", "花园步道", "庭園の小道") },
+        ],
+      },
     ],
   },
 
