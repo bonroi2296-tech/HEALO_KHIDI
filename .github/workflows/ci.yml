@@ -7,6 +7,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # 손으로 돌리기 — 깃허브가 어떤 이유로든 신청서(PR)에 검사를 «안 붙여줄 때» 쓰는 비상구.
+  # 실제로 그런 일이 났다(2026-07-28): 같은 신청서인데 첫 커밋에만 검사가 붙고 이후
+  # 커밋 3개에는 아예 안 붙었다(다른 브랜치는 같은 시각 정상 동작 — 충돌도 없었음).
+  # 검사를 못 돌리면 「초록불 확인 후 머지」 규칙 자체가 멈춘다 → 언제든 깨울 수 있게 열어둔다.
+  # Actions 탭 → CI → "Run workflow" 에서 브랜치 골라 실행.
+  workflow_dispatch:
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -32,6 +38,10 @@ jobs:
         run: npm run lint
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
+      # 지침이 다시 한 통으로 불어나는 것을 막는다 — CLAUDE.md 상한·분류 태그 필수·죽은 문서 참조.
+      # 왜: 활성 취향을 -86% 로 줄인 날 반나절 만에 +38% 되찼다(2026-07-28). 문서로만 적으면 안 지켜진다.
+      - name: 지침 구조 (CLAUDE.md 상한 + 취향 분류 태그 + 죽은 문서 참조 차단)
+        run: npm run check:rules
       # 완성도 루브릭(Definition of Done) SoR 무결성 — 골격 단계라 비차단(경고).
       # 안정·오탐 검증 후 continue-on-error 제거해 blocking 으로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
       - name: 완성도 루브릭 SoR 정합성 (판단 기준 채점표가 부패·문서 드리프트하지 않게 — 비차단)
@@ -54,6 +64,14 @@ jobs:
         run: npm run check:cancer-i18n
       - name: 세션훅 데이터 소스 (관문 보채기·PO 취향 주입이 조용히 죽는 것 차단)
         run: npm run check:hook-data
+      # 말투 검사기 자체가 썩는 것 차단 — 검사기가 고장나면 「검사한다」는 말만 남는다.
+      # (검사 대상인 대화 본문은 CI 가 볼 수 없다. 실제 측정은 턴 종료 훅 self-check.sh 가 한다.)
+      - name: 말투 검사기 자체 시험 (쉬운 말+원어 병기 판정이 살아있는지)
+        run: npm run check:talk -- --self-test
+      # 「만들었나」가 아니라 「뜨나」로 판정한다 — 이 저장소에서 두 번 데인 부류(반성문 #152).
+      # 가짜 저장소를 만들어 훅을 실제로 돌리고 경보 문구가 나오는지 본다.
+      - name: 세션 시작 경보 실동작 (열린 작업·겹침 감지·서랍 경보가 진짜 뜨는지)
+        run: npm run test:alarms
       - name: 시크릿 스캔 (하드코딩 비밀키·NEXT_PUBLIC_ 비밀키 노출 차단 — 감리 실측)
         run: npm run audit:secret
       - name: 의존성 취약점 (high/critical 발견 시 머지 차단 — 감리 실측)

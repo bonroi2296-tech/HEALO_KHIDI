@@ -23,6 +23,14 @@ warn=""
 [ "$len" -gt 4000 ] && warn="응답 ${len}자(4000 초과) — 그만큼 PO가 기다렸다. 다음 턴 짧게."
 [ "${asks:-0}" -ge 3 ] && warn="${warn}${warn:+ / }버튼질문 ${asks}개 — 🚦관문(돈·되돌리기·PO만 아는 것) 다시 읽어라."
 
+# ── 말투 검사 (2026-07-28 추가) ──────────────────────────────────
+# 왜: 말투 규칙은 CLAUDE.md 에 있고 plain-korean.sh 가 **매 턴 다시 띄우는데도** 어겼다.
+#     PO 가 한 세션에서 세 번 지적 → *"규칙 그렇게 해놔도 안 지키잖아"*. 맞는 말이다.
+#     알려주기(주입)와 재기(검사)는 다른 일이다. 여기서 «잰다».
+#     실측: 이 검사를 만든 시점 기준 그 세션의 긴 응답 4개 중 4개가 위반이었다.
+talk=$(node scripts/check-plain-korean.mjs --transcript "$t" 2>&1 >/dev/null | tr '\n' ' ')
+[ -n "$talk" ] && warn="${warn}${warn:+ / }${talk}"
+
 [ -z "$warn" ] && exit 0
 printf '{"systemMessage":"⚖️ 자기점검: %s","suppressOutput":true}\n' "$warn"
 exit 0

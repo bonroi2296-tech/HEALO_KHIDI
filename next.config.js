@@ -125,12 +125,24 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // maps.googleapis.com·maps.gstatic.com: 병원/암종 상세 위치 지도(Google Maps JS) — script-src에 없으면 지도 스크립트가 차단돼 회색 fallback만 뜸
-              `script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
+              // mc.yandex.ru: Yandex Metrica 태그(러시아/CIS). connect-src 와 짝 — 둘 중 하나만 열면 안 돈다.
+              `script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",
               // Sentry 에러 수집 ingest 도메인 허용 — CSP 가 전송을 막으면 에러 보고가 조용히 버려짐
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
+              //
+              // ⚠️ GA4 도 똑같이 «조용히 버려지는» 부류다 (2026-07-28 발견).
+              //   예전엔 www.google-analytics.com 하나만 열려 있었는데, GA4(gtag.js)는 방문자 지역·
+              //   설정에 따라 **다른 호스트로 수집 요청을 보낸다**:
+              //     - region1~N.google-analytics.com  (지역 라우팅. EEA 방문자에 주로 사용)
+              //     - analytics.google.com            (일부 구성)
+              //   CSP 에 없으면 브라우저가 그 전송만 막고 콘솔에만 조용히 남는다 — GA 화면에는
+              //   "데이터 없음"이 아니라 «그 지역만 빠진 숫자»로 보여 알아채기가 특히 어렵다.
+              //   → 와일드카드로 계열 호스트를 함께 연다.
+              // mc.yandex.ru: 러시아/CIS 핵심시장용 Yandex Metrica. AnalyticsWrapper 에 코드는 이미
+              //   있으나 CSP 에 없어 env 를 넣어도 동작하지 않는 상태였다(스크립트 로드부터 차단).
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",

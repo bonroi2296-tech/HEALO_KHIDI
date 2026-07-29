@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { event as gaEvent, GA_EVENTS } from "@/lib/ga";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
@@ -55,7 +56,13 @@ export default function CostCalculatorClient() {
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("costCalc.labelType", lang)}</label>
           <select
             value={cancerIdx}
-            onChange={(e) => setCancerIdx(Number(e.target.value))}
+            onChange={(e) => {
+              const idx = Number(e.target.value);
+              // 결과가 즉시 나오는 화면이라 「계산 버튼」이 없다 → 선택을 바꾼 것 = 실제로 써본 것.
+              // 그냥 들렀다 나간 사람과 구분해야 「비용 화면이 쓸모 있나」를 판단할 수 있다.
+              try { gaEvent(GA_EVENTS.COST_ESTIMATED, { cancer_type: CANCER_KEYS[idx] || null, program: programKey }); } catch {}
+              setCancerIdx(idx);
+            }}
             className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-400"
           >
             {CANCER_KEYS.map((cancerKey, i) => (

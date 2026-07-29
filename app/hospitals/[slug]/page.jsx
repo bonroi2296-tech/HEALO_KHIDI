@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { withQuery } from "@/lib/url/withQuery";
 import {
   getHospitalById,
   getHospitalBySlug,
@@ -101,12 +102,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function HospitalDetailPage({ params }) {
+export default async function HospitalDetailPage({ params, searchParams }) {
   const { slug } = await params;
 
   if (slug && isUuid(slug)) {
     const resolvedSlug = await getHospitalSlugById(slug);
-    if (resolvedSlug) redirect(`/hospitals/${resolvedSlug}`);
+    // 옛 주소(id)로 들어와도 꼬리표(?utm_source=… 등)를 잃지 않게 넘긴다.
+    if (resolvedSlug) redirect(withQuery(`/hospitals/${resolvedSlug}`, await searchParams));
   }
 
   const { locale } = await getRequestLocale();
