@@ -580,6 +580,11 @@ export const IMMUNE_SITE = {
     },
   ],
 
+  /* 의료진 단체 사진 — 배경이 지워진(누끼) 원본이라 어느 바탕에도 얹힌다.
+     출처: 병원이 공유해 준 구글 드라이브 `01_사진/02_의료진/01_강서` (2026-07-29).
+     ⚠️ 얼굴 하나하나보다 «같이 서 있는 팀»이 먼저 보이는 게 이 병원의 강점(양·한방 협진)이다. */
+  teamPhoto: "/immune/team/team-gangseo.png",
+
   doctorsTitle: {
     ko: "면력 의료진",
     en: "Our Medical Team",

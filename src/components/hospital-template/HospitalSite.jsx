@@ -360,6 +360,13 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
             eyebrow={t(site.labels?.doctors) || "Medical Team"}
             title={t(site.doctorsTitle)}
           />
+          {/* 단체 사진이 있으면 격자 위에 한 번 크게 — 「팀으로 본다」가 이 병원의 강점이라
+              얼굴 낱장보다 같이 서 있는 그림이 먼저 와야 한다. 없으면 이 자리가 안 뜬다. */}
+          {site.teamPhoto && (
+            <Reveal className="relative w-full max-w-3xl mx-auto aspect-[16/10] mb-10 md:mb-14">
+              <Image src={site.teamPhoto} alt="" fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
+            </Reveal>
+          )}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
             {site.doctors.map((d, i) => (
               <Reveal key={i} delay={i * 100} className="group">
