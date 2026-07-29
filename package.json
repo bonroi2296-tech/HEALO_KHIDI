@@ -26,6 +26,8 @@
     "check:legal": "node scripts/check-legal-parity.mjs",
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
+    "check:rules": "node scripts/check-rules.mjs",
+    "check:talk": "node scripts/check-plain-korean.mjs",
     "check:handoff": "node scripts/check-handoff.mjs",
     "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:live-meetings": "node scripts/check-live-meetings.mjs",
@@ -62,7 +64,8 @@
     "audit:deps": "node scripts/audit-deps.mjs",
     "audit:a11y": "node scripts/audit/a11y-scan.mjs",
     "audit:lighthouse": "node scripts/audit/lighthouse-scan.mjs",
-    "prepare": "node scripts/install-hooks.js"
+    "prepare": "node scripts/install-hooks.js",
+    "test:alarms": "bash scripts/test-session-alarms.sh"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",

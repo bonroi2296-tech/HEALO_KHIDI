@@ -1,7 +1,7 @@
 // 마이그레이션 멱등성(재실행 안전) 검사.
 // 왜: 과거에 DROP ... IF EXISTS 가드 누락으로 같은 마이그레이션을 재적용하면
 //     "duplicate_object(42710)" 로 하드 실패 → 새 DB·재해복구·CI 재적용 위험.
-//     PO가 화면에서 찾게 두지 말고 매 PR에서 기계가 차단한다(CLAUDE.md 상시 루틴).
+//     PO가 화면에서 찾게 두지 말고 매 PR에서 기계가 차단한다(docs/rules/BUG_ROUTINE.md 「상시 루틴」 — 2026-07-28 CLAUDE.md 에서 이관).
 //
 // 검사 대상 (고신뢰·오탐 0 룰만):
 //  1) CREATE POLICY  → 같은 이름·테이블의 DROP POLICY IF EXISTS 가 앞에 있어야 함

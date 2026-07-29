@@ -67,25 +67,53 @@ if [ -n "$lag" ] && [ "$lag" -gt 0 ] 2>/dev/null; then
 fi
 
 # ── 열린 작업 목록 (병렬 세션 네비게이션) ─────────────────────────
-# main 에 아직 안 들어간 claude/* 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
+# main 에 아직 안 들어간 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
 # PO가 여러 세션을 병렬로 돌릴 때 "지금 열린 일이 뭐뭐였지"를 한눈에 보고,
 # "1번 이어가" / "<이름> 이어가" 한마디로 고르면 그 브랜치로 이어가게 한다.
-# (GitHub 조회 없이 git 원격추적 브랜치만 사용 — 훅은 네트워크를 쓰지 않는다.)
+#
+# 2026-07-28 수리 2건 (이 목록이 «있는데 안 보이던» 이유):
+#  ① 예전엔 refs/remotes/origin/claude 만 봤다 → 이름이 fix/·work/·docs/ 로 시작하는 브랜치는
+#     통째로 안 보였다. 실제로 7/28 14:08~15:56 에 「배포 창구」 하나를 6개 브랜치가 각자 고쳤는데
+#     (fix/deploy-side-door·side-door2·skipcheck·not-merge-window·work/fix-deploy-window·fix/prod-build-lock)
+#     전부 이 목록 밖이라 세션들이 서로를 못 봤다. → 이제 원격 브랜치 전체를 본다.
+#  ② 새로 켜진 세션은 원격 브랜치 정보가 아직 없을 수 있어 이 섹션이 통째로 안 떴다.
+#     → 아래에서 짧은 타임아웃으로 브랜치 목록만 먼저 받아온다(실패해도 그냥 진행).
+timeout 10 git fetch -q --depth=50 origin '+refs/heads/*:refs/remotes/origin/*' >/dev/null 2>&1 || true
+
 open_raw=$(git for-each-ref --sort=-committerdate \
   --format='%(refname:short)|%(committerdate:relative)|%(contents:subject)' \
-  refs/remotes/origin/claude 2>/dev/null | head -12)
+  refs/remotes/origin 2>/dev/null \
+  | grep -vE '^origin/(main|master|production|HEAD)\|' | head -40)
 if [ -n "$open_raw" ]; then
   rows=""
   i=0
+  # 브랜치별로 «만지는 파일»을 모아 둔다 — 같은 파일을 두 브랜치가 만지면 그게 곧 중복 착수 경보.
+  filemap=""
   while IFS='|' read -r ref rel subj; do
     [ -z "$ref" ] && continue
     # main 에 이미 머지된 브랜치는 제외(잔재 거르기). squash 머지분은 원격 브랜치 삭제로 사라짐.
     if git merge-base --is-ancestor "$ref" origin/main 2>/dev/null; then continue; fi
+    # 앞선 커밋이 하나도 없으면 열린 작업이 아니다.
+    ahead=$(git rev-list --count "origin/main..$ref" 2>/dev/null || echo 0)
+    [ "${ahead:-0}" -eq 0 ] && continue
     short=${ref#origin/}
+    # 그 브랜치가 본판 대비 만지는 파일(기록 문서는 어차피 다 같이 만지므로 제외 — 신호가 묻힌다).
+    # core.quotepath=false: 안 그러면 한글 파일명이 \354\234... 로 나와 사람이 못 읽는다.
+    fs=$(git -c core.quotepath=false diff --name-only "origin/main...$ref" 2>/dev/null \
+         | grep -vE '^docs/|\.md$' | head -6)
+    top=$(printf '%s' "$fs" | head -3 | paste -sd',' - 2>/dev/null | sed 's/,/, /g')
     i=$((i+1))
-    rows="${rows}  ${i}. \`${short}\` — ${subj} (${rel})
+    rows="${rows}  ${i}. \`${short}\` — ${subj} (${rel}, 커밋 ${ahead}개)
 "
-    [ "$i" -ge 8 ] && break
+    [ -n "$top" ] && rows="${rows}       만지는 곳: ${top}
+"
+    while IFS= read -r f; do
+      [ -n "$f" ] && filemap="${filemap}${f}	${short}
+"
+    done <<EOF
+$fs
+EOF
+    [ "$i" -ge 10 ] && break
   done <<EOF
 $open_raw
 EOF
@@ -94,6 +122,16 @@ EOF
     echo "## 🗂️ 열린 작업(작업본 브랜치) — 병렬 세션용"
     echo "  ⚠️ 새 작업 시작 전 이 목록에서 **중복 확인**: 같은 영역(배포·AI챗·안전가드 등)을 이미 하는 브랜치가 있으면 새로 만들지 말고 그걸 이어가거나 PO에게 알려라(3중복 재발 방지)."
     printf '%s' "$rows"
+    # ── 겹침 자동 판정: 같은 파일을 2개 이상 브랜치가 만지고 있으면 그 자리에서 띄운다 ──
+    clash=$(printf '%s' "$filemap" | sort -u | awk -F'\t' '
+      { if ($1==prev) { list=list ", " $2; n++ } else { if (n>1) print prev " ← " list; prev=$1; list=$2; n=1 } }
+      END { if (n>1) print prev " ← " list }' | head -6)
+    if [ -n "$clash" ]; then
+      echo ""
+      echo "  🔴 **겹침 감지 — 같은 파일을 여러 작업본이 동시에 만지고 있다** (충돌·중복작업 예정지)"
+      printf '%s\n' "$clash" | sed 's/^/     · /'
+      echo "     → 여기에 손대야 하면 **동시에 하지 말고** 먼저 끝나는 쪽을 본판에 합친 뒤 최신을 받아와서 이어라."
+    fi
     echo "  → PO가 \"N번 이어가\" 또는 \"<이름> 이어가\"라고 하면: 그 브랜치로 \`git checkout\` 한 뒤 이어가라."
     echo "     · 핸드오프가 있으면 ${CTX}·해당 PR을 보고 이어간다."
     echo "     · **핸드오프가 없어도(까먹음·토큰끊김·세션죽음) 반드시 복원해서 이어가라**: \`git log origin/main..<브랜치>\`(커밋 기록) + \`git diff origin/main...<브랜치>\`(실제 변경) + 해당 PR 설명으로 '무슨 작업이었는지'를 재구성. 매 턴 자동 커밋·푸시되므로 코드는 항상 남아 있다 — 핸드오프 유무와 무관하게 모든 작업을 이어갈 수 있어야 한다."
@@ -104,9 +142,18 @@ fi
 # 2026-07-27 사고: 커밋만 해두고 PR 을 안 낸 브랜치에 작업 3건이 갇혀 회수 세션이 따로 필요했다(#1056·#1058·#1059).
 # 「머지됐나」가 아니라 **PR 이 있나**로 가른다 — squash 머지를 쓰면 알맹이가 다 들어가도
 # 브랜치는 영원히 --no-merged 라 git 만으론 구분이 안 된다. 그래서 여기서만 GitHub 를 본다.
-# gh 가 없거나 망이 끊겼으면 조용히 건너뛴다(훅은 무슨 일이 있어도 세션 시작을 막지 않는다).
+#
+# ⚠️ 2026-07-28 수리 2차: 예전엔 «gh 명령이 있나»만 봤다. 그런데 gh 가 **있어도 못 쓰는** 경우가 있다
+#    (로그인 안 됨·GitHub 저장소가 아님·망 끊김). 그때 조용히 아무것도 안 띄우고 넘어갔다 =
+#    경보가 있는데 없는 것과 같다. 실제로 이번 자동 검사 기계에서 그게 났다(gh 는 깔려 있는데 못 씀).
+#    → 이제 «있나»가 아니라 **«실제로 물어봐서 답이 오나»**로 가른다. 못 쓰면 git 만으로 하는
+#      대체 경보로 떨어진다(판정은 낮아지지만 **침묵보다 낫다** — 오늘 사고의 교훈 그대로).
 STALE_DAYS=3
+GH_OK=0
 if command -v gh >/dev/null 2>&1; then
+  timeout 10 gh pr list --limit 1 --json number >/dev/null 2>&1 && GH_OK=1
+fi
+if [ "$GH_OK" = "1" ]; then
     now=$(date +%s)
     stale=""; sn=0; checked=0
     while IFS='|' read -r ref ts subj; do
@@ -153,6 +200,40 @@ EOF
       echo "  → 이대로 두면 본판에 영영 안 들어간다. **오늘 처리하라**: 살릴 것이면 \`gh pr create\`, 이미 본판에 있는 잔재면 대조 후 브랜치 삭제."
       echo "     · ⚠️ 삭제 전엔 \`docs/\` 까지 포함해 전수 대조(과거에 핸드오프 76줄이 브랜치에만 남아 있던 적 있음)."
     fi
+else
+    # ── gh 가 없는 환경용 대체 경보 (2026-07-28 추가) ──────────────
+    # 왜: 이 경보는 `gh` 가 있을 때만 돌게 짜여 있었는데, 웹·원격 세션 컨테이너엔 `gh` 가 없다.
+    #     그래서 「만들어는 뒀지만 정작 병렬 세션을 제일 많이 돌리는 환경에서 한 번도 안 뜨는」
+    #     상태였다(2026-07-28 이 세션에서 실측 확인 — 본판 밖 커밋 96개가 쌓여 있는데 무경보).
+    # 한계(솔직히): git 만으로는 «합치기 신청서가 있는지»를 알 수 없다. 그래서 판정을 낮춰
+    #     «본판 밖에 며칠째 남아 있다»만 띄우고, 신청서 유무 확인은 세션에게 시킨다.
+    now=$(date +%s)
+    stale=""; sn=0
+    while IFS='|' read -r ref ts subj; do
+      [ -z "$ref" ] && continue
+      case "$ref" in origin/main|origin/master|origin/production|origin/HEAD) continue;; esac
+      git merge-base --is-ancestor "$ref" origin/main 2>/dev/null && continue
+      d=$(( (now - ts) / 86400 ))
+      [ "$d" -lt "$STALE_DAYS" ] && continue
+      n=$(git rev-list --count "origin/main..$ref" 2>/dev/null || echo 0)
+      [ "${n:-0}" -eq 0 ] && continue
+      sn=$((sn+1))
+      stale="${stale}  · \`${ref#origin/}\` — 커밋 ${n}개가 **${d}일째 본판 밖** — ${subj}
+"
+      [ "$sn" -ge 6 ] && break
+    done <<EOF
+$(git for-each-ref --sort=-committerdate --format='%(refname:short)|%(committerdate:unix)|%(contents:subject)' refs/remotes/origin 2>/dev/null)
+EOF
+    if [ "$sn" -gt 0 ]; then
+      echo ""
+      echo "## 🚨 서랍에 갇힌 작업 — **${STALE_DAYS}일+ 본판(main) 밖**에 남아 있다"
+      printf '%s' "$stale"
+      echo "  → 이 환경엔 \`gh\` 가 없어 **합치기 신청서(PR)가 있는지까지는 여기서 못 본다.** 세션이 GitHub 도구로 확인하라:"
+      echo "     ① 신청서가 있고 열려 있으면 → 그대로 두고 자동 검사만 확인."
+      echo "     ② 신청서가 없으면 → **오늘 만들어라**(이대로 두면 본판에 영영 안 들어간다)."
+      echo "     ③ 이미 본판에 알맹이가 들어간 잔재면 → \`docs/\` 까지 전수 대조 후 브랜치 삭제."
+      echo "     · ⚠️ **남의 차선(다른 세션이 지금 쓰는 브랜치)은 손대지 말고 이유와 함께 남겨라.**"
+    fi
 fi
 
 echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
@@ -176,9 +257,10 @@ if [ -f "$PREFS" ]; then
   active=$(awk '/<!-- ACTIVE:START -->/{f=1;next} /<!-- ACTIVE:END -->/{f=0} f' "$PREFS" 2>/dev/null)
   if [ -n "$active" ]; then
     echo ""
-    echo "## 🎯 PO 취향·선호 (누적 학습 — 고정 규칙 외, 어기지 마라)"
+    echo "## 🎯 PO 취향·선호 — 분류 대기실 (누적 학습 — 고정 규칙 외, 어기지 마라)"
     echo "$active"
-    echo "_(세션 중 새 취향이 드러나면 /handoff가 ${PREFS}에 누적한다)_"
+    echo "_(세션 중 새 취향이 드러나면 /handoff가 ${PREFS}에 **분류 태그와 함께** 누적한다._"
+    echo "_ 태그 = [CI]기계가 잡음 / [문서]상황별 / [말투] / [규칙]매번 / [기록]사건. 여긴 창고가 아니라 대기실이다 — 태그가 가리키는 자리로 옮기고 빼라. 검사: \`npm run check:rules\`)_"
   fi
 fi
 
@@ -206,7 +288,8 @@ if [ -f "$PREFS" ]; then
     if [ -n "$ld_s" ] && [ -n "$now_s" ]; then
       d_days=$(( (now_s - ld_s) / 86400 ))
       if [ "$d_days" -ge 14 ] 2>/dev/null; then
-        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- \*\*/{c++} END{print c+0}' "$PREFS")
+        # 2026-07-28: 항목 형식이 「- `[태그]` **…**」로 바뀌어 옛 정규식(^- \*\*)이 0을 세던 것을 수정
+        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- /{c++} END{print c+0}' "$PREFS")
         echo ""
         echo "## 📏 규칙 다이어트 기한 경과 — 마지막 정리 ${last_diet} (${d_days}일 전) · 지금 활성 ${n_items}개"
         echo "  → PO 에게 **알리기만** 하라: 「활성 규칙이 ${n_items}개다, 정리할까?」 (버튼)."
