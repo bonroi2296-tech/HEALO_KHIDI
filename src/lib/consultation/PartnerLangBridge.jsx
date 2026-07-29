@@ -24,6 +24,20 @@ import { PARTICIPANT_LANG_ATTR, NATIVE_LANG } from "./liveTranslate";
 
 const SUPPORTED = new Set(["ko", "en", "ru", "kz", "zh", "ja"]);
 
+/**
+ * «내 말이 나갈 언어» 고르기 — 가장 많은 사람이 쓰는 언어, 동수면 언어 코드 사전순.
+ * 사전순 고정이 중요하다: 모든 기기가 같은 답을 내야 자막 언어가 서로 어긋나지 않는다.
+ * 단위시험 대상이라 export (실통화 없이 검증 가능한 층).
+ * @param {Map<string, number>} counts 언어코드 → 그 언어를 쓰는 사람 수
+ */
+export function pickPartnerLang(counts) {
+  let best = null;
+  for (const [lang, n] of counts) {
+    if (!best || n > best.n || (n === best.n && lang < best.lang)) best = { lang, n };
+  }
+  return best?.lang || null;
+}
+
 export function PartnerLangBridge({ myLang, onPartnerLang }) {
   const room = useRoomContext();
 
@@ -31,16 +45,24 @@ export function PartnerLangBridge({ myLang, onPartnerLang }) {
     if (!room || typeof onPartnerLang !== "function") return;
 
     const pick = () => {
-      // 사람 참가자만 — 통역 에이전트(agent-*)는 언어의 주인이 아니다.
+      // ⚠️ 예전엔 «맨 먼저 발견되는 다른 언어»를 골랐다. 2:1 통화에선 맞지만 3명 이상이면
+      //    깨진다(2026-07-29 자가감사): 참가자 목록의 순서는 보장이 없어서, 같은 방에
+      //    러시아어·영어 사용자가 섞여 있으면 내 말이 나갈 언어가 **아무 때나 뒤바뀐다**.
+      //    그날 회의 기록에도 러시아어와 영어가 같이 있었다(en 70줄 · ru 299줄).
+      //    → «가장 많은 사람이 쓰는 다른 언어»를 고르고, 동수면 언어 코드 사전순으로
+      //      고정한다(모든 기기가 같은 답을 내야 자막이 서로 어긋나지 않는다).
+      const counts = new Map();
       for (const p of room.remoteParticipants?.values?.() ?? []) {
+        // 사람 참가자만 — 통역 에이전트(agent-*)는 언어의 주인이 아니다.
         if (p.identity?.startsWith("agent-")) continue;
         const lang = p.attributes?.[PARTICIPANT_LANG_ATTR];
         if (!lang || lang === NATIVE_LANG || !SUPPORTED.has(lang)) continue;
         // 상대가 나와 같은 언어면 보낼 언어를 바꿀 이유가 없다(같은 언어끼리는 통역 불필요).
         if (lang === myLang) continue;
-        onPartnerLang(lang);
-        return;
+        counts.set(lang, (counts.get(lang) || 0) + 1);
       }
+      const best = pickPartnerLang(counts);
+      if (best) onPartnerLang(best);
     };
 
     pick();
