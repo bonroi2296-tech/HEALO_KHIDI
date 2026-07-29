@@ -196,6 +196,29 @@ export async function POST(
     const waitingRoomEnabled = process.env.CONSULTATION_WAITING_ROOM === "1";
     const initialStatus =
       waitingRoomEnabled && role !== "doctor" ? "pending" : "approved";
+    // ── 같은 인터넷 회선(= 거의 확실히 같은 사무실)에 이미 들어와 있는 기기 수 ──
+    // 왜 소리로 안 재고 회선으로 재나: 하울링을 «듣고» 잡는 감지기는 마이크 잡음제거·자동
+    // 음량조절을 거친 뒤의 소리를 보기 때문에, 방에서 실제로 울리는데도 문턱을 못 넘을 수
+    // 있다 — 게다가 그게 실제로 도는지 확인된 적이 한 번도 없다(2026-07-29 PO: "두 대만
+    // 켜졌을 때도 하울링이 났다"). 회선은 그런 불확실성이 없다: 그날 기록에서도 우리 사무실
+    // 3대가 IP 하나(218.153.240.144)로 정확히 묶였고 해외 참가자는 따로 떨어졌다.
+    // 내 행을 넣기 «전»에 세야 나 자신이 안 세어진다. 3시간 넘은 행은 유령이라 뺀다.
+    let sameNetworkPeers = 0;
+    if (ip && ip !== "unknown") {
+      try {
+        const { count } = await supabaseAdmin
+          .from("consultation_admissions")
+          .select("id", { count: "exact", head: true })
+          .eq("consultation_id", consultationId)
+          .eq("requester_ip", ip)
+          .is("left_at", null)
+          .gte("requested_at", new Date(Date.now() - 3 * 3600 * 1000).toISOString());
+        sameNetworkPeers = count || 0;
+      } catch {
+        /* 못 세면 0 — 이 기능만 조용히 꺼지고 입장은 그대로 */
+      }
+    }
+
     let admissionId: string | null = null;
     try {
       const { data: adm, error: admErr } = await supabaseAdmin
@@ -252,6 +275,9 @@ export async function POST(
       ttlSeconds: TOKEN_TTL_SECONDS,
       admissionId,
       admissionStatus: initialStatus,
+      // 같은 회선에 이미 접속한 기기 수 — 1 이상이면 방에 들어가자마자 이 기기 소리를 끈다
+      // (하울링은 «마이크 하나 + 스피커 하나»만 같은 방에 있어도 난다 = 두 대로 충분하다).
+      sameNetworkPeers,
       // 세션에 설정된 언어 — 게스트 클라이언트가 자막 상대 언어를 하드코딩이 아닌 실제 값으로 잡게
       patientLanguage: session.patient_language || null,
       doctorLanguage: session.doctor_language || null,

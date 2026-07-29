@@ -881,6 +881,10 @@ export default function ConsultationRoomPage() {
   const idleAskTimerRef = useRef(null);
   const idleGraceTimerRef = useRef(null);
 
+  // 같은 인터넷 회선(= 같은 사무실)에 이미 접속해 있던 기기 수. 1 이상이면 입장하자마자
+  // 이 기기를 화면 전용(소리 꺼짐)으로 — 하울링을 «듣고» 잡기 전에 아예 안 나게 한다.
+  const [sameNetworkPeers, setSameNetworkPeers] = useState(0);
+
   // Guest mode state
   const [guestName, setGuestName] = useState("");
   // 이름 기억 — 회선이 끊겨 입장 화면으로 되돌아왔을 때 이름을 다시 치게 하지 않는다.
@@ -1711,6 +1715,9 @@ export default function ConsultationRoomPage() {
 
       setLivekitToken(result.livekitToken);
       setLivekitUrl(result.livekitUrl);
+      // 같은 인터넷 회선에 이미 들어와 있는 기기가 있으면 = 거의 확실히 같은 사무실 →
+      // 이 기기는 소리를 끄고 들어간다(하울링 원천 차단). 되돌리기 막대는 항상 남는다.
+      setSameNetworkPeers(result.sameNetworkPeers || 0);
       setAdmissionId(result.admissionId || null);
       setAdmissionStatus(result.admissionStatus || "approved");
       // 언어: 입장 화면에서 고른 "내가 말하는 언어" 기준.
@@ -3398,7 +3405,7 @@ export default function ConsultationRoomPage() {
               {/* Gemini Live Translate 브릿지 — 스위치 꺼짐이면 무동작(null).
                   켜지면 내 언어 통역 음성·자막을 기존 자막 UI 로 흘려보낸다. */}
               {/* 같은 공간 다른 기기 감지 → 하울링 안내 배너 (감지만 자동, 끄기는 사람이) */}
-              <SameRoomGuard copy={c} />
+              <SameRoomGuard copy={c} sameNetworkPeers={sameNetworkPeers} />
               {/* 상대가 고른 언어를 따라가 "내 말이 나갈 언어"를 자동 설정 (렌더링 없음).
                   언어 선택을 «내 언어» 하나로 줄인 대가로, 보낼 언어는 상대에게서 알아낸다. */}
               <PartnerLangBridge myLang={myLang} onPartnerLang={setTargetLang} />
