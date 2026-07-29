@@ -58,6 +58,7 @@ export default function CoordinatorConsultationsPage() {
   const [filter, setFilter] = useState('scheduled');
   const [expandedId, setExpandedId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [unclosedCount, setUnclosedCount] = useState(0);
 
   const fetchData = async () => {
     setLoading(true);
@@ -73,7 +74,21 @@ export default function CoordinatorConsultationsPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
-      if (data.ok) setConsultations(data.data || []);
+      if (data.ok) {
+        const rows = data.data || [];
+        setConsultations(rows);
+        const now = Date.now();
+        setUnclosedCount(
+          rows.filter(
+            (c) =>
+              KHIDI_COUNTED_TYPES.includes(c.session_type) &&
+              c.status !== 'completed' &&
+              c.status !== 'cancelled' &&
+              c.scheduled_at &&
+              new Date(c.scheduled_at).getTime() < now
+          ).length
+        );
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -120,19 +135,13 @@ export default function CoordinatorConsultationsPage() {
       if (!res.ok || !result.ok) { toast.error(L.cLinkInquiryFail); return; }
       toast.success(L.cLinkInquiryDone);
       fetchData();
-    } catch (e) { toast.error(L.cLinkInquiryFail); }
+    } catch { toast.error(L.cLinkInquiryFail); }
   };
 
   // 「지난 날짜인데 아직 완료가 아닌」 집계 대상 상담 수.
+  // ⚠️ 화면을 «그리는 중»에 현재 시각을 읽으면 안 된다(리액트 순수성 규칙 — 다시 그릴 때마다
+  //    값이 달라져 결과가 불안정해진다). 그래서 목록을 받아온 그 순간 한 번 세어 상태로 들고 있는다.
   // 목록에 이미 있는 데이터로만 센다(추가 조회 없음) → 보고 있는 탭 기준이라 실제보다 적을 수 있다.
-  const unclosedCount = consultations.filter(
-    (c) =>
-      KHIDI_COUNTED_TYPES.includes(c.session_type) &&
-      c.status !== 'completed' &&
-      c.status !== 'cancelled' &&
-      c.scheduled_at &&
-      new Date(c.scheduled_at).getTime() < Date.now()
-  ).length;
 
   // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 하나의 링크로 코디 입장 + 환자 공유 통일.
   const issueInvite = async (id) => {
