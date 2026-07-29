@@ -45,13 +45,14 @@ export async function resolveLandingPath(opts: {
 
   // 병원 담당자는 app_metadata.role 이 아니라 hospital_users 테이블로 판정
   if (opts.userId) {
+    const uid = opts.userId;
     try {
       // 조회가 삐끗하면 병원 담당자가 홈으로 착지한다(자기 포털을 못 찾는다) → 1회 더.
       const res = await askOnceMoreOnError(() =>
         supabaseAdmin
           .from("hospital_users")
           .select("hospital_id")
-          .eq("user_id", opts.userId)
+          .eq("user_id", uid)
           .eq("is_active", true)
           .limit(1)
           .maybeSingle()
