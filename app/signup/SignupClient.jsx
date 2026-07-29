@@ -476,7 +476,6 @@ export const SignUpPage = ({ setView }) => {
                 <div className="mb-8">
                     <button
                         onClick={async () => {
-                            console.log('[SignUpPage] 🔵 Google sign-up clicked!');
                             setLoading(true);
                             try {
                                 const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
@@ -492,7 +491,6 @@ export const SignUpPage = ({ setView }) => {
                                     toast.error(t("signup.googleError", langCode));
                                     setLoading(false);
                                 } else {
-                                    console.log('[SignUpPage] ✅ OAuth initiated, redirecting to Google...');
                                 }
                             } catch (err) {
                                 console.error('[SignUpPage] ❌ Google OAuth exception:', err);

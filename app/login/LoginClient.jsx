@@ -187,15 +187,11 @@ export const LoginPage = ({ setView }) => {
                     <div className="mt-6">
                         <button
                             onClick={async () => {
-                                console.log('[LoginPage] 🔵 Google button clicked!');
-                                console.log('[LoginPage] window.location.origin:', window.location.origin);
                                 
                                 setOauthLoading(true);
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
-                                    console.log('[LoginPage] redirectTo:', redirectUrl);
                                     
-                                    console.log('[LoginPage] Calling signInWithOAuth...');
                                     const { data, error } = await supabase.auth.signInWithOAuth({
                                         provider: 'google',
                                         options: {
@@ -203,14 +199,12 @@ export const LoginPage = ({ setView }) => {
                                         },
                                     });
                                     
-                                    console.log('[LoginPage] signInWithOAuth result:', { data, error });
                                     
                                     if (error) {
                                         console.error('[LoginPage] ❌ OAuth error:', error);
                                         toast.error(t("login.googleError", langCode));
                                         setOauthLoading(false);
                                     } else {
-                                        console.log('[LoginPage] ✅ OAuth initiated, redirecting to Google...');
                                     }
                                 } catch (err) {
                                     console.error('[LoginPage] ❌ Google OAuth exception:', err);
