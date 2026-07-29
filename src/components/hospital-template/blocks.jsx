@@ -11,6 +11,7 @@
  */
 
 import Image from "next/image";
+import { Reveal } from "./motion";
 
 const pick = (v, lang) => {
   if (v == null) return "";
@@ -21,10 +22,13 @@ const has = (a) => Array.isArray(a) && a.length > 0;
 
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
+/* 속 페이지 제목도 홈과 같은 «큰 글자» 규격으로 간다.
+   왜: 홈만 시원하고 탭으로 들어가면 글자가 작아지면 «홈은 공들이고 속은 대충»으로 읽힌다.
+   판은 어느 페이지로 들어와도 같은 급이어야 한다(검색으로 속 페이지에 바로 들어오는 사람이 많다). */
 function BlockHeading({ eyebrow, title, accent, tone = "dark" }) {
   const color = tone === "light" ? "text-white" : "text-[#16211C]";
   return (
-    <div className="max-w-2xl mb-10 md:mb-12">
+    <Reveal className="max-w-2xl mb-10 md:mb-14">
       {eyebrow && (
         <p
           className="text-[11px] md:text-xs font-semibold uppercase mb-3"
@@ -34,11 +38,14 @@ function BlockHeading({ eyebrow, title, accent, tone = "dark" }) {
         </p>
       )}
       {title && (
-        <h2 className={`text-2xl md:text-4xl font-semibold leading-[1.15] tracking-tight ${color}`} style={SERIF}>
+        <h2
+          className={`text-3xl md:text-5xl font-semibold leading-[1.08] ${color}`}
+          style={{ ...SERIF, letterSpacing: "-0.025em" }}
+        >
           {title}
         </h2>
       )}
-    </div>
+    </Reveal>
   );
 }
 
@@ -73,7 +80,7 @@ function CardsBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <div className={`grid ${cols} gap-5`}>
         {block.items.map((it, i) => (
-          <div key={i} className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300">
+          <Reveal key={i} delay={i * 110} className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300">
             {it.image && (
               <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
                 <Image src={it.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
@@ -94,7 +101,7 @@ function CardsBlock({ block, t, accent }) {
                 </ul>
               )}
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </>
@@ -109,15 +116,15 @@ function StepsBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <ol className="grid md:grid-cols-2 gap-x-12 gap-y-9">
         {block.items.map((it, i) => (
-          <li key={i} className="flex gap-5">
-            <span className="text-3xl md:text-4xl font-light opacity-25 shrink-0 leading-none pt-1" style={{ ...SERIF, color: accent }}>
+          <Reveal key={i} as="li" delay={i * 90} y={18} className="flex gap-5">
+            <span className="text-4xl md:text-5xl font-light opacity-20 shrink-0 leading-none" style={{ ...SERIF, color: accent, letterSpacing: "-0.03em" }}>
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
-              <h3 className="text-lg font-semibold mb-2 tracking-tight">{t(it.title)}</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-2 tracking-tight">{t(it.title)}</h3>
               {t(it.desc) && <p className="text-[15px] text-black/55 leading-relaxed">{t(it.desc)}</p>}
             </div>
-          </li>
+          </Reveal>
         ))}
       </ol>
     </>
@@ -132,10 +139,10 @@ function TableBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <div className="max-w-3xl divide-y divide-black/[0.08] border-y border-black/[0.08]">
         {block.rows.map((r, i) => (
-          <div key={i} className="py-5 grid sm:grid-cols-[minmax(0,14rem)_1fr] gap-1.5 sm:gap-8">
+          <Reveal key={i} y={14} delay={i * 60} className="py-5 grid sm:grid-cols-[minmax(0,14rem)_1fr] gap-1.5 sm:gap-8">
             <div className="font-medium text-[15px]">{t(r.label)}</div>
             <div className="text-[15px] text-black/55 leading-relaxed whitespace-pre-line">{t(r.value)}</div>
-          </div>
+          </Reveal>
         ))}
       </div>
       {t(block.note) && <p className="mt-6 text-[13px] text-black/40 max-w-3xl leading-relaxed">{t(block.note)}</p>}
@@ -151,14 +158,22 @@ function DoctorsBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
         {block.items.map((d, i) => (
-          <div key={i}>
+          <Reveal key={i} delay={i * 100} className="group">
             <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
-              {d.photo && <Image src={d.photo} alt={t(d.name)} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover object-top" />}
+              {d.photo && (
+                <Image
+                  src={d.photo}
+                  alt={t(d.name)}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+              )}
             </div>
             <h3 className="font-semibold text-[15px] tracking-tight">{t(d.name)}</h3>
             <p className="text-[13px] mt-1" style={{ color: accent }}>{t(d.title)}</p>
             {t(d.credentials) && <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>}
-          </div>
+          </Reveal>
         ))}
       </div>
     </>
@@ -173,14 +188,14 @@ function GalleryBlock({ block, t }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {block.items.map((g, i) => (
-          <figure key={i} className={`relative overflow-hidden rounded-2xl bg-[#EDE6DA] group ${i === 0 ? "col-span-2 row-span-2 aspect-[4/3] lg:aspect-auto lg:min-h-[420px]" : "aspect-square"}`}>
+          <Reveal key={i} as="figure" delay={i * 80} className={`relative overflow-hidden rounded-2xl bg-[#EDE6DA] group ${i === 0 ? "col-span-2 row-span-2 aspect-[4/3] lg:aspect-auto lg:min-h-[420px]" : "aspect-square"}`}>
             <Image src={g.src} alt={t(g.caption)} fill sizes={i === 0 ? "50vw" : "25vw"} className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
             {t(g.caption) && (
               <figcaption className="absolute inset-x-0 bottom-0 p-4 text-[13px] text-white bg-gradient-to-t from-black/60 to-transparent pt-10">
                 {t(g.caption)}
               </figcaption>
             )}
-          </figure>
+          </Reveal>
         ))}
       </div>
     </>
@@ -195,7 +210,7 @@ function BranchesBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <div className="grid md:grid-cols-2 gap-5">
         {block.items.map((b, i) => (
-          <div key={i} className="bg-white rounded-2xl p-7 border border-black/[0.06]">
+          <Reveal key={i} delay={i * 100} className="bg-white rounded-2xl p-7 border border-black/[0.06]">
             <h3 className="text-lg font-semibold mb-3 tracking-tight">{t(b.name)}</h3>
             <p className="text-[15px] text-black/55 leading-relaxed">{t(b.address)}</p>
             {b.phone && (
@@ -204,7 +219,7 @@ function BranchesBlock({ block, t, accent }) {
               </a>
             )}
             {t(b.note) && <p className="text-[13px] text-black/40 mt-3">{t(b.note)}</p>}
-          </div>
+          </Reveal>
         ))}
       </div>
     </>

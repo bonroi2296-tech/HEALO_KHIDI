@@ -55,7 +55,10 @@ export const IMMUNE_PAGES = {
         eyebrow: "Our Space",
         title: D("진료가 이루어지는 공간", "Where Treatment Happens", "Где проходит лечение", "Ем өтетін кеңістік", "诊疗所在的空间", "診療が行われる空間"),
         items: [
-          { src: "/immune/brand/lobby.jpg", caption: D("강서점 로비", "Gangseo branch lobby", "Холл филиала Кансо", "Кансо филиалының холлы", "江西院区大厅", "江西院ロビー") },
+          // ⚠️ 이 자리엔 원래 **이 페이지 위쪽 소개글에 쓴 로비 사진**이 그대로 또 들어가 있었다
+          //    (2026-07-29 자동검사가 잡음). 한 페이지 안에서 같은 사진이 두 번 나오면
+          //    사진이 모자라 돌려 쓴 것처럼 읽힌다.
+          { src: "/immune/facility/facility-ward-room-2.jpg", caption: D("입원 병실", "Inpatient room", "Стационарная палата", "Стационар палатасы", "住院病房", "入院病室") },
           { src: "/immune/brand/care-meal.jpg", caption: D("병원에서 직접 준비하는 치료식", "Therapeutic meals prepared in-house", "Лечебное питание собственного приготовления", "Ауруханада дайындалатын емдік тамақ", "院内自制治疗餐", "院内で用意する治療食") },
           { src: "/images/hospitals/immunehospital-magok/1.jpg", caption: D("진료 공간", "Consultation area", "Зона приёма", "Қабылдау аймағы", "诊疗区", "診療スペース") },
           { src: "/images/hospitals/immunehospital-magok/3.jpg", caption: D("치료실", "Treatment room", "Процедурный кабинет", "Ем бөлмесі", "治疗室", "治療室") },

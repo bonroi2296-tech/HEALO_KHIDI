@@ -158,3 +158,58 @@ describe("테넌트 — 가짜 통과 방지(negative control)", () => {
     expect(immuneOut).toBe("About Immune Hospital");
   });
 });
+
+describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", () => {
+  /* 왜 이 검사가 생겼나 (2026-07-29):
+     프로그램 카드 두 장이 **같은 사진**을 쓰고 있었고, 전체 화면을 눈으로 훑어서야 잡혔다.
+     같은 사진이 나란히 뜨면 «채울 게 없어서 돌려 쓴 티» = 판 냄새다.
+     병원마다 데이터를 새로 채워 넣는 구조라 이 실수는 병원이 늘수록 반복된다 → 기계가 잡는다. */
+  const collectImages = (node: any, out: string[] = []): string[] => {
+    if (Array.isArray(node)) {
+      node.forEach((n) => collectImages(n, out));
+    } else if (node && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) {
+        if ((k === "image" || k === "photo" || k === "src" || k === "thumb") && typeof v === "string") out.push(v);
+        else collectImages(v, out);
+      }
+    }
+    return out;
+  };
+
+  it("한 병원 홈 안에서 같은 사진을 두 번 쓰지 않는다", async () => {
+    const { IMMUNE_SITE } = await import("./content/immuneSite.js");
+    const imgs = collectImages(IMMUNE_SITE);
+    const dup = [...new Set(imgs.filter((v, i) => imgs.indexOf(v) !== i))];
+    // ⚠️ 처음엔 «같은 배열 안에서만» 검사했는데, 실제로 겹쳤던 자리는
+    //    specialties 와 programs — **서로 다른 배열**이라 그 검사는 통과해 버렸다.
+    //    (2026-07-29, 일부러 되살려 본 negative control 로 잡음.)
+    //    한 화면 안이면 섹션이 달라도 눈에는 그냥 «같은 사진 두 번»이다 → 전체에서 유일해야 한다.
+    expect(dup, `같은 사진이 두 번 쓰였다: ${dup.join(", ")}`).toEqual([]);
+  });
+
+  it("쓰는 사진 파일이 실제로 저장소에 있다 (홈 + 속 페이지 전부)", async () => {
+    const fs = await import("node:fs");
+    const { IMMUNE_SITE } = await import("./content/immuneSite.js");
+    // 속 페이지(탭)도 같이 본다 — 홈만 검사하면 탭에 생긴 오타는 그대로 통과한다.
+    const pages = await import("./content/immunePages.js");
+    const missing = collectImages([IMMUNE_SITE, pages])
+      .filter((p) => p.startsWith("/"))
+      .filter((p) => !fs.existsSync(`public${p}`));
+    // 경로 오타는 화면에 «회색 네모»로만 나타나서 눈으로는 놓치기 쉽다.
+    expect(missing, `없는 사진 파일: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
+    // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
+    const { IMMUNE_PAGES } = await import("./content/immunePages.js");
+    const entries = Object.entries(IMMUNE_PAGES);
+    // ⚠️ 검사가 «돌긴 도는지» 먼저 확인한다. 처음 쓴 판본은 자료 모양을 잘못 짚어
+    //    **0개 페이지를 돌면서 초록불**이었다(2026-07-29). 0건 통과는 통과가 아니다.
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [slug, page] of entries) {
+      const imgs = collectImages(page?.blocks ?? []);
+      const dup = [...new Set(imgs.filter((v, i) => imgs.indexOf(v) !== i))];
+      expect(dup, `${slug} 페이지에서 같은 사진이 두 번: ${dup.join(", ")}`).toEqual([]);
+    }
+  });
+});

@@ -352,8 +352,10 @@ export const IMMUNE_SITE = {
   //    혼자 떨어져 나간다 — 2026-07-28 에 실제로 그렇게 떴다.
   gallery: [
     {
-      src: "/immune/brand/lobby.jpg",
-      caption: { ko: "강서점 로비", en: "Gangseo branch lobby", ru: "Холл филиала Кансо", kz: "Кансо филиалының холлы", zh: "江西院区大厅", ja: "江西院ロビー" },
+      // ⚠️ 여기 원래 **히어로와 같은 로비 사진**이 들어가 있었다(2026-07-29 자동검사가 잡음).
+      //    맨 위에서 본 사진이 중간에 또 나오면 «사진이 없어서 돌려 쓴 티»가 난다.
+      src: "/immune/facility/facility-vip-room-2.jpg",
+      caption: { ko: "1인 병실", en: "Private room", ru: "Одноместная палата", kz: "Жеке палата", zh: "单人病房", ja: "個室" },
     },
     {
       src: "/immune/facility/facility-ward-room-1.jpg",
@@ -368,8 +370,9 @@ export const IMMUNE_SITE = {
       caption: { ko: "회복 공간", en: "Recovery space", ru: "Зона восстановления", kz: "Қалпына келу аймағы", zh: "康复空间", ja: "回復スペース" },
     },
     {
-      src: "/images/hospitals/immunehospital-magok/5.jpg",
-      caption: { ko: "한방 케어 공간", en: "Korean Medicine care area", ru: "Зона корейской медицины", kz: "Корей медицинасы аймағы", zh: "韩方护理区", ja: "韓方ケア空間" },
+      // 재활센터 카드와 같은 사진이던 자리 — 실제 힐링 공간 사진으로 바꿨다.
+      src: "/immune/facility/facility-healing-space-2.jpg",
+      caption: { ko: "힐링 공간", en: "Healing space", ru: "Зона отдыха", kz: "Демалыс кеңістігі", zh: "疗愈空间", ja: "ヒーリング空間" },
     },
   ],
 
@@ -499,7 +502,10 @@ export const IMMUNE_SITE = {
       ],
     },
     {
-      image: "/images/hospitals/immunehospital-magok/2.jpg",
+      // ⚠️ 여기 원래 위 카드와 **같은 사진**이 들어가 있었다(2026-07-29 전체 화면 확인에서 잡음).
+      //    같은 사진이 나란히 두 장 뜨면 «내용이 없어서 채운 티»가 난다 = 판 냄새.
+      //    병원 사진은 25장 갖고 있으니 굳이 겹칠 이유가 없다.
+      image: "/immune/facility/facility-treatment-room-4.jpg",
       title: { ko: "재생·회복 치료", en: "Regenerative Care", ru: "Регенеративная терапия", kz: "Регенеративті ем", zh: "再生·恢复治疗", ja: "再生・回復治療" },
       desc: {
         ko: "손상된 신경·조직의 회복을 돕는 주사와 냉각치료.",

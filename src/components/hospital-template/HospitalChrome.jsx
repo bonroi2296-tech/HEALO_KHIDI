@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { Reveal } from "./motion";
 
 const pick = (v, lang) => {
   if (v == null) return "";
@@ -116,12 +117,20 @@ export function HospitalFooter({ site, lang, darkTone }) {
 /** 속 페이지 상단 — 제목 띠. 홈의 히어로 자리를 대신한다. */
 export function PageHero({ title, subtitle, darkTone }) {
   return (
-    <section className="py-14 md:py-20" style={{ backgroundColor: darkTone }}>
+    <section className="py-16 md:py-28" style={{ backgroundColor: darkTone }}>
       <div className="max-w-6xl mx-auto px-5 md:px-8">
-        <h1 className="text-white text-3xl md:text-5xl font-semibold tracking-tight leading-[1.12]" style={SERIF}>
+        <Reveal
+          as="h1"
+          className="text-white text-4xl md:text-[4rem] font-semibold leading-[1.05] max-w-4xl"
+          style={{ ...SERIF, letterSpacing: "-0.03em" }}
+        >
           {title}
-        </h1>
-        {subtitle && <p className="mt-5 text-white/60 text-base md:text-lg leading-relaxed max-w-2xl whitespace-pre-line">{subtitle}</p>}
+        </Reveal>
+        {subtitle && (
+          <Reveal as="p" delay={120} className="mt-6 text-white/60 text-base md:text-lg leading-relaxed max-w-2xl whitespace-pre-line">
+            {subtitle}
+          </Reveal>
+        )}
       </div>
     </section>
   );

@@ -26,6 +26,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { HospitalHeader, HospitalFooter } from "./HospitalChrome";
 import MessengerRail from "./MessengerRail";
+import { Reveal, SnapRow } from "./motion";
 
 // 판 기본 강조색. 병원마다 `brand.accent` 로 덮어쓴다 — 색은 판이 정하는 게 아니라
 // **그 병원 로고에서 뽑는다**(면력은 로고 SVG 에서 #003D66 이 66회 나왔다).
@@ -53,11 +54,20 @@ function Eyebrow({ children, accent }) {
   );
 }
 
-function Section({ id, children, tone = "light", className = "", darkTone }) {
+/* 세로 여백을 섹션마다 다르게 줄 수 있게 한다.
+   왜: 모든 섹션이 같은 py 값이면 스크롤 속도가 일정해져 «표 안에 든 화면»으로 읽힌다.
+   상위 사이트는 숨 쉬는 자리(loose)와 몰아치는 자리(tight)를 섞는다 — 그게 리듬이다. */
+const PAD = {
+  tight: "py-12 md:py-16",
+  normal: "py-16 md:py-24",
+  loose: "py-24 md:py-36",
+};
+
+function Section({ id, children, tone = "light", className = "", darkTone, pad = "normal" }) {
     const bg = tone === "sand" ? "bg-[#F4EFE7]" : tone === "ink" ? "" : "bg-[#FBF8F3]";
   const style = tone === "ink" ? { backgroundColor: darkTone || "#0C2233" } : undefined;
   return (
-    <section id={id} className={`${bg} py-16 md:py-24 ${className}`} style={style}>
+    <section id={id} className={`${bg} ${PAD[pad] || PAD.normal} ${className}`} style={style}>
       <div className="max-w-6xl mx-auto px-5 md:px-8">{children}</div>
     </section>
   );
@@ -65,11 +75,30 @@ function Section({ id, children, tone = "light", className = "", darkTone }) {
 
 function Heading({ children, tone = "dark", size = "lg" }) {
   const color = tone === "light" ? "text-white" : "text-[#16211C]";
-  const cls = size === "xl" ? "text-3xl md:text-5xl" : "text-2xl md:text-4xl";
+  const cls = size === "xl" ? "text-4xl md:text-6xl" : "text-3xl md:text-5xl";
   return (
-    <h2 className={`${cls} ${color} font-semibold leading-[1.15] tracking-tight`} style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+    <h2 className={`${cls} ${color} font-semibold leading-[1.08]`} style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}>
       {children}
     </h2>
+  );
+}
+
+/* 섹션 머리(라벨 + 제목).
+   ⚠️ 이걸 컴포넌트로 뽑은 이유는 «중복 제거»가 아니라 **정렬을 섹션마다 바꾸기 위해서**다.
+   모든 섹션이 왼쪽 좁은 칸에서 시작하면 눈이 한 줄만 따라가게 되고, 그게 PO 가 말한
+   「틀에 박힌 톤」의 정체였다. 가운데 정렬을 섞으면 같은 내용도 다른 화면으로 읽힌다. */
+function SectionHead({ eyebrow, title, lead, accent, align = "left", tone = "dark" }) {
+  const center = align === "center";
+  return (
+    <Reveal className={`mb-12 md:mb-16 ${center ? "max-w-2xl mx-auto text-center" : "max-w-2xl"}`}>
+      <Eyebrow accent={accent}>{eyebrow}</Eyebrow>
+      <Heading tone={tone}>{title}</Heading>
+      {lead && (
+        <p className={`mt-5 text-[15px] md:text-base leading-relaxed ${tone === "light" ? "text-white/60" : "text-black/50"}`}>
+          {lead}
+        </p>
+      )}
+    </Reveal>
   );
 }
 
@@ -98,25 +127,31 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         <div className="flex items-center px-5 md:px-10 lg:pl-[max(2rem,calc((100vw-72rem)/2+2rem))] lg:pr-14 py-16 md:py-24 lg:py-28">
           <div className="max-w-xl">
             {t(site.hero?.eyebrow) && (
-              <p
+              <Reveal
+                as="p"
+                y={12}
                 className="text-[11px] md:text-xs font-semibold uppercase mb-5"
                 style={{ letterSpacing: "0.2em", color: accent }}
               >
                 {t(site.hero.eyebrow)}
-              </p>
+              </Reveal>
             )}
-            <h1
-              className="text-[2.1rem] leading-[1.14] md:text-5xl md:leading-[1.1] font-semibold tracking-tight whitespace-pre-line text-[#16211C]"
-              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+            {/* 글자 크기를 «압도하는» 급으로 올렸다 — 유니성형외과 실측 최대 100px, 내 판은 48px 이었다.
+                큰 글자에는 음수 자간(-0.03em)이 붙어야 덩어리로 읽힌다(요즘 타이포의 기본 문법). */}
+            <Reveal
+              as="h1"
+              delay={80}
+              className="text-[2.6rem] leading-[1.08] sm:text-6xl md:text-[4.5rem] md:leading-[1.02] font-semibold whitespace-pre-line text-[#16211C]"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.03em" }}
             >
               {t(site.hero?.title)}
-            </h1>
+            </Reveal>
             {t(site.hero?.subtitle) && (
-              <p className="mt-6 text-black/60 text-base md:text-lg leading-relaxed whitespace-pre-line">
+              <Reveal as="p" delay={180} className="mt-6 text-black/60 text-base md:text-lg leading-relaxed whitespace-pre-line">
                 {t(site.hero.subtitle)}
-              </p>
+              </Reveal>
             )}
-            <div className="mt-9 flex flex-col sm:flex-row gap-3">
+            <Reveal delay={280} className="mt-9 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onInquiry}
                 className="px-8 py-4 rounded-full text-white text-base font-medium transition-transform hover:scale-[1.02] shadow-lg"
@@ -133,7 +168,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                   {t(site.hero.secondaryCta)}
                 </a>
               )}
-            </div>
+            </Reveal>
           </div>
         </div>
         {site.hero?.image && (
@@ -155,7 +190,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         <div style={{ backgroundColor: darkTone }}>
           <div className="max-w-6xl mx-auto px-5 md:px-8 py-10 md:py-14 grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-4">
             {site.proof.map((p, i) => (
-              <div key={i} className="text-center md:border-r md:last:border-r-0 border-white/12 px-2">
+              <Reveal key={i} delay={i * 90} y={16} className="text-center md:border-r md:last:border-r-0 border-white/12 px-2">
                 <div
                   className="text-2xl md:text-4xl font-semibold text-white tracking-tight"
                   style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -165,7 +200,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                 <div className="mt-2 text-[11px] md:text-sm text-white/60 leading-snug whitespace-pre-line">
                   {t(p.label)}
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -174,16 +209,18 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       {/* ══ 진료 분야 ══ */}
       {has(site.specialties) && (
         <Section id="specialties">
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.specialties) || "Specialties"}</Eyebrow>
-            <Heading>{t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}</Heading>
-          </div>
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.specialties) || "Specialties"}
+            title={t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}
+          />
           {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
               사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {site.specialties.map((s, i) => (
-              <div
+              <Reveal
                 key={i}
+                delay={i * 110}
                 className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
               >
                 {s.image && (
@@ -207,7 +244,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                   <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
                   <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -222,55 +259,64 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
           <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
           <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
-            <div className="max-w-xl">
+            <Reveal className="max-w-xl">
               {t(site.showcase.eyebrow) && (
                 <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
                   {t(site.showcase.eyebrow)}
                 </p>
               )}
-              <h2 className="text-white text-2xl md:text-4xl font-semibold leading-[1.2] tracking-tight whitespace-pre-line" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+              <h2
+                className="text-white text-3xl md:text-5xl font-semibold leading-[1.1] whitespace-pre-line"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
+              >
                 {t(site.showcase.title)}
               </h2>
               {t(site.showcase.desc) && (
                 <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
               )}
-            </div>
+            </Reveal>
           </div>
         </section>
       )}
 
       {/* ══ 왜 우리인가 — 국가 자랑이 아니라 이 병원의 이유 ══ */}
       {has(site.whyUs) && (
-        <Section tone="sand">
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.whyUs) || "Why Choose Us"}</Eyebrow>
-            <Heading>{t(site.whyUsTitle)}</Heading>
-          </div>
-          {/* 사진이 있으면 위에 얹는다 — 번호만 있는 세 칸은 «설명서»처럼 읽힌다. */}
-          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
+        <Section tone="sand" pad="loose">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.whyUs) || "Why Choose Us"}
+            title={t(site.whyUsTitle)}
+          />
+          {/* ⚠️ 여기가 「틀에 박힌 톤」의 진원지였다. 3칸 격자 카드 = 앞뒤 섹션과 똑같은 리듬.
+              → **좌우 번갈아 눕는 큰 줄**로 바꿨다. 사진이 커지고 줄마다 방향이 바뀌니
+                 스크롤하면서 «읽는» 게 아니라 «보는» 흐름이 된다(잡지 편집 방식).
+              사진 없는 병원은 큰 번호만 남고 글이 넓게 눕는다 — 빈 자리가 안 생긴다. */}
+          <div className="space-y-14 md:space-y-24">
             {site.whyUs.map((w, i) => (
-              <div key={i}>
-                {w.image ? (
-                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-6">
-                    <Image src={w.image} alt="" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
-                    <span
-                      className="absolute top-4 left-4 w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white"
-                      style={{ backgroundColor: accent }}
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                ) : (
+              <Reveal
+                key={i}
+                className={`grid items-center gap-8 md:gap-14 ${w.image ? "md:grid-cols-2" : ""}`}
+              >
+                {w.image && (
                   <div
-                    className="text-4xl md:text-5xl font-light mb-4 opacity-25"
-                    style={{ fontFamily: "Georgia, serif", color: accent }}
+                    className={`relative aspect-[4/3] rounded-[1.75rem] overflow-hidden bg-[#EDE6DA] ${
+                      i % 2 === 1 ? "md:order-2" : ""
+                    }`}
+                  >
+                    <Image src={w.image} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                  </div>
+                )}
+                <div className={w.image ? "" : "max-w-3xl"}>
+                  <div
+                    className="text-5xl md:text-7xl font-light mb-5 leading-none opacity-20"
+                    style={{ fontFamily: "Georgia, serif", color: accent, letterSpacing: "-0.03em" }}
                   >
                     {String(i + 1).padStart(2, "0")}
                   </div>
-                )}
-                <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(w.title)}</h3>
-                <p className="text-[15px] text-black/55 leading-relaxed">{t(w.desc)}</p>
-              </div>
+                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 tracking-tight leading-snug">{t(w.title)}</h3>
+                  <p className="text-[15px] md:text-base text-black/55 leading-relaxed">{t(w.desc)}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -279,16 +325,25 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       {/* ══ 의료진 — 얼굴이 신뢰의 핵심 ══ */}
       {has(site.doctors) && (
         <Section>
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.doctors) || "Medical Team"}</Eyebrow>
-            <Heading>{t(site.doctorsTitle)}</Heading>
-          </div>
+          {/* 가운데 정렬 — 앞뒤 섹션이 전부 왼쪽에서 시작하니 여기서 한 번 끊어준다. */}
+          <SectionHead
+            accent={accent}
+            align="center"
+            eyebrow={t(site.labels?.doctors) || "Medical Team"}
+            title={t(site.doctorsTitle)}
+          />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
             {site.doctors.map((d, i) => (
-              <div key={i}>
+              <Reveal key={i} delay={i * 100} className="group">
                 <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
                   {d.photo && (
-                    <Image src={d.photo} alt={t(d.name)} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover object-top" />
+                    <Image
+                      src={d.photo}
+                      alt={t(d.name)}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
                   )}
                 </div>
                 <h3 className="font-semibold text-[15px] md:text-base tracking-tight">{t(d.name)}</h3>
@@ -296,7 +351,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                 {t(d.credentials) && (
                   <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>
                 )}
-              </div>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -307,25 +362,28 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
           문장 열 줄보다 낫다 — dekabi 도 시설·의료진 사진 비중이 크다.
           사진이 없는 병원은 이 섹션이 통째로 안 뜬다. */}
       {has(site.gallery) && (
-        <Section>
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.gallery) || "Our Space"}</Eyebrow>
-            <Heading>{t(site.galleryTitle)}</Heading>
-          </div>
-          {/* 첫 장을 크게 — 격자로만 깔면 카탈로그처럼 보인다. */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <Section pad="tight">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.gallery) || "Our Space"}
+            title={t(site.galleryTitle)}
+          />
+          {/* 격자 대신 **가로로 흐르는 줄**. 상위 사이트가 Swiper 를 쓰는 자리를 CSS scroll-snap 으로
+              대신한다(라이브러리 0). 섹션마다 같은 격자가 반복되면 아래로 갈수록 지루해지는데,
+              한 줄만 흐르게 해도 화면에 리듬이 생긴다. */}
+          <SnapRow>
             {site.gallery.map((g, i) => (
               <figure
                 key={i}
-                className={`relative overflow-hidden rounded-2xl bg-[#EDE6DA] group ${
-                  i === 0 ? "col-span-2 row-span-2 aspect-[4/3] lg:aspect-auto lg:min-h-[420px]" : "aspect-square"
+                className={`relative shrink-0 snap-start overflow-hidden rounded-2xl bg-[#EDE6DA] group ${
+                  i === 0 ? "w-[85vw] sm:w-[520px] aspect-[4/3]" : "w-[62vw] sm:w-[300px] aspect-square"
                 }`}
               >
                 <Image
                   src={g.src}
                   alt={t(g.caption)}
                   fill
-                  sizes={i === 0 ? "(max-width: 1024px) 100vw, 50vw" : "(max-width: 1024px) 50vw, 25vw"}
+                  sizes="(max-width: 640px) 85vw, 520px"
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                 />
                 {t(g.caption) && (
@@ -335,20 +393,21 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                 )}
               </figure>
             ))}
-          </div>
+          </SnapRow>
         </Section>
       )}
 
       {/* ══ 치료 프로그램 ══ */}
       {has(site.programs) && (
         <Section tone="sand">
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.programs) || "Programs"}</Eyebrow>
-            <Heading>{t(site.programsTitle)}</Heading>
-          </div>
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.programs) || "Programs"}
+            title={t(site.programsTitle)}
+          />
           <div className="grid md:grid-cols-3 gap-5">
             {site.programs.map((p, i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
+              <Reveal key={i} delay={i * 110} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
                 {p.image && (
                   <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
                     <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
@@ -368,7 +427,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                   </ul>
                 )}
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -382,21 +441,20 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
              실서비스에 추가하지 않으려고 — 판 때문에 본 사이트 설정을 건드리면 안 된다). */}
       {has(site.videos) && (
         <Section>
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.videos) || "Life at the Hospital"}</Eyebrow>
-            <Heading>{t(site.videosTitle)}</Heading>
-            {t(site.videosNote) && (
-              <p className="mt-4 text-[14px] text-black/45 leading-relaxed">{t(site.videosNote)}</p>
-            )}
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.videos) || "Life at the Hospital"}
+            title={t(site.videosTitle)}
+            lead={t(site.videosNote)}
+          />
+          <SnapRow>
             {site.videos.map((v, i) => (
               <a
                 key={i}
                 href={`https://www.youtube.com/watch?v=${v.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group block"
+                className="group block shrink-0 snap-start w-[78vw] sm:w-[360px]"
               >
                 <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#EDE6DA] mb-3.5">
                   {/* 썸네일은 **우리가 저장한 파일**을 쓴다(`v.thumb`). 유튜브에서 직접 불러오면
@@ -407,7 +465,10 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                     src={v.thumb || `https://img.youtube.com/vi/${v.id}/hqdefault.jpg`}
                     alt=""
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    /* ⚠️ 격자를 가로줄로 바꾸면서 칸 너비가 «화면 비율»이 아니라 «고정 360px»이 됐다.
+                       sizes 를 옛 격자 값(33vw)으로 두면 next/image 가 **3840px 짜리를 받아온다**
+                       (2026-07-29 실측으로 잡음). 칸 너비가 바뀌면 sizes 도 같이 바꿔야 한다. */
+                    sizes="(max-width: 640px) 78vw, 360px"
                     unoptimized={!v.thumb}
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                   />
@@ -433,20 +494,22 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                 </h3>
               </a>
             ))}
-          </div>
+          </SnapRow>
         </Section>
       )}
 
       {/* ══ 환자 후기 — 없으면 통째로 안 그린다 ══ */}
       {has(site.testimonials) && (
         <Section tone="ink" darkTone={darkTone}>
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent="#9BB8A5">{t(site.labels?.testimonials) || "Patient Stories"}</Eyebrow>
-            <Heading tone="light">{t(site.testimonialsTitle)}</Heading>
-          </div>
+          <SectionHead
+            accent="#9BB8A5"
+            tone="light"
+            eyebrow={t(site.labels?.testimonials) || "Patient Stories"}
+            title={t(site.testimonialsTitle)}
+          />
           <div className="grid md:grid-cols-3 gap-6">
             {site.testimonials.map((r, i) => (
-              <figure key={i} className="bg-white/[0.05] rounded-2xl p-7 border border-white/10">
+              <Reveal key={i} delay={i * 110} as="figure" className="bg-white/[0.05] rounded-2xl p-7 border border-white/10">
                 <blockquote
                   className="text-white/85 text-[15px] leading-relaxed"
                   style={{ fontFamily: "Georgia, serif" }}
@@ -457,7 +520,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                   {t(r.author)}
                   {t(r.country) ? ` · ${t(r.country)}` : ""}
                 </figcaption>
-              </figure>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -465,14 +528,15 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
 
       {/* ══ 인증·실적 — 의료는 「누가 보증하나」가 신뢰의 절반 ══ */}
       {has(site.credentials) && (
-        <Section>
-          <div className="max-w-2xl mb-12">
-            <Eyebrow accent={accent}>{t(site.labels?.credentials) || "Credentials"}</Eyebrow>
-            <Heading>{t(site.credentialsTitle)}</Heading>
-          </div>
+        <Section pad="tight">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.credentials) || "Credentials"}
+            title={t(site.credentialsTitle)}
+          />
           <div className="divide-y divide-black/[0.08] border-y border-black/[0.08]">
             {site.credentials.map((c, i) => (
-              <div key={i} className="py-5 flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-8">
+              <Reveal key={i} y={14} delay={i * 60} className="py-5 flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-8">
                 {c.year && (
                   <span className="text-[13px] tabular-nums shrink-0 w-16" style={{ color: accent }}>
                     {c.year}
@@ -482,7 +546,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                   <h3 className="font-medium text-[15px] md:text-base">{t(c.title)}</h3>
                   {t(c.desc) && <p className="text-[14px] text-black/50 mt-1 leading-relaxed">{t(c.desc)}</p>}
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </Section>
@@ -491,11 +555,13 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       {/* ══ FAQ ══ */}
       {has(site.faq) && (
         <Section tone="sand">
-          <div className="max-w-2xl mb-10">
-            <Eyebrow accent={accent}>{t(site.labels?.faq) || "FAQ"}</Eyebrow>
-            <Heading>{t(site.faqTitle)}</Heading>
-          </div>
-          <div className="max-w-3xl">
+          <SectionHead
+            accent={accent}
+            align="center"
+            eyebrow={t(site.labels?.faq) || "FAQ"}
+            title={t(site.faqTitle)}
+          />
+          <div className="max-w-3xl mx-auto">
             {site.faq.map((f, i) => (
               <div key={i} className="border-b border-black/[0.09]">
                 <button
@@ -526,8 +592,8 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       )}
 
       {/* ══ 마무리 CTA ══ */}
-      <Section tone="ink" darkTone={darkTone} id="contact">
-        <div className="text-center max-w-2xl mx-auto">
+      <Section tone="ink" darkTone={darkTone} id="contact" pad="loose">
+        <Reveal className="text-center max-w-2xl mx-auto">
           <Heading tone="light" size="xl">{t(site.closing?.title)}</Heading>
           {t(site.closing?.subtitle) && (
             <p className="mt-5 text-white/65 text-base md:text-lg leading-relaxed whitespace-pre-line">
@@ -554,7 +620,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
           {t(site.contact?.hours) && (
             <p className="mt-6 text-[13px] text-white/40">{t(site.contact.hours)}</p>
           )}
-        </div>
+        </Reveal>
       </Section>
 
       {/* ══ 따라다니는 상담 버튼 — 해외 환자용 사이트의 사실상 표준 ══ */}
