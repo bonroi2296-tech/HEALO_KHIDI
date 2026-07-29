@@ -328,6 +328,34 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
     expect(문제, `언어 칸 문제 ${문제.length}건:\n${문제.slice(0, 12).join("\n")}`).toEqual([]);
   });
 
+  /* 🧑‍⚕️ 의료진 명단 — 이름은 «남의 이름»이라 틀리면 바로 사고다.
+     2026-07-29 지점별 사이트 4곳(본원·sc·km·sd)을 직접 열어 **27명 전원과 지점 배치까지 대조 — 전부 일치**.
+     여기서는 그 결과를 **동결**한다: 인원수와 지점별 배치가 소리 없이 바뀌면 빨간불.
+     ⚠️ 못 잡는 것: 「병원이 의료진을 바꾼 것」(자동 검사는 인터넷을 안 본다). 사람이 주기로 다시 대조해야 한다.
+     ⚠️ 배상근(강서)·조현실(신촌)은 **사진이 없다** — 신규 입사자로 보이며 병원 사이트도 사진 자리가 비어 있다.
+        사진 경로로 지점을 읽을 수 없으므로 이 둘은 인원수에만 들어간다. */
+  it("🧑‍⚕️ 의료진 27명 · 지점별 인원이 병원 사이트와 맞다 (2026-07-29 대조)", async () => {
+    const { IMMUNE_PAGES } = await import("./content/immunePages.js");
+    const 의료진 = (IMMUNE_PAGES as any).doctors.blocks.flatMap((b: any) => b.items || []);
+    expect(의료진.length, "의료진 명단을 못 읽었다 — 검사가 안 돈 것").toBe(27);
+
+    // 사진 경로의 지점 조각으로 배치를 센다(`/immune/doctor/<지점>-dr-…`).
+    const 지점별: Record<string, number> = {};
+    let 사진없음 = 0;
+    for (const d of 의료진) {
+      const m = typeof d.photo === "string" && d.photo.match(/\/immune\/doctor\/([a-z]+)-/);
+      if (m) 지점별[m[1]] = (지점별[m[1]] || 0) + 1;
+      else 사진없음 += 1;
+    }
+    // 병원 사이트 실측(2026-07-29): 강서 6 · 신촌 6 · 광명 7 · 성동 8 = 27.
+    // 사진 없는 2명(배상근=강서, 조현실=신촌)을 빼면 5 · 5 · 7 · 8.
+    expect(사진없음, "사진 없는 의료진 수가 달라졌다 — 병원이 사진을 올렸거나 명단이 바뀐 것").toBe(2);
+    expect(지점별.gangeo).toBe(5);
+    expect(지점별.sinchon).toBe(5);
+    expect(지점별.gwangmyeong).toBe(7);
+    expect(지점별.seongdong).toBe(8);
+  });
+
   it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
     // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
     const { IMMUNE_PAGES } = await import("./content/immunePages.js");
