@@ -176,8 +176,19 @@ async function checkSessionInMiddleware(request: NextRequest): Promise<{
         },
       }
     );
-    const { data: { user }, error } = await supabase.auth.getUser();
-    return { hasSession: !error && !!user, response };
+    // 인증 서버가 한 번 삐끗하면(느림·연결 끊김) 여기서 error 가 오는데, 그걸 그대로
+    // "미로그인"으로 처리하면 **멀쩡히 로그인한 사용자가 로그인 화면으로 튕긴다.**
+    // 2026-07-29 자동검사에서 실제로 1회 재현(/hospital/treatments → /login?redirect=…,
+    // 재시도로 통과 · docs/KNOWN_ISSUES.md). 이 함수는 /admin·/hospital·/patient·/coordinator
+    // 문 앞을 전부 지키므로 피해 범위가 넓다.
+    // ponytail: 즉시 1회 재시도만 — 유예(sleep)를 넣으면 모든 보호경로에 지연이 실린다.
+    //   그래도 실패하면 원래대로 미로그인 처리(보안 동일: 유효한 사용자만 통과).
+    //   같은 튕김이 또 잡히면 그때 「짧은 유예 + 2회」로 올려라.
+    let result = await supabase.auth.getUser().catch(() => null);
+    if (!result || result.error) {
+      result = await supabase.auth.getUser().catch(() => null);
+    }
+    return { hasSession: !!result && !result.error && !!result.data.user, response };
   } catch {
     return { hasSession: false, response };
   }
