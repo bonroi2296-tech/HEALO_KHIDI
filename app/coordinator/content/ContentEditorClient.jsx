@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { homeWhereParts } from "@/lib/content/keyLocation";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const LANG_LABEL = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語" };
@@ -268,6 +269,20 @@ export default function ContentEditorClient() {
     if (v.trim() && logs.length < logTotal) loadAllLogs();
   };
 
+  // 「통계 / 항목1 · 문구」 같은 자리 이름을 **화면 언어로** 조립한다.
+  // 서버가 준 한국어 문장(place.where)은 사전에 낱말이 없을 때의 폴백으로만 쓴다
+  // (실측 2026-07-29: 러시아어 화면인데 이 자리 72칸 중 22칸이 한국어였다).
+  const whereOf = (key, fallback) => {
+    const parts = homeWhereParts(key);
+    if (!parts) return fallback || null;
+    const sec = L["ceSec_" + parts.sectionKey] || parts.sectionKey;
+    const words = parts.words.map((w) => {
+      const base = L["ceFld_" + w.f] || w.f;
+      return w.n ? `${base}${w.n}` : base;
+    });
+    return words.length ? `${sec} / ${words.join(" · ")}` : sec;
+  };
+
   const logNeedle = logQ.trim().toLowerCase();
   const shownLogs = !logNeedle
     ? logs
@@ -310,9 +325,11 @@ export default function ContentEditorClient() {
           <h1 className="text-xl font-bold text-gray-900">{L.ceTitle}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{L.ceSubtitle}</p>
         </div>
+        {/* shrink-0 whitespace-nowrap: 러시아어 라벨(「К редактированию」)이 길어 휴대폰 폭에서
+            버튼이 세 줄로 찌그러졌다(2026-07-29 390px 실측). 줄바꿈 대신 제목 쪽이 좁아지게 둔다. */}
         <button
           onClick={() => (showLog ? setShowLog(false) : openLogs())}
-          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0 whitespace-nowrap"
         >
           {showLog ? L.ceEditBtn : L.ceLogBtn}
         </button>
@@ -346,6 +363,7 @@ export default function ContentEditorClient() {
             // 화면 이름·비고는 사전에서(6개 언어). 사전에 없는 새 항목은 서버가 준 한국어로 폴백한다.
             const scrName = (lg.place?.screenId && L["ceScr_" + lg.place.screenId]) || lg.place?.screen || null;
             const noteText = (lg.place?.noteId && L["ceNote_" + lg.place.noteId]) || lg.place?.note || null;
+            const whereName = whereOf(lg.content_key, lg.place?.where);
             return (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
               {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
@@ -364,7 +382,7 @@ export default function ContentEditorClient() {
                     {noteText ? L.ceScreenNotFound : L.ceScreenUnknown}
                   </span>
                 )}
-                {lg.place?.where && <span className="text-[11px] text-gray-700">{lg.place.where}</span>}
+                {whereName && <span className="text-[11px] text-gray-700">{whereName}</span>}
                 <span className="text-[11px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">{LANG_LABEL[lg.lang] || lg.lang}</span>
                 {lg.place?.path && (
                   <a
