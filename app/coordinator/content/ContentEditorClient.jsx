@@ -39,6 +39,9 @@ export default function ContentEditorClient() {
   const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [logTotal, setLogTotal] = useState(0);      // 전체 이력 건수(«몇 건 중 몇 건» 표시용)
+  const [logQ, setLogQ] = useState("");             // 이력 안에서 글자로 찾기
+  const [logLoading, setLogLoading] = useState(false);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
   const [blockView, setBlockView] = useState(false);
   const debounceRef = useRef();
@@ -196,15 +199,78 @@ export default function ContentEditorClient() {
     };
   }, [confirming]);
 
+  // 2026-07-29: 50건 고정이라 그 앞 이력이 통째로 안 보였다(실측 247건 중 50건).
+  // 「더 보기」로 이어붙이고, 머릿글에 «전체 몇 건 중 몇 건» 을 보여준다.
+  const PAGE = 50;
+  const loadLogs = async (offset = 0) => {
+    setLogLoading(true);
+    try {
+      const res = await fetch(`/api/coordinator/content?logs=1&offset=${offset}&limit=${PAGE}`);
+      const data = await res.json();
+      if (data.ok) {
+        setLogs((prev) => (offset === 0 ? (data.logs || []) : [...prev, ...(data.logs || [])]));
+        setLogTotal(typeof data.total === "number" ? data.total : (data.logs || []).length);
+      }
+    } catch {} finally { setLogLoading(false); }
+  };
+
   const openLogs = async () => {
     setConfirming(false);
     setShowLog(true);
-    try {
-      const res = await fetch("/api/coordinator/content?logs=1");
-      const data = await res.json();
-      if (data.ok) setLogs(data.logs || []);
-    } catch {}
+    setLogs([]);
+    setLogTotal(0);   // 이전에 보던 건수가 남아 「전체 247건 중 0건」 처럼 어긋나 보이던 것(독립 리뷰 지적)
+    setLogQ("");
+    await loadLogs(0);
   };
+
+  // 이력 검색(2026-07-29 PO 요청) — 247건을 눈으로 훑을 순 없다.
+  // ⚠️ 「불러온 것만」 걸러내면 **없는데 없다고 보이는** 거짓말이 된다(197건이 아직 안 왔으니).
+  //    그래서 검색을 시작하면 먼저 나머지를 다 불러온 뒤 거른다.
+  // ponytail: 서버 검색이 아니라 «전부 받아서 화면에서 거르기». 실측 247건 = 2번 요청이면 끝난다.
+  //           이력이 수천 건이 되면 그때 서버 검색으로 바꿔라(그 전엔 코드만 늘어난다).
+  // ⚠️ 한 글자 칠 때마다 부르면 **같은 줄이 여러 번 붙는다**(«췌장» = 두 번 호출 = 이력 두 벌).
+  //    그래서 도는 동안엔 다시 들어오지 못하게 막는다.
+  const loadingAllRef = useRef(false);
+  const loadAllLogs = async () => {
+    if (loadingAllRef.current) return;
+    loadingAllRef.current = true;
+    try {
+      await loadAllLogsInner();
+    } finally {
+      loadingAllRef.current = false;
+    }
+  };
+  const loadAllLogsInner = async () => {
+    let have = logs.length;
+    let total = logTotal;
+    while (have < total) {
+      setLogLoading(true);
+      try {
+        const res = await fetch(`/api/coordinator/content?logs=1&offset=${have}&limit=200`);
+        const data = await res.json();
+        if (!data.ok) break;
+        const got = data.logs || [];
+        if (got.length === 0) break;
+        setLogs((prev) => [...prev, ...got]);
+        have += got.length;
+        total = typeof data.total === "number" ? data.total : total;
+        setLogTotal(total);
+      } catch { break; } finally { setLogLoading(false); }
+    }
+  };
+
+  const onLogQ = (v) => {
+    setLogQ(v);
+    if (v.trim() && logs.length < logTotal) loadAllLogs();
+  };
+
+  const logNeedle = logQ.trim().toLowerCase();
+  const shownLogs = !logNeedle
+    ? logs
+    : logs.filter((lg) =>
+        [lg.new_value, lg.old_value, lg.content_key, lg.editor_email, lg.place?.screen, lg.place?.where]
+          .some((s) => String(s || "").toLowerCase().includes(logNeedle))
+      );
 
   const refLang = editLang === "ko" ? "en" : "ko";
 
@@ -250,13 +316,68 @@ export default function ContentEditorClient() {
 
       {showLog ? (
         <div className="space-y-2">
-          {logs.length === 0 && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
-          {logs.map((lg) => (
+          {logs.length === 0 && !logLoading && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
+          {logTotal > 0 && (
+            <input
+              type="search"
+              value={logQ}
+              onChange={(e) => onLogQ(e.target.value)}
+              placeholder="이력에서 찾기 — 문구·화면 이름·수정한 사람 (예: 췌장, 홈 화면, assel)"
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          )}
+          {logTotal > 0 && (
+            <p className="text-xs text-gray-600 mb-1">
+              {logNeedle ? (
+                logLoading ? (
+                  <>전체 <b className="text-gray-700">{logTotal}건</b>을 불러오는 중입니다 — 잠시만요</>
+                ) : (
+                  <>전체 <b className="text-gray-700">{logTotal}건</b>에서 <b className="text-gray-700">{shownLogs.length}건</b> 찾음</>
+                )
+              ) : (
+                <>전체 <b className="text-gray-700">{logTotal}건</b> 중 <b className="text-gray-700">{logs.length}건</b> 보는 중 · 최근 것부터</>
+              )}
+            </p>
+          )}
+          {logNeedle && !logLoading && shownLogs.length === 0 && (
+            <p className="text-sm text-gray-500 py-4 text-center">「{logQ}」로 찾은 이력이 없습니다.</p>
+          )}
+          {shownLogs.map((lg) => (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
+              {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
+                  코디는 그게 어느 화면인지 알 방법이 없었다(PO: «코디한테 코드 까뒤집어보라고 할까?»).
+                  → 사람이 읽는 화면 이름 + 자리 + 「화면 열기」 링크를 앞에 세우고, 코드 이름은 뒤로 뺀다. */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                {lg.place?.screen ? (
+                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
+                    {lg.place.screen}
+                  </span>
+                ) : (
+                  <span
+                    className="text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded"
+                    title={lg.place?.note || "이 문구가 어느 화면인지 아직 목록에 없습니다 — 알려주시면 채워 넣습니다"}
+                  >
+                    {lg.place?.note ? "화면 못 찾음" : "화면 미확인"}
+                  </span>
+                )}
+                {lg.place?.where && <span className="text-[11px] text-gray-700">{lg.place.where}</span>}
+                <span className="text-[11px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">{LANG_LABEL[lg.lang] || lg.lang}</span>
+                {lg.place?.path && (
+                  <a
+                    href={lg.place.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-teal-700 underline hover:no-underline"
+                  >
+                    화면 열기 ↗
+                  </a>
+                )}
+                {lg.place?.note && <span className="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{lg.place.note}</span>}
+              </div>
               <div className="flex flex-wrap gap-2 text-gray-500 mb-1">
                 <span>{new Date(lg.changed_at).toLocaleString("ko-KR")}</span>
                 <span>·</span><span>{lg.editor_email}</span>
-                <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
+                <span>·</span><span className="font-mono text-gray-500 break-all">{lg.content_key}</span>
               </div>
               {/* 전후 비교: 취소선은 원문 글자를 가려 「원래 뭐였는지」가 안 읽혔다(PO 지적).
                   줄을 긋지 않고 색으로만 구분 — 이전=연빨강, 이후=연초록. 글씨는 700번대(AA). */}
@@ -277,6 +398,19 @@ export default function ContentEditorClient() {
               </div>
             </div>
           ))}
+          {logLoading && <p className="text-sm text-gray-500 py-2">불러오는 중…</p>}
+          {/* 찾는 중엔 이미 전부 불러온 상태라 「더 보기」·「여기까지」를 띄우지 않는다(건수가 두 벌이라 헷갈린다) */}
+          {!logNeedle && !logLoading && logs.length < logTotal && (
+            <button
+              onClick={() => loadLogs(logs.length)}
+              className="w-full text-sm py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-[44px]"
+            >
+              더 보기 (남은 {logTotal - logs.length}건)
+            </button>
+          )}
+          {!logNeedle && !logLoading && logTotal > 0 && logs.length >= logTotal && (
+            <p className="text-xs text-gray-600 text-center py-2">여기까지가 전부입니다 · 총 {logTotal}건</p>
+          )}
         </div>
       ) : (
         <>
