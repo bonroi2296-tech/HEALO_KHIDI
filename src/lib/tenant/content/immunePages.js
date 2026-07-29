@@ -205,25 +205,174 @@ export const IMMUNE_PAGES = {
         eyebrow: "Medical Team",
         title: D("지점별 대표원장", "Branch Directors", "Главные врачи филиалов", "Филиал бас дәрігерлері", "各院区代表院长", "拠点別 代表院長"),
         items: [
-          { name: D("황이준 대표원장", "Dr. Hwang I-jun", "Д-р Хван И-джун", "Д-р Хван И-джун", "黄利俊 代表院长", "ファン・イジュン代表院長"), title: D("강서점", "Gangseo", "Кансо", "Кансо", "江西院区", "江西院"), photo: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
-          { name: D("유형진 대표원장", "Dr. Yoo Hyeong-jin", "Д-р Ю Хён-джин", "Д-р Ю Хён-джин", "柳亨镇 代表院长", "ユ・ヒョンジン代表院長"), title: D("신촌점", "Sinchon", "Синчон", "Синчон", "新村院区", "新村院"), photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
-          { name: D("배길준 대표원장", "Dr. Bae Gil-jun", "Д-р Пэ Гиль-джун", "Д-р Пэ Гиль-джун", "裴吉俊 代表院长", "ペ・ギルジュン代表院長"), title: D("광명점", "Gwangmyeong", "Кванмён", "Кванмён", "光明院区", "光明院"), photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png" },
-          { name: D("강주안 대표원장", "Dr. Kang Ju-an", "Д-р Кан Чжу-ан", "Д-р Кан Чжу-ан", "姜周安 代表院长", "カン・ジュアン代表院長"), title: D("성동점", "Seongdong", "Сондон", "Сондон", "城东院区", "城東院"), photo: "/immune/doctor/seongdong-dr-kang-juan.png" },
-        ],
+      /* ── 강서점 6명 ── */
+      {
+        name: { ko: "황이준", en: "Dr. Hwang I-jun", ru: "Д-р Хван И-джун", kz: "Д-р Хван И-джун", zh: "황이준", ja: "ファン・イジュン" },
+        title: { ko: "강서점 대표원장", en: "Gangseo Director", ru: "Кансо Главный врач", kz: "Кансо Бас дәрігер", zh: "江西院区 代表院长", ja: "江西院 代表院長" },
+        photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
       },
       {
-        type: "doctors",
-        tone: "sand",
-        eyebrow: "Gangseo",
-        title: D("강서점 진료 의료진", "Gangseo Branch Doctors", "Врачи филиала Кансо", "Кансо филиалының дәрігерлері", "江西院区诊疗医师", "江西院の診療医"),
-        items: [
-          { name: D("배상근 원장", "Dr. Bae Sang-geun", "Д-р Пэ Сан-гын", "Д-р Пэ Сан-гын", "裴相根 院长", "ペ・サングン院長"), title: D("진료원장", "Attending physician", "Лечащий врач", "Емдеуші дәрігер", "诊疗院长", "診療院長"), photo: "/immune/doctor/gangeo-dr-bae-sanggeun.jpg" },
-          { name: D("임지성 원장", "Dr. Im Ji-sung", "Д-р Им Джи-сон", "Д-р Им Джи-сон", "林智成 院长", "イム・ジソン院長"), title: D("진료원장", "Attending physician", "Лечащий врач", "Емдеуші дәрігер", "诊疗院长", "診療院長"), photo: "/immune/doctor/gangeo-dr-im-jisung.jpg" },
-          { name: D("김은지 원장", "Dr. Kim Eun-ji", "Д-р Ким Ын-джи", "Д-р Ким Ын-джи", "金恩智 院长", "キム・ウンジ院長"), title: D("진료원장", "Attending physician", "Лечащий врач", "Емдеуші дәрігер", "诊疗院长", "診療院長"), photo: "/immune/doctor/gangeo-dr-kim-eunji.jpg" },
-          { name: D("김지영 원장", "Dr. Kim Ji-young", "Д-р Ким Джи-ён", "Д-р Ким Джи-ён", "金智英 院长", "キム・ジヨン院長"), title: D("진료원장", "Attending physician", "Лечащий врач", "Емдеуші дәрігер", "诊疗院长", "診療院長"), photo: "/immune/doctor/gangeo-dr-kim-jiyoung.jpg" },
-        ],
+        name: { ko: "이우석", en: "Dr. Lee Woo-seok", ru: "Д-р Ли У-сок", kz: "Д-р Ли У-сок", zh: "이우석", ja: "イ・ウソク" },
+        title: { ko: "양방 대표원장", en: "Medical Director", ru: "Главврач (западная медицина)", kz: "Бас дәрігер (батыс медицинасы)", zh: "西医代表院长", ja: "西洋医代表院長" },
+        credentials: { ko: "통합면역 부인과", en: "Integrative Immunity · Obstetrics & Gynecology", ru: "Интегративная иммунология · Гинекология", kz: "Интегративті иммунология · Гинекология", zh: "整合免疫 · 妇科", ja: "統合免疫 · 婦人科" },
+        photo: "/immune/doctor/gangeo-dr-lee-useok.jpg",
       },
-    ],
+      {
+        name: { ko: "임지성", en: "Dr. Im Ji-seong", ru: "Д-р Им Джи-сон", kz: "Д-р Им Джи-сон", zh: "임지성", ja: "イム・ジソン" },
+        title: { ko: "의무원장", en: "Chief Medical Officer", ru: "Медицинский директор", kz: "Медициналық директор", zh: "医务院长", ja: "医務院長" },
+        credentials: { ko: "통증재활 한방재활의학과", en: "Pain & Rehabilitation · Korean Rehabilitation Medicine", ru: "Боль и реабилитация · Корейская реабилитационная медицина", kz: "Ауырсыну және оңалту · Корей оңалту медицинасы", zh: "疼痛康复 · 韩方康复医学科", ja: "疼痛リハビリ · 韓方リハビリ医学科" },
+        photo: "/immune/doctor/gangeo-dr-im-jisung.jpg",
+      },
+      {
+        name: { ko: "김지영", en: "Dr. Kim Ji-young", ru: "Д-р Ким Джи-ён", kz: "Д-р Ким Джи-ён", zh: "김지영", ja: "キム・ジヨン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통합면역 한방내과", en: "Integrative Immunity · Korean Internal Medicine", ru: "Интегративная иммунология · Корейская терапия", kz: "Интегративті иммунология · Корей терапиясы", zh: "整合免疫 · 韩方内科", ja: "統合免疫 · 韓方内科" },
+        photo: "/immune/doctor/gangeo-dr-kim-jiyoung.jpg",
+      },
+      {
+        name: { ko: "김은지", en: "Dr. Kim Eun-ji", ru: "Д-р Ким Ын-джи", kz: "Д-р Ким Ын-джи", zh: "김은지", ja: "キム・ウンジ" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통합면역 한방내과", en: "Integrative Immunity · Korean Internal Medicine", ru: "Интегративная иммунология · Корейская терапия", kz: "Интегративті иммунология · Корей терапиясы", zh: "整合免疫 · 韩方内科", ja: "統合免疫 · 韓方内科" },
+        photo: "/immune/doctor/gangeo-dr-kim-eunji.jpg",
+      },
+      {
+        name: { ko: "배상근", en: "Dr. Bae Sang-geun", ru: "Д-р Пэ Сан-гын", kz: "Д-р Пэ Сан-гын", zh: "배상근", ja: "ペ・サングン" },
+        title: { ko: "양방 원장", en: "Physician", ru: "Врач (западная медицина)", kz: "Дәрігер (батыс медицинасы)", zh: "西医院长", ja: "西洋医院長" },
+        credentials: { ko: "통합면역 가정의학", en: "Integrative Immunity · Family Medicine", ru: "Интегративная иммунология · Семейная медицина", kz: "Интегративті иммунология · Отбасылық медицина", zh: "整合免疫 · 家庭医学", ja: "統合免疫 · 家庭医学" },
+        photo: "",  // 병원 사이트에도 사진 없음(로고 자리표시) — 남의 얼굴을 붙이지 않는다
+      },
+
+      /* ── 광명점 7명 ── */
+      {
+        name: { ko: "배길준", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гиль-джун", kz: "Д-р Пэ Гиль-джун", zh: "배길준", ja: "ペ・ギルジュン" },
+        title: { ko: "광명점 대표원장", en: "Gwangmyeong Director", ru: "Кванмён Главный врач", kz: "Кванмён Бас дәрігер", zh: "光明院区 代表院长", ja: "光明院 代表院長" },
+        photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png",
+      },
+      {
+        name: { ko: "하정빈", en: "Dr. Ha Jeong-bin", ru: "Д-р Ха Чон-бин", kz: "Д-р Ха Чон-бин", zh: "하정빈", ja: "ハ・ジョンビン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통합면역 한방내과", en: "Integrative Immunity · Korean Internal Medicine", ru: "Интегративная иммунология · Корейская терапия", kz: "Интегративті иммунология · Корей терапиясы", zh: "整合免疫 · 韩方内科", ja: "統合免疫 · 韓方内科" },
+        photo: "/immune/doctor/gwangmyeong-dr-ha-jeongbin.jpg",
+      },
+      {
+        name: { ko: "오재우", en: "Dr. Oh Jae-woo", ru: "Д-р О Чжэ-у", kz: "Д-р О Чжэ-у", zh: "오재우", ja: "オ・ジェウ" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통증재활 한방신경정신과", en: "Pain & Rehabilitation · Korean Neuropsychiatry", ru: "Боль и реабилитация · Корейская нейропсихиатрия", kz: "Ауырсыну және оңалту · Корей нейропсихиатриясы", zh: "疼痛康复 · 韩方神经精神科", ja: "疼痛リハビリ · 韓方神経精神科" },
+        photo: "/immune/doctor/gwangmyeong-dr-oh-jaewoo.jpg",
+      },
+      {
+        name: { ko: "김상현", en: "Dr. Kim Sang-hyeon", ru: "Д-р Ким Сан-хён", kz: "Д-р Ким Сан-хён", zh: "김상현", ja: "キム・サンヒョン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통합면역", en: "Integrative Immunity", ru: "Интегративная иммунология", kz: "Интегративті иммунология", zh: "整合免疫", ja: "統合免疫" },
+        photo: "/immune/doctor/gwangmyeong-dr-kim-sanghyeon.jpg",
+      },
+      {
+        name: { ko: "김주완", en: "Dr. Kim Ju-wan", ru: "Д-р Ким Чжу-ван", kz: "Д-р Ким Чжу-ван", zh: "김주완", ja: "キム・ジュワン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통증재활", en: "Pain & Rehabilitation", ru: "Боль и реабилитация", kz: "Ауырсыну және оңалту", zh: "疼痛康复", ja: "疼痛リハビリ" },
+        photo: "/immune/doctor/gwangmyeong-dr-kim-juwan.jpg",
+      },
+      {
+        name: { ko: "조성원", en: "Dr. Cho Seong-won", ru: "Д-р Чо Сон-вон", kz: "Д-р Чо Сон-вон", zh: "조성원", ja: "チョ・ソンウォン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통증재활", en: "Pain & Rehabilitation", ru: "Боль и реабилитация", kz: "Ауырсыну және оңалту", zh: "疼痛康复", ja: "疼痛リハビリ" },
+        photo: "/immune/doctor/gwangmyeong-dr-jo-seongwon.jpg",
+      },
+      {
+        name: { ko: "이정훈", en: "Dr. Lee Jeong-hun", ru: "Д-р Ли Чон-хун", kz: "Д-р Ли Чон-хун", zh: "이정훈", ja: "イ・ジョンフン" },
+        title: { ko: "양방 대표원장", en: "Medical Director", ru: "Главврач (западная медицина)", kz: "Бас дәрігер (батыс медицинасы)", zh: "西医代表院长", ja: "西洋医代表院長" },
+        credentials: { ko: "통합면역 마취통증의학과", en: "Integrative Immunity · Anesthesiology & Pain Medicine", ru: "Интегративная иммунология · Анестезиология и лечение боли", kz: "Интегративті иммунология · Анестезиология және ауырсынуды емдеу", zh: "整合免疫 · 麻醉疼痛医学科", ja: "統合免疫 · 麻酔疼痛医学科" },
+        photo: "/immune/doctor/gwangmyeong-dr-lee-jeonghun.png",
+      },
+
+      /* ── 신촌점 6명 ── */
+      {
+        name: { ko: "유형진", en: "Dr. Yoo Hyeong-jin", ru: "Д-р Ю Хён-джин", kz: "Д-р Ю Хён-джин", zh: "유형진", ja: "ユ・ヒョンジン" },
+        title: { ko: "신촌점 대표원장", en: "Sinchon Director", ru: "Синчон Главный врач", kz: "Синчон Бас дәрігер", zh: "新村院区 代表院长", ja: "新村院 代表院長" },
+        photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
+      },
+      {
+        name: { ko: "조수호", en: "Dr. Cho Su-ho", ru: "Д-р Чо Су-хо", kz: "Д-р Чо Су-хо", zh: "조수호", ja: "チョ・スホ" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "한방내과 전문의", en: "Korean Internal Medicine · Board-certified", ru: "Корейская терапия · Специалист", kz: "Корей терапиясы · Маман", zh: "韩方内科 · 专科医师", ja: "韓方内科 · 専門医" },
+        photo: "/immune/doctor/sinchon-dr-jo-suho.jpg",
+      },
+      {
+        name: { ko: "조현실", en: "Dr. Cho Hyeon-sil", ru: "Д-р Чо Хён-силь", kz: "Д-р Чо Хён-силь", zh: "조현실", ja: "チョ・ヒョンシル" },
+        title: { ko: "양방 대표원장", en: "Medical Director", ru: "Главврач (западная медицина)", kz: "Бас дәрігер (батыс медицинасы)", zh: "西医代表院长", ja: "西洋医代表院長" },
+        credentials: { ko: "통합면역 부인과", en: "Integrative Immunity · Obstetrics & Gynecology", ru: "Интегративная иммунология · Гинекология", kz: "Интегративті иммунология · Гинекология", zh: "整合免疫 · 妇科", ja: "統合免疫 · 婦人科" },
+        photo: "",  // 병원 사이트에도 사진 없음(로고 자리표시) — 남의 얼굴을 붙이지 않는다
+      },
+      {
+        name: { ko: "김서진", en: "Dr. Kim Seo-jin", ru: "Д-р Ким Со-джин", kz: "Д-р Ким Со-джин", zh: "김서진", ja: "キム・ソジン" },
+        title: { ko: "한방 원장", en: "Korean Medicine Doctor", ru: "Врач корейской медицины", kz: "Корей медицинасының дәрігері", zh: "韩方院长", ja: "韓方院長" },
+        credentials: { ko: "진료부", en: "Clinical Department", ru: "Клиническое отделение", kz: "Клиникалық бөлім", zh: "诊疗部", ja: "診療部" },
+        photo: "/immune/doctor/sinchon-dr-kim-seojin.jpg",
+      },
+      {
+        name: { ko: "진수현", en: "Dr. Jin Su-hyeon", ru: "Д-р Чин Су-хён", kz: "Д-р Чин Су-хён", zh: "진수현", ja: "チン・スヒョン" },
+        title: { ko: "한방 원장", en: "Korean Medicine Doctor", ru: "Врач корейской медицины", kz: "Корей медицинасының дәрігері", zh: "韩方院长", ja: "韓方院長" },
+        credentials: { ko: "진료부", en: "Clinical Department", ru: "Клиническое отделение", kz: "Клиникалық бөлім", zh: "诊疗部", ja: "診療部" },
+        photo: "/immune/doctor/sinchon-dr-jin-suhyeon.jpg",
+      },
+      {
+        name: { ko: "홍정화", en: "Dr. Hong Jeong-hwa", ru: "Д-р Хон Чон-хва", kz: "Д-р Хон Чон-хва", zh: "홍정화", ja: "ホン・ジョンファ" },
+        title: { ko: "한방 원장", en: "Korean Medicine Doctor", ru: "Врач корейской медицины", kz: "Корей медицинасының дәрігері", zh: "韩方院长", ja: "韓方院長" },
+        credentials: { ko: "진료부", en: "Clinical Department", ru: "Клиническое отделение", kz: "Клиникалық бөлім", zh: "诊疗部", ja: "診療部" },
+        photo: "/immune/doctor/sinchon-dr-hong-jeonghwa.jpg",
+      },
+
+      /* ── 성동점 8명 ── */
+      {
+        name: { ko: "강주안", en: "Dr. Kang Ju-an", ru: "Д-р Кан Чжу-ан", kz: "Д-р Кан Чжу-ан", zh: "강주안", ja: "カン・ジュアン" },
+        title: { ko: "성동점 대표원장", en: "Seongdong Director", ru: "Сондон Главный врач", kz: "Сондон Бас дәрігер", zh: "城东院区 代表院长", ja: "城東院 代表院長" },
+        photo: "/immune/doctor/seongdong-dr-kang-juan.png",
+      },
+      {
+        name: { ko: "승현석", en: "Dr. Seung Hyeon-seok", ru: "Д-р Сын Хён-сок", kz: "Д-р Сын Хён-сок", zh: "승현석", ja: "スン・ヒョンソク" },
+        title: { ko: "의무원장", en: "Chief Medical Officer", ru: "Медицинский директор", kz: "Медициналық директор", zh: "医务院长", ja: "医務院長" },
+        credentials: { ko: "통합면역센터 한방내과", en: "Integrative Immunity Center · Korean Internal Medicine", ru: "Интегративная иммунология Центр · Корейская терапия", kz: "Интегративті иммунология Орталық · Корей терапиясы", zh: "整合免疫 中心 · 韩方内科", ja: "統合免疫 センター · 韓方内科" },
+        photo: "/immune/doctor/seongdong-dr-seung-hyeonsuk.jpg",
+      },
+      {
+        name: { ko: "임경수", en: "Dr. Im Gyeong-su", ru: "Д-р Им Гён-су", kz: "Д-р Им Гён-су", zh: "임경수", ja: "イム・ギョンス" },
+        title: { ko: "양방 대표원장", en: "Medical Director", ru: "Главврач (западная медицина)", kz: "Бас дәрігер (батыс медицинасы)", zh: "西医代表院长", ja: "西洋医代表院長" },
+        credentials: { ko: "통합면역센터 정형외과", en: "Integrative Immunity Center · Orthopedics", ru: "Интегративная иммунология Центр · Ортопедия", kz: "Интегративті иммунология Орталық · Ортопедия", zh: "整合免疫 中心 · 骨科", ja: "統合免疫 センター · 整形外科" },
+        photo: "/immune/doctor/seongdong-dr-im-gyeongsu.jpg",
+      },
+      {
+        name: { ko: "고은상", en: "Dr. Ko Eun-sang", ru: "Д-р Ко Ын-сан", kz: "Д-р Ко Ын-сан", zh: "고은상", ja: "コ・ウンサン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통증재활센터 한방내과", en: "Pain & Rehabilitation Center · Korean Internal Medicine", ru: "Боль и реабилитация Центр · Корейская терапия", kz: "Ауырсыну және оңалту Орталық · Корей терапиясы", zh: "疼痛康复 中心 · 韩方内科", ja: "疼痛リハビリ センター · 韓方内科" },
+        photo: "/immune/doctor/seongdong-dr-go-eunsang.jpg",
+      },
+      {
+        name: { ko: "이문성", en: "Dr. Lee Mun-seong", ru: "Д-р Ли Мун-сон", kz: "Д-р Ли Мун-сон", zh: "이문성", ja: "イ・ムンソン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통증재활센터", en: "Pain & Rehabilitation Center", ru: "Боль и реабилитация Центр", kz: "Ауырсыну және оңалту Орталық", zh: "疼痛康复 中心", ja: "疼痛リハビリ センター" },
+        photo: "/immune/doctor/seongdong-dr-lee-munseong.jpg",
+      },
+      {
+        name: { ko: "박정향", en: "Dr. Park Jeong-hyang", ru: "Д-р Пак Чон-хян", kz: "Д-р Пак Чон-хян", zh: "박정향", ja: "パク・ジョンヒャン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "통합면역센터 한방내과", en: "Integrative Immunity Center · Korean Internal Medicine", ru: "Интегративная иммунология Центр · Корейская терапия", kz: "Интегративті иммунология Орталық · Корей терапиясы", zh: "整合免疫 中心 · 韩方内科", ja: "統合免疫 センター · 韓方内科" },
+        photo: "/immune/doctor/seongdong-dr-park-jeonghyang.jpg",
+      },
+      {
+        name: { ko: "노현민", en: "Dr. Noh Hyeon-min", ru: "Д-р Но Хён-мин", kz: "Д-р Но Хён-мин", zh: "노현민", ja: "ノ・ヒョンミン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "항노화센터 한방피부과", en: "Anti-aging Center · Korean Dermatology", ru: "Антивозрастная медицина Центр · Корейская дерматология", kz: "Қартаюға қарсы Орталық · Корей дерматологиясы", zh: "抗衰老 中心 · 韩方皮肤科", ja: "抗加齢 センター · 韓方皮膚科" },
+        photo: "/immune/doctor/seongdong-dr-noh-hyeonmin.jpg",
+      },
+      {
+        name: { ko: "이진영", en: "Dr. Lee Jin-young", ru: "Д-р Ли Джин-ён", kz: "Д-р Ли Джин-ён", zh: "이진영", ja: "イ・ジニョン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "항노화센터", en: "Anti-aging Center", ru: "Антивозрастная медицина Центр", kz: "Қартаюға қарсы Орталық", zh: "抗衰老 中心", ja: "抗加齢 センター" },
+        photo: "/immune/doctor/seongdong-dr-lee-jinyeong.jpg",
+      },
+              ],
+      },
+      ],
   },
 
   /* ─────────────── 해외 환자 안내 (판의 핵심 탭) ─────────────── */

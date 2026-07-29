@@ -172,8 +172,10 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
       node.forEach((n) => collectImages(n, out));
     } else if (node && typeof node === "object") {
       for (const [k, v] of Object.entries(node)) {
-        if ((k === "image" || k === "photo" || k === "src" || k === "thumb") && typeof v === "string") out.push(v);
-        else collectImages(v, out);
+        // ⚠️ 빈 문자열은 «사진 없음»이지 사진이 아니다. 여러 사람이 사진이 없을 수 있으므로
+        //    이걸 세면 중복으로 오해한다(2026-07-29: 사진 없는 의료진 2명 때문에 실제로 오탐).
+        if ((k === "image" || k === "photo" || k === "src" || k === "thumb") && typeof v === "string" && v !== "") out.push(v);
+        else if (typeof v !== "string") collectImages(v, out);
       }
     }
     return out;
