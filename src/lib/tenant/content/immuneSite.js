@@ -754,6 +754,13 @@ export const IMMUNE_SITE = {
       src: "/immune/life/dining-pass-1.jpg",
       caption: { ko: "코스가 나가는 자리", en: "Plating for service", ru: "Раздача блюд", kz: "Тағам таратылатын орын", zh: "出餐台", ja: "コースが出ていく場所" },
     },
+    {
+      /* 「진료 안내」 탭의 격자에 넣었다가 여기로 옮겼다 — 그쪽은 «큰 것 1 + 작은 것 4» 라
+         장수가 4의 배수 +1 이어야 딱 맞는데 6장이 되어 한 장이 혼자 떨어졌다.
+         홈은 **가로로 흐르는 줄**이라 장수가 몇이든 상관없다 — 이런 사진은 여기가 제자리다. */
+      src: "/immune/life/dining-sauce-1.jpg",
+      caption: { ko: "소스를 올리는 손", en: "Saucing the plate", ru: "Соус на тарелке", kz: "Тәрелкеге тұздық", zh: "淋酱", ja: "ソースを添える手" },
+    },
   ],
 
   whyUsTitle: {

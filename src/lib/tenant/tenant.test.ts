@@ -356,6 +356,29 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
     expect(지점별.seongdong).toBe(8);
   });
 
+  /* 🖼 속 페이지 사진 격자는 **«큰 것 1 + 작은 것 4»** 모양이다(`blocks.jsx` 의 GalleryBlock).
+     4칸 격자에서 첫 장이 2×2 를 차지하므로 **5장·9장·13장…(4의 배수 +1)** 일 때만 줄이 딱 맞는다.
+     6장이 되면 마지막 한 장이 **혼자 떨어져** «만들다 만 화면»으로 보인다.
+     🔴 2026-07-29 실제로 냈다 — 「해외 환자 안내」에서 6장→5장으로 고쳐 놓고,
+        같은 세션에 「진료 안내」 격자에 한 장을 더 넣으면서 다시 안 봤다(**내가 낸 회귀**).
+     ⚠️ 사진을 더 넣고 싶은데 장수가 안 맞으면, 격자가 아니라 **홈의 가로로 흐르는 줄**에 넣어라 —
+        거기는 장수 제한이 없다. 이 검사를 통과시키려고 «쓸 만한 사진을 버리는» 게 아니다. */
+  it("🖼 속 페이지 사진 격자 장수가 줄에 딱 맞는다 (4의 배수 +1)", async () => {
+    const { IMMUNE_PAGES } = await import("./content/immunePages.js");
+    const 어긋남: string[] = [];
+    let 검사한격자 = 0;
+    for (const [slug, page] of Object.entries(IMMUNE_PAGES as Record<string, any>)) {
+      for (const b of page.blocks || []) {
+        if (b.type !== "gallery" || !Array.isArray(b.items)) continue;
+        검사한격자 += 1;
+        const n = b.items.length;
+        if (n % 4 !== 1) 어긋남.push(`${slug}: ${n}장 → 마지막 ${((n - 1) % 4) || 4}장이 혼자 떨어진다`);
+      }
+    }
+    expect(검사한격자, "사진 격자를 하나도 못 찾았다 — 검사가 안 돈 것").toBeGreaterThan(0);
+    expect(어긋남, `사진 격자 장수가 안 맞는다:\n${어긋남.join("\n")}`).toEqual([]);
+  });
+
   it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
     // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
     const { IMMUNE_PAGES } = await import("./content/immunePages.js");
