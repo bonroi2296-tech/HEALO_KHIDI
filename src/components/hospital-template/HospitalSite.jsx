@@ -515,16 +515,30 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
             title={t(site.videosTitle)}
             lead={t(site.videosNote)}
           />
-          <SnapRow>
-            {site.videos.map((v, i) => (
+          {/* 세로 영상(쇼츠)과 가로 영상을 **한 줄에 섞지 않는다.**
+              섞으면 카드 높이가 2배 차이 나(230px 폭 세로 = 409px, 360px 폭 가로 = 202px)
+              줄 아래가 톱니처럼 들쭉날쭉해진다(2026-07-29 화면으로 확인).
+              → 세로만 있는 줄 / 가로만 있는 줄로 나눠 그린다. 한 종류만 쓰는 병원은 줄이 하나만 뜬다. */}
+          {[true, false].map((세로줄) => {
+            const 목록 = site.videos.filter((v) => Boolean(v.portrait) === 세로줄);
+            if (!목록.length) return null;
+            return (
+          <SnapRow key={세로줄 ? "portrait" : "landscape"} className={세로줄 ? "mb-8" : ""}>
+            {목록.map((v, i) => (
               <a
                 key={i}
                 href={`https://www.youtube.com/watch?v=${v.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group block shrink-0 snap-start w-[78vw] sm:w-[360px]"
+                /* 세로 영상은 칸도 좁게 — 가로 영상과 같은 폭이면 화면을 통째로 잡아먹는다. */
+                className={`group block shrink-0 snap-start ${v.portrait ? "w-[52vw] sm:w-[230px]" : "w-[78vw] sm:w-[360px]"}`}
               >
-                <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#EDE6DA] mb-3.5">
+                {/* ⚠️ 유튜브 «쇼츠»(세로 영상)의 썸네일은 1280x720 인데 **가운데 405px 만 진짜 내용**이고
+                    양옆 3분의 2는 «같은 그림을 흐리게 확대한 배경»이다. 16:9 상자에 그대로 넣으면
+                    카드의 3분의 2가 흐릿한 얼룩이 된다(2026-07-29 실측: 의료 영상 5개가 전부 이랬다).
+                    → 썸네일은 미리 세로로 잘라 두고, 여기서는 `portrait` 이면 9:16 상자로 그린다.
+                    쇼츠를 안 쓰는 병원은 이 값이 없어서 예전과 똑같이 동작한다. */}
+                <div className={`relative ${v.portrait ? "aspect-[9/16]" : "aspect-video"} rounded-2xl overflow-hidden bg-[#EDE6DA] mb-3.5`}>
                   {/* 썸네일은 **우리가 저장한 파일**을 쓴다(`v.thumb`). 유튜브에서 직접 불러오면
                       ①외부 도메인이라 CSP·이미지 최적화 설정을 건드려야 하고 ②유튜브가 주소를
                       바꾸면 조용히 깨지며 ③실제로 로컬에서 안 떴다(2026-07-28 실측).
@@ -536,7 +550,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                     /* ⚠️ 격자를 가로줄로 바꾸면서 칸 너비가 «화면 비율»이 아니라 «고정 360px»이 됐다.
                        sizes 를 옛 격자 값(33vw)으로 두면 next/image 가 **3840px 짜리를 받아온다**
                        (2026-07-29 실측으로 잡음). 칸 너비가 바뀌면 sizes 도 같이 바꿔야 한다. */
-                    sizes="(max-width: 640px) 78vw, 360px"
+                    sizes={v.portrait ? "(max-width: 640px) 52vw, 230px" : "(max-width: 640px) 78vw, 360px"}
                     unoptimized={!v.thumb}
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                   />
@@ -563,6 +577,8 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
               </a>
             ))}
           </SnapRow>
+            );
+          })}
         </Section>
       )}
 
