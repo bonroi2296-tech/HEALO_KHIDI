@@ -90,10 +90,16 @@ export const getLangCodeFromCookie = () => {
   return "en";
 };
 
-/** 언어 선택 시 쿠키 저장 (healo_lang). googtrans는 제거해 우리 번역만 사용 */
+/** 언어 선택 시 쿠키 저장 (healo_lang). googtrans는 제거해 우리 번역만 사용
+ *  ⚠️ 2026-07-29: 여기도 `DICTIONARY[code]` 로 검사하고 있었다 — 이 함수는 브라우저에서만 도는데
+ *     브라우저 번들의 DICTIONARY 는 **빈 껍데기**다(위 4~8줄 주석 참고) → 검사가 항상 실패해
+ *     쿠키를 **한 번도 저장하지 않았다.** 공개 화면이 멀쩡해 보인 건 주소가 `/ru` 로 옮겨가며
+ *     서버가 쿠키를 심어 줬기 때문이지 이 함수 덕이 아니다(실측: 러시아어 선택 → 주소 /en→/ru).
+ *     주소 이동이 없는 포털(에이전시·의료기관)에서는 이 함수가 유일한 저장 경로라 그쪽은
+ *     안 먹었을 가능성이 높다 — 다만 그 계정으로 로그인해 **직접 재보지는 못했다**(반성문 #155). */
 export const setLangCookie = (code) => {
   if (typeof document === "undefined") return;
-  if (!DICTIONARY[code]) return;
+  if (!isKnownLangCode(code)) return;
   document.cookie = `healo_lang=${code}; path=/; max-age=31536000`;
   document.cookie = "googtrans=; path=/; max-age=0";
 };
