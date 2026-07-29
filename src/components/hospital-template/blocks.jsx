@@ -210,7 +210,25 @@ function BranchesBlock({ block, t, accent }) {
       <BlockHeading eyebrow={t(block.eyebrow)} title={t(block.title)} accent={accent} />
       <div className="grid md:grid-cols-2 gap-5">
         {block.items.map((b, i) => (
-          <Reveal key={i} delay={i * 100} className="bg-white rounded-2xl p-7 border border-black/[0.06]">
+          <Reveal
+            key={i}
+            delay={i * 100}
+            className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] transition-colors"
+          >
+            {/* 사진이 있으면 얹는다 — 해외 환자는 «어떻게 생긴 건물인지»를 보고 찾아온다.
+                사진이 없는 병원은 예전처럼 글만 뜨고 레이아웃은 그대로다. */}
+            {b.image && (
+              <div className="relative aspect-[16/9] overflow-hidden bg-[#EDE6DA]">
+                <Image
+                  src={b.image}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+              </div>
+            )}
+            <div className="p-7">
             <h3 className="text-lg font-semibold mb-3 tracking-tight">{t(b.name)}</h3>
             <p className="text-[15px] text-black/55 leading-relaxed">{t(b.address)}</p>
             {b.phone && (
@@ -219,6 +237,7 @@ function BranchesBlock({ block, t, accent }) {
               </a>
             )}
             {t(b.note) && <p className="text-[13px] text-black/40 mt-3">{t(b.note)}</p>}
+            </div>
           </Reveal>
         ))}
       </div>

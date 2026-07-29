@@ -264,6 +264,7 @@ export const IMMUNE_SITE = {
     doctors: "Medical Team",
     programs: "Treatments",
     menu: "Treatment Menu",
+    branches: "Locations",
     gallery: "Our Space",
     chat: "Chat",
     videos: "Life at the Hospital",
@@ -701,6 +702,61 @@ export const IMMUNE_SITE = {
     // (카카오/구글 지도 이미지는 저작물이고, 지점이 바뀌면 조용히 틀린 그림이 남는다).
     mapUrl: "https://map.kakao.com/?q=%EB%A9%B4%EB%A0%A5%ED%95%9C%EB%B0%A9%EB%B3%91%EC%9B%90%20%EB%A7%88%EA%B3%A1",
   },
+
+
+  /* ══ 지점 4곳 ══
+     PO 지적(2026-07-29): *"4개 지점도 우리 힐위드에서 쓰던 외관 사진 쓰면 좋지 않겄냐?"* — 맞았다.
+     `public/images/hospitals/immunehospital-*` 에 **4개 지점 × 5장 = 20장**이 이미 있었는데
+     나는 마곡(강서) 것만 쓰고 있었다. (또 「있는 자산부터 뒤져라」를 어겼다.)
+     ⚠️ 주소는 DB 에 광명·성동이 비어 있어 **각 지점 사이트에서 직접 확인**해 채웠다
+        (km./sc./sd..immunehospital.com 푸터 = 법정 공개 정보).
+     해외 환자에게 지점 안내는 «자랑»이 아니라 **「어디로 가면 되나」라는 실제 질문**이다. */
+  branchesTitle: {
+    ko: "어느 지점으로 오시면 되나",
+    en: "Which branch to visit",
+    ru: "В какой филиал приехать",
+    kz: "Қай филиалға келу керек",
+    zh: "该前往哪家院区",
+    ja: "どの院にお越しいただくか",
+  },
+  branchesLead: {
+    ko: "서울 3곳·경기 1곳. 치료 내용은 같고, 입원 가능 여부와 위치가 다릅니다. 어디로 오실지는 상담 때 함께 정합니다.",
+    en: "Three in Seoul, one in Gyeonggi. The treatment is the same; what differs is location and inpatient capacity. We decide together during your consultation.",
+    ru: "Три в Сеуле, один в Кёнги. Лечение одинаковое — различаются расположение и возможность стационара. Выберем вместе на консультации.",
+    kz: "Сеулде үшеу, Кёнгиде біреу. Ем бірдей — орналасуы мен стационар мүмкіндігі әртүрлі. Кеңес кезінде бірге таңдаймыз.",
+    zh: "首尔3家、京畿1家。诊疗内容相同，区别在于位置与住院条件。前往哪家将在咨询时共同确定。",
+    ja: "ソウル3か所・京畿1か所。治療内容は同じで、立地と入院可否が異なります。どこに来ていただくかは相談時に一緒に決めます。",
+  },
+  branches: [
+    {
+      image: "/images/hospitals/immunehospital-magok/1.jpg",
+      name: {ko:  "강서(마곡) 본원", en:  "Gangseo (Magok) — Main", ru:  "Кансо (Магок) — главный", kz:  "Кансо (Магок) — бас", zh:  "江西（麻谷）总院", ja:  "江西（麻谷）本院"},
+      address: {ko:  "서울 강서구 마곡중앙6로 93 열린프라자 6·7·10층", en:  "6F·7F·10F, Yeollin Plaza, 93 Magokjungang 6-ro, Gangseo-gu, Seoul", ru:  "6, 7, 10 эт., Ёллин Плаза, 93 Магокчунан 6-ро, Кансо-гу, Сеул", kz:  "6, 7, 10 қабат, Ёллин Плаза, 93 Магокчунан 6-ро, Кансо-гу, Сеул", zh:  "首尔市江西区麻谷中央6路93号 悦邻广场 6·7·10层", ja:  "ソウル市江西区麻谷中央6路93 ヨルリンプラザ 6・7・10階"},
+      note: {ko:  "암면역·신경면역·재활 3개 센터", en:  "Three centers: cancer, neuro-immunity, rehabilitation", ru:  "Три центра: онкоиммунология, нейроиммунология, реабилитация", kz:  "Үш орталық: онкоиммунология, нейроиммунология, оңалту", zh:  "三大中心：癌症免疫·神经免疫·康复", ja:  "3センター：がん免疫・神経免疫・リハビリ"},
+      phone: "1588-2915",
+    },
+    {
+      image: "/images/hospitals/immunehospital-sinchon/1.jpg",
+      name: {ko:  "신촌점", en:  "Sinchon", ru:  "Синчон", kz:  "Синчон", zh:  "新村院区", ja:  "新村院"},
+      address: {ko:  "서울 서대문구 연세로 12 8~14층", en:  "8F–14F, 12 Yonsei-ro, Seodaemun-gu, Seoul", ru:  "8–14 эт., 12 Ёнсе-ро, Содэмун-гу, Сеул", kz:  "8–14 қабат, 12 Ёнсе-ро, Содэмун-гу, Сеул", zh:  "首尔市西大门区延世路12号 8~14层", ja:  "ソウル市西大門区延世路12 8〜14階"},
+      note: {ko:  "연세대 인근 · 1인 병실 중심", en:  "Near Yonsei University · private rooms", ru:  "Рядом с университетом Ёнсе · одноместные палаты", kz:  "Ёнсе университетіне жақын · жеке палаталар", zh:  "邻近延世大学·以单人病房为主", ja:  "延世大学近く・個室中心"},
+      phone: "1588-2915",
+    },
+    {
+      image: "/images/hospitals/immunehospital-seongdong/1.jpg",
+      name: {ko:  "성동점", en:  "Seongdong", ru:  "Сондон", kz:  "Сондон", zh:  "城东院区", ja:  "城東院"},
+      address: {ko:  "서울 성동구 천호대로 320, 2~7층·B101호 (용답동 장안빌딩)", en:  "2F–7F & B101, Jangan Bldg, 320 Cheonho-daero, Seongdong-gu, Seoul", ru:  "2–7 эт. и B101, зд. Чанан, 320 Чонхо-даэро, Сондон-гу, Сеул", kz:  "2–7 қабат және B101, Чанан ғимараты, 320 Чонхо-даэро, Сондон-гу, Сеул", zh:  "首尔市城东区川虎大路320号 长安大厦 2~7层·B101", ja:  "ソウル市城東区川虎大路320 チャンアンビル 2〜7階・B101"},
+      note: {ko:  "건물 전체 사용 · 지하철 용답역 인근", en:  "Whole building · near Yongdap Station", ru:  "Всё здание · рядом со станцией Ёндап", kz:  "Бүкіл ғимарат · Ёндап станциясына жақын", zh:  "整栋使用·邻近龙踏站", ja:  "建物全体・龍踏駅近く"},
+      phone: "02-2295-8510",
+    },
+    {
+      image: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
+      name: {ko:  "광명점", en:  "Gwangmyeong", ru:  "Кванмён", kz:  "Кванмён", zh:  "光明院区", ja:  "光明院"},
+      address: {ko:  "경기 광명시 철산로 16 트라이앵글빌딩 6층·8~11층", en:  "6F, 8F–11F, Triangle Bldg, 16 Cheolsan-ro, Gwangmyeong-si, Gyeonggi", ru:  "6, 8–11 эт., зд. Триангл, 16 Чольсан-ро, Кванмён, Кёнги", kz:  "6, 8–11 қабат, Триангл ғимараты, 16 Чольсан-ро, Кванмён, Кёнги", zh:  "京畿道光明市铁山路16号 三角大厦 6层·8~11层", ja:  "京畿道光明市鉄山路16 トライアングルビル 6階・8〜11階"},
+      note: {ko:  "수도권 서남부 · 지하철 철산역 인근", en:  "Southwest metro area · near Cheolsan Station", ru:  "Юго-запад столичного региона · рядом со станцией Чольсан", kz:  "Астана маңының оңтүстік-батысы · Чольсан станциясына жақын", zh:  "首都圈西南部·邻近铁山站", ja:  "首都圏南西部・鉄山駅近く"},
+      phone: "1588-2915",
+    },
+  ],
 
   /* 맨 위 공지 띠. 유앤아이의원은 여기에 「확장 오픈」을 건다.
      해외 환자용 병원에서 이 자리에 걸 값은 «지금 오면 뭐가 되는가» — 통역·검사 일정 같은 것.

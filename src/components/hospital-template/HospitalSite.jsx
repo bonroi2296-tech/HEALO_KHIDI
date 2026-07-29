@@ -526,6 +526,57 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
+      {/* ══ 지점 안내 ══
+          해외 환자에게 이건 «자랑»이 아니라 **「어디로 가면 되나」라는 실제 질문**이다.
+          지점이 하나인 병원은 이 섹션이 통째로 안 뜬다. */}
+      {has(site.branches) && (
+        <Section pad="normal">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.branches) || "Locations"}
+            title={t(site.branchesTitle)}
+            lead={t(site.branchesLead)}
+          />
+          <div className="grid sm:grid-cols-2 gap-5 md:gap-6">
+            {site.branches.map((b, i) => (
+              <Reveal
+                key={i}
+                delay={i * 100}
+                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
+              >
+                {b.image && (
+                  <div className="relative aspect-[16/9] overflow-hidden bg-[#EDE6DA]">
+                    <Image
+                      src={b.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                )}
+                <div className="p-6 md:p-7">
+                  <h3 className="text-lg md:text-xl font-semibold tracking-tight mb-2">{t(b.name)}</h3>
+                  {t(b.note) && (
+                    <p className="text-[13px] mb-3" style={{ color: accent }}>{t(b.note)}</p>
+                  )}
+                  <p className="text-[14px] text-black/55 leading-relaxed">{t(b.address)}</p>
+                  {b.phone && (
+                    <a
+                      href={`tel:${String(b.phone).replace(/[^0-9+]/g, "")}`}
+                      className="inline-block mt-3 text-[14px] tabular-nums font-medium"
+                      style={{ color: accent }}
+                    >
+                      {b.phone}
+                    </a>
+                  )}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* ══ 환자 후기 — 없으면 통째로 안 그린다 ══ */}
       {has(site.testimonials) && (
         <Section tone="ink" darkTone={darkTone}>
