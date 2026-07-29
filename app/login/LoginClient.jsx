@@ -187,30 +187,23 @@ export const LoginPage = ({ setView }) => {
                     <div className="mt-6">
                         <button
                             onClick={async () => {
-                                console.log('[LoginPage] 🔵 Google button clicked!');
-                                console.log('[LoginPage] window.location.origin:', window.location.origin);
                                 
                                 setOauthLoading(true);
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
-                                    console.log('[LoginPage] redirectTo:', redirectUrl);
                                     
-                                    console.log('[LoginPage] Calling signInWithOAuth...');
-                                    const { data, error } = await supabase.auth.signInWithOAuth({
+                                    const { error } = await supabase.auth.signInWithOAuth({
                                         provider: 'google',
                                         options: {
                                             redirectTo: redirectUrl,
                                         },
                                     });
-                                    
-                                    console.log('[LoginPage] signInWithOAuth result:', { data, error });
-                                    
+
+                                    // 성공하면 구글로 넘어가므로 여기서 할 일이 없다(로딩 표시도 그대로 둔다).
                                     if (error) {
                                         console.error('[LoginPage] ❌ OAuth error:', error);
                                         toast.error(t("login.googleError", langCode));
                                         setOauthLoading(false);
-                                    } else {
-                                        console.log('[LoginPage] ✅ OAuth initiated, redirecting to Google...');
                                     }
                                 } catch (err) {
                                     console.error('[LoginPage] ❌ Google OAuth exception:', err);
