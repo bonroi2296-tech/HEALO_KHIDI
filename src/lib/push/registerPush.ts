@@ -9,6 +9,42 @@
 "use client";
 
 let registered = false;
+// 마지막으로 받은 기기 토큰 — 로그인·로그아웃 때 «같은 토큰»을 다시 등록하는 데 쓴다.
+let lastToken: string | null = null;
+let platform = "";
+
+/**
+ * /api/push/register 요청 모양. (순수 함수 — 테스트 대상)
+ *
+ * 로그인 상태면 Bearer 를 싣는다 → 서버가 토큰을 그 사용자에 연결(user_id).
+ * 로그아웃 상태면 헤더 없이 보낸다 → 서버가 user_id 를 null 로 **덮어쓴다**
+ * (upsert onConflict: "token"). 기기를 같이 쓰는 경우 이전 사용자에게 알림이 새지 않는다.
+ */
+export function buildRegisterRequest(
+  token: string,
+  devicePlatform: string,
+  accessToken?: string | null
+): RequestInit {
+  return {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ token, platform: devicePlatform }),
+  };
+}
+
+async function postToken(token: string): Promise<void> {
+  lastToken = token;
+  try {
+    const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+    const { data } = await createSupabaseBrowserClient().auth.getSession();
+    await fetch("/api/push/register", buildRegisterRequest(token, platform, data?.session?.access_token));
+  } catch {
+    /* 네트워크 실패는 다음 실행·다음 로그인에서 재시도 */
+  }
+}
 
 export async function registerPushNotifications(): Promise<void> {
   if (registered) return;
@@ -17,6 +53,7 @@ export async function registerPushNotifications(): Promise<void> {
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) return; // 웹이면 종료
   registered = true;
+  platform = Capacitor.getPlatform();
 
   const { PushNotifications } = await import("@capacitor/push-notifications");
 
@@ -44,17 +81,24 @@ export async function registerPushNotifications(): Promise<void> {
   });
 
   // 토큰 수신 → 서버 등록
-  PushNotifications.addListener("registration", async (token) => {
-    try {
-      await fetch("/api/push/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token.value, platform: Capacitor.getPlatform() }),
-      });
-    } catch {
-      /* 네트워크 실패는 다음 실행에서 재시도 */
-    }
+  PushNotifications.addListener("registration", (token) => {
+    void postToken(token.value);
   });
+
+  // 로그인/로그아웃하면 **같은 토큰을 다시 등록**한다 (2026-07-29 수리).
+  // 이게 없어서 앱 실행당 한 번(대개 로그인 전)만 등록됐고, 토큰이 전부 «주인 없음»으로 쌓였다
+  // → sendPushToUser() 가 늘 0건을 찾아 개인 알림이 구조적으로 불가능했다.
+  // 이미 쌓인 주인 없는 토큰은 다음 로그인 때 이 경로가 덮어써서 저절로 채워진다(onConflict: "token").
+  try {
+    const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+    createSupabaseBrowserClient().auth.onAuthStateChange((event) => {
+      // INITIAL_SESSION·TOKEN_REFRESHED 는 주인이 안 바뀌므로 무시.
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT") return;
+      if (lastToken) void postToken(lastToken);
+    });
+  } catch {
+    /* supabase 로드 실패 → 익명 등록만 유지 */
+  }
 
   await PushNotifications.register();
 }
