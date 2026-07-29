@@ -39,6 +39,8 @@ export default function ContentEditorClient() {
   const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [logTotal, setLogTotal] = useState(0);      // 전체 이력 건수(«몇 건 중 몇 건» 표시용)
+  const [logLoading, setLogLoading] = useState(false);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
   const [blockView, setBlockView] = useState(false);
   const debounceRef = useRef();
@@ -196,14 +198,26 @@ export default function ContentEditorClient() {
     };
   }, [confirming]);
 
+  // 2026-07-29: 50건 고정이라 그 앞 이력이 통째로 안 보였다(실측 247건 중 50건).
+  // 「더 보기」로 이어붙이고, 머릿글에 «전체 몇 건 중 몇 건» 을 보여준다.
+  const PAGE = 50;
+  const loadLogs = async (offset = 0) => {
+    setLogLoading(true);
+    try {
+      const res = await fetch(`/api/coordinator/content?logs=1&offset=${offset}&limit=${PAGE}`);
+      const data = await res.json();
+      if (data.ok) {
+        setLogs((prev) => (offset === 0 ? (data.logs || []) : [...prev, ...(data.logs || [])]));
+        setLogTotal(typeof data.total === "number" ? data.total : (data.logs || []).length);
+      }
+    } catch {} finally { setLogLoading(false); }
+  };
+
   const openLogs = async () => {
     setConfirming(false);
     setShowLog(true);
-    try {
-      const res = await fetch("/api/coordinator/content?logs=1");
-      const data = await res.json();
-      if (data.ok) setLogs(data.logs || []);
-    } catch {}
+    setLogs([]);
+    await loadLogs(0);
   };
 
   const refLang = editLang === "ko" ? "en" : "ko";
@@ -250,13 +264,48 @@ export default function ContentEditorClient() {
 
       {showLog ? (
         <div className="space-y-2">
-          {logs.length === 0 && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
+          {logs.length === 0 && !logLoading && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
+          {logTotal > 0 && (
+            <p className="text-xs text-gray-600 mb-1">
+              전체 <b className="text-gray-700">{logTotal}건</b> 중 <b className="text-gray-700">{logs.length}건</b> 보는 중 · 최근 것부터
+            </p>
+          )}
           {logs.map((lg) => (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
+              {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
+                  코디는 그게 어느 화면인지 알 방법이 없었다(PO: «코디한테 코드 까뒤집어보라고 할까?»).
+                  → 사람이 읽는 화면 이름 + 자리 + 「화면 열기」 링크를 앞에 세우고, 코드 이름은 뒤로 뺀다. */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                {lg.place?.screen ? (
+                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
+                    {lg.place.screen}
+                  </span>
+                ) : (
+                  <span
+                    className="text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded"
+                    title={lg.place?.note || "이 문구가 어느 화면인지 아직 목록에 없습니다 — 알려주시면 채워 넣습니다"}
+                  >
+                    {lg.place?.note ? "화면 못 찾음" : "화면 미확인"}
+                  </span>
+                )}
+                {lg.place?.where && <span className="text-[11px] text-gray-700">{lg.place.where}</span>}
+                <span className="text-[11px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">{LANG_LABEL[lg.lang] || lg.lang}</span>
+                {lg.place?.path && (
+                  <a
+                    href={lg.place.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-teal-700 underline hover:no-underline"
+                  >
+                    화면 열기 ↗
+                  </a>
+                )}
+                {lg.place?.note && <span className="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{lg.place.note}</span>}
+              </div>
               <div className="flex flex-wrap gap-2 text-gray-500 mb-1">
                 <span>{new Date(lg.changed_at).toLocaleString("ko-KR")}</span>
                 <span>·</span><span>{lg.editor_email}</span>
-                <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
+                <span>·</span><span className="font-mono text-gray-500 break-all">{lg.content_key}</span>
               </div>
               {/* 전후 비교: 취소선은 원문 글자를 가려 「원래 뭐였는지」가 안 읽혔다(PO 지적).
                   줄을 긋지 않고 색으로만 구분 — 이전=연빨강, 이후=연초록. 글씨는 700번대(AA). */}
@@ -277,6 +326,18 @@ export default function ContentEditorClient() {
               </div>
             </div>
           ))}
+          {logLoading && <p className="text-sm text-gray-500 py-2">불러오는 중…</p>}
+          {!logLoading && logs.length < logTotal && (
+            <button
+              onClick={() => loadLogs(logs.length)}
+              className="w-full text-sm py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-[44px]"
+            >
+              더 보기 (남은 {logTotal - logs.length}건)
+            </button>
+          )}
+          {!logLoading && logTotal > 0 && logs.length >= logTotal && (
+            <p className="text-xs text-gray-600 text-center py-2">여기까지가 전부입니다 · 총 {logTotal}건</p>
+          )}
         </div>
       ) : (
         <>

@@ -16,9 +16,16 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { REGISTRY_KEYS, EDITABLE_LANGS, HOME_CONTENT_REGISTRY, getDefaultValueObject } from "@/lib/content/registry";
 import { invalidateContentCache } from "@/lib/content/overrides";
 import { withOldValueDefaults } from "@/lib/content/changeLog";
+import { describeKey } from "@/lib/content/keyLocation";
 import { searchI18nKeys, isValidI18nKey, getI18nValues, normalizeForSearch } from "@/lib/i18n";
 
 const db = supabaseAdmin as any;
+
+// 홈 문구의 «사람이 읽는 이름»(예: 「통계 / 항목1 · 문구」) — 레지스트리가 이미 갖고 있다.
+const HOME_LABEL = new Map<string, { section: string; label: string }>(
+  HOME_CONTENT_REGISTRY.map((r: any) => [r.key, { section: r.section, label: r.label }])
+);
+const homeLabelOf = (k: string) => HOME_LABEL.get(k) || null;
 
 // 2026-07-24 권한 정비(B, KNOWN_ISSUES 참조): checkAdminAuth 직접 호출은 rate limit·표준 응답이
 // 안 걸리는 우회로였음 → 표준 스태프 가드(requirePortalAuth staffOnly = admin+coordinator)로 교체.
@@ -37,18 +44,33 @@ export async function GET(request: NextRequest) {
   const wantLogs = request.nextUrl.searchParams.get("logs");
   try {
     if (wantLogs) {
-      const { data: logs } = await db
+      // 2026-07-29: 50건 고정이라 **그 앞의 이력이 통째로 안 보였다**(실측 247건 중 50건만).
+      // offset/limit 으로 「더 보기」를 지원하고, 전체 건수도 같이 준다(«몇 건 중 몇 건»을 보여주려고).
+      const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get("limit")) || 50, 1), 200);
+      const offset = Math.max(Number(request.nextUrl.searchParams.get("offset")) || 0, 0);
+      const { data: logs, count } = await db
         .from("content_change_log")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("changed_at", { ascending: false })
-        .limit(50);
+        .range(offset, offset + limit - 1);
       // 2026-07-28: 이력의 「이전 값」이 (없음) 으로만 뜨던 것 수리 — 사유는 changeLog.ts 주석.
       const enriched = withOldValueDefaults(logs || [], {
         isRegistryKey: (k: string) => REGISTRY_KEYS.has(k),
         getDefaultValueObject,
         getI18nValues,
       });
-      return NextResponse.json({ ok: true, logs: enriched });
+      // 「이게 어느 화면의 무엇인가」를 같이 내려준다 — 코드 이름만으로는 코디가 못 찾는다.
+      const withPlace = enriched.map((lg: any) => ({
+        ...lg,
+        place: describeKey(lg?.content_key, (k: string) => homeLabelOf(k)),
+      }));
+      return NextResponse.json({
+        ok: true,
+        logs: withPlace,
+        total: typeof count === "number" ? count : withPlace.length,
+        offset,
+        limit,
+      });
     }
     if (q && q.trim()) {
       const ql = normalizeForSearch(q);
