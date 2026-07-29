@@ -549,9 +549,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setBriefError(true); setBriefLoading(false); return; }
+      // 브리프는 «내 화면 언어»로 만든다 — 틀만 러시아어이고 알맹이가 한국어면 코디가 못 읽는다.
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/brief`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lang }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.brief) setBrief(data.brief);
@@ -618,10 +620,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setCaseSaving(false);
   }
 
+  // lang 도 의존한다: 화면 언어를 바꾸면 브리프도 그 언어 것으로 다시 가져온다
+  // (안 그러면 화면은 러시아어인데 브리프만 한국어로 남는다 — 이번에 고친 바로 그 증상).
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inquiryId]);
+  }, [inquiryId, lang]);
 
   async function load() {
     setLoading(true);
@@ -631,7 +635,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setError(L.ibLoginRequired); setLoading(false); return; }
 
-      const res = await fetch(`/api/portal/inbox/${inquiryId}`, {
+      // lang: 캐시된 브리프를 «내 언어» 것으로 골라 받는다(없으면 화면이 그 언어로 새로 만든다)
+      const res = await fetch(`/api/portal/inbox/${inquiryId}?lang=${encodeURIComponent(lang)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const result = await res.json();
