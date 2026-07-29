@@ -264,7 +264,7 @@ export default function CoordinatorConsultationsPage() {
             key={tab.key}
             onClick={() => setFilter(tab.key)}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition ${
-              filter === tab.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              filter === tab.key ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab.label}
@@ -406,7 +406,7 @@ export default function CoordinatorConsultationsPage() {
                           </button>
                           <button
                             onClick={() => handleCopyLink(c.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition text-sm font-medium"
                             title={L.ttCopyLink}
                           >
                             🔗 {L.btnCopyLink}

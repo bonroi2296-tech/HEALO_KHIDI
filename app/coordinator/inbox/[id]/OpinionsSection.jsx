@@ -403,7 +403,7 @@ function OpinionItem({ opinion, patientLang }) {
             <button
               onClick={retranslate}
               disabled={translating}
-              className="text-xs text-blue-700 hover:underline disabled:opacity-50"
+              className="text-xs text-teal-700 hover:underline disabled:opacity-50"
             >
               {translating ? L.soTranslating : L.soRetranslate}
             </button>

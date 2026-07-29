@@ -257,7 +257,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                   href={invitationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline block mt-1"
+                  className="text-xs text-teal-700 hover:underline block mt-1"
                 >
                   {L.viPdfDownload}
                 </a>
@@ -337,7 +337,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                           href={doc.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-teal-700 hover:underline"
                         >
                           {L.viDocView}
                         </a>

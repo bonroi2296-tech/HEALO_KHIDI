@@ -174,7 +174,7 @@ export default function CoordinatorVisaListClient() {
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/coordinator/visa/${app.id}`}
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-sm text-teal-700 hover:underline"
                       >
                         {L.viDetailArrow}
                       </Link>
