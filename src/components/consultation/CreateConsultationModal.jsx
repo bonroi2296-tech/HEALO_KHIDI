@@ -32,6 +32,8 @@ const TR = {
     linkBoxDescPrefix: "상담을 만들면 ", linkBoxDescBold: "참여 링크 1개", linkBoxDescSuffix: "가 생성됩니다. 환자·의사·통역 등 모든 참여자에게 이 링크 하나만 공유하세요. 각자 이름을 입력하고 입장합니다 (만료: 상담 시각 +12시간, 최소 72시간).",
     lblSelectFromInquiry: "문의에서 환자 선택 (선택)", inquirySelectPlaceholder: "— 문의 목록에서 선택 (이름·이메일·언어 자동 입력) —",
     inquiryNameUnknown: "(이름 미상)", inquiryHint: "문의를 고르면 환자 이름·이메일이 자동 입력됩니다(자동 발송용). 이메일이 없으면 링크를 복사해 직접 전달하세요.",
+    inquiryNotCountedTitle: "⚠️ 이 상담은 KHIDI 실적에 안 잡힙니다",
+    inquiryNotCountedBody: "사전상담·사후관리 실적은 «문의에 연결된» 상담만 셉니다. 위에서 문의를 고르지 않으면 상담을 아무리 해도 숫자가 0 입니다. 목록에 없으면 파트너 미팅으로 바꾸세요.",
     phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
     advancedOptions: "고급 옵션 (선택)", advancedOptionsHint: "세션 유형 · 코디 · 병원/의사 · 언어 · 비고",
@@ -68,6 +70,8 @@ const TR = {
     linkBoxDescPrefix: "Creating the consultation generates ", linkBoxDescBold: "one join link", linkBoxDescSuffix: ". Share this single link with all participants — patient, doctor, interpreter, etc. Each enters their name to join (valid until 12 hours after the scheduled time, at least 72 hours).",
     lblSelectFromInquiry: "Select patient from inquiries (optional)", inquirySelectPlaceholder: "— Select from inquiry list (auto-fills name / email / language) —",
     inquiryNameUnknown: "(name unknown)", inquiryHint: "Selecting an inquiry auto-fills the patient's name/email (for auto-send). If there's no email, copy the link and share it manually.",
+    inquiryNotCountedTitle: "⚠️ This consultation will NOT count toward KHIDI figures",
+    inquiryNotCountedBody: "Pre-consultation / follow-up figures only count sessions linked to an inquiry. Without selecting one above, this session stays at zero no matter how it goes. If the inquiry isn't listed, switch the type to Partner meeting.",
     phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Primary recipient (patient) email (optional) — enables auto-send & reminders",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
     advancedOptions: "Advanced options (optional)", advancedOptionsHint: "Session type · coordinator · hospital/doctor · language · notes",
@@ -104,6 +108,8 @@ const TR = {
     linkBoxDescPrefix: "При создании консультации формируется ", linkBoxDescBold: "одна ссылка для входа", linkBoxDescSuffix: ". Отправьте эту единственную ссылку всем участникам — пациенту, врачу, переводчику и т.д. Каждый вводит своё имя при входе (действует до 12 часов после назначенного времени, но не менее 72 часов).",
     lblSelectFromInquiry: "Выбрать пациента из заявок (необязательно)", inquirySelectPlaceholder: "— Выбрать из списка заявок (имя/email/язык заполнятся автоматически) —",
     inquiryNameUnknown: "(имя неизвестно)", inquiryHint: "При выборе заявки имя/email пациента заполнятся автоматически (для автоотправки). Если email нет, скопируйте ссылку и передайте вручную.",
+    inquiryNotCountedTitle: "⚠️ Эта консультация НЕ попадёт в показатели KHIDI",
+    inquiryNotCountedBody: "В показатели (предварительная консультация / наблюдение) попадают только сессии, связанные с заявкой. Без выбора заявки выше сессия останется нулём. Если заявки нет в списке — выберите тип «Встреча с партнёром».",
     phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Email основного получателя (пациента) (необязательно) — включает автоотправку и напоминания",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
     advancedOptions: "Дополнительные настройки (необязательно)", advancedOptionsHint: "Тип сессии · координатор · больница/врач · язык · заметки",
@@ -140,6 +146,8 @@ const TR = {
     linkBoxDescPrefix: "Кеңесті жасағанда ", linkBoxDescBold: "бір кіру сілтемесі", linkBoxDescSuffix: " жасалады. Осы жалғыз сілтемені барлық қатысушыларға — науқас, дәрігер, аудармашы т.б. — жіберіңіз. Әрқайсысы өз атын енгізіп кіреді (жоспарланған уақыттан кейін 12 сағатқа дейін жарамды, кемінде 72 сағат).",
     lblSelectFromInquiry: "Науқасты өтінімдерден таңдау (міндетті емес)", inquirySelectPlaceholder: "— Өтінім тізімінен таңдау (аты/email/тіл автоматты толтырылады) —",
     inquiryNameUnknown: "(аты белгісіз)", inquiryHint: "Өтінімді таңдағанда науқастың аты/email автоматты толтырылады (автожіберу үшін). Email болмаса, сілтемені көшіріп қолмен жіберіңіз.",
+    inquiryNotCountedTitle: "⚠️ Бұл кеңес KHIDI көрсеткіштеріне ЕСЕПТЕЛМЕЙДІ",
+    inquiryNotCountedBody: "Көрсеткіштерге тек өтінімге байланған сессиялар кіреді. Жоғарыда өтінім таңдалмаса, сессия нөл болып қалады. Тізімде болмаса, түрін «Серіктеспен кездесу» деп өзгертіңіз.",
     phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Негізгі алушы (науқас) email (міндетті емес) — енгізілсе автожіберу мен еске салғыштар қосылады",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
     advancedOptions: "Кеңейтілген параметрлер (міндетті емес)", advancedOptionsHint: "Сессия түрі · үйлестіруші · аурухана/дәрігер · тіл · ескертпе",
@@ -176,6 +184,8 @@ const TR = {
     linkBoxDescPrefix: "创建会诊后将生成", linkBoxDescBold: "一个加入链接", linkBoxDescSuffix: "。请将这唯一的链接分享给所有参与者 — 患者、医生、翻译等。各自输入姓名后即可进入（有效期至预约时间后12小时，至少72小时）。",
     lblSelectFromInquiry: "从咨询中选择患者（可选）", inquirySelectPlaceholder: "— 从咨询列表中选择（自动填充姓名/邮箱/语言）—",
     inquiryNameUnknown: "（姓名未知）", inquiryHint: "选择咨询后将自动填充患者姓名/邮箱（用于自动发送）。若无邮箱，请复制链接手动转发。",
+    inquiryNotCountedTitle: "⚠️ 此会诊不会计入 KHIDI 指标",
+    inquiryNotCountedBody: "术前咨询/术后随访指标仅统计已关联咨询的会诊。若未在上方选择咨询，该会诊将始终计为 0。若列表中没有，请将类型改为「合作方会议」。",
     phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "主要接收人（患者）邮箱（可选）— 填写后启用自动发送和提醒",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
     advancedOptions: "高级选项（可选）", advancedOptionsHint: "会诊类型 · 协调员 · 医院/医生 · 语言 · 备注",
@@ -212,6 +222,8 @@ const TR = {
     linkBoxDescPrefix: "相談を作成すると", linkBoxDescBold: "参加リンク1つ", linkBoxDescSuffix: "が生成されます。患者・医師・通訳など全参加者にこの1つのリンクだけを共有してください。各自名前を入力して入室します（予約時刻の12時間後まで有効、最低72時間）。",
     lblSelectFromInquiry: "問い合わせから患者を選択（任意）", inquirySelectPlaceholder: "— 問い合わせ一覧から選択（氏名・メール・言語を自動入力）—",
     inquiryNameUnknown: "（氏名不明）", inquiryHint: "問い合わせを選ぶと患者の氏名・メールが自動入力されます（自動送信用）。メールがない場合はリンクをコピーして直接お伝えください。",
+    inquiryNotCountedTitle: "⚠️ この相談は KHIDI 実績に計上されません",
+    inquiryNotCountedBody: "事前相談・術後フォローの実績は「問い合わせに紐づいた」相談のみを数えます。上で問い合わせを選ばないと、実施しても数値は 0 のままです。一覧にない場合はパートナー会議に変更してください。",
     phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "代表受信者（患者）メール（任意）— 入力すると自動送信・リマインダーが有効",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
     advancedOptions: "詳細オプション（任意）", advancedOptionsHint: "セッション種別・コーディネーター・病院/医師・言語・備考",
@@ -236,6 +248,10 @@ const TR = {
 };
 
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
+// KHIDI 실적(사전상담·사후관리)으로 «세지는» 세션 유형.
+// ⚠️ 서버 집계(src/lib/khidi/kpi.ts)의 session_type 조건과 짝이다 — 한쪽만 고치지 마라.
+const KHIDI_COUNTED_TYPES = ["pre_consultation", "follow_up"];
+
 export function CreateConsultationModal({ onClose, onSuccess }) {
   const toast = useToast();
   const lang = useBackofficeLang();
@@ -582,6 +598,22 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                 ))}
               </select>
               <p className="text-[11px] text-gray-500 mt-1">{tt("inquiryHint")}</p>
+
+              {/* ⚠️ 실적에 안 잡히는 조합을 «만들기 전에» 알린다 (2026-07-29).
+                  왜: 집계 조건이 「문의 연결 + 완료」인데, 문의 선택이 «(선택)» 이라 안 골라도
+                  아무 신호가 없었다. 실측 결과 사전상담 방 66개가 전부 inquiry_id 비어 있어
+                  KHIDI 사전상담·사후관리 실적이 구조적으로 0 이었다.
+                  ※ 막지는 않는다 — 문의 없이 잡아야 하는 상담도 있다(picker 가 step1 미완 문의를
+                    아직 안 보여주는 한계도 있음). 「모르고 놓치는 것」만 없앤다. */}
+              {KHIDI_COUNTED_TYPES.includes(form.session_type) && !form.selected_inquiry_id && (
+                <div
+                  role="status"
+                  className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2"
+                >
+                  <p className="text-xs font-semibold text-amber-900">{tt("inquiryNotCountedTitle")}</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-amber-800">{tt("inquiryNotCountedBody")}</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">

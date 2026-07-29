@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Video, Calendar, Clock, Globe, User, Phone,
-  Edit2, X, ChevronDown, Plus, CheckCircle,
+  Edit2, X, ChevronDown, Plus, CheckCircle, AlertTriangle,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
@@ -14,6 +14,23 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/co
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 
 // 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
+// KHIDI 실적(K-02 사전상담·K-04 사후관리)에 «세지는» 세션 유형.
+// ⚠️ 서버 집계(src/lib/khidi/kpi.ts)의 조건과 짝이다 — 한쪽만 고치지 마라.
+const KHIDI_COUNTED_TYPES = ['pre_consultation', 'follow_up'];
+
+/**
+ * 이 상담이 KHIDI 실적에 잡히는지 + 안 잡히면 왜.
+ * 집계 조건 = 「집계 대상 유형」 + 「문의 연결」 + 「완료」 셋 다.
+ * 2026-07-29 실측: 사전상담 방 66개가 전부 문의 미연결이라 실적이 구조적으로 0 이었다.
+ * 화면 어디에도 그 사실이 안 보여서 아무도 몰랐다 → 여기서 한 줄로 보여준다.
+ */
+function khidiCountState(c) {
+  if (!KHIDI_COUNTED_TYPES.includes(c.session_type)) return null; // 애초에 대상 아님(파트너 미팅 등)
+  if (!c.inquiry_id) return 'noInquiry';
+  if (c.status !== 'completed') return 'notDone';
+  return 'counted';
+}
+
 const STATUS_COLOR = {
   scheduled: 'bg-blue-100 text-blue-800',
   active: 'bg-green-100 text-green-800',
@@ -41,6 +58,7 @@ export default function CoordinatorConsultationsPage() {
   const [filter, setFilter] = useState('scheduled');
   const [expandedId, setExpandedId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [unclosedCount, setUnclosedCount] = useState(0);
 
   const fetchData = async () => {
     setLoading(true);
@@ -56,12 +74,74 @@ export default function CoordinatorConsultationsPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
-      if (data.ok) setConsultations(data.data || []);
+      if (data.ok) {
+        const rows = data.data || [];
+        setConsultations(rows);
+        const now = Date.now();
+        setUnclosedCount(
+          rows.filter(
+            (c) =>
+              KHIDI_COUNTED_TYPES.includes(c.session_type) &&
+              c.status !== 'completed' &&
+              c.status !== 'cancelled' &&
+              c.scheduled_at &&
+              new Date(c.scheduled_at).getTime() < now
+          ).length
+        );
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, [filter]);
+
+  // 소급 연결용 문의 목록 — 「문의 미연결」이 하나라도 있을 때만 불러온다(불필요한 조회 방지).
+  const [inquiryOptions, setInquiryOptions] = useState([]);
+  useEffect(() => {
+    if (!consultations.some((c) => khidiCountState(c) === 'noInquiry')) return;
+    if (inquiryOptions.length > 0) return;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      try {
+        // 문의는 접근권한 규칙(RLS)상 서버만 읽을 수 있고 이름도 암호문 → 서버 picker 사용
+        const res = await fetch('/api/admin/inquiries/picker', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const j = await res.json();
+        // 응답 형태는 { ok, inquiries } — 상담 생성 모달과 동일한 창구를 쓴다.
+        if (j.ok) setInquiryOptions(j.inquiries || []);
+      } catch (e) { console.error(e); }
+    })();
+  }, [consultations, inquiryOptions.length]);
+
+  // 이미 만든 상담을 나중에 문의와 잇는다 — 안 이으면 아무리 상담해도 실적이 0 이다.
+  const linkInquiry = async (id, inquiryId) => {
+    if (!inquiryId) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error(L.toastAuthErr); return; }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ inquiry_id: Number(inquiryId) }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) { toast.error(L.cLinkInquiryFail); return; }
+      toast.success(L.cLinkInquiryDone);
+      fetchData();
+    } catch { toast.error(L.cLinkInquiryFail); }
+  };
+
+  // 「지난 날짜인데 아직 완료가 아닌」 집계 대상 상담 수.
+  // ⚠️ 화면을 «그리는 중»에 현재 시각을 읽으면 안 된다(리액트 순수성 규칙 — 다시 그릴 때마다
+  //    값이 달라져 결과가 불안정해진다). 그래서 목록을 받아온 그 순간 한 번 세어 상태로 들고 있는다.
+  // 목록에 이미 있는 데이터로만 센다(추가 조회 없음) → 보고 있는 탭 기준이라 실제보다 적을 수 있다.
 
   // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 하나의 링크로 코디 입장 + 환자 공유 통일.
   const issueInvite = async (id) => {
@@ -170,6 +250,24 @@ export default function CoordinatorConsultationsPage() {
         </button>
       </div>
 
+      {/* 지난 상담인데 「완료」 안 누른 것 — 실적이 조용히 새는 지점이라 맨 위에 띄운다 (2026-07-29).
+          왜: 완료 버튼은 원래 있었는데 «눌러야 한다는 걸» 화면이 알려주지 않았다.
+          실측(2026-04~07): 사전상담 방 66개 중 완료 표시는 1개뿐이었다. */}
+      {unclosedCount > 0 && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3"
+        >
+          <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              {L.cUnclosedTitle} ({unclosedCount})
+            </p>
+            <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{L.cUnclosedBody}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filter */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
@@ -206,6 +304,7 @@ export default function CoordinatorConsultationsPage() {
             const statusColor = STATUS_COLOR[c.status] || STATUS_COLOR.scheduled;
             const statusLabel = STATUS_LABEL[c.status] || STATUS_LABEL.scheduled;
             const patient = c.cancer_patient_intakes?.[0];
+            const countState = khidiCountState(c);
             return (
               <div key={c.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div
@@ -240,6 +339,22 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {countState && countState !== 'counted' && (
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            countState === 'noInquiry'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-900'
+                          }`}
+                        >
+                          {countState === 'noInquiry' ? L.cCountedNoInquiry : L.cCountedNotDone}
+                        </span>
+                      )}
+                      {countState === 'counted' && (
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800">
+                          {L.cCountedYes}
+                        </span>
+                      )}
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>
                         {statusLabel}
                       </span>
@@ -250,6 +365,27 @@ export default function CoordinatorConsultationsPage() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
+                    {/* 소급 연결 — 만들 때 문의를 안 골랐어도 여기서 이을 수 있다 (2026-07-29 신설).
+                        그 전엔 서버 PATCH 가 inquiry_id 를 아예 안 받아 «영원히 못 고치는» 상태였다. */}
+                    {countState === 'noInquiry' && (
+                      <div className="bg-white rounded-lg p-3 border border-red-200">
+                        <label className="block text-xs font-semibold text-red-800 mb-1">
+                          {L.cLinkInquiryLabel}
+                        </label>
+                        <select
+                          defaultValue=""
+                          onChange={(e) => linkInquiry(c.id, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="">{L.cLinkInquiryPlaceholder}</option>
+                          {inquiryOptions.map((inq) => (
+                            <option key={inq.id} value={inq.id}>
+                              #{inq.id} · {inq.name || '-'} · {inq.nationality || '?'} · {inq.cancer_type || '?'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
                         <div className="text-xs text-gray-500 mb-1">{L.fieldPatient}</div>
