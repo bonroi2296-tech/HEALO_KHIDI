@@ -132,10 +132,22 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
         }
         const text = await reader.readAll();
         if (!text || !String(text).trim()) return;
+        // ⚠️ participantInfo.identity 는 «통역봇» 자신이다 — 그걸 화자로 쓰면 자막에
+        //    사람 이름이 영영 안 붙는다(2026-07-29 PO 제보 ④ «아직도 화자 구분이 안 된다»의
+        //    통역 켠 경우). 봇은 자막 속성에 원래 말한 사람(`speaker` = identity)을 이미
+        //    실어 보내는데(agents/live-translate/src/gemini_session.py) 우리가 안 읽고 있었다.
+        //    → 그 identity 로 방에서 표시 이름을 찾아 붙인다. 없으면 예전처럼 언어만 표시.
+        const speakerId = attrs.speaker || attrs.speaker_identity || null;
+        const speaker = speakerId
+          ? room.getParticipantByIdentity?.(speakerId)
+          : null;
         subtitleCbRef.current?.({
           text: String(text),
           lang: targetLang || myLang,
-          role: participantInfo?.identity || myRole || "interpreter",
+          // 자막 자리(슬롯) 키 — 사람 단위로 고정해야 두 사람이 번갈아 말해도 안 덮인다
+          speakerId,
+          name: speaker?.name || undefined,
+          role: speakerId || participantInfo?.identity || myRole || "interpreter",
         });
       } catch (e) {
         console.warn("[LiveTranslate] 자막 스트림 처리 실패:", e?.message);

@@ -1444,8 +1444,10 @@ export default function ConsultationRoomPage() {
   // ── 통역 봇 자막 수신 (LiveTranslateBridge, lk.translation 스트림) ──
   // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
   const handleBotSubtitle = useCallback(
-    ({ text, lang, role }) => {
-      showRemoteSubtitle({ key: `bot:${role || "interpreter"}`, text, lang });
+    ({ text, lang, role, speakerId, name }) => {
+      // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
+      // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
+      showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
       pushConvoContext("other", lang, text);
       setTranslations((prev) => [
         ...prev.slice(-299),
@@ -1456,6 +1458,7 @@ export default function ConsultationRoomPage() {
           source_language: lang,
           target_language: myLang,
           speaker_role: "other",
+          speaker_name: name || null,
           created_at: new Date().toISOString(),
         },
       ]);
