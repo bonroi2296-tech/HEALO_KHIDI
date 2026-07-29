@@ -40,6 +40,7 @@ export default function ContentEditorClient() {
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
   const [logTotal, setLogTotal] = useState(0);      // 전체 이력 건수(«몇 건 중 몇 건» 표시용)
+  const [logQ, setLogQ] = useState("");             // 이력 안에서 글자로 찾기
   const [logLoading, setLogLoading] = useState(false);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
   const [blockView, setBlockView] = useState(false);
@@ -218,8 +219,58 @@ export default function ContentEditorClient() {
     setShowLog(true);
     setLogs([]);
     setLogTotal(0);   // 이전에 보던 건수가 남아 「전체 247건 중 0건」 처럼 어긋나 보이던 것(독립 리뷰 지적)
+    setLogQ("");
     await loadLogs(0);
   };
+
+  // 이력 검색(2026-07-29 PO 요청) — 247건을 눈으로 훑을 순 없다.
+  // ⚠️ 「불러온 것만」 걸러내면 **없는데 없다고 보이는** 거짓말이 된다(197건이 아직 안 왔으니).
+  //    그래서 검색을 시작하면 먼저 나머지를 다 불러온 뒤 거른다.
+  // ponytail: 서버 검색이 아니라 «전부 받아서 화면에서 거르기». 실측 247건 = 2번 요청이면 끝난다.
+  //           이력이 수천 건이 되면 그때 서버 검색으로 바꿔라(그 전엔 코드만 늘어난다).
+  // ⚠️ 한 글자 칠 때마다 부르면 **같은 줄이 여러 번 붙는다**(«췌장» = 두 번 호출 = 이력 두 벌).
+  //    그래서 도는 동안엔 다시 들어오지 못하게 막는다.
+  const loadingAllRef = useRef(false);
+  const loadAllLogs = async () => {
+    if (loadingAllRef.current) return;
+    loadingAllRef.current = true;
+    try {
+      await loadAllLogsInner();
+    } finally {
+      loadingAllRef.current = false;
+    }
+  };
+  const loadAllLogsInner = async () => {
+    let have = logs.length;
+    let total = logTotal;
+    while (have < total) {
+      setLogLoading(true);
+      try {
+        const res = await fetch(`/api/coordinator/content?logs=1&offset=${have}&limit=200`);
+        const data = await res.json();
+        if (!data.ok) break;
+        const got = data.logs || [];
+        if (got.length === 0) break;
+        setLogs((prev) => [...prev, ...got]);
+        have += got.length;
+        total = typeof data.total === "number" ? data.total : total;
+        setLogTotal(total);
+      } catch { break; } finally { setLogLoading(false); }
+    }
+  };
+
+  const onLogQ = (v) => {
+    setLogQ(v);
+    if (v.trim() && logs.length < logTotal) loadAllLogs();
+  };
+
+  const logNeedle = logQ.trim().toLowerCase();
+  const shownLogs = !logNeedle
+    ? logs
+    : logs.filter((lg) =>
+        [lg.new_value, lg.old_value, lg.content_key, lg.editor_email, lg.place?.screen, lg.place?.where]
+          .some((s) => String(s || "").toLowerCase().includes(logNeedle))
+      );
 
   const refLang = editLang === "ko" ? "en" : "ko";
 
@@ -267,11 +318,31 @@ export default function ContentEditorClient() {
         <div className="space-y-2">
           {logs.length === 0 && !logLoading && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
           {logTotal > 0 && (
+            <input
+              type="search"
+              value={logQ}
+              onChange={(e) => onLogQ(e.target.value)}
+              placeholder="이력에서 찾기 — 문구·화면 이름·수정한 사람 (예: 췌장, 홈 화면, assel)"
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          )}
+          {logTotal > 0 && (
             <p className="text-xs text-gray-600 mb-1">
-              전체 <b className="text-gray-700">{logTotal}건</b> 중 <b className="text-gray-700">{logs.length}건</b> 보는 중 · 최근 것부터
+              {logNeedle ? (
+                logLoading ? (
+                  <>전체 <b className="text-gray-700">{logTotal}건</b>을 불러오는 중입니다 — 잠시만요</>
+                ) : (
+                  <>전체 <b className="text-gray-700">{logTotal}건</b>에서 <b className="text-gray-700">{shownLogs.length}건</b> 찾음</>
+                )
+              ) : (
+                <>전체 <b className="text-gray-700">{logTotal}건</b> 중 <b className="text-gray-700">{logs.length}건</b> 보는 중 · 최근 것부터</>
+              )}
             </p>
           )}
-          {logs.map((lg) => (
+          {logNeedle && !logLoading && shownLogs.length === 0 && (
+            <p className="text-sm text-gray-500 py-4 text-center">「{logQ}」로 찾은 이력이 없습니다.</p>
+          )}
+          {shownLogs.map((lg) => (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
               {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
                   코디는 그게 어느 화면인지 알 방법이 없었다(PO: «코디한테 코드 까뒤집어보라고 할까?»).
@@ -328,7 +399,8 @@ export default function ContentEditorClient() {
             </div>
           ))}
           {logLoading && <p className="text-sm text-gray-500 py-2">불러오는 중…</p>}
-          {!logLoading && logs.length < logTotal && (
+          {/* 찾는 중엔 이미 전부 불러온 상태라 「더 보기」·「여기까지」를 띄우지 않는다(건수가 두 벌이라 헷갈린다) */}
+          {!logNeedle && !logLoading && logs.length < logTotal && (
             <button
               onClick={() => loadLogs(logs.length)}
               className="w-full text-sm py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-[44px]"
@@ -336,7 +408,7 @@ export default function ContentEditorClient() {
               더 보기 (남은 {logTotal - logs.length}건)
             </button>
           )}
-          {!logLoading && logTotal > 0 && logs.length >= logTotal && (
+          {!logNeedle && !logLoading && logTotal > 0 && logs.length >= logTotal && (
             <p className="text-xs text-gray-600 text-center py-2">여기까지가 전부입니다 · 총 {logTotal}건</p>
           )}
         </div>
