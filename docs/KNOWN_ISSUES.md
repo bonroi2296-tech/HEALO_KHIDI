@@ -350,7 +350,11 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 - **구조상 위험(코드로 확인)**: `checkSessionInMiddleware`(`proxy.ts:159~184`)는 `supabase.auth.getUser()` 를 부르고 **`error` 가 있으면 무조건 `hasSession=false`**, `catch` 도 `false` 다. 즉 **인증 서버가 잠깐 느리거나 한 번 삐끗하면 «로그인 안 한 사람»으로 취급**돼 멀쩡히 로그인한 사용자가 로그인 화면으로 튕긴다. 재시도·유예가 없다.
 - ⚠️ **아직 미증명(정직)**: 그 순간 인증 호출이 왜 실패했는지는 **모른다**(CI 에선 인증 서버 쪽 로그를 못 본다). 「인증 서버 일시 오류가 원인」은 **가설**이고, 확정된 건 「되돌린 주체는 proxy 다」까지. 정반대 가능성도 남아 있다 — 검사 환경이 주입한 세션 쿠키가 그 시점에만 무효였을 수도 있다(그렇다면 사용자 피해는 없다).
 - **왜 중요한가**: 2026-07-28 핸드오프의 「병원 계정이 튕긴다」와 **증상 가족이 같다.** 그때 「홈으로 튕김」은 재현되지 않았지만(원인 = 기능 플래그, 위 항목), **로그인 화면으로 튕기는 쪽은 이번에 실제로 한 번 재현됐다.**
-- **고친다면(작게)**: 문 앞 검사에서 **오류일 때 1회 재시도** 후에만 로그인 화면으로 보낸다. 보안은 안 풀린다(여전히 유효한 사용자만 통과). 다만 **인증 경로**라 PO 확인 후 착수 — 미착수.
+- ✅ **수리 완료 (2026-07-29, PO 결정으로 전수 9곳 — #1155)**: 공통 장치 `src/lib/auth/retryTransient.ts` 를 만들어 **오류일 때만 즉시 1회 더** 묻게 했다. 두 번 다 실패하면 예전과 동일하게 거부(보안 동일). 「행이 없다」(PGRST116)는 확정 거부라 재시도 안 함 → **평상시 DB 부하 증가 0**.
+  - 붙인 곳: `proxy.ts` 문 앞 검사 2곳(세션·어드민) · `checkAdminAuth`(3경로) · `checkHospitalAuth` · `checkAgencyAuth` · `guestToken`(2곳) · `requireVisaAccess`·`requireCostEstimateAccess` · `resolveLanding` · 화면 문지기 2곳(`StaffPortalGate`·`AdminGateClient`).
+  - `StaffPortalGate`(코디)는 「권한 없음」과 「일시 오류」를 화면에서도 갈랐다 — **다시 시도 버튼 신설**(6개 언어). 전엔 오류로 막히면 되돌릴 방법이 없었다.
+  - 실측: 단위시험 842건 통과(새 계약시험 6건) · 본판 합류 후 자동검사 **113건 통과**(8a6193fc).
+  - ⚠️ **여전히 미증명**: 이 재시도가 그 튕김을 «실제로» 막는지는 못 쟀다 — 그 오류를 인위적으로 만들 수 없다. **진짜 시험은 「같은 실패가 다시 잡히나」** 이고, 며칠 지켜봐야 안다. 한 번 초록이 나온 것으로 「고쳐졌다」고 쓰지 말 것.
 - 🔍 **실측으로 갈라진 것 (2026-07-28)**: 「`hospital@test.com` 이 첫 화면으로 되돌아간다」는 **데이터 문제가 아니다.** 문지기(`checkHospitalAuth`)가 보는 값은 `hospital_users.is_active` 인데 두 계정 다 `true`, `disabled` 도 안 찍혀 있다.
   - 한때 `hospitals.is_active=false`(TEST 병원)를 원인으로 의심했으나 **문지기는 그 값을 안 본다** — 반증 검사에서 걸러졌다.
   - 참고: `hospital@test.com` = TEST 병원(`is_active=false`) owner / `hospital@test.healo.kr` = 면력한방병원 **강서점** manager(마곡점 아님 — 실DB 확인).
