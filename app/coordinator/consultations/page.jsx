@@ -12,25 +12,9 @@ import { kstDate, kstTime } from '@/lib/datetime/kst';
 import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
+import { khidiCountState, KHIDI_COUNTED_TYPES } from '@/lib/khidi/countState';
 
 // 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
-// KHIDI 실적(K-02 사전상담·K-04 사후관리)에 «세지는» 세션 유형.
-// ⚠️ 서버 집계(src/lib/khidi/kpi.ts)의 조건과 짝이다 — 한쪽만 고치지 마라.
-const KHIDI_COUNTED_TYPES = ['pre_consultation', 'follow_up'];
-
-/**
- * 이 상담이 KHIDI 실적에 잡히는지 + 안 잡히면 왜.
- * 집계 조건 = 「집계 대상 유형」 + 「문의 연결」 + 「완료」 셋 다.
- * 2026-07-29 실측: 사전상담 방 66개가 전부 문의 미연결이라 실적이 구조적으로 0 이었다.
- * 화면 어디에도 그 사실이 안 보여서 아무도 몰랐다 → 여기서 한 줄로 보여준다.
- */
-function khidiCountState(c) {
-  if (!KHIDI_COUNTED_TYPES.includes(c.session_type)) return null; // 애초에 대상 아님(파트너 미팅 등)
-  if (!c.inquiry_id) return 'noInquiry';
-  if (c.status !== 'completed') return 'notDone';
-  return 'counted';
-}
-
 const STATUS_COLOR = {
   scheduled: 'bg-blue-100 text-blue-800',
   active: 'bg-green-100 text-green-800',
@@ -98,7 +82,7 @@ export default function CoordinatorConsultationsPage() {
   // 소급 연결용 문의 목록 — 「문의 미연결」이 하나라도 있을 때만 불러온다(불필요한 조회 방지).
   const [inquiryOptions, setInquiryOptions] = useState([]);
   useEffect(() => {
-    if (!consultations.some((c) => khidiCountState(c) === 'noInquiry')) return;
+    if (!consultations.some((c) => khidiCountState(c) === 'noLink')) return;
     if (inquiryOptions.length > 0) return;
     (async () => {
       const supabase = createSupabaseBrowserClient();
@@ -342,12 +326,13 @@ export default function CoordinatorConsultationsPage() {
                       {countState && countState !== 'counted' && (
                         <span
                           className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                            countState === 'noInquiry'
+                            // 빨강 = 공식 실적이 0 이 되는 경우(완료 미표시). 주황 = 실적엔 잡히되 유치 추적이 끊김.
+                            countState === 'notCounted'
                               ? 'bg-red-100 text-red-800'
                               : 'bg-amber-100 text-amber-900'
                           }`}
                         >
-                          {countState === 'noInquiry' ? L.cCountedNoInquiry : L.cCountedNotDone}
+                          {countState === 'notCounted' ? L.cCountedNotCounted : L.cCountedNoLink}
                         </span>
                       )}
                       {countState === 'counted' && (
@@ -367,7 +352,7 @@ export default function CoordinatorConsultationsPage() {
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
                     {/* 소급 연결 — 만들 때 문의를 안 골랐어도 여기서 이을 수 있다 (2026-07-29 신설).
                         그 전엔 서버 PATCH 가 inquiry_id 를 아예 안 받아 «영원히 못 고치는» 상태였다. */}
-                    {countState === 'noInquiry' && (
+                    {countState === 'noLink' && (
                       <div className="bg-white rounded-lg p-3 border border-red-200">
                         <label className="block text-xs font-semibold text-red-800 mb-1">
                           {L.cLinkInquiryLabel}

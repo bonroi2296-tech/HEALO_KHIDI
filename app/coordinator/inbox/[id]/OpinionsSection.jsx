@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Stethoscope, Copy, Check, Link2, Loader2, Pencil, Paperclip, FileText, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 
 async function authFetch(url, options = {}) {
   const supabase = createSupabaseBrowserClient();
@@ -19,16 +20,18 @@ async function authFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
-function fmt(iso) {
-  try { return new Date(iso).toLocaleString("ko-KR"); } catch { return iso; }
+// 날짜 표기도 화면 언어에 맞춘다(ko-KR 고정이면 러시아어 화면에 한국식 표기가 샌다).
+function fmt(iso, loc) {
+  try { return new Date(iso).toLocaleString(loc || "ko-KR"); } catch { return iso; }
 }
 
 export default function OpinionsSection({ inquiryId }) {
+  const L = useCoordinatorL();
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState(null);
   const [summary, setSummary] = useState("");
   const [opinions, setOpinions] = useState([]);
-  // 환자 언어 — 소견 "다시 번역" 버튼의 타겟(서버가 GET 응답에 실어 보냄).
+  // 환자 언어 — 소견 L.soRetranslate 버튼의 타겟(서버가 GET 응답에 실어 보냄).
   const [patientLang, setPatientLang] = useState(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState("");
@@ -87,9 +90,9 @@ export default function OpinionsSection({ inquiryId }) {
       const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (data.ok) setDirectFile({ path: data.path, name: data.name || file.name });
-      else setFileError("업로드 실패 — 다시 시도해 주세요.");
+      else setFileError(L.soUploadFail);
     } catch {
-      setFileError("업로드 실패 — 다시 시도해 주세요.");
+      setFileError(L.soUploadFail);
     } finally {
       setUploadingFile(false);
     }
@@ -117,11 +120,11 @@ export default function OpinionsSection({ inquiryId }) {
         // ⚠️ 실패를 삼키면 안 된다 — 서버는 소견을 저장한 뒤 번역 단계에서 잘릴 수 있는데,
         // 화면이 조용하면 코디가 "안 됐나 보다" 하고 다시 눌러 **같은 소견이 두 번 들어간다**
         // (case_opinions 에 유일 제약 없음, 2라운드 리뷰 지적).
-        setDirectError("저장 여부가 확인되지 않았습니다. 다시 누르기 전에 아래 목록을 새로고침해 이미 들어갔는지 확인해 주세요.");
+        setDirectError(L.soSaveUnconfirmed);
         await load();
       }
     } catch {
-      setDirectError("저장 여부가 확인되지 않았습니다. 다시 누르기 전에 아래 목록을 새로고침해 이미 들어갔는지 확인해 주세요.");
+      setDirectError(L.soSaveUnconfirmed);
       await load();
     } finally {
       setAddingDirect(false);
@@ -138,12 +141,12 @@ export default function OpinionsSection({ inquiryId }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-        <Stethoscope size={16} className="text-teal-600" /> 전문의 소견 (세컨드 오피니언)
+        <Stethoscope size={16} className="text-teal-600" /> {L.soTitle}
       </h2>
-      <p className="text-xs text-gray-500 mb-3">협력병원·전문의에게 소견 요청 링크를 보내고, 받은 소견을 여기서 확인합니다. (코디·어드민 전용)</p>
+      <p className="text-xs text-gray-500 mb-3">{L.soDesc}</p>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-500 text-sm py-3"><Loader2 size={15} className="animate-spin" /> 불러오는 중…</div>
+        <div className="flex items-center gap-2 text-gray-500 text-sm py-3"><Loader2 size={15} className="animate-spin" /> {L.soLoading}</div>
       ) : (
         <>
           {/* 링크 생성 / 재공유 */}
@@ -167,7 +170,7 @@ export default function OpinionsSection({ inquiryId }) {
               {summary && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-gray-500">카톡 붙여넣기용 요약</span>
+                    <span className="text-[11px] text-gray-500">{L.soCopySummary}</span>
                     <button onClick={() => copy(summary, "sum")} className="inline-flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline">
                       {copied === "sum" ? <Check size={13} /> : <Copy size={13} />} 요약 복사
                     </button>
@@ -175,9 +178,9 @@ export default function OpinionsSection({ inquiryId }) {
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap bg-white border border-gray-200 rounded p-2 font-sans">{summary}</pre>
                 </div>
               )}
-              <p className="text-[11px] text-gray-500">링크를 카톡 등으로 원장님께 보내세요. 원장님은 로그인 없이 소견을 남깁니다.</p>
+              <p className="text-[11px] text-gray-500">{L.soLinkHint}</p>
               <button onClick={createLink} disabled={creating} className="text-xs text-gray-500 hover:text-teal-700 hover:underline">
-                새 링크 만들기
+                {L.soNewLink}
               </button>
             </div>
           )}
@@ -186,21 +189,21 @@ export default function OpinionsSection({ inquiryId }) {
           <div className="mt-2">
             {!showDirect ? (
               <button onClick={() => setShowDirect(true)} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-teal-700 hover:underline">
-                <Pencil size={12} /> 이미 받은 소견 직접 입력
+                <Pencil size={12} /> {L.soManualEntry}
               </button>
             ) : (
               <div className="space-y-2 bg-gray-50 border border-gray-100 rounded-lg p-3">
                 <input
                   value={directDoctor}
                   onChange={(e) => setDirectDoctor(e.target.value)}
-                  placeholder="소견 주신 분 (예: ○○대병원 종양내과 김○○)"
+                  placeholder={L.soAuthorPh}
                   className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <textarea
                   value={directText}
                   onChange={(e) => setDirectText(e.target.value)}
                   rows={3}
-                  placeholder="받은 소견 원문을 그대로 붙여넣으세요 (또는 아래에 문서·이미지로 첨부)"
+                  placeholder={L.soBodyPh}
                   className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
 
@@ -216,7 +219,7 @@ export default function OpinionsSection({ inquiryId }) {
                 ) : (
                   <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-teal-700 cursor-pointer">
                     {uploadingFile ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
-                    {uploadingFile ? "업로드 중…" : "원장님이 주신 문서·이미지 첨부 (텍스트 대신 자동 번역)"}
+                    {uploadingFile ? L.soUploading : L.soAttachLabel}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -235,9 +238,9 @@ export default function OpinionsSection({ inquiryId }) {
                     disabled={addingDirect || uploadingFile || !directDoctor.trim() || (directText.trim().length < 5 && !directFile)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
                   >
-                    {addingDirect ? "저장·번역 중… (최대 1~2분)" : "추가"}
+                    {addingDirect ? L.soSavingLong : "추가"}
                   </button>
-                  <button onClick={() => setShowDirect(false)} className="text-xs text-gray-500 hover:underline">취소</button>
+                  <button onClick={() => setShowDirect(false)} className="text-xs text-gray-500 hover:underline">{L.soCancel}</button>
                 </div>
               </div>
             )}
@@ -246,7 +249,7 @@ export default function OpinionsSection({ inquiryId }) {
           {/* 도착한 소견 */}
           <div className="mt-4 space-y-3">
             {opinions.length === 0 ? (
-              <p className="text-xs text-gray-500">아직 도착한 소견이 없습니다.</p>
+              <p className="text-xs text-gray-500">{L.soNone}</p>
             ) : (
               opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
@@ -258,13 +261,16 @@ export default function OpinionsSection({ inquiryId }) {
 }
 
 function OpinionItem({ opinion, patientLang }) {
+  // 이 하위 부품도 자기 언어를 직접 가져온다(부모에서 넘기면 인자만 늘어난다).
+  const L = useCoordinatorL();
+  const dateLoc = useDateLocale();
   const [attr, setAttr] = useState(opinion.attribution_note || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const [released, setReleased] = useState(!!opinion.released_at);
   // 접수 시점에 서버가 이미 환자 언어로 자동 번역해둔 초안(auto_translated_text)이 있으면 그걸 기본값으로.
-  // 없으면(번역 실패·미지원 언어·아직 처리 중) 원문(한글) 폴백 — 아래 "다시 번역"으로 수동 재시도.
+  // 없으면(번역 실패·미지원 언어·아직 처리 중) 원문(한글) 폴백 — 아래 L.soRetranslate으로 수동 재시도.
   const [draft, setDraft] = useState(
     opinion.released_text || opinion.auto_translated_text || opinion.opinion_text || ""
   );
@@ -301,9 +307,9 @@ function OpinionItem({ opinion, patientLang }) {
       });
       const data = await res.json();
       if (data.ok) { setDraft(data.translated); setDraftTouched(true); }
-      else setTranslateError("번역 실패 — 다시 시도해 주세요.");
+      else setTranslateError(L.soTranslateFail);
     } catch {
-      setTranslateError("번역 실패 — 다시 시도해 주세요.");
+      setTranslateError(L.soTranslateFail);
     } finally {
       setTranslating(false);
     }
@@ -360,18 +366,18 @@ function OpinionItem({ opinion, patientLang }) {
     <div className="border border-gray-200 rounded-lg p-3">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{opinion.doctor_name}</span>
-        <span className="text-[11px] text-gray-500">{fmt(opinion.created_at)}</span>
+        <span className="text-[11px] text-gray-500">{fmt(opinion.created_at, dateLoc)}</span>
         {released && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">에이전시 공개됨</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">{L.soPublished}</span>
         )}
       </div>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs text-gray-500">
-          {opinion.file_path ? "원장님 원문 — AI 번역 초안(내부용, 에이전시에 안 보임)" : "원장님 원문 (내부용, 에이전시에 안 보임)"}
+          {opinion.file_path ? L.soOriginalDraft : L.soOriginalInternal}
         </p>
         {opinion.file_url && (
           <a href={opinion.file_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-teal-700 hover:underline shrink-0">
-            <Paperclip size={11} /> 원본 파일 ({opinion.file_name || "첨부"})
+            <Paperclip size={11} /> 원본 파일 ({opinion.file_name || L.soAttach})
           </a>
         )}
       </div>
@@ -381,7 +387,7 @@ function OpinionItem({ opinion, patientLang }) {
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
         <p className="text-[11px] text-blue-700 mb-1.5">
           에이전시에 보낼 확정본
-          {preTranslated ? " — AI가 자동 번역해뒀습니다, 확인·교정 후 공개" : " — 직접 교정 후 공개"}
+          {preTranslated ? L.soPublishAuto : L.soPublishManual}
         </p>
         <textarea
           value={draft}
@@ -399,12 +405,12 @@ function OpinionItem({ opinion, patientLang }) {
               disabled={translating}
               className="text-xs text-blue-700 hover:underline disabled:opacity-50"
             >
-              {translating ? "번역 중…" : "다시 번역"}
+              {translating ? L.soTranslating : L.soRetranslate}
             </button>
           )}
           {released ? (
             <button onClick={unpublish} disabled={releasing} className="text-xs text-gray-500 hover:text-red-600 hover:underline disabled:opacity-50">
-              {releasing ? "처리 중…" : "공개 취소 (다시 비공개로)"}
+              {releasing ? L.soProcessing : L.soUnpublish}
             </button>
           ) : (
             <button
@@ -412,7 +418,7 @@ function OpinionItem({ opinion, patientLang }) {
               disabled={releasing || !draft.trim()}
               className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
-              {releasing ? "공개 중…" : "에이전시에 공개"}
+              {releasing ? L.soPublishing : L.soPublish}
             </button>
           )}
         </div>
@@ -423,11 +429,11 @@ function OpinionItem({ opinion, patientLang }) {
         <input
           value={attr}
           onChange={(e) => setAttr(e.target.value)}
-          placeholder="소견 주신 분 (예: ○○대병원 종양내과 김○○) — 필요 시 메모"
+          placeholder={L.soAuthorPhOpt}
           className="flex-1 min-w-0 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
         <button onClick={save} disabled={saving} className="shrink-0 text-xs text-teal-700 font-medium hover:underline disabled:opacity-50">
-          {saved ? "저장됨" : saving ? "저장 중" : "저장"}
+          {saved ? L.soSaved : saving ? L.soSaving : "저장"}
         </button>
       </div>
     </div>

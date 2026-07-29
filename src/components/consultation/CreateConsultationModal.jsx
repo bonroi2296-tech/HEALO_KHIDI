@@ -7,6 +7,7 @@
  */
 import { useState, useEffect } from "react";
 import { Video, X } from "lucide-react";
+import { KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
@@ -32,8 +33,8 @@ const TR = {
     linkBoxDescPrefix: "상담을 만들면 ", linkBoxDescBold: "참여 링크 1개", linkBoxDescSuffix: "가 생성됩니다. 환자·의사·통역 등 모든 참여자에게 이 링크 하나만 공유하세요. 각자 이름을 입력하고 입장합니다 (만료: 상담 시각 +12시간, 최소 72시간).",
     lblSelectFromInquiry: "문의에서 환자 선택 (선택)", inquirySelectPlaceholder: "— 문의 목록에서 선택 (이름·이메일·언어 자동 입력) —",
     inquiryNameUnknown: "(이름 미상)", inquiryHint: "문의를 고르면 환자 이름·이메일이 자동 입력됩니다(자동 발송용). 이메일이 없으면 링크를 복사해 직접 전달하세요.",
-    inquiryNotCountedTitle: "⚠️ 이 상담은 KHIDI 실적에 안 잡힙니다",
-    inquiryNotCountedBody: "사전상담·사후관리 실적은 «문의에 연결된» 상담만 셉니다. 위에서 문의를 고르지 않으면 상담을 아무리 해도 숫자가 0 입니다. 목록에 없으면 파트너 미팅으로 바꾸세요.",
+    inquiryNotCountedTitle: "⚠️ 유치 전환 추적이 끊깁니다",
+    inquiryNotCountedBody: "실적(사전상담·사후관리)은 «완료»만 누르면 잡힙니다. 다만 문의를 안 걸면 «이 상담이 어느 문의에서 왔는지»가 끊겨 유치 전환 분석에서 빠집니다. 나중에 상담 목록에서 이어붙일 수도 있습니다.",
     phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
     advancedOptions: "고급 옵션 (선택)", advancedOptionsHint: "세션 유형 · 코디 · 병원/의사 · 언어 · 비고",
@@ -70,8 +71,8 @@ const TR = {
     linkBoxDescPrefix: "Creating the consultation generates ", linkBoxDescBold: "one join link", linkBoxDescSuffix: ". Share this single link with all participants — patient, doctor, interpreter, etc. Each enters their name to join (valid until 12 hours after the scheduled time, at least 72 hours).",
     lblSelectFromInquiry: "Select patient from inquiries (optional)", inquirySelectPlaceholder: "— Select from inquiry list (auto-fills name / email / language) —",
     inquiryNameUnknown: "(name unknown)", inquiryHint: "Selecting an inquiry auto-fills the patient's name/email (for auto-send). If there's no email, copy the link and share it manually.",
-    inquiryNotCountedTitle: "⚠️ This consultation will NOT count toward KHIDI figures",
-    inquiryNotCountedBody: "Pre-consultation / follow-up figures only count sessions linked to an inquiry. Without selecting one above, this session stays at zero no matter how it goes. If the inquiry isn't listed, switch the type to Partner meeting.",
+    inquiryNotCountedTitle: "⚠️ Attraction tracking will be broken",
+    inquiryNotCountedBody: "The figure itself counts as soon as you mark it complete. But without linking an inquiry we lose which inquiry this came from, so it drops out of attraction-conversion analysis. You can link it later from the consultation list.",
     phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Primary recipient (patient) email (optional) — enables auto-send & reminders",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
     advancedOptions: "Advanced options (optional)", advancedOptionsHint: "Session type · coordinator · hospital/doctor · language · notes",
@@ -108,8 +109,8 @@ const TR = {
     linkBoxDescPrefix: "При создании консультации формируется ", linkBoxDescBold: "одна ссылка для входа", linkBoxDescSuffix: ". Отправьте эту единственную ссылку всем участникам — пациенту, врачу, переводчику и т.д. Каждый вводит своё имя при входе (действует до 12 часов после назначенного времени, но не менее 72 часов).",
     lblSelectFromInquiry: "Выбрать пациента из заявок (необязательно)", inquirySelectPlaceholder: "— Выбрать из списка заявок (имя/email/язык заполнятся автоматически) —",
     inquiryNameUnknown: "(имя неизвестно)", inquiryHint: "При выборе заявки имя/email пациента заполнятся автоматически (для автоотправки). Если email нет, скопируйте ссылку и передайте вручную.",
-    inquiryNotCountedTitle: "⚠️ Эта консультация НЕ попадёт в показатели KHIDI",
-    inquiryNotCountedBody: "В показатели (предварительная консультация / наблюдение) попадают только сессии, связанные с заявкой. Без выбора заявки выше сессия останется нулём. Если заявки нет в списке — выберите тип «Встреча с партнёром».",
+    inquiryNotCountedTitle: "⚠️ Цепочка привлечения будет прервана",
+    inquiryNotCountedBody: "Сам показатель засчитывается, как только вы отметите «завершено». Но без привязки заявки теряется связь «из какой заявки пришла эта консультация», и она выпадает из анализа привлечения. Привязать можно позже из списка консультаций.",
     phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Email основного получателя (пациента) (необязательно) — включает автоотправку и напоминания",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
     advancedOptions: "Дополнительные настройки (необязательно)", advancedOptionsHint: "Тип сессии · координатор · больница/врач · язык · заметки",
@@ -146,8 +147,8 @@ const TR = {
     linkBoxDescPrefix: "Кеңесті жасағанда ", linkBoxDescBold: "бір кіру сілтемесі", linkBoxDescSuffix: " жасалады. Осы жалғыз сілтемені барлық қатысушыларға — науқас, дәрігер, аудармашы т.б. — жіберіңіз. Әрқайсысы өз атын енгізіп кіреді (жоспарланған уақыттан кейін 12 сағатқа дейін жарамды, кемінде 72 сағат).",
     lblSelectFromInquiry: "Науқасты өтінімдерден таңдау (міндетті емес)", inquirySelectPlaceholder: "— Өтінім тізімінен таңдау (аты/email/тіл автоматты толтырылады) —",
     inquiryNameUnknown: "(аты белгісіз)", inquiryHint: "Өтінімді таңдағанда науқастың аты/email автоматты толтырылады (автожіберу үшін). Email болмаса, сілтемені көшіріп қолмен жіберіңіз.",
-    inquiryNotCountedTitle: "⚠️ Бұл кеңес KHIDI көрсеткіштеріне ЕСЕПТЕЛМЕЙДІ",
-    inquiryNotCountedBody: "Көрсеткіштерге тек өтінімге байланған сессиялар кіреді. Жоғарыда өтінім таңдалмаса, сессия нөл болып қалады. Тізімде болмаса, түрін «Серіктеспен кездесу» деп өзгертіңіз.",
+    inquiryNotCountedTitle: "⚠️ Тарту тізбегі үзіледі",
+    inquiryNotCountedBody: "Көрсеткіш «аяқталды» деп белгіленген бойда есептеледі. Бірақ өтінім байланбаса, «бұл кеңес қай өтінімнен келді» байланысы үзіліп, тарту талдауынан түсіп қалады. Кейін кеңестер тізімінен байланыстыруға болады.",
     phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Негізгі алушы (науқас) email (міндетті емес) — енгізілсе автожіберу мен еске салғыштар қосылады",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
     advancedOptions: "Кеңейтілген параметрлер (міндетті емес)", advancedOptionsHint: "Сессия түрі · үйлестіруші · аурухана/дәрігер · тіл · ескертпе",
@@ -184,8 +185,8 @@ const TR = {
     linkBoxDescPrefix: "创建会诊后将生成", linkBoxDescBold: "一个加入链接", linkBoxDescSuffix: "。请将这唯一的链接分享给所有参与者 — 患者、医生、翻译等。各自输入姓名后即可进入（有效期至预约时间后12小时，至少72小时）。",
     lblSelectFromInquiry: "从咨询中选择患者（可选）", inquirySelectPlaceholder: "— 从咨询列表中选择（自动填充姓名/邮箱/语言）—",
     inquiryNameUnknown: "（姓名未知）", inquiryHint: "选择咨询后将自动填充患者姓名/邮箱（用于自动发送）。若无邮箱，请复制链接手动转发。",
-    inquiryNotCountedTitle: "⚠️ 此会诊不会计入 KHIDI 指标",
-    inquiryNotCountedBody: "术前咨询/术后随访指标仅统计已关联咨询的会诊。若未在上方选择咨询，该会诊将始终计为 0。若列表中没有，请将类型改为「合作方会议」。",
+    inquiryNotCountedTitle: "⚠️ 招引追踪将会中断",
+    inquiryNotCountedBody: "指标本身在标记完成后即会计入。但未关联咨询时，将无法追溯此会诊来自哪条咨询，因而会从招引转化分析中脱落。之后可在会诊列表中补关联。",
     phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "主要接收人（患者）邮箱（可选）— 填写后启用自动发送和提醒",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
     advancedOptions: "高级选项（可选）", advancedOptionsHint: "会诊类型 · 协调员 · 医院/医生 · 语言 · 备注",
@@ -222,8 +223,8 @@ const TR = {
     linkBoxDescPrefix: "相談を作成すると", linkBoxDescBold: "参加リンク1つ", linkBoxDescSuffix: "が生成されます。患者・医師・通訳など全参加者にこの1つのリンクだけを共有してください。各自名前を入力して入室します（予約時刻の12時間後まで有効、最低72時間）。",
     lblSelectFromInquiry: "問い合わせから患者を選択（任意）", inquirySelectPlaceholder: "— 問い合わせ一覧から選択（氏名・メール・言語を自動入力）—",
     inquiryNameUnknown: "（氏名不明）", inquiryHint: "問い合わせを選ぶと患者の氏名・メールが自動入力されます（自動送信用）。メールがない場合はリンクをコピーして直接お伝えください。",
-    inquiryNotCountedTitle: "⚠️ この相談は KHIDI 実績に計上されません",
-    inquiryNotCountedBody: "事前相談・術後フォローの実績は「問い合わせに紐づいた」相談のみを数えます。上で問い合わせを選ばないと、実施しても数値は 0 のままです。一覧にない場合はパートナー会議に変更してください。",
+    inquiryNotCountedTitle: "⚠️ 誘致追跡が切れます",
+    inquiryNotCountedBody: "実績そのものは「完了」にすれば計上されます。ただし問い合わせを紐づけないと「どの問い合わせから来た相談か」が切れ、誘致転換の分析から外れます。あとから相談一覧で紐づけることもできます。",
     phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "代表受信者（患者）メール（任意）— 入力すると自動送信・リマインダーが有効",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
     advancedOptions: "詳細オプション（任意）", advancedOptionsHint: "セッション種別・コーディネーター・病院/医師・言語・備考",
@@ -248,10 +249,6 @@ const TR = {
 };
 
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
-// KHIDI 실적(사전상담·사후관리)으로 «세지는» 세션 유형.
-// ⚠️ 서버 집계(src/lib/khidi/kpi.ts)의 session_type 조건과 짝이다 — 한쪽만 고치지 마라.
-const KHIDI_COUNTED_TYPES = ["pre_consultation", "follow_up"];
-
 export function CreateConsultationModal({ onClose, onSuccess }) {
   const toast = useToast();
   const lang = useBackofficeLang();
