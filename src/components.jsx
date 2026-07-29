@@ -161,14 +161,23 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
   // 러시아어·카자흐어만 컴팩트 헤더 — 6개 언어 중 라벨이 가장 길어 xl에서 빡빡함(PO 2026-07-07).
   // 타 언어는 기존 클래스 그대로(배치 불변). 값은 여백·글자만 한 단계 축소, 축(rounded·색·모션)은 동일.
   const denseNav = langCode === "ru" || langCode === "kz";
-  const navItemSize = denseNav ? "px-1.5 text-[13px]" : "px-2.5 text-sm";
+  const navItemSize = denseNav ? "px-1 text-[13px]" : "px-2.5 text-sm";
+  // ru·kz 는 메뉴 라벨이 가장 길어 1280px 칸에 «가로로 안 들어간다»(2026-07-29 실측: 필요 781 / 자리 701).
+  // 항목을 지우거나 글자를 자르지 않고 **폭을 되찾아서** 넣는다:
+  //   ① 메뉴 칸 간격 축소(px-1.5→px-1, gap-0.5→gap-0)  ② 언어 버튼에서 언어 «이름»을 뺀다.
+  // 언어 이름은 지구본 아이콘을 눌렀을 때 목록에 그대로 나오므로 정보 손실이 없다.
+  const navGap = denseNav ? "gap-0" : "gap-0.5";
 
   return (
     <>
       <header className="bg-teal-100 text-slate-700 border-b border-teal-200 sticky top-0 z-50 shadow-sm pt-safe-area">
         <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
           {/* Left: Logo + Nav */}
-          <div className={`flex items-center ${denseNav ? "gap-3" : "gap-6"} z-20`}>
+          {/* ⚠️ min-w-0 이 없으면 이 묶음이 «줄어들되 안의 글자는 안 줄어» 오른쪽 묶음 위로 삐져나온다.
+              2026-07-29 실측: 실서비스 healwith.co.kr 러시아어·카자흐어 1280~1440px 에서
+              「Страховой гид」가 언어 선택기를 덮고 「Зарегистрироваться」가 잘려 있었다.
+              (면력 목업 때문이 아니라 **healwith 본체 버그**였다 — 목업이 드러내 준 것뿐.) */}
+          <div className={`flex items-center min-w-0 ${denseNav ? "gap-3" : "gap-6"} z-20`}>
             <div className="flex items-center cursor-pointer shrink-0" onClick={() => onNavClick('home')}>
               {siteConfig?.logo ? (
                   <img src={siteConfig.logo} alt="healwith" className="h-8 md:h-9 object-contain" />
@@ -176,7 +185,8 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <Logo tone="light" lang={langCode} />
               )}
             </div>
-            <nav className="hidden xl:flex items-center gap-0.5">
+            {/* 자리가 모자라면 «덮는» 대신 «옆으로 흐른다» — 메뉴 항목은 하나도 안 사라진다. */}
+            <nav className={`hidden xl:flex items-center ${navGap} min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
               <a
                 href="/telemedicine"
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap`}
@@ -231,7 +241,8 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
-          <div className={`hidden xl:flex items-center ${denseNav ? "gap-1" : "gap-1.5"} z-20`}>
+          {/* 오른쪽(언어·로그인·가입)은 줄어들면 안 된다 — 줄어드는 순간 가입 버튼 글자가 잘린다. */}
+          <div className={`hidden xl:flex items-center shrink-0 ${denseNav ? "gap-1" : "gap-1.5"} z-20`}>
             {/* Language */}
             <div className="relative" ref={langRef}>
               <button
@@ -241,7 +252,9 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 transition-all notranslate"
               >
                 <Globe size={15} />
-                <span className="text-sm font-medium">{currentLangLabel}</span>
+                {/* ru·kz 는 이름을 빼고 지구본만 — 헤더 폭을 되찾기 위해서다(위 주석 참고).
+                    읽는 사람에게는 여전히 «현재 언어»가 필요하므로 스크린리더용 이름은 남긴다. */}
+                <span className={denseNav ? "sr-only" : "text-sm font-medium"}>{currentLangLabel}</span>
                 <ChevronDown size={13} className={`opacity-60 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
               </button>
               {isLangOpen && (
