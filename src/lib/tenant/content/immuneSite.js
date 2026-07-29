@@ -840,22 +840,22 @@ export const IMMUNE_SITE = {
        → 한자가 확인되기 전까지 한글 그대로 둔다. 병원 확인 후 채울 항목. */
   doctors: [
     {
-      name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван И-джун", kz: "Д-р Хван И-джун", zh: "황이준 代表院长", ja: "ファン・イジュン代表院長" },
+      name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван И-джун", kz: "Д-р Хван И-джун", zh: "Hwang I-jun 代表院长", ja: "ファン・イジュン代表院長" },
       title: { ko: "강서점 대표원장", en: "Director, Gangseo", ru: "Главный врач, Кансо", kz: "Бас дәрігер, Кансо", zh: "江西院区代表院长", ja: "江西院 代表院長" },
       photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
     },
     {
-      name: { ko: "유형진 대표원장", en: "Dr. Yoo Hyeong-jin", ru: "Д-р Ю Хён-джин", kz: "Д-р Ю Хён-джин", zh: "유형진 代表院长", ja: "ユ・ヒョンジン代表院長" },
+      name: { ko: "유형진 대표원장", en: "Dr. Yoo Hyeong-jin", ru: "Д-р Ю Хён-джин", kz: "Д-р Ю Хён-джин", zh: "Yoo Hyeong-jin 代表院长", ja: "ユ・ヒョンジン代表院長" },
       title: { ko: "신촌점 대표원장", en: "Director, Sinchon", ru: "Главный врач, Синчон", kz: "Бас дәрігер, Синчон", zh: "新村院区代表院长", ja: "新村院 代表院長" },
       photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
     },
     {
-      name: { ko: "배길준 대표원장", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гиль-джун", kz: "Д-р Пэ Гиль-джун", zh: "배길준 代表院长", ja: "ペ・ギルジュン代表院長" },
+      name: { ko: "배길준 대표원장", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гиль-джун", kz: "Д-р Пэ Гиль-джун", zh: "Bae Gil-jun 代表院长", ja: "ペ・ギルジュン代表院長" },
       title: { ko: "광명점 대표원장", en: "Director, Gwangmyeong", ru: "Главный врач, Кванмён", kz: "Бас дәрігер, Кванмён", zh: "光明院区代表院长", ja: "光明院 代表院長" },
       photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png",
     },
     {
-      name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Чжу-ан", kz: "Д-р Кан Чжу-ан", zh: "강주안 代表院长", ja: "カン・ジュアン代表院長" },
+      name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Чжу-ан", kz: "Д-р Кан Чжу-ан", zh: "Kang Ju-an 代表院长", ja: "カン・ジュアン代表院長" },
       title: { ko: "성동점 대표원장", en: "Director, Seongdong", ru: "Главный врач, Сондон", kz: "Бас дәрігер, Сондон", zh: "城东院区代表院长", ja: "城東院 代表院長" },
       photo: "/immune/doctor/seongdong-dr-kang-juan.png",
     },

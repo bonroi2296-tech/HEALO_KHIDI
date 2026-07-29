@@ -284,6 +284,50 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
     ).toEqual([]);
   });
 
+  /* 🈯 언어 칸 전수 점검 — 6개 언어를 손으로 채우다 보면 반드시 한 칸이 샌다.
+     🔴 2026-07-29 실제로 샜다: **의료진 31명의 중국어 이름이 한글 그대로**였다(「황이준」).
+        일본어는 가타카나(ファン・イジュン), 러시아어·카자흐어는 키릴로 음역해 뒀는데 중국어만 안 했다.
+        경위: 그전에 «한글 이름에서 한자를 유추할 수 없다»며 지어낸 한자(黃利俊 등)를 지운 건 옳았는데,
+        **지우고 끝냈다** — 다른 언어처럼 «음역»까지 가지 않았다. 중국어 방문자는 그 글자를 아예 못 읽는다.
+     ⚠️ 이 검사기 자체도 처음엔 틀렸다: 일본어를 「가나가 있어야 한다」로 봐서 한자만 쓴 정상 일본어
+        (病院紹介)를 122건이나 잘못 잡았고, `20:00` 같은 시각도 잡았다. **검사기가 뱉은 목록이 길면
+        내용이 아니라 검사기를 먼저 의심하라** — 고치니 31건(전부 진짜)으로 줄었다. */
+  it("🈯 6개 언어 칸이 다 차 있고, 그 언어 글자로 적혀 있다", async () => {
+    const { IMMUNE_SITE } = await import("./content/immuneSite.js");
+    const pages: any = await import("./content/immunePages.js");
+    const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
+    /* ⚠️ 「그 언어 글자가 맞는지」까지 재려다 그만뒀다 — 그 판정이 오탐 덩어리였다.
+       한자만 쓴 일본어(病院紹介)·시각(20:00)·로마자 음역이 전부 걸려 122건이 나왔고,
+       진짜는 31건뿐이었다. 남긴 규칙은 **읽을 수 없는 글자가 섞였는가** 하나다(한글이 다른 언어 칸에).
+       규칙을 좁힐 땐 안 쓰게 된 코드도 같이 지워야 한다 — 처음엔 `글자` 표를 그대로 뒀다가
+       `npm run lint` 의 `no-unused-vars` 가 **오류**로 잡아 줬다. */
+    const 문제: string[] = [];
+    const 훑기 = (node: any, 경로: string) => {
+      if (Array.isArray(node)) return node.forEach((n, i) => 훑기(n, `${경로}[${i}]`));
+      if (!node || typeof node !== "object") return;
+      const keys = Object.keys(node);
+      const 언어맵 =
+        keys.length > 0 && keys.every((k) => (LANGS as readonly string[]).includes(k)) && keys.includes("ko");
+      if (언어맵) {
+        const 빠짐 = LANGS.filter((l) => !node[l] || String(node[l]).trim() === "");
+        if (빠짐.length) 문제.push(`[언어 빠짐 ${빠짐.join(",")}] ${경로} (ko: ${String(node.ko).slice(0, 24)})`);
+        for (const l of LANGS) {
+          const v = String(node[l] || "");
+          if (!v) continue;
+          // ⚠️ 「Hwang I-jun」처럼 **로마자 음역은 중국어 칸에서 허용**한다 — 한자를 지어내는 것보다 낫다.
+          //    막으려는 건 «읽을 수 없는 글자»(중국어 칸의 한글)이지 로마자가 아니다.
+          if (l !== "ko" && /[가-힣]/.test(v)) 문제.push(`[🔴 한글이 남음] ${경로}.${l} «${v.slice(0, 30)}»`);
+        }
+        return;
+      }
+      for (const k of keys) 훑기(node[k], `${경로}.${k}`);
+    };
+    훑기(IMMUNE_SITE, "홈");
+    훑기(pages.IMMUNE_PAGES, "속페이지");
+    훑기(pages.IMMUNE_NAV, "메뉴");
+    expect(문제, `언어 칸 문제 ${문제.length}건:\n${문제.slice(0, 12).join("\n")}`).toEqual([]);
+  });
+
   it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
     // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
     const { IMMUNE_PAGES } = await import("./content/immunePages.js");
