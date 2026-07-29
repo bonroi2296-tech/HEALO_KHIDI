@@ -13,7 +13,7 @@ import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
-import { briefSig } from "@/lib/inquiry/caseBrief";
+import { briefSig, readBriefMap, normalizeBriefLang } from "@/lib/inquiry/caseBrief";
 
 // detail 화면에 필요한 필드만 SELECT (불필요한 PII·내부필드 노출 최소화)
 const DETAIL_FIELDS = [
@@ -130,8 +130,14 @@ export async function GET(
       if (encBrief) {
         const dec = decryptStringNullable(encBrief);
         if (dec) {
-          inquiry.brief = JSON.parse(dec);
+          // 캐시는 언어별 묶음 { ko:…, ru:… }. 읽는 사람 언어 것만 골라 준다.
+          // (옛 형식 = 브리프 한 개 → readBriefMap 이 한국어로 흡수)
+          const map = readBriefMap(JSON.parse(dec));
+          const want = normalizeBriefLang(request.nextUrl.searchParams.get("lang"));
+          inquiry.brief = map[want] || null;
           inquiry.briefStale = ((data as any)?.coordinator_brief_sig || "") !== briefSig((data as any)?.attachments || []);
+          // 내 언어 것이 아직 없으면 «없음»으로 준다 → 화면이 그 언어로 새로 만든다.
+          if (!inquiry.brief) inquiry.briefStale = true;
         }
       }
     } catch (e: any) {

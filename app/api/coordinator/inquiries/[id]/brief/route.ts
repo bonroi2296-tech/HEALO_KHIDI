@@ -11,11 +11,15 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
-import { generateCaseBrief, briefSig } from "@/lib/inquiry/caseBrief";
-import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { generateCaseBrief, briefSig, normalizeBriefLang, readBriefMap } from "@/lib/inquiry/caseBrief";
+import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
 const BRIEF_FIELDS = [
   "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments",
+  // ⚠️ 캐시 두 칸도 반드시 읽어와야 한다. 안 읽으면 «이전 값»이 늘 비어 보여서
+  //    언어별 묶음을 덧붙이지 못하고 **통째로 덮어쓴다**(러시아어 만들면 한국어가 날아감).
+  //    2026-07-29 실측으로 잡음: 러 → 한 → 러 순으로 열었더니 마지막 러시아어가 다시 만들어졌다.
+  "coordinator_brief", "coordinator_brief_sig",
 ].join(",");
 
 export async function POST(
@@ -29,6 +33,13 @@ export async function POST(
 
   const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
+
+  // 브리프를 «읽는 사람 언어»로 만든다(백오피스 언어). 값이 이상하면 한국어.
+  let lang = "ko";
+  try {
+    const body = await request.json();
+    lang = normalizeBriefLang(body?.lang);
+  } catch { /* 본문 없이 부르면 한국어 */ }
 
   try {
     const { data, error } = await supabaseAdmin
@@ -54,6 +65,7 @@ export async function POST(
     const result = await generateCaseBrief({
       inquiry,
       attachments: Array.isArray(inquiry?.attachments) ? inquiry.attachments : [],
+      lang,
     });
 
     if (!result.ok) {
@@ -61,8 +73,20 @@ export async function POST(
     }
 
     // 캐시 저장(암호화) — 열람 때 즉시 뜨게. 첨부 서명도 저장(바뀌면 자동 재생성). 실패해도 응답은 진행.
+    // ⚠️ 언어별로 «덧붙인다». 통째로 덮으면 한국 직원이 볼 한국어 브리프가 러시아어 생성 한 번에 날아간다.
     try {
-      const enc = encryptStringNullable(JSON.stringify(result.brief));
+      let map: any = {};
+      try {
+        const prev = (data as any)?.coordinator_brief;
+        const prevSig = (data as any)?.coordinator_brief_sig || "";
+        // 첨부가 바뀌었으면 옛 언어 것도 낡았다 → 새로 시작(다음 열람 때 각 언어가 다시 만들어진다).
+        if (prev && prevSig === briefSig(inquiry?.attachments || [])) {
+          const dec = decryptStringNullable(prev);
+          if (dec) map = readBriefMap(JSON.parse(dec));
+        }
+      } catch { /* 못 읽으면 새로 시작 */ }
+      map[lang] = result.brief;
+      const enc = encryptStringNullable(JSON.stringify(map));
       // 새 컬럼(coordinator_brief*)은 생성 타입(database.types)에 아직 없어 as any 로 우회(마이그레이션은 적용됨).
       await supabaseAdmin
         .from("inquiries")
