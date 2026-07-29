@@ -9,7 +9,6 @@ import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
   MoreHorizontal, X, ShieldCheck, Phone,
 } from 'lucide-react';
-import PatientNotificationBell from '@/components/patient/PatientNotificationBell';
 
 // 탭 라벨은 중앙 i18n 사전 patientLayout.tab.* 키(6개 활성언어 ko·en·ru·kz·zh·ja)
 const PRIMARY_TABS = [
@@ -36,7 +35,9 @@ export default function PatientLayout({ children }) {
   //    시점엔 서버값, 그 뒤 쿠키값(안전). ⚠️ LangProvider 밖에서 부르면 경고 없이 'en' 으로 굳으니
   //    이 컴포넌트가 ClientShell(=LangProvider) 하위인지 확인하고 쓸 것.
   const lang = useLang();
-  const l = (obj) => obj?.[lang] || obj?.['en'] || '';
+  // ⚠️ 여기 있던 l(obj) 헬퍼를 되살리지 마라 — 탭이 {ko:'홈'} 같은 «객체»를 들고 있던 시절의 것이다.
+  //    지금은 중앙 사전 키(labelKey)를 들고 있어서 l(tab.label) 은 항상 undefined 였고,
+  //    그래서 환자 하단 탭 이름이 6개 언어 전부 «빈칸»으로 나왔다(2026-07-29 폰 화면에서 발각).
   const [moreOpen, setMoreOpen] = useState(false);
   const sheetRef = useRef(null);
 
@@ -63,7 +64,9 @@ export default function PatientLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50 healo-portal-offset pb-[calc(5rem+var(--cookie-banner-h,0px)+env(safe-area-inset-bottom,0px))] lg:pb-0">
-      <PatientNotificationBell />
+      {/* ⚠️ 알림 종을 여기서 또 띄우지 마라 — 상단바(ClientShell)가 로그인한 사람에게 이미 종을 그린다.
+          2026-07-29 폰 실측: 환자 화면에 종이 «두 개» 떴고, 떠다니는 종(variant="fixed")이
+          상단바 오른쪽을 덮어 옆 아이콘이 잘렸다. 종은 상단바 것 하나로 충분하다. */}
       {children}
 
       {/* More menu overlay */}
@@ -101,7 +104,7 @@ export default function PatientLayout({ children }) {
                   }`}
                 >
                   <Icon size={20} className={active ? 'text-teal-700' : 'text-gray-500'} />
-                  <span className="text-sm font-medium">{l(tab.label)}</span>
+                  <span className="text-sm font-medium">{t(tab.labelKey, lang)}</span>
                 </Link>
               );
             })}
@@ -126,7 +129,7 @@ export default function PatientLayout({ children }) {
                 <div className={`p-1 rounded-lg transition-all ${active ? 'bg-teal-50' : ''}`}>
                   <Icon size={22} strokeWidth={active ? 2.5 : 2} />
                 </div>
-                <span className="text-[10px] font-medium leading-tight">{l(tab.label)}</span>
+                <span className="text-[10px] font-medium leading-tight">{t(tab.labelKey, lang)}</span>
               </Link>
             );
           })}
