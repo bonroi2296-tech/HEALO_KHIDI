@@ -34,7 +34,7 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
           // 오류면 1회 더 (retryTransient.ts) — 인증 서버 한 번 삐끗 ≠ 권한 없음
           const res = await askOnceMoreOnError(() => supabaseAdmin.auth.getUser(token));
           const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
-          user = data?.user;
+          user = data?.user ?? null;
           userError = error;
         } catch (err: unknown) {
           userError = err;
@@ -46,7 +46,7 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
         const supabase = await createSupabaseServerClient();
         const res = await askOnceMoreOnError(() => supabase.auth.getUser());
         const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
-        user = data?.user;
+        user = data?.user ?? null;
         userError = error;
       } catch (err: unknown) {
         userError = err;

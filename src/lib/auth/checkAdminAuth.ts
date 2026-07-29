@@ -104,7 +104,7 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
           const res = await askOnceMoreOnError(() => supabaseAdmin.auth.getUser(token));
           const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
 
-          user = data?.user;
+          user = data?.user ?? null;
           userError = error;
           authMethod = "bearer_token";
           
@@ -127,7 +127,7 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
         const supabase = createSupabaseServerClientFromRequest(request);
         const res = await askOnceMoreOnError(() => supabase.auth.getUser());
         const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
-        user = data?.user;
+        user = data?.user ?? null;
         userError = error;
         authMethod = "cookie_request";
         if (isDev) {
@@ -145,7 +145,7 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
         const supabase = await createSupabaseServerClient();
         const res = await askOnceMoreOnError(() => supabase.auth.getUser());
         const { data, error } = res ?? { data: null, error: new Error("auth_unreachable") };
-        user = data?.user;
+        user = data?.user ?? null;
         userError = error;
         if (!authMethod || authMethod === "unknown") authMethod = "cookie";
         if (isDev) {
