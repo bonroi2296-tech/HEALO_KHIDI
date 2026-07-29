@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+import { isNativeApp } from "@/lib/isNativeApp";
 
 // 6개 활성언어(ko·en·ru·kz·zh·ja) — 카피는 중앙 i18n 사전(cookieConsent.*). 모든 공개/환자 페이지 하단에 뜨는 동의창.
 //
@@ -32,8 +33,17 @@ export default function CookieConsent() {
   const tr = (k) => t(`cookieConsent.${k}`, lang);
 
   useEffect(() => {
-    const consent = localStorage.getItem("healo_cookie_consent");
-    if (!consent) setShow(true);
+    if (localStorage.getItem("healo_cookie_consent")) return;
+    // 📱 스토어 앱 안에서는 이 배너를 띄우지 않는다(2026-07-28 PO 실기기 확인 — «앱에서 쿠키
+    //    허용 배너 뜨는 건 본 적 없다»). 네이티브 앱의 관례가 아니고, 라이브로드라 웹 UI 가
+    //    그대로 새어 나온 것 = «웹사이트를 앱으로 감쌌다»는 티가 난다(애플 4.2 심사에도 불리).
+    //    대신 **필수 쿠키만 허용**으로 두고 조용히 넘어간다 — 묻지 않았으니 분석 쿠키는 안 쓴다
+    //    (동의 없이 수집하지 않는 쪽이 항상 안전). 앱에서 분석을 켜려면 설정에 토글을 만들 것.
+    if (isNativeApp()) {
+      localStorage.setItem("healo_cookie_consent", "essential");
+      return;
+    }
+    setShow(true);
   }, []);
 
   // 높이를 상수로 못 박지 않는 이유: 6개 언어 글자 길이·화면 폭에 따라 2~3줄이 된다(실측 88~199px).
