@@ -67,6 +67,20 @@ function useAudioTracks(room) {
 }
 
 /**
+ * 이 참가자에게서 오는 «소리»의 크기를 바꾼다(수신은 그대로 — 자막이 살아 있어야 한다).
+ * 마이크뿐 아니라 «화면 공유 소리»도 같이 — 그것도 스피커로 나가면 하울링을 만든다.
+ * 새로 붙는 트랙에도 자동 적용된다(livekit 이 참가자별로 마지막 값을 기억한다).
+ */
+function silenceParticipant(p, volume) {
+  try {
+    p.setVolume?.(volume);
+    p.setVolume?.(volume, Track.Source.ScreenShareAudio);
+  } catch {
+    /* 이 참가자만 실패 — 나머지는 계속 */
+  }
+}
+
+/**
  * @param {object} props
  * @param {object} props.copy — 방 문구(6개 언어)
  * @param {number} [props.sameNetworkPeers] — 입장 시점에 «같은 인터넷 회선»으로 이미 방에
@@ -104,7 +118,7 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
     try {
       await room?.localParticipant?.setMicrophoneEnabled(!off);
       for (const p of room?.remoteParticipants?.values?.() ?? []) {
-        p.setVolume?.(off ? 0 : 1);
+        silenceParticipant(p, off ? 0 : 1);
       }
     } catch {
       /* 실패해도 상태만 바꾼다 — 사용자는 하단 버튼으로 수동 조작 가능 */
@@ -117,7 +131,7 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   useEffect(() => {
     if (!screenOnly || !room) return;
     const silence = () => {
-      for (const p of room.remoteParticipants?.values?.() ?? []) p.setVolume?.(0);
+      for (const p of room.remoteParticipants?.values?.() ?? []) silenceParticipant(p, 0);
     };
     silence();
     const events = [
