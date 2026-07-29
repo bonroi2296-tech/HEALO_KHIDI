@@ -78,6 +78,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
@@ -673,37 +674,6 @@ const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 // 문맥 링버퍼 → API 로 보낼 형태. 내부용 필드(norm·at)는 빼서 프롬프트·전송량을 안 늘린다.
 function contextForApi(buf, n = 6) {
   return (buf || []).slice(-n).map(({ speaker, lang, text }) => ({ speaker, lang, text }));
-}
-
-// ── 목록 «맨 아래 붙어 있기» ──
-// 세 가지 제보를 한 번에 고친다(2026-07-29 PO):
-//   ③ 패널을 닫았다 열면 스크롤이 맨 위 — 컨테이너가 새로 만들어지는데 아무도 안 내려줬다.
-//      (게다가 채팅 탭엔 자동 스크롤이 아예 없었다 — 번역 탭에만 있었음)
-//   ⑩ 줄이 쌓이면 «지멋대로 올라갔다 내려갔다 춤춘다» — 새 줄마다 부드러운 스크롤 애니메이션을
-//      걸어서, 4초 폴링·자막이 겹칠 때마다 애니메이션이 서로를 덮어썼다. 즉시 이동으로 바꾼다.
-//   + 읽으려고 위로 올려놔도 다시 바닥으로 끌어내리던 것도 같이 해소.
-// 규칙: 바닥 근처(120px)에 있으면 따라 내려가고, 위로 올려놨으면 가만둔다. 열 때는 즉시 바닥.
-function useStickToBottom(dep) {
-  const elRef = useRef(null);
-  const stickRef = useRef(true);
-  // 콜백 ref: 패널을 열거나 탭을 바꿔 컨테이너가 새로 붙는 «그 순간» 바닥으로 (효과로는 못 잡는다)
-  const setRef = useCallback((el) => {
-    elRef.current = el;
-    if (el) {
-      stickRef.current = true;
-      el.scrollTop = el.scrollHeight;
-    }
-  }, []);
-  const onScroll = useCallback(() => {
-    const el = elRef.current;
-    if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-  }, []);
-  useEffect(() => {
-    const el = elRef.current;
-    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [dep]);
-  return { setRef, onScroll };
 }
 
 // ── Subtitle overlay ──
@@ -3699,7 +3669,18 @@ export default function ConsultationRoomPage() {
 
           {/* Chat panel */}
           {activePanel === "chat" && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="relative flex-1 flex flex-col overflow-hidden">
+              {/* 위로 올려 읽는 동안 새 줄이 쌓이면 알려준다 — 안 그러면 손으로 끝까지
+                  내려야 한다(PO 불만의 본질). 누르면 바닥으로. */}
+              {chatScroll.hasNew && (
+                <button
+                  type="button"
+                  onClick={chatScroll.jumpToBottom}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold shadow-lg"
+                >
+                  ↓ {c.newBelow}
+                </button>
+              )}
               <div
                 ref={chatScroll.setRef}
                 onScroll={chatScroll.onScroll}
@@ -3813,7 +3794,7 @@ export default function ConsultationRoomPage() {
 
           {/* Translation log panel */}
           {activePanel === "translation" && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="relative flex-1 flex flex-col overflow-hidden">
               {/* 언어쌍 단일 입구 — 컨트롤 바의 중복 「언어」 버튼을 없애고 여기로 통일(2026-07-15 PO).
                   언어 설정은 번역 전용이라, 번역 패널 맨 위에 항상 두는 게 자연스럽다. */}
               <button
@@ -3831,6 +3812,17 @@ export default function ConsultationRoomPage() {
               <p className="px-4 pt-2 text-[10px] text-gray-500 leading-tight">
                 {c.aiSubtitleDisclaimer}
               </p>
+              {/* 위로 올려 읽는 동안 새 줄이 쌓이면 알려준다 — 안 그러면 손으로 끝까지
+                  내려야 한다(PO 불만의 본질). 누르면 바닥으로. */}
+              {transScroll.hasNew && (
+                <button
+                  type="button"
+                  onClick={transScroll.jumpToBottom}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold shadow-lg"
+                >
+                  ↓ {c.newBelow}
+                </button>
+              )}
               <div
                 ref={transScroll.setRef}
                 onScroll={transScroll.onScroll}

@@ -120,6 +120,18 @@ const PARTIAL_MAX_PER_UTTERANCE = 4;
 const CROSS_DUP_WINDOW_MS = 8000;
 const CROSS_DUP_JACCARD = 0.6;
 
+// ── «한 사람은 한 마이크가 맡는다» ──
+// 위 looksDuplicate 는 **확정 자막**만 걸러낸다. 그런데 «말하는 중» 조각엔 그 검사가 없어서,
+// 같은 방 마이크 둘이 같은 사람 말을 각자 조금씩 다르게 받아쓴 걸 **같은 자막 자리에**
+// 번갈아 써넣는다 → 글자가 앞뒤로 튄다(2026-07-29 자가감사: 화자 귀속을 고치면서 두 줄이
+// 한 자리로 합쳐지는 바람에 새로 생긴 증상).
+// 그래서 보내기 «전»에 «이 사람은 지금 누구 마이크가 맡고 있나»를 확인하고, 남이 맡고
+// 있으면 아예 안 보낸다 — 화면도 안 튀고 AI 호출도 안 나간다(비용도 같이 줄어든다).
+// ponytail: 임자는 «먼저 보낸 쪽». 가장 가까운(=가장 잘 들리는) 마이크를 고르는 게 이상적이지만
+//   그러려면 응답을 모아 비교하느라 자막이 늦어진다. 귀속(누가 말했나)은 이미 정확하므로
+//   여기서 남는 손해는 «가끔 조금 먼 마이크의 소리로 받아쓴다» 정도다.
+const OWNER_TTL_MS = 4000;
+
 const normalizeWords = (s) =>
   String(s || "")
     .toLowerCase()
@@ -163,6 +175,8 @@ export function ListenModeBridge({
   const audioCtxRef = useRef(null); // 브릿지당 1개 공유
   // 최근 확정 전사 [{ identity, text, at }] — 파이프라인 간 중복(같은 목소리 여러 마이크) 억제용
   const recentRef = useRef([]);
+  // identity → { pipeKey, at } : «이 사람은 지금 누구 마이크가 맡고 있나»
+  const ownerRef = useRef(new Map());
   // 언어·콜백·헤더는 ref 로 — 값이 바뀌어도 진행 중인 녹음 파이프라인을 재시작하지 않고
   // 다음 전송 시점에 최신값을 읽는다 (재시작하면 녹음 중이던 문장이 통째로 유실됨)
   const liveRef = useRef({});
@@ -222,6 +236,7 @@ export function ListenModeBridge({
           audioCtxRef,
           recentRef,
           speakerLogRef,
+          ownerRef,
         })
       );
     }
@@ -321,6 +336,7 @@ function startPipeline({
   audioCtxRef,
   recentRef,
   speakerLogRef,
+  ownerRef,
 }) {
   let stopped = false;
   let recorder = null;
@@ -372,6 +388,16 @@ function startPipeline({
     // 화자 기기가 직접 자막을 보내는 중이면 스킵 (이중 자막 방지)
     const dcAt = live.dcActivityRef?.current?.get?.(identity) || 0;
     if (Date.now() - dcAt < DC_SUPPRESS_MS) return null;
+    // 이 발화의 «말하는 사람»을 다른 마이크가 이미 맡고 있으면 보내지 않는다
+    // (같은 말이 자막 한 자리에서 앞뒤로 튀는 것 + 같은 AI 호출 중복 방지).
+    const dom0 = dominantSpeaker(speakerLogRef?.current || [], startedAt, Date.now());
+    const who = dom0?.identity || identity;
+    const owners = ownerRef?.current;
+    if (owners) {
+      const cur = owners.get(who);
+      if (cur && cur.pipeKey !== pipeKey && Date.now() - cur.at < OWNER_TTL_MS) return null;
+      owners.set(who, { pipeKey, at: Date.now() });
+    }
     const headers = await live.getAuthHeaders();
     if (!headers) return null;
     // 내부용 필드(norm·at)는 빼고 보낸다 — 프롬프트·전송량을 안 늘리려고
