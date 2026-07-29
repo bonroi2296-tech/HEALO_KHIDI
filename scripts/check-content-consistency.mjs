@@ -2511,6 +2511,71 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── [빈라벨] 사전 «키»를 들고 있는데 «값» 필드로 읽으면 글자가 통째로 사라진다 (2026-07-29 실측) ──
+//
+// 실제 사고: 환자 하단 탭이 예전엔 { ko:'홈', en:'Home' } 같은 «값»을 직접 들고 있었는데
+// 중앙 사전으로 옮기며 { labelKey: 'patientLayout.tab.home' } 로 바뀌었다. 그런데 읽는 쪽은
+// 그대로 tab.label 이라 **항상 undefined → 빈 문자열**. 탭 이름이 6개 언어 전부 빈칸으로
+// 나갔는데 빌드·타입검사(strict:false)·린트·테스트가 전부 초록이라 아무도 못 잡았다.
+//
+// 판정(좁게 — 오탐을 안 내려고 «그 배열»까지 특정한다):
+//   ① `const NAME = [ … ]` 배열 리터럴의 원소가 `labelKey:` 는 갖고 `label:` 은 «안» 갖는다
+//   ② 같은 파일에서 `NAME.map(x => …)` 로 돌린다
+//   ③ 그 콜백 인자로 `x.label` 을 읽는다  → 있지도 않은 필드다.
+// DB·매퍼에서 온 값(item.desc 처럼 mapTreatmentRow 가 실제로 채워주는 것)은 배열 리터럴이
+// 아니므로 걸리지 않는다 — 처음 만든 넓은 규칙이 이걸로 오탐 2건을 냈어서 좁혔다.
+{
+  const KEY_BASES = ["label", "title", "name", "desc"];
+  const files = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f));
+  for (const file of files) {
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    // 주석·문자열은 판정에서 뺀다 — 'intakeForm.fields.x.label' 같은 «사전 키 문자열»이
+    // 코드의 .label 읽기로 오인되면 오탐만 쌓인다.
+    const code = stripCommentsWholeFile(raw)
+      .replace(/`(?:[^`\\]|\\.)*`/g, "``")
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    const lines = code.split(/\r?\n/);
+
+    for (const base of KEY_BASES) {
+      // ① 사전 키만 들고 있는 배열 리터럴 찾기
+      const suspectArrays = [];
+      const arrRe = /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*\[([\s\S]*?)\]\s*;/g;
+      let am;
+      while ((am = arrRe.exec(code))) {
+        const [, name, body] = am;
+        if (!new RegExp(`\\b${base}Key\\s*:`).test(body)) continue;
+        if (new RegExp(`\\b${base}\\s*:`).test(body)) continue; // 값도 같이 들고 있으면 정상
+        suspectArrays.push(name);
+      }
+      if (!suspectArrays.length) continue;
+
+      // ② 그 배열을 도는 콜백 인자 이름 모으기
+      const params = new Set();
+      for (const name of suspectArrays) {
+        const mapRe = new RegExp(`\\b${name}\\s*\\.\\s*(?:map|forEach|filter|find|some|every)\\s*\\(\\s*\\(?\\s*([A-Za-z_$][\\w$]*)`, "g");
+        let mm;
+        while ((mm = mapRe.exec(code))) params.add(mm[1]);
+      }
+      if (!params.size) continue;
+
+      // ③ 그 인자로 «값» 필드를 읽는 줄
+      const read = new RegExp(`\\b(${[...params].join("|")})\\.${base}\\b(?!Key)`);
+      lines.forEach((line, i) => {
+        if (!read.test(line)) return;
+        errors.push(
+          `[빈라벨] ${file.replace(/\\/g, "/")}:${i + 1} — «${suspectArrays.join(", ")}» 는 사전 키(${base}Key)만 들고 있는데 ` +
+            `코드가 «.${base}»(값)를 읽는다 → 항상 undefined → **화면에 빈 문자열**이 나간다. ` +
+            `t(x.${base}Key, lang) 처럼 «키로 사전을 조회»하도록 고쳐라. ` +
+            `⚠️ 이 부류는 빌드·타입검사·린트·테스트가 전부 초록이라 눈으로만 보인다 (2026-07-29 환자 탭 사고)\n    ${line.trim().slice(0, 120)}`
+        );
+      });
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
