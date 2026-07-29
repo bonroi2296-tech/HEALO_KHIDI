@@ -236,6 +236,31 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
     expect(빈페이지, `사진이 0장인 속 페이지: ${빈페이지.join(", ")}`).toEqual([]);
   });
 
+  /* 💰 화면에 적는 **돈 숫자**는 다른 실수와 급이 다르다 — 한 자리만 틀려도 허위 고지가 되고,
+     해외 환자는 그 숫자를 보고 비행기표를 끊는다. 눈으로 대조하면 반드시 언젠가 틀린다.
+     `immunePrices.js` = 병원이 자기 사이트에 고지한 표(2026.06.16)를 기계로 긁어 둔 스냅숏.
+     여기서는 **화면 문구에 등장하는 모든 금액이 그 표에 실제로 있는 값인지**만 본다.
+     ⚠️ 이 검사가 잡을 수 있는 것 = 「우리 쪽에서 숫자가 틀어지는 것」(오타·창작).
+        잡을 수 없는 것 = 「병원이 값을 바꾼 것」(자동 검사는 인터넷을 안 본다).
+        그래서 병원 가격 개정 시 스냅숏 파일을 같이 갱신해야 한다. */
+  it("💰 화면에 적힌 비급여 금액이 전부 병원 고지표에 있는 값이다", async () => {
+    const { IMMUNE_SITE } = await import("./content/immuneSite.js");
+    const { IMMUNE_PUBLISHED_PRICES } = await import("./content/immunePrices.js");
+    const 고지된값 = new Set(
+      Object.values(IMMUNE_PUBLISHED_PRICES as Record<string, string | string[]>).flat(),
+    );
+    // 「비급여 참고가」가 붙은 문장만 본다(그 외 숫자는 기간·개수라 금액이 아니다).
+    const 문장 = JSON.stringify(IMMUNE_SITE).match(/[^"]*비급여 참고가[^"]*/g) || [];
+    expect(문장.length, "「비급여 참고가」 문장을 하나도 못 찾았다 — 검사가 안 돈 것").toBeGreaterThan(0);
+    const 이상한금액 = [...new Set(문장.flatMap((s) => s.match(/[\d]{1,3}(?:,\d{3})+/g) || []))].filter(
+      (n) => !고지된값.has(n),
+    );
+    expect(
+      이상한금액,
+      `병원 고지표에 없는 금액이 화면에 적혀 있다: ${이상한금액.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("속 페이지 한 장 안에서도 같은 사진이 두 번 안 나온다", async () => {
     // 홈과 탭이 같은 사진을 쓰는 건 정상(같은 병원이니까) — 문제는 **한 화면 안**의 중복이다.
     const { IMMUNE_PAGES } = await import("./content/immunePages.js");
