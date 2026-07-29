@@ -1,9 +1,23 @@
 import Link from "next/link";
+import { whatsappWithText } from "@/lib/siteSettings";
 
 // ─────────────────────────────────────────────────────────────
-// Yandex SEO 최적화 — 러시아어 의료관광 랜딩페이지
+// 러시아어 의료관광 랜딩페이지 — 검색광고 착지 페이지도 겸한다
 // 키워드: лечение рака в Корее, медицинский туризм Корея, онкология Южная Корея
+//
+// ⚠️ 광고 착지라서 지켜야 하는 것 2가지 (2026-07-28):
+//  1) 「세포 치료·줄기세포」로 가는 길을 만들지 말 것.
+//     구글 의료광고 정책이 "추측에 의한 의료 행위, 실험적 의료 행위, 세포 치료,
+//     유전자 치료"를 제한 대상으로 명시했고, 심사는 착지 페이지와 그 링크를 함께 본다.
+//     (병원 소개 페이지에 「줄기세포 치료」가 있어 히어로 버튼에서 링크를 뺐다)
+//  2) 첫 제안은 「무료 2차 소견」으로. 수술 견적을 먼저 들이밀면 대화가 끊긴다.
 // ─────────────────────────────────────────────────────────────
+
+// 광고에서 온 문의를 세는 유일하게 확실한 장치 — 환자가 보내는 첫 메시지에 [RU-ADS] 가
+// 박혀서 온다. 쿠키 동의 여부와 무관하게 100% 잡힌다.
+const WA_SECOND_OPINION = whatsappWithText(
+  "Здравствуйте! Я по объявлению. Хочу получить второе мнение онколога. [RU-ADS]"
+);
 
 export const metadata = {
   // 루트 layout 의 title.template("%s | healwith")이 브랜드를 붙여준다 →
@@ -115,17 +129,21 @@ export default function ForRussianPatientsPage() {
             языке.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/inquiry"
+            {/* 첫 버튼 = 왓츠앱 바로가기. 카자흐스탄은 왓츠앱을 인구의 83%가 쓰고
+                웹폼은 잘 쓰지 않는다 → 폼을 한 단계 거치지 않고 바로 대화를 연다. */}
+            <a
+              href={WA_SECOND_OPINION}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-teal-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
-              Бесплатная консультация
-            </Link>
+              Второе мнение бесплатно · WhatsApp
+            </a>
             <Link
-              href="/hospitals/immune"
+              href="/inquiry"
               className="border border-teal-600 text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
-              Immune Hospital →
+              Оставить заявку
             </Link>
           </div>
         </section>
@@ -199,12 +217,17 @@ export default function ForRussianPatientsPage() {
             <li>✓ 4 клиники в Сеуле и районе Кёнги</li>
             <li>✓ Переводчики на русском языке</li>
           </ul>
-          <Link
-            href="/hospitals/immune"
+          {/* 병원 상세로 보내지 않는다 — 그 페이지에 "stem cell therapy" 가 있어
+              광고 심사에서 「세포 치료」로 걸릴 수 있다(파일 상단 주석 참조).
+              대신 바로 대화를 연다. */}
+          <a
+            href={WA_SECOND_OPINION}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-teal-700 font-medium hover:underline"
           >
-            Подробнее об Immune Hospital →
-          </Link>
+            Спросить о клинике в WhatsApp →
+          </a>
         </section>
 
         {/* ── Процесс ─────────────────────────────────────── */}
@@ -294,17 +317,19 @@ export default function ForRussianPatientsPage() {
             не обязывает.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/inquiry"
+            <a
+              href={WA_SECOND_OPINION}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
-              Записаться на консультацию
-            </Link>
+              Написать в WhatsApp
+            </a>
             <Link
-              href="/treatments"
+              href="/inquiry"
               className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
-              Виды лечения →
+              Оставить заявку
             </Link>
           </div>
         </section>
@@ -314,7 +339,8 @@ export default function ForRussianPatientsPage() {
           <Link href="/ru" className="hover:text-teal-700">Главная (RU)</Link>
           <Link href="/treatments" className="hover:text-teal-700">Виды лечения</Link>
           <Link href="/hospitals" className="hover:text-teal-700">Больницы</Link>
-          <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
+          {/* Immune Hospital 직링크 제거 — 광고 심사 경로에서 「세포 치료」를 떼어내기 위함.
+              병원 목록(/hospitals)을 통해서는 그대로 갈 수 있다. */}
           <Link href="/visa" className="hover:text-teal-700">Виза</Link>
           <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>

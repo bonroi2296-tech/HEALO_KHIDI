@@ -1,5 +1,7 @@
 export const SITE_INFO = {
   messenger: {
+    // ⚠️ 광고 착지에서는 이 주소를 그대로 쓰지 말고 아래 whatsappWithText() 를 써라
+    //    (출처 표식이 있어야 광고에서 온 문의를 셀 수 있다).
     whatsapp: process.env.NEXT_PUBLIC_MESSENGER_WHATSAPP_URL || "https://wa.me/821047721075",
     // 환자용 공식 봇 @healwith_bot (2026-07-23 개통). 텔레그램 주소가 차면 /inquiry 의
     // Human Agent 가 바로가기 대신 WhatsApp·Telegram 선택 화면(picker)을 띄운다.
@@ -11,6 +13,7 @@ export const SITE_INFO = {
     line: process.env.NEXT_PUBLIC_MESSENGER_LINE_URL || "",
     wechat: process.env.NEXT_PUBLIC_MESSENGER_WECHAT_URL || "",
   },
+  // ↓ whatsappWithText() 는 파일 끝에 있다 (SITE_INFO 정의 뒤에 와야 참조 가능).
   brand: {
     name: "healwith",
     tagline: "AI Medical Concierge for Global Patients",
@@ -53,4 +56,25 @@ export const SITE_INFO = {
     // 노출(영어 화면 한글누출 가드 i18n-no-korean-leak 준수) — ClientShell 푸터에서 분기.
     copyrightKo: "© healwith(힐위드). All rights reserved.",
   },
+};
+
+/**
+ * 왓츠앱 대화창을 「첫 메시지가 미리 채워진」 상태로 여는 링크.
+ *
+ * 광고 착지 페이지 전용. 환자가 보내는 첫 메시지 끝에 [RU-ADS] 같은 출처 표식이 박혀서
+ * 오므로, 쿠키 동의·추적 차단과 무관하게 코디가 첫 줄만 보고 유입 경로를 안다.
+ * (구글 애널리틱스는 쿠키 「전체 허용」을 눌러야만 발화 → 광고 성과가 과소 집계된다)
+ *
+ * ⚠️ 텔레그램의 ?start= 딥링크(위 messenger.telegram 주석 참조)와는 다른 문제다.
+ *    왓츠앱 ?text= 는 사용자가 보내기 전까지 입력창에 채워져 있을 뿐이라
+ *    재입장 때 채팅이 더럽혀지지 않는다.
+ *
+ * ponytail: 링크 문자열 하나면 되는 일이라 추적 스크립트를 붙이지 않았다.
+ *           클릭 수까지 세야 하면 그때 이벤트를 얹으면 된다.
+ */
+export const whatsappWithText = (text) => {
+  const base = SITE_INFO.messenger.whatsapp;
+  if (!base) return "";
+  if (!text) return base;
+  return `${base}?text=${encodeURIComponent(text)}`;
 };
