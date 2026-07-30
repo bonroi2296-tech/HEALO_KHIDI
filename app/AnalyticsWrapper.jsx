@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 import { hasAnalyticsConsent, GA_ID, initDebugMode } from "@/lib/ga";
+import GaDebugBadge from "./GaDebugBadge";
 
 /**
  * healwith: Analytics 래퍼 (GA4 + Yandex Metrica)
@@ -63,6 +64,42 @@ export default function AnalyticsWrapper() {
     };
   }, [allowAnalytics, interacted]);
 
+  /**
+   * gtag.js 로드 실패 → **한 번 재시도**한다.
+   *
+   * 왜 (2026-07-30 실서비스에서 실제로 발생):
+   *   구글 쪽이 gtag.js 를 500 으로 한 번 튕기면, 지금 구조에서는 그 세션이
+   *   **통째로 측정 0** 이 된다(경고 한 줄만 콘솔에 찍히고 화면은 멀쩡 → 아무도 모름).
+   *   광고비가 들어가는 트래픽에서 이건 그대로 «성과가 없네»로 오독된다.
+   *
+   *   재시도가 실제로 복구가 되는 이유: 실패하는 동안에도 gtag() 호출은 dataLayer 배열에
+   *   그대로 «쌓여»만 있다. 뒤늦게 gtag.js 가 내려오면 그 큐를 처음부터 처리하므로
+   *   **놓친 config·이벤트까지 살아난다.**
+   *
+   *   next/script 는 같은 src 를 이미 로드했다고 기억해서 다시 안 받는다 → 재시도는
+   *   스크립트 태그를 직접 붙인다. 재시도의 실패는 상태로 안 올려서 무한 반복을 막는다(총 2회).
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retried, setRetried] = useState(false);
+  useEffect(() => {
+    // ⚠️ allowAnalytics 를 «의존성으로» 넣어야 한다. 안 넣으면 대기 중(2.5초)에 사용자가
+    //    /admin 으로 넘어가도 예약된 타이머가 그대로 터져서 **일부러 제외한 관리자 화면에**
+    //    gtag.js 를 직접 꽂아버린다(위쪽 <Script> 게이트를 우회). 넣으면 게이트가 닫히는 순간
+    //    이펙트가 다시 돌며 clearTimeout 으로 취소된다.
+    if (!loadFailed || retried || !allowAnalytics) return;
+    const tm = setTimeout(() => {
+      setRetried(true);
+      const s = document.createElement("script");
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      s.async = true;
+      s.onerror = () => {
+        console.warn("[Analytics] gtag.js 재시도도 실패 — 이 세션은 측정되지 않는다.");
+      };
+      document.head.appendChild(s);
+    }, 2500);
+    return () => clearTimeout(tm);
+  }, [loadFailed, retried, gaId, allowAnalytics]);
+
   // 디버그 로그 (개발 환경에서만)
   useEffect(() => {
     if (!isProduction) {
@@ -77,13 +114,31 @@ export default function AnalyticsWrapper() {
     }
   }, [gaId, ymId, isProduction, isAdminPath, consentGranted, allowAnalytics, interacted]);
 
+  // 자가진단 배지(?ga_debug=1)는 **게이트에 막혔을 때도** 떠야 한다 — «왜 안 되는지»가
+  // 대부분 이 게이트(쿠키 동의·상호작용 대기)이기 때문이다. 막힌 이유를 화면에 적어준다.
+  const badge = debugOn ? (
+    <GaDebugBadge
+      gaId={gaId}
+      consentGranted={consentGranted}
+      isProduction={isProduction}
+      isAdminPath={!!isAdminPath}
+      interacted={interacted}
+      loadFailed={loadFailed}
+      retried={retried}
+    />
+  ) : null;
+
   // 게이트: 동의(all) + 프로덕션 + 비admin + 상호작용 모두 충족해야 어떤 스크립트도 렌더 X
+  // ⚠️ 여기서도 «같은 모양»(Fragment)으로 돌려줘야 한다. 한쪽은 배지를 그대로, 다른 쪽은
+  //    Fragment 로 돌려주면 리액트가 «다른 종류의 요소»로 보고 배지를 **처음부터 다시 만든다**
+  //    → 방금 ✕ 로 닫은 배지가 즉시 되살아난다(닫는 클릭이 곧 첫 상호작용이라 실제로 벌어진다).
   if (!allowAnalytics || !interacted) {
-    return null;
+    return <>{badge}</>;
   }
 
   return (
     <>
+      {badge}
       {/* Google Analytics 4 */}
       {gaId && (
         <>
@@ -92,8 +147,9 @@ export default function AnalyticsWrapper() {
             strategy="lazyOnload"
             onError={() => {
               if (typeof console !== "undefined" && console.warn) {
-                console.warn("[Analytics] GA/GTM 스크립트 로드 실패(500 등). 페이지 동작에는 영향 없음.");
+                console.warn("[Analytics] gtag.js 로드 실패(500 등). 2.5초 뒤 한 번 재시도한다. 페이지 동작에는 영향 없음.");
               }
+              setLoadFailed(true);
             }}
           />
           {/* send_page_view:true → 랜딩(첫 진입) 조회를 GA가 자동 1회 집계.

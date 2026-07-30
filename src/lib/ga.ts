@@ -2,6 +2,10 @@ declare global {
   interface Window {
     gtag?: (...args: any[]) => void;
     Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string };
+    /** gtag.js 가 «진짜로 내려와 실행됐을 때만» 생기는 객체 (측정ID 로 키가 잡힌다). */
+    google_tag_manager?: Record<string, any>;
+    /** gtag() 호출이 쌓이는 대기줄. 스크립트가 늦게 내려와도 여기 있던 게 그때 처리된다. */
+    dataLayer?: any[];
   }
 }
 
@@ -85,6 +89,81 @@ const commonParams = (): Record<string, any> => {
   return p;
 };
 
+/**
+ * 「진짜로 GA 에 들어갔나」를 사람이 눈으로 볼 수 있게 하는 자가진단 값.
+ *
+ * 왜 필요한가 (2026-07-30 실측으로 발견):
+ *   PO 가 실서비스에서 `?ga_debug=1` 로 열었더니 콘솔에 gtag.js **500** 이 찍혔다.
+ *   화면은 완벽히 멀쩡했고 사용자도 아무 불편이 없었다 — 즉 «측정이 0 인데 아무도 모르는»
+ *   상태가 실제로 일어난다. 그런데 이걸 확인하는 유일한 방법이 «개발자도구 콘솔 읽기»여서
+ *   PO 가 스크린샷을 찍어 물어봐야 했다. → 상태를 코드가 들고 있게 하고 화면에 띄운다.
+ *
+ * 세 값이면 판정이 끝난다: 스크립트가 내려왔나 / 몇 건 보냈나 / 마지막에 뭘 보냈나.
+ */
+let sentCount = 0;
+let lastSent = "";
+const healthListeners = new Set<() => void>();
+
+function noteSent(name: string) {
+  sentCount += 1;
+  lastSent = name;
+  healthListeners.forEach((fn) => {
+    try { fn(); } catch { /* 진단 표시가 화면을 깨뜨리면 안 된다 */ }
+  });
+}
+
+/**
+ * gtag.js 가 «네트워크에서 실제로 내려와 실행됐는지». `window.gtag` 존재로 판단하면 안 된다 —
+ * 그건 우리 인라인 스니펫이 만드는 함수라 **스크립트가 500 으로 죽어도 항상 있다**(= 항상 초록불).
+ * gtag.js 본체만 만드는 `google_tag_manager[측정ID]` 로 봐야 진짜 여부가 갈린다.
+ */
+export const isGaScriptLoaded = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const g = window.google_tag_manager;
+    if (!g) return false;
+    // 측정ID 키가 잡히면 확실. 다만 gtag.js 내부 키 이름은 구글이 바꿀 수 있어서
+    // «객체가 생겼고 키가 하나라도 있다»도 로드 성공으로 본다(우리 인라인 스니펫은 이걸 못 만든다).
+    return !!g[GA_ID] || Object.keys(g).length > 0;
+  } catch { return false; }
+};
+
+/**
+ * 「랜딩(첫 진입) 조회가 GA 로 나갔는가」의 판정 근거.
+ *
+ * ⚠️ 여기서 `sentCount` 를 보면 안 된다 — 첫 화면 조회는 **우리 코드가 보내는 게 아니다.**
+ * 인라인 스니펫의 `gtag('config', …, { send_page_view: true })` 를 보고 **gtag.js 가 스스로**
+ * page_view 를 보낸다(그래서 우리 `pageview()` 를 안 거치고 `sentCount` 도 안 올라간다).
+ * 즉 «화면 하나만 보고 나간 방문»에서는 정상인데도 `sentCount` 가 0 이다 —
+ * 그걸 판정 기준으로 쓰면 **잘 되는 상태를 «실패»로 표시한다**(자가진단이 거짓말을 한다).
+ *
+ * 그래서 대기줄(dataLayer)에 우리 측정ID 로 `config` 가 들어갔는지를 본다.
+ * 이게 있고 + gtag.js 가 내려왔으면 → 랜딩 조회는 GA 가 확실히 받았다.
+ */
+const isGaConfigured = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const dl = window.dataLayer;
+    if (!Array.isArray(dl)) return false;
+    // gtag() 는 arguments 객체를 그대로 넣으므로 배열이 아니다 → 인덱스로 읽는다.
+    return dl.some((e: any) => e && e[0] === "config" && e[1] === GA_ID);
+  } catch { return false; }
+};
+
+export const getGaHealth = () => ({
+  loaded: isGaScriptLoaded(),
+  configured: isGaConfigured(),
+  sent: sentCount,
+  last: lastSent,
+  internal: internalUser,
+});
+
+/** 자가진단 배지가 실시간으로 따라오게 하는 구독. 반환값을 호출하면 해제. */
+export const onGaActivity = (fn: () => void): (() => void) => {
+  healthListeners.add(fn);
+  return () => healthListeners.delete(fn);
+};
+
 export const pageview = (url: string) => {
   const gaId = getGaId();
   if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
@@ -104,6 +183,7 @@ export const pageview = (url: string) => {
       page_path: url,
       ...commonParams(),
     });
+    noteSent("page_view");
   } catch { /* 분석 실패는 조용히 무시 — 화면은 계속 동작해야 한다 */ }
 };
 
@@ -114,6 +194,7 @@ export const event = (action: string, params: Record<string, any> = {}) => {
   // 🛡️ pageview 와 같은 이유로 방탄 (위 주석 참고).
   try {
     window.gtag("event", action, { ...commonParams(), ...params });
+    noteSent(action);
   } catch { /* 분석 실패는 조용히 무시 — 화면은 계속 동작해야 한다 */ }
 };
 
