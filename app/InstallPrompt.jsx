@@ -6,7 +6,8 @@ import { splitLocale } from "@/lib/i18n/config";
 
 // 스태프 포털·상담방에선 PWA 설치 배너 숨김(하단 fixed라 입력창·UI를 덮음 + 마케팅용이라 무관).
 // /inquiry: AI챗이 풀하이트라 하단 fixed 배너가 입력칸을 덮음 → 전역 배너 대신 챗 안 인라인 힌트(ChatInstallHint) 사용.
-const HIDE_ON = ["/admin", "/coordinator", "/hospital", "/agency", "/clinic", "/consultation", "/inquiry"];
+// /app: 설치 «전용» 페이지라 같은 안내가 두 번 뜬다(본문 + 하단 배너) → 배너 숨김.
+const HIDE_ON = ["/admin", "/coordinator", "/hospital", "/agency", "/clinic", "/consultation", "/inquiry", "/app"];
 
 // PWA 설치 안내.
 // - 안드로이드/데스크톱 크롬: beforeinstallprompt 이벤트를 잡아 "설치" 버튼 노출
