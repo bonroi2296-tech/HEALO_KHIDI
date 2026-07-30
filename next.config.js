@@ -18,6 +18,21 @@ const nextConfig = {
       })
     );
 
+    /* 2026-07-30 — `_병원자료/`(병원이 준 원본 사진·영상 보관함)를 파일 감시에서 뺀다.
+       PO 요청으로 이 폴더를 **저장소 폴더 안**에 만든다(한 곳에서 보고 싶다는 이유, 타당하다).
+       그런데 원본이 사진 수천 장 + 영상 수백 MB 라, 그냥 두면 `npm run dev` 의 파일 감시가
+       그걸 전부 지켜보다 느려지거나 멈춘다. 코드가 아니니 감시할 이유도 없다.
+       ⚠️ 이건 «편의» 조치이고, 진짜 위험(공개 저장소에 환자 얼굴이 올라가는 것)은
+          `.gitignore` + `저장소밖자료.test.ts` 가 막는다. 셋 다 있어야 안전하다. */
+    config.watchOptions = {
+      ...(config.watchOptions || {}),
+      ignored: [
+        ...(Array.isArray(config.watchOptions?.ignored) ? config.watchOptions.ignored : []),
+        "**/node_modules/**",
+        "**/_병원자료/**",
+      ],
+    };
+
     if (!isServer) {
       // ⭐ 21개 언어 통짜 사전을 브라우저 번들에서 제외 (2026-07-27).
       // 방문자는 자기 언어 1개만 필요한데 전부 받고 있었다(홈 첫 화면 JS 623KB 중 269KB).
