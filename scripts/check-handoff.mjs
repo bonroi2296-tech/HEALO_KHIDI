@@ -44,11 +44,27 @@ try {
 //    파일 한참 아래의 옛 블록을 검사하고 통과**하고 있었다(오늘 쓴 블록은 아예 안 봤다).
 //    그러다 회전 보관이 마지막 🔖 블록을 옮기자 「블록을 못 찾음」으로 빨간불이 났다.
 //    handoff-rotate.mjs 의 MARKS 와 같은 목록을 쓰고, **둘 중 먼저 나오는 것**을 최상단으로 본다.
-const MARKS = ["## 🔖 세션 핸드오프", "## 🔻 세션 종료 핸드오프"];
+const MARKS = ["## 🔖 세션 핸드오프", "## 🔻 세션 종료 핸드오프", "## 🔻 세션 종료"];
 const startIdx = MARKS.map((m) => text.indexOf(m))
   .filter((i) => i !== -1)
   .sort((a, b) => a - b)[0];
 if (startIdx === undefined) fail(`최상단 핸드오프 블록(${MARKS.join(" 또는 ")})을 못 찾음`);
+
+// ⚠️ 표식 목록에 없는 제목을 쓰면 이 검사기가 **조용히 옛 블록을 검사하고 통과**한다.
+//    2026-07-30 에만 두 번 났다: ①🔖 만 찾던 때 ②새 블록 제목에서 「핸드오프」가 빠졌을 때.
+//    둘 다 «빨간불»이 아니라 «엉뚱한 초록불»이라 아무도 몰랐다 — 그게 제일 나쁜 고장이다.
+//    그래서 표식을 늘리는 것으로 끝내지 않고, **내 위에 다른 블록이 있으면 실패**시킨다.
+//    (「중간 저장」은 일부러 7칸을 다 안 채우는 블록이라 이 판정에서 뺀다 — CLAUDE.md 중간 저장 규칙)
+const above = [...text.slice(0, startIdx).matchAll(/^## [🔻🔖].*/gm)]
+  .map((m) => m[0])
+  .filter((h) => !h.includes("중간 저장"));
+if (above.length) {
+  fail(
+    `최상단이 아닌 블록을 검사할 뻔했다 — 위에 표식 목록에 없는 블록이 있다:\n` +
+      above.map((h) => `    ${h.trim()}`).join("\n") +
+      `\n  → 그 제목을 「## 🔻 세션 종료 핸드오프 — …」로 맞추거나, MARKS 에 추가해라.`,
+  );
+}
 
 const after = text.slice(startIdx);
 const nextHeader = after.slice(3).search(/\n## /);
