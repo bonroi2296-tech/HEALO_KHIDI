@@ -11,6 +11,14 @@ import { loginAs } from "./fixtures/auth";
  */
 test("코디 포털: 언어 버튼으로 러시아어로 바뀐다", async ({ page }) => {
   test.setTimeout(180_000);
+  // ⚠️ 2026-07-30: 야간 「실서비스 대상」 검사에서 이 시험이 3회 전부 실패했다(로그인 60초 시간초과).
+  //   원인은 화면이 아니라 **그 잡에 코디 계정이 없다** — 프로덕션 잡은 실서비스 로그인을 최소화하려고
+  //   환자·어드민 계정만 넘긴다(`.github/workflows/e2e.yml`). 계정이 없으면 가짜 주소로 로그인 시도 →
+  //   영영 실패. 어제 고친 「검사 전용 DB 가 비어 있어 절대 통과 못 하던 것」과 **같은 부류**(환경 전제 누락).
+  //   → 계정이 없으면 조용히 실패시키지 말고 **건너뛴다**(왜 건너뛰는지 이유를 남긴다).
+  if (!process.env.E2E_COORDINATOR_EMAIL) {
+    test.skip(true, "E2E_COORDINATOR_EMAIL 미설정(실서비스 대상 잡) — 코디 로그인 필요 시험 건너뜀");
+  }
   await loginAs(page, "coordinator");
   await page.goto("/coordinator/content");
   await expect(page.getByRole("heading", { name: "콘텐츠 편집 · 전 화면" })).toBeVisible({ timeout: 120_000 });
