@@ -193,3 +193,10 @@ gcp-*.json
 # 보관 위치는 저장소 밖(Documents\healwith-keys\). 만드는 법: scripts/dump-schema-snapshot.mjs
 healo-db-schema-*.sql
 *-schema-snapshot*.sql
+
+# ── 병원 원본자료(환자 얼굴 포함) — 공개 저장소 절대 금지 (2026-07-30) ─────────
+# 면력한방병원 구글드라이브·네이버블로그 원본을 로컬에만 보관한다.
+# 이 저장소는 공개(public)라 한 번 들어가면 지워도 이력에 남는다. `git add -f` 금지.
+# ※ 이 줄은 브랜치에 딸려 있어 다른 세션이 브랜치를 갈아타면 사라진다 —
+#   그래서 로컬 `.git/info/exclude` 에도 같은 줄을 박아뒀다(그쪽이 진짜 방패).
+_병원자료/
