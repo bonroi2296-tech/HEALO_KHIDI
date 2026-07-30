@@ -123,6 +123,25 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       {/* 헤더는 속 페이지와 공용(HospitalChrome) — 홈만 다른 헤더면 «다른 사이트»로 읽힌다. */}
       <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} />
 
+      {/* ══ 섹션 순서 — 위쪽은 「보는 것」, 아래쪽은 「읽는 것」 (2026-07-30 재배치) ══
+
+          왜 바꿨나 (PO: 이미지를 더 위로, 글자 비율이 너무 많다, 영상 쓴다고 했잖아) — 실측이 지적과 일치했다:
+            · 영상 15개가 전체 15,080px 중 9,889px 지점(66% 아래)에 묻혀 있었다.
+              PO 가 「영상 쓴다고 했잖아」라고 물은 건 거기까지 안 내려갔기 때문이다.
+              있는데 안 보이면 없는 것과 같다.
+            · 사진 뭉치(27장 갤러리)는 7,662px. 그 위는 글자였고 「치료 메뉴」 한 섹션이
+              글자 1,661자 · 높이 2,146px 로 상단을 차지했다.
+
+          바꾼 순서: 히어로 → 숫자 → 영상 → 큰 사진 띠 → 갤러리 → 진료 분야 → 하루 → 의료진
+                    → 치료 메뉴(글자) → 치료 프로그램 → 왜 우리인가 → 지점 → 후기 → 인증 → FAQ → 상담
+          결과(실측): 영상 9,889 → 1,375px · 갤러리 7,662 → 3,197px · 글자 덩어리 1,867 → 6,541px
+
+          주의 1: 순서를 또 만질 때 글자 덩어리를 위로 올리지 마라. 해외 환자는 한국어를 못 읽는다 —
+                 영상·사진은 언어가 필요 없고 글자는 필요하다. 위쪽은 언어가 필요 없는 것부터다.
+          주의 2: 이 순서는 `hospitalSiteOrder.test.ts` 가 지킨다.
+          주의 3: 이 주석을 처음엔 `{}` 없이 넣어 화면에 글자로 그대로 떴다(2026-07-30).
+                 JSX 안의 주석은 반드시 중괄호로 감싼다. 테스트는 초록이었고 화면을 찍어서야 보였다. ══ */}
+
       {/* ══ 히어로 — 좌우 분할 ══
           ⚠️ 처음엔 «사진 전면 + 어두운 오버레이 + 흰 글자»로 만들었는데 PO 지적: "너무 AI 톤".
              맞는 지적이었다. 그 조합은 스톡 사진을 아무거나 깔아도 그럴듯해 보이는 형태라
@@ -212,295 +231,6 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </div>
       )}
 
-      {/* ══ 진료 분야 ══ */}
-      {has(site.specialties) && (
-        <Section id="specialties">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.specialties) || "Specialties"}
-            title={t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}
-          />
-          {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
-              사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {site.specialties.map((s, i) => (
-              <Reveal
-                key={i}
-                delay={i * 110}
-                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
-              >
-                {s.image && (
-                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
-                    <Image
-                      src={s.image}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
-                  </div>
-                )}
-                <div className="p-7">
-                  {!s.image && (
-                    <div
-                      className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
-                      style={{ backgroundColor: accent }}
-                    />
-                  )}
-                  <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
-                  <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ══ 치료 메뉴 — 「내 경우엔 뭘 받나」를 골라 본다 ══
-          유앤아이의원(uni114.co.kr) 화면 한가운데가 **필터 칩 + 카드 격자**였다. 방문자가
-          «리프팅»을 누르면 그것만 남는다 = 묻지 않고 고르게 하는 구조.
-          우리는 성형이 아니라 암이라 **할인가 대신 기간·포함내역·입원 여부**를 박는다. */}
-      {site.menu?.items?.length > 0 && (
-        <Section id="menu" tone="sand">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.menu) || "Treatments"}
-            title={t(site.menu.title)}
-            lead={t(site.menu.lead)}
-          />
-          <TreatmentMenu
-            menu={site.menu}
-            lang={lang}
-            accent={accent}
-            onInquiry={onInquiry}
-            labels={site.menu.labels || {}}
-          />
-        </Section>
-      )}
-
-      {/* ══ 큰 사진 띠 — 화면 폭을 꽉 채우는 한 장 ══
-          왜: 카드·글자만 이어지면 «읽는 사이트»가 된다. 해외 환자는 가 본 적 없는 병원을
-          사진으로 판단하므로, 중간에 **공간을 크게 한 번 보여주는 자리**가 필요하다
-          (Braun 등 상위 의료관광 사이트는 시각 비중이 60~70%다 — 2026-07-28 실측). */}
-      {site.showcase?.image && (
-        <section className="relative min-h-[52vh] md:min-h-[62vh] flex items-end">
-          <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-          <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
-            <Reveal className="max-w-xl">
-              {t(site.showcase.eyebrow) && (
-                <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
-                  {t(site.showcase.eyebrow)}
-                </p>
-              )}
-              <h2
-                className="text-white text-3xl md:text-5xl font-semibold leading-[1.1] whitespace-pre-line"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
-              >
-                {t(site.showcase.title)}
-              </h2>
-              {t(site.showcase.desc) && (
-                <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
-              )}
-            </Reveal>
-          </div>
-        </section>
-      )}
-
-      {/* ══ 왜 우리인가 — 국가 자랑이 아니라 이 병원의 이유 ══ */}
-      {has(site.whyUs) && (
-        <Section tone="sand" pad="loose">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.whyUs) || "Why Choose Us"}
-            title={t(site.whyUsTitle)}
-          />
-          {/* ⚠️ 여기가 「틀에 박힌 톤」의 진원지였다. 3칸 격자 카드 = 앞뒤 섹션과 똑같은 리듬.
-              → **좌우 번갈아 눕는 큰 줄**로 바꿨다. 사진이 커지고 줄마다 방향이 바뀌니
-                 스크롤하면서 «읽는» 게 아니라 «보는» 흐름이 된다(잡지 편집 방식).
-              사진 없는 병원은 큰 번호만 남고 글이 넓게 눕는다 — 빈 자리가 안 생긴다. */}
-          <div className="space-y-14 md:space-y-24">
-            {site.whyUs.map((w, i) => (
-              <Reveal
-                key={i}
-                className={`grid items-center gap-8 md:gap-14 ${w.image ? "md:grid-cols-2" : ""}`}
-              >
-                {w.image && (
-                  <div
-                    className={`relative aspect-[4/3] rounded-[1.75rem] overflow-hidden bg-[#EDE6DA] ${
-                      i % 2 === 1 ? "md:order-2" : ""
-                    }`}
-                  >
-                    <Image src={w.image} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
-                  </div>
-                )}
-                <div className={w.image ? "" : "max-w-3xl"}>
-                  <div
-                    className="text-5xl md:text-7xl font-light mb-5 leading-none opacity-20"
-                    style={{ fontFamily: "Georgia, serif", color: accent, letterSpacing: "-0.03em" }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 tracking-tight leading-snug">{t(w.title)}</h3>
-                  <p className="text-[15px] md:text-base text-black/55 leading-relaxed">{t(w.desc)}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ══ 의료진 — 얼굴이 신뢰의 핵심 ══ */}
-      {has(site.doctors) && (
-        <Section>
-          {/* 가운데 정렬 — 앞뒤 섹션이 전부 왼쪽에서 시작하니 여기서 한 번 끊어준다. */}
-          <SectionHead
-            accent={accent}
-            align="center"
-            eyebrow={t(site.labels?.doctors) || "Medical Team"}
-            title={t(site.doctorsTitle)}
-          />
-          {/* 단체 사진이 있으면 격자 위에 한 번 크게 — 「팀으로 본다」가 이 병원의 강점이라
-              얼굴 낱장보다 같이 서 있는 그림이 먼저 와야 한다. 없으면 이 자리가 안 뜬다. */}
-          {site.teamPhoto && (
-            <Reveal className="relative w-full max-w-3xl mx-auto aspect-[16/10] mb-10 md:mb-14">
-              <Image src={site.teamPhoto} alt="" fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
-            </Reveal>
-          )}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
-            {site.doctors.map((d, i) => (
-              <Reveal key={i} delay={i * 100} className="group">
-                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
-                  {d.photo && (
-                    <Image
-                      src={d.photo}
-                      alt={t(d.name)}
-                      fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                      className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
-                  )}
-                </div>
-                <h3 className="font-semibold text-[15px] md:text-base tracking-tight">{t(d.name)}</h3>
-                <p className="text-[13px] mt-1" style={{ color: accent }}>{t(d.title)}</p>
-                {t(d.credentials) && (
-                  <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>
-                )}
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ══ 시설 갤러리 ══
-          해외 환자는 «가 본 적 없는 나라의 병원»을 사진으로만 판단한다. 공간을 보여주는 것이
-          문장 열 줄보다 낫다 — dekabi 도 시설·의료진 사진 비중이 크다.
-          사진이 없는 병원은 이 섹션이 통째로 안 뜬다. */}
-      {has(site.gallery) && (
-        <Section pad="tight">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.gallery) || "Our Space"}
-            title={t(site.galleryTitle)}
-          />
-          {/* 격자 대신 **가로로 흐르는 줄**. 상위 사이트가 Swiper 를 쓰는 자리를 CSS scroll-snap 으로
-              대신한다(라이브러리 0). 섹션마다 같은 격자가 반복되면 아래로 갈수록 지루해지는데,
-              한 줄만 흐르게 해도 화면에 리듬이 생긴다. */}
-          <SnapRow>
-            {site.gallery.map((g, i) => (
-              <figure
-                key={i}
-                className={`relative shrink-0 snap-start overflow-hidden rounded-2xl bg-[#EDE6DA] group ${
-                  i === 0 ? "w-[85vw] sm:w-[520px] aspect-[4/3]" : "w-[62vw] sm:w-[300px] aspect-square"
-                }`}
-              >
-                <Image
-                  src={g.src}
-                  alt={t(g.caption)}
-                  fill
-                  sizes="(max-width: 640px) 85vw, 520px"
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-                />
-                {t(g.caption) && (
-                  <figcaption className="absolute inset-x-0 bottom-0 p-4 text-[13px] text-white bg-gradient-to-t from-black/60 to-transparent pt-10">
-                    {t(g.caption)}
-                  </figcaption>
-                )}
-              </figure>
-            ))}
-          </SnapRow>
-        </Section>
-      )}
-
-      {/* ══ 치료 프로그램 ══ */}
-      {has(site.programs) && (
-        <Section tone="sand">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.programs) || "Programs"}
-            title={t(site.programsTitle)}
-          />
-          <div className="grid md:grid-cols-3 gap-5">
-            {site.programs.map((p, i) => (
-              <Reveal key={i} delay={i * 110} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
-                {p.image && (
-                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
-                    <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
-                  </div>
-                )}
-                <div className="p-7">
-                <h3 className="text-lg font-semibold mb-2.5 tracking-tight">{t(p.title)}</h3>
-                <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(p.desc)}</p>
-                {has(p.items) && (
-                  <ul className="space-y-2.5 pt-5 border-t border-black/[0.07]">
-                    {p.items.map((it, j) => (
-                      <li key={j} className="text-[14px] text-black/65 flex gap-2.5">
-                        <span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
-                        {t(it)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ══ 병원 안에서 보내는 하루 — 사진으로 보여주는 자리 ══
-          영상 섹션은 한국어 유튜브라 «읽어야 아는» 자리였다. 사진은 언어가 필요 없다.
-          가로로 흐르는 줄이라 칸이 늘어도 화면이 길어지지 않는다. */}
-      {has(site.life) && (
-        <Section pad="normal">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.life) || "Life Inside"}
-            title={t(site.lifeTitle)}
-            lead={t(site.lifeLead)}
-          />
-          <SnapRow>
-            {site.life.map((x, i) => (
-              <figure key={i} className="group shrink-0 snap-start w-[78vw] sm:w-[340px]">
-                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
-                  <Image
-                    src={x.image}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 78vw, 340px"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-                  />
-                </div>
-                <figcaption>
-                  <h3 className="text-[17px] font-semibold tracking-tight mb-1.5">{t(x.title)}</h3>
-                  <p className="text-[14px] text-black/55 leading-relaxed">{t(x.desc)}</p>
-                </figcaption>
-              </figure>
-            ))}
-          </SnapRow>
-        </Section>
-      )}
-
       {/* ══ 병원에서의 시간 — 영상 ══
           왜 이 섹션이 생겼나: 면력 유튜브를 열어보니 홍보 영상이 아니라 **환자 생활 콘텐츠**였다
           (셰프특식·면역밥상·원데이클래스). «치료 중에도 일상을 지킨다»는 말의 실제 증거라
@@ -579,6 +309,296 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
           </SnapRow>
             );
           })}
+        </Section>
+      )}
+
+      {/* ══ 큰 사진 띠 — 화면 폭을 꽉 채우는 한 장 ══
+          왜: 카드·글자만 이어지면 «읽는 사이트»가 된다. 해외 환자는 가 본 적 없는 병원을
+          사진으로 판단하므로, 중간에 **공간을 크게 한 번 보여주는 자리**가 필요하다
+          (Braun 등 상위 의료관광 사이트는 시각 비중이 60~70%다 — 2026-07-28 실측). */}
+      {site.showcase?.image && (
+        <section className="relative min-h-[52vh] md:min-h-[62vh] flex items-end">
+          <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+          <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+            <Reveal className="max-w-xl">
+              {t(site.showcase.eyebrow) && (
+                <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
+                  {t(site.showcase.eyebrow)}
+                </p>
+              )}
+              <h2
+                className="text-white text-3xl md:text-5xl font-semibold leading-[1.1] whitespace-pre-line"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
+              >
+                {t(site.showcase.title)}
+              </h2>
+              {t(site.showcase.desc) && (
+                <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
+              )}
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      {/* ══ 시설 갤러리 ══
+          해외 환자는 «가 본 적 없는 나라의 병원»을 사진으로만 판단한다. 공간을 보여주는 것이
+          문장 열 줄보다 낫다 — dekabi 도 시설·의료진 사진 비중이 크다.
+          사진이 없는 병원은 이 섹션이 통째로 안 뜬다. */}
+      {has(site.gallery) && (
+        <Section pad="tight">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.gallery) || "Our Space"}
+            title={t(site.galleryTitle)}
+          />
+          {/* 격자 대신 **가로로 흐르는 줄**. 상위 사이트가 Swiper 를 쓰는 자리를 CSS scroll-snap 으로
+              대신한다(라이브러리 0). 섹션마다 같은 격자가 반복되면 아래로 갈수록 지루해지는데,
+              한 줄만 흐르게 해도 화면에 리듬이 생긴다. */}
+          <SnapRow>
+            {site.gallery.map((g, i) => (
+              <figure
+                key={i}
+                className={`relative shrink-0 snap-start overflow-hidden rounded-2xl bg-[#EDE6DA] group ${
+                  i === 0 ? "w-[85vw] sm:w-[520px] aspect-[4/3]" : "w-[62vw] sm:w-[300px] aspect-square"
+                }`}
+              >
+                <Image
+                  src={g.src}
+                  alt={t(g.caption)}
+                  fill
+                  sizes="(max-width: 640px) 85vw, 520px"
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                />
+                {t(g.caption) && (
+                  <figcaption className="absolute inset-x-0 bottom-0 p-4 text-[13px] text-white bg-gradient-to-t from-black/60 to-transparent pt-10">
+                    {t(g.caption)}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </SnapRow>
+        </Section>
+      )}
+
+      {/* ══ 진료 분야 ══ */}
+      {has(site.specialties) && (
+        <Section id="specialties">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.specialties) || "Specialties"}
+            title={t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}
+          />
+          {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
+              사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {site.specialties.map((s, i) => (
+              <Reveal
+                key={i}
+                delay={i * 110}
+                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
+              >
+                {s.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image
+                      src={s.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                )}
+                <div className="p-7">
+                  {!s.image && (
+                    <div
+                      className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
+                      style={{ backgroundColor: accent }}
+                    />
+                  )}
+                  <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
+                  <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ══ 병원 안에서 보내는 하루 — 사진으로 보여주는 자리 ══
+          가로로 흐르는 줄이라 칸이 늘어도 화면이 길어지지 않는다.
+          ※ 2026-07-30: 여기 「영상은 한국어라 읽어야 아는 자리」라고 적혀 있었는데,
+            영상을 위로 올린 뒤로는 틀린 말이 됐다(영상 썸네일 자체가 언어 없이 읽힌다) → 지웠다. */}
+      {has(site.life) && (
+        <Section pad="normal">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.life) || "Life Inside"}
+            title={t(site.lifeTitle)}
+            lead={t(site.lifeLead)}
+          />
+          <SnapRow>
+            {site.life.map((x, i) => (
+              <figure key={i} className="group shrink-0 snap-start w-[78vw] sm:w-[340px]">
+                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
+                  <Image
+                    src={x.image}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 78vw, 340px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  />
+                </div>
+                <figcaption>
+                  <h3 className="text-[17px] font-semibold tracking-tight mb-1.5">{t(x.title)}</h3>
+                  <p className="text-[14px] text-black/55 leading-relaxed">{t(x.desc)}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </SnapRow>
+        </Section>
+      )}
+
+      {/* ══ 의료진 — 얼굴이 신뢰의 핵심 ══ */}
+      {has(site.doctors) && (
+        <Section>
+          {/* 가운데 정렬 — 앞뒤 섹션이 전부 왼쪽에서 시작하니 여기서 한 번 끊어준다. */}
+          <SectionHead
+            accent={accent}
+            align="center"
+            eyebrow={t(site.labels?.doctors) || "Medical Team"}
+            title={t(site.doctorsTitle)}
+          />
+          {/* 단체 사진이 있으면 격자 위에 한 번 크게 — 「팀으로 본다」가 이 병원의 강점이라
+              얼굴 낱장보다 같이 서 있는 그림이 먼저 와야 한다. 없으면 이 자리가 안 뜬다. */}
+          {site.teamPhoto && (
+            <Reveal className="relative w-full max-w-3xl mx-auto aspect-[16/10] mb-10 md:mb-14">
+              <Image src={site.teamPhoto} alt="" fill sizes="(max-width: 768px) 100vw, 768px" className="object-contain" />
+            </Reveal>
+          )}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
+            {site.doctors.map((d, i) => (
+              <Reveal key={i} delay={i * 100} className="group">
+                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
+                  {d.photo && (
+                    <Image
+                      src={d.photo}
+                      alt={t(d.name)}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  )}
+                </div>
+                <h3 className="font-semibold text-[15px] md:text-base tracking-tight">{t(d.name)}</h3>
+                <p className="text-[13px] mt-1" style={{ color: accent }}>{t(d.title)}</p>
+                {t(d.credentials) && (
+                  <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>
+                )}
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ══ 치료 메뉴 — 「내 경우엔 뭘 받나」를 골라 본다 ══
+          유앤아이의원(uni114.co.kr) 화면 한가운데가 **필터 칩 + 카드 격자**였다. 방문자가
+          «리프팅»을 누르면 그것만 남는다 = 묻지 않고 고르게 하는 구조.
+          우리는 성형이 아니라 암이라 **할인가 대신 기간·포함내역·입원 여부**를 박는다. */}
+      {site.menu?.items?.length > 0 && (
+        <Section id="menu" tone="sand">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.menu) || "Treatments"}
+            title={t(site.menu.title)}
+            lead={t(site.menu.lead)}
+          />
+          <TreatmentMenu
+            menu={site.menu}
+            lang={lang}
+            accent={accent}
+            onInquiry={onInquiry}
+            labels={site.menu.labels || {}}
+          />
+        </Section>
+      )}
+
+      {/* ══ 치료 프로그램 ══ */}
+      {has(site.programs) && (
+        <Section tone="sand">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.programs) || "Programs"}
+            title={t(site.programsTitle)}
+          />
+          <div className="grid md:grid-cols-3 gap-5">
+            {site.programs.map((p, i) => (
+              <Reveal key={i} delay={i * 110} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
+                {p.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
+                  </div>
+                )}
+                <div className="p-7">
+                <h3 className="text-lg font-semibold mb-2.5 tracking-tight">{t(p.title)}</h3>
+                <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(p.desc)}</p>
+                {has(p.items) && (
+                  <ul className="space-y-2.5 pt-5 border-t border-black/[0.07]">
+                    {p.items.map((it, j) => (
+                      <li key={j} className="text-[14px] text-black/65 flex gap-2.5">
+                        <span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
+                        {t(it)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ══ 왜 우리인가 — 국가 자랑이 아니라 이 병원의 이유 ══ */}
+      {has(site.whyUs) && (
+        <Section tone="sand" pad="loose">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.whyUs) || "Why Choose Us"}
+            title={t(site.whyUsTitle)}
+          />
+          {/* ⚠️ 여기가 「틀에 박힌 톤」의 진원지였다. 3칸 격자 카드 = 앞뒤 섹션과 똑같은 리듬.
+              → **좌우 번갈아 눕는 큰 줄**로 바꿨다. 사진이 커지고 줄마다 방향이 바뀌니
+                 스크롤하면서 «읽는» 게 아니라 «보는» 흐름이 된다(잡지 편집 방식).
+              사진 없는 병원은 큰 번호만 남고 글이 넓게 눕는다 — 빈 자리가 안 생긴다. */}
+          <div className="space-y-14 md:space-y-24">
+            {site.whyUs.map((w, i) => (
+              <Reveal
+                key={i}
+                className={`grid items-center gap-8 md:gap-14 ${w.image ? "md:grid-cols-2" : ""}`}
+              >
+                {w.image && (
+                  <div
+                    className={`relative aspect-[4/3] rounded-[1.75rem] overflow-hidden bg-[#EDE6DA] ${
+                      i % 2 === 1 ? "md:order-2" : ""
+                    }`}
+                  >
+                    <Image src={w.image} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                  </div>
+                )}
+                <div className={w.image ? "" : "max-w-3xl"}>
+                  <div
+                    className="text-5xl md:text-7xl font-light mb-5 leading-none opacity-20"
+                    style={{ fontFamily: "Georgia, serif", color: accent, letterSpacing: "-0.03em" }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 tracking-tight leading-snug">{t(w.title)}</h3>
+                  <p className="text-[15px] md:text-base text-black/55 leading-relaxed">{t(w.desc)}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </Section>
       )}
 

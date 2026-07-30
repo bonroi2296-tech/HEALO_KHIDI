@@ -1171,28 +1171,30 @@ export const IMMUNE_SITE = {
   },
   branches: [
     {
-      image: "/images/hospitals/immunehospital-magok/1.jpg",
+      image: "/immune/facility/branch-gangseo-front-1.jpg",
       name: {ko:  "강서(마곡) 본원", en:  "Gangseo (Magok) — Main", ru:  "Кансо (Магок) — главный", kz:  "Кансо (Магок) — бас", zh:  "江西（麻谷）总院", ja:  "江西（麻谷）本院"},
       address: {ko:  "서울 강서구 마곡중앙6로 93 열린프라자 6·7·10층", en:  "6F·7F·10F, Yeollin Plaza, 93 Magokjungang 6-ro, Gangseo-gu, Seoul", ru:  "6, 7, 10 эт., Ёллин Плаза, 93 Магокчунан 6-ро, Кансо-гу, Сеул", kz:  "6, 7, 10 қабат, Ёллин Плаза, 93 Магокчунан 6-ро, Кансо-гу, Сеул", zh:  "首尔市江西区麻谷中央6路93号 悦邻广场 6·7·10层", ja:  "ソウル市江西区麻谷中央6路93 ヨルリンプラザ 6・7・10階"},
       note: {ko:  "암면역·신경면역·재활 3개 센터", en:  "Three centers: cancer, neuro-immunity, rehabilitation", ru:  "Три центра: онкоиммунология, нейроиммунология, реабилитация", kz:  "Үш орталық: онкоиммунология, нейроиммунология, оңалту", zh:  "三大中心：癌症免疫·神经免疫·康复", ja:  "3センター：がん免疫・神経免疫・リハビリ"},
       phone: "1588-2915",
     },
     {
-      image: "/images/hospitals/immunehospital-sinchon/1.jpg",
+      image: "/immune/facility/branch-sinchon-front-1.jpg",
       name: {ko:  "신촌점", en:  "Sinchon", ru:  "Синчон", kz:  "Синчон", zh:  "新村院区", ja:  "新村院"},
-      address: {ko:  "서울 서대문구 연세로 12 8~14층", en:  "8F–14F, 12 Yonsei-ro, Seodaemun-gu, Seoul", ru:  "8–14 эт., 12 Ёнсе-ро, Содэмун-гу, Сеул", kz:  "8–14 қабат, 12 Ёнсе-ро, Содэмун-гу, Сеул", zh:  "首尔市西大门区延世路12号 8~14层", ja:  "ソウル市西大門区延世路12 8〜14階"},
+      // 2026-07-30 정정: 건물명(피델리아빌딩)이 빠져 있었다. 병원 표기 = 「연세로 12 피델리아빌딩 8층 - 14층」.
+      // 층수만 있으면 처음 오는 사람이 어느 건물인지 모른다 — 해외 환자에겐 더 그렇다.
+      address: {ko:  "서울 서대문구 연세로 12 피델리아빌딩 8~14층", en:  "8F–14F, Fidelia Bldg, 12 Yonsei-ro, Seodaemun-gu, Seoul", ru:  "8–14 эт., зд. Фиделия, 12 Ёнсе-ро, Содэмун-гу, Сеул", kz:  "8–14 қабат, Фиделия ғимараты, 12 Ёнсе-ро, Содэмун-гу, Сеул", zh:  "首尔市西大门区延世路12号 菲德利亚大厦 8~14层", ja:  "ソウル市西大門区延世路12 フィデリアビル 8〜14階"},
       note: {ko:  "연세대 인근 · 1인 병실 중심", en:  "Near Yonsei University · private rooms", ru:  "Рядом с университетом Ёнсе · одноместные палаты", kz:  "Ёнсе университетіне жақын · жеке палаталар", zh:  "邻近延世大学·以单人病房为主", ja:  "延世大学近く・個室中心"},
       phone: "1588-2915",
     },
     {
-      image: "/images/hospitals/immunehospital-seongdong/1.jpg",
+      image: "/immune/facility/branch-seongdong-front-1.jpg",
       name: {ko:  "성동점", en:  "Seongdong", ru:  "Сондон", kz:  "Сондон", zh:  "城东院区", ja:  "城東院"},
       address: {ko:  "서울 성동구 천호대로 320, 2~7층·B101호 (용답동 장안빌딩)", en:  "2F–7F & B101, Jangan Bldg, 320 Cheonho-daero, Seongdong-gu, Seoul", ru:  "2–7 эт. и B101, зд. Чанан, 320 Чонхо-даэро, Сондон-гу, Сеул", kz:  "2–7 қабат және B101, Чанан ғимараты, 320 Чонхо-даэро, Сондон-гу, Сеул", zh:  "首尔市城东区川虎大路320号 长安大厦 2~7层·B101", ja:  "ソウル市城東区川虎大路320 チャンアンビル 2〜7階・B101"},
       note: {ko:  "건물 전체 사용 · 지하철 용답역 인근", en:  "Whole building · near Yongdap Station", ru:  "Всё здание · рядом со станцией Ёндап", kz:  "Бүкіл ғимарат · Ёндап станциясына жақын", zh:  "整栋使用·邻近龙踏站", ja:  "建物全体・龍踏駅近く"},
-      phone: "02-2295-8510",
+      phone: "1588-2915",
     },
     {
-      image: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
+      image: "/immune/facility/branch-gwangmyeong-front-1.jpg",
       name: {ko:  "광명점", en:  "Gwangmyeong", ru:  "Кванмён", kz:  "Кванмён", zh:  "光明院区", ja:  "光明院"},
       address: {ko:  "경기 광명시 철산로 16 트라이앵글빌딩 6층·8~11층", en:  "6F, 8F–11F, Triangle Bldg, 16 Cheolsan-ro, Gwangmyeong-si, Gyeonggi", ru:  "6, 8–11 эт., зд. Триангл, 16 Чольсан-ро, Кванмён, Кёнги", kz:  "6, 8–11 қабат, Триангл ғимараты, 16 Чольсан-ро, Кванмён, Кёнги", zh:  "京畿道光明市铁山路16号 三角大厦 6层·8~11层", ja:  "京畿道光明市鉄山路16 トライアングルビル 6階・8〜11階"},
       note: {ko:  "수도권 서남부 · 지하철 철산역 인근", en:  "Southwest metro area · near Cheolsan Station", ru:  "Юго-запад столичного региона · рядом со станцией Чольсан", kz:  "Астана маңының оңтүстік-батысы · Чольсан станциясына жақын", zh:  "首都圈西南部·邻近铁山站", ja:  "首都圏南西部・鉄山駅近く"},
