@@ -299,10 +299,18 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
      ⚠️ 이 검사기 자체도 처음엔 틀렸다: 일본어를 「가나가 있어야 한다」로 봐서 한자만 쓴 정상 일본어
         (病院紹介)를 122건이나 잘못 잡았고, `20:00` 같은 시각도 잡았다. **검사기가 뱉은 목록이 길면
         내용이 아니라 검사기를 먼저 의심하라** — 고치니 31건(전부 진짜)으로 줄었다. */
-  it("🈯 6개 언어 칸이 다 차 있고, 그 언어 글자로 적혀 있다", async () => {
+  it("🈯 필수 3개 언어(한국어·영어·러시아어) 칸이 차 있고, 다른 언어 칸에 한글이 안 남았다", async () => {
     const { IMMUNE_SITE } = await import("./content/immuneSite.js");
     const pages: any = await import("./content/immunePages.js");
     const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
+    /* 🔻 2026-07-29 PO 결정 — *"지금 당장 모든 언어 커버 안해도 되는건 알고 있니? 지금 시험 삼아 만들어보는거야"*
+       그래서 **필수는 3개(한국어·영어·러시아어)** 로 줄였다. 왜 이 셋인가:
+         · 한국어 = 병원·PO 가 읽는 원본  · 러시아어 = 실제 시장(카자흐스탄·러시아·CIS)  · 영어 = 나머지 전부의 받침
+       카자흐어·중국어·일본어는 **비워도 화면이 안 깨진다** — `blocks.jsx` 의 `pick()` 이
+       `v[lang] || v.en` 순이라 그 줄만 영어로 떨어진다. 2026-07-29 실측으로 확인했다:
+       카자흐어 한 칸을 일부러 비우고 `?lang=kz` 로 열었더니 그 줄만 영어 문장이 나오고 아래 줄은 정상 카자흐어였다.
+       ⚠️ 이미 채워 놓은 6개 언어는 **지우지 않는다** — 지우는 게 더 손해다. 이건 «앞으로 안 채워도 된다»는 뜻이다. */
+    const 필수언어 = ["ko", "en", "ru"] as const;
     /* ⚠️ 「그 언어 글자가 맞는지」까지 재려다 그만뒀다 — 그 판정이 오탐 덩어리였다.
        한자만 쓴 일본어(病院紹介)·시각(20:00)·로마자 음역이 전부 걸려 122건이 나왔고,
        진짜는 31건뿐이었다. 남긴 규칙은 **읽을 수 없는 글자가 섞였는가** 하나다(한글이 다른 언어 칸에).
@@ -316,8 +324,8 @@ describe("판의 콘텐츠 위생 — 사람 눈 대신 기계가 잡는다", ()
       const 언어맵 =
         keys.length > 0 && keys.every((k) => (LANGS as readonly string[]).includes(k)) && keys.includes("ko");
       if (언어맵) {
-        const 빠짐 = LANGS.filter((l) => !node[l] || String(node[l]).trim() === "");
-        if (빠짐.length) 문제.push(`[언어 빠짐 ${빠짐.join(",")}] ${경로} (ko: ${String(node.ko).slice(0, 24)})`);
+        const 빠짐 = 필수언어.filter((l) => !node[l] || String(node[l]).trim() === "");
+        if (빠짐.length) 문제.push(`[필수 언어 빠짐 ${빠짐.join(",")}] ${경로} (ko: ${String(node.ko).slice(0, 24)})`);
         for (const l of LANGS) {
           const v = String(node[l] || "");
           if (!v) continue;
