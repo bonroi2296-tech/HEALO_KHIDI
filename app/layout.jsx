@@ -12,6 +12,10 @@ import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
 import { LOCALES } from "@/lib/i18n/config";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
+import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
+
+// 테넌트가 healwith 인가 — 아니면 브랜드 고유 정보(한글 병기·구조화데이터·SNS)를 내보내지 않는다.
+const IS_DEFAULT_TENANT = isDefaultTenant();
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
 // Pretendard CDN 기준 주소 — 아래 폰트 미리받기와 dynamic-subset CSS 가 같은 판본을 봐야 한다.
@@ -40,19 +44,23 @@ export async function generateMetadata() {
   return { ...baseMetadata, alternates, openGraph: og };
 }
 
+// 검색·공유용 메타데이터는 t() 를 안 거치므로 브랜드 치환이 안 걸린다 → 여기서 직접 갈아끼운다.
+// (2026-07-28 면력 목업 실험에서 «화면 글자는 갈렸는데 <title>·og 만 healwith» 로 드러난 구멍.)
+const BRAND_EN = tenantBrandName("en");
+
 const baseMetadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr"),
   title: {
-    default: "healwith | Korea Cancer Care for International Patients",
-    template: "%s | healwith",
+    default: `${BRAND_EN} | Korea Cancer Care for International Patients`,
+    template: `%s | ${BRAND_EN}`,
   },
   // "힐위드" 병기: 네이버는 keywords 태그를 안 보고 제목·설명·본문 글자만 매칭 → 한글 브랜드 검색 대응.
-  description:
-    "healwith(힐위드) — Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
+  description: IS_DEFAULT_TENANT
+    ? "healwith(힐위드) — Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up."
+    : `${BRAND_EN} — Korean cancer care for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.`,
   keywords: [
-    // 브랜드 (고유어)
-    "healwith",
-    "힐위드",
+    // 브랜드 (고유어) — 한글 병기는 healwith 전용(네이버 한글 브랜드 검색 대응).
+    ...(IS_DEFAULT_TENANT ? ["healwith", "힐위드"] : [BRAND_EN, tenantBrandName("ko")]),
     // 영어
     "Korea cancer treatment",
     "Korean oncology specialist",
@@ -81,17 +89,17 @@ const baseMetadata = {
     "韓国がん治療",
   ],
   openGraph: {
-    title: "healwith | Korea Cancer Care for International Patients",
+    title: `${BRAND_EN} | Korea Cancer Care for International Patients`,
     description:
       "Video pre-consultation with Korea's top oncologists. Real-time interpretation in 6 languages (RU/KZ/EN/ZH/JA/KO). Full-journey concierge for cancer patients — from diagnosis to follow-up.",
     type: "website",
     locale: "en_US",
     alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
-    siteName: "healwith",
+    siteName: BRAND_EN,
   },
   twitter: {
     card: "summary_large_image",
-    title: "healwith | Korea Cancer Care for International Patients",
+    title: `${BRAND_EN} | Korea Cancer Care for International Patients`,
     description:
       "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
   },
@@ -111,7 +119,7 @@ const baseMetadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "healwith",
+    title: BRAND_EN,
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -198,7 +206,11 @@ export default async function RootLayout({ children }) {
             인라인이 외부파일보다 FCP 약 1.45초 빠르고 성능 점수도 3~4점 높았다.
             되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것. */}
         <script dangerouslySetInnerHTML={{ __html: i18nInlineScript(clientLangs, lang) }} />
-        {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭 */}
+        {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭
+            ⚠️ 다른 테넌트에서는 **통째로 내보내지 않는다.** 여기 담긴 법인명·주소·SNS 계정은 healwith 것이라
+               병원 이름만 갈아끼우면 «사실이 아닌 관계»를 기계가 사실로 받는다(2026-07-28 #1122 에서 고친 부류).
+               테넌트별 구조화데이터는 병원 실제 정보를 받아 따로 생성해야 한다(기획서 §10-6 「법률문서 생성기」와 같은 묶음). */}
+        {IS_DEFAULT_TENANT && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -245,6 +257,7 @@ export default async function RootLayout({ children }) {
             }),
           }}
         />
+        )}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         {/* Supabase(세션 확인)·Sentry(에러 전송) 는 첫 화면에서 바로 붙는데 연결(DNS+TLS)을
             그때 처음 맺느라 각각 ~300ms 를 버렸다 (2026-07-27 PageSpeed 실측).

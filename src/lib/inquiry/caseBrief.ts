@@ -9,8 +9,13 @@
  *    최종 판단은 코디·의료진 몫 — 응답에 항상 검수 라벨을 붙여 노출한다(클라이언트).
  *    개인식별정보(이름·연락처)는 브리프에 넣지 않는다(임상 요약만) → 평문 노출 최소화.
  *
- * 저장하지 않는다(on-demand). message 가 암호화 PII라, 합성 브리프를 평문 저장하면 보호가 약해짐.
- * → 번역 기능과 동일하게 생성 즉시 화면에만 표시(캐시가 필요해지면 그때 암호화 저장 검토).
+ * 캐시: 결과는 API 가 **암호화해** inquiries.coordinator_brief 에 넣는다(열람 즉시 뜨게).
+ *      (이 주석은 한때 「저장하지 않는다」였는데 실제로는 캐시가 붙었다 — 2026-07-29 정정.)
+ *
+ * 🌐 언어: 브리프는 **읽는 사람 언어로** 만든다. 코디가 러시아어 사용자인데 본문만 한국어로
+ *      나와서 «틀은 러시아어, 정작 읽을 알맹이는 한국어»가 됐다(2026-07-29 실측).
+ *      한국 직원은 한국어로 봐야 하므로 «그냥 러시아어로 바꾸기»는 답이 아니다 →
+ *      캐시를 { ko: {...}, ru: {...} } 처럼 **언어별로** 담는다(서로 지우지 않는다).
  */
 
 import "server-only";
@@ -35,6 +40,28 @@ export type CaseBrief = {
   points: string[];        // 코디가 볼 포인트 / 다음 액션
   red_flags: string[];     // 주의 깊게 볼 점(있으면)
 };
+
+// 브리프를 만들 수 있는 언어 = 백오피스 언어와 동일(6개).
+export const BRIEF_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
+export type BriefLang = (typeof BRIEF_LANGS)[number];
+export const normalizeBriefLang = (v: any): BriefLang =>
+  (BRIEF_LANGS as readonly string[]).includes(String(v)) ? (String(v) as BriefLang) : "ko";
+
+// 언어별 캐시 묶음. 예전에 저장된 «브리프 한 개» 형태도 읽을 수 있게 아래 readBriefMap 이 흡수한다.
+export type CaseBriefMap = Partial<Record<BriefLang, CaseBrief>>;
+
+/** 저장돼 있던 값 → 언어별 묶음. 옛 형식(브리프 한 개)은 한국어로 친다. */
+export function readBriefMap(parsed: any): CaseBriefMap {
+  if (!parsed || typeof parsed !== "object") return {};
+  // 옛 형식: 브리프 그 자체(overview 를 갖고 있다)
+  if (typeof parsed.overview === "string") return { ko: parsed as CaseBrief };
+  const out: CaseBriefMap = {};
+  for (const l of BRIEF_LANGS) {
+    const b = parsed[l];
+    if (b && typeof b === "object" && typeof b.overview === "string") out[l] = b as CaseBrief;
+  }
+  return out;
+}
 
 export type CaseBriefResult =
   | { ok: true; brief: CaseBrief; unreadableCount: number }
@@ -91,7 +118,7 @@ export function briefSig(attachments: Attachment[] | null | undefined): string {
 }
 
 // 구조화 인테이크(복호화된 inquiry)에서 브리프에 쓸 비식별 임상 컨텍스트만 뽑아 텍스트로.
-function buildContext(inq: any): string {
+function buildContext(inq: any, lang: BriefLang): string {
   const intake = inq?.intake && typeof inq.intake === "object" ? inq.intake : {};
   const looksEnc = (s: any) => typeof s === "string" && /^\{"(v|iv|tag|data)"\s*:/.test(s.trim());
   const clean = (v: any) => (looksEnc(v) ? null : v);
@@ -103,47 +130,62 @@ function buildContext(inq: any): string {
   if (clean(intake.diagnosis_date)) lines.push(`diagnosis_date: ${clean(intake.diagnosis_date)}`);
   if (clean(intake.travel_timing)) lines.push(`travel_timing: ${intake.travel_timing}`);
   if (Array.isArray(intake.priorities) && intake.priorities.length) {
-    lines.push(`priorities: ${intake.priorities.map((p: string) => PRIORITY_KO[p] || p).join(", ")}`);
+    const pl = PRIORITY_LABELS[lang] || PRIORITY_LABELS.ko;
+    lines.push(`priorities: ${intake.priorities.map((p: string) => pl[p] || p).join(", ")}`);
   }
   if (inq?.preferred_date) lines.push(`preferred_date: ${inq.preferred_date}`);
   return lines.join("\n");
 }
 
-// 우선순위 코드 → 한글 라벨(신·구 값 모두). 서버 모듈이라 intakeLabels(lucide) 를 안 끌어오려고 인라인.
-const PRIORITY_KO: Record<string, string> = {
-  cost: "비용", fast_start: "빠른 치료 시작", short_stay: "짧은 체류·치료 기간", expertise: "의료진·병원 실력", communication: "소통·통역",
-  price: "가격", duration: "기간", doctor: "의료진", accessibility: "접근성",
+// 우선순위 코드 → 라벨(신·구 값 모두). 서버 모듈이라 intakeLabels(lucide) 를 안 끌어오려고 인라인.
+// ⚠️ 6개 언어인 이유: 프롬프트가 «환자가 고른 항목을 라벨 그대로 인용하라»고 시킨다.
+//    러시아어 브리프에 한국어 라벨을 넣어주면 그 한국어가 본문에 그대로 박힌다.
+const PRIORITY_LABELS: Record<string, Record<string, string>> = {
+  ko: { cost: "비용", fast_start: "빠른 치료 시작", short_stay: "짧은 체류·치료 기간", expertise: "의료진·병원 실력", communication: "소통·통역", price: "가격", duration: "기간", doctor: "의료진", accessibility: "접근성" },
+  en: { cost: "cost", fast_start: "starting treatment quickly", short_stay: "short stay / short treatment", expertise: "doctor and hospital expertise", communication: "communication and interpreting", price: "price", duration: "duration", doctor: "doctors", accessibility: "accessibility" },
+  ru: { cost: "стоимость", fast_start: "быстрое начало лечения", short_stay: "короткое пребывание и лечение", expertise: "опыт врачей и больницы", communication: "общение и перевод", price: "цена", duration: "длительность", doctor: "врачи", accessibility: "доступность" },
+  kz: { cost: "құны", fast_start: "емдеуді жылдам бастау", short_stay: "қысқа болу және емдеу", expertise: "дәрігерлер мен аурухана тәжірибесі", communication: "қарым-қатынас және аударма", price: "баға", duration: "ұзақтығы", doctor: "дәрігерлер", accessibility: "қолжетімділік" },
+  zh: { cost: "费用", fast_start: "尽快开始治疗", short_stay: "短期停留与治疗", expertise: "医生与医院水平", communication: "沟通与翻译", price: "价格", duration: "时长", doctor: "医生", accessibility: "便利性" },
+  ja: { cost: "費用", fast_start: "早期の治療開始", short_stay: "短期滞在・短期治療", expertise: "医師・病院の実力", communication: "コミュニケーション・通訳", price: "価格", duration: "期間", doctor: "医師", accessibility: "アクセス" },
 };
 
-function buildPrompt(): string {
+// 모델에게 «무슨 언어로 쓰라»고 이름으로 말해준다(코드 "kz" 로는 못 알아듣는다).
+const LANG_NAME: Record<string, string> = {
+  ko: "Korean", en: "English", ru: "Russian", kz: "Kazakh", zh: "Simplified Chinese", ja: "Japanese",
+};
+
+function buildPrompt(lang: BriefLang): string {
+  const L = LANG_NAME[lang] || "Korean";
   return [
-    "You are a medical-tourism case coordinator's assistant for healwith (Korea, oncology).",
-    "A foreign patient (Russian/Kazakh/CIS) submitted an inquiry. You are given: (1) structured intake fields, (2) the patient's free-text message, (3) uploaded medical documents (images/PDF).",
-    "Produce a CONCISE Korean BRIEF that lets the coordinator make a fast judgment. Output JSON:",
-    "- overview: one or two sentences — who (age/sex if evident, nationality) and their clinical situation (what the records/intake suggest). Use careful, non-definitive language ('~로 보임', '~시사'). DO NOT include the patient's name, phone, email, or any personal identifier.",
-    "- request: ONLY what the patient EXPLICITLY stated — from their free-text message and the intake fields (travel timing, stated priorities, the treatment stage they reported). Do NOT name or infer a specific treatment (e.g. conization/LEEP) that the patient did not state. If the patient did not specify a desired treatment, say so plainly (e.g. '구체적 치료는 명시하지 않음') — never invent a wish.",
-    "  When listing the patient's priorities, quote each selected option by its plain label ONLY (e.g. '의료진', '비용', '빠른 치료 시작'). Do NOT expand a label into an interpretive phrase — e.g. do NOT turn '의료진' into '의료진의 전문성', or '기간/짧은 체류' into '치료 기간 단축'. Just state which priorities they picked.",
-    "- points: array of short bullet strings — what the coordinator should look at or do next. Put YOUR CLINICAL INFERENCES here (e.g. 'CIN3 → 원추절제술(LEEP) 검토 대상'), clearly framed as coordinator considerations, NOT as the patient's request. Also: needed precision tests, suggested hospital department, missing documents, scheduling.",
-    "- red_flags: array of short strings — anything needing careful attention (urgency, abnormal critical values, contradictions). Empty array if none.",
-    "",
-    "RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in `request`) from your clinical INFERENCE (goes in `points`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. Write everything in Korean.",
-    "Return ONLY the JSON object.",
+    `You are a medical-tourism case coordinator's assistant for healwith (Korea, oncology).`,
+    `A foreign patient (Russian/Kazakh/CIS) submitted an inquiry. You are given: (1) structured intake fields, (2) the patient's free-text message, (3) uploaded medical documents (images/PDF).`,
+    `Produce a CONCISE BRIEF **written in ${L}** that lets the coordinator make a fast judgment. Output JSON:`,
+    `- overview: one or two sentences — who (age/sex if evident, nationality) and their clinical situation (what the records/intake suggest). Use careful, non-definitive wording (the ${L} equivalent of "appears to" / "suggests"). DO NOT include the patient's name, phone, email, or any personal identifier.`,
+    `- request: ONLY what the patient EXPLICITLY stated — from their free-text message and the intake fields (travel timing, stated priorities, the treatment stage they reported). Do NOT name or infer a specific treatment (e.g. conization/LEEP) that the patient did not state. If the patient did not specify a desired treatment, say so plainly (the ${L} equivalent of "no specific treatment stated") — never invent a wish.`,
+    `  When listing the patient's priorities, quote each selected option by the plain label EXACTLY as given in the intake above. Do NOT expand a label into an interpretive phrase — e.g. do not turn "doctors" into "the expertise of the doctors", or "short stay" into "shortening the treatment period". Just state which priorities they picked.`,
+    `- points: array of short bullet strings — what the coordinator should look at or do next. Put YOUR CLINICAL INFERENCES here (e.g. "CIN3 → consider conization (LEEP)"), clearly framed as coordinator considerations, NOT as the patient's request. Also: needed precision tests, suggested hospital department, missing documents, scheduling.`,
+    `- red_flags: array of short strings — anything needing careful attention (urgency, abnormal critical values, contradictions). Empty array if none.`,
+    ``,
+    `RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in \`request\`) from your clinical INFERENCE (goes in \`points\`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. **Write every output field in ${L}** (medical terms may keep their standard Latin/technical form).`,
+    `Return ONLY the JSON object.`,
   ].join("\n");
 }
 
 /**
  * 문의 1건의 케이스 브리프를 생성한다. inquiry 는 복호화된 상세(API 가 넘김).
- * 저장하지 않고 결과만 반환. 모델 실패/키없음이면 error 코드형 반환.
+ * 결과만 반환(저장은 API 몫). 모델 실패/키없음이면 error 코드형 반환.
  */
 export async function generateCaseBrief(opts: {
   inquiry: any;
   attachments: Attachment[];
+  lang?: string;   // 읽는 사람 언어(백오피스 언어). 없으면 한국어.
 }): Promise<CaseBriefResult> {
+  const lang = normalizeBriefLang(opts.lang);
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return { ok: false, error: "no_api_key" };
 
   const { parts: fileParts, unreadable } = await loadInlineParts(opts.attachments || []);
-  const context = buildContext(opts.inquiry);
+  const context = buildContext(opts.inquiry, lang);
   const rawMsg = typeof opts.inquiry?.message === "string" ? opts.inquiry.message : "";
   const safeMsg = redactModelPii(rawMsg).trim();
 
@@ -157,7 +199,7 @@ export async function generateCaseBrief(opts: {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
     // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
     const res = await fetchGeminiWithCompat(url, {
-      systemInstruction: { parts: [{ text: buildPrompt() }] },
+      systemInstruction: { parts: [{ text: buildPrompt(lang) }] },
       contents: [{ role: "user", parts: [{ text: userText }, ...fileParts] }],
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -182,7 +224,7 @@ export async function generateCaseBrief(opts: {
       model: MODEL,
       promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
       completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
-      meta: { attachments: fileParts.length },
+      meta: { attachments: fileParts.length, lang },
     }).catch(() => {});
 
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";

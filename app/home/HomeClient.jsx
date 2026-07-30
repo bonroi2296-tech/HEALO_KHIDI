@@ -32,8 +32,11 @@ import {
   GraduationCap,
   UserCheck,
   HeartHandshake,
+  Phone,
 } from "lucide-react";
 import SocialProofSection from "@/components/SocialProofSection";
+import { SITE_INFO } from "@/lib/siteSettings";
+import { isDefaultTenant } from "@/lib/tenant";
 
 // 이용 절차 4단계 아이콘 (2026-07-24 PO 확정 C안: 아이콘 + STEP 번호 — 옛 그라데이션 번호배지 대체)
 const STEP_ICONS = [FileText, UserCheck, Video, HeartHandshake];
@@ -63,6 +66,10 @@ const PLACEHOLDER = {
    ───────────────────────────────────────── */
 
 const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethoscope, Award, Users, Building2, CheckCircle, Star, TrendingUp, Lock, Headphones };
+// ⚠️ 목록에 없는 아이콘 이름이 오면 «undefined 를 컴포넌트로 렌더» 해서 **홈이 통째로 500** 이 된다
+//    (2026-07-28 면력 콘텐츠에 Activity 를 써서 실제로 그랬다).
+//    병원별 콘텐츠 씨앗을 사람이 채우는 구조라 오타 한 글자로 사이트가 죽으면 안 된다 → 폴백.
+const iconOf = (name) => ICON_MAP[name] || Stethoscope;
 
 /* ═══════════════════════════════════════════════════════
    PLACEHOLDER DATA — 실제 데이터로 교체 필요
@@ -111,6 +118,8 @@ export default function HomeClient({ content } = {}) {
   const [faqTab, setFaqTab] = useState("general");
   const [openFaq, setOpenFaq] = useState(null);
   const l = (obj) => obj?.[lang] || obj?.["en"] || "";
+  // 병원 테넌트(면력 등)에서는 협진 목록에서 자기 지점을 뺀다. healwith 는 중개자라 그대로 다 보여준다.
+  const hideOwnBranches = !isDefaultTenant();
 
   return (
     <div className="min-h-screen bg-white">
@@ -226,7 +235,7 @@ export default function HomeClient({ content } = {}) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
             {L.services.items.map((item, i) => {
-              const Icon = ICON_MAP[item.icon];
+              const Icon = iconOf(item.icon);
               const colors = [
                 { bg: "bg-teal-100", icon: "text-teal-700", border: "border-teal-200" },
                 { bg: "bg-blue-100", icon: "text-blue-600", border: "border-blue-200" },
@@ -310,7 +319,13 @@ export default function HomeClient({ content } = {}) {
             <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.partners.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
-            {(L.partners.items || []).map((h, i) => {
+            {(L.partners.items || [])
+              // 병원 테넌트에서는 «자기 지점»을 협진 목록에서 뺀다 — 면력 사이트인데
+              // 「협진 대학병원」칸에 면력 4개 지점이 같이 뜨면 자기가 자기 협진처가 된다
+              // (2026-07-28 목업 실측). 인덱스가 META 와 짝이므로 원본 index 를 유지한 채 거른다.
+              .map((h, i) => [h, i])
+              .filter(([, i]) => hideOwnBranches ? PARTNERS_META[i]?.badge !== "partner" : true)
+              .map(([h, i]) => {
               const meta = PARTNERS_META[i] || {};
               const isPartner = meta.badge === "partner";
               const badgeClass = isPartner
@@ -418,10 +433,20 @@ export default function HomeClient({ content } = {}) {
               {/* gray-500 → gray-600: red-50 배경 위에서 4.41:1 (AA 4.5:1 미달) — axe 실측 유일 확정 위반이었음 → 6.91:1 */}
               <p className="text-gray-600 text-sm md:text-base mb-5 md:mb-8 whitespace-pre-line">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
-                <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
+                {/* 연락처가 없는 테넌트면 이 버튼 자체를 안 그린다 — 빈 mailto: 는 눌러도 아무 일이 없고
+                    자리표시자를 넣으면 그 글자가 화면에 뜬다(2026-07-28 목업에서 실제로 그랬다).
+                    이메일이 없고 대표번호만 아는 병원은 전화 버튼으로 바뀐다. */}
+                {SITE_INFO.legal.contactEmail ? (
+                <a href={`mailto:${SITE_INFO.legal.contactEmail}`} className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
                   <Mail size={16} className="text-teal-700" />
-                  admin@healwith.co.kr
+                  {SITE_INFO.legal.contactEmail}
                 </a>
+                ) : SITE_INFO.legal.contactPhone ? (
+                <a href={`tel:${SITE_INFO.legal.contactPhone.replace(/[^0-9+]/g, "")}`} className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
+                  <Phone size={16} className="text-teal-700" />
+                  {SITE_INFO.legal.contactPhone}
+                </a>
+                ) : null}
                 <button
                   onClick={() => router.push("/inquiry")}
                   className="inline-flex items-center justify-center gap-2 bg-teal-700 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20"
@@ -442,7 +467,7 @@ export default function HomeClient({ content } = {}) {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
             {L.trust?.items?.map((item, i) => {
-              const Icon = ICON_MAP[item.icon];
+              const Icon = iconOf(item.icon);
               return (
                 <div key={i} className="flex items-start gap-3 md:gap-4 bg-white rounded-xl p-4 md:p-6 border border-gray-100">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 rounded-lg md:rounded-xl flex items-center justify-center shrink-0">

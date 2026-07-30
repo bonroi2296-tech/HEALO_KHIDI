@@ -297,8 +297,13 @@ function ClientShellContent({
   //   답하러 온 환자를 다른 데로 내보낸다. 2분짜리 설문에 나갈 길만 6개 달아준 꼴이다.
   //   포털 취급(PortalTopBar)도 안 된다 — 거긴 '로그아웃'이 있는데 설문 응답자는 계정이 없다.
   //   (2026-07-22 PO 지적: "이건 설문지 아냐? 로그인해야해?")
+  // - /demo/       : 병원 사이트 「판」 시연. 판은 **자체 헤더·푸터를 가진 별도 제품**이라
+  //   healwith 크롬이 붙으면 남의 병원 화면 위에 우리 메뉴(진료과목·병원·비자 가이드)가
+  //   얹혀 «누구 사이트인지» 가 무너진다. 실제로 그렇게 떴다(2026-07-28 PO 지적).
   const isConsultationPage =
-    pathname.startsWith("/consultation/") || pathname.startsWith("/survey/");
+    pathname.startsWith("/consultation/") ||
+    pathname.startsWith("/survey/") ||
+    pathname.startsWith("/demo/");
   // 문의 퍼널(/inquiry) — AI 챗·폼 집중 흐름. 하단 사이트 푸터(회사정보 등)가 채팅 밑에
   // 붙어 화면이 길어지고 "풀스크린 챗" 느낌을 깨므로 푸터 숨김(하단탭바는 이미 숨김).
   const hideFooter = pathname.includes("/inquiry");
@@ -394,37 +399,47 @@ function ClientShellContent({
             {/* 라벨은 6개 언어(PO 결정 2026-07-22). 값은 고유명사·번호라 그대로 두되,
                 ①사업자 구분은 분류라 번역 ②주소·대표자·개인정보책임자는 한국어 화면만 한글
                 (외국어 화면에선 로마자가 서류·택시에 실제로 쓸모 있다 — copyrightKo 와 같은 분기). */}
-            <div>{t("footer.biz.serviceName", langCode)}: {SITE_INFO.legal.serviceName}</div>
-            <div>{t("footer.biz.operatedBy", langCode)}: {SITE_INFO.legal.operatedBy}</div>
-            <div>{t("footer.biz.businessType", langCode)}: {t("footer.biz.soleProprietor", langCode)}</div>
+            {SITE_INFO.legal.serviceName && <div>{t("footer.biz.serviceName", langCode)}: {SITE_INFO.legal.serviceName}</div>}
+            {SITE_INFO.legal.operatedBy && <div>{t("footer.biz.operatedBy", langCode)}: {SITE_INFO.legal.operatedBy}</div>}
+            {SITE_INFO.legal.operatedBy && <div>{t("footer.biz.businessType", langCode)}: {t("footer.biz.soleProprietor", langCode)}</div>}
+            {(langCode === "ko" ? SITE_INFO.legal.representativeKo : SITE_INFO.legal.representative) && (
             <div>
               {t("footer.biz.representative", langCode)}:{" "}
               {langCode === "ko" ? SITE_INFO.legal.representativeKo : SITE_INFO.legal.representative}
             </div>
+            )}
+            {SITE_INFO.legal.businessRegistrationNumber && (
             <div>
               {t("footer.biz.regNumber", langCode)}:{" "}
               {SITE_INFO.legal.businessRegistrationNumber}
             </div>
+            )}
+            {SITE_INFO.legal.foreignPatientAttractionRegistration && (
             <div>
               {t("footer.biz.attractionReg", langCode)}:{" "}
               {SITE_INFO.legal.foreignPatientAttractionRegistration}
             </div>
+            )}
+            {(langCode === "ko" ? SITE_INFO.legal.guaranteeInsurerKo : SITE_INFO.legal.guaranteeInsurer) && (
             <div>
               {t("footer.biz.insurance", langCode)}:{" "}
               {langCode === "ko" ? SITE_INFO.legal.guaranteeInsurerKo : SITE_INFO.legal.guaranteeInsurer}
               {" ("}{t("footer.biz.insuranceScope", langCode)}{")"}
             </div>
+            )}
             <div>
               {t("footer.biz.address", langCode)}:{" "}
               {langCode === "ko"
                 ? SITE_INFO.legal.addressKo
                 : `${SITE_INFO.legal.addressLine1} ${SITE_INFO.legal.addressLine2}`}
             </div>
-            <div>{t("footer.biz.email", langCode)}: {SITE_INFO.legal.contactEmail}</div>
+            {SITE_INFO.legal.contactEmail && <div>{t("footer.biz.email", langCode)}: {SITE_INFO.legal.contactEmail}</div>}
+            {(langCode === "ko" ? SITE_INFO.legal.privacyOfficerKo : SITE_INFO.legal.privacyOfficer) && (
             <div>
               {t("footer.biz.privacyOfficer", langCode)}:{" "}
               {langCode === "ko" ? SITE_INFO.legal.privacyOfficerKo : SITE_INFO.legal.privacyOfficer}
             </div>
+            )}
             {/* 한국어 화면만 "힐위드" 병기(네이버 브랜드 매칭) — 영어 화면 한글누출 가드 준수 */}
             <div className="pt-2">{langCode === "ko" ? SITE_INFO.legal.copyrightKo : SITE_INFO.legal.copyright}</div>
           </div>
@@ -466,7 +481,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
      <div className="h-14 md:h-16 flex items-center justify-between px-4">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
-          <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
+          <img src={siteConfig.logo} alt={SITE_INFO.brand.name} className="h-8 w-auto object-contain" />
         ) : (
           <Logo tone="light" lang={langCode} />
         )}
