@@ -82,7 +82,11 @@ export default function AnalyticsWrapper() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [retried, setRetried] = useState(false);
   useEffect(() => {
-    if (!loadFailed || retried) return;
+    // ⚠️ allowAnalytics 를 «의존성으로» 넣어야 한다. 안 넣으면 대기 중(2.5초)에 사용자가
+    //    /admin 으로 넘어가도 예약된 타이머가 그대로 터져서 **일부러 제외한 관리자 화면에**
+    //    gtag.js 를 직접 꽂아버린다(위쪽 <Script> 게이트를 우회). 넣으면 게이트가 닫히는 순간
+    //    이펙트가 다시 돌며 clearTimeout 으로 취소된다.
+    if (!loadFailed || retried || !allowAnalytics) return;
     const tm = setTimeout(() => {
       setRetried(true);
       const s = document.createElement("script");
@@ -94,7 +98,7 @@ export default function AnalyticsWrapper() {
       document.head.appendChild(s);
     }, 2500);
     return () => clearTimeout(tm);
-  }, [loadFailed, retried, gaId]);
+  }, [loadFailed, retried, gaId, allowAnalytics]);
 
   // 디버그 로그 (개발 환경에서만)
   useEffect(() => {
@@ -125,8 +129,11 @@ export default function AnalyticsWrapper() {
   ) : null;
 
   // 게이트: 동의(all) + 프로덕션 + 비admin + 상호작용 모두 충족해야 어떤 스크립트도 렌더 X
+  // ⚠️ 여기서도 «같은 모양»(Fragment)으로 돌려줘야 한다. 한쪽은 배지를 그대로, 다른 쪽은
+  //    Fragment 로 돌려주면 리액트가 «다른 종류의 요소»로 보고 배지를 **처음부터 다시 만든다**
+  //    → 방금 ✕ 로 닫은 배지가 즉시 되살아난다(닫는 클릭이 곧 첫 상호작용이라 실제로 벌어진다).
   if (!allowAnalytics || !interacted) {
-    return badge;
+    return <>{badge}</>;
   }
 
   return (

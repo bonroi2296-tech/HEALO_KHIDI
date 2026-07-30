@@ -4,6 +4,8 @@ declare global {
     Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string };
     /** gtag.js 가 «진짜로 내려와 실행됐을 때만» 생기는 객체 (측정ID 로 키가 잡힌다). */
     google_tag_manager?: Record<string, any>;
+    /** gtag() 호출이 쌓이는 대기줄. 스크립트가 늦게 내려와도 여기 있던 게 그때 처리된다. */
+    dataLayer?: any[];
   }
 }
 
@@ -126,8 +128,31 @@ export const isGaScriptLoaded = (): boolean => {
   } catch { return false; }
 };
 
+/**
+ * 「랜딩(첫 진입) 조회가 GA 로 나갔는가」의 판정 근거.
+ *
+ * ⚠️ 여기서 `sentCount` 를 보면 안 된다 — 첫 화면 조회는 **우리 코드가 보내는 게 아니다.**
+ * 인라인 스니펫의 `gtag('config', …, { send_page_view: true })` 를 보고 **gtag.js 가 스스로**
+ * page_view 를 보낸다(그래서 우리 `pageview()` 를 안 거치고 `sentCount` 도 안 올라간다).
+ * 즉 «화면 하나만 보고 나간 방문»에서는 정상인데도 `sentCount` 가 0 이다 —
+ * 그걸 판정 기준으로 쓰면 **잘 되는 상태를 «실패»로 표시한다**(자가진단이 거짓말을 한다).
+ *
+ * 그래서 대기줄(dataLayer)에 우리 측정ID 로 `config` 가 들어갔는지를 본다.
+ * 이게 있고 + gtag.js 가 내려왔으면 → 랜딩 조회는 GA 가 확실히 받았다.
+ */
+const isGaConfigured = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const dl = window.dataLayer;
+    if (!Array.isArray(dl)) return false;
+    // gtag() 는 arguments 객체를 그대로 넣으므로 배열이 아니다 → 인덱스로 읽는다.
+    return dl.some((e: any) => e && e[0] === "config" && e[1] === GA_ID);
+  } catch { return false; }
+};
+
 export const getGaHealth = () => ({
   loaded: isGaScriptLoaded(),
+  configured: isGaConfigured(),
   sent: sentCount,
   last: lastSent,
   internal: internalUser,
