@@ -1,10 +1,15 @@
 import { t } from "@/lib/i18n";
 import { DEFAULT_LOCALE } from "@/lib/i18n/config";
-import { getRequestLocale, HREF_LANG } from "@/lib/i18n/metadata";
+import { getRequestLocale, HREF_LANG, localizedMeta } from "@/lib/i18n/metadata";
 import { FAQS } from "@/lib/faq/faqData";
 import FAQClient from "./FAQClient";
 
-export const metadata = {
+// 검색결과에 뜨는 제목·설명은 요청 언어로 (러·카 환자가 구글에서 보는 첫 줄).
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.faq.title", "seo.faq.desc");
+}
+
+const baseMeta = {
   title: "FAQ — Frequently Asked Questions",
   description:
     "Common questions about healwith's medical concierge service for international cancer patients — consultation, treatment, visa, payment, and privacy.",
