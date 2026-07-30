@@ -15,7 +15,13 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const CTX = "docs/PROJECT_CONTEXT.md";
 const ARCHIVE = "docs/archive/PROJECT_CONTEXT_handoffs.md";
-const MARK = "## 🔖 세션 핸드오프";
+// ⚠️ 표식이 두 종류다 — 옛 블록은 「## 🔖 세션 핸드오프」, 요즘 `/handoff` 스킬이 쓰는 건
+//    「## 🔻 세션 종료 핸드오프」. 2026-07-30 실측: 이 스크립트가 🔖 만 찾아서
+//    **최상단에 🔻 블록이 5개 쌓여 있는데도 「4개, 회전 불필요」로 초록불**이었다
+//    = 군살 방지 회전이 조용히 안 돌고 있었다(문서만 계속 부풀었다).
+//    새 표식을 쓰기 시작할 땐 이 목록에 반드시 추가할 것.
+const MARKS = ["## 🔖 세션 핸드오프", "## 🔻 세션 종료 핸드오프"];
+const isMark = (line) => MARKS.some((m) => line.startsWith(m));
 
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
@@ -27,7 +33,7 @@ const lines = readFileSync(CTX, "utf8").split("\n");
 // 핸드오프 블록 경계 찾기: MARK 줄 ~ 다음 "## " 줄 직전
 const blocks = [];
 for (let i = 0; i < lines.length; i++) {
-  if (lines[i].startsWith(MARK)) {
+  if (isMark(lines[i])) {
     let end = lines.length;
     for (let j = i + 1; j < lines.length; j++) {
       if (lines[j].startsWith("## ")) {
@@ -77,7 +83,8 @@ if (existsSync(ARCHIVE)) {
 }
 // 기존 첫 핸드오프 블록(MARK) 바로 앞에 삽입 → 최신 보관분이 위로(newest-first).
 // MARK가 없으면(첫 보관) intro 다음(첫 빈 줄 뒤)에 삽입.
-const markAt = archiveDoc.indexOf(MARK);
+// 보관 파일에서도 표식 두 종류 중 «먼저 나오는» 자리를 찾는다.
+const markAt = MARKS.map((m) => archiveDoc.indexOf(m)).filter((i) => i !== -1).sort((a, b) => a - b)[0] ?? -1;
 let head, rest;
 if (markAt !== -1) {
   head = archiveDoc.slice(0, markAt);
