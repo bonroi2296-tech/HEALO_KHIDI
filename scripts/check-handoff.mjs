@@ -38,9 +38,17 @@ try {
   fail(`${FILE} 를 못 읽음`);
 }
 
-// 최상단 핸드오프 블록: 첫 "## 🔖 세션 핸드오프" 부터 다음 "## " 전까지
-const startIdx = text.indexOf("## 🔖 세션 핸드오프");
-if (startIdx === -1) fail("최상단 핸드오프 블록(## 🔖 세션 핸드오프)을 못 찾음");
+// 최상단 핸드오프 블록: 첫 표식 줄부터 다음 "## " 전까지
+// ⚠️ 표식이 두 종류다 — 옛 블록은 「## 🔖 세션 핸드오프」, 요즘 `/handoff` 스킬이 쓰는 건
+//    「## 🔻 세션 종료 핸드오프」. 2026-07-30 실측: 이 검사기가 🔖 만 찾아서 **최상단이 아니라
+//    파일 한참 아래의 옛 블록을 검사하고 통과**하고 있었다(오늘 쓴 블록은 아예 안 봤다).
+//    그러다 회전 보관이 마지막 🔖 블록을 옮기자 「블록을 못 찾음」으로 빨간불이 났다.
+//    handoff-rotate.mjs 의 MARKS 와 같은 목록을 쓰고, **둘 중 먼저 나오는 것**을 최상단으로 본다.
+const MARKS = ["## 🔖 세션 핸드오프", "## 🔻 세션 종료 핸드오프"];
+const startIdx = MARKS.map((m) => text.indexOf(m))
+  .filter((i) => i !== -1)
+  .sort((a, b) => a - b)[0];
+if (startIdx === undefined) fail(`최상단 핸드오프 블록(${MARKS.join(" 또는 ")})을 못 찾음`);
 
 const after = text.slice(startIdx);
 const nextHeader = after.slice(3).search(/\n## /);
@@ -67,4 +75,8 @@ if (offenders.length) {
   fail(`상대 날짜표기 발견(절대표기 YYYY-MM-DD 로):\n   - ${offenders.join("\n   - ")}`);
 }
 
+// ⚠️ 「통과」만 찍지 말고 **무엇을 검사했는지**를 같이 찍는다 — 반성문 #165.
+// 이 검사기는 표식을 하나만 알아서 최상단이 아니라 옛 블록을 검사하며 계속 초록불을 주고 있었는데,
+// 대상 제목을 출력하지 않았기 때문에 사람이 알아챌 방법이 아예 없었다.
+console.log(`   검사 대상: ${headerLine.trim().slice(0, 90)}`);
 console.log("✅ 핸드오프 완결성 OK — 7개 섹션·절대날짜·상대표기 없음 통과.");
