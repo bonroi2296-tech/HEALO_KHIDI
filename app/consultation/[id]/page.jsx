@@ -835,6 +835,9 @@ export default function ConsultationRoomPage() {
   const previewStreamRef = useRef(null);
   const [previewBlocked, setPreviewBlocked] = useState(false); // 권한 차단(사용자가 '허용' 해야 함)
   const [previewNoDevice, setPreviewNoDevice] = useState(false); // 장치 없음(PC 등) — 경고 아닌 안내만
+  // 이 기기에 카메라가 «달려 있는가». null = 아직 모름(그 동안은 켜는 쪽으로 둔다).
+  // 방 접속 시 video 를 켤지 정하는 데만 쓴다 — 아래 LiveKitRoom 의 video prop 주석 참고.
+  const [hasCamera, setHasCamera] = useState(null);
   const stopPreview = useCallback(() => {
     previewStreamRef.current?.getTracks().forEach((t) => t.stop());
     previewStreamRef.current = null;
@@ -927,6 +930,23 @@ export default function ConsultationRoomPage() {
     setIsInAppBrowser(
       /KAKAOTALK|Line\/|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|whale.*inapp|; wv\)/i.test(ua)
     );
+  }, []);
+
+  // ── 이 기기에 카메라가 달려 있나 (방 접속 때 video 를 켤지 판단) ──
+  // enumerateDevices 는 권한 없이도 «장치가 몇 개 있는지»는 알려준다(라벨만 가려짐).
+  // 실패하면 null 로 두어 예전 동작(켜기)을 유지한다 — 모르면 켠다.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices?.();
+        if (cancelled || !Array.isArray(devices)) return;
+        setHasCamera(devices.some((d) => d.kind === "videoinput"));
+      } catch {
+        /* 못 물어보면 모르는 채로 둔다(= 켠다) */
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // ── 연결 워치독 — 토큰은 받았는데 18초 안에 연결이 안 되면 '연결 실패'로 표시(무한 '연결중' 방지) ──
@@ -3245,8 +3265,16 @@ export default function ConsultationRoomPage() {
               //   게스트는 입장 폼 미리보기에서 이미 권한을 받아 여기선 조용히 켜진다.
               //   ※ 예전 "모바일 자동 켜기 들쭉날쭉"(#587) 제보는 revoked 장애(POSTMORTEMS #61) 기간의
               //   오진 가능성이 큼. 실패해도 입장은 그대로(듣기·보기), 마이크만 아래 배너로 재시도.
+              // ⚠️ 2026-07-31: video 를 «카메라가 실제로 있을 때만» 켠다.
+              //   왜: 카메라와 마이크를 한 번에 요청하면 **카메라가 없는 기기에서 요청이 통째로
+              //   실패해 마이크까지 안 켜진다** — 화면은 들어가지는데 아무 말도 못 하는 상태.
+              //   실측(admin_audit_logs 30일): 상담 실패 기록 210건 중 170건(81%)이
+              //   NotFound / "Requested device not found" 였고, 접속 기기의 85%가 윈도우 PC 다
+              //   (카메라 없는 데스크톱이 흔함). 카메라가 없으면 소리만으로 상담이 성립한다.
+              //   hasCamera 가 아직 «모름(null)» 인 동안은 예전대로 true — 확인이 늦어서
+              //   멀쩡한 기기의 카메라를 못 켜는 일이 없게(모르면 켠다).
               audio={true}
-              video={true}
+              video={hasCamera !== false}
               onMediaDeviceFailure={(failure) => {
                 // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
                 setMicActivationFailed(true);
