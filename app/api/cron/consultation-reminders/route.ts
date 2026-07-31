@@ -64,9 +64,21 @@ export async function GET(request: NextRequest) {
 
   let remindersSent = 0;
   let skipped = 0;
+  let staffPushed = 0;
   const errors: string[] = [];
 
   for (const session of sessions || []) {
+    // 우리 팀 폰 알림 (PO 2026-07-31) — 30분 전에 스태프(admin·coordinator) 전원에게.
+    // 새 발송기를 만들지 않는다: sendInAppNotification(priority 'high') 이 이미 폰 알림까지
+    // 내보내는 다리와 연결돼 있다(src/lib/notifications/pushBridge.ts).
+    // 중복 방지는 이메일과 같은 표식(reminder_sent_at)이 아니라 세션 자체에 남긴다 —
+    // 이메일은 토큰별, 폰 알림은 세션별이라 세는 단위가 다르다.
+    try {
+      staffPushed += await pushStaffReminder(session.id, session.scheduled_at);
+    } catch (err: any) {
+      errors.push(`push session=${session.id}: ${err.message}`);
+    }
+
     // 이 세션의 guest tokens 조회 (이메일 있고 리마인더 미발송)
     const { data: tokens } = await supabaseAdmin
       .from("consultation_guest_tokens")

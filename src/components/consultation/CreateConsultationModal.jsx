@@ -15,6 +15,14 @@ import QRCode from "qrcode";
 
 const supabase = createSupabaseBrowserClient();
 
+// 우리 팀은 어느 상담이든 사본을 받는다 (PO 2026-07-31). 「몰래」가 아니라 수신자 칸에 보이게 —
+// 필요 없으면 × 로 빼면 된다. 계정이 없어도 되는 메일함 주소라 여기 고정으로 둔다.
+const STAFF_ALWAYS_CC = [
+  "admin@healwith.co.kr",
+  "assel@healwith.co.kr",
+  "coordinator@healwith.co.kr",
+];
+
 // 스태프 백오피스 6개 언어화(2026-07-09 PO 결정 — 예외 없이 전체 다국어 전환). admin·coordinator 공용.
 const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
 const TR = {
@@ -263,13 +271,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
         // 수신자 칸에 «나» 표가 붙은 채로 보이고, 빼고 싶으면 × 로 빼면 된다.
         // (예전엔 화면에 안 보이는 채로 보내서 «왜 나한테 왔지» 사고가 났다.)
         const myEmail = sessionData?.session?.user?.email;
-        if (!cancelled && myEmail) {
-          setMyEmail(myEmail);
-          setForm((f) =>
-            f.inviteeEmails.includes(myEmail)
-              ? f
-              : { ...f, inviteeEmails: [...f.inviteeEmails, myEmail] }
-          );
+        if (!cancelled) {
+          if (myEmail) setMyEmail(myEmail);
+          const fixed = [...STAFF_ALWAYS_CC, ...(myEmail ? [myEmail] : [])];
+          setForm((f) => ({
+            ...f,
+            inviteeEmails: [...new Set([...f.inviteeEmails, ...fixed])],
+          }));
         }
         const res = await fetch("/api/admin/inquiries/picker", {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
