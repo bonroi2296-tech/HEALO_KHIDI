@@ -75,8 +75,13 @@ export default function TreatmentMenu({ menu, lang = "en", accent, onInquiry, la
             y={18}
             className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300 flex flex-col"
           >
+            {/* 2026-07-31 사진 비율 16:10 → 4:3. PO: *"텍스트랑 이미지가 최적화가 안된거 같은데"*
+                실측 — 카드 높이 ~500px 중 사진이 ~130px(26%)였다. 글이 카드의 4분의 3이었던 셈.
+                비율만 바꿔도 사진이 ~1.25배 커진다(글은 그대로 두고 «보는 몫»만 늘린다).
+                ⚠️ 이 주석을 `{it.image && (` 괄호 **안**에 넣었다가 화면이 500 으로 죽었다 —
+                   그 괄호 안엔 요소가 하나만 올 수 있다. JSX 주석은 조건식 바깥에 둔다. */}
             {it.image && (
-              <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+              <div className="relative aspect-[4/3] overflow-hidden bg-[#EDE6DA]">
                 <Image
                   src={it.image}
                   alt=""
@@ -86,7 +91,7 @@ export default function TreatmentMenu({ menu, lang = "en", accent, onInquiry, la
                 />
               </div>
             )}
-            <div className="p-6 md:p-7 flex flex-col flex-1">
+            <div className="p-5 md:p-6 flex flex-col flex-1">
               {/* 어떤 암종에 해당하는지 — 방문자가 «내 얘긴가»를 0.5초에 판단하는 지점 */}
               {(it.tags || []).length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
@@ -109,14 +114,18 @@ export default function TreatmentMenu({ menu, lang = "en", accent, onInquiry, la
                 </div>
               )}
               <h3 className="text-lg md:text-xl font-semibold mb-2.5 tracking-tight">{t(it.title)}</h3>
-              <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(it.desc)}</p>
+              <p className="text-[15px] text-black/55 leading-relaxed mb-4">{t(it.desc)}</p>
 
               {/* 해외 환자가 실제로 묻는 3가지. 없는 값은 그 줄이 통째로 안 뜬다. */}
-              <dl className="mt-auto space-y-2 pt-5 border-t border-black/[0.07] text-[14px]">
+              <dl className="mt-auto space-y-2 pt-4 border-t border-black/[0.07] text-[14px]">
                 {[
                   [labels.duration, it.duration],
                   [labels.includes, it.includes],
                   [labels.stay, it.stay],
+                  /* 2026-07-31 — 가격은 원래 표 «밖»에 따로 떠 있는 문단이었다. 카드마다 2~4줄로
+                     길이가 달라 **버튼 줄이 카드마다 어긋났다**(PO 가 본 «최적화 안 된» 느낌의 정체 중 하나).
+                     같은 표의 한 줄로 넣으면 이름표 자리가 맞아 세 카드가 나란히 선다. */
+                  [labels.price, it.priceNote],
                 ].map(([k, v], j) =>
                   t(v) ? (
                     /* ⚠️ 이름표 칸이 `w-20`(80px) 고정이라 **긴 낱말이 단어 중간에서 잘렸다.**
@@ -133,15 +142,9 @@ export default function TreatmentMenu({ menu, lang = "en", accent, onInquiry, la
                 )}
               </dl>
 
-              {t(it.priceNote) && (
-                <p className="mt-3 text-[13px] font-medium" style={{ color: accent }}>
-                  {t(it.priceNote)}
-                </p>
-              )}
-
               <button
                 onClick={onInquiry}
-                className="mt-5 w-full py-3 rounded-full text-[14px] font-medium border transition-colors hover:bg-black/[0.03]"
+                className="mt-4 w-full py-3 rounded-full text-[14px] font-medium border transition-colors hover:bg-black/[0.03]"
                 style={{ borderColor: `${accent}33`, color: accent }}
               >
                 {t(labels.ask) || "Ask about this"}

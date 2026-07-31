@@ -123,24 +123,27 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       {/* 헤더는 속 페이지와 공용(HospitalChrome) — 홈만 다른 헤더면 «다른 사이트»로 읽힌다. */}
       <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} />
 
-      {/* ══ 섹션 순서 — 위쪽은 「보는 것」, 아래쪽은 「읽는 것」 (2026-07-30 재배치) ══
+      {/* ══ 섹션 순서 — 위쪽은 「보는 것」, 아래쪽은 「읽는 것」 (2026-07-31 2차 조정) ══
 
-          왜 바꿨나 (PO: 이미지를 더 위로, 글자 비율이 너무 많다, 영상 쓴다고 했잖아) — 실측이 지적과 일치했다:
-            · 영상 15개가 전체 15,080px 중 9,889px 지점(66% 아래)에 묻혀 있었다.
-              PO 가 「영상 쓴다고 했잖아」라고 물은 건 거기까지 안 내려갔기 때문이다.
-              있는데 안 보이면 없는 것과 같다.
-            · 사진 뭉치(27장 갤러리)는 7,662px. 그 위는 글자였고 「치료 메뉴」 한 섹션이
-              글자 1,661자 · 높이 2,146px 로 상단을 차지했다.
+          1차(07-30): 영상 15개가 9,889px(66% 아래)에 묻혀 있어 PO 가 «영상 쓴다고 했잖아»라고 물었다.
+                      → 영상·사진을 위로 올렸다.
+          2차(07-31): 그 과정에서 **「주요 치료 프로그램」이 8,484px 까지 밀렸다.** PO 가 «수액실이
+                      어느 페이지에 있냐»고 물었는데, 못 찾은 게 아니라 **너무 아래에 있었다.**
+                      병원 사이트에서 「여기서 뭘 받나」는 핵심 질문이라 뒤에 두면 안 된다.
 
-          바꾼 순서: 히어로 → 숫자 → 영상 → 큰 사진 띠 → 갤러리 → 진료 분야 → 하루 → 의료진
-                    → 치료 메뉴(글자) → 치료 프로그램 → 왜 우리인가 → 지점 → 후기 → 인증 → FAQ → 상담
-          결과(실측): 영상 9,889 → 1,375px · 갤러리 7,662 → 3,197px · 글자 덩어리 1,867 → 6,541px
+          지금 순서: 히어로 → 숫자 → 영상 → 진료 분야(3센터) → **치료 프로그램** → 갤러리 → 큰 사진 띠
+                    → 치료 메뉴(가격 자세히) → 하루 → 의료진 → 왜 우리인가 → 지점 → 후기 → 인증 → FAQ → 상담
 
-          주의 1: 순서를 또 만질 때 글자 덩어리를 위로 올리지 마라. 해외 환자는 한국어를 못 읽는다 —
-                 영상·사진은 언어가 필요 없고 글자는 필요하다. 위쪽은 언어가 필요 없는 것부터다.
+          왜 이 짜임인가:
+            · 「무엇을 다루나(3센터)」 바로 다음에 「무엇을 받나(치료 프로그램)」가 온다 — 한 질문의 두 조각이다.
+            · 그 뒤에 사진(갤러리·큰 사진 띠)으로 한 번 쉬고, 그다음이 «자세히·가격»(치료 메뉴)이다.
+              가격표를 앞에 두면 «파는 사이트»가 되고, 너무 뒤에 두면 못 찾는다.
+            · 아래쪽 절반은 읽는 것(왜 우리인가·연혁·FAQ).
+
+          주의 1: 글자 덩어리를 위로 올리지 마라. 해외 환자는 한국어를 못 읽는다 —
+                 영상·사진은 언어가 필요 없고 글자는 필요하다.
           주의 2: 이 순서는 `hospitalSiteOrder.test.ts` 가 지킨다.
-          주의 3: 이 주석을 처음엔 `{}` 없이 넣어 화면에 글자로 그대로 떴다(2026-07-30).
-                 JSX 안의 주석은 반드시 중괄호로 감싼다. 테스트는 초록이었고 화면을 찍어서야 보였다. ══ */}
+          주의 3: JSX 안의 주석은 반드시 중괄호로 감싼다(안 감싸서 화면에 글자로 뜬 적 있다, 07-30). ══ */}
 
       {/* ══ 히어로 — 좌우 분할 ══
           ⚠️ 처음엔 «사진 전면 + 어두운 오버레이 + 흰 글자»로 만들었는데 PO 지적: "너무 AI 톤".
@@ -312,33 +315,84 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
-      {/* ══ 큰 사진 띠 — 화면 폭을 꽉 채우는 한 장 ══
-          왜: 카드·글자만 이어지면 «읽는 사이트»가 된다. 해외 환자는 가 본 적 없는 병원을
-          사진으로 판단하므로, 중간에 **공간을 크게 한 번 보여주는 자리**가 필요하다
-          (Braun 등 상위 의료관광 사이트는 시각 비중이 60~70%다 — 2026-07-28 실측). */}
-      {site.showcase?.image && (
-        <section className="relative min-h-[52vh] md:min-h-[62vh] flex items-end">
-          <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-          <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
-            <Reveal className="max-w-xl">
-              {t(site.showcase.eyebrow) && (
-                <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
-                  {t(site.showcase.eyebrow)}
-                </p>
-              )}
-              <h2
-                className="text-white text-3xl md:text-5xl font-semibold leading-[1.1] whitespace-pre-line"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
+      {/* ══ 진료 분야 ══ */}
+      {has(site.specialties) && (
+        <Section id="specialties">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.specialties) || "Specialties"}
+            title={t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}
+          />
+          {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
+              사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {site.specialties.map((s, i) => (
+              <Reveal
+                key={i}
+                delay={i * 110}
+                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
               >
-                {t(site.showcase.title)}
-              </h2>
-              {t(site.showcase.desc) && (
-                <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
-              )}
-            </Reveal>
+                {s.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image
+                      src={s.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                )}
+                <div className="p-7">
+                  {!s.image && (
+                    <div
+                      className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
+                      style={{ backgroundColor: accent }}
+                    />
+                  )}
+                  <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
+                  <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
-        </section>
+        </Section>
+      )}
+
+      {/* ══ 치료 프로그램 ══ */}
+      {has(site.programs) && (
+        <Section tone="sand">
+          <SectionHead
+            accent={accent}
+            eyebrow={t(site.labels?.programs) || "Programs"}
+            title={t(site.programsTitle)}
+          />
+          <div className="grid md:grid-cols-3 gap-5">
+            {site.programs.map((p, i) => (
+              <Reveal key={i} delay={i * 110} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
+                {p.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
+                  </div>
+                )}
+                <div className="p-7">
+                <h3 className="text-lg font-semibold mb-2.5 tracking-tight">{t(p.title)}</h3>
+                <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(p.desc)}</p>
+                {has(p.items) && (
+                  <ul className="space-y-2.5 pt-5 border-t border-black/[0.07]">
+                    {p.items.map((it, j) => (
+                      <li key={j} className="text-[14px] text-black/65 flex gap-2.5">
+                        <span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
+                        {t(it)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
       )}
 
       {/* ══ 시설 갤러리 ══
@@ -381,47 +435,54 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
-      {/* ══ 진료 분야 ══ */}
-      {has(site.specialties) && (
-        <Section id="specialties">
+      {/* ══ 큰 사진 띠 — 화면 폭을 꽉 채우는 한 장 ══
+          왜: 카드·글자만 이어지면 «읽는 사이트»가 된다. 해외 환자는 가 본 적 없는 병원을
+          사진으로 판단하므로, 중간에 **공간을 크게 한 번 보여주는 자리**가 필요하다
+          (Braun 등 상위 의료관광 사이트는 시각 비중이 60~70%다 — 2026-07-28 실측). */}
+      {site.showcase?.image && (
+        <section className="relative min-h-[52vh] md:min-h-[62vh] flex items-end">
+          <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+          <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+            <Reveal className="max-w-xl">
+              {t(site.showcase.eyebrow) && (
+                <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
+                  {t(site.showcase.eyebrow)}
+                </p>
+              )}
+              <h2
+                className="text-white text-3xl md:text-5xl font-semibold leading-[1.1] whitespace-pre-line"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", letterSpacing: "-0.025em" }}
+              >
+                {t(site.showcase.title)}
+              </h2>
+              {t(site.showcase.desc) && (
+                <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
+              )}
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      {/* ══ 치료 메뉴 — 「내 경우엔 뭘 받나」를 골라 본다 ══
+          유앤아이의원(uni114.co.kr) 화면 한가운데가 **필터 칩 + 카드 격자**였다. 방문자가
+          «리프팅»을 누르면 그것만 남는다 = 묻지 않고 고르게 하는 구조.
+          우리는 성형이 아니라 암이라 **할인가 대신 기간·포함내역·입원 여부**를 박는다. */}
+      {site.menu?.items?.length > 0 && (
+        <Section id="menu" tone="sand">
           <SectionHead
             accent={accent}
-            eyebrow={t(site.labels?.specialties) || "Specialties"}
-            title={t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}
+            eyebrow={t(site.labels?.menu) || "Treatments"}
+            title={t(site.menu.title)}
+            lead={t(site.menu.lead)}
           />
-          {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
-              사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {site.specialties.map((s, i) => (
-              <Reveal
-                key={i}
-                delay={i * 110}
-                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
-              >
-                {s.image && (
-                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
-                    <Image
-                      src={s.image}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
-                  </div>
-                )}
-                <div className="p-7">
-                  {!s.image && (
-                    <div
-                      className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
-                      style={{ backgroundColor: accent }}
-                    />
-                  )}
-                  <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
-                  <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <TreatmentMenu
+            menu={site.menu}
+            lang={lang}
+            accent={accent}
+            onInquiry={onInquiry}
+            labels={site.menu.labels || {}}
+          />
         </Section>
       )}
 
@@ -495,64 +556,6 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                 {t(d.credentials) && (
                   <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>
                 )}
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ══ 치료 메뉴 — 「내 경우엔 뭘 받나」를 골라 본다 ══
-          유앤아이의원(uni114.co.kr) 화면 한가운데가 **필터 칩 + 카드 격자**였다. 방문자가
-          «리프팅»을 누르면 그것만 남는다 = 묻지 않고 고르게 하는 구조.
-          우리는 성형이 아니라 암이라 **할인가 대신 기간·포함내역·입원 여부**를 박는다. */}
-      {site.menu?.items?.length > 0 && (
-        <Section id="menu" tone="sand">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.menu) || "Treatments"}
-            title={t(site.menu.title)}
-            lead={t(site.menu.lead)}
-          />
-          <TreatmentMenu
-            menu={site.menu}
-            lang={lang}
-            accent={accent}
-            onInquiry={onInquiry}
-            labels={site.menu.labels || {}}
-          />
-        </Section>
-      )}
-
-      {/* ══ 치료 프로그램 ══ */}
-      {has(site.programs) && (
-        <Section tone="sand">
-          <SectionHead
-            accent={accent}
-            eyebrow={t(site.labels?.programs) || "Programs"}
-            title={t(site.programsTitle)}
-          />
-          <div className="grid md:grid-cols-3 gap-5">
-            {site.programs.map((p, i) => (
-              <Reveal key={i} delay={i * 110} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
-                {p.image && (
-                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
-                    <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
-                  </div>
-                )}
-                <div className="p-7">
-                <h3 className="text-lg font-semibold mb-2.5 tracking-tight">{t(p.title)}</h3>
-                <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(p.desc)}</p>
-                {has(p.items) && (
-                  <ul className="space-y-2.5 pt-5 border-t border-black/[0.07]">
-                    {p.items.map((it, j) => (
-                      <li key={j} className="text-[14px] text-black/65 flex gap-2.5">
-                        <span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
-                        {t(it)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                </div>
               </Reveal>
             ))}
           </div>
