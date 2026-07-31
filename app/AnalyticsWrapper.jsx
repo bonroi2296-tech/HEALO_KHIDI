@@ -5,6 +5,7 @@ import Script from "next/script";
 import { useEffect, useState } from "react";
 import { hasAnalyticsConsent, GA_ID, initDebugMode } from "@/lib/ga";
 import GaDebugBadge from "./GaDebugBadge";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 
 /**
  * healwith: Analytics 래퍼 (GA4 + Yandex Metrica)
@@ -128,17 +129,24 @@ export default function AnalyticsWrapper() {
     />
   ) : null;
 
+  // Vercel Web Analytics — GA4 와 달리 **쿠키를 안 쓰고 개인 식별자도 안 남기므로** 쿠키 동의
+  // 게이트에 걸지 않는다(동의 배너의 「필수」 범주). 광고차단기가 gtag.js 를 막아도 이건 우리
+  // 도메인(/_vercel/insights)으로 나가서 살아남는다 → GA 가 놓치는 러/CIS 방문자의 하한선 역할.
+  // /admin 은 제외: 코디·관리자 클릭이 방문 통계를 오염시키고 이벤트 요금도 그만큼 나간다.
+  const vercelAnalytics = envOk ? <VercelAnalytics /> : null;
+
   // 게이트: 동의(all) + 프로덕션 + 비admin + 상호작용 모두 충족해야 어떤 스크립트도 렌더 X
   // ⚠️ 여기서도 «같은 모양»(Fragment)으로 돌려줘야 한다. 한쪽은 배지를 그대로, 다른 쪽은
   //    Fragment 로 돌려주면 리액트가 «다른 종류의 요소»로 보고 배지를 **처음부터 다시 만든다**
   //    → 방금 ✕ 로 닫은 배지가 즉시 되살아난다(닫는 클릭이 곧 첫 상호작용이라 실제로 벌어진다).
   if (!allowAnalytics || !interacted) {
-    return <>{badge}</>;
+    return <>{badge}{vercelAnalytics}</>;
   }
 
   return (
     <>
       {badge}
+      {vercelAnalytics}
       {/* Google Analytics 4 */}
       {gaId && (
         <>
