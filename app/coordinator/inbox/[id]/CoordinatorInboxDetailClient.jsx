@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 
 const STATUS_COLORS = {
@@ -924,7 +924,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           // 현재 폼(flat) — 핵심 선택값을 항상 나열(미입력=입력하지 않음).
           const ts = safe(intake.treatment_state);
           rows.push([L.ibFieldCurrentStatus, (ts && ts !== "—") ? labelOf(TREATMENT_STATES, ts, lang) : NE]);
-          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? String(intake.stage) : NE]);
+          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? stageLabel(intake.stage, lang) : NE]);
           const dd = safe(intake.diagnosis_date);
           rows.push([pick(INTAKE_UI.diagnosisDate, lang), (dd && dd !== "—") ? dd : NE]);
           rows.push([L.ibFieldEntryTiming, intake.travel_timing ? labelOf(TRAVEL_TIMING, intake.travel_timing, lang) : NE]);

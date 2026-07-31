@@ -125,6 +125,19 @@ export function optLabel(item, lang = "ko") {
   return t(item.labelKey, lang);
 }
 
+// 병기 값이 화면마다 두 갈래로 저장돼 있다 — 문의폼은 "I"~"IV", 비용계산기는 "1"~"4".
+// 표시할 땐 같은 사전 한 곳을 보게 맞춰준다(저장값은 각자 그대로).
+const STAGE_ALIAS = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+
+/** 병기 값("I"~"IV" 또는 "1"~"4") → 지정 언어 라벨. 모르는 값은 그대로 돌려준다. */
+export function stageLabel(value, lang = "ko") {
+  if (value == null || value === "") return "";
+  const raw = String(value).trim();
+  const v = STAGE_ALIAS[raw] || raw.toUpperCase();
+  const item = STAGES.find((s) => s.value === v);
+  return item ? t(item.labelKey, lang) : raw;
+}
+
 /** value → 지정 언어 라벨. 목록에 없으면 원래 값을 그대로 돌려준다(안전 폴백). */
 export function labelOf(list, value, lang = "ko") {
   if (value == null || value === "") return null;
