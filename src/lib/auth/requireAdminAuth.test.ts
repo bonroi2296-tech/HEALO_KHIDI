@@ -108,6 +108,22 @@ describe("requireAdminAuth — 인증/권한", () => {
     );
   });
 
+  it("역할 확인 통로(/api/admin/whoami)는 403 이어도 감사기록을 남기지 않는다", async () => {
+    // 로그인 화면이 「나 관리자인가?」를 모두에게 묻는다 → 코디·환자 정상 로그인마다 「무단 접근」이
+    // 쌓여 진짜 침입 신호가 묻힌다(2026-07-31 실측 48시간 19건 전부 이 경로, 진짜 침입 0건).
+    mockCheckAdminAuth.mockResolvedValue({
+      isAdmin: false,
+      userId: "user-1",
+      email: "coordinator@healwith.co.kr",
+      error: "not_admin",
+    });
+
+    const result = await requireAdminAuth(makeRequest("/api/admin/whoami"));
+
+    expect(result.success).toBe(false); // 막는 건 그대로
+    expect(mockLogAdminAction).not.toHaveBeenCalled(); // 기록만 안 남긴다
+  });
+
   it("미인증 사용자 → 403", async () => {
     mockCheckAdminAuth.mockResolvedValue({
       isAdmin: false,
