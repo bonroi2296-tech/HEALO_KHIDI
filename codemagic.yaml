@@ -262,7 +262,7 @@ workflows:
           # 🛑 사진이 한 장도 없으면 실패로 끝내라 (2026-07-29 추가).
           #    앞선 실행은 «0장인데 초록불»로 끝나서, 결과를 보러 가기 전엔 아무도 몰랐다.
           #    이 저장소가 반복해서 겪은 «만들었는데 실제로는 아무 일도 안 함» 부류라 여기서 끊는다.
-          COUNT="$(find screenshots -name '*.png' | wc -l | tr -d ' ')"
+          COUNT="$(find "$SHOT_DIR" -name '*.png' | wc -l | tr -d ' ')"
           echo "찍은 화면: ${COUNT}장"
           [ "$COUNT" -gt 0 ] || { echo "❌ 화면을 한 장도 못 찍었다 — 위의 «이 맥에 있는 아이폰 기기» 목록을 봐라"; exit 1; }
     artifacts:
