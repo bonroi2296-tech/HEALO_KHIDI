@@ -202,6 +202,9 @@ export default function UnifiedInquiryFunnel() {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
           const json = await res.json();
+          // 스태프·에이전시 계정은 늘 «환자 대신» 쓴다 → 자동채움을 통째로 끈다.
+          // (안 그러면 코디 이름·직전 환자 전화가 새 환자 폼에 미리 박힌다 — route.ts 주석 참고)
+          if (json?.skip) return;
           if (json?.ok && json.prefill) p = json.prefill;
         } catch { /* 지난 접수 없음 — 계정 정보만으로 채운다 */ }
 
