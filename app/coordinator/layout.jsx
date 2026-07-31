@@ -11,6 +11,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
 import StaffPortalGate from '../_components/StaffPortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
+import PushOptInBanner from '../_components/PushOptInBanner';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 // 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
@@ -158,6 +159,8 @@ export default function CoordinatorLayout({ children }) {
             className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6"
             style={{ paddingBottom: "calc(1.5rem + var(--cookie-banner-h, 0px))" }}
           >
+            {/* 폰 알림이 꺼져 있을 때만 뜨는 줄 — 브라우저에선 아무것도 안 그린다 */}
+            <PushOptInBanner />
             {children}
           </div>
         </main>
