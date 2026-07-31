@@ -880,6 +880,70 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── 15-c) 주색을 teal-600 으로 쓰는 «새» 파일 차단 (2026-07-31 감사) ─────────────
+// 왜: DESIGN.md 가 primary 를 teal-600 이라고 적어놨는데, teal-600(#0d9488)은
+//     흰 배경 위 글씨도 3.74:1, 흰 글씨를 얹은 배경도 3.74:1 — «양쪽 다» WCAG AA(4.5:1) 미달이다.
+//     즉 문서 자신이 자기 대비 규칙을 위반하고 있었다. 실제 코드는 이미 teal-700 을 쓰고 있었고
+//     (배경 306회 vs 24회 = 12.75배 / 글씨 625회 vs 54회 = 11.6배) 문서만 뒤처져 있었다.
+//     문서만 고치면 또 샌다 — CLAUDE.md 「기계로 잴 수 있으면 자동검사로 박아라」에 따라 여기에 박는다.
+// 범위: bg-teal-600 · text-teal-600 만. border-teal-600 은 UI 요소 기준 3:1 을 넘으므로(3.74) 통과.
+// 🧊 기존 31개 파일은 «기준선으로 동결»한다 — DESIGN.md change_authority 가 「기존 페이지 디자인
+//     자동 변경 금지」라서 일괄 수정은 PO 지시가 있어야 한다. 이 가드는 «새로 늘어나는 것»만 막는다.
+//     그 31개를 실제로 고칠 때는 이 목록에서 해당 줄을 지워라(다시 늘면 그때부터 막힌다).
+const TEAL600_FROZEN = new Set([
+  "app/_components/ManualDrawer.jsx",
+  "app/_components/StaffPortalGate.jsx",
+  "app/account-deletion/AccountDeletionClient.jsx",
+  "app/admin/chat/page.jsx",
+  "app/admin/khidi/agent-analysis/page.jsx",
+  "app/agency/PartnerPortal.jsx",
+  "app/auth/confirm/ConfirmClient.jsx",
+  "app/care-journey/CareJourneyClient.jsx",
+  "app/consultation/[id]/page.jsx",
+  "app/coordinator/chat/page.jsx",
+  "app/coordinator/consultations/page.jsx",
+  "app/coordinator/inbox/[id]/CoordinatorInboxDetailClient.jsx",
+  "app/coordinator/inbox/[id]/OpinionsSection.jsx",
+  "app/cost-calculator/CostCalculatorClient.jsx",
+  "app/home/HomeClient.jsx",
+  "app/hospital/page.jsx",
+  "app/hospitals/HospitalsClient.jsx",
+  "app/inquiry/ThreadChat.jsx",
+  "app/inquiry/_components/UnifiedInquiryFunnel.jsx",
+  "app/inquiry/intake/IntakeClient.jsx",
+  "app/insurance/InsuranceClient.jsx",
+  "app/no-access/page.jsx",
+  "app/opinion/[token]/OpinionClient.jsx",
+  "app/partners/PartnersClient.jsx",
+  "app/patient/education/EducationClient.jsx",
+  "app/patient/symptoms/SymptomsClient.jsx",
+  "app/survey/[token]/_client/SurveyForm.jsx",
+  "app/treatments/TreatmentsClient.jsx",
+  "src/components/NotificationBell.jsx",
+  "src/components/partners/PartnerOutreachTracker.jsx",
+  "src/lib/consultation/SameRoomGuard.jsx",
+]);
+{
+  const TEAL600_RE = /\b(?:bg|text)-teal-600\b/;
+  for (const dir of ["app", "src"]) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      const rel = file.replace(/\\/g, "/");
+      if (TEAL600_FROZEN.has(rel)) continue;
+      let text;
+      try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+      const m = TEAL600_RE.exec(text);
+      if (!m) continue;
+      const line = text.slice(0, m.index).split("\n").length;
+      errors.push(
+        `[주색미달] ${rel}:${line} — ${m[0]} 사용. teal-600 은 흰 배경 글씨도, 흰 글씨를 얹은 배경도 3.74:1 로 ` +
+          `WCAG AA(4.5:1) 미달이다. 주색은 teal-700(5.47:1), 호버는 teal-800(7.58:1) 을 쓸 것 ` +
+          `(DESIGN.md colors.primary · 실물 시안 docs/design/기본톤_시안.html).`,
+      );
+    }
+  }
+}
+
 // ── 16) 스태프 백오피스가 공개용 useLang()(healo_lang, 쿠키 없으면 en 기본) 써서
 //        기본 언어가 영어로 새는 회귀 차단 (2026-07-09, PR #727 CI 적발) ──────
 // 왜: app/admin·coordinator·hospital 은 스태프(기본 한국 운영)용이라 기본언어가 ko 여야 하는데,
