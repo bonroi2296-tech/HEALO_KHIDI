@@ -25,7 +25,15 @@ export const CANCER_TYPES = [
   { value: "other", labelKey: "intakeLabels.cancer.other", organ: null },
 ];
 
-export const STAGES = ["I", "II", "III", "IV"];
+// 병기 — 다른 선택지와 같은 { value, labelKey } 모양. 예전엔 문자열 배열이고 화면에서
+// `Stage {값}` 으로 조립해서, 코디 콘텐츠 편집기가 이 버튼 글자를 못 찾았다(2026-07-31 PO 지적).
+// value(저장값)는 그대로 "I"~"IV".
+export const STAGES = [
+  { value: "I", labelKey: "intakeLabels.stage.I" },
+  { value: "II", labelKey: "intakeLabels.stage.II" },
+  { value: "III", labelKey: "intakeLabels.stage.III" },
+  { value: "IV", labelKey: "intakeLabels.stage.IV" },
+];
 
 export const TREATMENT_STATES = [
   { value: "pre_surgery", labelKey: "intakeLabels.treatState.pre_surgery" },
