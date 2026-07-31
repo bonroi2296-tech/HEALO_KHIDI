@@ -36,20 +36,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ 유치 전환 추적이 끊깁니다",
     inquiryNotCountedBody: "실적(사전상담·사후관리)은 «완료»만 누르면 잡힙니다. 다만 문의를 안 걸면 «이 상담이 어느 문의에서 왔는지»가 끊겨 유치 전환 분석에서 빠집니다. 나중에 상담 목록에서 이어붙일 수도 있습니다.",
     phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더",
+    phInviteePhone: "휴대폰 번호 (선택) — 국가번호 포함, 예: +77011234567", waSend: "WhatsApp 으로 보내기",
+    emailSentToTpl: "✉️ {email} 로 초대장을 보냈습니다.", emailNotSent: "✉️ 이메일을 입력하지 않아 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
-    advancedOptions: "고급 옵션 (선택)", advancedOptionsHint: "세션 유형 · 코디 · 병원/의사 · 언어 · 비고",
     lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
-    lblPatientAccount: "환자 계정 (선택 — 기존 계정)", phPatientAccount: "비워두면 게스트 링크 전용",
-    lblCoordinatorSelect: "담당 코디네이터 (지정 코디 목록)",
-    lblPatientLang: "환자 언어", langRu: "러시아어", langKz: "카자흐어", langEn: "영어", langZh: "중국어",
-    lblDoctorLang: "의사 언어", langKo: "한국어",
-    hospitalBoxTitle: "🏥 병원 / 의사 지정 (선택) — 환자 이메일 & UI 에 표시됨",
-    lblHospital: "병원", optNone: "(선택 안함)", lblAssignedDoctor: "담당 의사",
-    hintSelectHospitalFirst: "병원 먼저 선택", noDoctorsRegistered: "등록된 의사 없음",
-    lblNotes: "비고 (선택)", phNotes: "상담 목적 / 주요 증상 / 사전 확인 필요 사항 등", notesInquiryPrefix: "문의",
+    notesInquiryPrefix: "문의",
     btnCancel: "취소", btnSubmitting: "생성 중…", btnSubmit: "상담 예약 생성",
-    noRoleAccountsTpl: "등록된 {role} 계정 없음 — 회원가입 후 역할 부여 필요", roleDoctor: "의사", roleCoordinator: "코디네이터",
-    selectPlaceholder: "— 선택 —", btnChange: "변경", phSearchEmail: "이메일로 검색", searching: "검색 중...", noMatchingAccounts: "일치하는 계정 없음",
     rolePatient: "🧑 환자", roleDoctorLabel: "👨‍⚕️ 의사", roleTranslator: "🗣 통역사", roleCoordinatorLabel: "🤝 코디네이터", roleObserver: "👁 참관자", roleGuest: "🔗 참여",
     defaultInviteLabel: "환자 초대 링크 (계정 불필요)", btnCopy: "복사", toastCopyDone: "링크 복사 완료", toastCopyFail: "복사 실패",
     expiresPrefix: "만료:", qrScanTitle: "📱 모바일 QR 스캔",
@@ -74,20 +66,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ Attraction tracking will be broken",
     inquiryNotCountedBody: "The figure itself counts as soon as you mark it complete. But without linking an inquiry we lose which inquiry this came from, so it drops out of attraction-conversion analysis. You can link it later from the consultation list.",
     phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Primary recipient (patient) email (optional) — enables auto-send & reminders",
+    phInviteePhone: "Phone number (optional) — with country code, e.g. +77011234567", waSend: "Send via WhatsApp",
+    emailSentToTpl: "✉️ Invitation sent to {email}.", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
-    advancedOptions: "Advanced options (optional)", advancedOptionsHint: "Session type · coordinator · hospital/doctor · language · notes",
     lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
-    lblPatientAccount: "Patient account (optional — existing account)", phPatientAccount: "Leave blank for guest-link only",
-    lblCoordinatorSelect: "Assigned coordinator (from coordinator list)",
-    lblPatientLang: "Patient language", langRu: "Russian", langKz: "Kazakh", langEn: "English", langZh: "Chinese",
-    lblDoctorLang: "Doctor language", langKo: "Korean",
-    hospitalBoxTitle: "🏥 Assign hospital / doctor (optional) — shown in patient email & UI",
-    lblHospital: "Hospital", optNone: "(none)", lblAssignedDoctor: "Assigned doctor",
-    hintSelectHospitalFirst: "Select a hospital first", noDoctorsRegistered: "No doctors registered",
-    lblNotes: "Notes (optional)", phNotes: "Purpose of the consultation / key symptoms / anything to check beforehand", notesInquiryPrefix: "Inquiry",
+    notesInquiryPrefix: "Inquiry",
     btnCancel: "Cancel", btnSubmitting: "Creating…", btnSubmit: "Schedule consultation",
-    noRoleAccountsTpl: "No {role} accounts registered — sign up and assign the role first", roleDoctor: "doctor", roleCoordinator: "coordinator",
-    selectPlaceholder: "— Select —", btnChange: "Change", phSearchEmail: "Search by email", searching: "Searching...", noMatchingAccounts: "No matching accounts",
     rolePatient: "🧑 Patient", roleDoctorLabel: "👨‍⚕️ Doctor", roleTranslator: "🗣 Interpreter", roleCoordinatorLabel: "🤝 Coordinator", roleObserver: "👁 Observer", roleGuest: "🔗 Participant",
     defaultInviteLabel: "Patient invite link (no account needed)", btnCopy: "Copy", toastCopyDone: "Link copied", toastCopyFail: "Copy failed",
     expiresPrefix: "Expires:", qrScanTitle: "📱 Scan on mobile",
@@ -112,20 +96,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ Цепочка привлечения будет прервана",
     inquiryNotCountedBody: "Сам показатель засчитывается, как только вы отметите «завершено». Но без привязки заявки теряется связь «из какой заявки пришла эта консультация», и она выпадает из анализа привлечения. Привязать можно позже из списка консультаций.",
     phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Email основного получателя (пациента) (необязательно) — включает автоотправку и напоминания",
+    phInviteePhone: "Номер телефона (необязательно) — с кодом страны, напр. +77011234567", waSend: "Отправить в WhatsApp",
+    emailSentToTpl: "✉️ Приглашение отправлено на {email}.", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
-    advancedOptions: "Дополнительные настройки (необязательно)", advancedOptionsHint: "Тип сессии · координатор · больница/врач · язык · заметки",
     lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
-    lblPatientAccount: "Аккаунт пациента (необязательно — существующий)", phPatientAccount: "Оставьте пустым для гостевой ссылки",
-    lblCoordinatorSelect: "Назначенный координатор (из списка координаторов)",
-    lblPatientLang: "Язык пациента", langRu: "Русский", langKz: "Казахский", langEn: "Английский", langZh: "Китайский",
-    lblDoctorLang: "Язык врача", langKo: "Корейский",
-    hospitalBoxTitle: "🏥 Назначить больницу / врача (необязательно) — отображается в email пациента и интерфейсе",
-    lblHospital: "Больница", optNone: "(не выбрано)", lblAssignedDoctor: "Лечащий врач",
-    hintSelectHospitalFirst: "Сначала выберите больницу", noDoctorsRegistered: "Нет зарегистрированных врачей",
-    lblNotes: "Заметки (необязательно)", phNotes: "Цель консультации / основные симптомы / что нужно уточнить заранее", notesInquiryPrefix: "Заявка",
+    notesInquiryPrefix: "Заявка",
     btnCancel: "Отмена", btnSubmitting: "Создание…", btnSubmit: "Запланировать консультацию",
-    noRoleAccountsTpl: "Нет зарегистрированных аккаунтов с ролью «{role}» — сначала зарегистрируйтесь и назначьте роль", roleDoctor: "врач", roleCoordinator: "координатор",
-    selectPlaceholder: "— Выбрать —", btnChange: "Изменить", phSearchEmail: "Поиск по email", searching: "Поиск...", noMatchingAccounts: "Совпадений не найдено",
     rolePatient: "🧑 Пациент", roleDoctorLabel: "👨‍⚕️ Врач", roleTranslator: "🗣 Переводчик", roleCoordinatorLabel: "🤝 Координатор", roleObserver: "👁 Наблюдатель", roleGuest: "🔗 Участник",
     defaultInviteLabel: "Ссылка-приглашение для пациента (аккаунт не нужен)", btnCopy: "Копировать", toastCopyDone: "Ссылка скопирована", toastCopyFail: "Не удалось скопировать",
     expiresPrefix: "Истекает:", qrScanTitle: "📱 Сканировать на телефоне",
@@ -150,20 +126,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ Тарту тізбегі үзіледі",
     inquiryNotCountedBody: "Көрсеткіш «аяқталды» деп белгіленген бойда есептеледі. Бірақ өтінім байланбаса, «бұл кеңес қай өтінімнен келді» байланысы үзіліп, тарту талдауынан түсіп қалады. Кейін кеңестер тізімінен байланыстыруға болады.",
     phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Негізгі алушы (науқас) email (міндетті емес) — енгізілсе автожіберу мен еске салғыштар қосылады",
+    phInviteePhone: "Телефон нөмірі (міндетті емес) — ел кодымен, мыс. +77011234567", waSend: "WhatsApp арқылы жіберу",
+    emailSentToTpl: "✉️ Шақыру {email} мекенжайына жіберілді.", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
-    advancedOptions: "Кеңейтілген параметрлер (міндетті емес)", advancedOptionsHint: "Сессия түрі · үйлестіруші · аурухана/дәрігер · тіл · ескертпе",
     lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
-    lblPatientAccount: "Науқас аккаунты (міндетті емес — бар аккаунт)", phPatientAccount: "Тек қонақ сілтемесі үшін бос қалдырыңыз",
-    lblCoordinatorSelect: "Тағайындалған үйлестіруші (үйлестірушілер тізімінен)",
-    lblPatientLang: "Науқас тілі", langRu: "Орысша", langKz: "Қазақша", langEn: "Ағылшынша", langZh: "Қытайша",
-    lblDoctorLang: "Дәрігер тілі", langKo: "Корейше",
-    hospitalBoxTitle: "🏥 Аурухана / дәрігер тағайындау (міндетті емес) — науқас email мен интерфейсте көрсетіледі",
-    lblHospital: "Аурухана", optNone: "(таңдалмаған)", lblAssignedDoctor: "Емдеуші дәрігер",
-    hintSelectHospitalFirst: "Алдымен ауруханды таңдаңыз", noDoctorsRegistered: "Тіркелген дәрігер жоқ",
-    lblNotes: "Ескертпе (міндетті емес)", phNotes: "Кеңестің мақсаты / негізгі белгілер / алдын ала тексеру қажет мәселелер", notesInquiryPrefix: "Өтінім",
+    notesInquiryPrefix: "Өтінім",
     btnCancel: "Бас тарту", btnSubmitting: "Жасалуда…", btnSubmit: "Кеңесті жоспарлау",
-    noRoleAccountsTpl: "Тіркелген «{role}» аккаунты жоқ — алдымен тіркеліп рөл беріңіз", roleDoctor: "дәрігер", roleCoordinator: "үйлестіруші",
-    selectPlaceholder: "— Таңдау —", btnChange: "Өзгерту", phSearchEmail: "Email бойынша іздеу", searching: "Ізделуде...", noMatchingAccounts: "Сәйкестік табылмады",
     rolePatient: "🧑 Науқас", roleDoctorLabel: "👨‍⚕️ Дәрігер", roleTranslator: "🗣 Аудармашы", roleCoordinatorLabel: "🤝 Үйлестіруші", roleObserver: "👁 Бақылаушы", roleGuest: "🔗 Қатысушы",
     defaultInviteLabel: "Науқас шақыру сілтемесі (аккаунт қажет емес)", btnCopy: "Көшіру", toastCopyDone: "Сілтеме көшірілді", toastCopyFail: "Көшіру сәтсіз",
     expiresPrefix: "Мерзімі:", qrScanTitle: "📱 Телефоннан сканерлеу",
@@ -188,20 +156,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ 招引追踪将会中断",
     inquiryNotCountedBody: "指标本身在标记完成后即会计入。但未关联咨询时，将无法追溯此会诊来自哪条咨询，因而会从招引转化分析中脱落。之后可在会诊列表中补关联。",
     phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "主要接收人（患者）邮箱（可选）— 填写后启用自动发送和提醒",
+    phInviteePhone: "手机号（可选）— 含国家代码，如 +77011234567", waSend: "通过 WhatsApp 发送",
+    emailSentToTpl: "✉️ 邀请已发送至 {email}。", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
-    advancedOptions: "高级选项（可选）", advancedOptionsHint: "会诊类型 · 协调员 · 医院/医生 · 语言 · 备注",
     lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
-    lblPatientAccount: "患者账户（可选 — 已有账户）", phPatientAccount: "留空则仅使用访客链接",
-    lblCoordinatorSelect: "指定协调员（协调员列表）",
-    lblPatientLang: "患者语言", langRu: "俄语", langKz: "哈萨克语", langEn: "英语", langZh: "中文",
-    lblDoctorLang: "医生语言", langKo: "韩语",
-    hospitalBoxTitle: "🏥 指定医院 / 医生（可选）— 将显示在患者邮件与界面中",
-    lblHospital: "医院", optNone: "（不选择）", lblAssignedDoctor: "主治医生",
-    hintSelectHospitalFirst: "请先选择医院", noDoctorsRegistered: "暂无注册医生",
-    lblNotes: "备注（可选）", phNotes: "会诊目的 / 主要症状 / 需提前确认的事项等", notesInquiryPrefix: "咨询",
+    notesInquiryPrefix: "咨询",
     btnCancel: "取消", btnSubmitting: "创建中…", btnSubmit: "创建会诊预约",
-    noRoleAccountsTpl: "暂无已注册的{role}账户 — 请先注册并分配角色", roleDoctor: "医生", roleCoordinator: "协调员",
-    selectPlaceholder: "— 请选择 —", btnChange: "更改", phSearchEmail: "按邮箱搜索", searching: "搜索中...", noMatchingAccounts: "没有匹配的账户",
     rolePatient: "🧑 患者", roleDoctorLabel: "👨‍⚕️ 医生", roleTranslator: "🗣 翻译", roleCoordinatorLabel: "🤝 协调员", roleObserver: "👁 观察员", roleGuest: "🔗 参与者",
     defaultInviteLabel: "患者邀请链接（无需账户）", btnCopy: "复制", toastCopyDone: "链接已复制", toastCopyFail: "复制失败",
     expiresPrefix: "过期时间：", qrScanTitle: "📱 手机扫码",
@@ -226,20 +186,12 @@ const TR = {
     inquiryNotCountedTitle: "⚠️ 誘致追跡が切れます",
     inquiryNotCountedBody: "実績そのものは「完了」にすれば計上されます。ただし問い合わせを紐づけないと「どの問い合わせから来た相談か」が切れ、誘致転換の分析から外れます。あとから相談一覧で紐づけることもできます。",
     phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "代表受信者（患者）メール（任意）— 入力すると自動送信・リマインダーが有効",
+    phInviteePhone: "電話番号（任意）— 国番号を含む 例: +77011234567", waSend: "WhatsApp で送信",
+    emailSentToTpl: "✉️ {email} に招待状を送信しました。", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
-    advancedOptions: "詳細オプション（任意）", advancedOptionsHint: "セッション種別・コーディネーター・病院/医師・言語・備考",
     lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
-    lblPatientAccount: "患者アカウント（任意 — 既存アカウント）", phPatientAccount: "空欄でゲストリンク専用",
-    lblCoordinatorSelect: "担当コーディネーター（指定コーディネーター一覧）",
-    lblPatientLang: "患者の言語", langRu: "ロシア語", langKz: "カザフ語", langEn: "英語", langZh: "中国語",
-    lblDoctorLang: "医師の言語", langKo: "韓国語",
-    hospitalBoxTitle: "🏥 病院/医師を指定（任意）— 患者メール・UIに表示されます",
-    lblHospital: "病院", optNone: "（選択しない）", lblAssignedDoctor: "担当医師",
-    hintSelectHospitalFirst: "先に病院を選択", noDoctorsRegistered: "登録済み医師なし",
-    lblNotes: "備考（任意）", phNotes: "相談の目的 / 主な症状 / 事前確認が必要な事項など", notesInquiryPrefix: "問い合わせ",
+    notesInquiryPrefix: "問い合わせ",
     btnCancel: "キャンセル", btnSubmitting: "作成中…", btnSubmit: "相談予約を作成",
-    noRoleAccountsTpl: "登録済みの{role}アカウントがありません — 先に登録し役割を付与してください", roleDoctor: "医師", roleCoordinator: "コーディネーター",
-    selectPlaceholder: "— 選択 —", btnChange: "変更", phSearchEmail: "メールで検索", searching: "検索中...", noMatchingAccounts: "一致するアカウントがありません",
     rolePatient: "🧑 患者", roleDoctorLabel: "👨‍⚕️ 医師", roleTranslator: "🗣 通訳", roleCoordinatorLabel: "🤝 コーディネーター", roleObserver: "👁 参観者", roleGuest: "🔗 参加",
     defaultInviteLabel: "患者招待リンク（アカウント不要）", btnCopy: "コピー", toastCopyDone: "リンクをコピーしました", toastCopyFail: "コピー失敗",
     expiresPrefix: "有効期限:", qrScanTitle: "📱 モバイルQRスキャン",
@@ -247,6 +199,25 @@ const TR = {
     btnDownloadPng: "PNGダウンロード",
   },
 };
+
+// WhatsApp 전달 문구 — 환자 언어 기준(백오피스 언어와 별개).
+// ponytail: 문자(SMS) 발송 업체가 아직 연동돼 있지 않다(src/lib/notifications/adminNotifier.ts →
+// sms_not_configured). 그래서 번호는 저장·자동발송하지 않고, 스태프가 누르면 WhatsApp 이 열리고
+// 문구가 채워지는 데까지만 한다. 실제 자동 발송이 필요해지면 그때 업체를 붙인다.
+const WA_MSG = {
+  ru: "healwith — онлайн-консультация\n🕒 {time} (время Кореи, GMT+9)\n🔗 {url}",
+  kz: "healwith — онлайн-кеңес\n🕒 {time} (Корея уақыты, GMT+9)\n🔗 {url}",
+  en: "healwith — online consultation\n🕒 {time} (Korea time, GMT+9)\n🔗 {url}",
+  zh: "healwith — 在线会诊\n🕒 {time}（韩国时间 GMT+9）\n🔗 {url}",
+};
+
+function waLink(phone, patientLang, url, scheduledAtKst) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  const time = String(scheduledAtKst || "").replace("T", " ");
+  const tpl = WA_MSG[patientLang] || WA_MSG.ru;
+  const text = tpl.replace("{time}", time).replace("{url}", url);
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
 
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
 export function CreateConsultationModal({ onClose, onSuccess }) {
@@ -260,42 +231,27 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
     d.setHours(d.getHours() + 1, 0, 0, 0);
     return {
       selected_inquiry_id: "",
-      patient_user_id: "",
-      coordinator_user_id: "",
       session_type: "pre_consultation",
       scheduled_at: d.toISOString().slice(0, 16),
+      // 언어는 화면에서 고르지 않는다 — 문의를 고르면 그 환자 언어로 자동(없으면 러시아어).
       patient_language: "ru",
-      doctor_language: "ko",
-      hospital_id: "",
-      partner_doctor_id: "",
       notes: "",
       // 통합 초대 링크 1개(role=guest) — 환자·의사 등 모두 이 링크로 입장.
       // inviteeName/Email 은 자동 발송용 대표 수신자(보통 환자).
       inviteeName: "",
       inviteeEmail: "",
+      // WhatsApp 전달용 번호 — 저장하지 않는다(SMS 발송 수단 미연동). 완료 화면의 «WhatsApp 으로 보내기» 에만 쓴다.
+      inviteePhone: "",
     };
   });
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(null); // 생성 후 initiate 결과 (세션 + invite)
-  // 병원/의사 옵션 (DB 에서 lazy load)
-  const [hospitalOptions, setHospitalOptions] = useState([]);
-  const [doctorOptions, setDoctorOptions] = useState([]);
   // 문의(inquiries) 옵션 — 환자를 직접 타이핑하지 않고 실제 문의에서 선택
   const [inquiryOptions, setInquiryOptions] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function loadOptions() {
-      try {
-        const { data: hospitalsData } = await supabase
-          .from("hospitals")
-          .select("id, name, address")
-          .eq("is_active", true)
-          .order("name");
-        if (!cancelled && hospitalsData) setHospitalOptions(hospitalsData);
-      } catch {
-        // silent
-      }
       try {
         // 문의는 RLS상 service_role 만 읽기 가능 + 이름 암호화 → 서버 picker API 사용
         const { data: sessionData } = await supabase.auth.getSession();
@@ -350,42 +306,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
     }
   }
 
-  // 병원 변경 시 해당 병원의 의사 목록 로드
-  useEffect(() => {
-    if (!form.hospital_id) {
-      setDoctorOptions([]);
-      return;
-    }
-    let cancelled = false;
-    async function loadDoctors() {
-      try {
-        // partner_doctors 는 branch_id 참조, branches 가 hospital_id 참조
-        const { data: branchesData } = await supabase
-          .from("partner_branches")
-          .select("id")
-          .eq("hospital_id", form.hospital_id);
-        const branchIds = (branchesData || []).map((b) => b.id);
-        if (branchIds.length === 0) {
-          if (!cancelled) setDoctorOptions([]);
-          return;
-        }
-        const { data: doctorsData } = await supabase
-          .from("partner_doctors")
-          .select("id, name_ko, name_en, position_ko, subspecialty")
-          .eq("is_active", true)
-          .in("branch_id", branchIds)
-          .order("display_order", { ascending: true, nullsFirst: false });
-        if (!cancelled && doctorsData) setDoctorOptions(doctorsData);
-      } catch {
-        // silent
-      }
-    }
-    loadDoctors();
-    return () => {
-      cancelled = true;
-    };
-  }, [form.hospital_id]);
-
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -402,7 +322,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       // admin 본인 ID 를 placeholder 로 세팅 (후속 PATCH 로 환자 확정 가능)
       const payload = {
         ...form,
-        patient_user_id: form.patient_user_id || sessionData.session.user.id,
         // datetime-local 은 tz 없는 naive 문자열 → KST(+09:00)로 해석해 UTC 저장.
         // (과거엔 브라우저 로컬 tz 로 해석돼, 어드민 PC 가 KST 가 아니면 예약시각·리마인더가 틀어짐)
         scheduled_at: new Date(`${form.scheduled_at}+09:00`).toISOString(),
@@ -410,6 +329,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       // 게스트 관련 필드 / UI 플래그 제거
       delete payload.inviteeName;
       delete payload.inviteeEmail;
+      delete payload.inviteePhone;
       Object.keys(payload).forEach((k) => {
         if (payload[k] === "" || payload[k] == null) delete payload[k];
       });
@@ -459,6 +379,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
               role: "guest",
               url: inviteResult.inviteUrl,
               expiresAt: inviteResult.expiresAt,
+              emailSent: inviteResult.emailSent,
             });
           } else {
             console.warn("[invite:guest] 실패:", inviteResult.error);
@@ -471,6 +392,10 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       setCreated({
         sessionId,
         invites,
+        scheduledAtKst: form.scheduled_at,
+        phone: form.inviteePhone,
+        email: form.inviteeEmail,
+        patientLang: form.patient_language,
       });
     } catch (err) {
       console.error("[CreateConsultationModal] error:", err);
@@ -515,6 +440,22 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                     toast={toast}
                     label={fmt(tt("inviteLinkLabelTpl"), { role: roleLabel(inv.role, lang) })}
                   />
+                  {/* «어디로 나갔나»를 그 자리에서 보여준다 — 조용히 나가서 엉뚱한 사람이 받는 사고(2026-07-31) 재발 방지 */}
+                  <p className="mt-2 text-xs text-gray-600">
+                    {inv.emailSent
+                      ? fmt(tt("emailSentToTpl"), { email: created.email })
+                      : tt("emailNotSent")}
+                  </p>
+                  {created.phone && (
+                    <a
+                      href={waLink(created.phone, created.patientLang, inv.url, created.scheduledAtKst)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-lg text-sm font-semibold hover:brightness-95"
+                    >
+                      <span>💬</span> {tt("waSend")}
+                    </a>
+                  )}
                 </div>
               ))}
 
@@ -628,6 +569,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                 placeholder={tt("phInviteeEmail")}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
+              <input
+                type="tel"
+                value={form.inviteePhone}
+                onChange={(e) => setForm({ ...form, inviteePhone: e.target.value })}
+                placeholder={tt("phInviteePhone")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
             </div>
           </div>
 
@@ -642,130 +590,26 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             />
           </Field>
 
-          {/* 고급 옵션 — 평소 접어둠. 문의를 고르면 언어·세션유형은 기본값/자동입력으로 충분,
-              코디·병원/의사·비고는 필요할 때만 편다. (필드 과다 → 기본 최소화, POSTMORTEM 상담모달 복잡도) */}
-          <details className="border border-gray-200 rounded-xl">
-            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center justify-between gap-2">
-              <span>{tt("advancedOptions")}</span>
-              <span className="text-xs font-normal text-gray-500">{tt("advancedOptionsHint")}</span>
-            </summary>
-            <div className="px-4 pb-4 pt-2 space-y-4 border-t border-gray-100">
-              <Field label={tt("lblSessionType")}>
-                <select
-                  value={form.session_type}
-                  onChange={(e) => setForm({ ...form, session_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="pre_consultation">{tt("sessionTypePre")}</option>
-                  <option value="follow_up">{tt("sessionTypeFollow")}</option>
-                  <option value="emergency">{tt("sessionTypeEmergency")}</option>
-                  {/* 파트너 미팅 = 에이전시·병원과의 회의. KHIDI 실적(사전상담·사후관리)에 안 잡힌다.
-                      ※ 여기 있던 "diagnostic" 은 DB CHECK 가 안 받는 값이라 고르면 저장이 깨졌다 → 제거(2026-07-27). */}
-                  <option value="partner_meeting">{tt("sessionTypePartner")}</option>
-                </select>
-                {form.session_type === "partner_meeting" && (
-                  <p className="mt-1.5 text-xs text-gray-600">{tt("sessionTypePartnerHint")}</p>
-                )}
-              </Field>
-
-              <UserSearchField
-                label={tt("lblPatientAccount")}
-                value={form.patient_user_id}
-                onSelect={(id) => setForm({ ...form, patient_user_id: id })}
-                placeholder={tt("phPatientAccount")}
-              />
-              <RoleUserSelect
-                label={tt("lblCoordinatorSelect")}
-                role="coordinator"
-                value={form.coordinator_user_id}
-                onSelect={(id) => setForm({ ...form, coordinator_user_id: id })}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={tt("lblPatientLang")}>
-                  <select
-                    value={form.patient_language}
-                    onChange={(e) => setForm({ ...form, patient_language: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="ru">{tt("langRu")}</option>
-                    <option value="kz">{tt("langKz")}</option>
-                    <option value="en">{tt("langEn")}</option>
-                    <option value="zh">{tt("langZh")}</option>
-                  </select>
-                </Field>
-                <Field label={tt("lblDoctorLang")}>
-                  <select
-                    value={form.doctor_language}
-                    onChange={(e) => setForm({ ...form, doctor_language: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="ko">{tt("langKo")}</option>
-                    <option value="en">{tt("langEn")}</option>
-                  </select>
-                </Field>
-              </div>
-
-              {/* 병원 / 의사 (브랜딩용) */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-700">
-                  {tt("hospitalBoxTitle")}
-                </p>
-                <Field label={tt("lblHospital")}>
-                  <select
-                    value={form.hospital_id}
-                    onChange={(e) =>
-                      setForm({ ...form, hospital_id: e.target.value, partner_doctor_id: "" })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                  >
-                    <option value="">{tt("optNone")}</option>
-                    {hospitalOptions.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label={tt("lblAssignedDoctor")} hint={form.hospital_id ? "" : tt("hintSelectHospitalFirst")}>
-                  <select
-                    value={form.partner_doctor_id}
-                    onChange={(e) =>
-                      setForm({ ...form, partner_doctor_id: e.target.value })
-                    }
-                    disabled={!form.hospital_id || doctorOptions.length === 0}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                  >
-                    <option value="">
-                      {!form.hospital_id
-                        ? tt("hintSelectHospitalFirst")
-                        : doctorOptions.length === 0
-                        ? tt("noDoctorsRegistered")
-                        : tt("optNone")}
-                    </option>
-                    {doctorOptions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name_ko || d.name_en}
-                        {d.position_ko ? ` · ${d.position_ko}` : ""}
-                        {d.subspecialty ? ` · ${d.subspecialty}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <Field label={tt("lblNotes")}>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
-                  placeholder={tt("phNotes")}
-                />
-              </Field>
-            </div>
-          </details>
+          {/* 세션 유형 — 실적 집계가 여기서 갈린다(파트너 미팅은 KHIDI 실적에서 빠짐).
+              나머지 옵션(환자계정·코디·언어·병원/의사·비고)은 2026-07-31 PO 지시로 제거:
+              «상대 연락처 + 시각 + 어느 상담인지» 만 남긴다. 언어는 문의에서 자동으로 따라온다. */}
+          <Field label={tt("lblSessionType")}>
+            <select
+              value={form.session_type}
+              onChange={(e) => setForm({ ...form, session_type: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="pre_consultation">{tt("sessionTypePre")}</option>
+              <option value="follow_up">{tt("sessionTypeFollow")}</option>
+              <option value="emergency">{tt("sessionTypeEmergency")}</option>
+              {/* 파트너 미팅 = 에이전시·병원과의 회의. KHIDI 실적(사전상담·사후관리)에 안 잡힌다.
+                  ※ 여기 있던 "diagnostic" 은 DB CHECK 가 안 받는 값이라 고르면 저장이 깨졌다 → 제거(2026-07-27). */}
+              <option value="partner_meeting">{tt("sessionTypePartner")}</option>
+            </select>
+            {form.session_type === "partner_meeting" && (
+              <p className="mt-1.5 text-xs text-gray-600">{tt("sessionTypePartnerHint")}</p>
+            )}
+          </Field>
 
           <div className="flex gap-3 pt-2">
             <button
@@ -789,184 +633,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
   );
 }
 
-// ─── 사용자 검색 필드 ─────────────────────────────
-// 이메일로 auth.users 검색 → 선택 → UUID 자동 입력
-// 역할(doctor/coordinator) 회원을 드롭다운으로 — 이메일 검색 대신 지정 명단에서 선택
-function RoleUserSelect({ label, role, value, onSelect }) {
-  const lang = useBackofficeLang();
-  const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
-  const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
-  const [options, setOptions] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
-        const res = await fetch(`/api/admin/users/search?role=${encodeURIComponent(role)}&limit=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await res.json();
-        if (!cancelled && result.ok) setOptions(result.users || []);
-      } catch {
-        // silent
-      } finally {
-        if (!cancelled) setLoaded(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [role]);
-
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onSelect(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-      >
-        <option value="">
-          {loaded && options.length === 0 ? fmt(tt("noRoleAccountsTpl"), { role: role === "doctor" ? tt("roleDoctor") : tt("roleCoordinator") }) : tt("selectPlaceholder")}
-        </option>
-        {options.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.full_name ? `${u.full_name} (${u.email})` : u.email}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function UserSearchField({ label, value, onSelect, placeholder }) {
-  const lang = useBackofficeLang();
-  const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedEmail, setSelectedEmail] = useState("");
-
-  // value 가 바깥에서 변경되면 보이는 텍스트도 맞춤
-  useEffect(() => {
-    if (!value) setSelectedEmail("");
-  }, [value]);
-
-  // debounced search
-  useEffect(() => {
-    if (!query || query.length < 2) {
-      setResults([]);
-      return;
-    }
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
-        const res = await fetch(
-          `/api/admin/users/search?q=${encodeURIComponent(query)}&limit=8`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const result = await res.json();
-        if (cancelled) return;
-        if (result.ok) setResults(result.users || []);
-      } catch (err) {
-        console.error("[UserSearchField] error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query]);
-
-  const handlePick = (user) => {
-    onSelect(user.id);
-    setSelectedEmail(user.email);
-    setQuery("");
-    setResults([]);
-    setShowDropdown(false);
-  };
-
-  const handleClear = () => {
-    onSelect("");
-    setSelectedEmail("");
-    setQuery("");
-    setResults([]);
-  };
-
-  return (
-    <Field label={label}>
-      <div className="relative">
-        {value && selectedEmail ? (
-          <div className="flex items-center gap-2 px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg">
-            <span className="flex-1 text-sm text-teal-900 truncate">
-              ✓ {selectedEmail}
-            </span>
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-teal-700 hover:text-teal-800 text-sm"
-            >
-              {tt("btnChange")}
-            </button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-              placeholder={placeholder || tt("phSearchEmail")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-            {showDropdown && query.length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto z-20">
-                {loading ? (
-                  <div className="px-3 py-3 text-sm text-gray-500">{tt("searching")}</div>
-                ) : results.length === 0 ? (
-                  <div className="px-3 py-3 text-sm text-gray-500">
-                    {tt("noMatchingAccounts")}
-                  </div>
-                ) : (
-                  results.map((user) => (
-                    <button
-                      type="button"
-                      key={user.id}
-                      onMouseDown={() => handlePick(user)}
-                      className="w-full text-left px-3 py-2 hover:bg-teal-50 border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="text-sm text-gray-900 truncate">
-                        {user.email}
-                      </div>
-                      {user.full_name && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {user.full_name}
-                        </div>
-                      )}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </Field>
-  );
-}
 
 function roleLabel(role, lang) {
   const t = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
