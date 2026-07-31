@@ -74,9 +74,12 @@ chk "오늘 6번째 = 스킵(상한 5 초과)" "$(run preview "$(head_local)" ma
 # [preview] 없는 커밋은 상한에 안 센다 — 자동저장 커밋이 상한을 갉아먹으면 안 된다.
 commit_local app.js "feat: 태그 없는 커밋은 안 세야 한다"
 chk "태그 없는 커밋 = 상한과 무관하게 스킵(규칙 2)" "$(run preview "$(head_local)" main 5)" 0
-# 상한값을 안 주면 스크립트 기본값(1)이 먹어야 한다 — 이게 실제 운영값이라 꼭 검사한다.
-commit_local app.js "feat: 기본 상한 확인 [preview]"
-chk "상한 미지정(기본 1) + 오늘 이미 여러 건 = 스킵" "$(run preview "$(head_local)" main '')" 0
+# 상한값을 안 주면 스크립트 기본값(0 = 완전 차단)이 먹어야 한다 — 이게 실제 운영값이라 꼭 검사한다.
+# 오늘 앞선 [preview] 커밋이 「하나도 없어도」 스킵돼야 진짜 차단이다.
+commit_local app.js "feat: 기본은 차단 [preview]"
+chk "상한 미지정(기본 0) = 스킵" "$(run preview "$(head_local)" main '')" 0
+chk "상한 0 명시 = 스킵" "$(run preview "$(head_local)" main 0)" 0
+chk "PO 요청으로 1 로 열면 = 빌드" "$(run preview "$(head_local)" main 99)" 1
 # 상한은 프리뷰 전용이다 — 실서비스 배포는 절대 막으면 안 된다.
 chk "상한 넘어도 프로덕션 창구는 빌드" "$(run production "$(head_local)" production 1)" 1
 
