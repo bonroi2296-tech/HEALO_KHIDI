@@ -117,6 +117,12 @@ const FORBIDDEN = [
   // 에 자체 호스팅하고 로컬 경로(/doctors/…)로 참조. /resource/images·/uploads/ 만 정밀 차단해
   // 파트너 사이트 URL·출처 주석(/pages/…) 등 정당한 immunehospital.com 참조는 통과.
   { re: /immunehospital\.com\/uploads\//, msg: "의사 사진 핫링크(immunehospital.com/uploads/…) 금지 — public/doctors/ 에 내려받아 로컬 경로(/doctors/…)로 참조. 새 사진은 scripts/fetch-doctor-photos.mjs 로 받을 것" },
+  // 「중입자(탄소이온) 치료」 소재 금지 — PO 결정으로 세 번 취소된 변경이다(2026-07-29 PR #1189 닫음:
+  // "자료조사만 요청했는데 코드까지 손댔음" → 2026-07-30 재확인: 손대지 않는다 → 같은 날 재지시 "지워라").
+  // 그런데도 미합류 작업본 2개(feat/advanced-treatments · docs/handoff-0729-auth)에 살아 있어서
+  // 그게 합쳐지는 순간 본판에 되돌아온다. 사람이 매번 막는 대신 기계가 막는다(CLAUDE.md 규칙 7).
+  // ※ 세브란스 소개의 기존 「양성자치료센터」 표기는 PO 결정으로 그대로 둔다 — 여기서 막는 건 중입자 표기뿐.
+  { re: /중입자|углеродно-ионн|тяжелоионн|heavyIon/i, msg: "「중입자(탄소이온·углеродно-ионная) 치료」 표기 금지 — PO 가 세 번 취소한 변경이다. 병원 정보·치료 목록에 다시 넣지 말 것. 되살리려면 PO 재확인 먼저(2026-07-30 결정)" },
 ];
 
 function walk(dir) {
