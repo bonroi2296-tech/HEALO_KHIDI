@@ -55,7 +55,15 @@ esac
 # ⚠️ 프로덕션에는 규칙 3(문서-only 스킵)을 적용하지 않는다 — 그날 마지막 머지가 문서뿐이면
 #    「변경 없음」으로 스킵돼서 그날 배포가 통째로 사라진다.
 if [ "$VERCEL_ENV" = "production" ]; then
-  # 창구가 미는 배포 전용 브랜치. (Vercel 의 Production Branch = production)
+  # 창구(app/api/cron/daily-deploy)가 직접 만든 배포. 이 표식은 그 경로에서만 붙는다
+  # (배포를 만들 때 build.env 로 실어 보낸다) — 사람이 미는 커밋에는 붙을 수 없다.
+  # 왜 필요: 창구를 Vercel 예약으로 옮기면서 «main 을 곧장 프로덕션으로» 짓게 됐다.
+  #   그 배포의 가지 이름은 main 이라 아래 production 검사에 안 걸린다(2026-07-31).
+  if [ "${DEPLOY_WINDOW:-}" = "1" ]; then
+    echo "▶ 배포 창구(예약)가 연 배포 — 프로덕션 배포 진행"
+    exit 1
+  fi
+  # 예비 창구(.github/workflows/daily-deploy.yml)가 미는 배포 전용 브랜치.
   if [ "${VERCEL_GIT_COMMIT_REF:-}" = "production" ]; then
     echo "▶ production 브랜치(3시 창구) — 프로덕션 배포 진행"
     exit 1
