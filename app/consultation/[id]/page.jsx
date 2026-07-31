@@ -957,9 +957,21 @@ export default function ConsultationRoomPage() {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         } catch (e1) {
-          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 카메라만이라도 미리보기 시도
+          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 한쪽씩이라도 살려서 미리보기 시도.
           if (e1?.name === "NotAllowedError" || e1?.name === "SecurityError") throw e1;
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // ⚠️ 2026-07-31: 예전엔 여기서 «카메라만» 한 번 더 시도하고 끝냈다. 그래서
+          //    **카메라 없는 PC 는 마이크가 멀쩡해도 통째로 «장치 없음»** 이 됐다.
+          //    실측(admin_audit_logs 30일): 상담 실패 기록 210건 중 170건(81%)이
+          //    NotFound / "Requested device not found" — 접속 기기의 85%가 윈도우 PC 라
+          //    카메라 없는 데스크톱이 그대로 튕겨 나가고 있었다(연결 성공률 64.6%의 큰 조각).
+          //    → 카메라만 · 마이크만을 «둘 다» 시도한다. 하나라도 되면 상담은 성립한다.
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          } catch (e2) {
+            if (e2?.name === "NotAllowedError" || e2?.name === "SecurityError") throw e2;
+            // 마지막 보루: 소리만이라도. 화상 없이 «음성 상담»은 충분히 성립한다.
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          }
         }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
