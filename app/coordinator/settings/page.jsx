@@ -158,13 +158,13 @@ export default function StaffSettingsPage() {
 
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex items-start gap-4">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isOn ? 'bg-teal-50 text-teal-700' : 'bg-gray-100 text-gray-400'}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isOn ? 'bg-teal-50 text-teal-700' : 'bg-gray-100 text-gray-500'}`}>
             {isOn ? <Bell size={20} /> : <BellOff size={20} />}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-gray-900">{t('pushTitle')}</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t('pushTitle')}</h2>
               <span className={`rounded px-2 py-0.5 text-xs font-semibold ${isOn ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-600'}`}>
                 {devices === null ? '…' : isOn ? t('on') : t('off')}
               </span>
