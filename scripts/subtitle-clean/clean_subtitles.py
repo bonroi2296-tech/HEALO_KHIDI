@@ -215,6 +215,71 @@ def detect_text_mask(img, band="bottom", grow=4, fill_box=False, min_h=10,
     return mask
 
 
+_OCR = None
+
+
+def ocr_reader(langs=("ko", "en")):
+    """글자 판독기(OCR). 처음 쓸 때 한 번만 올린다(모델 자동 내려받음)."""
+    global _OCR
+    if _OCR is None:
+        try:
+            import easyocr
+        except ImportError:
+            raise SystemExit(
+                "--detector ocr 를 쓰려면: pip install easyocr\n"
+                "(torch·torchvision 이 서로 맞는 판이어야 한다)"
+            )
+        _OCR = easyocr.Reader(list(langs), gpu=False, verbose=False)
+    return _OCR
+
+
+def detect_text_mask_ocr(img, grow=4, fill_box=False, min_conf=0.30, band="all",
+                         return_boxes=False, min_len=1):
+    """진짜 글자 판독기로 「읽히는 글자」만 찾는다 — 추측이 아니라 판독 결과다.
+
+    빠른 방식(모양으로 추측)이 옷깃·무늬를 글자로 오인하는 걸 근본적으로 막는다.
+    대신 느리다(장당 1~3초, CPU 기준).
+    """
+    H, W = img.shape[:2]
+    bx, by, bw, bh = band_rect(band, W, H)
+    roi = img[by : by + bh, bx : bx + bw]
+
+    results = ocr_reader().readtext(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+
+    mask = np.zeros((H, W), np.uint8)
+    boxes = []
+    for quad, text, conf in results:
+        if conf < min_conf or len(text.strip()) < min_len:
+            continue
+        pts = np.array(quad, np.int32)
+        x, y, w, h = cv2.boundingRect(pts)
+        x, y = x + bx, y + by
+        x0, y0 = max(0, x), max(0, y)
+        x1, y1 = min(W, x + w), min(H, y + h)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        boxes.append({"box": (x0, y0, x1 - x0, y1 - y0), "text": text.strip(), "conf": float(conf)})
+
+        if fill_box:
+            mask[y0:y1, x0:x1] = 255
+        else:
+            # 상자 안에서 글자 획만 뽑는다 (글자 사이 배경은 살린다)
+            cell = cv2.cvtColor(img[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY)
+            _, a = cv2.threshold(cell, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            # 글자가 밝은 쪽인지 어두운 쪽인지는 「적은 쪽이 글자」로 판단
+            m = a if (a > 0).mean() < 0.5 else cv2.bitwise_not(a)
+            m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+            mask[y0:y1, x0:x1] = np.maximum(mask[y0:y1, x0:x1], m)
+
+    if grow > 0 and mask.any():
+        g = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (grow * 2 + 1, grow * 2 + 1))
+        mask = cv2.dilate(mask, g, iterations=1)
+
+    if return_boxes:
+        return mask, boxes
+    return mask
+
+
 def mask_from_box(shape, box):
     H, W = shape[:2]
     m = np.zeros((H, W), np.uint8)
@@ -413,6 +478,13 @@ def process_image(args):
         box = parse_box(args.box, W, H)
         mask = mask_from_box(img.shape, box)
         boxes = [box]
+    elif args.detector == "ocr":
+        mask, found = detect_text_mask_ocr(
+            img, grow=args.grow, fill_box=args.fill_box, band=args.band, return_boxes=True
+        )
+        boxes = [f["box"] for f in found]
+        for f in found:
+            print(f"  읽힌 글자: {f['text']!r} (확신도 {f['conf']:.2f})")
     else:
         mask, boxes = detect_text_mask(
             img,
@@ -556,6 +628,10 @@ def process_video(args):
     def compute_mask(frame):
         if fixed_box:
             return mask_from_box(frame.shape, fixed_box)
+        if args.detector == "ocr":
+            return detect_text_mask_ocr(
+                frame, grow=args.grow, fill_box=args.fill_box, band=args.band
+            )
         return detect_text_mask(
             frame, band=args.band, grow=args.grow, fill_box=args.fill_box,
             sensitivity=args.sensitivity,
@@ -658,6 +734,8 @@ def main():
     ap.add_argument("--text", help="--mode replace 일 때 얹을 새 문구")
     ap.add_argument("--check", action="store_true", help="영상이 하드섭인지 소프트섭인지만 판정")
     ap.add_argument("--box", help="자막 영역 직접 지정 x,y,w,h (px 또는 % — 예: 5%%,78%%,90%%,18%%)")
+    ap.add_argument("--detector", choices=["fast", "ocr"], default="fast",
+                    help="글자 찾는 방식. fast=모양으로 추측(빠름) / ocr=진짜로 읽어서 확인(정확, 장당 1~3초)")
     ap.add_argument("--band", choices=["bottom", "top", "middle", "all"], default="bottom",
                     help="자막을 찾을 구역 (기본: 화면 아래쪽)")
     ap.add_argument("--sensitivity", type=int, default=55,

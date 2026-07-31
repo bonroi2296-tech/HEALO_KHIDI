@@ -56,6 +56,37 @@ python3 clean_subtitles.py 입력.jpg --mode replace --text "Бесплатна�
 python3 clean_subtitles.py 입력.mp4 --box 5%,78%,90%,18%
 ```
 
+## 글자 찾는 방식이 두 가지다 — 이게 정확도를 가른다
+
+| 방식 | 원리 | 속도 | 언제 |
+|---|---|---|---|
+| `--detector fast` (기본) | 글자「모양」으로 추측 | 즉시 | 자막이 확실히 있는 걸 알고 있을 때 |
+| `--detector ocr` | **진짜 글자 판독기로 읽어서 확인** | 장당 1~3초 | 글자가 있는지 없는지부터 모를 때 |
+
+**차이가 크다.** 저장소 이미지 375장을 두 방식으로 훑어보니 —
+`fast` 는 **303장(81%)** 을 「글자 있음」이라 했지만 이건 명백한 과검출이고,
+`ocr` 은 의사 사진 45장 중 **19장(42%)** 만 짚었는데 전부 **가운에 수놓인 「면역한방병원」** 이었다.
+글자가 있는지부터 모르는 무더기 작업이면 **반드시 `ocr`** 을 써라.
+
+```bash
+pip install easyocr          # torch·torchvision 판이 서로 맞아야 한다
+python3 clean_subtitles.py 입력.jpg --detector ocr --band all -o 결과.jpg
+```
+
+## 무더기로 돌리기 (`batch_clean.py`)
+
+**원본은 절대 안 건드린다.** 결과는 지정한 폴더에 원래 폴더 구조 그대로 쌓인다.
+
+```bash
+# 어디에 무슨 글자가 박혀 있는지 목록만 뽑기 (지우지 않음)
+python3 batch_clean.py public --scan --detector ocr --csv 목록.csv
+
+# 글자 지운 판 뽑기
+python3 batch_clean.py public -o /어디에/쌓을지 --detector ocr --band all --method lama --csv 목록.csv
+```
+
+`목록.csv` 에 파일별로 **읽힌 글자 원문**이 같이 들어간다 — 어떤 사진에 무슨 문구가 박혀 있는지 한눈에 본다.
+
 ### 잘 안 될 때 손잡이
 
 | 증상 | 해볼 것 |
