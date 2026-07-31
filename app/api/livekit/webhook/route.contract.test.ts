@@ -15,7 +15,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // LiveKit 서명검증 우회 — receive() 는 우리가 세팅한 event 를 그대로 반환
-const mockState: { event: any; sessionRow?: { id: string } | null } = {
+const mockState: {
+  event: any;
+  sessionRow?: { id: string; started_at?: string | null } | null;
+} = {
   event: null,
   sessionRow: null,
 };
@@ -105,17 +108,62 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     mockState.sessionRow = null;
   });
 
-  it("room_finished 는 consultation_sessions 를 건드리지 않는다(자동완료 금지)", async () => {
+  it("room_finished 는 관측용 통화시간만 쓴다(status·실적 컬럼 불변)", async () => {
+    // 2026-07-31 계약 «변경». 예전 계약은 "DB 를 아예 안 건드린다" 였는데, 그 때문에
+    // 7월 상담 21건이 전부 통화시간 0분으로 남아 «몇 분 상담했나»를 증명할 수 없었다.
+    // 이 파일이 지키는 원칙은 «DB 금지»가 아니라 «실적 자동집계 금지»다. 그래서 계약을 조인다:
+    //   ① status 절대 불변  ② 실적 정본 컬럼(ended_at·duration_seconds) 절대 불변
+    //   ③ 기계 관측값(livekit_*)만 쓴다
     const POST = await loadPost();
-    mockState.event = { event: "room_finished", room: { name: "consult-abc" } };
+    const startedAt = new Date("2026-07-31T01:00:00.000Z").toISOString();
+    mockState.sessionRow = { id: "sess-1", started_at: startedAt };
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "consult-abc" },
+      createdAt: Math.floor(Date.parse("2026-07-31T01:30:00.000Z") / 1000),
+    };
 
     const res = await POST(makeReq({ event: "room_finished" }));
-    const json = await res.json();
+    expect((await res.json()).ok).toBe(true);
 
-    expect(json.ok).toBe(true);
-    // 핵심: 어떤 DB update 도 일어나면 안 된다(특히 status='completed')
-    expect(calls.length).toBe(0);
+    expect(calls.length).toBe(1);
+    expect(calls[0].table).toBe("consultation_sessions");
+    // 🔒 자동완료·실적 인플레 금지 계약
+    expect(calls[0].update.status).toBeUndefined();
+    expect(calls[0].update.ended_at).toBeUndefined();
+    expect(calls[0].update.duration_seconds).toBeUndefined();
     expect(calls.some((c) => c.update?.status === "completed")).toBe(false);
+    // 관측값: 30분 통화 → 1800초. 이벤트 시각 기준이라 재시도해도 같은 값이 나온다.
+    expect(calls[0].update.livekit_duration_seconds).toBe(1800);
+    expect(calls[0].update.livekit_ended_at).toBe("2026-07-31T01:30:00.000Z");
+  });
+
+  it("room_finished — 아무도 안 들어온 방은 통화시간을 0 이 아니라 «없음»으로 남긴다", async () => {
+    // 0 으로 적으면 «0분 통화했다»로 읽혀 평균 상담시간을 왜곡한다.
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "sess-2", started_at: null };
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "consult-empty" },
+      createdAt: Math.floor(Date.parse("2026-07-31T02:00:00.000Z") / 1000),
+    };
+
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].update.livekit_duration_seconds).toBeNull();
+    expect(calls[0].update.livekit_ended_at).toBe("2026-07-31T02:00:00.000Z");
+  });
+
+  it("room_finished — 모르는 방이면 아무것도 쓰지 않는다", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = null;
+    mockState.event = { event: "room_finished", room: { name: "consult-없음" } };
+
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(0);
   });
 
   it("participant_joined 는 started_at 만 채운다(status 불변, 첫 입장만)", async () => {
