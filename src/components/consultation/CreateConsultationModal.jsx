@@ -249,6 +249,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
   const [created, setCreated] = useState(null); // 생성 후 initiate 결과 (세션 + invite)
   // 문의(inquiries) 옵션 — 환자를 직접 타이핑하지 않고 실제 문의에서 선택
   const [inquiryOptions, setInquiryOptions] = useState([]);
+  // 지금 로그인한 사람(= 만든 사람) 주소 — 수신자 칸에 «나» 표를 붙이기 위해서만 쓴다
+  const [myEmail, setMyEmail] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -257,6 +259,18 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
         // 문의는 RLS상 service_role 만 읽기 가능 + 이름 암호화 → 서버 picker API 사용
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
+        // 「만든 사람도 사본을 받는다」(PO 2026-07-31). 단 몰래 보내지 않는다 —
+        // 수신자 칸에 «나» 표가 붙은 채로 보이고, 빼고 싶으면 × 로 빼면 된다.
+        // (예전엔 화면에 안 보이는 채로 보내서 «왜 나한테 왔지» 사고가 났다.)
+        const myEmail = sessionData?.session?.user?.email;
+        if (!cancelled && myEmail) {
+          setMyEmail(myEmail);
+          setForm((f) =>
+            f.inviteeEmails.includes(myEmail)
+              ? f
+              : { ...f, inviteeEmails: [...f.inviteeEmails, myEmail] }
+          );
+        }
         const res = await fetch("/api/admin/inquiries/picker", {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -578,6 +592,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                 emails={form.inviteeEmails}
                 onChange={(emails) => setForm({ ...form, inviteeEmails: emails })}
                 placeholder={tt("phInviteeEmail")}
+                meEmail={myEmail}
+                meLabel={tt("chipMe")}
               />
               <input
                 type="tel"
@@ -645,7 +661,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 
 
 // ─── 이메일 여러 개 입력 (Enter·쉼표로 한 칸씩 쌓임) ─────────────
-function EmailChips({ emails, onChange, placeholder }) {
+function EmailChips({ emails, onChange, placeholder, meEmail, meLabel }) {
   const [draft, setDraft] = useState("");
 
   const add = (raw) => {
@@ -667,6 +683,9 @@ function EmailChips({ emails, onChange, placeholder }) {
           className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 border border-teal-200 rounded text-xs text-teal-900"
         >
           {em}
+          {em === meEmail && (
+            <span className="px-1 rounded bg-teal-700 text-white text-[10px] font-semibold">{meLabel}</span>
+          )}
           <button
             type="button"
             onClick={() => onChange(emails.filter((x) => x !== em))}
