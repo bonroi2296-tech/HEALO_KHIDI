@@ -9,6 +9,10 @@
         android:theme="@style/AppTheme">
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            <!-- 키보드가 올라오면 화면(웹뷰)을 그만큼 «줄인다». 이 줄이 없으면 안드로이드 기본값은
+                 화면을 밀어 올리기만 해서, 로그인 폼이 키보드 뒤로 사라진다(2026-07-31 PO 실기기 확인).
+                 캡시터 기본 매니페스트에도 이 값이 없어서 여태 비어 있었다. -->
+            android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
