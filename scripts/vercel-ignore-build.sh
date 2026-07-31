@@ -86,10 +86,35 @@ fi
 #     사용법 예시는 CLAUDE.md 「빌드 & 배포」 + docs/rules/DEPLOY.md 에.
 #
 # VERCEL_ENV 가 비어 있으면(값 확인 불가) 이 블록을 건너뛴다 — 「모르면 짓는다」.
+#
+# 하루 상한 (2026-07-31 PO 지시 «프리뷰 배포도 아껴»): [preview] 를 달아도 같은 작업본에서
+# 하루 PREVIEW_DAILY_LIMIT 건까지만 짓는다.
+#   실측 근거: 창구 도입으로 프로덕션은 하루 1건으로 잡혔는데, 최근 3일 실제 빌드 50건 중
+#   프리뷰가 27건(하루 9건)이었다. 한 세션이 화면을 손보며 [preview] 커밋을 5번 연달아
+#   올리는 식 — 그중 PO 가 실제로 여는 건 마지막 한두 개다.
+PREVIEW_DAILY_LIMIT="${PREVIEW_DAILY_LIMIT:-3}"
+
 if [ "$VERCEL_ENV" = "preview" ]; then
   case "$commit_subject" in
     *"[preview]"*)
-      echo "▶ [preview] 요청 커밋 — 프리뷰 빌드 진행"
+      # 오늘 이 작업본에서 이미 지은 [preview] 커밋 수(이번 것 제외).
+      # ⚠️ 얕게 받기(shallow clone)면 git log 가 짧아 적게 세진다 → 상한에 안 걸리고 짓는다.
+      #    프리뷰는 실서비스가 아니라 「덜 아끼는 쪽」으로 틀리는 게 안전하다.
+      # ponytail: 날짜 경계는 빌드머신 시간대(UTC) 기준 — 한국 오전 9시에 하루가 갈린다.
+      #    상한이 느슨해지는 방향이라 그대로 둔다. 정확한 24시간 창이 필요해지면 --since=24.hours.
+      today="$(git log -1 --date=format:%Y-%m-%d --pretty=%cd 2>/dev/null)"
+      earlier=0
+      if [ -n "$today" ]; then
+        earlier="$(git log HEAD~1 --since="$today 00:00:00" --pretty=%s 2>/dev/null \
+                    | grep -c '\[preview\]' || true)"
+      fi
+      if [ "${earlier:-0}" -ge "$PREVIEW_DAILY_LIMIT" ]; then
+        echo "🛑 오늘 이 작업본의 프리뷰 $PREVIEW_DAILY_LIMIT 건을 이미 다 썼다 (앞서 $earlier 건) — 빌드 스킵."
+        echo "   마지막으로 지은 프리뷰 주소는 그대로 살아 있다. 정말 새로 봐야 하면"
+        echo "   Vercel 대시보드에서 Redeploy 하거나 PREVIEW_DAILY_LIMIT 을 올려라."
+        exit 0
+      fi
+      echo "▶ [preview] 요청 커밋 — 프리뷰 빌드 진행 (오늘 $((earlier + 1))/$PREVIEW_DAILY_LIMIT)"
       ;;
     *)
       echo "🛑 프리뷰 자동빌드 스킵. 프리뷰가 필요하면 커밋 제목에 [preview] 를 달아라."

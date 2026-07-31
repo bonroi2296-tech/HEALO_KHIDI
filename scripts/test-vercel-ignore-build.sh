@@ -60,6 +60,19 @@ chk "프리뷰 + [preview] + 코드변경 = 빌드" "$(run preview "$(head_local
 commit_local README.md "docs: 문서만 [preview]"
 chk "프리뷰 + [preview] + 문서만 = 스킵" "$(run preview "$(head_local)")" 0
 
+echo "── 규칙 2-1: 프리뷰 하루 상한 (기본 3건)"
+# 같은 날 [preview] 커밋을 연달아 쌓아 상한을 넘겨본다. 3건까지는 짓고 4번째부터 스킵.
+commit_local app.js "feat: 프리뷰 1 [preview]"
+chk "오늘 1번째 = 빌드" "$(run preview "$(head_local)")" 1
+commit_local app.js "feat: 프리뷰 2 [preview]"
+chk "오늘 2번째 = 빌드" "$(run preview "$(head_local)")" 1
+commit_local app.js "feat: 프리뷰 3 [preview]"
+chk "오늘 3번째 = 빌드" "$(run preview "$(head_local)")" 1
+commit_local app.js "feat: 프리뷰 4 [preview]"
+chk "오늘 4번째 = 스킵(상한)" "$(run preview "$(head_local)")" 0
+# 상한은 프리뷰 전용이다 — 실서비스 배포는 절대 막으면 안 된다.
+chk "상한 넘어도 프로덕션 창구는 빌드" "$(run production "$(head_local)" production)" 1
+
 echo "── 규칙 1: 프로덕션 (배포 창구 = production 브랜치 / [deploy] 커밋)"
 # 2026-07-28 정정: 머지는 자유, 배포만 하루 한 번. main 머지만으로는 프로덕션을 짓지 않는다.
 commit_local app.js "feat: 평범하게 머지된 PR"
