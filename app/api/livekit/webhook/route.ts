@@ -116,7 +116,32 @@ export async function POST(request: NextRequest) {
         // ⚠️ status 는 절대 건드리지 않는다 — 'completed' 는 K-02 집계 기준이고 staff 수동 완료가
         //    유일한 정본 경로다(위 room_finished 주석·#637 K-02 인플레 사고와 같은 원칙).
         //    여기서 채우는 건 status 와 무관한 started_at 컬럼뿐이다.
-        // 첫 입장에만 기록(.is("started_at", null)) — 두 번째 참가자가 덮어쓰면 «시작»이 아니게 된다.
+        // ⭐ 「시작」의 기준 = **방에 2명 이상이 된 순간** (PO 결정 2026-07-31).
+        //   왜 바꿨나(실측): 오늘 16:30 회의방의 시작 시각이 «10:59» 로 박혀 있었다 —
+        //   아침에 직원이 혼자 테스트로 들어간 순간이다. 첫 입장에만 쓰고 덮지 않으니
+        //   진짜 회의를 해도 기록은 5시간 반 전으로 남고, 통화 길이도 그만큼 부풀려진다.
+        //   혼자 들어간 건 회의가 아니다 — 상대가 들어와야 회의다.
+        //   ⚠️ 예정 시각(scheduled_at)은 판정에 안 쓴다. 회의는 밀리거나 당겨지기 때문(PO).
+        //   ponytail: 「말을 시작한 순간」이 더 정확해 보이지만 마이크를 켜고 말을 안 하거나
+        //   음소거로 진행하는 회의가 통째로 누락된다 — 인원수가 값싸고 덜 틀린다.
+        //   ⚠️ 인원수 값이 아예 안 실려 오면(구버전·필드 누락) 예전처럼 첫 입장에 기록한다 —
+        //      「모르면 기록한다」. 조용히 아무것도 안 남기면 통화 길이가 통째로 사라진다.
+        //      어느 길로 갔는지 아래 로그에 남으니, 실회의 뒤 로그로 확인할 수 있다.
+        const rawCount = (event.room as any)?.numParticipants;
+        const numParticipants = Number(rawCount ?? 0);
+        const countKnown = Number.isFinite(numParticipants) && numParticipants > 0;
+        if (countKnown && numParticipants < 2) {
+          console.log(
+            `[livekit/webhook] ${participantIdentity} joined ${roomName} — 아직 ${numParticipants}명(혼자) → 시작 아님`
+          );
+          return Response.json({ ok: true });
+        }
+        if (!countKnown) {
+          console.warn(
+            `[livekit/webhook] ${roomName} 인원수 값 없음(raw=${String(rawCount)}) → 옛 방식(첫 입장)으로 기록`
+          );
+        }
+        // 2명이 된 첫 순간에만 기록(.is("started_at", null)) — 중간에 한 명 나갔다 들어와도 안 밀린다.
         const { error: startErr } = await supabase
           .from("consultation_sessions")
           .update({ started_at: new Date().toISOString() } as any)
