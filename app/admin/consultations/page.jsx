@@ -299,7 +299,9 @@ export default function ConsultationsPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            role: "patient",
+            // 「통합 참여 링크」 하나로 통일 (role='guest', PO 2026-07-23 — 역할별 권한 차이 없음).
+            // 언어 기본값은 guest 를 환자와 같게 봐서 그대로 유지된다.
+            role: "guest",
             expiresInHours: 72,
             // 회수 제한 없음(만료 전까지 무제한) — 끊김·새로고침·재입장이 잦은 실환경에서
             // "1회 쓰면 링크 죽음"이 진짜 문제였다(PO 2026-07-15). 안전선은 72h 만료.

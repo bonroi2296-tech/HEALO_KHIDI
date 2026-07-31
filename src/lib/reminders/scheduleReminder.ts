@@ -16,6 +16,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { defaultLangForRole } from "@/lib/consultation/inviteRole";
 
 // ── 타입 ─────────────────────────────────────────────────────
 export type ReminderChannel = "email" | "kakao" | "in_app";
@@ -219,7 +220,10 @@ export async function autoScheduleReminders(
         email: token.invitee_email,
         role: token.role ?? "guest",
         name: token.invitee_name ?? undefined,
-        lang: token.role === "patient" ? (session.patient_language ?? "ru") : "ko",
+        // 통합 초대 링크는 role 이 guest 다 — 환자가 그 링크로 들어오므로 patient 와 같게 본다.
+        // (guest 를 빼면 러시아 환자에게 한국어 리마인더가 간다 — 2026-07-31)
+        // 판정은 한 곳에서만: src/lib/consultation/inviteRole.ts (시험으로 묶여 있음)
+        lang: defaultLangForRole(token.role, session.patient_language),
       });
     }
   }

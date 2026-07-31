@@ -72,6 +72,7 @@ import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
+import { isPatientSideRole } from "@/lib/consultation/inviteRole";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
@@ -1620,15 +1621,19 @@ export default function ConsultationRoomPage() {
       // 상담 중에도 언어 칩 탭으로 변경 가능.
       // 내 언어: 사용자가 입장화면에서 직접 골랐으면 그 값, 아니면 코디가 상담에 지정한
       // DB 언어(환자면 patient_language, 의사면 doctor_language)를 기본으로.
-      const myDbLang =
-        result.role === "patient"
-          ? result.patientLanguage
-          : result.role === "doctor"
-            ? result.doctorLanguage
-            : null; // 코디는 한국어(아래 폴백)
+      // ⚠️ 「통합 초대 링크」는 role 이 guest 다 — 환자·에이전시·의사가 모두 이 링크로 들어온다.
+      //    그래서 guest 를 patient 와 **같게** 취급한다. 안 그러면 러시아 환자가 초대 링크로
+      //    들어왔을 때 기본 언어가 한국어가 된다(2026-07-31 역할 단순화 중 발견).
+      //    판정은 한 곳에서만: src/lib/consultation/inviteRole.js (시험으로 묶여 있음)
+      const isPatientSide = isPatientSideRole(result.role);
+      const myDbLang = isPatientSide
+        ? result.patientLanguage
+        : result.role === "doctor"
+          ? result.doctorLanguage
+          : null; // 코디는 한국어(아래 폴백)
       const ml = langPickedByUser
         ? guestLang
-        : myDbLang || guestLang || (result.role === "patient" ? "ru" : "ko");
+        : myDbLang || guestLang || (isPatientSide ? "ru" : "ko");
       setMyLang(ml);
       setGuestLang(ml); // 게스트 방 UI 언어도 내 언어를 따라오게
       const counterpart =
