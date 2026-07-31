@@ -86,6 +86,13 @@ export default function CoordinatorLayout({ children }) {
 
       <div className="p-3 border-t border-gray-200 space-y-1">
         <Link
+          href="/coordinator/settings"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
+        >
+          <Settings size={18} />
+          <span>{L.navSettings}</span>
+        </Link>
+        <Link
           href="/account/password"
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
         >
