@@ -733,7 +733,7 @@ def main():
                     help="remove=자막만 지움 / replace=지우고 새 문구 / preview=검출영역 미리보기")
     ap.add_argument("--text", help="--mode replace 일 때 얹을 새 문구")
     ap.add_argument("--check", action="store_true", help="영상이 하드섭인지 소프트섭인지만 판정")
-    ap.add_argument("--box", help="자막 영역 직접 지정 x,y,w,h (px 또는 % — 예: 5%%,78%%,90%%,18%%)")
+    ap.add_argument("--box", help="자막 영역 직접 지정 x,y,w,h (px 또는 %% — 예: 5%%,78%%,90%%,18%%)")
     ap.add_argument("--detector", choices=["fast", "ocr"], default="fast",
                     help="글자 찾는 방식. fast=모양으로 추측(빠름) / ocr=진짜로 읽어서 확인(정확, 장당 1~3초)")
     ap.add_argument("--band", choices=["bottom", "top", "middle", "all"], default="bottom",
