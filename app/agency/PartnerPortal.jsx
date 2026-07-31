@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
+import { STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
 
@@ -31,8 +32,8 @@ const EMPTY_FORM = {
 // 폼 입력 공통 스타일 (DESIGN: border gray-200 / rounded-lg / text-sm)
 const INP = "border border-gray-200 rounded-lg px-3 py-2 text-sm";
 
-// 인테이크 폼(UnifiedInquiryFunnel)과 동일한 칩 선택지 — 톤 일치. (작은 상수라 복사 — ponytail)
-const STAGES = ["I", "II", "III", "IV"];
+// 인테이크 폼(UnifiedInquiryFunnel)과 동일한 칩 선택지 — 톤 일치.
+// 병기는 사전으로 옮겨서(코디 콘텐츠 편집기에서 수정 가능) 복사본을 없애고 공용 STAGES 를 쓴다.
 const SEX_OPTS = [{ v: "male", k: "optMale" }, { v: "female", k: "optFemale" }];
 const TREATMENT_STATES = [
   { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kz: "Операцияға дейін", zh: "术前", ja: "術前" } },
@@ -851,8 +852,8 @@ export default function PartnerPortal({ expected = "agency" }) {
               <p className="text-xs font-semibold text-gray-600 mb-1.5">{tt("lblStage")}</p>
               <div className="flex flex-wrap gap-2">
                 {STAGES.map((s) => (
-                  <Chip key={s} active={form.stage === s && !form.stageUnknown} disabled={form.stageUnknown}
-                    onClick={() => setForm((p) => ({ ...p, stage: p.stage === s ? "" : s }))}>Stage {s}</Chip>
+                  <Chip key={s.value} active={form.stage === s.value && !form.stageUnknown} disabled={form.stageUnknown}
+                    onClick={() => setForm((p) => ({ ...p, stage: p.stage === s.value ? "" : s.value }))}>{optLabel(s, lang)}</Chip>
                 ))}
                 <Chip active={form.stageUnknown} onClick={() => setForm((p) => ({ ...p, stageUnknown: !p.stageUnknown, stage: "" }))}>{tt("optUnknown")}</Chip>
               </div>
