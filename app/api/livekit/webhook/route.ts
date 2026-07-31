@@ -63,10 +63,51 @@ export async function POST(request: NextRequest) {
         // (#620 is_test 격리와 같은 '정직한 실적' 원칙).
         // LiveKit 방이 물리적으로 끝났다고(참가자 전원 퇴장/타임아웃) 자동으로 completed 를
         // 찍으면 테스트콜·중단된 콜까지 실적으로 집계돼 평가 숫자가 부풀려진다(K-02 인플레).
-        // 통화 종료 시각이 필요해지면 status 와 무관한 별도 컬럼(예: livekit_ended_at)을
-        // 마이그레이션으로 추가할 것 — status 는 건드리지 않는다.
+        // 2026-07-31: 위 주석이 예고한 별도 컬럼을 실제로 추가해 여기서 채운다
+        // (migrations/20260731_livekit_call_duration.sql). status·ended_at·duration_seconds 는
+        // 여전히 한 줄도 안 건드린다 — 실적은 사람이 누른 것만, 여기는 기계가 관측한 사실만.
+        //
+        // 왜 필요했나(실측): 7월 상담 21건이 전부 «안 끝난 상태»로 남아 통화시간 합계가 0분이었다.
+        //   staff 가 「완료」를 안 누르면 상담을 몇 분 했는지 증명할 방법이 아예 없었다.
+        //
+        // 시각은 event.createdAt(LiveKit 이 이벤트를 만든 시각, 초)을 쓴다 — 우리 수신 시각을
+        // 쓰면 LiveKit 이 재시도할 때마다 값이 달라져 같은 통화가 매번 길어진다.
+        const eventAtSec = Number((event as any).createdAt || 0);
+        const endedAtIso = new Date(
+          eventAtSec > 0 ? eventAtSec * 1000 : Date.now()
+        ).toISOString();
+
+        const { data: finishedRows, error: finishedErr } = await supabase
+          .from("consultation_sessions")
+          .select("id, started_at")
+          .eq("livekit_room_name", roomName)
+          .limit(1);
+        if (finishedErr) {
+          console.error("[livekit/webhook] 세션 조회 실패(재시도 유도):", finishedErr.message);
+          return Response.json({ ok: false, error: "internal_error" }, { status: 502 });
+        }
+        const finished = (finishedRows as any)?.[0] || null;
+        if (finished?.id) {
+          // 아무도 안 들어온 방(started_at 없음)은 통화가 없었던 것 → 길이는 null 로 둔다.
+          // 0 으로 적으면 «0분 통화했다»로 읽혀 나중에 평균을 왜곡한다.
+          const startedMs = finished.started_at ? Date.parse(finished.started_at) : NaN;
+          const durationSec = Number.isFinite(startedMs)
+            ? Math.max(0, Math.round((Date.parse(endedAtIso) - startedMs) / 1000))
+            : null;
+          const { error: durErr } = await supabase
+            .from("consultation_sessions")
+            .update({
+              livekit_ended_at: endedAtIso,
+              livekit_duration_seconds: durationSec,
+            } as any)
+            .eq("id", finished.id);
+          if (durErr) {
+            console.error("[livekit/webhook] 통화시간 기록 실패(재시도 유도):", durErr.message);
+            return Response.json({ ok: false, error: "internal_error" }, { status: 502 });
+          }
+        }
         console.log(
-          `[livekit/webhook] room_finished ${roomName} — status 미변경(staff 완료가 K-02 정본 경로)`
+          `[livekit/webhook] room_finished ${roomName} — 통화시간 기록(status 미변경, staff 완료가 K-02 정본 경로)`
         );
       } else if (event.event === "participant_joined" && roomName) {
         // 통화 «시작 시각» 기록 — 2026-07-27 실측: 세션 54건 전부 started_at 이 NULL 이었다.
@@ -75,7 +116,32 @@ export async function POST(request: NextRequest) {
         // ⚠️ status 는 절대 건드리지 않는다 — 'completed' 는 K-02 집계 기준이고 staff 수동 완료가
         //    유일한 정본 경로다(위 room_finished 주석·#637 K-02 인플레 사고와 같은 원칙).
         //    여기서 채우는 건 status 와 무관한 started_at 컬럼뿐이다.
-        // 첫 입장에만 기록(.is("started_at", null)) — 두 번째 참가자가 덮어쓰면 «시작»이 아니게 된다.
+        // ⭐ 「시작」의 기준 = **방에 2명 이상이 된 순간** (PO 결정 2026-07-31).
+        //   왜 바꿨나(실측): 오늘 16:30 회의방의 시작 시각이 «10:59» 로 박혀 있었다 —
+        //   아침에 직원이 혼자 테스트로 들어간 순간이다. 첫 입장에만 쓰고 덮지 않으니
+        //   진짜 회의를 해도 기록은 5시간 반 전으로 남고, 통화 길이도 그만큼 부풀려진다.
+        //   혼자 들어간 건 회의가 아니다 — 상대가 들어와야 회의다.
+        //   ⚠️ 예정 시각(scheduled_at)은 판정에 안 쓴다. 회의는 밀리거나 당겨지기 때문(PO).
+        //   ponytail: 「말을 시작한 순간」이 더 정확해 보이지만 마이크를 켜고 말을 안 하거나
+        //   음소거로 진행하는 회의가 통째로 누락된다 — 인원수가 값싸고 덜 틀린다.
+        //   ⚠️ 인원수 값이 아예 안 실려 오면(구버전·필드 누락) 예전처럼 첫 입장에 기록한다 —
+        //      「모르면 기록한다」. 조용히 아무것도 안 남기면 통화 길이가 통째로 사라진다.
+        //      어느 길로 갔는지 아래 로그에 남으니, 실회의 뒤 로그로 확인할 수 있다.
+        const rawCount = (event.room as any)?.numParticipants;
+        const numParticipants = Number(rawCount ?? 0);
+        const countKnown = Number.isFinite(numParticipants) && numParticipants > 0;
+        if (countKnown && numParticipants < 2) {
+          console.log(
+            `[livekit/webhook] ${participantIdentity} joined ${roomName} — 아직 ${numParticipants}명(혼자) → 시작 아님`
+          );
+          return Response.json({ ok: true });
+        }
+        if (!countKnown) {
+          console.warn(
+            `[livekit/webhook] ${roomName} 인원수 값 없음(raw=${String(rawCount)}) → 옛 방식(첫 입장)으로 기록`
+          );
+        }
+        // 2명이 된 첫 순간에만 기록(.is("started_at", null)) — 중간에 한 명 나갔다 들어와도 안 밀린다.
         const { error: startErr } = await supabase
           .from("consultation_sessions")
           .update({ started_at: new Date().toISOString() } as any)

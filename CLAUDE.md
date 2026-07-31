@@ -19,6 +19,7 @@
 | 백오피스·사용설명서·매뉴얼·새 계층(role) 추가 | `docs/rules/MANUALS.md` |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
+| PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`docs/rules/PPT_STYLE.md`** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
 | 보안 상세 체크리스트 | `docs/SECURITY_CHECKLIST.md` |
@@ -158,7 +159,7 @@ npm run dev                # dev 서버는 Turbopack 정상
 
 - **「머지는 자유, 배포만 하루 한 번」** (2026-07-28 PO 결정). PR은 바로 머지해도 실서비스 빌드가 안 돈다 — KST 오후 3시 `Daily Deploy` 창구가 main을 `production` 브랜치로 밀어 그 한 건만 빌드한다.
 - **머지했다 ≠ 실서비스에 나갔다.** 「배포됐다」고 말하기 전에 창구가 돌았는지 확인해라.
-- 긴급 배포는 `[deploy]`, 프리뷰가 필요하면 `[preview]`를 커밋 제목에 (기본 프리뷰 OFF).
+- 긴급 배포는 커밋 제목에 `[deploy]`. **프리뷰는 완전 차단 — 화면 확인은 로컬 + 화면 사진으로 하고, 프리뷰는 PO가 요청할 때만 연다** (2026-07-31 PO 지시, 여는 절차는 `docs/rules/DEPLOY.md`).
 - OS: Windows 11 / Shell: **PowerShell 이 기본**, bash도 가능 — 문법 섞지 말 것.
 
 ---
