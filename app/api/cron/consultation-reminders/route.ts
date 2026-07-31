@@ -156,9 +156,59 @@ export async function GET(request: NextRequest) {
     ok: true,
     sessionsChecked: sessions?.length || 0,
     remindersSent,
+    staffPushed,
     skipped,
     errors,
   });
+}
+
+/**
+ * 30분 전 «우리 팀» 폰 알림 — 스태프(admin·coordinator) 전원.
+ * 이미 보낸 상담이면 아무것도 하지 않는다(같은 상담이 창에 두 번 걸려도 한 번만).
+ * @returns 실제로 보낸 사람 수
+ */
+async function pushStaffReminder(sessionId: string, scheduledAt: string): Promise<number> {
+  const TYPE = "consultation_reminder_staff";
+
+  // 중복 방지: 이 상담으로 이미 만든 알림이 있으면 끝. (전용 표식 컬럼을 새로 만들지 않는다)
+  const { data: already } = await (supabaseAdmin as any)
+    .from("notifications")
+    .select("id")
+    .eq("type", TYPE)
+    .eq("payload->>consultation_id", sessionId)
+    .limit(1);
+  if (already && already.length > 0) return 0;
+
+  const { data: list } = await (supabaseAdmin as any).auth.admin.listUsers({ perPage: 200 });
+  const staff = (list?.users ?? []).filter((u: any) =>
+    ["admin", "coordinator"].includes(u?.app_metadata?.role)
+  );
+  if (staff.length === 0) return 0;
+
+  // 한국 시간으로 «HH:MM» 만 — 스태프는 전원 한국 기준으로 일한다.
+  const hhmm = new Date(scheduledAt).toLocaleTimeString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const { sendInAppNotification } = await import("@/lib/notifications/inApp");
+  let sent = 0;
+  for (const u of staff) {
+    const id = await sendInAppNotification({
+      userId: u.id,
+      type: TYPE,
+      title: "30분 뒤 화상상담",
+      body: `${hhmm} 시작 예정입니다. 눌러서 방으로 들어가세요.`,
+      link: `/consultation/${sessionId}`,
+      // 'urgent' 여야 «자는 시간»(현지 22~8시)에도 나간다 — 30분 뒤 시작하는 상담은
+      // 밤이라고 미루면 의미가 없다. 'high' 는 조용 시간에 눌린다(pushPolicy.ignoresQuietHours).
+      priority: "urgent",
+      payload: { consultation_id: sessionId },
+    });
+    if (id) sent++;
+  }
+  return sent;
 }
 
 // POST 도 허용 (Vercel Cron 은 GET 이지만 수동 트리거 편의)
