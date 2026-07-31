@@ -180,8 +180,11 @@ async function pushStaffReminder(sessionId: string, scheduledAt: string): Promis
   if (already && already.length > 0) return 0;
 
   const { data: list } = await (supabaseAdmin as any).auth.admin.listUsers({ perPage: 200 });
-  const staff = (list?.users ?? []).filter((u: any) =>
-    ["admin", "coordinator"].includes(u?.app_metadata?.role)
+  const staff = (list?.users ?? []).filter(
+    (u: any) =>
+      ["admin", "coordinator"].includes(u?.app_metadata?.role) &&
+      // 시험용 계정(@test.com)은 뺀다 — 실적·알림 양쪽을 더럽힌다(K-02 테스트 분리 규칙)
+      !String(u?.email ?? "").endsWith("@test.com")
   );
   if (staff.length === 0) return 0;
 
