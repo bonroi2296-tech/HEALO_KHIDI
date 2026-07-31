@@ -48,8 +48,11 @@ function main() {
     const raw = readFileSync(join(MEM_DIR, f), "utf8");
     const desc = raw.match(/^description:\s*(.+)$/m)?.[1] ?? "";
     const name = f.replace(/\.md$/, "");
-    const hay = `${desc}\n${raw}`;
-    if (!TODO_WORDS.some((w) => hay.includes(w))) continue;
+    // 「대기」 낱말은 **한 줄 요약(description)에서만** 찾는다. 본문에는 사실·함정 기록에도
+    // 「대신 못 함」·「기다린다」 같은 말이 스쳐 지나가서, 본문까지 보면 헛경보가 절반이었다
+    // (2026-07-31 첫 실행 6건 중 3건이 사실 기록이었다). 요약은 글쓴이가 「이게 요점」이라고
+    // 적은 줄이라, 거기 「대기」가 있으면 진짜 대기일 확률이 높다.
+    if (!TODO_WORDS.some((w) => desc.includes(w))) continue;
     // 「완료」라고 스스로 적어둔 건 할 일이 아니다 — 헛경보를 줄인다(설명 줄 기준).
     if (/완료|✅|해소|종결/.test(desc)) continue;
     if (mentioned(lists, name, desc)) continue;
