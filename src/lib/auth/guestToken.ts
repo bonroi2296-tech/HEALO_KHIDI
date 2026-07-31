@@ -45,14 +45,24 @@ export interface GenerateGuestTokenResult {
 
 /**
  * base64url 없이 hex 만 사용 (URL-safe).
- * 32 bytes = 64 hex chars = 추측 불가능한 키스페이스 (2^256).
+ *
+ * 16 bytes = 32 hex chars = 2^128. 예전엔 32 bytes(64자)였는데 초대 링크가 139자까지
+ * 길어져 메신저에서 두 줄로 접히고 잘려 붙여넣어지는 일이 있었다(PO 2026-07-23).
+ * 128비트는 온라인 추측이 불가능한 표준 하한이고, 아래 검증부의 최소길이 가드(32)와
+ * 정확히 맞는다 — ⚠️ 더 줄이려면 verifyAndConsumeGuestToken 의 length 가드도 같이 봐야 한다.
+ * 예전에 발급된 64자 토큰도 그대로 유효(검증은 해시 대조라 길이와 무관).
  */
 function generateRawToken(): string {
-  return randomBytes(32).toString("hex");
+  return randomBytes(16).toString("hex");
 }
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+/** 짧은 초대 주소(`/c/<코드>`)가 코드→상담을 찾을 때 쓰는 같은 해시. */
+export function hashGuestToken(token: string): string {
+  return hashToken(token);
 }
 
 /**
@@ -90,8 +100,9 @@ export async function generateGuestToken(
     tokenPlain,
     tokenId: data.id,
     expiresAt,
-    inviteUrl: (baseUrl: string) =>
-      `${baseUrl.replace(/\/$/, "")}/consultation/${params.consultationId}?invite=${tokenPlain}`,
+    // 짧은 초대 주소. `/c/<코드>` 가 상담 id 를 찾아 실제 방으로 넘긴다(app/c/[code]/route.ts).
+    // 긴 형식(`/consultation/<id>?invite=<코드>`)도 그대로 살아 있다 — 이미 나간 링크가 죽지 않게.
+    inviteUrl: (baseUrl: string) => `${baseUrl.replace(/\/$/, "")}/c/${tokenPlain}`,
   };
 }
 
