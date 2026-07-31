@@ -35,9 +35,9 @@ const TR = {
     inquiryNameUnknown: "(이름 미상)", inquiryHint: "문의를 고르면 환자 이름·이메일이 자동 입력됩니다(자동 발송용). 이메일이 없으면 링크를 복사해 직접 전달하세요.",
     inquiryNotCountedTitle: "⚠️ 유치 전환 추적이 끊깁니다",
     inquiryNotCountedBody: "실적(사전상담·사후관리)은 «완료»만 누르면 잡힙니다. 다만 문의를 안 걸면 «이 상담이 어느 문의에서 왔는지»가 끊겨 유치 전환 분석에서 빠집니다. 나중에 상담 목록에서 이어붙일 수도 있습니다.",
-    phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더",
+    phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "이메일 입력 후 Enter — 여러 명 가능 (선택)",
     phInviteePhone: "휴대폰 번호 (선택) — 국가번호 포함, 예: +77011234567", waSend: "WhatsApp 으로 보내기",
-    emailSentToTpl: "✉️ {email} 로 초대장을 보냈습니다.", emailNotSent: "✉️ 이메일을 입력하지 않아 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
+    emailSentToTpl: "✉️ 초대장 보냄: {list}", emailNotSent: "✉️ 이메일을 안 넣어 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
     lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
     notesInquiryPrefix: "문의",
@@ -65,9 +65,9 @@ const TR = {
     inquiryNameUnknown: "(name unknown)", inquiryHint: "Selecting an inquiry auto-fills the patient's name/email (for auto-send). If there's no email, copy the link and share it manually.",
     inquiryNotCountedTitle: "⚠️ Attraction tracking will be broken",
     inquiryNotCountedBody: "The figure itself counts as soon as you mark it complete. But without linking an inquiry we lose which inquiry this came from, so it drops out of attraction-conversion analysis. You can link it later from the consultation list.",
-    phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Primary recipient (patient) email (optional) — enables auto-send & reminders",
+    phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Type an email and press Enter — multiple allowed (optional)",
     phInviteePhone: "Phone number (optional) — with country code, e.g. +77011234567", waSend: "Send via WhatsApp",
-    emailSentToTpl: "✉️ Invitation sent to {email}.", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
+    emailSentToTpl: "✉️ Invitation sent to: {list}", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
     lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
     notesInquiryPrefix: "Inquiry",
@@ -95,9 +95,9 @@ const TR = {
     inquiryNameUnknown: "(имя неизвестно)", inquiryHint: "При выборе заявки имя/email пациента заполнятся автоматически (для автоотправки). Если email нет, скопируйте ссылку и передайте вручную.",
     inquiryNotCountedTitle: "⚠️ Цепочка привлечения будет прервана",
     inquiryNotCountedBody: "Сам показатель засчитывается, как только вы отметите «завершено». Но без привязки заявки теряется связь «из какой заявки пришла эта консультация», и она выпадает из анализа привлечения. Привязать можно позже из списка консультаций.",
-    phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Email основного получателя (пациента) (необязательно) — включает автоотправку и напоминания",
+    phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Введите email и нажмите Enter — можно несколько (необязательно)",
     phInviteePhone: "Номер телефона (необязательно) — с кодом страны, напр. +77011234567", waSend: "Отправить в WhatsApp",
-    emailSentToTpl: "✉️ Приглашение отправлено на {email}.", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
+    emailSentToTpl: "✉️ Приглашение отправлено: {list}", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
     lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
     notesInquiryPrefix: "Заявка",
@@ -125,9 +125,9 @@ const TR = {
     inquiryNameUnknown: "(аты белгісіз)", inquiryHint: "Өтінімді таңдағанда науқастың аты/email автоматты толтырылады (автожіберу үшін). Email болмаса, сілтемені көшіріп қолмен жіберіңіз.",
     inquiryNotCountedTitle: "⚠️ Тарту тізбегі үзіледі",
     inquiryNotCountedBody: "Көрсеткіш «аяқталды» деп белгіленген бойда есептеледі. Бірақ өтінім байланбаса, «бұл кеңес қай өтінімнен келді» байланысы үзіліп, тарту талдауынан түсіп қалады. Кейін кеңестер тізімінен байланыстыруға болады.",
-    phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Негізгі алушы (науқас) email (міндетті емес) — енгізілсе автожіберу мен еске салғыштар қосылады",
+    phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Email енгізіп Enter басыңыз — бірнешеу болуы мүмкін (міндетті емес)",
     phInviteePhone: "Телефон нөмірі (міндетті емес) — ел кодымен, мыс. +77011234567", waSend: "WhatsApp арқылы жіберу",
-    emailSentToTpl: "✉️ Шақыру {email} мекенжайына жіберілді.", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
+    emailSentToTpl: "✉️ Шақыру жіберілді: {list}", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
     lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
     notesInquiryPrefix: "Өтінім",
@@ -155,9 +155,9 @@ const TR = {
     inquiryNameUnknown: "（姓名未知）", inquiryHint: "选择咨询后将自动填充患者姓名/邮箱（用于自动发送）。若无邮箱，请复制链接手动转发。",
     inquiryNotCountedTitle: "⚠️ 招引追踪将会中断",
     inquiryNotCountedBody: "指标本身在标记完成后即会计入。但未关联咨询时，将无法追溯此会诊来自哪条咨询，因而会从招引转化分析中脱落。之后可在会诊列表中补关联。",
-    phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "主要接收人（患者）邮箱（可选）— 填写后启用自动发送和提醒",
+    phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "输入邮箱后按回车 — 可填多人（可选）",
     phInviteePhone: "手机号（可选）— 含国家代码，如 +77011234567", waSend: "通过 WhatsApp 发送",
-    emailSentToTpl: "✉️ 邀请已发送至 {email}。", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
+    emailSentToTpl: "✉️ 已发送邀请：{list}", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
     lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
     notesInquiryPrefix: "咨询",
@@ -185,9 +185,9 @@ const TR = {
     inquiryNameUnknown: "（氏名不明）", inquiryHint: "問い合わせを選ぶと患者の氏名・メールが自動入力されます（自動送信用）。メールがない場合はリンクをコピーして直接お伝えください。",
     inquiryNotCountedTitle: "⚠️ 誘致追跡が切れます",
     inquiryNotCountedBody: "実績そのものは「完了」にすれば計上されます。ただし問い合わせを紐づけないと「どの問い合わせから来た相談か」が切れ、誘致転換の分析から外れます。あとから相談一覧で紐づけることもできます。",
-    phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "代表受信者（患者）メール（任意）— 入力すると自動送信・リマインダーが有効",
+    phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "メールを入力して Enter — 複数可（任意）",
     phInviteePhone: "電話番号（任意）— 国番号を含む 例: +77011234567", waSend: "WhatsApp で送信",
-    emailSentToTpl: "✉️ {email} に招待状を送信しました。", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
+    emailSentToTpl: "✉️ 招待状を送信: {list}", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
     lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
     notesInquiryPrefix: "問い合わせ",
@@ -239,7 +239,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       // 통합 초대 링크 1개(role=guest) — 환자·의사 등 모두 이 링크로 입장.
       // inviteeName/Email 은 자동 발송용 대표 수신자(보통 환자).
       inviteeName: "",
-      inviteeEmail: "",
+      // 수신자는 여러 명 — 주소마다 초대장(과 30분 전 리마인더)이 각자 나간다.
+      inviteeEmails: [],
       // WhatsApp 전달용 번호 — 저장하지 않는다(SMS 발송 수단 미연동). 완료 화면의 «WhatsApp 으로 보내기» 에만 쓴다.
       inviteePhone: "",
     };
@@ -295,9 +296,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       const result = await res.json();
       if (res.ok && result.ok && result.inquiry) {
         const full = [result.inquiry.first_name, result.inquiry.last_name].filter(Boolean).join(" ").trim();
+        const inqEmail = result.inquiry.email;
         setForm((f) => ({
           ...f,
-          inviteeEmail: result.inquiry.email && result.inquiry.email.includes("@") ? result.inquiry.email : f.inviteeEmail,
+          inviteeEmails:
+            inqEmail && inqEmail.includes("@") && !f.inviteeEmails.includes(inqEmail)
+              ? [...f.inviteeEmails, inqEmail]
+              : f.inviteeEmails,
           inviteeName: full || f.inviteeName,
         }));
       }
@@ -328,7 +333,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       };
       // 게스트 관련 필드 / UI 플래그 제거
       delete payload.inviteeName;
-      delete payload.inviteeEmail;
+      delete payload.inviteeEmails;
       delete payload.inviteePhone;
       Object.keys(payload).forEach((k) => {
         if (payload[k] === "" || payload[k] == null) delete payload[k];
@@ -350,51 +355,58 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 
       const sessionId = result.data?.id;
 
-      // 2. 통합 초대 링크(role=guest) 1개 발급 — 환자·의사 등 모든 참여자가 이 링크로 입장.
-      //    inviteeName/Email 이 있으면(보통 환자) 자동 발송 + 리마인더에 사용.
+      // 2. 참여 링크(role=guest) 발급 — 수신자 한 명당 하나씩(각자 초대 메일 + 30분 전 리마인더).
+      //    수신자를 아무도 안 넣었으면 링크만 1개 만들고 메일은 안 보낸다.
+      const recipients = form.inviteeEmails.length > 0 ? form.inviteeEmails : [null];
       const invites = [];
+      const sentTo = [];
       if (sessionId) {
-        try {
-          const inviteRes = await fetch(
-            `/api/khidi/consultation/${sessionId}/invite`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                role: "guest",
-                inviteeName: form.inviteeName || undefined,
-                inviteeEmail: form.inviteeEmail || undefined,
-                expiresInHours: 72,
-                // 회수 제한 없음(만료 전까지 무제한, PO 2026-07-15) — 재접속·공용 참여 자유, 안전선은 72h 만료
-                maxUses: 0,
-              }),
+        for (const email of recipients) {
+          try {
+            const inviteRes = await fetch(
+              `/api/khidi/consultation/${sessionId}/invite`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  role: "guest",
+                  inviteeName: form.inviteeName || undefined,
+                  inviteeEmail: email || undefined,
+                  expiresInHours: 72,
+                  // 회수 제한 없음(만료 전까지 무제한, PO 2026-07-15) — 재접속·공용 참여 자유, 안전선은 72h 만료
+                  maxUses: 0,
+                }),
+              }
+            );
+            const inviteResult = await inviteRes.json();
+            if (inviteRes.ok && inviteResult.ok) {
+              // 링크는 하나만 보여준다 — 회수 제한이 없어 아무나 이 링크로 들어올 수 있다.
+              if (invites.length === 0) {
+                invites.push({
+                  role: "guest",
+                  url: inviteResult.inviteUrl,
+                  expiresAt: inviteResult.expiresAt,
+                });
+              }
+              if (inviteResult.emailSent) sentTo.push(email);
+            } else {
+              console.warn("[invite:guest] 실패:", inviteResult.error);
             }
-          );
-          const inviteResult = await inviteRes.json();
-          if (inviteRes.ok && inviteResult.ok) {
-            invites.push({
-              role: "guest",
-              url: inviteResult.inviteUrl,
-              expiresAt: inviteResult.expiresAt,
-              emailSent: inviteResult.emailSent,
-            });
-          } else {
-            console.warn("[invite:guest] 실패:", inviteResult.error);
+          } catch (inviteErr) {
+            console.error("[invite:guest] 예외:", inviteErr);
           }
-        } catch (inviteErr) {
-          console.error("[invite:guest] 예외:", inviteErr);
         }
       }
 
       setCreated({
         sessionId,
         invites,
+        sentTo,
         scheduledAtKst: form.scheduled_at,
         phone: form.inviteePhone,
-        email: form.inviteeEmail,
         patientLang: form.patient_language,
       });
     } catch (err) {
@@ -442,8 +454,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                   />
                   {/* «어디로 나갔나»를 그 자리에서 보여준다 — 조용히 나가서 엉뚱한 사람이 받는 사고(2026-07-31) 재발 방지 */}
                   <p className="mt-2 text-xs text-gray-600">
-                    {inv.emailSent
-                      ? fmt(tt("emailSentToTpl"), { email: created.email })
+                    {created.sentTo.length > 0
+                      ? fmt(tt("emailSentToTpl"), { list: created.sentTo.join(", ") })
                       : tt("emailNotSent")}
                   </p>
                   {created.phone && (
@@ -562,12 +574,10 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                 placeholder={tt("phInviteeName")}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
-              <input
-                type="email"
-                value={form.inviteeEmail}
-                onChange={(e) => setForm({ ...form, inviteeEmail: e.target.value })}
+              <EmailChips
+                emails={form.inviteeEmails}
+                onChange={(emails) => setForm({ ...form, inviteeEmails: emails })}
                 placeholder={tt("phInviteeEmail")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
               <input
                 type="tel"
@@ -633,6 +643,62 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
   );
 }
 
+
+// ─── 이메일 여러 개 입력 (Enter·쉼표로 한 칸씩 쌓임) ─────────────
+function EmailChips({ emails, onChange, placeholder }) {
+  const [draft, setDraft] = useState("");
+
+  const add = (raw) => {
+    // 쉼표·빈칸으로 여러 개 붙여넣기도 받는다
+    const next = [...emails];
+    for (const piece of String(raw).split(/[,\s;]+/)) {
+      const v = piece.trim();
+      if (v.includes("@") && !next.includes(v)) next.push(v);
+    }
+    if (next.length !== emails.length) onChange(next);
+    setDraft("");
+  };
+
+  return (
+    <div className="w-full flex flex-wrap items-center gap-1.5 px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-teal-500">
+      {emails.map((em) => (
+        <span
+          key={em}
+          className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 border border-teal-200 rounded text-xs text-teal-900"
+        >
+          {em}
+          <button
+            type="button"
+            onClick={() => onChange(emails.filter((x) => x !== em))}
+            className="text-teal-700 hover:text-teal-900 leading-none"
+            aria-label={`${em} 제거`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        type="email"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
+            if (draft.trim()) {
+              e.preventDefault(); // Enter 로 폼이 제출되지 않게
+              add(draft);
+            }
+          } else if (e.key === "Backspace" && !draft && emails.length > 0) {
+            onChange(emails.slice(0, -1));
+          }
+        }}
+        // 입력만 해두고 «생성»을 눌러도 빠지지 않게 — 포커스가 떠나면 담는다
+        onBlur={() => draft.trim() && add(draft)}
+        placeholder={emails.length === 0 ? placeholder : ""}
+        className="flex-1 min-w-[180px] px-1 py-1 text-sm outline-none"
+      />
+    </div>
+  );
+}
 
 function roleLabel(role, lang) {
   const t = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
