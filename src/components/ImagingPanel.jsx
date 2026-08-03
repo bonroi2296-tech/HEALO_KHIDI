@@ -15,8 +15,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, AlertCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+// 방사선과에서 쓰는 표준 창(window) 값 그대로. 폭(WW)/중심(WL).
+// ⚠️ 「연부조직」을 «복부»라고만 부르지 않는다 — 가슴·목에도 똑같이 쓰는 기본값이라,
+//   흉부 CT 를 보면서 「복부」라고 적혀 있으면 잘못 온 줄 안다(PO 지적 2026-08-03).
 const WINDOWS = [
-  { key: "soft", label: "복부·연부조직", ww: 350, wc: 40 },
+  { key: "soft", label: "연부조직(기본)", ww: 350, wc: 40 },
+  { key: "liver", label: "간", ww: 150, wc: 60 },
   { key: "lung", label: "폐", ww: 1500, wc: -600 },
   { key: "bone", label: "뼈", ww: 2000, wc: 400 },
   { key: "brain", label: "뇌", ww: 80, wc: 40 },
