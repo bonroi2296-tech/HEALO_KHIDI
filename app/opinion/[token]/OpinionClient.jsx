@@ -167,6 +167,20 @@ export default function OpinionClient({ token }) {
             <p className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed">{c.message}</p>
           </div>
         )}
+        {/* 접수 «이후»에 들어온 환자 상태 — 서류엔 없는 정보다. 서류보다 최근일 수 있어 위에 둔다. */}
+        {c.followUps?.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] text-gray-500 mb-1">접수 후 추가 정보 ({c.followUps.length})</p>
+            <ul className="space-y-2">
+              {c.followUps.map((f, i) => (
+                <li key={i} className="bg-teal-50 border border-teal-100 rounded-lg p-3">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{String(f.at || "").slice(0, 10)} 코디네이터 전달</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {c.attachments?.length > 0 && (
           <div>
             <p className="text-[11px] text-gray-400 mb-1.5">첨부 의료기록 ({c.attachments.length})</p>

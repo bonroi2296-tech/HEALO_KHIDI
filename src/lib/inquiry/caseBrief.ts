@@ -23,6 +23,7 @@ import "server-only";
 import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { getAiReadable } from "@/lib/documents/aiReadable";
+import { followUpSig, followUpsForBrief } from "@/lib/inquiry/followUps";
 import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
@@ -116,9 +117,13 @@ function guessType(name: string): string {
  * 브리프 입력 서명 — 첨부가 바뀌면(추가/삭제) 캐시를 stale 로 감지해 다음 열람 때 자동 재생성.
  * 첨부 경로만 쓰므로 비민감(경로는 난수 파일명). 저장(POST)·판정(GET) 양쪽이 같은 함수로 계산.
  */
-export function briefSig(attachments: Attachment[] | null | undefined): string {
+export function briefSig(
+  attachments: Attachment[] | null | undefined,
+  followUps?: unknown
+): string {
   const paths = (attachments || []).map((a) => a?.path || "").filter(Boolean).sort();
-  return `${paths.length}:${paths.join("|")}`;
+  // 접수 후 추가 정보가 늘어도 «낡음»으로 잡혀야 한다 — 안 그러면 새로 받은 상태가 브리프에 영영 안 들어간다.
+  return `${paths.length}:${paths.join("|")}#${followUpSig(followUps)}`;
 }
 
 // 구조화 인테이크(복호화된 inquiry)에서 브리프에 쓸 비식별 임상 컨텍스트만 뽑아 텍스트로.
@@ -138,6 +143,9 @@ function buildContext(inq: any, lang: BriefLang): string {
     lines.push(`priorities: ${intake.priorities.map((p: string) => pl[p] || p).join(", ")}`);
   }
   if (inq?.preferred_date) lines.push(`preferred_date: ${inq.preferred_date}`);
+  // 접수 «이후»에 코디가 받은 환자 상태 — 서류엔 없지만 «지금» 상태라 브리프에 꼭 들어가야 한다.
+  const fu = followUpsForBrief(inq?.follow_ups);
+  if (fu) lines.push(`follow_up_notes (received after intake, from coordinator):\n${fu}`);
   return lines.join("\n");
 }
 

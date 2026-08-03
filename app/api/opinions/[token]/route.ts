@@ -29,6 +29,7 @@ import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import { readFollowUps } from "@/lib/inquiry/followUps";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -147,7 +148,7 @@ export async function GET(
 
     const { data: inqRaw } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, coordinator_brief")
+      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, follow_ups, coordinator_brief")
       .eq("id", req.inquiry_id)
       .maybeSingle();
     if (!inqRaw) {
@@ -182,6 +183,8 @@ export async function GET(
         message: typeof inq.message === "string" ? inq.message : null,
         clinical: pickDetail(inq.intake),
         attachments: await signAttachments(inqRaw.attachments),
+        // 접수 후 추가로 들어온 환자 상태 — 서류엔 없지만 판단에 필요하다(PO 지시 2026-08-03).
+        followUps: readFollowUps((inqRaw as any).follow_ups),
         // 코디가 만들어둔 AI 케이스 브리프(한국어 요약) — 없으면 null(코디가 아직 안 만든 케이스).
         brief: decodeCachedBrief(inqRaw.coordinator_brief),
       },

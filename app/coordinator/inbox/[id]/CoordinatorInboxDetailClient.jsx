@@ -24,6 +24,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
@@ -1291,7 +1292,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
@@ -1308,6 +1309,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </Card>
         );
       })()}
+
+      {/* 접수 후 추가 정보(글) — 메신저로 뒤늦게 들어온 환자 상태. 소견 화면·케이스 브리프에도 흐른다. */}
+      <FollowUpsSection inquiryId={inquiryId} />
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection inquiryId={inquiryId} />
