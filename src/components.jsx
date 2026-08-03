@@ -428,8 +428,14 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               </div>
             </div>
 
-            {/* Bottom: Auth */}
-            <div className="border-t border-gray-100 px-5 py-4">
+            {/* Bottom: Auth
+                ⚠️ 아래 여백을 클래스(pb-safe-area)로 주면 같은 요소의 py-4 에 눌려 안 먹는다.
+                안드로이드 3버튼 내비게이션(◁ ○ |||)이 있는 폰에서 로그인·회원가입 버튼이
+                시스템 버튼줄에 깔렸다(2026-07-31 PO 실기기). 인라인 스타일은 항상 이긴다. */}
+            <div
+              className="border-t border-gray-100 px-5 py-4"
+              style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+            >
               {session ? (
                 <>
                   <a href="/account/password" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-2.5 px-4 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
