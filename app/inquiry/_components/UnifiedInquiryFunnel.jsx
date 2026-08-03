@@ -123,8 +123,18 @@ export default function UnifiedInquiryFunnel() {
   const searchParams = useSearchParams();
   const fromChat = searchParams?.get("from_chat") || null;
 
+  // 코디 콘텐츠 편집기의 「미리보기」 전용 — 바로 그 단계를 열어준다.
+  // 왜: 병기·진단일 같은 문구는 **2단계**에 있어서, 주소만 열면 채널 선택 화면이 뜨고
+  //     그 문구는 영원히 안 보인다(2026-08-03 PO: «화면 열기 누르니깐 문의페이지 나오는데?»).
+  //     제출을 거치지 않고는 갈 수 없는 자리라 미리보기용 문 하나를 낸다.
+  //     ⚠️ 화면만 그린다 — 여기로 들어와도 저장·전송은 평소와 똑같이 검증을 거친다.
+  const previewPhase = searchParams?.get("preview") || null;
+  const PREVIEWABLE = ["step1", "step2", "step1-success", "step2-success", "channel-select", "human-channels"];
+
   // from_chat 이 있으면 채널 선택 건너뛰고 바로 step1 (AI 챗에서 폼 전환된 케이스)
-  const initialPhase = searchParams?.get("from_chat") ? "step1" : "channel-select";
+  const initialPhase = PREVIEWABLE.includes(previewPhase)
+    ? previewPhase
+    : searchParams?.get("from_chat") ? "step1" : "channel-select";
   const [phase, setPhase] = useState(initialPhase); // channel-select | human-channels | step1 | step1-success | step2 | step2-success | done
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");

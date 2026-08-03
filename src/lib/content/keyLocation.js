@@ -78,6 +78,28 @@ const BY_KEY = {
  *        홈 레지스트리 라벨 조회기(서버에서만 주입 — 「홈 · 통계 / 항목1 · 문구」 같은 사람 이름).
  * @returns {{ screen: string|null, path: string|null, where: string|null, note: string|null }}
  */
+// 「그 문구가 실제로 눈에 보이는 자리」까지 데려가는 주소.
+// 왜 따로 두나: 문의폼은 한 주소(/inquiry) 안에서 화면이 여러 번 바뀐다. 병기·진단일은
+// **2단계**에 있어서 그냥 /inquiry 를 열면 채널 선택 화면만 뜨고 영원히 안 보인다
+// (2026-08-03 PO: «화면 열기 누르니깐 문의페이지 나오는데?»). 그래서 단계를 지정해 연다.
+// 목록에 안 걸리면 위 표의 path 를 그대로 쓴다.
+const REACH = [
+  [/^inquiryFunnel.(stage|diagnosis|treatmentState|upload|travelTiming|priorities|step2|submitStep2)/, "/inquiry?preview=step2"],
+  [/^intakeLabels.(stage|treatState|travel|priority)/, "/inquiry?preview=step2"],
+  [/^inquiryFunnel.(success|upgrade|yesUpgrade|noUpgrade)/, "/inquiry?preview=step1-success"],
+  [/^inquiryFunnel.(signup|noSignup|doneTitle|doneBody|backHome)/, "/inquiry?preview=step2-success"],
+  [/^inquiryFunnel.(human|messenger|channelComingSoon)/, "/inquiry?preview=human-channels"],
+  [/^inquiryFunnel./, "/inquiry?preview=step1"],
+  [/^intakeLabels.cancer./, "/inquiry?preview=step1"],
+];
+
+/** key → 그 문구가 보이는 화면 주소(단계까지). 없으면 null. */
+export function reachPath(key) {
+  if (typeof key !== "string") return null;
+  for (const [re, url] of REACH) if (re.test(key)) return url;
+  return null;
+}
+
 export function describeKey(key, homeLabel) {
   if (!key || typeof key !== "string") return { screen: null, path: null, where: null, note: null };
   const head = key.split(".")[0];
@@ -98,6 +120,8 @@ export function describeKey(key, homeLabel) {
     screen: hit ? hit.screen : null,
     screenId,
     path: hit ? hit.path || null : null,
+    // 미리보기·화면열기가 실제로 그 문구까지 데려가는 주소(단계 포함). 없으면 path 를 쓴다.
+    reach: reachPath(key) || (hit ? hit.path || null : null),
     where,
     note: hit && hit.note ? hit.note : null,
     noteId: hit && hit.noteId ? hit.noteId : null,

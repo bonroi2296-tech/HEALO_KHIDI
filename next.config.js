@@ -123,7 +123,10 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
+          // 우리 화면 안에 «우리 화면»만 띄울 수 있다(코디 콘텐츠 편집기의 미리보기).
+          // 남의 사이트가 우리를 씌워 클릭을 가로채는 공격(클릭재킹)은 그대로 막힌다 —
+          // 막는 대상이 «모든 곳»에서 «우리 아닌 곳»으로 좁아졌을 뿐이다. 2026-08-03.
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
@@ -166,7 +169,8 @@ const nextConfig = {
               //    매 방문마다 콘솔에 CSP 위반이 찍히고 리플레이가 반쪽으로 돌았다.
               //    → 우리 출처와 blob: 만 연다(외부 도메인 워커는 계속 차단).
               "worker-src 'self' blob:",
-              "frame-ancestors 'none'",
+              // 같은 사유 — 편집기 미리보기용. 외부 사이트의 씌우기는 계속 차단.
+              "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
             ].join('; '),
