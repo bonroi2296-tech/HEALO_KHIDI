@@ -15,7 +15,7 @@ import {
   Link2, Check,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { uploadAttachment } from "@/lib/uploadAttachment";
+import { uploadAttachment, uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
@@ -1567,15 +1567,19 @@ function ClinicProgressPanel({ inquiryId, tt }) {
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess?.session?.access_token;
-      const fd = new FormData();
-      fd.append("inquiryId", String(inquiryId));
-      fd.append("recordType", recordType);
-      if (note.trim()) fd.append("note", note.trim());
-      if (file) fd.append("file", file);
-      const res = await fetch("/api/khidi/progress", {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
-      });
-      const json = await res.json();
+      const authFetch = (url, init) =>
+        fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
+      const fields = { inquiryId: String(inquiryId), recordType, note: note.trim() || undefined };
+
+      // 파일이 있으면 Storage 직행(서명 URL → PUT → 기록 저장), 없으면 메모만 저장.
+      const json = file
+        ? await uploadDirect("/api/khidi/progress", file, fields, { fetch: authFetch })
+        : await authFetch("/api/khidi/progress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(fields),
+          }).then((r) => r.json().catch(() => ({ ok: false })));
+
       if (json.ok) {
         setMsg({ type: "ok", text: tt("progressOk") });
         setNote(""); setFile(null); setFileKey((k) => k + 1);

@@ -113,6 +113,9 @@ function tl(key, lang) {
   return t("inquiryFunnel." + key, lang);
 }
 
+// 큰 자료는 쪼개서 올리게 되므로 5개는 좁다(문의 #60: 131MB PDF). 서버 검증(step2)도 같은 10개.
+const MAX_ATTACHMENTS = 10;
+
 // ─── 컴포넌트 ───────────────────────────────────────────────────────
 export default function UnifiedInquiryFunnel() {
   const lang = useLang() || "en";
@@ -328,7 +331,7 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── 파일 업로드 ─────────────────────────────────────────────────
   async function handleFileAdd(files) {
-    const remaining = 5 - uploadedFiles.length;
+    const remaining = MAX_ATTACHMENTS - uploadedFiles.length;
     if (remaining <= 0) { setError(tl("tooManyFiles", lang)); return; }
     const toUpload = Array.from(files).slice(0, remaining);
 

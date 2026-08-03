@@ -19,3 +19,15 @@ set file_size_limit = 52428800,
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ]
 where id = 'attachments';
+
+-- documents 버킷(환자 서류함·비자·화상상담·사후관리 경과)도 같은 이유로 정리.
+-- 크기는 이미 50MB 였고, 여기선 MIME 화이트리스트가 없던 걸 채운다(+ 병원 CD 자료용 DICOM).
+update storage.buckets
+set file_size_limit = 52428800,
+    allowed_mime_types = array[
+      'image/jpeg','image/png','image/gif','image/webp',
+      'application/pdf','application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/dicom'
+    ]
+where id = 'documents';

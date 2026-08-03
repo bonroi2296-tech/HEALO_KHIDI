@@ -35,7 +35,8 @@ const Step2Schema = z.object({
         type: z.string().max(100).nullable().optional(),
       })
     )
-    .max(5)
+    // 큰 자료는 쪼개서 올리게 되므로 5개는 좁다(문의 #60: 131MB PDF). 10개로.
+    .max(10)
     .optional(),
   matchAccuracy: z.number().int().min(60).max(100).optional(),
 });

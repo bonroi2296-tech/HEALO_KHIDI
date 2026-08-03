@@ -436,7 +436,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false); // 드래그앤드랍 오버레이 표시
 
-  const MAX_ATTACHMENTS = 5;
+  const MAX_ATTACHMENTS = 10;
 
   const handleFilePick = async (fileList) => {
     setUploadError("");
