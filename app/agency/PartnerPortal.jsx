@@ -578,17 +578,14 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [noteTr, setNoteTr] = useState({}); // 코디 한글 메모 자동번역 { 원문 → 번역문 }
   const fileInputRef = useRef(null);
 
-  // 첨부 추가 = 즉시 /api/attachments/upload (path 참조만 보관). 최대 10개.
+  // 첨부 추가 = 즉시 Storage 업로드 (path 참조만 보관). 최대 10개.
   const addFiles = async (fileList) => {
     const remaining = 10 - files.length;
     if (remaining <= 0) return;
     setUploading(true); setSubmitMsg(null);
     try {
       for (const file of Array.from(fileList).slice(0, remaining)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const uj = await up.json().catch(() => ({}));
+        const uj = await uploadAttachment(file);
         if (!uj.ok) { setSubmitMsg({ type: "err", text: tt("errUpload") }); continue; }
         setFiles((prev) => [...prev, { path: uj.path, name: uj.name, type: uj.type, category: "other" }]);
       }
