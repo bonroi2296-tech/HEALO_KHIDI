@@ -1,0 +1,148 @@
+/**
+ * E2E: 포털 화면의 «위 여백 사슬»이 어긋나지 않는지 — 로그인해서 실제로 잰다 @smoke
+ *
+ * 왜 이 검사가 있나 (2026-08-03):
+ *   PO 가 폰에서 「상단 헤더에 쓸데없는 공백」을 제보했다. 뿌리는 «고정 상단바 높이를
+ *   손으로 박아둔 숫자»가 실제 높이와 어긋난 것이었고, 같은 부류가 포털에도 있었다:
+ *     - 어드민·병원: 두 번째 메뉴 줄이 top-12(48px) — 상단바는 이미 56~64px + 안전영역
+ *       → 브라우저 9px, 스토어 앱 46px 만큼 상단바 «밑에 깔려» 있었다.
+ *     - 코디·어드민·병원: 그 메뉴 줄의 실제 높이가 69px 인데 본문은 48~56px 만 비켜줘
+ *       → 본문 윗줄이 13~21px 가려져 있었다.
+ *   이걸 사람 눈으로 잡으려면 «로그인해서 폰 크기로» 봐야 한다 — 빌드·타입검사·HTTP 200
+ *   으로는 절대 안 드러난다. 그래서 기계가 잰다.
+ *
+ * 무엇을 재나: 상단바 → (모바일) 두 번째 메뉴 줄 → 본문 의 사슬이 «겹치지 않는지».
+ *   안전영역(노치·상태표시줄)이 붙는 경우까지 두 번 잰다 — 스토어 앱이 그 경우다.
+ *
+ * 필요한 환경변수: 역할별 E2E_*_EMAIL / _PASSWORD (미설정 역할은 스킵).
+ */
+
+import { test, expect, type Page } from "@playwright/test";
+import { loginAs, type Role } from "./fixtures/auth";
+
+/** 폰 크기 — 안드로이드 중형(가장 흔한 폭). 데스크톱은 두 번째 줄이 없어 이 검사 대상이 아니다. */
+const PHONE = { width: 411, height: 820 };
+
+/** 그 기기의 상태표시줄 높이(PO 제보 화면 실측값). 스토어 앱에서만 실제로 붙는다. */
+const SAFE_TOP = 37;
+
+type Case = { role: Role; envKey: string; path: string; label: string };
+
+const CASES: Case[] = [
+  { role: "admin", envKey: "E2E_ADMIN_EMAIL", path: "/admin", label: "어드민" },
+  { role: "coordinator", envKey: "E2E_COORDINATOR_EMAIL", path: "/coordinator", label: "코디네이터" },
+  { role: "hospital", envKey: "E2E_HOSPITAL_EMAIL", path: "/hospital", label: "병원" },
+  { role: "patient", envKey: "E2E_TEST_USER_EMAIL", path: "/patient", label: "환자" },
+];
+
+type Geometry = {
+  headerBottom: number | null;
+  barTop: number | null;
+  barBottom: number | null;
+  contentTop: number | null;
+  safeTopVar: string;
+};
+
+/** 화면에 실제로 그려진 위치를 그대로 읽는다(클래스 이름이 아니라 «픽셀»을 믿는다). */
+async function measure(page: Page): Promise<Geometry> {
+  return page.evaluate(() => {
+    const round = (n: number) => Math.round(n);
+    const header = document.querySelector("header");
+    const headerRect = header ? header.getBoundingClientRect() : null;
+
+    // 모바일 두 번째 메뉴 줄 = 상단바 바로 밑에 붙는 fixed 가로 막대
+    let bar: DOMRect | null = null;
+    for (const el of Array.from(document.querySelectorAll("div"))) {
+      const cs = getComputedStyle(el);
+      if (cs.position !== "fixed") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < window.innerWidth * 0.8) continue;
+      if (r.height < 30 || r.height > 140) continue;
+      if (r.top > window.innerHeight / 2) continue; // 하단 탭바 제외
+      if (headerRect && r.top < headerRect.top + 1) continue; // 상단바 자신 제외
+      if (!bar || r.top < bar.top) bar = r;
+    }
+
+    const main = document.querySelector("main");
+    const contentTop = main
+      ? round(main.getBoundingClientRect().top + (parseFloat(getComputedStyle(main).paddingTop) || 0))
+      : null;
+
+    return {
+      headerBottom: headerRect ? round(headerRect.bottom) : null,
+      barTop: bar ? round(bar.top) : null,
+      barBottom: bar ? round(bar.bottom) : null,
+      contentTop,
+      safeTopVar: getComputedStyle(document.documentElement).getPropertyValue("--healo-safe-top").trim(),
+    };
+  });
+}
+
+/** 사슬 검사: 상단바 → 메뉴 줄 → 본문 순서로, 뒤엣것이 앞엣것 «밑에 깔리지» 않아야 한다. */
+function expectNoOverlap(g: Geometry, where: string) {
+  // 테두리 1px 은 붙어 있는 정상 상태다 — 2px 까지 허용.
+  const TOL = 2;
+  if (g.headerBottom !== null && g.barTop !== null) {
+    expect(
+      g.barTop,
+      `${where}: 두 번째 메뉴 줄이 상단바 밑에 ${g.headerBottom - g.barTop}px 깔렸다 ` +
+        `(상단바 아래끝 ${g.headerBottom}, 메뉴 줄 위끝 ${g.barTop})`
+    ).toBeGreaterThanOrEqual(g.headerBottom - TOL);
+  }
+  const above = g.barBottom ?? g.headerBottom;
+  if (above !== null && g.contentTop !== null) {
+    expect(
+      g.contentTop,
+      `${where}: 본문 윗줄이 위 막대 밑에 ${above - g.contentTop}px 가렸다 ` +
+        `(막대 아래끝 ${above}, 본문 시작 ${g.contentTop})`
+    ).toBeGreaterThanOrEqual(above - TOL);
+  }
+}
+
+test.describe("포털 위 여백 사슬 @smoke", () => {
+  for (const c of CASES) {
+    test(`${c.label} 포털 — 폰에서 상단바·메뉴 줄·본문이 서로 안 가린다`, async ({ page }) => {
+      test.skip(!process.env[c.envKey], `${c.envKey} 미설정 — ${c.label} 스킵`);
+
+      // 쿠키 동의 배너가 화면 아래를 덮어 측정에 끼어들지 않게(실사용자도 한 번 누르면 안 뜬다)
+      await page.addInitScript(() => {
+        try { localStorage.setItem("healo_cookie_consent", "all"); } catch {}
+      });
+      await page.setViewportSize(PHONE);
+      await loginAs(page, c.role);
+      await page.goto(c.path);
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator("header")).toBeVisible({ timeout: 30_000 });
+      // 문지기(게이트) 통과 후 본문이 마운트될 때까지
+      await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
+
+      // ① 보통 브라우저 — 안전영역 0
+      const plain = await measure(page);
+      expectNoOverlap(plain, `${c.label}/브라우저`);
+
+      // ② 스토어 앱 — 상태표시줄만큼 안전영역이 붙는 경우.
+      //    안전영역 흉내는 크롬 개발자도구 명령(CDP)으로만 되고, 지원 안 하는 판이면 조용히 건너뛴다.
+      let insetApplied = false;
+      try {
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, {
+          insets: { top: SAFE_TOP, topMax: SAFE_TOP },
+        } as never);
+        insetApplied = true;
+      } catch {
+        // 지원 안 함 — ① 결과만으로 판정한다(거짓 통과를 만들지 않게 아래에서 명시적으로 남긴다).
+        console.warn("[portal-layout] 안전영역 흉내를 지원하지 않는 브라우저 판 — 스토어 앱 경우는 못 쟀다");
+      }
+      if (insetApplied) {
+        await page.evaluate(() => document.documentElement.setAttribute("data-healo-native", "1"));
+        await page.waitForTimeout(300);
+        const native = await measure(page);
+        expect(
+          native.safeTopVar,
+          "스토어 앱 표식이 붙었는데도 위 안전영역 값이 0 이다 — 스위치가 안 걸렸다"
+        ).not.toBe("0px");
+        expectNoOverlap(native, `${c.label}/스토어앱`);
+      }
+    });
+  }
+});
