@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
+import { STAGES, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
 
@@ -1179,7 +1179,10 @@ function detailRows(d, tt, lang) {
   const push = (label, value) => { if (value != null && value !== "") rows.push({ label, value }); };
   if (d.sex) push(tt("phSex"), tt(d.sex === "male" ? "optMale" : "optFemale"));
   push(tt("lblBirthYear"), d.birthYear);
-  if (d.stage) push(tt("lblStage"), d.stage === "unknown" ? tt("optUnknown") : `Stage ${d.stage}`);
+  // ⚠️ 2026-08-03 자가감사에서 잡힘: 위 「병기 칩」은 사전으로 옮겼는데 **여기 상세 표시만
+  //    `Stage ${값}` 조립으로 남아 있었다.** 앞선 점검이 JSX 형태(`Stage {s}`)만 찾아
+  //    이 글자 이어붙이기(백틱)를 놓쳤다 — 같은 화면 안에서 입력은 「3기」, 상세는 「Stage III」로 갈렸다.
+  if (d.stage) push(tt("lblStage"), d.stage === "unknown" ? tt("optUnknown") : stageLabel(d.stage, lang));
   if (d.diagnosisDate) push(tt("lblDiagDate"), d.diagnosisDate === "unknown" ? tt("optUnknown") : d.diagnosisDate);
   if (d.treatmentState) {
     const s = TREATMENT_STATES.find((x) => x.value === d.treatmentState);

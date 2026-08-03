@@ -21,6 +21,8 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
+// 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
+import { stageLabel } from "@/lib/inquiry/intakeLabels";
 import { CreateConsultationModal } from "@/components/consultation/CreateConsultationModal";
 
 const supabase = createSupabaseBrowserClient();
@@ -647,10 +649,13 @@ export default function ConsultationsPage() {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <User size={16} />
+                        {/* 2026-08-03 자가감사: 여기만 「Stage: III」 날코드로 남아 있었다.
+                            병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능)으로 모은다. */}
                         <span>
-                          Stage:{" "}
-                          {consultation.cancer_patient_intakes?.[0]?.cancer_stage ||
-                            "N/A"}
+                          {stageLabel(
+                            consultation.cancer_patient_intakes?.[0]?.cancer_stage,
+                            lang
+                          ) || "-"}
                         </span>
                       </div>
                     </div>
