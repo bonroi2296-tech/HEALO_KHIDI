@@ -166,7 +166,10 @@ function isLangValidationEnum(line) {
 //    → «개수 동결». 늘린 사람이 그 줄을 직접 감사하고 아래 숫자를 올려야 통과한다(= 감사 완료 서명).
 const XSS_INNERHTML_BASELINE = {
   "app/page.jsx": 1,
-  "app/layout.jsx": 5,
+  // 5 → 6 (2026-08-03): 늘어난 1건은 head 의 「스토어 앱 웹뷰인가」 표식 스크립트.
+  // 감사 결과 안전 — 통짜 문자열 상수 하나이고 변수·요청값·사용자 입력이 **한 글자도 안 섞인다**
+  // (읽는 건 navigator.userAgent 뿐이고, 쓰는 건 고정값 "1" 한 개). 나머지 5건은 기존 감사분.
+  "app/layout.jsx": 6,
   "app/care-journey/page.jsx": 1,
   "app/insurance/page.jsx": 1,
   "app/cost-calculator/page.jsx": 1,
