@@ -250,10 +250,10 @@ function ChatInstallHint({ lang }) {
             {c.cta}
           </button>
         )}
-        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-400 hover:text-teal-600 text-base leading-none px-1">×</button>
+        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-700 hover:text-teal-800 text-base leading-none px-1">×</button>
       </div>
       {iosHint && !deferred && (
-        <p className="mt-1 pl-7 text-[10px] text-teal-600 leading-snug">{c.iosBody}{c.iosBody2}</p>
+        <p className="mt-1 pl-7 text-[10px] text-teal-700 leading-snug">{c.iosBody}{c.iosBody2}</p>
       )}
     </div>
   );
@@ -1003,7 +1003,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
           <p className="text-sm font-semibold text-teal-800">
             {t("chat.upload.dropHere", langCode) || "Drop files here to attach"}
           </p>
-          <p className="text-[11px] text-teal-600/80 mt-1">
+          <p className="text-[11px] text-teal-700 mt-1">
             {t("chat.upload.dropHint", langCode) || `Test results or photos · up to ${MAX_ATTACHMENTS} files`}
           </p>
         </div>
@@ -1320,7 +1320,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               disabled={sending || uploading || attachments.length >= MAX_ATTACHMENTS}
               aria-label={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
               title={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
-              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-600 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-700 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Paperclip size={18} />
             </button>

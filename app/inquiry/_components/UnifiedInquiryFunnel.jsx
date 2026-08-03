@@ -962,7 +962,7 @@ export default function UnifiedInquiryFunnel() {
           <button
             type="button"
             onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); setPhase("step1"); }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold text-sm hover:bg-teal-800 transition"
           >
             <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
           </button>

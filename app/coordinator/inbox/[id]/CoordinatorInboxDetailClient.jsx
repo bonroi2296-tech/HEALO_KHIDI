@@ -985,7 +985,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <div key={c.key} className="flex items-center gap-2 py-1 text-sm">
                         {agreed ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
                         <span className={agreed ? "text-gray-800" : "text-gray-500"}>{pick(c.label, lang)}</span>
-                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-600" : "text-gray-500"}`}>
+                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-700" : "text-gray-500"}`}>
                           {agreed ? pick(INTAKE_UI.agreed, lang) : pick(INTAKE_UI.declined, lang)}
                         </span>
                       </div>
@@ -1189,7 +1189,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             >
               {caseSaving ? L.ibCaseSaving : L.ibCaseSave}
             </button>
-            {caseSaved && <span className="text-sm text-teal-600 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
+            {caseSaved && <span className="text-sm text-teal-700 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
           </div>
         </div>
       </Card>
