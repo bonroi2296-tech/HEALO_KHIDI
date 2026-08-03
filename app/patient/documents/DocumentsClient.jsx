@@ -286,7 +286,7 @@ export default function DocumentsClient() {
               {/* 큰 파일은 몇 분 걸린다 — 막대가 없으면 멈춘 줄 알고 나간다. */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-teal-600 rounded-full transition-[width] duration-200"
+                  className="h-full bg-teal-700 rounded-full transition-[width] duration-200"
                   style={{ width: `${Math.max(2, progress * 100)}%` }}
                 />
               </div>
