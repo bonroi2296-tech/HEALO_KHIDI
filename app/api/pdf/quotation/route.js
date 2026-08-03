@@ -99,7 +99,7 @@ export async function GET(request) {
       { label: "Surgery (BCS)", note: "Hospital fee", krw: 12000000, usd: 8700 },
       { label: "Chemotherapy (4 cycles)", note: "Drugs + infusion", krw: 18000000, usd: 13000 },
       { label: "Hospital accommodation (7 days)", note: "", krw: 1400000, usd: 1000 },
-      { label: "healwith facilitator fee", note: "Disclosed per §15", krw: 3000000, usd: 2170 },
+      { label: "healwith facilitator fee", note: "Disclosed per Art. 8(2)", krw: 3000000, usd: 2170 },
       { label: "Medical interpreter (KO ↔ RU)", note: "All sessions", krw: 1500000, usd: 1080 },
     ],
   };

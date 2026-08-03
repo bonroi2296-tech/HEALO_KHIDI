@@ -78,7 +78,7 @@ export async function PATCH(
     const payload = await request.json();
     const updates: Record<string, any> = {};
 
-    // 환자 동의 (의료해외진출법 §15 서명)
+    // 환자 동의 서명 (근거: 의료해외진출법 제8조제2항 — §15 아님)
     if (role === "patient" && payload.accept === true) {
       if (estimate.status !== "issued") {
         return Response.json(

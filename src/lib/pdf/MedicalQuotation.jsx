@@ -1,7 +1,8 @@
 /**
  * healwith Medical Quotation PDF
- * 의료해외진출법 §15 "외국인환자의 권익 보호" 조항에 따라
- * 진료계약 체결 전 환자에게 서면으로 고지해야 할 진료비 예상 금액 + 수수료 + 분쟁 처리 절차
+ * 의료해외진출법 제8조제2항 "외국인환자의 권익 보호" 조항에 따라
+ * 유치의료기관이 진료계약 체결 전 환자에게 안내해야 할 진료계약서·예상 진료비
+ * (+ 수수료 + 분쟁 처리 절차). §15 는 "의료광고에 관한 특례"라 근거가 아니다.
  *
  * 사용법:
  *   import { renderToBuffer } from '@react-pdf/renderer';
@@ -17,7 +18,7 @@ const LABELS = {
     eyebrow: "healwith · 진료비 견적서",
     titleA: "Medical",
     titleB: "Quotation.",
-    subtitle: "의료 해외진출 및 외국인환자 유치 지원에 관한 법률 §15에 따라 발급",
+    subtitle: "의료 해외진출 및 외국인환자 유치 지원에 관한 법률 제8조제2항에 따라 발급",
     patient: "환자 정보",
     hospital: "제휴 의료기관",
     plan: "제안된 치료 계획",
@@ -48,7 +49,7 @@ const LABELS = {
     eyebrow: "healwith · Medical Quotation",
     titleA: "Medical",
     titleB: "Quotation.",
-    subtitle: "Issued under §15 of the Korean Medical Tourism Act (outbound healthcare & inbound patient attraction)",
+    subtitle: "Issued under Article 8(2) of the Korean Act on Overseas Expansion of Healthcare and Attraction of Foreign Patients",
     patient: "Patient",
     hospital: "Partner Hospital",
     plan: "Proposed Treatment Plan",
