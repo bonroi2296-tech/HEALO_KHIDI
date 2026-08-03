@@ -64,6 +64,7 @@ export type TranslatedSection = {
   columns?: string[];       // 표 헤더 (예: 항목(원문)·항목(한글)·결과·정상범위·단위)
   rows?: { cells: string[] }[]; // 표 각 행(원문 값은 그대로)
   text?: string;            // 자유서술 블록(한국어 번역)
+  page?: number;            // 원본 몇 쪽에서 나왔나 (1부터). 화면 쪽 고르기·원본 대조용
 };
 
 export type TranslatedDoc = {
@@ -140,6 +141,97 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     "",
     "Return ONLY the JSON object.",
   ].filter((l) => l !== null).join("\n");
+}
+
+
+// 한 번에 몇 쪽씩 모델에 보낼지. 순차면 20쪽에 몇 분 — 5쪽 묶음이 실측 46초.
+const PAGE_BATCH = 5;
+// 쪽 그림의 긴 변 화소. A4 기준 ≈260dpi — 잔글씨도 읽힌다.
+const PAGE_MAX_SIDE = 2200;
+
+type PagePart = { mimeType: string; base64: string };
+
+/**
+ * 문서를 «쪽 단위»로 쪼갠다. PDF 는 각 쪽을 그림으로 뽑고, 원래 이미지 한 장이면 그대로 한 쪽.
+ * 왜 쪼개나: 통째로 주면 모델이 스스로 줄인다(실측 8분의 1). 쪽을 우리가 세면 빠뜨릴 수 없다.
+ */
+async function splitPages(buf: Buffer, mime: string): Promise<PagePart[]> {
+  if (mime !== "application/pdf") {
+    return [{ mimeType: mime, base64: buf.toString("base64") }];
+  }
+  try {
+    const mupdf: any = await import("mupdf");
+    const doc = mupdf.Document.openDocument(buf, "application/pdf");
+    const n = doc.countPages();
+    const out: PagePart[] = [];
+    for (let i = 0; i < n; i++) {
+      const page = doc.loadPage(i);
+      const b = page.getBounds();
+      const scale = Math.min(PAGE_MAX_SIDE / Math.max(b[2] - b[0], b[3] - b[1]), 3);
+      const pix = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false, true);
+      out.push({ mimeType: "image/jpeg", base64: Buffer.from(pix.asJPEG(80, false)).toString("base64") });
+      pix.destroy();
+    }
+    return out;
+  } catch (e) {
+    console.error("[translateDoc] 쪽 나누기 실패 — 통째로 보낸다:", e);
+    return [{ mimeType: mime, base64: buf.toString("base64") }];
+  }
+}
+
+/** 쪽 하나를 번역. 실패하면 null(그 쪽만 빠지고 나머지는 살린다). */
+async function translateOnePage(
+  page: PagePart, pageNo: number, pageTotal: number,
+  lang: DocLang, learned: GlossaryEntry[], apiKey: string, originalMime: string
+): Promise<{ sections: any[]; docTypeShort?: string; docType?: string; truncated: boolean } | null> {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+    const res = await fetchGeminiWithCompat(url, {
+      systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
+      contents: [{ role: "user", parts: [
+        { text: `This is page ${pageNo} of ${pageTotal}. Transcribe EVERY line on THIS page into ${LANG_NAME[lang]}. Return only JSON.` },
+        { inlineData: { mimeType: page.mimeType, data: page.base64 } },
+      ] }],
+      // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+      generationConfig: {
+        temperature: 0, // 충실 번역 — 창의성 0
+        maxOutputTokens: 16384, // 한 쪽 분량엔 넉넉하다(실측 최대 6,503자)
+        thinkingConfig: { thinkingLevel: "minimal" },
+        responseMimeType: "application/json",
+        responseSchema: RESPONSE_SCHEMA,
+      },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+
+    logAiUsage({
+      surface: "doc_translate",
+      model: MODEL,
+      promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
+      meta: { mime: originalMime, lang, page: pageNo },
+    }).catch(() => {});
+
+    const truncated = json?.candidates?.[0]?.finishReason === "MAX_TOKENS";
+    const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw); } catch { return { sections: [], truncated }; }
+    const secs = Array.isArray(parsed?.sections) ? parsed.sections : [];
+    // 어느 쪽에서 나온 칸인지 표시 — 화면의 쪽 고르기와, 원본 대조 검증의 근거가 된다.
+    // 제목에 «1쪽 ·» 을 붙이지 않는 이유: 화면에 쪽 고르기가 따로 있어 제목만 지저분해진다.
+    secs.forEach((x: any) => {
+      if (x && typeof x === "object") x.page = pageNo;
+    });
+    return { sections: secs, docTypeShort: parsed?.docTypeShort, docType: parsed?.docType, truncated };
+  } catch {
+    return null;
+  }
 }
 
 const CACHE_TABLE = "attachment_translations";
@@ -257,12 +349,12 @@ export async function translateMedicalDoc(opts: {
   // 저장소에서 파일 바이트 로드.
   // 큰 스캔 PDF 는 그대로 넣으면 모델이 요청 자체를 반려한다(실측 137MB → INVALID_ARGUMENT).
   // getAiReadable 이 필요하면 줄여서 준다(130.9MB → 9.0MB, 눈으로 차이 없음). 원본은 안 건드린다.
-  let base64: string;
+  let fileBuf: Buffer;
   let sendMime = mime;
   {
     const doc = await getAiReadable("attachments", opts.path, mime);
     if (!doc.ok) return { ok: false, error: doc.reason === "download_failed" ? "download_failed" : "file_too_large" };
-    base64 = doc.buffer.toString("base64");
+    fileBuf = doc.buffer;
     sendMime = doc.mimeType;
   }
 
@@ -270,60 +362,44 @@ export async function translateMedicalDoc(opts: {
   const learned = await fetchLearnedGlossary();
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-    // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
-    const res = await fetchGeminiWithCompat(url, {
-      systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
-      contents: [{ role: "user", parts: [
-        { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
-        { inlineData: { mimeType: sendMime, data: base64 } },
-      ] }],
-      // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      ],
-      generationConfig: {
-        temperature: 0, // 충실 번역 — 창의성 0
-        maxOutputTokens: 8192,
-        thinkingConfig: { thinkingLevel: "minimal" },
-        responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
-      },
-    });
+    // ⚠️ 문서를 «통째로» 한 번에 번역하면 모델이 스스로 줄인다 — 요약 금지라고 아무리 써도 그렇다.
+    //   2026-08-03 실측(20쪽 진료기록, 같은 모델·같은 설정):
+    //     통째 + 우리 프롬프트  7,072자 / 11칸   ← 원본의 8분의 1
+    //     통째 + 짧은 프롬프트 22,108자 / 20칸
+    //     **쪽별로 나눠 번역   56,246자 / 87칸 / 46초**  ← 채택
+    //   로우 데이터라 «조금 줄이는 것»도 사고다. 쪽을 우리가 세어 돌리면 빠뜨릴 수가 없다.
+    const pages = await splitPages(fileBuf, sendMime);
+    const allSections: any[] = [];
+    let docTypeShort = "";
+    let docType = "";
+    let truncated = false;
 
-    if (!res.ok) return { ok: false, error: "model_http_error" };
-    const json = await res.json();
-
-    // 💰 비용 계측 (fire-and-forget)
-    logAiUsage({
-      surface: "doc_translate",
-      model: MODEL,
-      promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
-      completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
-      meta: { mime, lang },
-    }).catch(() => {});
-
-    const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      // 응답 잘림(대형 문서) 등 → 파싱 실패
-      return { ok: false, error: "parse_error" };
+    // 한 번에 5쪽씩 — 순차로 돌리면 20쪽에 몇 분이 걸린다(실측 5쪽 묶음 = 46초).
+    for (let i = 0; i < pages.length; i += PAGE_BATCH) {
+      const batch = pages.slice(i, i + PAGE_BATCH);
+      const results = await Promise.all(
+        batch.map((pg, k) => translateOnePage(pg, i + k + 1, pages.length, lang, learned, apiKey, mime))
+      );
+      for (const r of results) {
+        if (!r) continue;
+        if (r.truncated) truncated = true;
+        if (!docTypeShort && r.docTypeShort) docTypeShort = r.docTypeShort;
+        if (!docType && r.docType) docType = r.docType;
+        allSections.push(...r.sections);
+      }
     }
 
-    if (!parsed || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
-      return { ok: false, error: "empty_result" };
+    // 「길이 상한에서 끊겼다」를 삼키지 않는다 — 잘린 번역이 «완역»처럼 저장되면 안 된다.
+    if (truncated) {
+      console.error("[translateDoc] 어떤 쪽이 길이 상한에서 끊겼다 — 저장하지 않는다:", opts.path);
+      return { ok: false, error: "too_long" };
     }
+    if (!allSections.length) return { ok: false, error: "empty_result" };
 
     const doc: TranslatedDoc = {
-      docTypeShort: String(parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
-      docType: String(parsed.docType || parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
-      // 방어: 구조화출력이 드물게 null/비객체 원소를 내도 렌더가 안 터지게 거른다.
-      sections: parsed.sections.filter((s: any) => s && typeof s === "object"),
+      docTypeShort: docTypeShort || DEFAULT_DOCTYPE[lang],
+      docType: docType || docTypeShort || DEFAULT_DOCTYPE[lang],
+      sections: allSections.filter((x: any) => x && typeof x === "object"),
     };
 
     // 캐시 저장(강제 재변환이면 기존 코디 수정본 초기화). fire-and-forget — 실패해도 결과는 반환.

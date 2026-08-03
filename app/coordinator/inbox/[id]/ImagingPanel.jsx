@@ -27,7 +27,10 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
   const [errText, setErrText] = useState("");
   const [series, setSeries] = useState([]);
   const [urls, setUrls] = useState({});
-  const [skipped, setSkipped] = useState([]); // 그림이 없어 못 그리는 항목(선량 기록 등)
+  const [skipped, setSkipped] = useState([]); // 그림도 글도 못 뽑은 항목
+  const [docs, setDocs] = useState([]);       // 그림 대신 «글»로 든 기록(선량 기록 등)
+  const [extras, setExtras] = useState([]);   // CD 자체 뷰어·목차 같은 비의료 파일
+  const [docKey, setDocKey] = useState(null); // 글 기록을 보는 중이면 그 key
   const [sIdx, setSIdx] = useState(0);
   const [slice, setSlice] = useState(0);
   const [ww, setWw] = useState(350);
@@ -60,6 +63,7 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
           return;
         }
         setSeries(j.series); setUrls(j.urls); setSkipped(j.skipped || []);
+        setDocs(j.docs || []); setExtras(j.extras || []);
         setWw(j.series[0]?.ww || 350); setWc(j.series[0]?.wc || 40);
         setStage("ready");
       } catch (e) {
@@ -74,7 +78,7 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
   const draw = useCallback(async () => {
     const s = series[sIdx];
     const canvas = canvasRef.current;
-    if (!s || !canvas) return;
+    if (!s || !canvas || docKey) return; // 글 기록을 보는 중이면 그림판이 없다
     const i = Math.min(slice, s.count - 1);
     const key = `${sIdx}-${i}`;
 
@@ -107,10 +111,11 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
       d[q + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
-  }, [series, urls, sIdx, slice, ww, wc]);
+  }, [series, urls, sIdx, slice, ww, wc, docKey]);
   useEffect(() => { draw(); }, [draw]);
 
   const cur = series[sIdx];
+  const curDoc = docKey ? docs.find((d) => d.key === docKey) : null;
   const onWheel = (e) => {
     if (!cur) return;
     e.preventDefault();
@@ -148,22 +153,55 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
             {series.map((s, i) => (
               <button
                 key={s.uid}
-                onClick={() => { setSIdx(i); setSlice(0); setWw(s.ww); setWc(s.wc); }}
+                onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(s.ww); setWc(s.wc); }}
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
-                  i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
+                  !docKey && i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
                 <span className="block truncate">{s.desc}</span>
                 <span className="text-[11px] text-gray-500">{s.modality} · {s.count}장</span>
               </button>
             ))}
+
+            {/* 그림이 아닌 «글» 기록도 같은 자리에서 고른다 — 내려받게 하지 않는다. */}
+            {docs.length > 0 && (
+              <>
+                <p className="text-xs font-semibold text-gray-500 pt-2">글 기록 ({docs.length})</p>
+                {docs.map((d) => (
+                  <button
+                    key={d.key}
+                    onClick={() => setDocKey(d.key)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                      docKey === d.key ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="block truncate">{d.desc}</span>
+                    <span className="text-[11px] text-gray-500">{d.modality || "기록"} · {d.lines.length}줄</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
 
           <div>
-            <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center" onWheel={onWheel}>
-              <canvas ref={canvasRef} className="max-w-full max-h-[60vh]" style={{ imageRendering: "pixelated" }} />
-            </div>
+            {curDoc ? (
+              // 글 기록은 원문 그대로 — 줄여 쓰거나 요약하지 않는다(로우 데이터).
+              <div className="rounded-lg border border-gray-200 bg-white p-3 max-h-[60vh] overflow-auto">
+                <pre className="text-[11.5px] leading-relaxed text-gray-800 whitespace-pre-wrap font-mono">
+                  {curDoc.lines.join("\n")}
+                </pre>
+              </div>
+            ) : (
+              <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center" onWheel={onWheel}>
+                <canvas ref={canvasRef} className="max-w-full max-h-[60vh]" style={{ imageRendering: "pixelated" }} />
+              </div>
+            )}
             <div className="mt-2.5 space-y-2">
+              {curDoc ? (
+                <p className="text-[11px] text-gray-500">
+                  기기가 남긴 기록을 그대로 옮긴 것입니다(요약 아님). 판독은 의료진이 합니다.
+                </p>
+              ) : (
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-20 shrink-0">{slice + 1} / {cur.count}장</span>
                 <input
@@ -172,6 +210,8 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
                   className="flex-1 accent-teal-700" aria-label="장 넘기기"
                 />
               </div>
+              )}
+              {!curDoc && (
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-gray-500 mr-1">밝기 기준</span>
                 {WINDOWS.map((p) => (
@@ -188,17 +228,25 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
                   </button>
                 ))}
               </div>
-              {/* 못 그린 게 있으면 «있다»고 말한다 — 조용히 빼면 «CD 안에 이게 전부»로 착각한다. */}
+              )}
+              {/* 그림도 글도 못 뽑은 게 남았을 때만 경고 — 볼 수 있는 건 위에서 이미 보여준다. */}
               {skipped.length > 0 && (
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                  이 묶음엔 그림이 아닌 기록도 {skipped.reduce((a, b) => a + b.count, 0)}건 들어 있습니다
+                  이 묶음엔 화면에 못 펴는 항목이 {skipped.reduce((a, b) => a + b.count, 0)}건 있습니다
                   ({skipped.map((s) => `${s.desc}${s.modality ? ` · ${s.modality}` : ""}`).join(", ")}) —
-                  화면에 못 그리는 형식이라 원본 묶음을 내려받아 확인하세요.
+                  필요하면 원본 묶음을 내려받아 확인하세요.
                 </p>
               )}
-              <p className="text-[11px] text-gray-500">
-                마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
-              </p>
+              {extras.length > 0 && (
+                <p className="text-[11px] text-gray-400">
+                  CD 에 딸려 온 {extras.map((e) => `${e.kind} ${e.count}건`).join(", ")}은 의료 내용이 아니라 뺐습니다.
+                </p>
+              )}
+              {!curDoc && (
+                <p className="text-[11px] text-gray-500">
+                  마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
+                </p>
+              )}
             </div>
           </div>
         </div>

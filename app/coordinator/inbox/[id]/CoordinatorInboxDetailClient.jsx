@@ -12,6 +12,7 @@ import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
@@ -149,6 +150,22 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   const langLabel = (OUT_LANGS.find((o) => o.key === lang) || {}).label || lang;
   const view = editing && draft ? draft : doc;
 
+  // 쪽 고르기 — 20쪽짜리를 한 줄로 쭉 늘어놓으면 못 본다(PO 요청 2026-08-03).
+  // 번역이 쪽별로 돌아가서 각 칸에 page 가 붙어 있다. 옛 번역엔 없으니 그때는 그냥 다 보여준다.
+  const [pageSel, setPageSel] = useState(1); // 0 = 전체
+  const allSections = view.sections || [];
+  const pageList = [...new Set(allSections.map((s) => s?.page).filter(Boolean))].sort((a, b) => a - b);
+  const curPage = !pageList.length || pageSel === 0 ? 0 : (pageList.includes(pageSel) ? pageSel : pageList[0]);
+  // 편집 저장은 «원래 번호»로 해야 한다 — 걸러낸 순서로 쓰면 엉뚱한 칸이 바뀐다.
+  const shown = allSections
+    .map((s, i) => [s, i])
+    .filter(([s]) => curPage === 0 || s?.page === curPage);
+  const pageStep = (d) => {
+    const at = pageList.indexOf(curPage);
+    const next = pageList[Math.max(0, Math.min(pageList.length - 1, at + d))];
+    if (next) setPageSel(next);
+  };
+
   function startEdit() { setDraft(JSON.parse(JSON.stringify(doc))); setEditing(true); }
   function cancelEdit() { setEditing(false); setDraft(null); }
   function patch(updater) {
@@ -230,8 +247,38 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
       <p className="text-[11px] text-gray-500 mb-3">
         {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
+      {/* 쪽 고르기 — 원본 쪽 번호 그대로. 「전체」는 예전처럼 쭉 이어서 본다(인쇄·복사 전 확인용). */}
+      {pageList.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap mb-3 pb-2.5 border-b border-gray-100">
+          <button onClick={() => pageStep(-1)} disabled={curPage === 0 || curPage === pageList[0]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="이전 쪽">
+            <ChevronLeft size={14} />
+          </button>
+          <div className="flex items-center gap-1 flex-wrap">
+            {pageList.map((p) => (
+              <button key={p} onClick={() => setPageSel(p)}
+                className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
+                  curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                               : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => pageStep(1)} disabled={curPage === 0 || curPage === pageList[pageList.length - 1]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
+            <ChevronRight size={14} />
+          </button>
+          <button onClick={() => setPageSel(curPage === 0 ? pageList[0] : 0)}
+            className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
+              curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+            전체
+          </button>
+          <span className="text-[11px] text-gray-400 ml-auto">원본 {pageList.length}쪽</span>
+        </div>
+      )}
       <div className="space-y-4">
-        {(view.sections || []).map((s, si) => (
+        {shown.map(([s, si]) => (
           <div key={si}>
             {s.title && <div className="text-sm font-semibold text-gray-700 mb-1">{s.title}</div>}
             {s.note != null && s.note !== "" && (
@@ -1205,6 +1252,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                             ? L.atErrFormat
                             : entry.error === "file_too_large"
                             ? L.atErrTooBig
+                            : entry.error === "too_long"
+                            ? L.atErrTooLong
                             : L.atErrTranslate}
                         </p>
                       ) : (

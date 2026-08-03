@@ -74,6 +74,15 @@ if (fake.path) {
   rmObj("attachments", fake.path); // 서버가 이미 지웠어도, 검사가 중간에 깨진 회차를 대비해 한 번 더
 }
 
+// 2-b) 한글·키릴 파일명 — 저장소 키에 아스키 아닌 글자가 남으면 Supabase 가 PUT 을 400 으로 거부한다
+//   (실측 2026-08-03: 서명은 200 으로 내주고 PUT 에서 InvalidKey → 화면엔 「업로드 실패」만 떴다).
+//   여기서 재는 건 «올라가느냐»다. 실패하면 error 가 put_400 으로 찍힌다.
+for (const nm of ["신장_초음파_검사.pdf", "Казакстан Республикасы.pdf"]) {
+  const r = await upload(pdf(1), nm, "application/pdf");
+  check(`파일명이 한글·키릴이어도 업로드됨 (${nm})`, r.ok, r.error || "");
+  if (r.path) rmObj("attachments", r.path);
+}
+
 // 3) 상한 초과 — 서명 단계에서 막혀야 한다
 const over = await post({ phase: "sign", name: "huge.pdf", type: "application/pdf", size: 250 * 1024 * 1024 });
 check("200MB 초과 거부", over.json.error === "file_too_large", over.json.error || "");
