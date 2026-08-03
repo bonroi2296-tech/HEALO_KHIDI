@@ -3710,7 +3710,7 @@ export default function ConsultationRoomPage() {
                 <button
                   type="button"
                   onClick={chatScroll.jumpToBottom}
-                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold shadow-lg"
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-lg"
                 >
                   ↓ {c.newBelow}
                 </button>
@@ -3852,7 +3852,7 @@ export default function ConsultationRoomPage() {
                 <button
                   type="button"
                   onClick={transScroll.jumpToBottom}
-                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold shadow-lg"
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-lg"
                 >
                   ↓ {c.newBelow}
                 </button>
