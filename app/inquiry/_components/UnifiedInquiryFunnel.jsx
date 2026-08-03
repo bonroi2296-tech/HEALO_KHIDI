@@ -16,6 +16,7 @@ import {
   Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
@@ -111,6 +112,9 @@ const LANG_NAMES = {
 function tl(key, lang) {
   return t("inquiryFunnel." + key, lang);
 }
+
+// 큰 자료는 쪼개서 올리게 되므로 5개는 좁다(문의 #60: 131MB PDF). 서버 검증(step2)도 같은 10개.
+const MAX_ATTACHMENTS = 10;
 
 // ─── 컴포넌트 ───────────────────────────────────────────────────────
 export default function UnifiedInquiryFunnel() {
@@ -368,17 +372,16 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── 파일 업로드 ─────────────────────────────────────────────────
   async function handleFileAdd(files) {
-    const remaining = 5 - uploadedFiles.length;
+    const remaining = MAX_ATTACHMENTS - uploadedFiles.length;
     if (remaining <= 0) { setError(tl("tooManyFiles", lang)); return; }
     const toUpload = Array.from(files).slice(0, remaining);
 
     for (const file of toUpload) {
-      if (file.size > 10 * 1024 * 1024) { setError(tl("fileTooLarge", lang)); continue; }
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!data.ok) { setError(tl("uploadError", lang)); continue; }
+      const data = await uploadAttachment(file);
+      if (!data.ok) {
+        setError(tl(data.error === "file_too_large" ? "fileTooLarge" : "uploadError", lang));
+        continue;
+      }
       setUploadedFiles((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
     }
   }

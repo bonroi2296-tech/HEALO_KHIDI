@@ -67,6 +67,7 @@ import {
   RECORDING_ROLES,
 } from "@/lib/consultation/recording";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
@@ -2331,20 +2332,18 @@ export default function ConsultationRoomPage() {
       try {
         const headers = await getConsultAuthHeaders();
         if (!headers) return;
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("documentType", "other");
-        const res = await fetch(`/api/khidi/consultation/${consultationId}/documents`, {
-          method: "POST",
-          headers, // Content-Type 는 FormData 가 boundary 포함해 자동 설정
-          body: formData,
-        });
-        const result = await res.json();
-        if (res.ok && result.ok) {
+        const authFetch = (url, init) => fetch(url, { ...init, headers: { ...init.headers, ...headers } });
+        const result = await uploadDirect(
+          `/api/khidi/consultation/${consultationId}/documents`,
+          file,
+          { documentType: "other" },
+          { fetch: authFetch }
+        );
+        if (result.ok) {
           skipNextDocToastRef.current = true; // 내 업로드는 알림 안 띄움
           await loadSharedDocs();
         } else {
-          toast.error(`${c.uploadFailed}: ${result.error || res.status}`);
+          toast.error(`${c.uploadFailed}: ${result.error}`);
         }
       } catch {
         toast.error(c.uploadFailed);

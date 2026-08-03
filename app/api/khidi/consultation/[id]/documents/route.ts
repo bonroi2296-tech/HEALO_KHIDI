@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from '@/lib/data/supabaseServerClient';
 import { uploadLimiter } from '@/lib/api/rateLimiter';
 import { sanitizeString } from '@/lib/api/sanitize';
 import { resolveConsultationActor } from '@/lib/auth/requireConsultationAccess';
-import { verifyFileMagic } from '@/lib/security/fileMagic';
+import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from '@/lib/storage/directUpload';
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -13,7 +13,9 @@ const ALLOWED_TYPES = [
   'application/dicom',
 ];
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
+// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다.
+const MAX_SIZE = 50 * 1024 * 1024;
 
 /**
  * POST /api/khidi/consultation/[id]/documents
@@ -34,60 +36,45 @@ export async function POST(
     const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const documentType = sanitizeString(formData.get('documentType') as string, 50) || 'other';
-    const description = sanitizeString(formData.get('description') as string, 500);
-
-    if (!file) {
-      return NextResponse.json({ ok: false, error: 'No file provided' }, { status: 400 });
-    }
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { ok: false, error: `File type not allowed. Accepted: ${ALLOWED_TYPES.join(', ')}` },
-        { status: 400 },
-      );
-    }
-
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { ok: false, error: `File too large. Max size: ${MAX_SIZE / 1024 / 1024}MB` },
-        { status: 400 },
-      );
-    }
+    const body = await request.json();
+    const documentType = sanitizeString(body.documentType, 50) || 'other';
+    const description = sanitizeString(body.description, 500);
 
     const supabase = getSupabaseServerClient();
+    const dir = `consultations/${consultationId}`;
 
-    // Upload to Supabase Storage
-    const ext = file.name.split('.').pop() || 'bin';
-    const storagePath = `consultations/${consultationId}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Magic bytes 검증 — declared content-type 와 실제 파일 헤더가 일치하는지 확인.
-    // `.pdf.exe` 같은 확장자 위장이나 content-type spoofing 차단.
-    const magicCheck = verifyFileMagic(buffer, file.type);
-    if (!magicCheck.ok) {
-      console.warn(
-        `[DocumentUpload] magic check failed: file=${file.name} declared=${file.type} reason=${magicCheck.reason}`
-      );
-      return NextResponse.json(
-        { ok: false, error: 'File content does not match declared type' },
-        { status: 400 }
-      );
+    // ── 1단계: 서명 URL 발급 ──
+    if (body.phase !== 'commit') {
+      const signed = await issueUploadUrl(body, {
+        bucket: 'documents',
+        dir,
+        allowed: ALLOWED_TYPES,
+        maxBytes: MAX_SIZE,
+      });
+      if (!signed.ok) {
+        return NextResponse.json(
+          { ok: false, error: signed.error, detail: signed.detail },
+          { status: signed.status },
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        signedUrl: signed.signedUrl,
+        path: signed.path,
+        name: signed.name,
+        type: signed.type,
+      });
     }
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('[DocumentUpload] Storage error:', uploadError);
-      return NextResponse.json({ ok: false, error: 'Failed to upload file' }, { status: 500 });
+    // ── 2단계: 올라간 파일 검증 + 기록 저장 ──
+    const storagePath = String(body.path || '');
+    if (!isOwnPath(dir, storagePath)) {
+      return NextResponse.json({ ok: false, error: 'invalid_path' }, { status: 400 });
+    }
+    const fileType = normalizeMime(storagePath, String(body.type || ''));
+    const verified = await verifyUploaded('documents', storagePath, fileType, MAX_SIZE);
+    if (!verified.ok) {
+      return NextResponse.json({ ok: false, error: verified.error }, { status: 400 });
     }
 
     // Save metadata to DB
@@ -95,9 +82,9 @@ export async function POST(
       .from('consultation_documents')
       .insert({
         consultation_id: consultationId,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
+        file_name: sanitizeString(body.name, 200),
+        file_type: fileType,
+        file_size: verified.size, // 선언값이 아니라 실제 저장된 크기
         storage_path: storagePath,
         document_type: documentType,
         description,
