@@ -887,6 +887,15 @@ const BACKOFFICE_SHARED = [
 //     (배경 306회 vs 24회 = 12.75배 / 글씨 625회 vs 54회 = 11.6배) 문서만 뒤처져 있었다.
 //     문서만 고치면 또 샌다 — CLAUDE.md 「기계로 잴 수 있으면 자동검사로 박아라」에 따라 여기에 박는다.
 // 범위: bg-teal-600 · text-teal-600 만. border-teal-600 은 UI 요소 기준 3:1 을 넘으므로(3.74) 통과.
+//
+// ⚠️ 2026-07-31 자기정정 — 이 가드의 «권하는 답»이 어두운 화면에선 정반대가 된다.
+//    화상상담 방(app/consultation)은 bg-gray-800/900 인데, 거기서는
+//      teal-700 = 2.68~3.24 (⛔ 미달)  ·  teal-500 = 5.90~7.13 ✅  ·  teal-400 = 7.89~9.53 ✅
+//    즉 «무조건 teal-700» 은 밝은 화면에서만 옳다. 그래서 안내 문구를 두 갈래로 나눈다.
+//    다만 «버튼 채움색»은 페이지 배경과 무관하다 — 흰 글씨 vs 채움색의 대비라서
+//    흰 글씨 버튼은 어두운 화면에서도 teal-700(5.47) 이 정답이다.
+//    (DESIGN.md 4-b 가 «흰/연회색 배경 전제다. 어두운 배경은 예외를 명시하라»고 미리 경고해 둔 그 지점.)
+const DARK_SURFACE_DIRS = ["app/consultation/"];
 // 🧊 기존 31개 파일은 «기준선으로 동결»한다 — DESIGN.md change_authority 가 「기존 페이지 디자인
 //     자동 변경 금지」라서 일괄 수정은 PO 지시가 있어야 한다. 이 가드는 «새로 늘어나는 것»만 막는다.
 //     그 31개를 실제로 고칠 때는 이 목록에서 해당 줄을 지워라(다시 늘면 그때부터 막힌다).
@@ -935,10 +944,17 @@ const TEAL600_FROZEN = new Set([
       const m = TEAL600_RE.exec(text);
       if (!m) continue;
       const line = text.slice(0, m.index).split("\n").length;
+      const isDark = DARK_SURFACE_DIRS.some((d) => rel.startsWith(d));
+      const 처방 = m[0].startsWith("bg-")
+        ? `버튼·면 «채움색»은 페이지 배경과 무관하다(흰 글씨 vs 채움색 대비) → bg-teal-700(흰 글씨 5.47:1), 호버 bg-teal-800(7.58:1).`
+        : isDark
+          ? `⚠️ 여기는 «어두운 화면»(bg-gray-800/900)이라 teal-700 은 오히려 2.68~3.24 로 더 미달이다. ` +
+            `글씨·아이콘 색은 teal-400(7.89~9.53) 또는 teal-500(5.90~7.13) 을 쓸 것.`
+          : `글씨는 text-teal-700(5.47:1) 을 쓸 것.`;
       errors.push(
         `[주색미달] ${rel}:${line} — ${m[0]} 사용. teal-600 은 흰 배경 글씨도, 흰 글씨를 얹은 배경도 3.74:1 로 ` +
-          `WCAG AA(4.5:1) 미달이다. 주색은 teal-700(5.47:1), 호버는 teal-800(7.58:1) 을 쓸 것 ` +
-          `(DESIGN.md colors.primary · 실물 시안 docs/design/기본톤_시안.html).`,
+          `WCAG AA(4.5:1) 미달이다. ${처방} ` +
+          `(DESIGN.md colors.primary · 실물 시안 docs/design/기본톤_시안.html)`,
       );
     }
   }

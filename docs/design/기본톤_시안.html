@@ -167,6 +167,28 @@
     </div>
   </div>
 
+  <h3>⚠️ 어두운 화면에서는 순서가 <u>뒤집힌다</u> — 화상상담 방</h3>
+  <p class="lede">위 규칙은 전부 <b>흰/연회색 배경 전제</b>다. 화상상담 방(<code>bg-gray-800/900</code>)에서는 정반대가 된다.</p>
+  <div class="grid g2">
+    <div class="ex ok" style="background:#111827;border-color:#374151">
+      <header style="color:#6ee7b7"><span class="tag" style="background:#064e3b;color:#6ee7b7">어두운 화면 기준</span> 글씨·아이콘</header>
+      <div style="color:#2dd4bf">teal-400 — 9.53:1 ✅ (권장)</div>
+      <div style="color:#14b8a6">teal-500 — 7.13:1 ✅</div>
+      <div style="color:#0d9488">teal-600 — 4.74:1 (본문은 통과, 작은 글씨는 아슬)</div>
+      <div style="color:#0f766e">teal-700 — 3.24:1 ⛔ <b>밝은 화면의 정답이 여기선 미달</b></div>
+      <span class="cls" style="color:#9ca3af">bg-gray-900 위 · 글씨·아이콘은 text-teal-400 / text-teal-500</span>
+    </div>
+    <div class="ex ok" style="background:#111827;border-color:#374151">
+      <header style="color:#6ee7b7"><span class="tag" style="background:#064e3b;color:#6ee7b7">예외의 예외</span> 버튼 «채움색»</header>
+      <div style="color:#e5e7eb;font-size:13px;margin-bottom:10px">채움색은 <b>흰 글씨 vs 채움색</b> 대비라 페이지 배경과 무관하다 — 어두운 화면에서도 teal-700 이 정답.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary">다시 입장</button>
+        <button class="btn" style="background:var(--teal-600);color:#fff">teal-600 ⛔ 3.74</button>
+      </div>
+      <span class="cls" style="color:#9ca3af">bg-teal-700 hover:bg-teal-800 text-white — 밝은 화면과 같다</span>
+    </div>
+  </div>
+
   <h3>배경이 흰색이 아닐 때 — 한 단계 더 진하게</h3>
   <div class="grid g2">
     <div class="ex no" style="background:var(--gray-100)"><header><span class="tag">미달</span> 회색 배경 위 gray-500</header>
@@ -345,6 +367,8 @@
     <tr><td>배경 강조</td><td><code>bg-teal-50</code> + <code>border-teal-100</code></td><td>그라데이션 배경</td></tr>
     <tr><td>본문 글씨</td><td><code>text-gray-900</code> / 보조 <code>text-gray-500</code></td><td><code>text-gray-400</code>(아이콘 전용)</td></tr>
     <tr><td>흰색 아닌 배경 위 글씨</td><td><code>text-gray-600</code></td><td><code>text-gray-500</code>(4.39 미달)</td></tr>
+    <tr><td><b>어두운 화면</b>(화상상담 방) 글씨·아이콘</td><td><code>text-teal-400</code> / <code>text-teal-500</code></td><td><code>text-teal-700</code>(3.24 미달 — 밝은 화면의 정답이 여기선 틀리다)</td></tr>
+    <tr><td>어두운 화면 <b>버튼 채움색</b></td><td><code>bg-teal-700</code> (밝은 화면과 같다)</td><td><code>bg-teal-600</code>·<code>bg-teal-500</code></td></tr>
     <tr><td>모서리</td><td><code>rounded-xl</code> (큰 카드만 <code>2xl</code>)</td><td><code>rounded-3xl</code></td></tr>
     <tr><td>그림자</td><td>카드 <code>sm</code> · 호버 <code>md</code> · 떠 있는 것 <code>lg</code> · 모달 <code>xl</code></td><td><code>shadow-2xl</code>, 카드에 <code>lg</code> 이상</td></tr>
     <tr><td>전환</td><td><code>transition-all duration-200</code></td><td><code>duration-500+</code>, <code>scale</code>, <code>rotate</code></td></tr>
