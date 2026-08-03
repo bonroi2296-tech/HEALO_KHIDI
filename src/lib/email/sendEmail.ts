@@ -24,6 +24,12 @@ export interface SendEmailOptions {
   text?: string;               // HTML 클라이언트 미지원 시 대체
   replyTo?: string;
   tags?: Record<string, string>; // 추적용 메타데이터
+  /**
+   * 첨부파일 (예: 일정 파일 .ics).
+   * ⚠️ Resend 경로에서만 나간다 — SES 는 단순 발송(SendEmail) 이라 첨부를 못 싣는다.
+   *    SES 로 떨어지면 첨부는 조용히 빠지고 경고만 남는다(본문은 정상 발송).
+   */
+  attachments?: { filename: string; content: string; contentType?: string }[];
 }
 
 export interface SendEmailResult {
@@ -48,6 +54,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
         html: opts.html,
         text: opts.text,
         replyTo: opts.replyTo,
+        attachments: opts.attachments?.map((a) => ({
+          filename: a.filename,
+          content: Buffer.from(a.content, "utf8"),
+          contentType: a.contentType,
+        })),
         tags: opts.tags
           ? Object.entries(opts.tags).map(([name, value]) => ({ name, value }))
           : undefined,
@@ -79,6 +90,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
           secretAccessKey: sesSecretKey,
         },
       });
+      if (opts.attachments?.length) {
+        console.warn(
+          `[email/ses] 첨부 ${opts.attachments.length}건은 SES 단순 발송으로 못 싣는다 — 본문만 나간다`
+        );
+      }
       const cmd = new SendEmailCommand({
         Source: sesFrom,
         Destination: { ToAddresses: toArr },

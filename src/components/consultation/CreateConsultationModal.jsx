@@ -8,11 +8,7 @@
 import { useState, useEffect } from "react";
 import { Video, X } from "lucide-react";
 import { KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
-import {
-  PATIENT_TIMEZONES,
-  timezoneCountryLabel,
-  LANG_DEFAULT_TZ,
-} from "@/lib/consultation/patientTimezones";
+import { PATIENT_TIMEZONES, timezoneCountryLabel } from "@/lib/consultation/patientTimezones";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
@@ -53,7 +49,7 @@ const TR = {
     emailSentToTpl: "✉️ 초대장 보냄: {list}", emailNotSent: "✉️ 이메일을 안 넣어 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
     lblPatientCountry: "상대 국가 (선택)", patientCountryNone: "— 안 고름 (메일에 한국 시각 + UTC) —",
-    patientCountryHint: "고르면 초대·리마인더 메일에 그 나라 현지 시각이 같이 적힙니다. 받는 사람이 환산할 필요가 없어집니다.",
+    patientCountryHint: "안 골라도 됩니다 — 메일에 일정 파일이 함께 나가고, 받는 사람 달력이 «그 사람 시간»으로 표시합니다. 상대 나라를 확실히 알 때만 고르세요(메일 본문에도 현지 시각이 적힙니다).",
     lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
     notesInquiryPrefix: "문의",
     btnCancel: "취소", btnSubmitting: "생성 중…", btnSubmit: "상담 예약 생성",
@@ -85,7 +81,7 @@ const TR = {
     emailSentToTpl: "✉️ Invitation sent to: {list}", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
     lblPatientCountry: "Recipient's country (optional)", patientCountryNone: "— Not set (email shows Korea time + UTC) —",
-    patientCountryHint: "If set, the invite and reminder emails also show the local time in that country — no conversion needed by the recipient.",
+    patientCountryHint: "Optional — a calendar file is attached to the email, so the recipient's calendar already shows it in their own time. Pick a country only if you are sure (the email body then also shows that local time).",
     lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
     notesInquiryPrefix: "Inquiry",
     btnCancel: "Cancel", btnSubmitting: "Creating…", btnSubmit: "Schedule consultation",
@@ -117,7 +113,7 @@ const TR = {
     emailSentToTpl: "✉️ Приглашение отправлено: {list}", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
     lblPatientCountry: "Страна получателя (необязательно)", patientCountryNone: "— Не выбрано (в письме время Кореи + UTC) —",
-    patientCountryHint: "Если выбрать, в приглашении и напоминании будет указано местное время этой страны — получателю не придётся пересчитывать.",
+    patientCountryHint: "Необязательно — к письму прикладывается файл календаря, и календарь получателя сам покажет время в его часовом поясе. Выбирайте страну, только если уверены (тогда местное время будет и в тексте письма).",
     lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
     notesInquiryPrefix: "Заявка",
     btnCancel: "Отмена", btnSubmitting: "Создание…", btnSubmit: "Запланировать консультацию",
@@ -149,7 +145,7 @@ const TR = {
     emailSentToTpl: "✉️ Шақыру жіберілді: {list}", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
     lblPatientCountry: "Алушының елі (міндетті емес)", patientCountryNone: "— Таңдалмаған (хатта Корея уақыты + UTC) —",
-    patientCountryHint: "Таңдасаңыз, шақыру мен еске салу хатында сол елдің жергілікті уақыты да көрсетіледі — алушыға есептеудің қажеті жоқ.",
+    patientCountryHint: "Міндетті емес — хатқа күнтізбе файлы тіркеледі, алушының күнтізбесі уақытты өз белдеуінде көрсетеді. Елді тек сенімді болсаңыз таңдаңыз (сонда жергілікті уақыт хат мәтінінде де болады).",
     lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
     notesInquiryPrefix: "Өтінім",
     btnCancel: "Бас тарту", btnSubmitting: "Жасалуда…", btnSubmit: "Кеңесті жоспарлау",
@@ -181,7 +177,7 @@ const TR = {
     emailSentToTpl: "✉️ 已发送邀请：{list}", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
     lblPatientCountry: "对方所在国家（可选）", patientCountryNone: "— 未选择（邮件仅显示韩国时间 + UTC）—",
-    patientCountryHint: "选择后，邀请与提醒邮件会同时标注该国当地时间，收件人无需自行换算。",
+    patientCountryHint: "可不选 — 邮件会附带日历文件，收件人的日历会自动按其所在时区显示。仅在确定对方国家时才选择（届时邮件正文也会标注当地时间）。",
     lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
     notesInquiryPrefix: "咨询",
     btnCancel: "取消", btnSubmitting: "创建中…", btnSubmit: "创建会诊预约",
@@ -213,7 +209,7 @@ const TR = {
     emailSentToTpl: "✉️ 招待状を送信: {list}", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
     lblPatientCountry: "相手の国（任意）", patientCountryNone: "— 未選択（メールは韓国時間 + UTC のみ）—",
-    patientCountryHint: "選ぶと招待・リマインダーメールにその国の現地時刻も併記されます。受け取る側が換算する必要がなくなります。",
+    patientCountryHint: "任意です — メールにカレンダーファイルが添付され、受信者のカレンダーが各自の時間帯で表示します。相手の国が確実な場合だけ選んでください（その場合は本文にも現地時刻を併記）。",
     lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
     notesInquiryPrefix: "問い合わせ",
     btnCancel: "キャンセル", btnSubmitting: "作成中…", btnSubmit: "相談予約を作成",
@@ -279,9 +275,10 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       scheduled_at: d.toISOString().slice(0, 16),
       // 언어는 화면에서 고르지 않는다 — 문의를 고르면 그 환자 언어로 자동(없으면 러시아어).
       patient_language: "ru",
-      // 상대 국가(시간대) — 메일에 현지 시각을 적기 위해. 문의를 고르면 언어로 첫 추측을 넣고
-      // 코디가 고쳐 쓴다(러시아어 = 러시아라는 보장이 없다 — 그래서 화면에서 고르게 한다).
-      patient_timezone: LANG_DEFAULT_TZ.ru,
+      // 상대 국가(시간대) — «아는 경우에만» 고르는 칸. 기본은 비움.
+      // ⛔ 언어로 자동 추측하지 않는다: 러시아어 쓰는 카자흐 환자가 많아 추측이 곧 «틀린 시각»이 된다.
+      //    비워 두면 메일엔 한국 시각 + UTC 가 나가고, 첨부한 일정 파일이 각자 시간대로 그려준다.
+      patient_timezone: "",
       notes: "",
       // 통합 초대 링크 1개(role=guest) — 환자·의사 등 모두 이 링크로 입장.
       // inviteeName/Email 은 자동 발송용 대표 수신자(보통 환자).
@@ -345,8 +342,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       selected_inquiry_id: inquiryId,
       inviteeName: inq.name && inq.name !== "(이름 미상)" ? inq.name : f.inviteeName,
       patient_language: inq.preferred_language || f.patient_language,
-      // 언어로 국가를 «추측»만 한다 — 러시아어 쓰는 카자흐 환자가 많아 그대로 믿으면 안 된다.
-      patient_timezone: LANG_DEFAULT_TZ[inq.preferred_language] || f.patient_timezone,
       notes: f.notes || `${tt("notesInquiryPrefix")} #${inq.id} · ${inq.nationality || ""} · ${inq.cancer_type || ""}`.trim(),
     }));
     // 이메일은 암호화돼 있어 picker 목록엔 없음 → 단건 상세 API로 복호화해 자동 채움(자동 발송용)
