@@ -84,6 +84,13 @@ if (process.env.COOKIE !== "show") {
   await context.addInitScript(() => { try { localStorage.setItem("healo_cookie_consent", "all"); } catch {} });
 }
 const page = await context.newPage();
+
+// 로그인 뒤 화면을 훑을 때: LOGIN_LINK 로 «임시 입장 링크»를 받아 먼저 들어간다.
+// (비밀번호를 치지 않는다 — 서버 열쇠로 만든 1회용 링크다.)
+if (process.env.LOGIN_LINK) {
+  await page.goto(process.env.LOGIN_LINK, { waitUntil: "networkidle", timeout: 60000 });
+  await page.waitForTimeout(2000);
+}
 fs.mkdirSync(OUT, { recursive: true });
 
 const report = [];
