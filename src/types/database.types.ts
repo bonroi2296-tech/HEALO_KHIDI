@@ -1583,6 +1583,7 @@ export type Database = {
           partner_doctor_id: string | null
           patient_id: string | null
           patient_language: string | null
+          patient_timezone: string | null
           patient_user_id: string | null
           recommendations: string | null
           recommendations_encrypted: string | null
@@ -1621,6 +1622,7 @@ export type Database = {
           partner_doctor_id?: string | null
           patient_id?: string | null
           patient_language?: string | null
+          patient_timezone?: string | null
           patient_user_id?: string | null
           recommendations?: string | null
           recommendations_encrypted?: string | null
@@ -1659,6 +1661,7 @@ export type Database = {
           partner_doctor_id?: string | null
           patient_id?: string | null
           patient_language?: string | null
+          patient_timezone?: string | null
           patient_user_id?: string | null
           recommendations?: string | null
           recommendations_encrypted?: string | null

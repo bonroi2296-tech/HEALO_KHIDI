@@ -176,7 +176,7 @@ async function dispatchEmail(
   // 세션 정보 조회 (예약 시각, 의사/병원 이름)
   const { data: session } = await supabaseAdmin
     .from("consultation_sessions")
-    .select("scheduled_at, patient_language, doctor_id")
+    .select("scheduled_at, patient_language, patient_timezone, doctor_id")
     .eq("id", row.consultation_session_id)
     .single();
 
@@ -196,6 +196,11 @@ async function dispatchEmail(
     joinUrl,
     scheduledAt,
     role: payload.role ?? "guest",
+    // 상대 국가를 골라 뒀으면 «그 나라 현지 시각»도 같이 (스태프 메일엔 불필요)
+    patientTimezone:
+      payload.role === "doctor" || payload.role === "coordinator"
+        ? null
+        : (session as any)?.patient_timezone,
     lang: ["ko", "en", "ru", "kk", "zh", "ja"].includes(lang) ? lang : "ko",
   });
 

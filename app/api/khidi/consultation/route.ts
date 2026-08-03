@@ -28,6 +28,7 @@ import {
   backfillSessionNotesEncryption,
 } from "@/lib/khidi/consultationNotes";
 import { isValidSessionType } from "@/lib/consultation/sessionTypes";
+import { isPatientTimezone } from "@/lib/consultation/patientTimezones";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +46,9 @@ export async function POST(request: NextRequest) {
     const coordinatorId = payload.coordinatorId ?? payload.coordinator_user_id;
     const translatorId = payload.translatorId ?? payload.translator_id;
     const patientLanguage = payload.patientLanguage ?? payload.patient_language;
+    // 상대 국가 시간대 — 초대·리마인더 메일에 현지 시각을 적기 위해. 목록에 없는 값은 버린다.
+    const patientTimezoneRaw = payload.patientTimezone ?? payload.patient_timezone;
+    const patientTimezone = isPatientTimezone(patientTimezoneRaw) ? patientTimezoneRaw : null;
     const doctorLanguage = payload.doctorLanguage ?? payload.doctor_language;
     const notes = payload.notes;
     // 코디가 지정한 병원·제휴의사 (드롭다운) — 과거엔 insertData 에서 누락돼 저장 안 됨.
@@ -145,6 +149,7 @@ export async function POST(request: NextRequest) {
       session_type: sessionType,
       scheduled_at: scheduledAt,
       patient_language: patientLanguage || "ru",
+      patient_timezone: patientTimezone,
       doctor_language: doctorLanguage || "ko",
       status: "scheduled",
       livekit_room_name: liveroomName,
