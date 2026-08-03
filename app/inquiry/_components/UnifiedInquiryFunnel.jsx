@@ -16,6 +16,7 @@ import {
   Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
@@ -111,6 +112,9 @@ const LANG_NAMES = {
 function tl(key, lang) {
   return t("inquiryFunnel." + key, lang);
 }
+
+// 큰 자료는 쪼개서 올리게 되므로 5개는 좁다(문의 #60: 131MB PDF). 서버 검증(step2)도 같은 10개.
+const MAX_ATTACHMENTS = 10;
 
 // ─── 컴포넌트 ───────────────────────────────────────────────────────
 export default function UnifiedInquiryFunnel() {
@@ -368,17 +372,16 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── 파일 업로드 ─────────────────────────────────────────────────
   async function handleFileAdd(files) {
-    const remaining = 5 - uploadedFiles.length;
+    const remaining = MAX_ATTACHMENTS - uploadedFiles.length;
     if (remaining <= 0) { setError(tl("tooManyFiles", lang)); return; }
     const toUpload = Array.from(files).slice(0, remaining);
 
     for (const file of toUpload) {
-      if (file.size > 10 * 1024 * 1024) { setError(tl("fileTooLarge", lang)); continue; }
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!data.ok) { setError(tl("uploadError", lang)); continue; }
+      const data = await uploadAttachment(file);
+      if (!data.ok) {
+        setError(tl(data.error === "file_too_large" ? "fileTooLarge" : "uploadError", lang));
+        continue;
+      }
       setUploadedFiles((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
     }
   }
@@ -515,7 +518,25 @@ export default function UnifiedInquiryFunnel() {
 
   // Phase: step1-success
   if (phase === "step1-success") {
-    const langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    // 문장 «안»에 들어가는 언어 이름은 화면 언어로 번역돼야 한다.
+    // 전엔 어느 화면에서든 그 언어의 제 이름(Русский·Қазақша…)을 그대로 넣어서
+    // 한국어 화면에 «Русский로 연락드립니다» 처럼 글자가 섞여 나왔다(2026-07-31 실측).
+    // 표를 6개 언어×6개로 늘리는 대신 브라우저가 가진 언어 이름을 쓴다(ko 화면 → «러시아어»).
+    // 목록(선택 버튼)에서는 제 이름을 보여주는 게 맞으므로 LANG_NAMES 는 그대로 둔다.
+    let langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    try {
+      // ⚠️ 우리 코드 «kz» 는 국제 표기가 아니다(카자흐어 = kk). 그대로 넣으면 브라우저가
+      //    이름을 못 찾아 «kz» 를 되돌려준다 — 고친 게 더 나빠지는 자리라 여기서 갈아끼운다.
+      const BCP47 = { kz: "kk" };
+      const uiCode = BCP47[lang] || lang;
+      // ⚠️ 브라우저가 그 화면 언어를 «모르면»(예: 카자흐어) 조용히 다른 언어 이름을 내놓는다
+      //    (실측: 카자흐어 화면인데 «한국어·러시아어»가 한글로 나왔다). 지원 여부부터 확인한다.
+      const supported = Intl.DisplayNames.supportedLocalesOf([uiCode]).length > 0;
+      const code = BCP47[form1.preferredLanguage] || form1.preferredLanguage;
+      const shown = supported ? new Intl.DisplayNames([uiCode], { type: "language" }).of(code) : null;
+      // 못 찾으면 코드를 그대로 돌려준다 → 그 경우엔 제 이름(Қазақша)이 낫다.
+      if (shown && shown.toLowerCase() !== code.toLowerCase()) langName = shown;
+    } catch { /* 아주 옛 브라우저 → 제 이름으로 폴백 */ }
     const successMsg = tl("successBody", lang).replace("{lang}", langName);
 
     return (

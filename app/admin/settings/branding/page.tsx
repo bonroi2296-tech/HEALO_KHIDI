@@ -300,7 +300,7 @@ export default function BrandingSettingsPage() {
             <div>
               <h2 className="text-lg font-bold text-gray-900">히어로 배경 이미지</h2>
               <p className="text-sm text-gray-500 mt-1">
-                홈페이지 히어로 섹션 배경 (JPEG/PNG/WebP, 최대 8MB, 1920x1080 권장)
+                홈페이지 히어로 섹션 배경 (JPEG/PNG/WebP, 최대 4MB, 1920x1080 권장)
               </p>
             </div>
           </div>
@@ -364,7 +364,7 @@ export default function BrandingSettingsPage() {
                     <div className="flex flex-col items-center gap-2">
                       <Upload size={32} className="text-purple-600" />
                       <p className="text-sm text-purple-700 font-medium">파일 선택</p>
-                      <p className="text-xs text-gray-500">JPEG, PNG, WebP (최대 8MB)</p>
+                      <p className="text-xs text-gray-500">JPEG, PNG, WebP (최대 4MB)</p>
                     </div>
                   )}
                 </label>

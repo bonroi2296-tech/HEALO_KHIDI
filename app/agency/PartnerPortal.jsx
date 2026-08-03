@@ -15,6 +15,7 @@ import {
   Link2, Check,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadAttachment, uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { STAGES, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
@@ -252,7 +253,7 @@ const TR_FORM2 = {
     phSex: "성별", optMale: "남성", optFemale: "여성", phBirthYear: "출생연도 (예: 1968)",
     phStage: "병기 (예: II기 / Stage II)", phDiagnosisDate: "진단 시기 (예: 2025-03)",
     phDiagnosedHospital: "진단받은 병원·지역", phPriorTreatment: "기존 치료 이력 (수술·항암·방사선 등)",
-    docsHint: "환자 차트·진단서·검사결과 등 — PDF·이미지·Word, 각 10MB",
+    docsHint: "환자 차트·진단서·검사결과 등 — PDF·이미지·Word, 각 50MB",
     docAdd: "+ 파일 추가", docUploading: "파일 올리는 중…", docRemove: "삭제",
     catChart: "환자 차트", catDiagnosis: "진단서", catTest: "검사결과", catOther: "기타",
     errUpload: "파일 업로드 실패. 다시 시도해 주세요.",
@@ -263,7 +264,7 @@ const TR_FORM2 = {
     phSex: "Sex", optMale: "Male", optFemale: "Female", phBirthYear: "Birth year (e.g. 1968)",
     phStage: "Stage (e.g. Stage II)", phDiagnosisDate: "Diagnosed (e.g. 2025-03)",
     phDiagnosedHospital: "Diagnosing hospital / region", phPriorTreatment: "Prior treatment (surgery, chemo, radiation…)",
-    docsHint: "Patient chart, diagnosis, test results — PDF / image / Word, 10MB each",
+    docsHint: "Patient chart, diagnosis, test results — PDF / image / Word, 50MB each",
     docAdd: "+ Add file", docUploading: "Uploading files…", docRemove: "Remove",
     catChart: "Patient chart", catDiagnosis: "Diagnosis report", catTest: "Test result", catOther: "Other",
     errUpload: "File upload failed. Please try again.",
@@ -274,7 +275,7 @@ const TR_FORM2 = {
     phSex: "Пол", optMale: "Мужской", optFemale: "Женский", phBirthYear: "Год рождения (напр. 1968)",
     phStage: "Стадия (напр. Stage II)", phDiagnosisDate: "Дата диагноза (напр. 2025-03)",
     phDiagnosedHospital: "Больница / регион диагноза", phPriorTreatment: "Предыдущее лечение (операция, химио, лучевая…)",
-    docsHint: "Карта пациента, диагноз, результаты анализов — PDF / изображение / Word, до 10МБ каждый",
+    docsHint: "Карта пациента, диагноз, результаты анализов — PDF / изображение / Word, до 50МБ каждый",
     docAdd: "+ Добавить файл", docUploading: "Загрузка файлов…", docRemove: "Удалить",
     catChart: "Карта пациента", catDiagnosis: "Заключение", catTest: "Результат анализа", catOther: "Другое",
     errUpload: "Не удалось загрузить файл. Попробуйте ещё раз.",
@@ -285,7 +286,7 @@ const TR_FORM2 = {
     phSex: "Жынысы", optMale: "Ер", optFemale: "Әйел", phBirthYear: "Туған жылы (мыс. 1968)",
     phStage: "Сатысы (мыс. Stage II)", phDiagnosisDate: "Диагноз қойылған кез (мыс. 2025-03)",
     phDiagnosedHospital: "Диагноз қойылған аурухана / аймақ", phPriorTreatment: "Бұрынғы емі (операция, химия, сәулелік…)",
-    docsHint: "Науқас картасы, диагноз, талдау нәтижелері — PDF / сурет / Word, әрқайсысы 10МБ",
+    docsHint: "Науқас картасы, диагноз, талдау нәтижелері — PDF / сурет / Word, әрқайсысы 50МБ",
     docAdd: "+ Файл қосу", docUploading: "Файлдар жүктелуде…", docRemove: "Жою",
     catChart: "Науқас картасы", catDiagnosis: "Диагноз қорытындысы", catTest: "Талдау нәтижесі", catOther: "Басқа",
     errUpload: "Файл жүктелмеді. Қайталап көріңіз.",
@@ -296,7 +297,7 @@ const TR_FORM2 = {
     phSex: "性别", optMale: "男", optFemale: "女", phBirthYear: "出生年份（如 1968）",
     phStage: "分期（如 II 期）", phDiagnosisDate: "确诊时间（如 2025-03）",
     phDiagnosedHospital: "确诊医院 / 地区", phPriorTreatment: "既往治疗（手术、化疗、放疗等）",
-    docsHint: "患者病历、诊断书、检查结果 — PDF / 图片 / Word，每个 10MB",
+    docsHint: "患者病历、诊断书、检查结果 — PDF / 图片 / Word，每个 50MB",
     docAdd: "+ 添加文件", docUploading: "正在上传文件…", docRemove: "删除",
     catChart: "患者病历", catDiagnosis: "诊断书", catTest: "检查结果", catOther: "其他",
     errUpload: "文件上传失败，请重试。",
@@ -307,7 +308,7 @@ const TR_FORM2 = {
     phSex: "性別", optMale: "男性", optFemale: "女性", phBirthYear: "生年（例: 1968）",
     phStage: "病期（例: ステージII）", phDiagnosisDate: "診断時期（例: 2025-03）",
     phDiagnosedHospital: "診断を受けた病院・地域", phPriorTreatment: "既往治療（手術・抗がん剤・放射線など）",
-    docsHint: "患者カルテ・診断書・検査結果など — PDF / 画像 / Word、各10MB",
+    docsHint: "患者カルテ・診断書・検査結果など — PDF / 画像 / Word、各50MB",
     docAdd: "+ ファイル追加", docUploading: "ファイルをアップロード中…", docRemove: "削除",
     catChart: "患者カルテ", catDiagnosis: "診断書", catTest: "検査結果", catOther: "その他",
     errUpload: "ファイルのアップロードに失敗しました。もう一度お試しください。",
@@ -317,12 +318,12 @@ for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM2[l] || TR_FORM2.en
 
 // 칩/드롭존 섹션 라벨(인테이크 폼 톤) — 6개 언어.
 const TR_FORM3 = {
-  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 10MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" },
-  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 10MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" },
-  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 10МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" },
-  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 10МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" },
-  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 10MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" },
-  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各10MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" },
+  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 50MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" },
+  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 50MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" },
+  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 50МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" },
+  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 50МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" },
+  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 50MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" },
+  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各50MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM3[l] || TR_FORM3.en);
 
@@ -579,17 +580,14 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [noteTr, setNoteTr] = useState({}); // 코디 한글 메모 자동번역 { 원문 → 번역문 }
   const fileInputRef = useRef(null);
 
-  // 첨부 추가 = 즉시 /api/attachments/upload (path 참조만 보관). 최대 10개.
+  // 첨부 추가 = 즉시 Storage 업로드 (path 참조만 보관). 최대 10개.
   const addFiles = async (fileList) => {
     const remaining = 10 - files.length;
     if (remaining <= 0) return;
     setUploading(true); setSubmitMsg(null);
     try {
       for (const file of Array.from(fileList).slice(0, remaining)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const uj = await up.json().catch(() => ({}));
+        const uj = await uploadAttachment(file);
         if (!uj.ok) { setSubmitMsg({ type: "err", text: tt("errUpload") }); continue; }
         setFiles((prev) => [...prev, { path: uj.path, name: uj.name, type: uj.type, category: "other" }]);
       }
@@ -1241,10 +1239,7 @@ function CaseActions({ c, tt, onDone }) {
     try {
       const attachments = [];
       for (const file of fs) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const uj = await up.json().catch(() => ({}));
+        const uj = await uploadAttachment(file);
         if (!uj.ok) { setMsg({ type: "err", text: tt("errUpload") }); return; }
         attachments.push({ path: uj.path, name: uj.name, type: uj.type, category: "other" });
       }
@@ -1576,15 +1571,19 @@ function ClinicProgressPanel({ inquiryId, tt }) {
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess?.session?.access_token;
-      const fd = new FormData();
-      fd.append("inquiryId", String(inquiryId));
-      fd.append("recordType", recordType);
-      if (note.trim()) fd.append("note", note.trim());
-      if (file) fd.append("file", file);
-      const res = await fetch("/api/khidi/progress", {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
-      });
-      const json = await res.json();
+      const authFetch = (url, init) =>
+        fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
+      const fields = { inquiryId: String(inquiryId), recordType, note: note.trim() || undefined };
+
+      // 파일이 있으면 Storage 직행(서명 URL → PUT → 기록 저장), 없으면 메모만 저장.
+      const json = file
+        ? await uploadDirect("/api/khidi/progress", file, fields, { fetch: authFetch })
+        : await authFetch("/api/khidi/progress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(fields),
+          }).then((r) => r.json().catch(() => ({ ok: false })));
+
       if (json.ok) {
         setMsg({ type: "ok", text: tt("progressOk") });
         setNote(""); setFile(null); setFileKey((k) => k + 1);

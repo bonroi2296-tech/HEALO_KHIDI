@@ -20,7 +20,8 @@ const ALLOWED_TYPES = {
 
 const MAX_SIZE = {
   logo: 2 * 1024 * 1024, // 2MB
-  hero: 8 * 1024 * 1024, // 8MB
+  // 4MB — Vercel 함수 본문 한도가 4.5MB. 8MB 라고 적어놨지만 실제로는 4.5MB 에서 끊겼다(실측 2026-08-03).
+  hero: 4 * 1024 * 1024,
 };
 
 /**
