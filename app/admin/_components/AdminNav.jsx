@@ -325,8 +325,9 @@ export function AdminNav() {
 
   return (
     <>
-      {/* Mobile: top bar with hamburger (below PortalTopBar h-12) */}
-      <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      {/* Mobile: top bar with hamburger — 전역 포털 상단바 «바로 밑». 높이 값을 손으로 박지 마라,
+          상단바는 h-14 md:h-16 + 안전영역이다(단일 SoR: app/styles/healo-tokens.css). */}
+      <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
             <LayoutDashboard size={16} className="text-white" />
@@ -354,8 +355,8 @@ export function AdminNav() {
         </div>
       )}
 
-      {/* Desktop: fixed sidebar (below PortalTopBar h-12) */}
-      <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-12 h-[calc(100vh-3rem)]">
+      {/* Desktop: fixed sidebar — 전역 포털 상단바(lg 에선 h-16=4rem) 바로 밑 */}
+      <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-16 h-[calc(100vh-4rem)]">
         {navContent}
       </aside>
     </>
