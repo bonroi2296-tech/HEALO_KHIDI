@@ -25,7 +25,11 @@ export function HospitalHeader({ site, lang, accent, onInquiry, basePath = "", c
   const q = lang ? `?lang=${lang}` : "";
 
   return (
-    <header className="sticky top-0 z-30 bg-[#FBF8F3]/88 backdrop-blur-md border-b border-black/[0.06]">
+    // 위 안전영역(pt-safe-area)은 «맨 위에 붙는 헤더»면 판 화면도 필요하다 — 이 화면은 healwith
+    // 크롬을 숨기고 자기 헤더만 쓰므로, 없으면 설치 앱·스토어 앱에서 스크롤 시 상태표시줄 밑으로
+    // 미끄러진다(2026-08-03 실측: 스토어 앱에서도 여백 0 이었다). 보통 브라우저에서는 값이 0 이라
+    // 지금 화면은 한 픽셀도 안 변한다.
+    <header className="sticky top-0 z-30 bg-[#FBF8F3]/88 backdrop-blur-md border-b border-black/[0.06] pt-safe-area">
       <div className="max-w-6xl mx-auto px-5 md:px-8 h-16 md:h-[72px] flex items-center justify-between gap-4">
         <Link href={`${basePath}${q}`} className="flex items-center gap-3 min-w-0 shrink-0">
           {site.brand?.logoUrl ? (
