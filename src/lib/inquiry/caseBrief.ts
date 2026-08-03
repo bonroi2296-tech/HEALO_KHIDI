@@ -23,6 +23,7 @@ import "server-only";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
+import { getAiReadable } from "@/lib/documents/aiReadable";
 import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
@@ -48,7 +49,8 @@ export const normalizeBriefLang = (v: any): BriefLang =>
   (BRIEF_LANGS as readonly string[]).includes(String(v)) ? (String(v) as BriefLang) : "ko";
 
 // 언어별 캐시 묶음. 예전에 저장된 «브리프 한 개» 형태도 읽을 수 있게 아래 readBriefMap 이 흡수한다.
-export type CaseBriefMap = Partial<Record<BriefLang, CaseBrief>>;
+// 캐시에는 브리프 + 「못 읽은 첨부 수」를 같이 담는다(화면이 그 숫자를 그대로 띄운다).
+export type CaseBriefMap = Partial<Record<BriefLang, CaseBrief & { unreadable?: number }>>;
 
 /** 저장돼 있던 값 → 언어별 묶음. 옛 형식(브리프 한 개)은 한국어로 친다. */
 export function readBriefMap(parsed: any): CaseBriefMap {
@@ -79,6 +81,10 @@ const RESPONSE_SCHEMA = {
 };
 
 // 저장소에서 모델이 읽을 수 있는 첨부만 base64 inlineData 로.
+// ⚠️ 예전엔 18MB 를 넘으면 `break` 로 «조용히» 빠졌다 — 자료를 한 글자도 안 읽고도
+//    브리프가 «첨부 반영됨»으로 기록됐다(문의 #60: 130MB 진료기록이 통째로 무시됨).
+//    지금은 ①큰 스캔 PDF 는 getAiReadable 이 줄여서 넣고 ②그래도 못 넣은 건 unreadable 로 «센다».
+//    센 숫자는 브리프 화면에 그대로 표시된다 — 못 읽은 걸 숨기지 않는다.
 async function loadInlineParts(attachments: Attachment[]): Promise<{ parts: any[]; unreadable: number }> {
   const parts: any[] = [];
   let total = 0;
@@ -87,12 +93,11 @@ async function loadInlineParts(attachments: Attachment[]): Promise<{ parts: any[
     const type = att?.type || (att?.name ? guessType(att.name) : "") || "";
     if (!att?.path || !MODEL_READABLE.has(type)) { unreadable++; continue; }
     try {
-      const { data, error } = await supabaseAdmin.storage.from("attachments").download(att.path);
-      if (error || !data) { unreadable++; continue; }
-      const buf = Buffer.from(await data.arrayBuffer());
-      if (total + buf.length > MAX_TOTAL_BYTES) break;
-      total += buf.length;
-      parts.push({ inlineData: { mimeType: type, data: buf.toString("base64") } });
+      const doc = await getAiReadable("attachments", att.path, type);
+      if (!doc.ok) { unreadable++; continue; }
+      if (total + doc.buffer.length > MAX_TOTAL_BYTES) { unreadable++; continue; }
+      total += doc.buffer.length;
+      parts.push({ inlineData: { mimeType: doc.mimeType, data: doc.buffer.toString("base64") } });
     } catch { unreadable++; }
   }
   return { parts, unreadable };

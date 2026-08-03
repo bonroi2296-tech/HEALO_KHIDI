@@ -123,10 +123,7 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          // 우리 화면 안에 «우리 화면»만 띄울 수 있다(코디 콘텐츠 편집기의 미리보기).
-          // 남의 사이트가 우리를 씌워 클릭을 가로채는 공격(클릭재킹)은 그대로 막힌다 —
-          // 막는 대상이 «모든 곳»에서 «우리 아닌 곳»으로 좁아졌을 뿐이다. 2026-08-03.
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
@@ -138,26 +135,7 @@ const nextConfig = {
               "default-src 'self'",
               // maps.googleapis.com·maps.gstatic.com: 병원/암종 상세 위치 지도(Google Maps JS) — script-src에 없으면 지도 스크립트가 차단돼 회색 fallback만 뜸
               // mc.yandex.ru: Yandex Metrica 태그(러시아/CIS). connect-src 와 짝 — 둘 중 하나만 열면 안 돈다.
-              // blob:  화상상담 잡음 제거(Krisp)가 소리 처리기(AudioWorklet)를 blob: 로 만들어 싣는다.
-              //   ⚠️ 워크릿 모듈은 worker-src 가 아니라 **script-src** 로 검사된다 — 아래 worker-src 에
-              //      blob: 이 있어도 여기 없으면 막힌다. 그리고 이 차단은 «보안정책 위반» 사건을 안 내고
-              //      `AbortError: Unable to load a worklet's module` 이라는 엉뚱한 이름으로만 나온다.
-              //   2026-08-03 실측으로 가름(같은 브라우저·같은 코드):
-              //      · 우리 사이트 + 같은 출처 워크릿 → 성공   (브라우저·CSP 다 정상)
-              //      · 우리 사이트 + blob: 워크릿      → 실패
-              //      · 규칙 없는 사이트 + blob: 워크릿 → 성공  ⇒ 범인은 우리 script-src
-              //   같은 날 #1237 이 connect-src 에 integrations.livekit.io 를 열어 «파일 받기»는 됐지만
-              //   (실측: 요청 2건 200), 그 다음 «실행» 칸이 안 열려 잡음 제거는 여전히 안 켜졌다.
-              //   위험 평가: 이 줄엔 이미 'unsafe-inline' 이 있어 blob: 추가가 늘리는 공격면은 그보다 작다.
-              // 'wasm-unsafe-eval'  잡음 제거(Krisp)의 소리 모델은 WebAssembly 다. 브라우저는 WebAssembly
-              //   컴파일도 「스크립트 실행」으로 보고 script-src 로 검사한다 — 이 낱말이 없으면 막힌다.
-              //   ⚠️ 'unsafe-eval'(문자열을 코드로 실행) 과 다르다. 'wasm-unsafe-eval' 은 **WebAssembly 만**
-              //      허용하고 eval() 은 계속 막는다 — 좁은 쪽을 골랐다.
-              //   2026-08-03 실측: blob: 을 연 «뒤에» 실서비스 상담방에서 나온 다음 벽이 이것이다.
-              //     `WebAssembly.Module(): … violates … because 'unsafe-eval' is not an allowed source`
-              //   같은 날 겪은 세 번째 겹이다: ①connect-src(파일 받기) ②script-src blob:(워크릿 싣기)
-              //     ③여기(모델 돌리기). **「한 겹 열었다 = 기능이 켜졌다」로 넘기지 마라 — 매번 실제로 재라.**
-              `script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
+              `script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",
@@ -188,8 +166,7 @@ const nextConfig = {
               //    매 방문마다 콘솔에 CSP 위반이 찍히고 리플레이가 반쪽으로 돌았다.
               //    → 우리 출처와 blob: 만 연다(외부 도메인 워커는 계속 차단).
               "worker-src 'self' blob:",
-              // 같은 사유 — 편집기 미리보기용. 외부 사이트의 씌우기는 계속 차단.
-              "frame-ancestors 'self'",
+              "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
             ].join('; '),
@@ -329,6 +306,9 @@ const nextConfig = {
   // Sentry(@sentry/nextjs)가 의존하는 OpenTelemetry 계열을 번들에서 제외 —
   // 빌드 chunks 에 require 주입되며 "Cannot find module" 나던 문제의 해법.
   serverExternalPackages: [
+    // mupdf 는 WASM 이라 번들러가 건드리면 .wasm 을 잃는다 — 서버에서 그대로 불러오게 둔다.
+    // (큰 스캔 PDF 를 AI 가 읽을 수 있게 줄이는 데 쓴다 — src/lib/documents/aiReadable.ts)
+    "mupdf",
     "@sentry/nextjs",
     "@opentelemetry/instrumentation",
     "import-in-the-middle",

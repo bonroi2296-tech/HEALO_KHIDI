@@ -22,7 +22,9 @@ export type AllowedMimeType =
   | "image/gif"
   | "application/msword"
   | "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  | "application/dicom";
+  | "application/dicom"
+  | "application/zip"
+  | "application/vnd.rar";
 
 export interface MagicCheckResult {
   ok: boolean;
@@ -117,12 +119,25 @@ export function verifyFileMagic(
 
   // DOCX / Office OpenXML: ZIP 헤더 "PK\x03\x04" — 실제 OOXML 인지 구별하려면
   // ZIP 내 [Content_Types].xml 확인이 필요하지만 여기서는 ZIP 헤더만 보고
-  // declared 가 docx 일 때 허용. Office 이외의 ZIP 포맷 위장은 여기서 통과될 수 있음.
+  // ZIP 계열(PK) — docx 도 zip 이고 병원 CD 묶음(.zip)도 zip 이라 겉만으로는 못 가른다.
+  // 선언한 쪽이 둘 중 하나면 통과시키고, 진짜 내용물 판정은 여는 쪽(뷰어·파서)이 한다.
   if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04) {
+    if (declaredMime === "application/zip" || declaredMime === "application/x-zip-compressed") {
+      return { ok: true, detectedMime: "application/zip" };
+    }
     return check(
       declaredMime,
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
+  }
+
+  // RAR: "Rar!" (v4 는 뒤가 0x00, v5 는 0x01 0x00)
+  if (
+    buffer.length > 7 &&
+    buffer[0] === 0x52 && buffer[1] === 0x61 && buffer[2] === 0x72 && buffer[3] === 0x21 &&
+    buffer[4] === 0x1a && buffer[5] === 0x07
+  ) {
+    return check(declaredMime, "application/vnd.rar");
   }
 
   // DICOM: "DICM" at offset 128

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { uploadDirect } from "@/lib/uploadAttachment";
+import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 import { t } from "@/lib/i18n";
 
 // 비자 신청 상태별 배지 색상 — 라벨은 i18n(visaAppDetail.status.*).
@@ -286,9 +287,10 @@ export default function VisaApplicationDetailClient({ applicationId }) {
               </label>
               <label className="flex-1 w-full">
                 <span className="text-sm text-gray-700">{t("visaAppDetail.chooseFile", lang)}</span>
+                <span className="block text-xs text-gray-500">{describeUpload("medicalDoc", lang)}</span>
                 <input
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  accept={UPLOAD_POLICY.medicalDoc.accept}
                   onChange={handleFileUpload}
                   disabled={uploading}
                   className="mt-1 block w-full text-sm"
