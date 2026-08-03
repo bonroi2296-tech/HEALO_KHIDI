@@ -28,16 +28,12 @@ import { execFileSync } from "node:child_process";
  * 실제로 닿는 경로가 있는지 ③만료일. 만료일엔 재검토해서 지우거나 연장한다.
  */
 const ALLOWLIST = [
-  {
-    id: "GHSA-mh99-v99m-4gvg",
-    package: "brace-expansion",
-    expires: "2026-08-25",
-    reason:
-      "상위 패치 부재: 공고 대상이 5.0.7 이하 전부이고, 우리 체인(exceljs→archiver→glob→minimatch@3, " +
-      "eslint 계열)이 물고 있는 1.x·2.x 유지보수 라인엔 아직 패치판이 없다(2026-07-25 확인). " +
-      "도달 경로: glob 패턴을 사용자 입력으로 받는 곳이 없다 — 패턴은 전부 우리가 코드에 " +
-      "박아둔 값이라 크래프트된 패턴으로 DoS 를 유발할 통로가 없다. 만료일에 상위 패치 재확인.",
-  },
+  // 비어 있는 게 정상이다. 예외를 넣을 땐 반드시 ①왜 못 고치는지 ②도달 경로가 없다는 근거
+  // ③만료일을 함께 적어라 — 만료되면 이 검사가 스스로 빨간불을 낸다.
+  //
+  // 2026-08-04 정리: brace-expansion(GHSA-mh99-v99m-4gvg) 한시 예외를 지웠다.
+  //   상위 패치가 나와 `npm audit fix` 로 실제로 고쳤다(자물쇠 파일만 갱신, 직접 의존성 무변경).
+  //   같은 날 새로 공시된 GHSA-rgw5-rvv9-x895(같은 패키지, 기존 완화책 우회)도 이 갱신으로 함께 닫혔다.
 ];
 
 const LEVELS = new Set(["high", "critical"]);
