@@ -24,7 +24,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
-import ImagingPanel from "./ImagingPanel";
+import ImagingPanel from "@/components/ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -247,36 +247,6 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
       <p className="text-[11px] text-gray-500 mb-3">
         {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
-      {/* 쪽 고르기 — 원본 쪽 번호 그대로. 「전체」는 예전처럼 쭉 이어서 본다(인쇄·복사 전 확인용). */}
-      {pageList.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-3 pb-2.5 border-b border-gray-100">
-          <button onClick={() => pageStep(-1)} disabled={curPage === 0 || curPage === pageList[0]}
-            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="이전 쪽">
-            <ChevronLeft size={14} />
-          </button>
-          <div className="flex items-center gap-1 flex-wrap">
-            {pageList.map((p) => (
-              <button key={p} onClick={() => setPageSel(p)}
-                className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
-                  curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
-                               : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => pageStep(1)} disabled={curPage === 0 || curPage === pageList[pageList.length - 1]}
-            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
-            <ChevronRight size={14} />
-          </button>
-          <button onClick={() => setPageSel(curPage === 0 ? pageList[0] : 0)}
-            className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
-              curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
-                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
-            전체
-          </button>
-          <span className="text-[11px] text-gray-400 ml-auto">원본 {pageList.length}쪽</span>
-        </div>
-      )}
       <div className="space-y-4">
         {shown.map(([s, si]) => (
           <div key={si}>
@@ -327,6 +297,37 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
           </div>
         ))}
       </div>
+
+      {/* 쪽 고르기 — 원본 쪽 번호 그대로. 「전체」는 예전처럼 쭉 이어서 본다(인쇄·복사 전 확인용). */}
+      {pageList.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-gray-100">
+          <button onClick={() => pageStep(-1)} disabled={curPage === 0 || curPage === pageList[0]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="이전 쪽">
+            <ChevronLeft size={14} />
+          </button>
+          <div className="flex items-center gap-1 flex-wrap">
+            {pageList.map((p) => (
+              <button key={p} onClick={() => setPageSel(p)}
+                className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
+                  curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                               : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => pageStep(1)} disabled={curPage === 0 || curPage === pageList[pageList.length - 1]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
+            <ChevronRight size={14} />
+          </button>
+          <button onClick={() => setPageSel(curPage === 0 ? pageList[0] : 0)}
+            className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
+              curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+            전체
+          </button>
+          <span className="text-[11px] text-gray-400 ml-auto">원본 {pageList.length}쪽</span>
+        </div>
+      )}
 
       {/* 편집 모드: 용어 사전 등록(원문→대상언어). 다음 번역부터 반영 */}
       {editing && (

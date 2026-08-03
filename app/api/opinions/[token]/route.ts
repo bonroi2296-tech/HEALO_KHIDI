@@ -81,7 +81,16 @@ function patientName(first?: string | null, last?: string | null): string {
 // translateMedicalDoc 은 캐시 우선 — 코디가 이미 번역해뒀으면 즉시, 아니면 그 자리에서 생성(최초 1회만 비용 발생).
 // 첨부가 많은 케이스에서 비용 폭주 방지를 위해 앞 5개까지만 번역.
 const MAX_TRANSLATE = 5;
-async function signAttachments(atts: any): Promise<{ name: string; url: string | null; translated: unknown | null }[]> {
+/** 병원 CD 묶음(.rar/.zip/.dcm)인가 — 이건 번역이 아니라 «영상 보기»로 열어야 한다. */
+function isImagingBundle(a: any): boolean {
+  const n = String(a?.name || a?.path || "").toLowerCase();
+  const t = String(a?.type || "").toLowerCase();
+  return /\.(rar|zip|dcm)$/.test(n) || t.includes("rar") || t.includes("zip") || t.includes("dicom");
+}
+
+async function signAttachments(atts: any): Promise<
+  { name: string; url: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
+> {
   if (!Array.isArray(atts) || atts.length === 0) return [];
   return Promise.all(
     atts.slice(0, 20).map(async (a: any, i: number) => {
@@ -90,12 +99,16 @@ async function signAttachments(atts: any): Promise<{ name: string; url: string |
         const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
         url = data?.signedUrl || null;
       }
+      // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
+      const imaging = isImagingBundle(a);
       let translated: unknown | null = null;
-      if (a?.path && i < MAX_TRANSLATE) {
+      if (a?.path && !imaging && i < MAX_TRANSLATE) {
         const result = await translateMedicalDoc({ path: a.path, name: a?.name, lang: "ko" }).catch(() => null);
         if (result?.ok) translated = result.doc;
       }
-      return { name: a?.name || "첨부파일", url, translated };
+      // path 를 같이 주는 이유: 영상 보기 창구가 «어느 파일인지»를 알아야 한다.
+      // 남의 파일을 넣어도 창구에서 이 링크의 문의 것인지 다시 확인한다.
+      return { name: a?.name || "첨부파일", url, translated, path: a?.path || undefined, imaging };
     })
   );
 }
