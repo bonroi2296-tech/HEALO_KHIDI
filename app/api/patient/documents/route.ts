@@ -16,6 +16,7 @@ import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { uploadLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
+import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -25,7 +26,9 @@ const ALLOWED_TYPES = [
   "application/dicom",
 ];
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
+// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다(실측: 200MB 성공 / 201MB 거부).
+const MAX_SIZE = 200 * 1024 * 1024;
 
 async function getAuthUser(request: NextRequest) {
   const supabase = createSupabaseServerClientFromRequest(request);
@@ -118,55 +121,20 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const consultationId = sanitizeString(
-      formData.get("consultationId") as string,
-      64
-    );
+    const body = await request.json();
+    const consultationId = sanitizeString(body.consultationId, 64);
     // 일부 화면은 docType 키로 보냄 (DocumentsPremium) → 둘 다 수용해 문서 종류 보존.
-    const documentType =
-      sanitizeString(
-        (formData.get("documentType") ?? formData.get("docType")) as string,
-        50
-      ) || "other";
-    const description = sanitizeString(
-      formData.get("description") as string,
-      500
-    );
+    const documentType = sanitizeString(body.documentType ?? body.docType, 50) || "other";
+    const description = sanitizeString(body.description, 500);
 
-    if (!file) {
-      return Response.json(
-        { ok: false, error: "No file provided" },
-        { status: 400 }
-      );
-    }
     if (!consultationId) {
       return Response.json(
         { ok: false, error: "consultationId is required" },
         { status: 400 }
       );
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return Response.json(
-        {
-          ok: false,
-          error: `File type not allowed. Accepted: ${ALLOWED_TYPES.join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
-    if (file.size > MAX_SIZE) {
-      return Response.json(
-        {
-          ok: false,
-          error: `File too large. Max size: ${MAX_SIZE / 1024 / 1024}MB`,
-        },
-        { status: 400 }
-      );
-    }
 
-    // 본인 consultation인지 확인
+    // 본인 consultation인지 확인 — sign·commit 두 단계 모두에서 검사한다.
     const { data: session, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
       .select("id, patient_id, patient_user_id")
@@ -187,52 +155,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 업로드
-    const ext = file.name.split(".").pop() || "bin";
-    const storagePath = `consultations/${consultationId}/${Date.now()}_${crypto
-      .randomUUID()
-      .slice(0, 8)}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const dir = `consultations/${consultationId}`;
 
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("documents")
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    // ── 2단계: 업로드 끝난 파일 검증 + 문서 기록 저장 ──
+    if (body.phase === "commit") {
+      const storagePath = String(body.path || "");
+      if (!isOwnPath(dir, storagePath)) {
+        return Response.json({ ok: false, error: "invalid_path" }, { status: 400 });
+      }
+      const fileType = normalizeMime(storagePath, String(body.type || ""));
+      const verified = await verifyUploaded("documents", storagePath, fileType, MAX_SIZE);
+      if (!verified.ok) {
+        return Response.json({ ok: false, error: verified.error }, { status: 400 });
+      }
 
-    if (uploadError) {
-      console.error("[patient/documents] upload error:", uploadError);
-      return Response.json(
-        { ok: false, error: "Failed to upload file" },
-        { status: 500 }
-      );
+      const { data: doc, error: dbError } = await supabaseAdmin
+        .from("consultation_documents")
+        .insert({
+          consultation_id: consultationId,
+          file_name: sanitizeString(body.name, 200),
+          file_type: fileType,
+          file_size: verified.size, // 선언값이 아니라 실제 저장된 크기
+          storage_path: storagePath,
+          document_type: documentType,
+          description,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error("[patient/documents] db error:", dbError);
+        await supabaseAdmin.storage.from("documents").remove([storagePath]);
+        return Response.json(
+          { ok: false, error: "Failed to save document metadata" },
+          { status: 500 }
+        );
+      }
+
+      return Response.json({ ok: true, data: doc });
     }
 
-    const { data: doc, error: dbError } = await supabaseAdmin
-      .from("consultation_documents")
-      .insert({
-        consultation_id: consultationId,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
-        storage_path: storagePath,
-        document_type: documentType,
-        description,
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error("[patient/documents] db error:", dbError);
-      await supabaseAdmin.storage.from("documents").remove([storagePath]);
+    // ── 1단계: 서명 URL 발급 ──
+    const signed = await issueUploadUrl(body, {
+      bucket: "documents",
+      dir,
+      allowed: ALLOWED_TYPES,
+      maxBytes: MAX_SIZE,
+    });
+    if (!signed.ok) {
       return Response.json(
-        { ok: false, error: "Failed to save document metadata" },
-        { status: 500 }
+        { ok: false, error: signed.error, detail: signed.detail },
+        { status: signed.status }
       );
     }
-
-    return Response.json({ ok: true, data: doc });
+    return Response.json({
+      ok: true,
+      signedUrl: signed.signedUrl,
+      path: signed.path,
+      name: signed.name,
+      type: signed.type,
+    });
   } catch (error: any) {
     console.error("[patient/documents] exception:", error);
     return Response.json(

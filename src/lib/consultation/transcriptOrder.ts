@@ -76,7 +76,11 @@ export function dedupeAgainstShown<T extends Row>(
 export function isSameSpeakerRun(prev: Row | undefined, cur: Row, gapMs = 120000): boolean {
   if (!prev) return false;
   if ((prev.speaker_role || "") !== (cur.speaker_role || "")) return false;
-  if ((prev.speaker_name || "") !== (cur.speaker_name || "")) return false;
+  // 이름 비교는 대소문자·공백 차이를 무시한다 — 끊겨서 다시 들어온 사람이 이름을 다시 치면
+  // «Эльдар» → «эльдар» 처럼 한 글자만 달라지는데, 그걸로 묶기가 끊기면 같은 사람이
+  // 두 사람처럼 보인다(2026-07-29 실측). 색 배정도 같은 규칙(speakerColor.speakerKey).
+  const norm = (v?: string | null) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (norm(prev.speaker_name) !== norm(cur.speaker_name)) return false;
   return (
     new Date(cur.created_at || 0).getTime() - new Date(prev.created_at || 0).getTime() < gapMs
   );

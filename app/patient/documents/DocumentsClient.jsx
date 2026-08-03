@@ -6,6 +6,7 @@ import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { uploadDirect, MAX_ATTACHMENT_BYTES } from '@/lib/uploadAttachment';
 import { kstDate } from '@/lib/datetime/kst';
 
 // DB document_type 코드 → 표시 라벨 키(중앙 사전)
@@ -43,6 +44,7 @@ export default function DocumentsClient() {
   const [selectedConsultId, setSelectedConsultId] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [docType, setDocType] = useState('medical_record');
   const [description, setDescription] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -101,30 +103,27 @@ export default function DocumentsClient() {
       setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.formats', lang)}` });
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
+    if (file.size > MAX_ATTACHMENT_BYTES) {
       setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.maxSize', lang)}` });
       return;
     }
 
     setUploading(true);
+    setProgress(0);
     setMessage(null);
 
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
+      const authFetch = (url, init) =>
+        fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${session.access_token}` } });
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('consultationId', selectedConsultId);
-      formData.append('documentType', docType);
-      formData.append('description', description);
-
-      const res = await fetch('/api/patient/documents', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
-      });
-      const result = await res.json();
+      const result = await uploadDirect(
+        '/api/patient/documents',
+        file,
+        { consultationId: selectedConsultId, documentType: docType, description },
+        { fetch: authFetch, onProgress: setProgress }
+      );
       if (result.ok) {
         setMessage({ type: 'success', text: t('patientDocs.success', lang) });
         setDescription('');
@@ -136,6 +135,7 @@ export default function DocumentsClient() {
       setMessage({ type: 'error', text: t('patientDocs.error', lang) });
     }
     setUploading(false);
+    setProgress(0);
   };
 
   const handleDrop = (e) => {
@@ -279,8 +279,17 @@ export default function DocumentsClient() {
           </div>
 
           {uploading && (
-            <div className="text-center py-3 text-teal-700 font-medium text-sm">
-              {t('patientDocs.uploading', lang)}
+            <div className="py-3">
+              <div className="text-center text-teal-700 font-medium text-sm mb-2">
+                {t('patientDocs.uploading', lang)} {Math.round(progress * 100)}%
+              </div>
+              {/* 큰 파일은 몇 분 걸린다 — 막대가 없으면 멈춘 줄 알고 나간다. */}
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-teal-700 rounded-full transition-[width] duration-200"
+                  style={{ width: `${Math.max(2, progress * 100)}%` }}
+                />
+              </div>
             </div>
           )}
           {message && (

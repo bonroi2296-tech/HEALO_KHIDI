@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
 import { event, GA_EVENTS } from "@/lib/ga";
+import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
 
 // GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
 const ga = (name, params) => { try { event(name, params); } catch {} };
@@ -435,8 +436,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false); // 드래그앤드랍 오버레이 표시
 
-  const MAX_ATTACHMENTS = 5;
-  const MAX_FILE_MB = 10;
+  const MAX_ATTACHMENTS = 10;
 
   const handleFilePick = async (fileList) => {
     setUploadError("");
@@ -450,16 +450,13 @@ export function ThreadChat({ onBack, backLabel } = {}) {
     setUploading(true);
     try {
       for (const file of files.slice(0, remaining)) {
-        if (file.size > MAX_FILE_MB * 1024 * 1024) {
-          setUploadError(t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_FILE_MB}MB.`);
-          continue;
-        }
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const data = await res.json();
+        const data = await uploadAttachment(file);
         if (!data.ok) {
-          setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+          setUploadError(
+            data.error === "file_too_large"
+              ? t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_ATTACHMENT_MB}MB.`
+              : t("chat.upload.failed", langCode) || "Upload failed. Please try again."
+          );
           continue;
         }
         setAttachments((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
