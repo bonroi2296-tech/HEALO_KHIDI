@@ -20,7 +20,6 @@
 
 import "server-only";
 
-import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { getAiReadable } from "@/lib/documents/aiReadable";
