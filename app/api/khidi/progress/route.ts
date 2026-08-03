@@ -87,13 +87,15 @@ export async function POST(request: NextRequest) {
     const fileType = normalizeMime(fileName, String(body.type || ""));
     const hasFile = body.phase === "sign" || !!body.path;
 
-    const check = validateProgressUpload({
-      inquiryId,
-      hasFile,
-      fileType: hasFile ? fileType : null,
-      fileSize: hasFile ? Number(body.size) : null,
-      note,
-    });
+    // ⚠️ 선언 크기는 «서명 단계에서만» 검사한다.
+    //   2단계(commit)에서 body.size 를 다시 보면, 클라가 그 값을 안 실어 보낸 순간
+    //   Number(undefined)=NaN → «파일이 너무 큼» 으로 잘못 튕긴다(실제로 그렇게 터졌다).
+    //   2단계의 크기 검사는 verifyUploaded 가 «저장된 실물»을 재서 하므로 여기선 안 본다.
+    const declaredSize = body.phase === "sign" ? Number(body.size) : null;
+    const check =
+      declaredSize !== null
+        ? validateProgressUpload({ inquiryId, hasFile, fileType, fileSize: declaredSize, note })
+        : validateProgressUpload({ inquiryId, hasFile: false, note: hasFile ? note || "." : note });
     if (!check.ok) {
       return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
     }
