@@ -12,6 +12,13 @@
  *  1) LAUNCH_GATES_PO.md — 「## 🎯 지금 남은 관문」 헤더 존재 + 그 섹션에 표 데이터 행 ≥1
  *     (관문이 전부 닫혀 표가 비면 이 검사를 섹션 헤더만으로 완화할 것 — 그때 이 파일 수정)
  *  2) PO_PREFERENCES.md — ACTIVE:START/END 마커 존재 + 사이에 취향 항목(불릿) ≥1
+ *     ⚠️ 2026-08-03: 대기실을 «전부 제자리로 내려보내» 0개가 되는 건 «정상 상태»다
+ *        (CLAUDE.md: "여긴 창고가 아니라 대기실이다"). 그래서 이 검사와 check:rules 가
+ *        정면으로 부딪혔다(한쪽은 「비워라」, 한쪽은 「비면 실패」).
+ *        → 「의도적으로 비움」과 「고장나서 빔」을 기계가 구분할 수 있게 «표식»을 쓴다:
+ *          ACTIVE 구간에 <!-- ACTIVE:EMPTY-OK --> 가 있으면 0개를 통과시킨다.
+ *        이 검사의 본래 목적(형식이 깨져 훅이 «조용히» 죽는 것)은 마커 검사(위)와
+ *        배선 검사(아래 3번)가 그대로 지킨다 — 불릿 수는 그 대리 지표였을 뿐이다.
  *  3) session-orient.sh 가 두 파일 경로를 실제로 참조하는지 (파일 이동/개명 시 크게 실패)
  */
 import { readFileSync } from "node:fs";
@@ -67,7 +74,14 @@ if (prefs != null) {
   } else {
     const active = prefs.slice(s, e);
     const bullets = active.split("\n").filter((l) => l.trim().startsWith("- "));
-    if (bullets.length < 1) fail(`${PREFS} 「활성 취향」이 비어 있음(불릿 0개)`);
+    const emptyOk = active.includes("<!-- ACTIVE:EMPTY-OK -->");
+    if (bullets.length < 1 && !emptyOk) {
+      fail(
+        `${PREFS} 「활성 취향」이 비어 있음(불릿 0개). ` +
+          `전부 제자리로 내려보내 «의도적으로» 비운 것이면 ACTIVE 구간에 <!-- ACTIVE:EMPTY-OK --> 를 남겨라. ` +
+          `그 표식이 없이 비어 있으면 형식이 깨져 훅이 조용히 죽은 것으로 본다.`
+      );
+    }
   }
 }
 
