@@ -1041,7 +1041,11 @@ const TEAL600_BASELINE = {
 {
   try {
     const cfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
-    const scriptSrc = cfg.match(/script-src[^,]*/)?.[0] || "";
+    // ⚠️ 따옴표/백틱을 앞에 요구한다 — 안 그러면 **주석 안에 적힌 「script-src」라는 낱말**을
+    //    진짜 설정으로 착각한다. 2026-08-03 실측: CSP 위에 설명 주석을 달았더니 이 검사가
+    //    주석 문장을 읽고 「maps.googleapis.com 없음」이라는 거짓 빨간불을 냈다.
+    //    바로 아래 connect-src 는 원래부터 이렇게 돼 있었다 — 같은 모양으로 맞춘다.
+    const scriptSrc = cfg.match(/["'`]script-src[^,]*/)?.[0] || "";
     const connectSrc = cfg.match(/["'`]connect-src[^,]*/)?.[0] || "";
     const KNOWN_LOADERS = [
       { lib: "@react-google-maps/api (Google Maps JS)", needle: /@react-google-maps\/api|maps\.googleapis\.com\/maps\/api\/js/, domain: "maps.googleapis.com", alsoConnect: true },
