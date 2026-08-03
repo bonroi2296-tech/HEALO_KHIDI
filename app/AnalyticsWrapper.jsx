@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { hasAnalyticsConsent, GA_ID, initDebugMode } from "@/lib/ga";
+import { hasAnalyticsConsent, GA_ID, initDebugMode, maskSecretPath } from "@/lib/ga";
 import GaDebugBadge from "./GaDebugBadge";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 
@@ -133,7 +133,20 @@ export default function AnalyticsWrapper() {
   // 게이트에 걸지 않는다(동의 배너의 「필수」 범주). 광고차단기가 gtag.js 를 막아도 이건 우리
   // 도메인(/_vercel/insights)으로 나가서 살아남는다 → GA 가 놓치는 러/CIS 방문자의 하한선 역할.
   // /admin 은 제외: 코디·관리자 클릭이 방문 통계를 오염시키고 이벤트 요금도 그만큼 나간다.
-  const vercelAnalytics = envOk ? <VercelAnalytics /> : null;
+  // 🔑 열쇠 링크(/survey·/claim·/opinion·/c)의 토큰이 측정 기록에 남지 않게 가린다.
+  //    버셀은 route(치환된 경로)와 path(실제 주소)를 함께 보내는데, path 에 토큰이 그대로 실린다.
+  //    그 토큰은 로그인 없이 환자 설문·소견서·상담방을 여는 인증 수단이다(src/lib/ga.ts 주석 참고).
+  const vercelAnalytics = envOk ? (
+    <VercelAnalytics
+      beforeSend={(event) => {
+        try {
+          return { ...event, url: maskSecretPath(event.url) };
+        } catch {
+          return null; // 가리기 실패 시 아예 안 보낸다
+        }
+      }}
+    />
+  ) : null;
 
   // 게이트: 동의(all) + 프로덕션 + 비admin + 상호작용 모두 충족해야 어떤 스크립트도 렌더 X
   // ⚠️ 여기서도 «같은 모양»(Fragment)으로 돌려줘야 한다. 한쪽은 배지를 그대로, 다른 쪽은
