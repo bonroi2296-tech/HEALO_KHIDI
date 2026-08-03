@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, UploadCloud, File, X } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { uploadAttachment } from '@/lib/uploadAttachment';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 
@@ -120,11 +121,9 @@ export function InquiryIntakePage({ setView }) {
       let extraPaths = [];
       if (files.length) {
         for (const file of files) {
-          const uploadForm = new FormData();
-          uploadForm.append('file', file);
-          const uploadRes = await fetch('/api/attachments/upload', { method: 'POST', body: uploadForm });
-          const uploadResult = await uploadRes.json();
+          const uploadResult = await uploadAttachment(file);
           if (uploadResult.ok) extraPaths.push({ path: uploadResult.path, name: uploadResult.name, type: uploadResult.type || null });
+          else toast.error(t(uploadResult.error === 'file_too_large' ? 'chat.upload.tooLarge' : 'chat.upload.failed', langCode));
         }
       }
 

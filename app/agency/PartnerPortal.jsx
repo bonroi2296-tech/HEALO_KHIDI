@@ -15,6 +15,7 @@ import {
   Link2, Check,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
@@ -1234,10 +1235,7 @@ function CaseActions({ c, tt, onDone }) {
     try {
       const attachments = [];
       for (const file of fs) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const uj = await up.json().catch(() => ({}));
+        const uj = await uploadAttachment(file);
         if (!uj.ok) { setMsg({ type: "err", text: tt("errUpload") }); return; }
         attachments.push({ path: uj.path, name: uj.name, type: uj.type, category: "other" });
       }

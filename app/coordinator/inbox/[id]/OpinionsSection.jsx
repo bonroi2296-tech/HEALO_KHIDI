@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Stethoscope, Copy, Check, Link2, Loader2, Pencil, Paperclip, FileText, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 
 async function authFetch(url, options = {}) {
@@ -85,10 +86,7 @@ export default function OpinionsSection({ inquiryId }) {
     setUploadingFile(true);
     setFileError("");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-      const data = await res.json();
+      const data = await uploadAttachment(file);
       if (data.ok) setDirectFile({ path: data.path, name: data.name || file.name });
       else setFileError(L.soUploadFail);
     } catch {
