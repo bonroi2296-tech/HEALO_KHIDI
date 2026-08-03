@@ -518,7 +518,15 @@ export default function UnifiedInquiryFunnel() {
 
   // Phase: step1-success
   if (phase === "step1-success") {
-    const langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    // 문장 «안»에 들어가는 언어 이름은 화면 언어로 번역돼야 한다.
+    // 전엔 어느 화면에서든 그 언어의 제 이름(Русский·Қазақша…)을 그대로 넣어서
+    // 한국어 화면에 «Русский로 연락드립니다» 처럼 글자가 섞여 나왔다(2026-07-31 실측).
+    // 표를 6개 언어×6개로 늘리는 대신 브라우저가 가진 언어 이름을 쓴다(ko 화면 → «러시아어»).
+    // 목록(선택 버튼)에서는 제 이름을 보여주는 게 맞으므로 LANG_NAMES 는 그대로 둔다.
+    let langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    try {
+      langName = new Intl.DisplayNames([lang], { type: "language" }).of(form1.preferredLanguage) || langName;
+    } catch { /* 아주 옛 브라우저 → 제 이름으로 폴백 */ }
     const successMsg = tl("successBody", lang).replace("{lang}", langName);
 
     return (
