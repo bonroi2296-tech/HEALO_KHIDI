@@ -325,7 +325,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
                             : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
             전체
           </button>
-          <span className="text-[11px] text-gray-400 ml-auto">원본 {pageList.length}쪽</span>
+          <span className="text-[11px] text-gray-500 ml-auto">원본 {pageList.length}쪽</span>
         </div>
       )}
 
