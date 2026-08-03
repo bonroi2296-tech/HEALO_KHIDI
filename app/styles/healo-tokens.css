@@ -284,7 +284,7 @@ p, .body { font-size: var(--body-size); line-height: var(--body-leading); }
 
 /* iOS safe area — HEALO Nav/Footer 에 적용 권장 */
 .healo-safe-top    { padding-top:    var(--healo-safe-top); }
-.healo-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.healo-safe-bottom { padding-bottom: var(--healo-safe-bottom); }
 .healo-safe-left   { padding-left:   env(safe-area-inset-left); }
 .healo-safe-right  { padding-right:  env(safe-area-inset-right); }
 
