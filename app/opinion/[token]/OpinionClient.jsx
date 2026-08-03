@@ -228,7 +228,7 @@ export default function OpinionClient({ token }) {
         <button
           onClick={submit}
           disabled={!doctorKey || opinion.trim().length < 5 || submitting}
-          className="w-full bg-teal-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-teal-700 transition disabled:opacity-40"
+          className="w-full bg-teal-700 text-white py-3 rounded-lg text-sm font-semibold hover:bg-teal-800 transition disabled:opacity-40"
         >
           {submitting ? "제출 중…" : "소견 제출"}
         </button>

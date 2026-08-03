@@ -100,7 +100,7 @@ export default function CostCalculatorClient() {
       </section>
 
       {/* 무료 견적 CTA (금액 대신) */}
-      <section className="bg-teal-600 text-white rounded-xl p-6 md:p-8 mt-5 text-center">
+      <section className="bg-teal-700 text-white rounded-xl p-6 md:p-8 mt-5 text-center">
         <h2 className="text-xl md:text-2xl font-bold mb-2">{t("costCalc.quoteTitle", lang)}</h2>
         <p className="text-sm text-teal-100 max-w-xl mx-auto">{t("costCalc.quoteText", lang)}</p>
         <p className="text-xs text-teal-100/80 mt-3">{t(CANCER_KEYS[cancerIdx], lang)} · {t(`costCalc.programs.${programKey}.name`, lang)}</p>
@@ -171,10 +171,10 @@ export default function CostCalculatorClient() {
       </section>
 
       <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
-        <Link href="/care-journey" className="hover:text-teal-600">{t("costCalc.navCare", lang)}</Link>
-        <Link href="/hospitals/immune" className="hover:text-teal-600">Immune Hospital</Link>
-        <Link href="/inquiry" className="hover:text-teal-600">{t("costCalc.navConsult", lang)}</Link>
-        <Link href="/visa" className="hover:text-teal-600">{t("costCalc.navVisa", lang)}</Link>
+        <Link href="/care-journey" className="hover:text-teal-700">{t("costCalc.navCare", lang)}</Link>
+        <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
+        <Link href="/inquiry" className="hover:text-teal-700">{t("costCalc.navConsult", lang)}</Link>
+        <Link href="/visa" className="hover:text-teal-700">{t("costCalc.navVisa", lang)}</Link>
       </nav>
     </main>
   );

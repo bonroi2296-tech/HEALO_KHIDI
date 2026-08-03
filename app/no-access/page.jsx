@@ -41,7 +41,7 @@ export default async function NoAccessPage({ searchParams }) {
         <div className="space-y-2">
           <a
             href={`/login?redirect=${encodeURIComponent(from)}`}
-            className="block w-full py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition"
+            className="block w-full py-2.5 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition"
           >
             다른 계정으로 로그인
           </a>

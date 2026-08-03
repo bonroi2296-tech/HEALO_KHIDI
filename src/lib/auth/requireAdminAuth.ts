@@ -89,8 +89,15 @@ export async function requireAdminAuth(
       `[requireAdminAuth] 403 path=${pathname} reason=${authResult.error || "not_admin"} email=${authResult.email || "none"}`
     );
 
+    // ⚠️ 「나 관리자인가?」를 묻는 통로는 감사기록에 남기지 않는다 (2026-07-31).
+    //    로그인 화면이 로그인 직후 /api/admin/whoami 를 **모두에게** 물어 역할을 가른다
+    //    (app/login/LoginClient.jsx). 그래서 코디·에이전시가 정상 로그인할 때마다
+    //    「무단 접근」이 한 줄씩 쌓였다 — 실측 48시간 19건 전부 이것이었고, 그중 진짜 침입은 0건.
+    //    잡음이 쌓이면 **진짜 침입 신호가 그 안에 묻힌다.** 권한 차단(403)은 그대로다 — 기록만 뺀다.
+    const isRoleProbe = pathname === "/api/admin/whoami";
+
     // 백그라운드로 audit log 기록 (메인 로직 블로킹 방지)
-    logAdminAction({
+    if (!isRoleProbe) logAdminAction({
       adminEmail: authResult.email || "unknown",
       adminUserId: authResult.userId,
       action: "UNAUTHORIZED_ADMIN_ACCESS",

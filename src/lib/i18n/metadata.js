@@ -42,6 +42,9 @@ export async function localizedMeta(base, titleKey, descKey) {
     title: { absolute: title },
     description,
     openGraph: base.openGraph ? { ...base.openGraph, title, description } : base.openGraph,
+    // twitter 도 같이 언어화 (2026-07-30): 예전엔 openGraph 만 갈아서, base.twitter 를 둔
+    // 화면(홈·treatments·hospitals·immune)의 트위터/공유 카드만 영어로 남아 있었다.
+    twitter: base.twitter ? { ...base.twitter, title, description } : base.twitter,
   };
 }
 

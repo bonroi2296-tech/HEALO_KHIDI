@@ -283,6 +283,24 @@ export default function ContentEditorClient() {
     return words.length ? `${sec} / ${words.join(" · ")}` : sec;
   };
 
+  // 「화면에서 보기」 주소 — 그 화면을 열면서 **그 문구가 있는 자리로 스크롤해 형광펜처럼 칠한다**
+  // (크롬·엣지·사파리의 «글자 조각» 주소 기능 #:~:text=). 못 찾으면 그냥 화면만 열린다.
+  // 2026-07-31 PO: «어느 화면에 어떻게 표시되고 있어요 미리보기 볼 수 있게 못하겠니».
+  const previewHref = (path, values) => {
+    if (!path) return null;
+    // 공개 화면은 기본이 한국어라 한국어 값으로 찾는다. 없으면 지금 고치는 언어 값.
+    const raw = (values?.ko || values?.[editLang] || "").trim();
+    // 첫 문장만·60자 이내로 자른다 — 길면 줄바꿈·공백 차이로 못 찾는다.
+    // 앞머리 이모지(⚠️ 등)는 떼어낸다 — 화면에선 따로 그려질 수 있어 글자 맞추기가 어긋난다.
+    const needle = raw
+      .replace(/^[^\p{L}\p{N}]+/u, "")
+      .split("\n")[0]
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 60);
+    return needle.length >= 4 ? `${path}#:~:text=${encodeURIComponent(needle)}` : path;
+  };
+
   const logNeedle = logQ.trim().toLowerCase();
   const shownLogs = !logNeedle
     ? logs
@@ -492,11 +510,47 @@ export default function ContentEditorClient() {
               return (
                 <Fragment key={r.key}>
                   {newSection && (
-                    <div className="text-xs font-medium text-gray-500 pt-2 first:pt-0">{r.section}</div>
+                    // 사전 문구의 묶음 제목 = 화면 이름. 서버는 한국어로 주므로 코디 언어로 바꿔 단다
+                    // (홈 문구는 「홈 · 통계」처럼 구역까지 담고 있어 그대로 둔다).
+                    <div className="text-xs font-medium text-gray-500 pt-2 first:pt-0">
+                      {(r.section === r.place?.screen && r.place?.screenId && L["ceScr_" + r.place.screenId]) || r.section}
+                    </div>
                   )}
                   <div className={`bg-white border rounded-xl p-3.5 ${dirty.some((d) => d.key === r.key) ? "border-teal-400" : "border-gray-200"}`}>
+                  {/* 2026-07-31 PO 지적: 여기가 «costCalc.disclaimer» 같은 코드 이름만 보여줘서
+                      «각각의 텍스트가 어디에 박혀 있는지 찾기가 어렵다»고 했다. 변경 이력에 이미
+                      쓰던 것과 같은 방식으로 «어느 화면 · 어느 자리 + 화면에서 보기»를 앞에 세운다. */}
+                  {(() => {
+                    const scr = (r.place?.screenId && L["ceScr_" + r.place.screenId]) || r.place?.screen || null;
+                    const note = (r.place?.noteId && L["ceNote_" + r.place.noteId]) || r.place?.note || null;
+                    const where = whereOf(r.key, r.place?.where);
+                    const href = previewHref(r.place?.path, r.values);
+                    // 묶음 제목이 이미 화면 이름이면 줄마다 또 달지 않는다(같은 말이 두 번 뜬다).
+                    const dupOfHeader = scr && r.section === r.place?.screen;
+                    if (!scr && !note && !where && !href) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                        {scr && !dupOfHeader && (
+                          <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">{scr}</span>
+                        )}
+                        {where && <span className="text-[11px] text-gray-700">{where}</span>}
+                        {href && (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] text-teal-700 underline hover:no-underline"
+                          >
+                            {L.ceOpenScreen}
+                          </a>
+                        )}
+                        {note && <span className="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{note}</span>}
+                      </div>
+                    );
+                  })()}
                   <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-500 truncate">{r.label}</span>
+                    {/* 코드 이름은 뒤로 물리되 회색을 더 흐리게는 못 한다(대비 미달 — check:content 가 막는다) */}
+                    <span className="text-xs text-gray-500 font-mono truncate" title={r.key}>{r.label}</span>
                     {r.matched === false && (
                       <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title={L.ceBlockBadgeTitle}>{L.ceBlockBadge}</span>
                     )}

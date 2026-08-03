@@ -14,6 +14,303 @@ export type Database = {
   }
   public: {
     Tables: {
+      _backup_messages_20260720: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          message: string | null
+          message_encrypted: string | null
+          sender_role: string | null
+          session_id: string | null
+          translated_text: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          message?: string | null
+          message_encrypted?: string | null
+          sender_role?: string | null
+          session_id?: string | null
+          translated_text?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          message?: string | null
+          message_encrypted?: string | null
+          sender_role?: string | null
+          session_id?: string | null
+          translated_text?: string | null
+        }
+        Relationships: []
+      }
+      _backup_rag_documents_treatments_20260720: {
+        Row: {
+          checksum: string | null
+          chunk_count: number | null
+          content: string | null
+          created_at: string | null
+          embedding_model: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          lang: string | null
+          last_ingested_at: string | null
+          metadata: Json | null
+          source_id: string | null
+          source_label: string | null
+          source_type: string | null
+          source_url: string | null
+          title: string | null
+          trust_tier: number | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          checksum?: string | null
+          chunk_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          embedding_model?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          lang?: string | null
+          last_ingested_at?: string | null
+          metadata?: Json | null
+          source_id?: string | null
+          source_label?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          title?: string | null
+          trust_tier?: number | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          checksum?: string | null
+          chunk_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          embedding_model?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          lang?: string | null
+          last_ingested_at?: string | null
+          metadata?: Json | null
+          source_id?: string | null
+          source_label?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          title?: string | null
+          trust_tier?: number | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
+      _backup_session_type_20260727: {
+        Row: {
+          id: string | null
+          is_test: boolean | null
+          scheduled_at: string | null
+          session_type: string | null
+        }
+        Insert: {
+          id?: string | null
+          is_test?: boolean | null
+          scheduled_at?: string | null
+          session_type?: string | null
+        }
+        Update: {
+          id?: string | null
+          is_test?: boolean | null
+          scheduled_at?: string | null
+          session_type?: string | null
+        }
+        Relationships: []
+      }
+      _backup_transcripts_20260720: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          session_id: string | null
+          source_lang: string | null
+          source_text: string | null
+          source_text_encrypted: string | null
+          target_lang: string | null
+          translated_text: string | null
+          translated_text_encrypted: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          session_id?: string | null
+          source_lang?: string | null
+          source_text?: string | null
+          source_text_encrypted?: string | null
+          target_lang?: string | null
+          translated_text?: string | null
+          translated_text_encrypted?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          session_id?: string | null
+          source_lang?: string | null
+          source_text?: string | null
+          source_text_encrypted?: string | null
+          target_lang?: string | null
+          translated_text?: string | null
+          translated_text_encrypted?: string | null
+        }
+        Relationships: []
+      }
+      _backup_treatments_20260720: {
+        Row: {
+          benefits: string[] | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          description_en: string | null
+          description_ja: string | null
+          description_ko: string | null
+          description_zh: string | null
+          display_order: number | null
+          duration: string | null
+          full_description: string | null
+          full_description_en: string | null
+          full_description_ja: string | null
+          full_description_ko: string | null
+          full_description_zh: string | null
+          hospital_id: string | null
+          i18n: Json | null
+          id: string | null
+          images: string[] | null
+          is_published: boolean | null
+          meta_desc_en: string | null
+          meta_desc_ja: string | null
+          meta_desc_ko: string | null
+          meta_desc_zh: string | null
+          meta_title_en: string | null
+          meta_title_ja: string | null
+          meta_title_ko: string | null
+          meta_title_zh: string | null
+          name: string | null
+          name_en: string | null
+          name_ja: string | null
+          name_ko: string | null
+          name_zh: string | null
+          preparation: string | null
+          price_max: number | null
+          price_min: number | null
+          recovery_time: string | null
+          risks: string | null
+          slug: string | null
+          slug_en: string | null
+          slug_ja: string | null
+          slug_ko: string | null
+          slug_zh: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          benefits?: string[] | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          description_en?: string | null
+          description_ja?: string | null
+          description_ko?: string | null
+          description_zh?: string | null
+          display_order?: number | null
+          duration?: string | null
+          full_description?: string | null
+          full_description_en?: string | null
+          full_description_ja?: string | null
+          full_description_ko?: string | null
+          full_description_zh?: string | null
+          hospital_id?: string | null
+          i18n?: Json | null
+          id?: string | null
+          images?: string[] | null
+          is_published?: boolean | null
+          meta_desc_en?: string | null
+          meta_desc_ja?: string | null
+          meta_desc_ko?: string | null
+          meta_desc_zh?: string | null
+          meta_title_en?: string | null
+          meta_title_ja?: string | null
+          meta_title_ko?: string | null
+          meta_title_zh?: string | null
+          name?: string | null
+          name_en?: string | null
+          name_ja?: string | null
+          name_ko?: string | null
+          name_zh?: string | null
+          preparation?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          recovery_time?: string | null
+          risks?: string | null
+          slug?: string | null
+          slug_en?: string | null
+          slug_ja?: string | null
+          slug_ko?: string | null
+          slug_zh?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          benefits?: string[] | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          description_en?: string | null
+          description_ja?: string | null
+          description_ko?: string | null
+          description_zh?: string | null
+          display_order?: number | null
+          duration?: string | null
+          full_description?: string | null
+          full_description_en?: string | null
+          full_description_ja?: string | null
+          full_description_ko?: string | null
+          full_description_zh?: string | null
+          hospital_id?: string | null
+          i18n?: Json | null
+          id?: string | null
+          images?: string[] | null
+          is_published?: boolean | null
+          meta_desc_en?: string | null
+          meta_desc_ja?: string | null
+          meta_desc_ko?: string | null
+          meta_desc_zh?: string | null
+          meta_title_en?: string | null
+          meta_title_ja?: string | null
+          meta_title_ko?: string | null
+          meta_title_zh?: string | null
+          name?: string | null
+          name_en?: string | null
+          name_ja?: string | null
+          name_ko?: string | null
+          name_zh?: string | null
+          preparation?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          recovery_time?: string | null
+          risks?: string | null
+          slug?: string | null
+          slug_en?: string | null
+          slug_ja?: string | null
+          slug_ko?: string | null
+          slug_zh?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       account_deletion_requests: {
         Row: {
           id: string
@@ -774,6 +1071,57 @@ export type Database = {
           },
         ]
       }
+      center_menu_items: {
+        Row: {
+          category_ko: string
+          center_name_ko: string
+          center_slug: string
+          center_summary_ko: string | null
+          created_at: string
+          display_order: number
+          frequency_ko: string | null
+          hospital_brand: string
+          id: string
+          is_active: boolean
+          item_name_ko: string
+          price_krw: number | null
+          revised_on: string
+          updated_at: string
+        }
+        Insert: {
+          category_ko: string
+          center_name_ko: string
+          center_slug: string
+          center_summary_ko?: string | null
+          created_at?: string
+          display_order?: number
+          frequency_ko?: string | null
+          hospital_brand?: string
+          id?: string
+          is_active?: boolean
+          item_name_ko: string
+          price_krw?: number | null
+          revised_on: string
+          updated_at?: string
+        }
+        Update: {
+          category_ko?: string
+          center_name_ko?: string
+          center_slug?: string
+          center_summary_ko?: string | null
+          created_at?: string
+          display_order?: number
+          frequency_ko?: string | null
+          hospital_brand?: string
+          id?: string
+          is_active?: boolean
+          item_name_ko?: string
+          price_krw?: number | null
+          revised_on?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_feedback: {
         Row: {
           comment: string | null
@@ -1125,7 +1473,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          message: string | null
+          message?: string | null
           message_encrypted?: string | null
           sender_id?: string | null
           sender_role?: string | null
@@ -1136,7 +1484,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          message?: string
+          message?: string | null
           message_encrypted?: string | null
           sender_id?: string | null
           sender_role?: string | null
@@ -1225,6 +1573,8 @@ export type Database = {
           inquiry_id: number | null
           intake_id: string | null
           is_test: boolean
+          livekit_duration_seconds: number | null
+          livekit_ended_at: string | null
           livekit_room_name: string | null
           livekit_token_doctor: string | null
           livekit_token_patient: string | null
@@ -1261,6 +1611,8 @@ export type Database = {
           inquiry_id?: number | null
           intake_id?: string | null
           is_test?: boolean
+          livekit_duration_seconds?: number | null
+          livekit_ended_at?: string | null
           livekit_room_name?: string | null
           livekit_token_doctor?: string | null
           livekit_token_patient?: string | null
@@ -1297,6 +1649,8 @@ export type Database = {
           inquiry_id?: number | null
           intake_id?: string | null
           is_test?: boolean
+          livekit_duration_seconds?: number | null
+          livekit_ended_at?: string | null
           livekit_room_name?: string | null
           livekit_token_doctor?: string | null
           livekit_token_patient?: string | null
@@ -1356,6 +1710,7 @@ export type Database = {
           source_lang: string
           source_text: string | null
           source_text_encrypted: string | null
+          speaker_name: string | null
           target_lang: string
           translated_text: string | null
           translated_text_encrypted: string | null
@@ -1366,10 +1721,11 @@ export type Database = {
           id?: string
           session_id?: string | null
           source_lang: string
-          source_text: string | null
+          source_text?: string | null
           source_text_encrypted?: string | null
+          speaker_name?: string | null
           target_lang: string
-          translated_text: string | null
+          translated_text?: string | null
           translated_text_encrypted?: string | null
         }
         Update: {
@@ -1378,10 +1734,11 @@ export type Database = {
           id?: string
           session_id?: string | null
           source_lang?: string
-          source_text?: string
+          source_text?: string | null
           source_text_encrypted?: string | null
+          speaker_name?: string | null
           target_lang?: string
-          translated_text?: string
+          translated_text?: string | null
           translated_text_encrypted?: string | null
         }
         Relationships: [
@@ -1393,6 +1750,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      content_change_log: {
+        Row: {
+          changed_at: string
+          content_key: string
+          editor_email: string | null
+          id: string
+          lang: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_at?: string
+          content_key: string
+          editor_email?: string | null
+          id?: string
+          lang: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_at?: string
+          content_key?: string
+          editor_email?: string | null
+          id?: string
+          lang?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
+      content_overrides: {
+        Row: {
+          content_key: string
+          id: string
+          lang: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          content_key: string
+          id?: string
+          lang: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          content_key?: string
+          id?: string
+          lang?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
       }
       coordinator_responses: {
         Row: {
@@ -1731,8 +2145,8 @@ export type Database = {
           content_hash: string | null
           created_at: string | null
           data: Json
-          hospital_id: string | null
           extracted_data: Json | null
+          hospital_id: string | null
           id: string
           job_id: string | null
           lang: string | null
@@ -1753,8 +2167,8 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           data?: Json
-          hospital_id?: string | null
           extracted_data?: Json | null
+          hospital_id?: string | null
           id?: string
           job_id?: string | null
           lang?: string | null
@@ -1775,8 +2189,8 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           data?: Json
-          hospital_id?: string | null
           extracted_data?: Json | null
+          hospital_id?: string | null
           id?: string
           job_id?: string | null
           lang?: string | null
@@ -1793,17 +2207,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "crawl_raw_items_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "crawl_jobs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "crawl_raw_items_hospital_id_fkey"
             columns: ["hospital_id"]
             isOneToOne: false
             referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crawl_raw_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "crawl_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -2300,63 +2714,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      content_change_log: {
-        Row: {
-          changed_at: string
-          content_key: string
-          editor_email: string | null
-          id: string
-          lang: string
-          new_value: string | null
-          old_value: string | null
-        }
-        Insert: {
-          changed_at?: string
-          content_key: string
-          editor_email?: string | null
-          id?: string
-          lang: string
-          new_value?: string | null
-          old_value?: string | null
-        }
-        Update: {
-          changed_at?: string
-          content_key?: string
-          editor_email?: string | null
-          id?: string
-          lang?: string
-          new_value?: string | null
-          old_value?: string | null
-        }
-        Relationships: []
-      }
-      content_overrides: {
-        Row: {
-          content_key: string
-          id: string
-          lang: string
-          updated_at: string
-          updated_by: string | null
-          value: string
-        }
-        Insert: {
-          content_key: string
-          id?: string
-          lang: string
-          updated_at?: string
-          updated_by?: string | null
-          value: string
-        }
-        Update: {
-          content_key?: string
-          id?: string
-          lang?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: string
-        }
-        Relationships: []
       }
       hospitals: {
         Row: {
@@ -4025,6 +4382,13 @@ export type Database = {
             referencedRelation: "consultation_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "surveys_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
         ]
       }
       symptom_alerts: {
@@ -4663,6 +5027,10 @@ export type Database = {
       alert_counter_reset: { Args: { p_key: string }; Returns: undefined }
       archive_old_audit_logs: {
         Args: { p_older_than_days?: number }
+        Returns: number
+      }
+      chat_thread_merge_meta: {
+        Args: { p_only_if_absent?: string; p_patch: Json; p_thread_id: string }
         Returns: number
       }
       check_rate_limit: {

@@ -100,26 +100,16 @@ export async function POST(
   });
 
   try {
-    // 수신 이메일 해소: 명시 inviteeEmail 우선. 없고 role 이 patient/guest(대표 수신자=환자)면
-    // 상담의 patient_user_id 로 auth 이메일 폴백 → 계정 환자도 초대+리마인더가 자동 도달.
-    // ⚠ 모달은 환자계정 미선택 시 patient_user_id 를 요청자(코디) 본인으로 placeholder 채움
-    //   → 그 경우 코디 본인에게 메일 가는 걸 막으려 patient_user_id === 요청자면 폴백 안 함.
-    let resolvedEmail =
+    // 수신 이메일 = 요청에 명시된 주소 **하나뿐**. 비어 있으면 메일을 보내지 않는다.
+    // ⛔ 예전엔 patient_user_id 의 auth 이메일로 폴백했다가 사고가 났다(2026-07-31):
+    //    모달이 환자계정 미선택 시 patient_user_id 에 «만든 사람»을 placeholder 로 박는데,
+    //    나중에 다른 스태프가 목록에서 「시작」·「링크 복사」를 누르면 요청자≠환자 가드가 뚫려
+    //    상담을 만든 코디 본인에게 초대 메일이 날아갔다(누를 때마다 1통).
+    //    → 주소를 «추측»하지 않는다. 빈칸 = 보내지 마라.
+    const resolvedEmail =
       typeof body.inviteeEmail === "string" && body.inviteeEmail.includes("@")
         ? body.inviteeEmail.slice(0, 320)
         : undefined;
-    if (!resolvedEmail && (role === "patient" || role === "guest")) {
-      const { data: s } = await supabaseAdmin
-        .from("consultation_sessions")
-        .select("patient_user_id")
-        .eq("id", consultationId)
-        .maybeSingle();
-      const pid = (s as any)?.patient_user_id;
-      if (pid && pid !== access.userId) {
-        const { data: u } = await supabaseAdmin.auth.admin.getUserById(pid);
-        if (u?.user?.email) resolvedEmail = u.user.email;
-      }
-    }
 
     const result = await generateGuestToken({
       consultationId,

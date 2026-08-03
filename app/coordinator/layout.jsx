@@ -6,11 +6,13 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
+  Settings,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
 import StaffPortalGate from '../_components/StaffPortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
+import PushOptInBanner from '../_components/PushOptInBanner';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 // 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
@@ -85,6 +87,13 @@ export default function CoordinatorLayout({ children }) {
 
       <div className="p-3 border-t border-gray-200 space-y-1">
         <Link
+          href="/coordinator/settings"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
+        >
+          <Settings size={18} />
+          <span>{L.navSettings}</span>
+        </Link>
+        <Link
           href="/account/password"
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
         >
@@ -158,6 +167,8 @@ export default function CoordinatorLayout({ children }) {
             className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6"
             style={{ paddingBottom: "calc(1.5rem + var(--cookie-banner-h, 0px))" }}
           >
+            {/* 폰 알림이 꺼져 있을 때만 뜨는 줄 — 브라우저에선 아무것도 안 그린다 */}
+            <PushOptInBanner />
             {children}
           </div>
         </main>

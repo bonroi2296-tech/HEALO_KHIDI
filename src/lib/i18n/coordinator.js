@@ -38,6 +38,7 @@ const CT = {
   navAlerts: { ko: "증상 알림", en: "Symptom alerts", ru: "Оповещения о симптомах", kz: "Симптом ескертулері", zh: "症状提醒", ja: "症状アラート" },
   // 왼쪽 메뉴에서 이 한 칸만 사전에 없어 러시아어 화면에도 한국어로 남아 있었다(2026-07-29 실측).
   navContent: { ko: "콘텐츠 편집", en: "Content editing", ru: "Редактирование контента", kz: "Мазмұнды өңдеу", zh: "内容编辑", ja: "コンテンツ編集" },
+  navSettings: { ko: "설정", en: "Settings", ru: "Настройки", kz: "Параметрлер", zh: "设置", ja: "設定" },
   changePassword: { ko: "비밀번호 변경", en: "Change password", ru: "Сменить пароль", kz: "Құпиясөзді өзгерту", zh: "修改密码", ja: "パスワード変更" },
   logout: { ko: "로그아웃", en: "Log out", ru: "Выйти", kz: "Шығу", zh: "退出", ja: "ログアウト" },
 
