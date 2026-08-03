@@ -14,8 +14,8 @@ const ALLOWED_TYPES = [
 ];
 
 // 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
-// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다.
-const MAX_SIZE = 50 * 1024 * 1024;
+// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다(실측: 200MB 성공 / 201MB 거부).
+const MAX_SIZE = 200 * 1024 * 1024;
 
 /**
  * POST /api/khidi/consultation/[id]/documents

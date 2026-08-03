@@ -21,7 +21,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const BUCKET = "attachments";
-const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_SIZE = 200 * 1024 * 1024;
 const MAX_ATTACHMENTS = 20; // 환자 본인 업로드(10) + 코디 대리분 여유
 
 const ALLOWED_TYPES = [

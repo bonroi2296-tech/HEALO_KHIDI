@@ -18,7 +18,7 @@ describe("progressRecords 검증 로직", () => {
     expect(isAllowedProgressFileType(null)).toBe(false);
   });
 
-  it("크기 한도(50MB) 검사", () => {
+  it("크기 한도(200MB) 검사", () => {
     expect(isWithinProgressSize(1)).toBe(true);
     expect(isWithinProgressSize(PROGRESS_MAX_SIZE)).toBe(true);
     expect(isWithinProgressSize(PROGRESS_MAX_SIZE + 1)).toBe(false);

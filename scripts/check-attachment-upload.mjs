@@ -51,9 +51,9 @@ const check = (label, cond, detail = "") => {
   if (!cond) failed++;
 };
 
-// 1) 20MB PDF — 예전 서버 경유 방식이면 4.5MB 에서 413 으로 죽던 크기
-const big = await upload(pdf(20), "20mb.pdf", "application/pdf");
-check("20MB PDF 업로드", big.ok, big.error || "");
+// 1) 131MB PDF — 문의 #60 에서 환자가 못 올렸던 바로 그 크기(예전엔 4.5MB 에서 413)
+const big = await upload(pdf(131), "131mb.pdf", "application/pdf");
+check("131MB PDF 업로드 (문의 #60 실제 크기)", big.ok, big.error || "");
 if (big.path) await admin.storage.from("attachments").remove([big.path]);
 
 // 2) 위장 파일(선언은 PDF, 내용은 아님) — 거부 + 저장소에서 삭제되어야 한다
@@ -63,8 +63,8 @@ check("위장 파일 거부", !fake.ok && fake.error === "invalid_file_content",
 if (fake.path) check("위장 파일 저장소에서 삭제됨", !(await exists(fake.path)));
 
 // 3) 상한 초과 — 서명 단계에서 막혀야 한다
-const over = await post({ phase: "sign", name: "huge.pdf", type: "application/pdf", size: 60 * 1024 * 1024 });
-check("50MB 초과 거부", over.json.error === "file_too_large", over.json.error || "");
+const over = await post({ phase: "sign", name: "huge.pdf", type: "application/pdf", size: 250 * 1024 * 1024 });
+check("200MB 초과 거부", over.json.error === "file_too_large", over.json.error || "");
 
 // 4) 허용 안 된 타입
 const badType = await post({ phase: "sign", name: "x.exe", type: "application/x-msdownload", size: 1000 });

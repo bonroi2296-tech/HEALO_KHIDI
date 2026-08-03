@@ -23,9 +23,10 @@ import { NextRequest } from "next/server";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
-// Supabase 프로젝트 전역 업로드 상한과 동일(실측 2026-08-03: 50MB 성공 / 51MB 거부).
-// 더 키우려면 Supabase 대시보드 Storage → Upload file size limit 를 먼저 올려야 한다.
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+// Supabase 프로젝트 전역 업로드 상한과 동일(실측 2026-08-03: 200MB 성공 / 201MB 거부).
+// 이 값을 더 키우려면 Supabase 대시보드 Storage → Settings → Global file size limit 를 먼저 올린다.
+// (지출 상한(spend cap)이 켜진 상태의 천장은 원래 50MB 였는데 PO 결정으로 200MB 로 올림.)
+const MAX_FILE_SIZE = 200 * 1024 * 1024;
 const BUCKET = "attachments";
 const DIR = "inquiry";
 

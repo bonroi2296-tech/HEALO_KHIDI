@@ -8,8 +8,8 @@
  *   error: file_too_large | invalid_file_type | invalid_file_content | rate_limited | upload_failed
  */
 
-export const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
-export const MAX_ATTACHMENT_MB = 50;
+export const MAX_ATTACHMENT_BYTES = 200 * 1024 * 1024;
+export const MAX_ATTACHMENT_MB = 200;
 
 // Vercel 413 등은 JSON 이 아니라 HTML/평문으로 온다. res.json() 을 그냥 부르면 예외가 터져
 // 호출부가 «아무 메시지도 없이» 조용히 실패했다(문의 #60 때 실제로 그랬다).
