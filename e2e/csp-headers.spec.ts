@@ -60,6 +60,23 @@ test.describe("보안 HTTP 헤더 @smoke", () => {
     ).toBe("");
   });
 
+  // 위 검사는 «주소가 CSP 어딘가에 있나»만 본다 — 어느 «칸»에 있는지는 안 본다.
+  // 2026-08-03: 그래서 반쪽이 통과했다. connect-src 에 integrations.livekit.io 를 넣어 파일
+  // 받기는 됐는데(요청 200 실측), 잡음 제거가 소리 처리기(AudioWorklet)를 blob: 로 싣기 때문에
+  // script-src 에 blob: 이 없어 **실행 단계에서 막혔다**. 워크릿은 worker-src 가 아니라
+  // script-src 로 검사되고, 이 차단은 「보안정책 위반」 사건도 안 낸다
+  // (`AbortError: Unable to load a worklet's module` 이라는 엉뚱한 이름으로만 나온다).
+  test("소리 처리기(AudioWorklet)를 실을 수 있다 — script-src 에 blob:", async ({ page }) => {
+    const response = await page.goto("/");
+    const csp = response?.headers()["content-security-policy"] ?? "";
+    const scriptSrc = csp.split(";").map((s) => s.trim()).find((s) => s.startsWith("script-src")) ?? "";
+    expect(scriptSrc, "script-src 칸이 아예 없다").toBeTruthy();
+    expect(
+      scriptSrc.split(/\s+/).includes("blob:"),
+      "script-src 에 blob: 이 없다 — 화상상담 잡음 제거가 조용히 안 켜진다(worker-src 에 있어도 소용없다)"
+    ).toBeTruthy();
+  });
+
   test("API 엔드포인트 응답에 민감 정보가 헤더에 없다", async ({ page }) => {
     // inquiry API 간단 GET (404 응답이라도 헤더는 확인)
     const response = await page.goto("/api/inquiry");
