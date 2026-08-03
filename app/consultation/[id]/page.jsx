@@ -81,6 +81,7 @@ import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/use
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
+import { isPatientSideRole } from "@/lib/consultation/inviteRole";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
@@ -881,6 +882,9 @@ export default function ConsultationRoomPage() {
   const previewStreamRef = useRef(null);
   const [previewBlocked, setPreviewBlocked] = useState(false); // 권한 차단(사용자가 '허용' 해야 함)
   const [previewNoDevice, setPreviewNoDevice] = useState(false); // 장치 없음(PC 등) — 경고 아닌 안내만
+  // 이 기기에 카메라가 «달려 있는가». null = 아직 모름(그 동안은 켜는 쪽으로 둔다).
+  // 방 접속 시 video 를 켤지 정하는 데만 쓴다 — 아래 LiveKitRoom 의 video prop 주석 참고.
+  const [hasCamera, setHasCamera] = useState(null);
   const stopPreview = useCallback(() => {
     previewStreamRef.current?.getTracks().forEach((t) => t.stop());
     previewStreamRef.current = null;
@@ -975,6 +979,23 @@ export default function ConsultationRoomPage() {
     );
   }, []);
 
+  // ── 이 기기에 카메라가 달려 있나 (방 접속 때 video 를 켤지 판단) ──
+  // enumerateDevices 는 권한 없이도 «장치가 몇 개 있는지»는 알려준다(라벨만 가려짐).
+  // 실패하면 null 로 두어 예전 동작(켜기)을 유지한다 — 모르면 켠다.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices?.();
+        if (cancelled || !Array.isArray(devices)) return;
+        setHasCamera(devices.some((d) => d.kind === "videoinput"));
+      } catch {
+        /* 못 물어보면 모르는 채로 둔다(= 켠다) */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // ── 연결 워치독 — 토큰은 받았는데 18초 안에 연결이 안 되면 '연결 실패'로 표시(무한 '연결중' 방지) ──
   //   onError 가 안 잡히는 '조용히 멈춤'(협상 지연·TURN 차단 등)도 이 타임아웃으로 사용자에게 노출.
   useEffect(() => {
@@ -1003,9 +1024,21 @@ export default function ConsultationRoomPage() {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         } catch (e1) {
-          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 카메라만이라도 미리보기 시도
+          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 한쪽씩이라도 살려서 미리보기 시도.
           if (e1?.name === "NotAllowedError" || e1?.name === "SecurityError") throw e1;
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // ⚠️ 2026-07-31: 예전엔 여기서 «카메라만» 한 번 더 시도하고 끝냈다. 그래서
+          //    **카메라 없는 PC 는 마이크가 멀쩡해도 통째로 «장치 없음»** 이 됐다.
+          //    실측(admin_audit_logs 30일): 상담 실패 기록 210건 중 170건(81%)이
+          //    NotFound / "Requested device not found" — 접속 기기의 85%가 윈도우 PC 라
+          //    카메라 없는 데스크톱이 그대로 튕겨 나가고 있었다(연결 성공률 64.6%의 큰 조각).
+          //    → 카메라만 · 마이크만을 «둘 다» 시도한다. 하나라도 되면 상담은 성립한다.
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          } catch (e2) {
+            if (e2?.name === "NotAllowedError" || e2?.name === "SecurityError") throw e2;
+            // 마지막 보루: 소리만이라도. 화상 없이 «음성 상담»은 충분히 성립한다.
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          }
         }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -1735,15 +1768,19 @@ export default function ConsultationRoomPage() {
       // 상담 중에도 언어 칩 탭으로 변경 가능.
       // 내 언어: 사용자가 입장화면에서 직접 골랐으면 그 값, 아니면 코디가 상담에 지정한
       // DB 언어(환자면 patient_language, 의사면 doctor_language)를 기본으로.
-      const myDbLang =
-        result.role === "patient"
-          ? result.patientLanguage
-          : result.role === "doctor"
-            ? result.doctorLanguage
-            : null; // 코디는 한국어(아래 폴백)
+      // ⚠️ 「통합 초대 링크」는 role 이 guest 다 — 환자·에이전시·의사가 모두 이 링크로 들어온다.
+      //    그래서 guest 를 patient 와 **같게** 취급한다. 안 그러면 러시아 환자가 초대 링크로
+      //    들어왔을 때 기본 언어가 한국어가 된다(2026-07-31 역할 단순화 중 발견).
+      //    판정은 한 곳에서만: src/lib/consultation/inviteRole.js (시험으로 묶여 있음)
+      const isPatientSide = isPatientSideRole(result.role);
+      const myDbLang = isPatientSide
+        ? result.patientLanguage
+        : result.role === "doctor"
+          ? result.doctorLanguage
+          : null; // 코디는 한국어(아래 폴백)
       const ml = langPickedByUser
         ? guestLang
-        : myDbLang || guestLang || (result.role === "patient" ? "ru" : "ko");
+        : myDbLang || guestLang || (isPatientSide ? "ru" : "ko");
       setMyLang(ml);
       setGuestLang(ml); // 게스트 방 UI 언어도 내 언어를 따라오게
       const counterpart =
@@ -3357,8 +3394,16 @@ export default function ConsultationRoomPage() {
               //   게스트는 입장 폼 미리보기에서 이미 권한을 받아 여기선 조용히 켜진다.
               //   ※ 예전 "모바일 자동 켜기 들쭉날쭉"(#587) 제보는 revoked 장애(POSTMORTEMS #61) 기간의
               //   오진 가능성이 큼. 실패해도 입장은 그대로(듣기·보기), 마이크만 아래 배너로 재시도.
+              // ⚠️ 2026-07-31: video 를 «카메라가 실제로 있을 때만» 켠다.
+              //   왜: 카메라와 마이크를 한 번에 요청하면 **카메라가 없는 기기에서 요청이 통째로
+              //   실패해 마이크까지 안 켜진다** — 화면은 들어가지는데 아무 말도 못 하는 상태.
+              //   실측(admin_audit_logs 30일): 상담 실패 기록 210건 중 170건(81%)이
+              //   NotFound / "Requested device not found" 였고, 접속 기기의 85%가 윈도우 PC 다
+              //   (카메라 없는 데스크톱이 흔함). 카메라가 없으면 소리만으로 상담이 성립한다.
+              //   hasCamera 가 아직 «모름(null)» 인 동안은 예전대로 true — 확인이 늦어서
+              //   멀쩡한 기기의 카메라를 못 켜는 일이 없게(모르면 켠다).
               audio={true}
-              video={true}
+              video={hasCamera !== false}
               onMediaDeviceFailure={(failure) => {
                 // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
                 setMicActivationFailed(true);
