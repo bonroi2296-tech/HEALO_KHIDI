@@ -103,9 +103,29 @@ function main(ev) {
       [/supabase\s+db\s+reset/, "로컬 데이터베이스 초기화"],
       [/\bpsql\b[\s\S]*\b(DROP|TRUNCATE|DELETE\s+FROM)\b/i, "psql 로 직접 데이터 파괴"],
     ];
-    // 임시 폴더(scratchpad) 안에서 벌어지는 일은 프로젝트에 영향이 없으니 통과
-    const 임시작업 = /scratchpad|\/tmp\/claude-/.test(cmd);
+    // 임시 폴더 안에서 벌어지는 «삭제»만 통과시킨다.
+    //
+    // ⚠️ 2026-08-03 자기감사에서 «구멍»을 찾아 고쳤다. 예전엔 이랬다:
+    //      const 임시작업 = /scratchpad|\/tmp\/claude-/.test(cmd);
+    //    명령 «어디든» 그 글자가 있으면 통째로 면제라서, 실제로 이런 게 통과했다:
+    //      rm -rf /home/user/HEALO_KHIDI/src  # scratchpad     ← 주석에 단어만 있어도 면제
+    //      cp x /tmp/claude-0/a && rm -rf src/lib              ← 앞 명령에 경로만 있어도 면제
+    //    즉 «막는다»고 보고해 놓고 우회가 가능했다 — 문지기의 최악 상태(고친 것처럼 보이는데 안 고쳐짐).
+    //
+    // 지금 규칙: ①삭제(rm) 명령에만 예외를 준다(강제 푸시·reset --hard 등엔 예외 없음)
+    //           ②명령이 «복합»이면(;·&&·||·파이프·명령치환) 예외 없음
+    //           ③지우려는 «대상 경로가 전부» 임시 폴더 아래일 때만 예외
+    const isTempTarget = (t) => t.startsWith("/tmp/") || /(^|\/)scratchpad(\/|$)/.test(t);
+    const rmTargetsAllTemp = () => {
+      const bare = cmd.replace(/#[^\n]*/g, " "); // 주석은 근거가 될 수 없다
+      if (/[;&|]|\$\(|`|\n/.test(bare)) return false; // 복합 명령이면 예외 안 준다
+      const m = bare.match(/\brm\s+((?:-\S+\s+)*)(.+)$/);
+      if (!m) return false;
+      const targets = m[2].trim().split(/\s+/).filter((t) => t && !t.startsWith("-"));
+      return targets.length > 0 && targets.every(isTempTarget);
+    };
     for (const [re, 설명] of 위험셸) {
+      const 임시작업 = 설명.startsWith("rm -rf") && rmTargetsAllTemp();
       if (re.test(cmd) && !임시작업) {
         ask(`🛑 되돌리기 어려운 명령입니다 — ${설명}.\n실행할 명령:\n${cmd.slice(0, 300)}`);
       }

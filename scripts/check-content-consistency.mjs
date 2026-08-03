@@ -155,26 +155,32 @@ function isLangValidationEnum(line) {
 //     2026-06-30 C레벨 진단(CISO-4) 시 전수 감사 결과 현재 15곳은 전부 안전
 //     (JSON-LD 구조화데이터 = JSON.stringify(서버/어드민 객체), 또는 layout.jsx 의
 //     정적 부트스트랩 스크립트 — 공개 사용자 입력 렌더 0). 그 '감사된' 파일만 아래
-//     allowlist 에 둔다. 새 파일이 innerHTML 을 추가하면 CI 가 막아, 추가자가
+//     baseline 에 «개수»로 둔다. 새 파일이든 «기존 파일의 새 줄»이든 늘면 CI 가 막아, 추가자가
 //     "사용자입력 아닌지" 감사 후 의식적으로 allowlist 에 올리게 강제한다(기계가 잡는다).
 //     매칭은 실제 JSX 사용(`dangerouslySetInnerHTML=`)만 — 단어가 든 주석은 오탐 제외.
-const XSS_INNERHTML_ALLOWLIST = new Set([
-  "app/page.jsx",
-  "app/layout.jsx",
-  "app/care-journey/page.jsx",
-  "app/insurance/page.jsx",
-  "app/cost-calculator/page.jsx",
-  "app/faq/page.jsx",
-  "app/kk/for-kazakh-patients/page.jsx",
-  "app/ru/for-russian-patients/page.jsx",
-  "app/treatments/[slug]/page.jsx",
-  "app/hospitals/[slug]/page.jsx",
-  "app/hospitals/immune/page.jsx",
-  "app/specialties/plastic-surgery/page.jsx",
-  "app/specialties/korean-medicine/KoreanMedicineClient.jsx",
-  "app/specialties/dermatology/page.jsx",
-  "app/specialties/dental/page.jsx",
-]);
+//
+// ⚠️ 2026-08-03 전수감사에서 «구멍»을 찾아 고쳤다. 예전엔 «파일 단위 면제»(Set)였다:
+//      if (... && !XSS_INNERHTML_ALLOWLIST.has(file))
+//    → 감사된 15개 파일 «안»에 새 dangerouslySetInnerHTML 을 추가하면 그냥 통과했다(시험으로 확인).
+//      위 주석은 「새 파일이 추가하면 막는다」고 했는데, 실제로 막던 건 «새 파일»뿐이었다.
+//    → «개수 동결». 늘린 사람이 그 줄을 직접 감사하고 아래 숫자를 올려야 통과한다(= 감사 완료 서명).
+const XSS_INNERHTML_BASELINE = {
+  "app/page.jsx": 1,
+  "app/layout.jsx": 5,
+  "app/care-journey/page.jsx": 1,
+  "app/insurance/page.jsx": 1,
+  "app/cost-calculator/page.jsx": 1,
+  "app/faq/page.jsx": 1,
+  "app/kk/for-kazakh-patients/page.jsx": 1,
+  "app/ru/for-russian-patients/page.jsx": 1,
+  "app/treatments/[slug]/page.jsx": 2,
+  "app/hospitals/[slug]/page.jsx": 2,
+  "app/hospitals/immune/page.jsx": 1,
+  "app/specialties/plastic-surgery/page.jsx": 1,
+  "app/specialties/korean-medicine/KoreanMedicineClient.jsx": 1,
+  "app/specialties/dermatology/page.jsx": 1,
+  "app/specialties/dental/page.jsx": 1,
+};
 
 const errors = [];
 
@@ -230,8 +236,18 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     if (isLangValidationEnum(line) && /["']kk["']/.test(line) && !/["']kz["']/.test(line)) {
       errors.push(`[언어검증] ${file}:${i + 1} — z.enum 언어검증에 'kk' 만 있고 활성코드 'kz' 누락 → 카자흐어 문의 거부 (POSTMORTEMS #23). 'kz' 추가할 것(입력은 'kz', 이메일 템플릿만 경계에서 kz→kk)\n    ${line.trim().slice(0, 120)}`);
     }
-    if (/dangerouslySetInnerHTML\s*=/.test(line) && !XSS_INNERHTML_ALLOWLIST.has(file.replace(/\\/g, "/"))) {
-      errors.push(`[XSS가드] ${file}:${i + 1} — 새 dangerouslySetInnerHTML. '사용자 입력'을 렌더하면 XSS 위험. JSON-LD/정적이라 안전함을 확인했으면 scripts/check-content-consistency.mjs 의 XSS_INNERHTML_ALLOWLIST 에 이 파일을 추가(=감사 완료 표시)하라. 사용자입력이면 React 노드/이스케이프로 바꿀 것.\n    ${line.trim().slice(0, 120)}`);
+    if (/dangerouslySetInnerHTML\s*=/.test(line)) {
+      const relX = file.replace(/\\/g, "/");
+      const allowedX = XSS_INNERHTML_BASELINE[relX] ?? 0;
+      const countX = (content.match(/dangerouslySetInnerHTML\s*=/g) || []).length;
+      if (countX > allowedX) {
+        errors.push(
+          `[XSS가드] ${file}:${i + 1} — dangerouslySetInnerHTML 이 이 파일에 ${countX}건 (감사된 기준선 ${allowedX}건 → ${countX - allowedX}건 늘었다). ` +
+            `'사용자 입력'을 렌더하면 XSS(세션탈취→개인정보) 직결이다. JSON-LD/정적이라 안전함을 «새로 늘어난 것까지» 확인했으면 ` +
+            `scripts/check-content-consistency.mjs 의 XSS_INNERHTML_BASELINE 에서 이 파일 숫자를 ${countX} 로 올려라(= 감사 완료 표시). ` +
+            `사용자입력이면 React 노드/이스케이프로 바꿀 것.\n    ${line.trim().slice(0, 120)}`
+        );
+      }
     }
   });
 }
@@ -518,11 +534,13 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 // 2026-07-24 (#974): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
 // 면제는 아래 1개만 남았다. 새 인라인 미니사전은 어떤 공개 파일에서도 CI 실패다.
 // ⚠️ 여기에 파일을 추가하지 마라 — 면제가 곧 "PO가 못 고치는 화면"이 된다(POSTMORTEMS #118).
-const INLINE_L_ALLOW = new Set([
+// ⚠️ 2026-08-03 전수감사: 여기도 «파일 단위 면제»(Set)였다 → 그 파일 안에 미니사전을 «더»
+//    넣어도 통과했다. XSS·주색 가드와 같은 부류라 함께 «개수 동결»로 바꾼다.
+const INLINE_L_BASELINE = {
   // 화상 상담방 문구. 상담방은 통역·자막 전담 세션이 계속 고치는 실시간 UI라(#780·#820·#915)
   // 같은 시각에 이관하면 충돌한다 → 그 세션 작업이 끝난 뒤 이관한다(다음 CMS 세션 1순위).
-  "app/consultation/[id]/_roomCopy.js",
-]);
+  "app/consultation/[id]/_roomCopy.js": 1,
+};
 // 변수명은 L 뿐 아니라 COPY·T·DICT 도 매칭(옛 가드가 L 만 봐서 COPY 로 우회되던 사각 — SocialProof·CookieConsent 실사례).
 const INLINE_L_RE = /\bconst\s+(L|COPY|T|DICT|TEXTS?|LABELS)\s*=\s*\{/;
 const INLINE_L_LANGKEY_RE = /\b(ko|en|ru|kz|zh|ja)\s*:/;
@@ -530,9 +548,10 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
   if (!isPublicFacingFile(file)) continue;
   const f = file.replace(/\\/g, "/");
-  if (INLINE_L_ALLOW.has(f)) continue;
   const text = readFileSync(join(ROOT, file), "utf8");
   if (!INLINE_L_RE.test(text) || !INLINE_L_LANGKEY_RE.test(text)) continue; // 언어키 있는 진짜 미니사전만
+  const inlineCount = (text.match(new RegExp(INLINE_L_RE.source, "g")) || []).length;
+  if (inlineCount <= (INLINE_L_BASELINE[f] ?? 0)) continue; // 기준선 이하 = 기존 부채(줄면 통과)
   const line = text.split("\n").findIndex((l) => INLINE_L_RE.test(l)) + 1;
   errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/dictionary.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
 }
@@ -932,16 +951,29 @@ const TEAL600_BASELINE = {
   // 파일이라도 «어두운 배경 클래스»가 섞여 있으면 그 사실을 안내에 덧붙인다 — 틀린 처방을 그대로
   // 따라가는 것보다 «확인하라»가 낫다.
   const DARK_BG_RE = /\bbg-(?:gray|slate|zinc|neutral)-(?:800|900|950)\b|\bbg-black\b/;
+  const seenBaseline = new Set();
   for (const dir of ["app", "src"]) {
     for (const file of walk(dir)) {
       if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
       const rel = file.replace(/\\/g, "/");
       let text;
       try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-      const hits = text.match(TEAL600_RE);
-      if (!hits) continue;
+      const hits = text.match(TEAL600_RE) || [];
       const allowed = TEAL600_BASELINE[rel] ?? 0;
-      if (hits.length <= allowed) continue; // 기준선 이하 = 기존 것(고치는 중이면 줄어든다)
+      if (allowed > 0) seenBaseline.add(rel);
+      // ⚠️ 0건이라고 여기서 빠져나가면 «장부에 있는데 0건이 된 파일»(= 다 고침)을 못 잡는다.
+      //    2026-08-03 최초 구현이 그 실수를 했다 — 「줄었으면 알린다」를 넣어놓고 정작 0건에선 안 돌았다.
+      if (hits.length === 0 && allowed === 0) continue;
+      if (hits.length < allowed) {
+        // e2e §33-b 와 같은 방식 — 부채 장부가 «거짓»이 되지 않게 줄어든 것도 잡는다.
+        // (이 파일의 관례: 줄어든 것도 errors 로 올려 장부 갱신을 강제한다.)
+        errors.push(
+          `[주색미달] ${rel} — 기준선 ${allowed}건 → ${hits.length}건으로 줄었다(좋다). ` +
+            `TEAL600_BASELINE 숫자를 ${hits.length}${hits.length === 0 ? " (= 줄 삭제)" : ""} 로 내려라 — 장부가 실제와 어긋나면 다음 사람이 늘어난 걸 못 잡는다.`
+        );
+        continue;
+      }
+      if (hits.length === allowed) continue; // 기준선 그대로 = 기존 것
 
       const m = new RegExp(TEAL600_RE.source).exec(text);
       const line = text.slice(0, m.index).split("\n").length;
@@ -960,6 +992,14 @@ const TEAL600_BASELINE = {
         `[주색미달] ${rel}:${line} — ${m[0]} 사용 (이 파일 ${hits.length}건 / 기준선 ${allowed}건 → ${hits.length - allowed}건 늘었다). ` +
           `teal-600 은 흰 배경 글씨도, 흰 글씨를 얹은 배경도 3.74:1 로 WCAG AA(4.5:1) 미달이다. ${처방} ` +
           `(DESIGN.md colors.primary · 실물 시안 docs/design/기본톤_시안.html)`,
+      );
+    }
+  }
+  // 장부에 있는데 «스캔에서 안 보인» 파일 = 이름 변경·삭제. 죽은 항목은 장부를 헐겁게 만든다(e2e §33-b 와 같은 처리).
+  for (const rel of Object.keys(TEAL600_BASELINE)) {
+    if (!seenBaseline.has(rel)) {
+      errors.push(
+        `[주색미달] TEAL600_BASELINE 의 ${rel} 가 스캔에서 안 보인다(이름 변경·삭제). 장부에서 지울 것 — 죽은 항목은 가드를 헐겁게 만든다.`
       );
     }
   }
