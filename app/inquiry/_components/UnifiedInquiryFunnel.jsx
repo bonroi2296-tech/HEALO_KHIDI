@@ -525,7 +525,17 @@ export default function UnifiedInquiryFunnel() {
     // 목록(선택 버튼)에서는 제 이름을 보여주는 게 맞으므로 LANG_NAMES 는 그대로 둔다.
     let langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
     try {
-      langName = new Intl.DisplayNames([lang], { type: "language" }).of(form1.preferredLanguage) || langName;
+      // ⚠️ 우리 코드 «kz» 는 국제 표기가 아니다(카자흐어 = kk). 그대로 넣으면 브라우저가
+      //    이름을 못 찾아 «kz» 를 되돌려준다 — 고친 게 더 나빠지는 자리라 여기서 갈아끼운다.
+      const BCP47 = { kz: "kk" };
+      const uiCode = BCP47[lang] || lang;
+      // ⚠️ 브라우저가 그 화면 언어를 «모르면»(예: 카자흐어) 조용히 다른 언어 이름을 내놓는다
+      //    (실측: 카자흐어 화면인데 «한국어·러시아어»가 한글로 나왔다). 지원 여부부터 확인한다.
+      const supported = Intl.DisplayNames.supportedLocalesOf([uiCode]).length > 0;
+      const code = BCP47[form1.preferredLanguage] || form1.preferredLanguage;
+      const shown = supported ? new Intl.DisplayNames([uiCode], { type: "language" }).of(code) : null;
+      // 못 찾으면 코드를 그대로 돌려준다 → 그 경우엔 제 이름(Қазақша)이 낫다.
+      if (shown && shown.toLowerCase() !== code.toLowerCase()) langName = shown;
     } catch { /* 아주 옛 브라우저 → 제 이름으로 폴백 */ }
     const successMsg = tl("successBody", lang).replace("{lang}", langName);
 
