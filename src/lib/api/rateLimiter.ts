@@ -109,4 +109,6 @@ export const defaultLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 export const authLimiter = createRateLimiter({ windowMs: 60_000, max: 10, message: 'Too many auth attempts' });
 
 /** Upload rate limiter: 10 req/5min */
-export const uploadLimiter = createRateLimiter({ windowMs: 5 * 60_000, max: 10, message: 'Upload rate limit exceeded' });
+// 파일 1개당 2회 호출(서명 발급 + 업로드 후 검증)이라 20 = 실질 「5분에 파일 10개」.
+// 2026-08-03 직행 업로드 전환 때 10 → 20. 안 올렸으면 파일 6개째부터 막혔다(전환 전과 동일한 체감 유지).
+export const uploadLimiter = createRateLimiter({ windowMs: 5 * 60_000, max: 20, message: 'Upload rate limit exceeded' });
