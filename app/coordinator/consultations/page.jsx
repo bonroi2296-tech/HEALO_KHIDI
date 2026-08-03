@@ -12,6 +12,8 @@ import { kstDate, kstTime } from '@/lib/datetime/kst';
 import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
+// 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
+import { stageLabel } from '@/lib/inquiry/intakeLabels';
 import { khidiCountState, KHIDI_COUNTED_TYPES } from '@/lib/khidi/countState';
 
 // 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
@@ -229,7 +231,7 @@ export default function CoordinatorConsultationsPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
         >
           <Plus size={16} />
           {L.consultNew}
@@ -380,7 +382,7 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
                         <div className="text-xs text-gray-500 mb-1">{L.fieldCancerStage}</div>
-                        <div className="text-sm font-medium">{patient?.cancer_type ? cancerTypeLabelL(patient.cancer_type, lang) : '-'} / Stage {patient?.cancer_stage || '-'}</div>
+                        <div className="text-sm font-medium">{patient?.cancer_type ? cancerTypeLabelL(patient.cancer_type, lang) : '-'} / {stageLabel(patient?.cancer_stage, lang) || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
                         <div className="text-xs text-gray-500 mb-1">{L.fieldDoctorAssign}</div>

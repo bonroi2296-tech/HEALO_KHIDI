@@ -110,11 +110,11 @@ export default function StaffPortalGate({ allow = [], redirect, children }) {
               </button>
             )}
             {state === "login" ? (
-              <Link href={`/login?redirect=${encodeURIComponent(redirect || "/")}`} className="block w-full py-3 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition">
+              <Link href={`/login?redirect=${encodeURIComponent(redirect || "/")}`} className="block w-full py-3 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition">
                 {L.login}
               </Link>
             ) : (
-              <Link href="/" className="block w-full py-3 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition">
+              <Link href="/" className="block w-full py-3 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition">
                 {L.goHome}
               </Link>
             )}

@@ -12,7 +12,7 @@ import { requireVisaAccess } from "@/lib/auth/requireVisaAccess";
 import { getSupabaseServerClient } from "@/lib/data/supabaseServerClient";
 import { uploadLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
-import { verifyFileMagic } from "@/lib/security/fileMagic";
+import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -20,7 +20,9 @@ const ALLOWED_TYPES = [
   "image/png",
   "image/webp",
 ];
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
+// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다(실측: 200MB 성공 / 201MB 거부).
+const MAX_SIZE = 200 * 1024 * 1024;
 
 const VALID_DOCUMENT_TYPES = [
   "passport",
@@ -60,69 +62,53 @@ export async function POST(
       }
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const documentType =
-      sanitizeString(formData.get("document_type") as string, 50) || "other";
-    const documentLabel = sanitizeString(
-      formData.get("document_label") as string,
-      200
-    );
+    const body = await request.json();
+    const documentType = sanitizeString(body.document_type, 50) || "other";
+    const documentLabel = sanitizeString(body.document_label, 200);
 
-    if (!file) {
-      return NextResponse.json({ ok: false, error: "file_required" }, { status: 400 });
-    }
     if (!VALID_DOCUMENT_TYPES.includes(documentType)) {
       return NextResponse.json(
         { ok: false, error: "invalid_document_type", detail: `허용: ${VALID_DOCUMENT_TYPES.join(", ")}` },
         { status: 400 }
       );
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { ok: false, error: `file_type_not_allowed`, detail: `Accepted: ${ALLOWED_TYPES.join(", ")}` },
-        { status: 400 }
-      );
-    }
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { ok: false, error: "file_too_large", detail: `Max ${MAX_SIZE / 1024 / 1024}MB` },
-        { status: 400 }
-      );
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Magic bytes 검증
-    const magicCheck = verifyFileMagic(buffer, file.type);
-    if (!magicCheck.ok) {
-      console.warn(
-        `[VisaDocumentUpload] magic check failed: file=${file.name} declared=${file.type} reason=${magicCheck.reason}`
-      );
-      return NextResponse.json(
-        { ok: false, error: "file_content_mismatch" },
-        { status: 400 }
-      );
-    }
 
     const supabase = getSupabaseServerClient();
+    const dir = `visa-applications/${applicationId}`;
 
-    // Storage 경로 — 신청 ID 하위, 랜덤 suffix
-    const ext = file.name.split(".").pop() || "bin";
-    const storagePath = `visa-applications/${applicationId}/${Date.now()}_${crypto
-      .randomUUID()
-      .slice(0, 8)}.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("documents")
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: false,
+    // ── 1단계: 서명 URL 발급 ──
+    if (body.phase !== "commit") {
+      const signed = await issueUploadUrl(body, {
+        bucket: "documents",
+        dir,
+        allowed: ALLOWED_TYPES,
+        maxBytes: MAX_SIZE,
       });
+      if (!signed.ok) {
+        return NextResponse.json(
+          { ok: false, error: signed.error, detail: signed.detail },
+          { status: signed.status }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        signedUrl: signed.signedUrl,
+        path: signed.path,
+        name: signed.name,
+        type: signed.type,
+      });
+    }
 
-    if (uploadError) {
-      console.error("[VisaDocumentUpload] Storage error:", uploadError);
-      return NextResponse.json({ ok: false, error: "upload_failed" }, { status: 500 });
+    // ── 2단계: 올라간 파일 검증 + 기록 저장 ──
+    const storagePath = String(body.path || "");
+    if (!isOwnPath(dir, storagePath)) {
+      return NextResponse.json({ ok: false, error: "invalid_path" }, { status: 400 });
+    }
+    const fileType = normalizeMime(storagePath, String(body.type || ""));
+    const verified = await verifyUploaded("documents", storagePath, fileType, MAX_SIZE);
+    if (!verified.ok) {
+      const error = verified.error === "invalid_file_content" ? "file_content_mismatch" : verified.error;
+      return NextResponse.json({ ok: false, error }, { status: 400 });
     }
 
     // DB insert
@@ -133,9 +119,9 @@ export async function POST(
         uploaded_by: userId,
         document_type: documentType,
         document_label: documentLabel || null,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
+        file_name: sanitizeString(body.name, 200),
+        file_type: fileType,
+        file_size: verified.size, // 선언값이 아니라 실제 저장된 크기
         storage_path: storagePath,
         review_status: "pending",
       })

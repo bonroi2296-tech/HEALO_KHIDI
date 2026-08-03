@@ -6,6 +6,15 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 지금 실서비스로 돌고 있는 커밋을 **빌드 시점에 박아둔다**.
+  // 왜: 예비 배포 창구(.github/workflows/daily-deploy.yml)가 /api/health 의 commit 값으로
+  //     «이미 나갔나»를 판정하는데, 그 값을 process.env.VERCEL_GIT_COMMIT_SHA 하나에만 기대면
+  //     Vercel 프로젝트의 «시스템 변수 자동 노출»이 꺼져 있을 때 실행 중에 비어버린다.
+  //     비면 창구가 «모르면 짓는다»로 **매일 같은 코드를 또 짓는다** — 방금 고친 그 버그가 그대로 재발.
+  //     빌드 시점 값은 그 설정과 무관하게 항상 박힌다(공개 저장소라 커밋 번호는 비밀이 아니다).
+  env: {
+    BUILD_COMMIT: process.env.VERCEL_GIT_COMMIT_SHA || "",
+  },
   // ✅ 성능 최적화: 코드 스플리팅 및 번들 최적화
   webpack: (config, { isServer, dev, webpack }) => {
     // @sentry/nextjs 가 @prisma/instrumentation + @opentelemetry/instrumentation (postgres.js)

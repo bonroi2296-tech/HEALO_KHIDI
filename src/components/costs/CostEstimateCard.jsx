@@ -16,6 +16,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+// 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
+// 여기 stage 는 "1"~"4"(비용계산기 저장값)라 stageLabel 이 "I"~"IV" 로 맞춰준다.
+import { stageLabel } from "@/lib/inquiry/intakeLabels";
 
 // 환자용 카드 문구 — 중앙 i18n 사전 costCard.* 키(6개 활성언어 ko·en·ru·kz·zh·ja)
 
@@ -163,7 +166,7 @@ export default function CostEstimateCard({
             {t("costCard.tierLabel", lang)} (Tier {data.tier || 1})
           </p>
           <h3 className="text-xl font-semibold mt-1">
-            {cancerType} · Stage {stage}
+            {cancerType} · {stageLabel(stage, lang)}
           </h3>
         </div>
         {intakeId && !aiLoading && !band && (

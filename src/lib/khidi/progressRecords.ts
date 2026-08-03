@@ -14,7 +14,9 @@ export const PROGRESS_ALLOWED_TYPES = [
   "application/dicom",
 ] as const;
 
-export const PROGRESS_MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
+// 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다.
+export const PROGRESS_MAX_SIZE = 200 * 1024 * 1024;
 
 // 사후관리 경과 기록 종류. 미상/오타는 'progress'(일반 경과)로 안전 폴백.
 export const PROGRESS_RECORD_TYPES = [

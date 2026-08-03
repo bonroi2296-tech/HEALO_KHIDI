@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
 import { event, GA_EVENTS } from "@/lib/ga";
+import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
 
 // GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
 const ga = (name, params) => { try { event(name, params); } catch {} };
@@ -250,10 +251,10 @@ function ChatInstallHint({ lang }) {
             {c.cta}
           </button>
         )}
-        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-400 hover:text-teal-600 text-base leading-none px-1">×</button>
+        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-700 hover:text-teal-800 text-base leading-none px-1">×</button>
       </div>
       {iosHint && !deferred && (
-        <p className="mt-1 pl-7 text-[10px] text-teal-600 leading-snug">{c.iosBody}{c.iosBody2}</p>
+        <p className="mt-1 pl-7 text-[10px] text-teal-700 leading-snug">{c.iosBody}{c.iosBody2}</p>
       )}
     </div>
   );
@@ -435,8 +436,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false); // 드래그앤드랍 오버레이 표시
 
-  const MAX_ATTACHMENTS = 5;
-  const MAX_FILE_MB = 10;
+  const MAX_ATTACHMENTS = 10;
 
   const handleFilePick = async (fileList) => {
     setUploadError("");
@@ -450,16 +450,13 @@ export function ThreadChat({ onBack, backLabel } = {}) {
     setUploading(true);
     try {
       for (const file of files.slice(0, remaining)) {
-        if (file.size > MAX_FILE_MB * 1024 * 1024) {
-          setUploadError(t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_FILE_MB}MB.`);
-          continue;
-        }
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-        const data = await res.json();
+        const data = await uploadAttachment(file);
         if (!data.ok) {
-          setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+          setUploadError(
+            data.error === "file_too_large"
+              ? t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_ATTACHMENT_MB}MB.`
+              : t("chat.upload.failed", langCode) || "Upload failed. Please try again."
+          );
           continue;
         }
         setAttachments((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
@@ -1003,7 +1000,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
           <p className="text-sm font-semibold text-teal-800">
             {t("chat.upload.dropHere", langCode) || "Drop files here to attach"}
           </p>
-          <p className="text-[11px] text-teal-600/80 mt-1">
+          <p className="text-[11px] text-teal-700 mt-1">
             {t("chat.upload.dropHint", langCode) || `Test results or photos · up to ${MAX_ATTACHMENTS} files`}
           </p>
         </div>
@@ -1320,7 +1317,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               disabled={sending || uploading || attachments.length >= MAX_ATTACHMENTS}
               aria-label={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
               title={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
-              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-600 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-700 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Paperclip size={18} />
             </button>

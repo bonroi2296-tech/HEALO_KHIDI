@@ -50,6 +50,13 @@ export async function GET() {
       latency_ms: Date.now() - started,
       timestamp: new Date().toISOString(),
       service: "khidi",
+      // 「지금 실서비스로 돌고 있는 코드가 어느 커밋인가」.
+      // 예비 배포 창구(.github/workflows/daily-deploy.yml)가 이 값을 보고 «이미 나갔나»를 판정한다.
+      // 그 판정 하나 때문에 열쇠(Vercel API 토큰)를 새로 만들지 않으려고 여기에 싣는다.
+      // 저장소가 공개라 커밋 번호는 이미 누구나 볼 수 있다 — 새로 새는 정보가 없다.
+      // 두 갈래로 읽는다: 빌드 시점에 박은 값(next.config.js) → 실행 중 시스템 변수.
+      // 한쪽이 비어도 다른 쪽이 채운다 — 둘 다 비면 창구가 «모르면 짓는다»로 돈다(안전한 쪽).
+      commit: process.env.BUILD_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || null,
     },
     {
       status: ok ? 200 : 503,

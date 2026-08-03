@@ -24,9 +24,11 @@ import { sanitizeString } from "@/lib/api/sanitize";
 import {
   validateProgressUpload,
   normalizeRecordType,
-  progressStoragePath,
+  PROGRESS_ALLOWED_TYPES,
+  PROGRESS_MAX_SIZE,
   type ProgressRecordType,
 } from "@/lib/khidi/progressRecords";
+import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const RECORD_TYPE_LABEL: Record<ProgressRecordType, string> = {
   test_result: "검사결과",
@@ -75,21 +77,30 @@ export async function POST(request: NextRequest) {
 
     assertSupabaseEnv();
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const inquiryId = sanitizeString(formData.get("inquiryId") as string, 32);
-    const recordType = normalizeRecordType(sanitizeString(formData.get("recordType") as string, 32));
-    const note = sanitizeString(formData.get("note") as string, 1000);
-
-    const check = validateProgressUpload({
-      inquiryId,
-      hasFile: !!file,
-      fileType: file?.type ?? null,
-      fileSize: file?.size ?? null,
-      note,
-    });
-    if (!check.ok) {
-      return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    const body = await request.json();
+    const inquiryId = sanitizeString(body.inquiryId, 32);
+    const recordType = normalizeRecordType(sanitizeString(body.recordType, 32));
+    const note = sanitizeString(body.note, 1000);
+    // 파일은 «선택» — 메모만 있는 경과도 허용. 파일이 있으면 브라우저가 Storage 로 직접 올린 뒤
+    // 그 경로(path)만 여기로 보낸다(서버 경유 시 4.5MB 에서 끊기던 문제).
+    const fileName = sanitizeString(body.name, 200);
+    const fileType = normalizeMime(fileName, String(body.type || ""));
+    // 검사는 단계별로 나눈다.
+    //   ⚠️ 선언 크기(body.size)는 «서명 단계에서만» 본다. 2단계에서 또 보면 클라가 그 값을
+    //   안 실어 보낸 순간 Number(undefined)=NaN → «파일이 너무 큼»으로 잘못 튕긴다(실제로 그랬다).
+    //   2단계의 크기·형식 검사는 verifyUploaded 가 «저장된 실물»을 재서 한다.
+    const idOk = Number.isInteger(Number(inquiryId)) && Number(inquiryId) > 0;
+    if (body.phase === "sign") {
+      const check = validateProgressUpload({
+        inquiryId, hasFile: true, fileType, fileSize: Number(body.size), note,
+      });
+      if (!check.ok) return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    } else if (!body.path) {
+      // 파일 없는 «메모형» 경과 — note 가 비어 있으면 의미가 없다.
+      const check = validateProgressUpload({ inquiryId, hasFile: false, note });
+      if (!check.ok) return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    } else if (!idOk) {
+      return NextResponse.json({ ok: false, error: "invalid_inquiry" }, { status: 400 });
     }
 
     // 본 의료기관이 의뢰한 케이스인지 확인 (권한 경계)
@@ -106,19 +117,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "not_your_case" }, { status: 403 });
     }
 
-    // 파일 업로드(있으면) — documents 버킷
-    let storagePath: string | null = null;
-    if (file) {
-      const uniq = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
-      storagePath = progressStoragePath(inquiryId, file.name, uniq);
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const { error: upErr } = await supabaseAdmin.storage
-        .from("documents")
-        .upload(storagePath, buffer, { contentType: file.type, upsert: false });
-      if (upErr) {
-        console.error("[khidi/progress] upload:", upErr.message);
-        return NextResponse.json({ ok: false, error: "upload_failed" }, { status: 500 });
+    const dir = `progress/${inquiryId}`;
+
+    // ── 1단계(파일이 있을 때만): 서명 URL 발급 ──
+    if (body.phase === "sign") {
+      const signed = await issueUploadUrl(body, {
+        bucket: "documents",
+        dir,
+        allowed: PROGRESS_ALLOWED_TYPES,
+        maxBytes: PROGRESS_MAX_SIZE,
+      });
+      if (!signed.ok) {
+        return NextResponse.json(
+          { ok: false, error: signed.error, detail: signed.detail },
+          { status: signed.status }
+        );
       }
+      return NextResponse.json({
+        ok: true,
+        signedUrl: signed.signedUrl,
+        path: signed.path,
+        name: signed.name,
+        type: signed.type,
+      });
+    }
+
+    // ── 2단계: 올라간 파일(있으면) 검증 후 기록 저장 ──
+    let storagePath: string | null = null;
+    let fileSize: number | null = null;
+    if (body.path) {
+      storagePath = String(body.path);
+      if (!isOwnPath(dir, storagePath)) {
+        return NextResponse.json({ ok: false, error: "invalid_path" }, { status: 400 });
+      }
+      const verified = await verifyUploaded("documents", storagePath, fileType, PROGRESS_MAX_SIZE);
+      if (!verified.ok) {
+        return NextResponse.json({ ok: false, error: verified.error }, { status: 400 });
+      }
+      fileSize = verified.size; // 선언값이 아니라 실제 저장된 크기
     }
 
     const { data: rec, error: recErr } = await (supabaseAdmin as any)
@@ -130,9 +166,9 @@ export async function POST(request: NextRequest) {
         uploader_role: "medical_institution",
         record_type: recordType,
         note: note || null,
-        file_name: file?.name || null,
-        file_type: file?.type || null,
-        file_size: file?.size || null,
+        file_name: storagePath ? fileName : null,
+        file_type: storagePath ? fileType : null,
+        file_size: fileSize,
         storage_path: storagePath,
       })
       .select()
@@ -146,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // 닫힌 고리: 코디·에이전시 타임라인에 경과 업로드 이벤트 반영 (case_status 는 변경 안 함 → KPI 영향 0)
     const label = RECORD_TYPE_LABEL[recordType];
-    const summary = file?.name ? `${label} 파일` : label;
+    const summary = storagePath ? `${label} 파일` : label;
     await (supabaseAdmin as any).from("case_status_history").insert({
       inquiry_id: Number(inquiryId),
       status: inq.case_status || "follow_up",

@@ -16,6 +16,7 @@ import {
   Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
@@ -112,6 +113,9 @@ function tl(key, lang) {
   return t("inquiryFunnel." + key, lang);
 }
 
+// 큰 자료는 쪼개서 올리게 되므로 5개는 좁다(문의 #60: 131MB PDF). 서버 검증(step2)도 같은 10개.
+const MAX_ATTACHMENTS = 10;
+
 // ─── 컴포넌트 ───────────────────────────────────────────────────────
 export default function UnifiedInquiryFunnel() {
   const lang = useLang() || "en";
@@ -134,6 +138,7 @@ export default function UnifiedInquiryFunnel() {
   });
   const REQUIRED_CONSENTS = ["pipa", "sensitive", "thirdParty", "crossBorder"];
   const allRequiredConsented = REQUIRED_CONSENTS.every((k) => consents[k]);
+  const allConsented = Object.values(consents).every(Boolean); // 「모두 동의」 체크 상태(선택 포함)
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
@@ -180,6 +185,46 @@ export default function UnifiedInquiryFunnel() {
       })
       .catch(() => {});
   }, [fromChat]);
+
+  // 로그인 상태면 폼을 미리 채운다 — 계정(이메일·이름)은 세션에서 바로, 국적·전화는
+  // 지난 접수(/api/inquiries/prefill)에서. 빈 칸만 채우고 사용자가 이미 친 값은 안 건드린다.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+        const { data: { session } } = await createSupabaseBrowserClient().auth.getSession();
+        if (!session?.access_token) return; // 게스트 — 그냥 빈 폼
+        const user = session.user || {};
+        const md = user.user_metadata || {};
+        const acctName =
+          [md.first_name, md.last_name].filter(Boolean).join(" ") || md.full_name || md.name || "";
+
+        let p = {};
+        try {
+          const res = await fetch("/api/inquiries/prefill", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          const json = await res.json();
+          // 스태프·에이전시 계정은 늘 «환자 대신» 쓴다 → 자동채움을 통째로 끈다.
+          // (안 그러면 코디 이름·직전 환자 전화가 새 환자 폼에 미리 박힌다 — route.ts 주석 참고)
+          if (json?.skip) return;
+          if (json?.ok && json.prefill) p = json.prefill;
+        } catch { /* 지난 접수 없음 — 계정 정보만으로 채운다 */ }
+
+        if (cancelled) return;
+        setForm1((prev) => ({
+          ...prev,
+          name: prev.name || acctName || p.name || "",
+          email: prev.email || user.email || "",
+          nationality: prev.nationality || p.nationality || "",
+          // 지난 접수 번호는 국가번호가 이미 붙은 통짜 문자열 → 국가번호 칸은 OTHER 로 두고 그대로 보여준다.
+          ...(p.phone && !prev.phone ? { phone: p.phone, phoneDial: "OTHER" } : {}),
+        }));
+      } catch { /* 자동채움 실패해도 폼은 그대로 쓸 수 있어야 한다 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // GA 이벤트 — 폼 단계 진입 시에만 트리거
   useEffect(() => {
@@ -327,17 +372,16 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── 파일 업로드 ─────────────────────────────────────────────────
   async function handleFileAdd(files) {
-    const remaining = 5 - uploadedFiles.length;
+    const remaining = MAX_ATTACHMENTS - uploadedFiles.length;
     if (remaining <= 0) { setError(tl("tooManyFiles", lang)); return; }
     const toUpload = Array.from(files).slice(0, remaining);
 
     for (const file of toUpload) {
-      if (file.size > 10 * 1024 * 1024) { setError(tl("fileTooLarge", lang)); continue; }
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!data.ok) { setError(tl("uploadError", lang)); continue; }
+      const data = await uploadAttachment(file);
+      if (!data.ok) {
+        setError(tl(data.error === "file_too_large" ? "fileTooLarge" : "uploadError", lang));
+        continue;
+      }
       setUploadedFiles((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
     }
   }
@@ -474,7 +518,25 @@ export default function UnifiedInquiryFunnel() {
 
   // Phase: step1-success
   if (phase === "step1-success") {
-    const langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    // 문장 «안»에 들어가는 언어 이름은 화면 언어로 번역돼야 한다.
+    // 전엔 어느 화면에서든 그 언어의 제 이름(Русский·Қазақша…)을 그대로 넣어서
+    // 한국어 화면에 «Русский로 연락드립니다» 처럼 글자가 섞여 나왔다(2026-07-31 실측).
+    // 표를 6개 언어×6개로 늘리는 대신 브라우저가 가진 언어 이름을 쓴다(ko 화면 → «러시아어»).
+    // 목록(선택 버튼)에서는 제 이름을 보여주는 게 맞으므로 LANG_NAMES 는 그대로 둔다.
+    let langName = LANG_NAMES[form1.preferredLanguage] || form1.preferredLanguage;
+    try {
+      // ⚠️ 우리 코드 «kz» 는 국제 표기가 아니다(카자흐어 = kk). 그대로 넣으면 브라우저가
+      //    이름을 못 찾아 «kz» 를 되돌려준다 — 고친 게 더 나빠지는 자리라 여기서 갈아끼운다.
+      const BCP47 = { kz: "kk" };
+      const uiCode = BCP47[lang] || lang;
+      // ⚠️ 브라우저가 그 화면 언어를 «모르면»(예: 카자흐어) 조용히 다른 언어 이름을 내놓는다
+      //    (실측: 카자흐어 화면인데 «한국어·러시아어»가 한글로 나왔다). 지원 여부부터 확인한다.
+      const supported = Intl.DisplayNames.supportedLocalesOf([uiCode]).length > 0;
+      const code = BCP47[form1.preferredLanguage] || form1.preferredLanguage;
+      const shown = supported ? new Intl.DisplayNames([uiCode], { type: "language" }).of(code) : null;
+      // 못 찾으면 코드를 그대로 돌려준다 → 그 경우엔 제 이름(Қазақша)이 낫다.
+      if (shown && shown.toLowerCase() !== code.toLowerCase()) langName = shown;
+    } catch { /* 아주 옛 브라우저 → 제 이름으로 폴백 */ }
     const successMsg = tl("successBody", lang).replace("{lang}", langName);
 
     return (
@@ -531,17 +593,17 @@ export default function UnifiedInquiryFunnel() {
             <div className="flex flex-wrap gap-2">
               {STAGES.map((s) => (
                 <button
-                  key={s}
+                  key={s.value}
                   type="button"
                   disabled={form2.stageUnknown}
-                  onClick={() => setForm2((p) => ({ ...p, stage: p.stage === s ? "" : s }))}
+                  onClick={() => setForm2((p) => ({ ...p, stage: p.stage === s.value ? "" : s.value }))}
                   className={`px-5 py-2 rounded-xl border-2 font-semibold text-sm transition ${
-                    form2.stage === s && !form2.stageUnknown
+                    form2.stage === s.value && !form2.stageUnknown
                       ? "border-teal-500 bg-teal-50 text-teal-700"
                       : "border-gray-200 text-gray-600 hover:border-gray-300 disabled:opacity-40"
                   }`}
                 >
-                  Stage {s}
+                  {optLabel(s, lang)}
                 </button>
               ))}
               <button
@@ -921,7 +983,7 @@ export default function UnifiedInquiryFunnel() {
           <button
             type="button"
             onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); setPhase("step1"); }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold text-sm hover:bg-teal-800 transition"
           >
             <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
           </button>
@@ -1109,6 +1171,19 @@ export default function UnifiedInquiryFunnel() {
           <Shield size={14} className="text-teal-600" />
           <span className="text-[13px] font-semibold text-gray-700">{tl("consentHeading", lang)}</span>
         </div>
+        {/* 모두 동의 — 5칸을 하나로. 필수 4 + 선택(마케팅)까지 한 번에 켜고 끈다(2026-07-31 PO 요청). */}
+        <label className="flex items-center gap-2 py-2 mb-1 border-b border-gray-200 cursor-pointer text-[13px] font-bold text-gray-800">
+          <input
+            type="checkbox"
+            checked={allConsented}
+            onChange={(e) => {
+              const v = e.target.checked;
+              setConsents({ pipa: v, sensitive: v, thirdParty: v, crossBorder: v, marketing: v });
+            }}
+            className="h-4 w-4 shrink-0 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+          />
+          <span>{tl("consentAll", lang)}</span>
+        </label>
         <div className="space-y-2">
           {[
             { key: "pipa", labelKey: "consentPipa" },
