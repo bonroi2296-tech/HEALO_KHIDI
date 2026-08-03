@@ -66,14 +66,23 @@ test.describe("보안 HTTP 헤더 @smoke", () => {
   // script-src 에 blob: 이 없어 **실행 단계에서 막혔다**. 워크릿은 worker-src 가 아니라
   // script-src 로 검사되고, 이 차단은 「보안정책 위반」 사건도 안 낸다
   // (`AbortError: Unable to load a worklet's module` 이라는 엉뚱한 이름으로만 나온다).
-  test("소리 처리기(AudioWorklet)를 실을 수 있다 — script-src 에 blob:", async ({ page }) => {
+  // ⚠️ 2026-08-03 추가분: blob: 하나만 봐도 반쪽이었다. 같은 기능이 **세 겹**에 걸려 있었다 —
+  //   ①connect-src(파일 받기) ②script-src blob:(워크릿 싣기) ③script-src 'wasm-unsafe-eval'
+  //   (소리 모델이 WebAssembly 라 컴파일도 script-src 로 검사된다). 한 겹씩 열 때마다 다음 겹이
+  //   «다른 이름의 에러»로 나와서, 열 때마다 실제로 재지 않으면 고친 줄 알고 넘어간다.
+  test("잡음 제거가 켜질 수 있다 — script-src 에 blob: 과 'wasm-unsafe-eval'", async ({ page }) => {
     const response = await page.goto("/");
     const csp = response?.headers()["content-security-policy"] ?? "";
     const scriptSrc = csp.split(";").map((s) => s.trim()).find((s) => s.startsWith("script-src")) ?? "";
     expect(scriptSrc, "script-src 칸이 아예 없다").toBeTruthy();
+    const parts = scriptSrc.split(/\s+/);
     expect(
-      scriptSrc.split(/\s+/).includes("blob:"),
-      "script-src 에 blob: 이 없다 — 화상상담 잡음 제거가 조용히 안 켜진다(worker-src 에 있어도 소용없다)"
+      parts.includes("blob:"),
+      "script-src 에 blob: 이 없다 — 소리 처리기(AudioWorklet)를 못 싣는다(worker-src 에 있어도 소용없다)"
+    ).toBeTruthy();
+    expect(
+      parts.includes("'wasm-unsafe-eval'") || parts.includes("'unsafe-eval'"),
+      "script-src 에 'wasm-unsafe-eval' 이 없다 — 잡음 제거 소리 모델(WebAssembly)이 컴파일 단계에서 막힌다"
     ).toBeTruthy();
   });
 

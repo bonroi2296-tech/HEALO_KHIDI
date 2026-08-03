@@ -146,7 +146,15 @@ const nextConfig = {
               //   같은 날 #1237 이 connect-src 에 integrations.livekit.io 를 열어 «파일 받기»는 됐지만
               //   (실측: 요청 2건 200), 그 다음 «실행» 칸이 안 열려 잡음 제거는 여전히 안 켜졌다.
               //   위험 평가: 이 줄엔 이미 'unsafe-inline' 이 있어 blob: 추가가 늘리는 공격면은 그보다 작다.
-              `script-src 'self' 'unsafe-inline' blob: ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
+              // 'wasm-unsafe-eval'  잡음 제거(Krisp)의 소리 모델은 WebAssembly 다. 브라우저는 WebAssembly
+              //   컴파일도 「스크립트 실행」으로 보고 script-src 로 검사한다 — 이 낱말이 없으면 막힌다.
+              //   ⚠️ 'unsafe-eval'(문자열을 코드로 실행) 과 다르다. 'wasm-unsafe-eval' 은 **WebAssembly 만**
+              //      허용하고 eval() 은 계속 막는다 — 좁은 쪽을 골랐다.
+              //   2026-08-03 실측: blob: 을 연 «뒤에» 실서비스 상담방에서 나온 다음 벽이 이것이다.
+              //     `WebAssembly.Module(): … violates … because 'unsafe-eval' is not an allowed source`
+              //   같은 날 겪은 세 번째 겹이다: ①connect-src(파일 받기) ②script-src blob:(워크릿 싣기)
+              //     ③여기(모델 돌리기). **「한 겹 열었다 = 기능이 켜졌다」로 넘기지 마라 — 매번 실제로 재라.**
+              `script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",
