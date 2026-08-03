@@ -140,6 +140,91 @@ export type StudyResult =
     }
   | { ok: false; error: string; status: number };
 
+/**
+ * **이미 풀어 둔** 묶음의 요약만 읽는다(안 풀려 있으면 null — 여기서 풀지 않는다).
+ *
+ * 왜 «안 풀린 건 건드리지 않나»: 푸는 데 20초쯤 걸린다. 케이스 브리프를 만들 때마다
+ * 그걸 하면 브리프가 하염없이 느려진다. 코디가 한 번이라도 영상을 열었으면 이미 풀려 있다.
+ *
+ * ⚠️ 여기서 주는 건 «촬영 목록 + 기기가 남긴 글 기록»뿐이다. **그림 판독은 없다** —
+ *   CT 슬라이스를 AI 가 읽고 소견을 만들면 그건 진단이고, 틀리면 의료진에게 그대로 흘러간다.
+ */
+export async function readPreparedStudy(
+  path: string
+): Promise<{ series: { desc: string; modality: string; count: number }[]; docs: { desc: string; lines: string[] }[] } | null> {
+  const cached = await supabaseAdmin.storage.from(BUCKET).download(manifestPath(path));
+  if (!cached.data) return null;
+  try {
+    const m = JSON.parse(await cached.data.text());
+    if ((m.v || 1) < MANIFEST_V) return null;
+    return {
+      series: (m.series || []).map((s: any) => ({ desc: s.desc, modality: s.modality, count: s.count })),
+      docs: (m.docs || []).map((d: any) => ({ desc: d.desc, lines: d.lines || [] })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * **이미 풀어 둔** 묶음에서 대표 장면 몇 장을 그림(PNG)으로 구워 준다 — AI 초견용.
+ *
+ * 왜 몇 장만: 265장을 다 보내면 비용·시간이 폭주한다. 위에서 아래로 «고르게» 뽑으면
+ *   장기 배치가 한 번씩은 지나간다. 정밀 판독용이 아니라 «초견»용이다.
+ * 밝기 기준은 그 시리즈가 들고 있는 값(없으면 복부·연부조직 350/40)을 쓴다.
+ */
+export async function renderSlicesPng(
+  path: string,
+  count = 12
+): Promise<{ images: string[]; seriesDesc: string; total: number } | null> {
+  const prepared = await readPreparedStudyRaw(path);
+  const s = prepared?.series?.[0];
+  if (!s || !s.count || !s.rows || !s.cols) return null;
+
+  const { data: signed } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(s.file, 600);
+  if (!signed?.signedUrl) return null;
+
+  const { PNG } = await import("pngjs");
+  const ww = s.ww || 350;
+  const wc = s.wc || 40;
+  const lo = wc - ww / 2;
+  const scale = 255 / (ww || 1);
+  const step = Math.max(1, Math.floor(s.count / count));
+  const images: string[] = [];
+
+  for (let i = 0; i < s.count && images.length < count; i += step) {
+    const start = i * s.sliceBytes;
+    const r = await fetch(signed.signedUrl, { headers: { Range: `bytes=${start}-${start + s.sliceBytes - 1}` } });
+    if (!r.ok) continue;
+    const ab = await r.arrayBuffer();
+    const raw: any = s.signed ? new Int16Array(ab) : new Uint16Array(ab);
+    const png = new PNG({ width: s.cols, height: s.rows });
+    for (let p = 0, n = s.rows * s.cols; p < n; p++) {
+      let v = (raw[p] * (s.slope || 1) + (s.intercept || 0) - lo) * scale;
+      v = v < 0 ? 0 : v > 255 ? 255 : v;
+      const q = p << 2;
+      png.data[q] = png.data[q + 1] = png.data[q + 2] = v;
+      png.data[q + 3] = 255;
+    }
+    images.push(PNG.sync.write(png).toString("base64"));
+  }
+  if (!images.length) return null;
+  return { images, seriesDesc: s.desc || "", total: s.count };
+}
+
+/** 목록 파일 원본(내부용). 없거나 판이 낮으면 null. */
+async function readPreparedStudyRaw(path: string): Promise<{ series: SeriesOut[]; docs: any[] } | null> {
+  const cached = await supabaseAdmin.storage.from(BUCKET).download(manifestPath(path));
+  if (!cached.data) return null;
+  try {
+    const m = JSON.parse(await cached.data.text());
+    if ((m.v || 1) < MANIFEST_V) return null;
+    return { series: m.series || [], docs: m.docs || [] };
+  } catch {
+    return null;
+  }
+}
+
 /** 묶음 하나를 «볼 수 있게» 준비한다. 두 번째부터는 만들어 둔 목록을 그대로 돌려준다. */
 export async function prepareStudy(path: string): Promise<StudyResult> {
   // 이미 정리해 둔 게 있으면 그걸 쓴다(같은 검사를 두 번 풀지 않는다).

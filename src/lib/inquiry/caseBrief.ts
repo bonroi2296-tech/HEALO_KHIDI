@@ -24,6 +24,7 @@ import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { getAiReadable } from "@/lib/documents/aiReadable";
 import { followUpSig, followUpsForBrief } from "@/lib/inquiry/followUps";
+import { readPreparedStudy, renderSlicesPng } from "@/lib/imaging/prepareStudy";
 import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
@@ -40,6 +41,7 @@ export type CaseBrief = {
   request: string;         // 환자가 원하는 것(치료·일정·우선순위)
   points: string[];        // 코디가 볼 포인트 / 다음 액션
   red_flags: string[];     // 주의 깊게 볼 점(있으면)
+  imaging_note?: string;   // CT 초견(AI) — 영상 대표 장면을 보고 적은 «참고용 초안». 판독 아님
 };
 
 // 브리프를 만들 수 있는 언어 = 백오피스 언어와 동일(6개).
@@ -69,16 +71,25 @@ export type CaseBriefResult =
   | { ok: true; brief: CaseBrief; unreadableCount: number }
   | { ok: false; error: string };
 
-const RESPONSE_SCHEMA = {
-  type: "object",
-  properties: {
-    overview: { type: "string" },
-    request: { type: "string" },
-    points: { type: "array", items: { type: "string" } },
-    red_flags: { type: "array", items: { type: "string" } },
-  },
-  required: ["overview", "request", "points"],
-};
+/**
+ * 응답 형식. imaging_note 는 **CT 장면이 붙었을 때만 «필수»**로 만든다 —
+ * 선택으로 두면 모델이 그냥 건너뛴다(실측 2026-08-03: 12장을 붙였는데도 빈 채로 왔다).
+ */
+function responseSchema(withImaging: boolean) {
+  return {
+    type: "object",
+    properties: {
+      overview: { type: "string" },
+      request: { type: "string" },
+      points: { type: "array", items: { type: "string" } },
+      red_flags: { type: "array", items: { type: "string" } },
+      ...(withImaging ? { imaging_note: { type: "string" } } : {}),
+    },
+    required: withImaging
+      ? ["overview", "request", "points", "imaging_note"]
+      : ["overview", "request", "points"],
+  };
+}
 
 // 저장소에서 모델이 읽을 수 있는 첨부만 base64 inlineData 로.
 // ⚠️ 예전엔 18MB 를 넘으면 `break` 로 «조용히» 빠졌다 — 자료를 한 글자도 안 읽고도
@@ -166,7 +177,7 @@ const LANG_NAME: Record<string, string> = {
   ko: "Korean", en: "English", ru: "Russian", kz: "Kazakh", zh: "Simplified Chinese", ja: "Japanese",
 };
 
-function buildPrompt(lang: BriefLang): string {
+function buildPrompt(lang: BriefLang, withImaging = false): string {
   const L = LANG_NAME[lang] || "Korean";
   return [
     `You are a medical-tourism case coordinator's assistant for healwith (Korea, oncology).`,
@@ -177,10 +188,60 @@ function buildPrompt(lang: BriefLang): string {
     `  When listing the patient's priorities, quote each selected option by the plain label EXACTLY as given in the intake above. Do NOT expand a label into an interpretive phrase — e.g. do not turn "doctors" into "the expertise of the doctors", or "short stay" into "shortening the treatment period". Just state which priorities they picked.`,
     `- points: array of short bullet strings — what the coordinator should look at or do next. Put YOUR CLINICAL INFERENCES here (e.g. "CIN3 → consider conization (LEEP)"), clearly framed as coordinator considerations, NOT as the patient's request. Also: needed precision tests, suggested hospital department, missing documents, scheduling.`,
     `- red_flags: array of short strings — anything needing careful attention (urgency, abnormal critical values, contradictions). Empty array if none.`,
+    // CT 대표 장면이 붙은 경우에만 — 코디는 의학 지식이 없어서 «무엇이 보이는지»를 알 길이 없다.
+    // 그래서 초견을 준다. 확진이 아니라 «의료진 판독 전 참고»라는 것을 문장 안에서도 못 박게 한다.
+    withImaging
+      ? `- imaging_note: a PRELIMINARY observation of the CT slices attached (evenly sampled from the study — NOT the full series). Write 2-5 short sentences in ${L}: which body region is shown, and any obvious findings (mass, fluid, dilated collecting system, effusion, enlarged nodes) with their location. Use hedged wording throughout (the ${L} equivalent of "appears/suspected"). This is a reading aid for a NON-MEDICAL coordinator before a doctor reads the study — say so plainly at the end of the field. NEVER state a definitive diagnosis, stage, or treatment. If the sampled slices are not informative, say that instead of guessing. Omit this field entirely when no CT slices are attached.`
+      : null,
     ``,
     `RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in \`request\`) from your clinical INFERENCE (goes in \`points\`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. **Write every output field in ${L}** (medical terms may keep their standard Latin/technical form).`,
     `Return ONLY the JSON object.`,
   ].join("\n");
+}
+
+
+/** CT 묶음인가 — 모델에 통째로는 못 넣는다(압축 파일). */
+function isImagingBundle(a: Attachment): boolean {
+  const n = String(a?.name || a?.path || "").toLowerCase();
+  const t = String(a?.type || "").toLowerCase();
+  return /\.(rar|zip|dcm)$/.test(n) || t.includes("rar") || t.includes("zip") || t.includes("dicom");
+}
+
+// CT 초견용 대표 장면 수. 12장이면 몸통을 위아래로 훑는다(정밀 판독용 아님).
+const IMAGING_SLICES = 12;
+
+/**
+ * CT 묶음 → ①글(촬영 목록·기기 기록) ②대표 장면 그림.
+ *
+ * ⚠️ **이미 풀어 둔 묶음만** 쓴다. 안 풀린 걸 여기서 풀면 브리프 한 번에 20초가 더 붙는다
+ *   (코디가 「영상 보기」를 한 번이라도 눌렀으면 풀려 있다). 안 풀린 건 «못 읽음»으로 남는다.
+ */
+async function imagingSummary(
+  attachments: Attachment[]
+): Promise<{ text: string; parts: any[]; covered: number }> {
+  const out: string[] = [];
+  const parts: any[] = [];
+  let covered = 0;
+  for (const a of (attachments || []).slice(0, MAX_FILES)) {
+    if (!a?.path || !isImagingBundle(a)) continue;
+    const prepared = await readPreparedStudy(a.path).catch(() => null);
+    if (!prepared) continue;
+    covered++;
+    if (prepared.series.length) {
+      out.push(`series: ${prepared.series.map((s) => `${s.desc} (${s.modality}, ${s.count} slices)`).join("; ")}`);
+    }
+    for (const d of prepared.docs) {
+      out.push(`${d.desc} (machine record):\n${d.lines.slice(0, 120).join("\n")}`);
+    }
+    if (parts.length === 0) {
+      const shots = await renderSlicesPng(a.path, IMAGING_SLICES).catch(() => null);
+      if (shots) {
+        out.push(`attached slices: ${shots.images.length} images evenly sampled from "${shots.seriesDesc}" (${shots.total} slices total)`);
+        for (const b64 of shots.images) parts.push({ inlineData: { mimeType: "image/png", data: b64 } });
+      }
+    }
+  }
+  return { text: out.join("\n"), parts, covered };
 }
 
 /**
@@ -196,14 +257,21 @@ export async function generateCaseBrief(opts: {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return { ok: false, error: "no_api_key" };
 
-  const { parts: fileParts, unreadable } = await loadInlineParts(opts.attachments || []);
+  const { parts: fileParts, unreadable: rawUnreadable } = await loadInlineParts(opts.attachments || []);
   const context = buildContext(opts.inquiry, lang);
+  // CT 묶음(.rar/.zip)은 모델에 통째로 못 넣는다. 대신 **이미 풀어 둔 게 있으면**
+  // 촬영 목록과 기기가 남긴 글 기록(선량 기록 등)을 글로 넣는다. 그림 판독은 넣지 않는다.
+  const { text: imagingText, parts: imagingParts, covered } = await imagingSummary(opts.attachments || []);
+  const unreadable = Math.max(0, rawUnreadable - covered);
   const rawMsg = typeof opts.inquiry?.message === "string" ? opts.inquiry.message : "";
   const safeMsg = redactModelPii(rawMsg).trim();
 
   const userText =
     `Structured intake:\n${context || "(none)"}\n\n` +
     (safeMsg ? `Patient message: "${safeMsg}"\n\n` : "") +
+    (imagingText
+      ? `Imaging study on file${imagingParts.length ? " — representative CT slices are attached as images below (sampled, not the whole series)" : " (series list and machine records only; the images were NOT read — do not infer findings from this)"}:\n${imagingText}\n\n`
+      : "") +
     (fileParts.length ? "Uploaded medical documents are attached — read them.\n" : "No documents uploaded.\n") +
     "Produce the JSON brief.";
 
@@ -211,8 +279,8 @@ export async function generateCaseBrief(opts: {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
     // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
     const res = await fetchGeminiWithCompat(url, {
-      systemInstruction: { parts: [{ text: buildPrompt(lang) }] },
-      contents: [{ role: "user", parts: [{ text: userText }, ...fileParts] }],
+      systemInstruction: { parts: [{ text: buildPrompt(lang, imagingParts.length > 0) }] },
+      contents: [{ role: "user", parts: [{ text: userText }, ...fileParts, ...imagingParts] }],
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -221,10 +289,11 @@ export async function generateCaseBrief(opts: {
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 2048,
+        // CT 초견까지 담으면 2048 에서 끊겨 JSON 이 깨졌다(실측 2026-08-03: parse_error).
+        maxOutputTokens: 16384,
         thinkingConfig: { thinkingLevel: "minimal" },
         responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
+        responseSchema: responseSchema(imagingParts.length > 0),
       },
     });
 
@@ -239,9 +308,14 @@ export async function generateCaseBrief(opts: {
       meta: { attachments: fileParts.length, lang },
     }).catch(() => {});
 
+    // 길이 상한에서 끊기면 JSON 이 깨진 채 온다 — «파싱 실패»로 뭉뚱그리지 말고 이유를 남긴다.
+    const finish = json?.candidates?.[0]?.finishReason;
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
     let parsed: any = null;
-    try { parsed = JSON.parse(raw); } catch { return { ok: false, error: "parse_error" }; }
+    try { parsed = JSON.parse(raw); } catch {
+      if (finish === "MAX_TOKENS") console.error("[caseBrief] 길이 상한에서 끊겼다(maxOutputTokens)");
+      return { ok: false, error: finish === "MAX_TOKENS" ? "too_long" : "parse_error" };
+    }
     if (!parsed || !parsed.overview) return { ok: false, error: "empty_result" };
 
     return {
@@ -252,6 +326,8 @@ export async function generateCaseBrief(opts: {
         request: String(parsed.request || ""),
         points: Array.isArray(parsed.points) ? parsed.points.map((s: any) => String(s)) : [],
         red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map((s: any) => String(s)) : [],
+        // CT 초견 — 담는 걸 빠뜨리면 모델이 잘 써 줘도 화면엔 «없음»으로 뜬다(실제로 그랬다).
+        ...(parsed.imaging_note ? { imaging_note: String(parsed.imaging_note) } : {}),
       },
     };
   } catch {

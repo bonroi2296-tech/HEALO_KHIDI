@@ -134,6 +134,13 @@ export default function OpinionClient({ token }) {
               {c.brief.red_flags.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
           )}
+          {/* CT 초견 — 대표 장면 몇 장만 본 «참고용 초안». 판독은 원장님 몫이라 눈에 띄게 갈라 놓는다. */}
+          {c.brief.imaging_note && (
+            <div className="mt-2 pt-2 border-t border-amber-200">
+              <p className="text-[11px] text-amber-700 font-semibold mb-0.5">CT 초견 (AI 초안 — 판독 아님)</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{c.brief.imaging_note}</p>
+            </div>
+          )}
         </section>
       )}
 

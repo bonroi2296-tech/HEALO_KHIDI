@@ -955,6 +955,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </ul>
               </div>
             )}
+            {/* CT 초견 — 대표 장면 몇 장을 보고 적은 «참고용 초안». 코디가 판독으로 읽지 않게 갈라 놓는다. */}
+            {brief.imaging_note && (
+              <div className="rounded-lg bg-white border border-teal-100 px-3 py-2">
+                <span className="text-xs font-semibold text-teal-700">{pick(INTAKE_UI.briefImaging, lang)}</span>
+                <p className="mt-1 text-gray-800 whitespace-pre-wrap leading-relaxed">{brief.imaging_note}</p>
+              </div>
+            )}
             {/* 못 읽은 첨부가 있으면 «있다»고 말한다 — 조용히 빼면 코디가 다 반영된 줄 안다(문의 #60). */}
             {brief.unreadable > 0 && (
               <p className="text-[12px] font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">

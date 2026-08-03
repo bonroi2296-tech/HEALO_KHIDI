@@ -30,21 +30,28 @@ import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import { readFollowUps } from "@/lib/inquiry/followUps";
+import { readBriefMap } from "@/lib/inquiry/caseBrief";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
-function decodeCachedBrief(encBrief: unknown): { overview: string; request: string; points: string[]; red_flags: string[] } | null {
+function decodeCachedBrief(encBrief: unknown): { overview: string; request: string; points: string[]; red_flags: string[]; imaging_note?: string } | null {
   if (typeof encBrief !== "string" || !encBrief) return null;
   try {
     const dec = decryptStringNullable(encBrief);
     if (!dec) return null;
-    const parsed = JSON.parse(dec);
+    // ⚠️ 캐시는 2026-07-29 부터 **언어별 묶음**({ko:…, ru:…})이다. 예전처럼 parsed.overview 만
+    //   보면 항상 «브리프 없음»이 되어 **의료진 화면에서 케이스 요약이 통째로 사라진다**
+    //   (2026-08-03 PO 지적으로 발각 — 그동안 조용히 안 뜨고 있었다).
+    //   readBriefMap 이 옛 형식·새 형식을 둘 다 흡수한다. 의료진 화면은 한국어로 읽는다.
+    const map = readBriefMap(JSON.parse(dec));
+    const parsed = map.ko || map.en || Object.values(map)[0];
     if (!parsed?.overview) return null;
     return {
       overview: String(parsed.overview || ""),
       request: String(parsed.request || ""),
       points: Array.isArray(parsed.points) ? parsed.points.map((s: any) => String(s)) : [],
       red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map((s: any) => String(s)) : [],
+      imaging_note: parsed.imaging_note ? String(parsed.imaging_note) : undefined,
     };
   } catch {
     return null;
