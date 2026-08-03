@@ -64,6 +64,11 @@ function useAudioTracks(room) {
     if (!room) return { localTrack: null, remoteTracks: [] };
 
     const localPub = room.localParticipant?.getTrackPublication?.(Track.Source.Microphone);
+    // ponytail: 내 마이크가 꺼지면 감지가 통째로 멈춘다 — 하울링은 «내 스피커 + 옆 기기 마이크»
+    //   만으로도 계속 돌기 때문에 그 조합은 못 잡는 사각이다. 지금은 ①번 방어선(같은 회선이면
+    //   입장 즉시 소리 끄기)이 사무실 경우를 덮어 실害가 작다. 사각이 실제로 물리면(한 대는
+    //   사무실 와이파이, 한 대는 폰 데이터) 상대 마이크 «둘 사이»의 상관으로 넓혀라 —
+    //   지금 넓히면 잴 방법 없이 오탐만 늘린다.
     const localTrack =
       localPub && !localPub.isMuted ? localPub.track?.mediaStreamTrack ?? null : null;
 
@@ -110,8 +115,16 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   const [screenOnly, setScreenOnly_] = useState(false);
   // 이 조용히-들어가기가 «회선이 같아서» 걸린 것인가(소리로 잡은 게 아니라) — 안내 문구가 달라진다
   const [quietByNetwork, setQuietByNetwork] = useState(false);
+  const [recheck, setRecheck] = useState(0); // 「참는 시간」이 끝났을 때 자동 음소거를 다시 보게 하는 깨우개
   const autoMutedRef = useRef(false);      // 이번 음소거가 자동(하울링)으로 걸린 것인가
-  const autoMuteOptOutRef = useRef(false); // 자동 음소거를 사람이 되돌렸으면 재-자동뮤트 중단(무한루프 방지)
+  // 사람이 자동 음소거를 되돌린 뒤 «언제까지» 재-자동뮤트를 참을지(무한루프 방지).
+  // ⚠️ 예전엔 boolean 이라 **한 번 되돌리면 그 회의 내내 자동 차단이 영영 꺼졌다.**
+  //    실사용에선 되돌리기가 필수다 — 말을 해야 하니까. 그래서 사실상 매 회의가
+  //    「자동 차단 없음」으로 돌았고, 남는 건 최대 ~9초 걸리는 느린 감지뿐이었다
+  //    (2026-08-03 PO: "하울링이 이미 심해지고 나서야 [배너가] 나온다"). → 잠깐만 참는다.
+  const autoMuteHoldUntilRef = useRef(0);
+  const AUTO_MUTE_COOLDOWN_MS = 60000;
+  const holding = () => Date.now() < autoMuteHoldUntilRef.current;
 
   const { sameRoomWith, feedbackOnset, feedbackPeers } = useSameRoomDetect({
     localTrack,
@@ -132,8 +145,16 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
    * @param {boolean} off  true=끄기, false=되돌리기
    */
   const setScreenOnly = async (off) => {
+    // ⚠️ 마이크와 스피커를 **각각** 감싼다. 예전엔 한 try 안에 둘 다 있어서
+    //    setMicrophoneEnabled 이 튕기면(권한·기기 점유) 아래 스피커 침묵이 통째로 안 돌았다
+    //    → 배너는 「소리 껐어요」라는데 스피커가 계속 울린다(2026-08-03 PO: "마이크는 끄는데
+    //    정작 스피커를 꺼야 하울링이 없어지는 것 같다"). 하울링 순환은 스피커만 빼도 끊긴다.
     try {
       await room?.localParticipant?.setMicrophoneEnabled(!off);
+    } catch {
+      /* 마이크 실패해도 스피커는 반드시 끈다 — 그쪽이 하울링을 끊는다 */
+    }
+    try {
       for (const p of room?.remoteParticipants?.values?.() ?? []) {
         silenceParticipant(p, off ? 0 : 1);
       }
@@ -185,7 +206,7 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   // 한계: 한 대는 사무실 와이파이, 한 대는 폰 데이터면 회선이 갈려 이걸론 못 잡는다
   //   → 그 경우는 아래 소리 감지가 예비로 남는다.
   useEffect(() => {
-    if (sameNetworkPeers < 1 || screenOnly || autoMuteOptOutRef.current) return;
+    if (sameNetworkPeers < 1 || screenOnly || holding()) return;
     autoMutedRef.current = true;
     setQuietByNetwork(true);
     setScreenOnly(true);
@@ -201,10 +222,20 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   //   «B 하나»만 감지하면 안 끄고, C 도 «A 하나»만 감지하면 끄는 식으로 판정이 감지 순서에
   //   좌우돼 두 대가 살아남을 수 있었다 → 하울링이 그대로 남는다("아직도 하울링이 개선 안 됨").
   // LiveKit joinedAt 은 participantInfo 가 잠깐 없을 때 'new Date()'(현재시각)를 돌려줘
-  // 오판 소지가 있어 안 쓴다(독립리뷰 #2). 되돌리면 autoMuteOptOut 으로 재-자동뮤트를 멈춘다.
+  // 오판 소지가 있어 안 쓴다(독립리뷰 #2). 되돌린 직후 1분은 참았다가 다시 감시한다.
   const peerKey = feedbackPeers.join(",");
   useEffect(() => {
-    if (!feedbackOnset || screenOnly || dismissed || autoMuteOptOutRef.current) return;
+    if (!feedbackOnset || screenOnly || dismissed) return;
+    // 참는 중이면 «참는 시간이 끝나는 순간» 한 번 더 본다. 안 그러면 하울링이 «계속» 나는
+    // 동안 feedbackOnset 이 true 로 붙박여 이 효과가 다시 안 돌고, 참는 시간이 끝나도
+    // 아무도 다시 확인하지 않는다 = 결국 예전의 «영영 꺼짐»과 같아진다.
+    if (holding()) {
+      const t = setTimeout(
+        () => setRecheck((n) => n + 1),
+        Math.max(500, autoMuteHoldUntilRef.current - Date.now() + 100)
+      );
+      return () => clearTimeout(t);
+    }
     const myId = room?.localParticipant?.identity ?? "";
     const group = peerKey ? peerKey.split(",") : sameRoomWith ? [sameRoomWith] : [];
     if (!group.length) return;
@@ -215,7 +246,7 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
     }
     // setScreenOnly 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbackOnset, sameRoomWith, peerKey, screenOnly, dismissed, room]);
+  }, [feedbackOnset, sameRoomWith, peerKey, screenOnly, dismissed, room, recheck]);
 
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
@@ -232,11 +263,12 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
           onClick={() => {
             setQuietByNetwork(false);
             setScreenOnly(false);
-            // 자동으로 껐던 걸 사람이 되돌리면 재-자동뮤트만 멈춘다(수동 경고 배너는 남겨 컨트롤 유지 —
-            // 되돌린 뒤 하울링이 계속돼도 사람이 다시 끌 수단이 있어야 한다, 독립리뷰 #3/#4).
+            // 자동으로 껐던 걸 사람이 되돌리면 1분간만 재-자동뮤트를 참는다(껐다 켰다 반복 방지).
+            // 1분 뒤에도 하울링이 «새로» 확정되면 다시 끈다 — 예전처럼 회의 내내 손 놓지 않는다.
+            // 수동 경고 배너는 그대로 남아 사람이 언제든 직접 끌 수 있다(독립리뷰 #3/#4).
             if (autoMutedRef.current) {
               autoMutedRef.current = false;
-              autoMuteOptOutRef.current = true;
+              autoMuteHoldUntilRef.current = Date.now() + AUTO_MUTE_COOLDOWN_MS;
             }
           }}
           className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs"
