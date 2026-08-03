@@ -378,7 +378,12 @@ export function buildSystemPrompt(
     hasDbData ? "- [healwith 등록 병원] / [healwith 등록 시술/프로그램]: healwith's verified partner database. Present confidently." : "",
     hasHira ? "- [공공 의료데이터 - HIRA]: Official Korean government medical data. Present as reliable public data." : "",
     hasNaver ? "- [네이버 검색]: Naver local search results. Mention it's from Naver search." : "",
-    useWebSearch ? "- [웹 검색 - 미검증]: Google Search results — clearly state: '웹 검색 결과입니다. healwith에서 직접 검증한 정보가 아니므로 참고용으로 활용해 주세요.' (translate to user's language)" : "",
+    // ⚠️ 2026-07-31 삭제: 여기 있던 "[웹 검색 - 미검증] Google Search results — '웹 검색 결과입니다'
+    //    라고 밝혀라" 지시는 **거짓 라벨을 만들고 있었다.** 아래 generateText 옵션의
+    //    useSearchGrounding 은 설치된 @ai-sdk/google 3.0.64 에 없는 키라 조용히 무시된다
+    //    (정식 이름은 googleSearch 도구). 즉 웹 검색은 실제로 한 번도 안 돌았는데, 모델은
+    //    「검색해서 찾았다」고 말하라는 지시를 받았다 → **기억으로 지어낸 내용에 「웹 검색 결과」
+    //    라는 출처가 붙어 암환자에게 나갈 수 있었다.** 근거 없는 답보다 나쁜 게 가짜 출처다.
     "",
     "CITE YOUR SOURCE (verifiability — lets patient & medical team check, reinforces no-hallucination):",
     "- When you state a CONCRETE fact from Context (a hospital/doctor name, a treatment/program, a price range, a published statistic), attach a brief source tag in parentheses so it's traceable — e.g. '(출처: healwith 등록 병원)', '(출처: HIRA 공공데이터)', '(출처: 네이버 검색)'. Translate '출처' to the user's language.",

@@ -135,7 +135,18 @@ const nextConfig = {
               "default-src 'self'",
               // maps.googleapis.com·maps.gstatic.com: 병원/암종 상세 위치 지도(Google Maps JS) — script-src에 없으면 지도 스크립트가 차단돼 회색 fallback만 뜸
               // mc.yandex.ru: Yandex Metrica 태그(러시아/CIS). connect-src 와 짝 — 둘 중 하나만 열면 안 돈다.
-              `script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
+              // blob:  화상상담 잡음 제거(Krisp)가 소리 처리기(AudioWorklet)를 blob: 로 만들어 싣는다.
+              //   ⚠️ 워크릿 모듈은 worker-src 가 아니라 **script-src** 로 검사된다 — 아래 worker-src 에
+              //      blob: 이 있어도 여기 없으면 막힌다. 그리고 이 차단은 «보안정책 위반» 사건을 안 내고
+              //      `AbortError: Unable to load a worklet's module` 이라는 엉뚱한 이름으로만 나온다.
+              //   2026-08-03 실측으로 가름(같은 브라우저·같은 코드):
+              //      · 우리 사이트 + 같은 출처 워크릿 → 성공   (브라우저·CSP 다 정상)
+              //      · 우리 사이트 + blob: 워크릿      → 실패
+              //      · 규칙 없는 사이트 + blob: 워크릿 → 성공  ⇒ 범인은 우리 script-src
+              //   같은 날 #1237 이 connect-src 에 integrations.livekit.io 를 열어 «파일 받기»는 됐지만
+              //   (실측: 요청 2건 200), 그 다음 «실행» 칸이 안 열려 잡음 제거는 여전히 안 켜졌다.
+              //   위험 평가: 이 줄엔 이미 'unsafe-inline' 이 있어 blob: 추가가 늘리는 공격면은 그보다 작다.
+              `script-src 'self' 'unsafe-inline' blob: ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",

@@ -142,7 +142,9 @@ export default function CoordinatorConsultationsPage() {
           Authorization: `Bearer ${session.access_token}`,
         },
         // 회수 제한 없음(만료 전까지 무제한, PO 2026-07-15) — 안전선은 72h 만료 (admin 과 동일)
-        body: JSON.stringify({ role: 'patient', expiresInHours: 72, maxUses: 0 }),
+        // 역할은 「통합 참여 링크」 하나로 통일(role='guest', PO 2026-07-23 결정 — 6/21 이후
+        // 역할별 권한 차이가 없어 이름표만 남아 있었다). 언어 기본값은 guest 를 환자와 같게 봐서 유지된다.
+        body: JSON.stringify({ role: 'guest', expiresInHours: 72, maxUses: 0 }),
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {

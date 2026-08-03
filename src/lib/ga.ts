@@ -6,6 +6,8 @@ declare global {
     google_tag_manager?: Record<string, any>;
     /** gtag() 호출이 쌓이는 대기줄. 스크립트가 늦게 내려와도 여기 있던 게 그때 처리된다. */
     dataLayer?: any[];
+    /** 얀덱스 메트리카 — 러시아·CIS 측정. 스크립트가 뜨기 전에도 호출은 큐에 쌓인다. */
+    ym?: (...args: any[]) => void;
   }
 }
 
@@ -18,6 +20,61 @@ declare global {
 export const GA_ID = "G-6JJCQXZJ9T";
 
 const getGaId = () => GA_ID;
+
+/**
+ * 얀덱스 메트리카 카운터 번호 (러시아·CIS 측정). 2026-07-31 신설 — 그전엔 **카운터 자체가
+ * 없어서** 러시아·카자흐 방문이 한 건도 안 잡혔다(우리 핵심 시장인데 측정이 0이었다).
+ * GA4 는 러시아권에서 차단·신뢰도 문제가 있어 얀덱스가 사실상 유일한 대체재다.
+ */
+const getYmId = (): number | null => {
+  const raw = process.env.NEXT_PUBLIC_YANDEX_METRICA_ID;
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/**
+ * 얀덱스에도 같은 이벤트를 「목표(goal)」로 보낸다.
+ *
+ * 왜 여기서 한꺼번에 하나: 호출부(문의 폼·채팅·메신저 버튼 등)가 이미 event() 하나만 부르고
+ * 있다. 여기 한 줄을 넣으면 **모든 이벤트가 자동으로 두 곳에 다 간다** — 호출부를 하나도
+ * 안 고쳐도 되고, 새 이벤트를 추가할 때 얀덱스만 빠뜨리는 사고도 안 난다.
+ * 목표 이름은 GA 이벤트 이름을 그대로 쓴다(양쪽 보고서를 같은 이름으로 대조하기 위해).
+ * 실패는 조용히 무시 — 측정이 화면을 깨뜨리면 안 된다.
+ */
+const sendYandexGoal = (action: string, params?: Record<string, any>) => {
+  try {
+    const ymId = getYmId();
+    if (!ymId || typeof window === "undefined" || typeof window.ym !== "function") return;
+    window.ym(ymId, "reachGoal", action, params || {});
+  } catch { /* 얀덱스 실패는 무시 */ }
+};
+
+/**
+ * 주소에서 «열쇠»를 가린다 — 측정 도구로 새어 나가면 안 되는 것 (2026-07-31 신설).
+ *
+ * 무엇이 문제였나: /survey/<토큰> · /claim/<토큰> · /opinion/<토큰> · /c/<코드> 는
+ *   **로그인 없이 열리는 링크**다. 그 토큰 자체가 인증 수단이라 주소를 아는 사람은 누구나
+ *   그 환자의 설문·소견서·상담방에 들어간다. 그런데 page_location 에 전체 주소를 그대로
+ *   실어 보내고 있었다 → 환자 열쇠가 구글(GA4)·버셀 측정 기록에 남는다.
+ *   개인정보 문제이기 전에 **접근권한 유출**이다.
+ *
+ * 어디에 쓰나: GA4 page_view 의 page_location·page_path, 버셀 웹 애널리틱스 beforeSend.
+ *   측정값으로서의 쓸모(어느 화면이 얼마나 열렸나)는 그대로 남는다 — 토큰 자리만 가린다.
+ */
+const TOKEN_PATH_RE = /\/(survey|claim|opinion|c)\/[^/?#]+/gi;
+const TOKEN_QUERY_RE = /([?&](?:token|code|t)=)[^&#]+/gi;
+
+export const maskSecretPath = (input: string): string => {
+  if (!input) return input;
+  try {
+    return input
+      .replace(TOKEN_PATH_RE, (_m, seg) => `/${String(seg).toLowerCase()}/[token]`)
+      .replace(TOKEN_QUERY_RE, (_m, prefix) => `${prefix}[redacted]`);
+  } catch {
+    // 가리기에 실패하면 «원문을 보내느니 아무것도 안 보낸다» — 유출 쪽이 훨씬 비싸다.
+    return "";
+  }
+};
 
 /**
  * 쿠키 동의가 "all"("Accept All")인지. 분석툴 로드/발화 게이트의 단일 기준.
@@ -181,9 +238,10 @@ export const pageview = (url: string) => {
   //    실제로 병원·암종 상세는 데이터를 불러오는 도중에 이걸 부르므로, 던지면 그 뒤
   //    로딩이 통째로 중단된다. 호출부마다 감싸는 대신 여기서 한 번에 막는다.
   try {
+    // 🔑 열쇠 링크(/survey·/claim·/opinion·/c)는 토큰 자리를 가려서 보낸다 — maskSecretPath 주석 참고.
     window.gtag("event", "page_view", {
-      page_location: window.location.href,
-      page_path: url,
+      page_location: maskSecretPath(window.location.href),
+      page_path: maskSecretPath(url),
       ...commonParams(),
     });
     noteSent("page_view");
@@ -192,6 +250,9 @@ export const pageview = (url: string) => {
 
 export const event = (action: string, params: Record<string, any> = {}) => {
   const gaId = getGaId();
+  // 얀덱스는 gtag 유무와 무관하게 보낸다 — 광고차단기가 구글만 막는 경우가 흔하고,
+  // 러시아·CIS 에서는 그 상황이 오히려 기본값에 가깝다(얀덱스가 하한선 역할).
+  if (!internalUser) sendYandexGoal(action, params);
   if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
   // 공통값(platform·lang)을 먼저 깔고 호출부 params 로 덮어쓴다 → 호출부가 명시한 lang 이 이긴다.
   // 🛡️ pageview 와 같은 이유로 방탄 (위 주석 참고).
