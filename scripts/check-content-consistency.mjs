@@ -898,52 +898,67 @@ const BACKOFFICE_SHARED = [
 const DARK_SURFACE_DIRS = ["app/consultation/"];
 // 🧊 기존 31개 파일은 «기준선으로 동결»한다 — DESIGN.md change_authority 가 「기존 페이지 디자인
 //     자동 변경 금지」라서 일괄 수정은 PO 지시가 있어야 한다. 이 가드는 «새로 늘어나는 것»만 막는다.
-//     그 31개를 실제로 고칠 때는 이 목록에서 해당 줄을 지워라(다시 늘면 그때부터 막힌다).
-const TEAL600_FROZEN = new Set([
-  "app/_components/ManualDrawer.jsx",
-  "app/account-deletion/AccountDeletionClient.jsx",
-  "app/admin/chat/page.jsx",
-  "app/admin/khidi/agent-analysis/page.jsx",
-  "app/agency/PartnerPortal.jsx",
-  "app/auth/confirm/ConfirmClient.jsx",
-  "app/care-journey/CareJourneyClient.jsx",
-  "app/coordinator/chat/page.jsx",
-  "app/coordinator/inbox/[id]/CoordinatorInboxDetailClient.jsx",
-  "app/coordinator/inbox/[id]/OpinionsSection.jsx",
-  "app/home/HomeClient.jsx",
-  "app/hospital/page.jsx",
-  "app/hospitals/HospitalsClient.jsx",
-  "app/inquiry/ThreadChat.jsx",
-  "app/inquiry/_components/UnifiedInquiryFunnel.jsx",
-  "app/insurance/InsuranceClient.jsx",
-  "app/opinion/[token]/OpinionClient.jsx",
-  "app/partners/PartnersClient.jsx",
-  "app/patient/education/EducationClient.jsx",
-  "app/treatments/TreatmentsClient.jsx",
-  "src/components/NotificationBell.jsx",
-]);
+//     ⚠️ 2026-08-03 자기감사에서 «구멍»을 찾아 고쳤다 — 예전엔 «파일 단위 면제»(Set)라서
+//        동결된 파일 안에 teal-600 을 «새로» 추가해도 안 잡혔다(시험으로 확인).
+//        「새로 늘어나는 것만 막는다」는 원래 의도가 실제로는 안 되고 있었던 것.
+//        → «개수 동결»로 바꿨다: 파일별 현재 개수보다 «늘면» 잡고, 줄면(고치는 중) 통과.
+//        그 파일을 다 고쳤으면 이 표에서 해당 줄을 지워라(0이 되면 다시 늘 때 잡힌다).
+const TEAL600_BASELINE = {
+  "app/_components/ManualDrawer.jsx": 2,
+  "app/account-deletion/AccountDeletionClient.jsx": 1,
+  "app/admin/chat/page.jsx": 3,
+  "app/admin/khidi/agent-analysis/page.jsx": 1,
+  "app/agency/PartnerPortal.jsx": 4,
+  "app/auth/confirm/ConfirmClient.jsx": 1,
+  "app/care-journey/CareJourneyClient.jsx": 1,
+  "app/coordinator/chat/page.jsx": 3,
+  "app/coordinator/inbox/[id]/CoordinatorInboxDetailClient.jsx": 4,
+  "app/coordinator/inbox/[id]/OpinionsSection.jsx": 2,
+  "app/home/HomeClient.jsx": 1,
+  "app/hospital/page.jsx": 1,
+  "app/hospitals/HospitalsClient.jsx": 1,
+  "app/inquiry/ThreadChat.jsx": 4,
+  "app/inquiry/_components/UnifiedInquiryFunnel.jsx": 11,
+  "app/insurance/InsuranceClient.jsx": 2,
+  "app/opinion/[token]/OpinionClient.jsx": 2,
+  "app/partners/PartnersClient.jsx": 1,
+  "app/patient/education/EducationClient.jsx": 1,
+  "app/treatments/TreatmentsClient.jsx": 1,
+  "src/components/NotificationBell.jsx": 1,
+};
 {
-  const TEAL600_RE = /\b(?:bg|text)-teal-600\b/;
+  const TEAL600_RE = /\b(?:bg|text)-teal-600\b/g;
+  // 어두운 화면은 처방이 뒤집힌다(아래 DARK_SURFACE_DIRS 주석 참조). 디렉터리 목록으로 못 거르는
+  // 파일이라도 «어두운 배경 클래스»가 섞여 있으면 그 사실을 안내에 덧붙인다 — 틀린 처방을 그대로
+  // 따라가는 것보다 «확인하라»가 낫다.
+  const DARK_BG_RE = /\bbg-(?:gray|slate|zinc|neutral)-(?:800|900|950)\b|\bbg-black\b/;
   for (const dir of ["app", "src"]) {
     for (const file of walk(dir)) {
       if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
       const rel = file.replace(/\\/g, "/");
-      if (TEAL600_FROZEN.has(rel)) continue;
       let text;
       try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-      const m = TEAL600_RE.exec(text);
-      if (!m) continue;
+      const hits = text.match(TEAL600_RE);
+      if (!hits) continue;
+      const allowed = TEAL600_BASELINE[rel] ?? 0;
+      if (hits.length <= allowed) continue; // 기준선 이하 = 기존 것(고치는 중이면 줄어든다)
+
+      const m = new RegExp(TEAL600_RE.source).exec(text);
       const line = text.slice(0, m.index).split("\n").length;
-      const isDark = DARK_SURFACE_DIRS.some((d) => rel.startsWith(d));
+      const isDarkDir = DARK_SURFACE_DIRS.some((d) => rel.startsWith(d));
+      const hasDarkBg = DARK_BG_RE.test(text);
       const 처방 = m[0].startsWith("bg-")
         ? `버튼·면 «채움색»은 페이지 배경과 무관하다(흰 글씨 vs 채움색 대비) → bg-teal-700(흰 글씨 5.47:1), 호버 bg-teal-800(7.58:1).`
-        : isDark
+        : isDarkDir
           ? `⚠️ 여기는 «어두운 화면»(bg-gray-800/900)이라 teal-700 은 오히려 2.68~3.24 로 더 미달이다. ` +
             `글씨·아이콘 색은 teal-400(7.89~9.53) 또는 teal-500(5.90~7.13) 을 쓸 것.`
-          : `글씨는 text-teal-700(5.47:1) 을 쓸 것.`;
+          : hasDarkBg
+            ? `글씨는 text-teal-700(5.47:1). ⚠️ 단 이 파일엔 «어두운 배경»이 섞여 있다 — ` +
+              `그 위에 얹는 글씨라면 teal-700 은 오히려 미달이니 teal-400/500 인지 확인하라.`
+            : `글씨는 text-teal-700(5.47:1) 을 쓸 것.`;
       errors.push(
-        `[주색미달] ${rel}:${line} — ${m[0]} 사용. teal-600 은 흰 배경 글씨도, 흰 글씨를 얹은 배경도 3.74:1 로 ` +
-          `WCAG AA(4.5:1) 미달이다. ${처방} ` +
+        `[주색미달] ${rel}:${line} — ${m[0]} 사용 (이 파일 ${hits.length}건 / 기준선 ${allowed}건 → ${hits.length - allowed}건 늘었다). ` +
+          `teal-600 은 흰 배경 글씨도, 흰 글씨를 얹은 배경도 3.74:1 로 WCAG AA(4.5:1) 미달이다. ${처방} ` +
           `(DESIGN.md colors.primary · 실물 시안 docs/design/기본톤_시안.html)`,
       );
     }
