@@ -23,6 +23,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+import ImagingPanel from "./ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -402,6 +403,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 코디가 환자 대신 서류 올리기 — 메일·왓츠앱으로 따로 받은 자료용(문의 #60 에서 필요해짐).
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
+  const [openImaging, setOpenImaging] = useState(null); // 펼쳐 놓은 CT 묶음의 경로
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
@@ -1123,12 +1125,17 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     </button>
                     {/* 병원 CD(CT) 묶음이면 번역 대신 영상 뷰어로 — 자바·CD뷰어 설치 없이 브라우저에서 본다. */}
                     {isImagingBundle(a) ? (
-                      <Link
-                        href={`/coordinator/imaging/${inquiryId}?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`}
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition"
+                      <button
+                        type="button"
+                        onClick={() => setOpenImaging((v) => (v === path ? null : path))}
+                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-medium transition ${
+                          openImaging === path
+                            ? "border-teal-700 bg-teal-700 text-white"
+                            : "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                        }`}
                       >
-                        <Video size={14} /> 영상 보기
-                      </Link>
+                        <Video size={14} /> {openImaging === path ? "닫기" : "영상 보기"}
+                      </button>
                     ) : (
                     <>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
@@ -1178,6 +1185,17 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     </>
                     )}
                   </div>
+                  {/* CT 영상 — 같은 화면에서 펼친다(다른 쪽으로 안 넘어간다, PO 요청) */}
+                  {openImaging === path && (
+                    <div className="border-t border-gray-100 px-3 pb-3">
+                      <ImagingPanel
+                        inquiryId={inquiryId}
+                        path={path}
+                        name={name}
+                        onClose={() => setOpenImaging(null)}
+                      />
+                    </div>
+                  )}
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
