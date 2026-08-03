@@ -17,10 +17,13 @@ import {
   FileText,
   Loader2,
   CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
-import { useBackofficeLang } from "@/lib/i18n/coordinator";
+import { useBackofficeLang, coordinatorL } from "@/lib/i18n/coordinator";
+// KHIDI 실적에 「세지는지」 판정은 단일 기준 한 곳만 쓴다 — 화면마다 조건을 다시 쓰면 숫자와 어긋난다.
+import { khidiCountState, KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
 // 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
 import { stageLabel } from "@/lib/inquiry/intakeLabels";
 import { CreateConsultationModal } from "@/components/consultation/CreateConsultationModal";
@@ -229,6 +232,9 @@ export default function ConsultationsPage() {
   const toast = useToast();
   const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
+  // 실적 관련 문구는 코디 화면과 «같은 사전»을 쓴다(6개 언어 이미 완비).
+  // 여기에 또 베껴 적으면 한쪽만 고쳐져 두 화면이 다른 말을 하게 된다.
+  const L = coordinatorL(lang);
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
   const locale = LOCALE_MAP[lang] || "en-US";
 
@@ -237,6 +243,10 @@ export default function ConsultationsPage() {
   const [filter, setFilter] = useState("upcoming"); // upcoming, active, completed, all
   const [expandedId, setExpandedId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // 「지난 상담인데 아직 완료가 아닌」 집계 대상 수. 탭과 무관하게 따로 센다 —
+  // 목록은 탭(예정/완료/…)으로 걸러져 오므로, 목록에서 세면 「완료」 탭에서 배너가 사라진다.
+  const [unclosedCount, setUnclosedCount] = useState(0);
+  const [inquiryOptions, setInquiryOptions] = useState([]);
   // AI 회의록 생성 상태: { [consultationId]: { loading, data, error } }
   const [summaryState, setSummaryState] = useState({});
 
@@ -280,6 +290,94 @@ export default function ConsultationsPage() {
       toast.error(tt("errLoadFailed"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── 실적이 조용히 새는 지점 두 곳 (2026-08-03 신설) ──────────────────────
+  // 배경: 이 화면에 「완료」 버튼도 문의 연결도 있었지만, «눌러야 한다는 걸» 화면이
+  //   알려주지 않았다. 같은 안내를 2026-07-29 에 코디 화면에만 붙였는데, 어드민 메뉴의
+  //   「화상 상담」은 이 화면을 가리킨다 — 즉 실제로 쓰는 쪽엔 안 붙어 있었다.
+  //   실측(2026-08-03): 사전상담 81건 중 완료 1건 · 문의 연결 0건.
+
+  // 탭과 무관하게 「예정 상태로 시각이 지난」 집계 대상 수를 따로 센다.
+  const fetchUnclosedCount = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) return;
+      const res = await fetch("/api/khidi/consultation?limit=200&status=scheduled", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (!result.ok) return;
+      // 지금 시각은 «가져온 그 순간» 한 번만 읽는다 — 그리는 중에 읽으면 다시 그릴 때마다 값이 달라진다.
+      const now = Date.now();
+      setUnclosedCount(
+        (result.data || []).filter(
+          (c) =>
+            KHIDI_COUNTED_TYPES.includes(c.session_type) &&
+            c.scheduled_at &&
+            new Date(c.scheduled_at).getTime() < now
+        ).length
+      );
+    } catch (error) {
+      // 배너는 «덤»이라 실패해도 목록은 그대로 보여야 한다.
+      console.error("[ConsultationsPage] fetchUnclosedCount error:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnclosedCount();
+  }, []);
+
+  // 문의 목록은 접근권한 규칙(RLS)상 서버만 읽을 수 있고 이름도 암호문 → 서버 picker 를 쓴다.
+  // 상담 생성 모달과 같은 창구라 형태가 이미 맞는다.
+  useEffect(() => {
+    if (!consultations.some((c) => khidiCountState(c) === "noLink")) return;
+    if (inquiryOptions.length > 0) return;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/admin/inquiries/picker", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const j = await res.json();
+        if (j.ok) setInquiryOptions(j.inquiries || []);
+      } catch (error) {
+        console.error("[ConsultationsPage] inquiry picker error:", error);
+      }
+    })();
+  }, [consultations, inquiryOptions.length]);
+
+  // 이미 만든 상담을 나중에 문의와 잇는다 — 안 이으면 유치 전환 추적이 끊긴 채로 남는다.
+  const linkInquiry = async (id, inquiryId) => {
+    if (!inquiryId) return;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      toast.error(tt("errAuthSimple"));
+      return;
+    }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ inquiry_id: Number(inquiryId) }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(L.cLinkInquiryFail);
+        return;
+      }
+      toast.success(L.cLinkInquiryDone);
+      fetchConsultations();
+    } catch {
+      toast.error(L.cLinkInquiryFail);
     }
   };
 
@@ -424,6 +522,8 @@ export default function ConsultationsPage() {
       setConsultations((cs) =>
         cs.map((c) => (c.id === id ? { ...c, status: "completed" } : c))
       );
+      // 배너 숫자도 같이 줄어야 «처리했다»는 게 눈에 보인다.
+      fetchUnclosedCount();
     } catch (error) {
       console.error("[ConsultationsPage] handleComplete error:", error);
       toast.error(tt("errCompleteFailed"));
@@ -519,6 +619,24 @@ export default function ConsultationsPage() {
         </button>
       </div>
 
+      {/* 지난 상담인데 「완료」 안 누른 것 — 실적이 조용히 새는 지점이라 맨 위에 띄운다.
+          코디 화면(2026-07-29)에만 있던 것을 여기에도 붙였다. 어드민 메뉴 「화상 상담」이
+          가리키는 화면이 여기라서, 정작 쓰는 쪽엔 안내가 없었다. */}
+      {unclosedCount > 0 && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3"
+        >
+          <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              {L.cUnclosedTitle} ({unclosedCount})
+            </p>
+            <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{L.cUnclosedBody}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filter tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
@@ -592,6 +710,31 @@ export default function ConsultationsPage() {
                         <p className="text-sm text-gray-600 mt-1">
                           {sessionTypeLabel[consultation.session_type] || consultation.session_type}
                         </p>
+                        {/* 이 상담이 KHIDI 실적에 잡히는지 — 안 잡히면 왜인지까지 그 자리에서 보여준다.
+                            판정은 khidiCountState 한 곳만 쓴다(집계 코드와 짝). */}
+                        {(() => {
+                          const countState = khidiCountState(consultation);
+                          if (!countState) return null; // 파트너 미팅 등 애초에 집계 대상 아님
+                          if (countState === "counted") {
+                            return (
+                              <span className="inline-block mt-2 text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800">
+                                {L.cCountedYes}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span
+                              className={`inline-block mt-2 text-xs px-2.5 py-1 rounded-full font-medium ${
+                                // 빨강 = 공식 실적이 0 이 되는 경우(완료 미표시). 주황 = 실적엔 잡히되 유치 추적이 끊김.
+                                countState === "notCounted"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-amber-100 text-amber-900"
+                              }`}
+                            >
+                              {countState === "notCounted" ? L.cCountedNotCounted : L.cCountedNoLink}
+                            </span>
+                          );
+                        })()}
                         {/* 병원 / 의사 배지 */}
                         {(consultation.hospitals?.name ||
                           consultation.partner_doctors?.name_ko ||
@@ -677,6 +820,34 @@ export default function ConsultationsPage() {
               {/* Expanded details */}
               {expandedId === consultation.id && (
                 <div className="border-t border-gray-200 bg-gray-50 p-6 space-y-4">
+                  {/* 소급 연결 — 만들 때 문의를 안 골랐어도 여기서 이을 수 있다.
+                      실적(완료) 자체는 이미 잡히지만, 문의를 안 이으면 «어느 문의에서 온
+                      상담인지»가 끊겨 유치 전환 분석에서 빠진다. */}
+                  {khidiCountState(consultation) === "noLink" && (
+                    <div className="bg-white rounded-lg p-3 border border-amber-300">
+                      <label
+                        htmlFor={`link-inquiry-${consultation.id}`}
+                        className="block text-xs font-semibold text-amber-900 mb-1"
+                      >
+                        {L.cLinkInquiryLabel}
+                      </label>
+                      <select
+                        id={`link-inquiry-${consultation.id}`}
+                        defaultValue=""
+                        onChange={(e) => linkInquiry(consultation.id, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      >
+                        <option value="">{L.cLinkInquiryPlaceholder}</option>
+                        {inquiryOptions.map((inq) => (
+                          <option key={inq.id} value={inq.id}>
+                            #{inq.id} · {inq.name || "-"} · {inq.nationality || "?"} ·{" "}
+                            {inq.cancer_type || "?"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Doctor info */}
                   {consultation.doctor_id && (
                     <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
