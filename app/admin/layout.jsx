@@ -3,6 +3,7 @@
 import { AdminGateClient } from "./_components/AdminGateClient";
 import { AdminNav } from "./_components/AdminNav";
 import ManualDrawer from "../_components/ManualDrawer";
+import PushOptInBanner from "../_components/PushOptInBanner";
 
 export default function AdminLayout({ children }) {
   return (
@@ -17,6 +18,8 @@ export default function AdminLayout({ children }) {
             새로 하단/상단 고정 UI 를 넣을 때 이 값을 되살리지 말 것. */}
         <main className="flex-1 pt-14 lg:pt-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
+            {/* 폰 알림이 꺼져 있을 때만 뜨는 줄 — 브라우저에선 아무것도 안 그린다 */}
+            <PushOptInBanner />
             {children}
           </div>
         </main>

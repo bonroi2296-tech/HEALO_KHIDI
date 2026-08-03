@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Clock, User, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+// 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
+import { stageLabel } from "@/lib/inquiry/intakeLabels";
 
 const CANCER_TYPE_LABELS = {
   stomach: "위암",
@@ -109,7 +111,7 @@ export function EscalationQueue() {
               </span>
               {intake.cancer_stage && (
                 <span className="text-sm text-gray-600">
-                  Stage {intake.cancer_stage}
+                  {stageLabel(intake.cancer_stage, "ko")}
                 </span>
               )}
               <span className="text-xs text-gray-500">

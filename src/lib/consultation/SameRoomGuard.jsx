@@ -204,7 +204,7 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
               autoMuteOptOutRef.current = true;
             }
           }}
-          className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-semibold text-xs"
+          className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs"
         >
           {copy.sameRoomUndo}
         </button>

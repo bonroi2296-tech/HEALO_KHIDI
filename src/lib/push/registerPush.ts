@@ -35,6 +35,14 @@ export function buildRegisterRequest(
   };
 }
 
+/** 알림 등록이 막힌 이유를 남긴다 — 조용히 실패하면 폰을 뜯어보기 전엔 알 수가 없다. */
+function reportPushProblem(reason: string): void {
+  console.warn("[push]", reason);
+  import("@sentry/nextjs")
+    .then((S) => S.captureMessage(`[push] ${reason} (${platform})`, "warning"))
+    .catch(() => { /* 오류 수집기 없으면 콘솔까지만 */ });
+}
+
 async function postToken(token: string): Promise<void> {
   lastToken = token;
   try {
@@ -61,7 +69,17 @@ export async function registerPushNotifications(): Promise<void> {
   if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
     perm = await PushNotifications.requestPermissions();
   }
-  if (perm.receive !== "granted") return;
+  if (perm.receive !== "granted") {
+    // 조용한 실패를 없앤다 (2026-07-31): 「앱은 깔았는데 왜 알림이 안 오지」를 여태 볼 방법이
+    // 없었다 — 기기 표가 비어 있어도 원인이 «권한 거부»인지 «등록 실패»인지 알 수 없었다.
+    reportPushProblem(`권한 없음(${perm.receive})`);
+    return;
+  }
+
+  // 토큰 발급 자체가 실패한 경우(FCM 설정·APNs 인증서 문제 등). 이것도 여태 조용했다.
+  PushNotifications.addListener("registrationError", (err) => {
+    reportPushProblem(`등록 실패: ${(err as { error?: string })?.error ?? "알 수 없음"}`);
+  });
 
   // 알림을 «눌렀을 때» 해당 화면으로 이동 (2026-07-28 추가).
   // 이게 없어서 알림을 눌러도 홈만 열렸다. 보낼 때 `data.route` 에 담아 보낸 주소를 쓴다

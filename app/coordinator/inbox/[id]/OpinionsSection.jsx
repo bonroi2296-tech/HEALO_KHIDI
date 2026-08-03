@@ -416,7 +416,7 @@ function OpinionItem({ opinion, patientLang }) {
             <button
               onClick={publish}
               disabled={releasing || !draft.trim()}
-              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition disabled:opacity-50"
             >
               {releasing ? L.soPublishing : L.soPublish}
             </button>

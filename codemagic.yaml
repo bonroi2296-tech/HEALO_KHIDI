@@ -198,9 +198,13 @@ workflows:
       - name: Capacitor iOS 동기화
         script: npx cap sync ios
       - name: 시뮬레이터용 빌드 (서명 없음)
+        # ⚠️ `-workspace App.xcworkspace` 로 쓰면 안 된다 (2026-07-29 실제로 여기서 죽었다:
+        #    "xcodebuild: error: 'ios/App/App.xcworkspace' does not exist").
+        #    이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조라 pod install 이 없고,
+        #    따라서 .xcworkspace 자체가 만들어지지 않는다 → 위 ios-release 처럼 xcodeproj 를 직접 쓴다.
         script: |
           xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
@@ -210,12 +214,31 @@ workflows:
       - name: 시뮬레이터 띄우고 화면 찍기
         script: |
           set -e
-          mkdir -p screenshots
+          # 🚫 사진 경로는 «절대 경로»여야 한다 (2026-07-29 여기서 죽었다).
+          #    상대 경로로 주면 simctl 이 «The folder "...png" doesn't exist» 로 실패한다 —
+          #    실제로 찍는 주체가 CoreSimulator 쪽이라 우리 작업 폴더 기준이 아니다.
+          SHOT_DIR="$(pwd)/screenshots"
+          mkdir -p "$SHOT_DIR"
           APP="$(find build/ios-sim/Build/Products -maxdepth 2 -name 'App.app' | head -1)"
-          echo "앱 경로: $APP"
+          echo "앱 경로: $APP / 사진 폴더: $SHOT_DIR"
 
-          # 노치 있는 기기 + 작은 기기 두 대로 본다.
-          for DEV in "iPhone 15 Pro" "iPhone SE (3rd generation)"; do
+          # 🚫 기기 이름을 손으로 박지 마라 (2026-07-29 여기서 «조용히 0장»이 났다).
+          #    Xcode 를 latest 로 쓰므로 클라우드 맥의 기본 제공 기기 목록이 계속 바뀐다.
+          #    실측: Xcode 26.4 에는 «iPhone 15 Pro»·«iPhone SE (3rd generation)» 둘 다 없어서
+          #    두 대 모두 건너뛰고 사진 0장인데 빌드는 초록불로 끝났다.
+          #    → 그 맥에 «실제로 있는» 기기 목록에서 골라 쓴다.
+          AVAIL="$(xcrun simctl list devices available | sed -nE 's/^ +(iPhone [^(]*[^ (]) \(.*/\1/p' | sort -u)"
+          echo "이 맥에 있는 아이폰 기기:"; echo "$AVAIL"
+
+          # 큰 기기 = 노치/다이나믹 아일랜드가 있는 최신 Pro (없으면 목록의 마지막 = 가장 최신)
+          BIG="$(echo "$AVAIL" | grep -E 'Pro$' | tail -1)"
+          [ -z "$BIG" ] && BIG="$(echo "$AVAIL" | tail -1)"
+          # 작은 기기 = SE·mini·e 계열 (없으면 목록의 첫 줄)
+          SMALL="$(echo "$AVAIL" | grep -E 'SE|mini|[0-9]e$' | head -1)"
+          [ -z "$SMALL" ] && SMALL="$(echo "$AVAIL" | head -1)"
+          echo "고른 기기 → 큰 것: $BIG / 작은 것: $SMALL"
+
+          for DEV in "$BIG" "$SMALL"; do
             UDID="$(xcrun simctl list devices available | grep -m1 "$DEV (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')"
             if [ -z "$UDID" ]; then echo "⚠️ $DEV 없음 — 건너뜀"; continue; fi
             xcrun simctl boot "$UDID" || true
@@ -228,12 +251,20 @@ workflows:
             # 앱 웹뷰는 사용자 탭 없이도 포커스로 키보드가 뜨므로, 이 한 장에
             # «키보드 올라온 상태의 배치»가 그대로 담긴다.
             # (simctl 에는 키보드를 토글하는 명령이 없다 — 그래서 화면 쪽에서 연다.)
-            xcrun simctl io "$UDID" screenshot "screenshots/${SAFE_NAME}-01-login-keyboard.png"
+            # 한 대가 실패해도 나머지 한 대는 찍고 넘어가게 한다(끝에서 0장이면 어차피 끊긴다).
+            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-01-login-keyboard.png" || echo "⚠️ $DEV 1번 사진 실패"
             sleep 5
-            xcrun simctl io "$UDID" screenshot "screenshots/${SAFE_NAME}-02-settled.png"
+            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-02-settled.png" || echo "⚠️ $DEV 2번 사진 실패"
             xcrun simctl shutdown "$UDID" || true
           done
           ls -la screenshots
+
+          # 🛑 사진이 한 장도 없으면 실패로 끝내라 (2026-07-29 추가).
+          #    앞선 실행은 «0장인데 초록불»로 끝나서, 결과를 보러 가기 전엔 아무도 몰랐다.
+          #    이 저장소가 반복해서 겪은 «만들었는데 실제로는 아무 일도 안 함» 부류라 여기서 끊는다.
+          COUNT="$(find "$SHOT_DIR" -name '*.png' | wc -l | tr -d ' ')"
+          echo "찍은 화면: ${COUNT}장"
+          [ "$COUNT" -gt 0 ] || { echo "❌ 화면을 한 장도 못 찍었다 — 위의 «이 맥에 있는 아이폰 기기» 목록을 봐라"; exit 1; }
     artifacts:
       - screenshots/*.png
       - build/ios-sim/Build/Products/**/*.app

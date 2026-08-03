@@ -38,10 +38,17 @@ echo "- 최근 커밋:"
 git log --oneline -3 2>/dev/null | sed 's/^/    - /'
 
 # ── 핸드오프 뒤처짐 경보 (C) ──────────────────────────────────
-hc=$(git log -1 --format=%H --grep='핸드오프' 2>/dev/null)
+# ⚠️ 한글 「핸드오프」만 찾으면 안 된다 (2026-07-31 실측: 인수인계 커밋 9개 중 1개만 걸렸다).
+#    이 저장소의 인수인계 커밋 제목은 대부분 `docs(handoff):` 로 «영문»이고 본문에 「인수인계」를 쓴다.
+#    그래서 방금 합친 인수인계를 못 보고 「1일 경과·커밋 8개」라는 가짜 경보가 떴다.
+#    경보가 엉뚱하게 울면 진짜 뒤처졌을 때 무시하게 된다 → 세 표현을 전부 본다(--grep 여러 개 = OR).
+HO_GREP='--grep=핸드오프 --grep=handoff --grep=인수인계'
+# shellcheck disable=SC2086
+hc=$(git log -1 --format=%H -i $HO_GREP 2>/dev/null)
 if [ -n "$hc" ]; then
   since=$(git rev-list --count "${hc}..HEAD" 2>/dev/null || echo 0)
-  hd=$(git log -1 --format=%cd --date=short --grep='핸드오프' 2>/dev/null)
+  # shellcheck disable=SC2086
+  hd=$(git log -1 --format=%cd --date=short -i $HO_GREP 2>/dev/null)
   days=""
   if [ -n "$hd" ]; then
     today_s=$(date +%s 2>/dev/null)
@@ -237,6 +244,11 @@ EOF
 fi
 
 echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
+
+# ── 기억에만 적어둔 할 일 띄우기 (2026-07-31 신설) ─────────────────
+# 왜: 2026-07-23 PO 결정 4건이 어시 기억파일에만 있어 8일 묻혔다. 기억파일은 정리 세션의
+#     모집단(작업본·신청서)에도, 할 일 목록에도 없는 «아무도 안 보는 자리»다.
+node scripts/check-parked-decisions.mjs 2>/dev/null || true
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────
 if [ -f "$CTX" ]; then

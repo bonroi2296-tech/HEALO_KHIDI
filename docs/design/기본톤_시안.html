@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEALO 기본 톤 — 실물 시안 (DESIGN.md 참조본)</title>
+<!--
+  이 파일은 «읽는 문서»가 아니라 «보는 참조본»이다.
+  DESIGN.md 의 토큰을 말로 설명하는 대신 실제로 그려서 보여준다.
+
+  왜 만들었나 (2026-07-31):
+    앤트로픽 「컨텍스트 엔지니어링의 새 규칙」 — *"a HTML mockup of a design will generally
+    produce better results than a description of the design or a screenshot."*
+    우리는 그동안 DESIGN.md(글) + 화면 사진으로 일했는데, 원문이 콕 집어 «둘 다 HTML 시안보다 못하다»고 한다.
+    → 색·모서리·그림자·간격을 «말»로 옮기다 생기는 손실을 없애려고 실물로 만들었다.
+    감사 기록: docs/audit/CONTEXT_ENGINEERING_2026-07-31.md
+
+  쓰는 법:
+    · 사람 — 브라우저로 이 파일을 열면 된다(서버 불필요).
+    · AI 에이전트 — 새 화면을 만들기 전에 이 파일을 읽어라. 각 견본에 «쓸 Tailwind 클래스»가 같이 적혀 있다.
+
+  ⚠️ 여기 색은 Tailwind v3.4 기본 팔레트의 실제 값(hex)을 박아 넣은 것이다.
+     tailwind.config.js 에서 색을 덮어쓰면 여기 값도 같이 고쳐야 한다(현재는 덮어쓴 것 없음 — 2026-07-31 확인).
+     대비비(:1)는 전부 WCAG 공식으로 직접 계산한 값이다(추정 아님).
+-->
+<style>
+  :root{
+    --teal-50:#f0fdfa; --teal-100:#ccfbf1; --teal-200:#99f6e4; --teal-500:#14b8a6;
+    --teal-600:#0d9488; --teal-700:#0f766e; --teal-800:#115e59;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-900:#111827;
+    --emerald-500:#10b981; --emerald-700:#047857;
+    --amber-500:#f59e0b; --amber-700:#b45309;
+    --red-500:#ef4444; --red-600:#dc2626;
+    --shadow-sm:0 1px 2px 0 rgb(0 0 0 / .05);
+    --shadow-md:0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+    --shadow-lg:0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+    --shadow-xl:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:var(--gray-900);background:var(--gray-50);line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 96px}
+  h1{font-size:28px;font-weight:700;margin:0 0 4px}
+  h2{font-size:20px;font-weight:700;margin:56px 0 6px;padding-top:24px;border-top:1px solid var(--gray-200)}
+  h3{font-size:15px;font-weight:700;margin:24px 0 10px}
+  p.lede{color:var(--gray-600);margin:0 0 8px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--gray-100);
+       padding:2px 6px;border-radius:6px;color:var(--gray-600);white-space:nowrap}
+  .note{background:var(--teal-50);border:1px solid var(--teal-100);border-radius:12px;padding:12px 16px;
+        font-size:14px;color:var(--gray-600);margin:12px 0}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .card{background:#fff;border-radius:12px;box-shadow:var(--shadow-sm);padding:20px}
+  /* 좋은 예 / 나쁜 예 틀 */
+  .ex{border-radius:12px;padding:18px;background:#fff;border:1px solid var(--gray-200)}
+  .ex header{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+             letter-spacing:.02em;margin:0 0 14px;text-transform:none}
+  .ok header{color:var(--emerald-700)}
+  .no header{color:var(--red-600)}
+  .no{background:#fff;border-color:#fecaca}
+  .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .ok .tag{background:#d1fae5;color:var(--emerald-700)}
+  .no .tag{background:#fee2e2;color:var(--red-600)}
+  /* 색 견본 */
+  .sw{border-radius:12px;overflow:hidden;border:1px solid var(--gray-200);background:#fff}
+  .sw .chip{height:56px}
+  .sw .meta{padding:8px 10px;font-size:12px}
+  .sw .meta b{display:block;font-size:12px}
+  .sw .meta span{color:var(--gray-500)}
+  .pass{color:var(--emerald-700);font-weight:700}
+  .fail{color:var(--red-600);font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;
+        box-shadow:var(--shadow-sm)}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--gray-200)}
+  th{background:var(--gray-50);font-size:12px;color:var(--gray-600);font-weight:700}
+  tr:last-child td{border-bottom:0}
+  .num{font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto}
+  /* 부품 견본 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;border-radius:12px;
+       font-weight:600;font-size:14px;border:0;cursor:pointer;transition:all .2s}
+  .btn-primary{background:var(--teal-700);color:#fff}
+  .btn-primary:hover{background:var(--teal-800)}
+  .btn-ghost{background:#fff;color:var(--teal-700);border:1px solid var(--gray-200)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+         padding:4px 10px;border-radius:999px}
+  .dot{width:7px;height:7px;border-radius:999px;display:inline-block}
+  .icon-sq{width:40px;height:40px;border-radius:12px;background:var(--teal-50);display:flex;
+           align-items:center;justify-content:center;color:var(--teal-700)}
+  .icon-circle-bad{width:80px;height:80px;border-radius:999px;background:var(--teal-50);display:flex;
+                   align-items:center;justify-content:center;color:var(--teal-600)}
+  .stat b{font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat span{font-size:15px;color:var(--gray-500);margin-left:3px}
+  .skel{height:10px;border-radius:6px;background:var(--gray-200);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .cls{display:block;margin-top:8px;font-size:11px;color:var(--gray-500);
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;white-space:normal}
+  @media (prefers-color-scheme: dark){
+    /* 의도적으로 밝은 화면 하나만 유지한다 — 우리 서비스에 어두운 모드가 없다.
+       시안이 실제와 달라 보이면 참조본으로서 값이 떨어진다. */
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>HEALO 기본 톤 — 실물 시안</h1>
+  <p class="lede"><code>DESIGN.md</code> 의 <b>참조본(reference)</b>. 말로 적힌 토큰을 실제로 그려서 보여준다.
+  새 화면을 만들기 전에 이 파일을 먼저 보고, 여기 있는 값을 그대로 쓴다.</p>
+
+  <div class="note">
+    <b>이 시안이 규칙을 대체하지 않는다.</b> 금지 목록·의료 도메인 규칙·다국어 제약은 <code>DESIGN.md</code> 에 그대로 있다.
+    이 파일이 맡는 건 <b>「눈으로 봐야 아는 것」</b> — 색·모서리·그림자·간격·상태 화면이다.
+    두 파일이 어긋나면 <b>토큰 값은 이 파일이, 규칙 문장은 <code>DESIGN.md</code> 가</b> 기준이다.
+  </div>
+
+  <!-- ============================== 색 ============================== -->
+  <h2>1. 색 — 브랜드 teal</h2>
+  <p class="lede">괄호 안은 <b>흰 배경 위 글씨</b>로 썼을 때의 실측 대비비(WCAG). 본문 글씨는 4.5:1 이상이어야 한다.</p>
+
+  <div class="grid g3">
+    <div class="sw"><div class="chip" style="background:var(--teal-50)"></div>
+      <div class="meta"><b>teal-50</b><span>#f0fdfa · 배경 강조 전용</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--teal-100)"></div>
+      <div class="meta"><b>teal-100</b><span>#ccfbf1 · 테두리</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--teal-600)"></div>
+      <div class="meta"><b>teal-600</b><span>#0d9488 · <span class="fail">3.74:1 ⛔</span> 글씨·버튼 배경 금지</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--teal-700)"></div>
+      <div class="meta"><b>teal-700 — 주색</b><span>#0f766e · <span class="pass">5.47:1 ✅</span> 버튼·글씨 기본</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--teal-800)"></div>
+      <div class="meta"><b>teal-800</b><span>#115e59 · <span class="pass">7.58:1 ✅</span> 눌림·호버</span></div></div>
+  </div>
+
+  <div class="note">
+    <b>⚠️ 주색은 <code>teal-700</code> 이다 — <code>teal-600</code> 이 아니다.</b>
+    2026-07-31 실측: 실제 코드에서 배경으로 <code>bg-teal-700</code> 306회 vs <code>bg-teal-600</code> 24회(<b>12.75배</b>),
+    글씨로 <code>text-teal-700</code> 625회 vs <code>text-teal-600</code> 54회(<b>11.6배</b>).
+    <code>teal-600</code> 은 흰 배경에서도, 흰 글씨를 얹어도 <b>둘 다 3.74:1 로 AA 미달</b>이라 쓸 자리가 없다.
+  </div>
+
+  <h3>글씨로 쓰면 안 되는 색 — 실제로 이렇게 보인다</h3>
+  <div class="grid g2">
+    <div class="ex no"><header><span class="tag">이렇게 하지 마라</span> 상태색 500번대를 글씨로</header>
+      <div style="color:var(--emerald-500)">검사 결과 정상입니다 <span style="font-size:12px">(emerald-500 · 2.54:1)</span></div>
+      <div style="color:var(--amber-500)">서류가 아직 도착하지 않았습니다 <span style="font-size:12px">(amber-500 · 2.15:1)</span></div>
+      <div style="color:var(--red-500)">예약이 취소되었습니다 <span style="font-size:12px">(red-500 · 3.76:1)</span></div>
+      <div style="color:var(--gray-400)">2026년 7월 31일 접수 <span style="font-size:12px">(gray-400 · 2.54:1)</span></div>
+      <span class="cls">text-emerald-500 / text-amber-500 / text-red-500 / text-gray-400</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">이렇게</span> 700번대로 내려서</header>
+      <div style="color:var(--emerald-700)">검사 결과 정상입니다 <span style="font-size:12px">(emerald-700 · 5.48:1)</span></div>
+      <div style="color:var(--amber-700)">서류가 아직 도착하지 않았습니다 <span style="font-size:12px">(amber-700 · 5.02:1)</span></div>
+      <div style="color:var(--red-600)">예약이 취소되었습니다 <span style="font-size:12px">(red-600 · 4.83:1)</span></div>
+      <div style="color:var(--gray-500)">2026년 7월 31일 접수 <span style="font-size:12px">(gray-500 · 4.83:1)</span></div>
+      <span class="cls">text-emerald-700 / text-amber-700 / text-red-600 / text-gray-500</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>500번대 색은 「배경·아이콘·테두리·점」 전용이다.</b> 아래처럼 쓰는 건 통과 —
+    색이 정보를 혼자 지고 있지 않고 글씨가 따로 있기 때문이다.
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+      <span class="badge" style="background:#d1fae5;color:var(--emerald-700)"><i class="dot" style="background:var(--emerald-500)"></i> 상담 완료</span>
+      <span class="badge" style="background:#fef3c7;color:var(--amber-700)"><i class="dot" style="background:var(--amber-500)"></i> 서류 대기</span>
+      <span class="badge" style="background:#fee2e2;color:var(--red-600)"><i class="dot" style="background:var(--red-500)"></i> 취소됨</span>
+    </div>
+  </div>
+
+  <h3>⚠️ 어두운 화면에서는 순서가 <u>뒤집힌다</u> — 화상상담 방</h3>
+  <p class="lede">위 규칙은 전부 <b>흰/연회색 배경 전제</b>다. 화상상담 방(<code>bg-gray-800/900</code>)에서는 정반대가 된다.</p>
+  <div class="grid g2">
+    <div class="ex ok" style="background:#111827;border-color:#374151">
+      <header style="color:#6ee7b7"><span class="tag" style="background:#064e3b;color:#6ee7b7">어두운 화면 기준</span> 글씨·아이콘</header>
+      <div style="color:#2dd4bf">teal-400 — 9.53:1 ✅ (권장)</div>
+      <div style="color:#14b8a6">teal-500 — 7.13:1 ✅</div>
+      <div style="color:#0d9488">teal-600 — 4.74:1 (본문은 통과, 작은 글씨는 아슬)</div>
+      <div style="color:#0f766e">teal-700 — 3.24:1 ⛔ <b>밝은 화면의 정답이 여기선 미달</b></div>
+      <span class="cls" style="color:#9ca3af">bg-gray-900 위 · 글씨·아이콘은 text-teal-400 / text-teal-500</span>
+    </div>
+    <div class="ex ok" style="background:#111827;border-color:#374151">
+      <header style="color:#6ee7b7"><span class="tag" style="background:#064e3b;color:#6ee7b7">예외의 예외</span> 버튼 «채움색»</header>
+      <div style="color:#e5e7eb;font-size:13px;margin-bottom:10px">채움색은 <b>흰 글씨 vs 채움색</b> 대비라 페이지 배경과 무관하다 — 어두운 화면에서도 teal-700 이 정답.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary">다시 입장</button>
+        <button class="btn" style="background:var(--teal-600);color:#fff">teal-600 ⛔ 3.74</button>
+      </div>
+      <span class="cls" style="color:#9ca3af">bg-teal-700 hover:bg-teal-800 text-white — 밝은 화면과 같다</span>
+    </div>
+  </div>
+
+  <h3>배경이 흰색이 아닐 때 — 한 단계 더 진하게</h3>
+  <div class="grid g2">
+    <div class="ex no" style="background:var(--gray-100)"><header><span class="tag">미달</span> 회색 배경 위 gray-500</header>
+      <div style="color:var(--gray-500)">담당 코디네이터가 곧 연락드립니다</div>
+      <span class="cls">bg-gray-100 + text-gray-500 → 4.39:1 (흰 배경이었으면 4.83 통과)</span>
+    </div>
+    <div class="ex ok" style="background:var(--gray-100)"><header><span class="tag">통과</span> 회색 배경 위 gray-600</header>
+      <div style="color:var(--gray-600)">담당 코디네이터가 곧 연락드립니다</div>
+      <span class="cls">bg-gray-100 + text-gray-600 → 6.87:1</span>
+    </div>
+  </div>
+
+  <!-- ============================== 모서리·그림자 ============================== -->
+  <h2>2. 모서리와 그림자 — 축마다 값 하나</h2>
+  <p class="lede">「AI가 만든 느낌」은 못생긴 부품이 아니라 <b>부품끼리 안 맞아서</b> 난다. 축마다 값을 하나로 고정한다.</p>
+
+  <div class="grid g3">
+    <div class="card" style="border-radius:12px"><b>rounded-xl</b><div style="font-size:13px;color:var(--gray-500)">12px — 카드·버튼·이미지 <b>기본</b></div></div>
+    <div class="card" style="border-radius:16px"><b>rounded-2xl</b><div style="font-size:13px;color:var(--gray-500)">16px — 큰 카드만 예외 허용</div></div>
+    <div class="card" style="border-radius:24px;border:1px dashed var(--red-500)"><b class="fail">rounded-3xl ⛔</b><div style="font-size:13px;color:var(--gray-500)">24px — 금지(폐기된 옛 실험 잔재)</div></div>
+  </div>
+
+  <h3>그림자는 「용도별 1값」 — 예뻐서 고르는 게 아니다</h3>
+  <div class="grid g3" style="margin-top:4px">
+    <div class="card" style="box-shadow:var(--shadow-sm)"><b>shadow-sm</b><div style="font-size:13px;color:var(--gray-500)">정적 카드 기본</div></div>
+    <div class="card" style="box-shadow:var(--shadow-md)"><b>shadow-md</b><div style="font-size:13px;color:var(--gray-500)">카드에 마우스 올렸을 때 (1단계만)</div></div>
+    <div class="card" style="box-shadow:var(--shadow-lg)"><b>shadow-lg</b><div style="font-size:13px;color:var(--gray-500)">떠 있는 것 — 드롭다운·툴팁</div></div>
+    <div class="card" style="box-shadow:var(--shadow-xl)"><b>shadow-xl</b><div style="font-size:13px;color:var(--gray-500)">모달·전면 시트 <b>까지만</b></div></div>
+  </div>
+  <div class="note">면(surface)을 나눌 땐 <b>테두리보다 배경 톤(흰색 vs gray-50) + 그림자</b>를 먼저 쓴다. 테두리를 남발하면 화면이 표처럼 갑갑해진다.</div>
+
+  <!-- ============================== 부품 ============================== -->
+  <h2>3. 부품 — 버튼·배지·아이콘</h2>
+  <div class="grid g2">
+    <div class="ex ok"><header><span class="tag">기준</span> 버튼</header>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary">상담 신청하기</button>
+        <button class="btn btn-ghost">병원 더 보기</button>
+      </div>
+      <span class="cls">주버튼: bg-teal-700 hover:bg-teal-800 text-white rounded-xl px-6 py-2.5 font-semibold transition-all duration-200<br>
+      보조: bg-white text-teal-700 border border-gray-200 rounded-xl</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">기준</span> 러시아어가 제일 길다</header>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary">Записаться на консультацию</button>
+      </div>
+      <span class="cls">px-6 이상 유지 · 글자 잘라내기(truncate) 금지 · 모바일에서 2~3줄 되는 건 괜찮다</span>
+    </div>
+  </div>
+
+  <h3>아이콘 — 이 한 가지가 「AI가 만든 티」를 제일 크게 낸다</h3>
+  <div class="grid g2">
+    <div class="ex no"><header><span class="tag">이렇게 하지 마라</span> 큰 컬러 원 + 큰 아이콘</header>
+      <div style="display:flex;gap:16px">
+        <div class="icon-circle-bad">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+        <div class="icon-circle-bad">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+      </div>
+      <span class="cls">w-20 h-20 rounded-full bg-teal-50 + size={28+} ⛔</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">이렇게</span> 작은 사각형</header>
+      <div style="display:flex;gap:12px">
+        <div class="icon-sq">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+        <div class="icon-sq">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+      </div>
+      <span class="cls">w-10 h-10 rounded-xl bg-teal-50 text-teal-700 + size={18}</span>
+    </div>
+  </div>
+
+  <h3>카드 3~4개가 색만 다르고 레이아웃이 똑같으면 — 그게 AI 티다</h3>
+  <div class="grid g2">
+    <div class="ex no"><header><span class="tag">이렇게 하지 마라</span> 복제된 카드</header>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:#eff6ff;border-radius:12px;padding:12px;text-align:center;font-size:12px">
+          <div style="width:32px;height:32px;border-radius:999px;background:#dbeafe;margin:0 auto 8px"></div>빠릅니다</div>
+        <div style="background:#f0fdfa;border-radius:12px;padding:12px;text-align:center;font-size:12px">
+          <div style="width:32px;height:32px;border-radius:999px;background:#ccfbf1;margin:0 auto 8px"></div>안전합니다</div>
+        <div style="background:#faf5ff;border-radius:12px;padding:12px;text-align:center;font-size:12px">
+          <div style="width:32px;height:32px;border-radius:999px;background:#f3e8ff;margin:0 auto 8px"></div>정확합니다</div>
+      </div>
+      <span class="cls">똑같은 틀 + 색만 바꿈 + 알맹이 없는 형용사 ⛔</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">이렇게</span> 내용이 카드를 다르게 만든다</header>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="border:1px solid var(--gray-200);border-radius:12px;padding:10px 12px;font-size:13px">
+          <b>협진병원 A</b> · 위암 <span style="color:var(--gray-500)">— 로봇수술 연 1,200건</span></div>
+        <div style="border:1px solid var(--gray-200);border-radius:12px;padding:10px 12px;font-size:13px">
+          <b>협진병원 B</b> <span class="badge" style="background:var(--teal-50);color:var(--teal-700);margin-left:4px">통역 상주</span>
+          <div style="color:var(--gray-500);margin-top:2px">러시아어·카자흐어 통역이 진료 전 과정에 동행</div></div>
+      </div>
+      <span class="cls">길이·구성·배지 유무가 카드마다 다르다 — 실제 정보가 다르니까</span>
+    </div>
+  </div>
+
+  <!-- ============================== 숫자 ============================== -->
+  <h2>4. 숫자 — 의료 신뢰는 정렬에서 나온다</h2>
+  <div class="grid g2">
+    <div class="ex ok"><header><span class="tag">기준</span> 지표 위계 (숫자:단위 ≈ 2:1)</header>
+      <div style="display:flex;gap:28px;flex-wrap:wrap">
+        <div class="stat"><b>8</b><span>개 협진병원</span></div>
+        <div class="stat"><b>28</b><span>명 전문의료진</span></div>
+        <div class="stat"><b>6</b><span>개 언어</span></div>
+      </div>
+      <span class="cls">숫자 text-3xl font-bold tabular-nums + 단위 text-base text-gray-500</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">기준</span> 표에서 숫자가 흔들리지 않게</header>
+      <div class="scroll"><table>
+        <tr><th>항목</th><th style="text-align:right">고정 안 함</th><th style="text-align:right">tabular-nums</th></tr>
+        <tr><td>사전상담</td><td style="text-align:right">1,118</td><td style="text-align:right" class="num">1,118</td></tr>
+        <tr><td>사후관리</td><td style="text-align:right">947</td><td style="text-align:right" class="num">947</td></tr>
+        <tr><td>유치 건수</td><td style="text-align:right">11</td><td style="text-align:right" class="num">11</td></tr>
+      </table></div>
+      <span class="cls">가격·건수·통계에는 반드시 tabular-nums (숫자 폭 고정)<br>
+      ⚠️ 이 표에서는 <b>차이가 안 보일 수 있다</b> — 글꼴에 따라 기본 숫자가 이미 폭 고정인 경우가 있다.
+      흔들림은 숫자가 «바뀌는» 곳(카운터·실시간 집계·정렬되는 표)에서 드러난다. 그래서 규칙으로 박아둔다.</span>
+    </div>
+  </div>
+
+  <!-- ============================== 상태 ============================== -->
+  <h2>5. 빈·로딩·오류 화면 — 여기서 신뢰가 무너진다</h2>
+  <p class="lede">불안한 환자가 보는 화면이다. 빈 화면이나 영문 오류코드가 뜨면 신뢰는 그 자리에서 끝난다.</p>
+
+  <div class="grid g3">
+    <div class="ex ok"><header><span class="tag">로딩</span></header>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="skel" style="width:70%"></div><div class="skel" style="width:100%"></div><div class="skel" style="width:45%"></div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:var(--gray-500)">병원 정보를 불러오는 중이에요…</div>
+      <span class="cls">뼈대(스켈레톤) + 번역된 맥락 문구. 빙글이(스피너) 단독 ⛔</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">비었을 때</span></header>
+      <div style="font-size:14px;font-weight:600">조건에 맞는 병원이 없습니다</div>
+      <div style="font-size:13px;color:var(--gray-500);margin:4px 0 12px">선택하신 «위암 + 러시아어 통역 + 부산»에 해당하는 협진병원이 아직 없어요.</div>
+      <button class="btn btn-primary" style="padding:8px 16px;font-size:13px">지역 넓혀서 다시 찾기</button>
+      <span class="cls">왜 비었는지 + 다음 행동. 「결과 없음」만 ⛔</span>
+    </div>
+    <div class="ex ok"><header><span class="tag">오류</span></header>
+      <div style="font-size:14px;font-weight:600;color:var(--red-600)">잠시 연결이 끊겼어요</div>
+      <div style="font-size:13px;color:var(--gray-500);margin:4px 0 12px">정보는 그대로 있습니다. 잠시 뒤 다시 시도해 주세요.</div>
+      <button class="btn btn-ghost" style="padding:8px 16px;font-size:13px">다시 시도</button>
+      <span class="cls">사용자 언어 + 재시도 동선. 원본 오류문구·스택 노출 ⛔(보안 규칙과 같음)</span>
+    </div>
+  </div>
+
+  <!-- ============================== 움직임 ============================== -->
+  <h2>6. 움직임 — 그림자와 색만 바뀐다</h2>
+  <div class="grid g2">
+    <div class="ex ok"><header><span class="tag">기준</span> 마우스를 올려보세요</header>
+      <div class="card" style="transition:box-shadow .2s;cursor:pointer" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+        <b style="font-size:14px">협진병원 A</b>
+        <div style="font-size:13px;color:var(--gray-500)">위암·대장암 · 러시아어 통역 상시</div>
+      </div>
+      <span class="cls">transition-all duration-200 + 그림자 sm→md 한 단계만</span>
+    </div>
+    <div class="ex no"><header><span class="tag">이렇게 하지 마라</span> 확대·회전·느린 전환</header>
+      <div class="card" style="transition:transform .6s;cursor:pointer" onmouseover="this.style.transform='scale(1.06) rotate(-1deg)'" onmouseout="this.style.transform='none'">
+        <b style="font-size:14px">협진병원 A</b>
+        <div style="font-size:13px;color:var(--gray-500)">마우스를 올리면 들썩인다 — 의료 화면에 안 맞는다</div>
+      </div>
+      <span class="cls">hover:scale-105 / rotate / duration-500 이상 ⛔</span>
+    </div>
+  </div>
+
+  <!-- ============================== 요약 ============================== -->
+  <h2>7. 복사해서 쓰는 값 — 요약</h2>
+  <div class="scroll"><table>
+    <tr><th>축</th><th>정해진 한 값</th><th>쓰지 말 것</th></tr>
+    <tr><td>주색</td><td><code>bg-teal-700</code> / <code>text-teal-700</code> (호버 <code>teal-800</code>)</td><td><code>teal-600</code>(대비 3.74 미달)</td></tr>
+    <tr><td>배경 강조</td><td><code>bg-teal-50</code> + <code>border-teal-100</code></td><td>그라데이션 배경</td></tr>
+    <tr><td>본문 글씨</td><td><code>text-gray-900</code> / 보조 <code>text-gray-500</code></td><td><code>text-gray-400</code>(아이콘 전용)</td></tr>
+    <tr><td>흰색 아닌 배경 위 글씨</td><td><code>text-gray-600</code></td><td><code>text-gray-500</code>(4.39 미달)</td></tr>
+    <tr><td><b>어두운 화면</b>(화상상담 방) 글씨·아이콘</td><td><code>text-teal-400</code> / <code>text-teal-500</code></td><td><code>text-teal-700</code>(3.24 미달 — 밝은 화면의 정답이 여기선 틀리다)</td></tr>
+    <tr><td>어두운 화면 <b>버튼 채움색</b></td><td><code>bg-teal-700</code> (밝은 화면과 같다)</td><td><code>bg-teal-600</code>·<code>bg-teal-500</code></td></tr>
+    <tr><td>모서리</td><td><code>rounded-xl</code> (큰 카드만 <code>2xl</code>)</td><td><code>rounded-3xl</code></td></tr>
+    <tr><td>그림자</td><td>카드 <code>sm</code> · 호버 <code>md</code> · 떠 있는 것 <code>lg</code> · 모달 <code>xl</code></td><td><code>shadow-2xl</code>, 카드에 <code>lg</code> 이상</td></tr>
+    <tr><td>전환</td><td><code>transition-all duration-200</code></td><td><code>duration-500+</code>, <code>scale</code>, <code>rotate</code></td></tr>
+    <tr><td>여백</td><td>카드 <code>p-5 md:p-8</code> · 구역 <code>py-10 md:py-16</code> · 간격 <code>gap-4 md:gap-5</code></td><td>—</td></tr>
+    <tr><td>글꼴</td><td><code>system-ui</code></td><td>Playfair·Noto Serif 등 명조 계열</td></tr>
+    <tr><td>숫자</td><td><code>tabular-nums</code> (가격·건수·통계)</td><td>가짜 숫자(의료 광고법)</td></tr>
+    <tr><td>버튼 여백</td><td><code>px-6</code> 이상 (러시아어)</td><td>글자 잘라내기(<code>truncate</code>)</td></tr>
+  </table></div>
+
+  <p style="margin-top:32px;font-size:13px;color:var(--gray-500)">
+    규칙 전문 = <code>DESIGN.md</code> · 이 시안을 만든 이유 = <code>docs/audit/CONTEXT_ENGINEERING_2026-07-31.md</code><br>
+    색을 바꿀 일이 생기면 <b>이 파일과 <code>DESIGN.md</code> 를 같이</b> 고쳐라(한쪽만 고치면 다음 사람이 어긋난 걸 본다).
+  </p>
+
+</div>
+</body>
+</html>

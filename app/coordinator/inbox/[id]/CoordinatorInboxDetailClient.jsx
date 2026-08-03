@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 
 const STATUS_COLORS = {
@@ -924,7 +924,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           // 현재 폼(flat) — 핵심 선택값을 항상 나열(미입력=입력하지 않음).
           const ts = safe(intake.treatment_state);
           rows.push([L.ibFieldCurrentStatus, (ts && ts !== "—") ? labelOf(TREATMENT_STATES, ts, lang) : NE]);
-          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? String(intake.stage) : NE]);
+          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? stageLabel(intake.stage, lang) : NE]);
           const dd = safe(intake.diagnosis_date);
           rows.push([pick(INTAKE_UI.diagnosisDate, lang), (dd && dd !== "—") ? dd : NE]);
           rows.push([L.ibFieldEntryTiming, intake.travel_timing ? labelOf(TRAVEL_TIMING, intake.travel_timing, lang) : NE]);
@@ -985,7 +985,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <div key={c.key} className="flex items-center gap-2 py-1 text-sm">
                         {agreed ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
                         <span className={agreed ? "text-gray-800" : "text-gray-500"}>{pick(c.label, lang)}</span>
-                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-600" : "text-gray-500"}`}>
+                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-700" : "text-gray-500"}`}>
                           {agreed ? pick(INTAKE_UI.agreed, lang) : pick(INTAKE_UI.declined, lang)}
                         </span>
                       </div>
@@ -1189,7 +1189,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             >
               {caseSaving ? L.ibCaseSaving : L.ibCaseSave}
             </button>
-            {caseSaved && <span className="text-sm text-teal-600 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
+            {caseSaved && <span className="text-sm text-teal-700 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
           </div>
         </div>
       </Card>

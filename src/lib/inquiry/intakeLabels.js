@@ -25,7 +25,15 @@ export const CANCER_TYPES = [
   { value: "other", labelKey: "intakeLabels.cancer.other", organ: null },
 ];
 
-export const STAGES = ["I", "II", "III", "IV"];
+// 병기 — 다른 선택지와 같은 { value, labelKey } 모양. 예전엔 문자열 배열이고 화면에서
+// `Stage {값}` 으로 조립해서, 코디 콘텐츠 편집기가 이 버튼 글자를 못 찾았다(2026-07-31 PO 지적).
+// value(저장값)는 그대로 "I"~"IV".
+export const STAGES = [
+  { value: "I", labelKey: "intakeLabels.stage.I" },
+  { value: "II", labelKey: "intakeLabels.stage.II" },
+  { value: "III", labelKey: "intakeLabels.stage.III" },
+  { value: "IV", labelKey: "intakeLabels.stage.IV" },
+];
 
 export const TREATMENT_STATES = [
   { value: "pre_surgery", labelKey: "intakeLabels.treatState.pre_surgery" },
@@ -115,6 +123,19 @@ export function pick(obj, lang = "ko") {
 export function optLabel(item, lang = "ko") {
   if (!item || !item.labelKey) return "";
   return t(item.labelKey, lang);
+}
+
+// 병기 값이 화면마다 두 갈래로 저장돼 있다 — 문의폼은 "I"~"IV", 비용계산기는 "1"~"4".
+// 표시할 땐 같은 사전 한 곳을 보게 맞춰준다(저장값은 각자 그대로).
+const STAGE_ALIAS = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+
+/** 병기 값("I"~"IV" 또는 "1"~"4") → 지정 언어 라벨. 모르는 값은 그대로 돌려준다. */
+export function stageLabel(value, lang = "ko") {
+  if (value == null || value === "") return "";
+  const raw = String(value).trim();
+  const v = STAGE_ALIAS[raw] || raw.toUpperCase();
+  const item = STAGES.find((s) => s.value === v);
+  return item ? t(item.labelKey, lang) : raw;
 }
 
 /** value → 지정 언어 라벨. 목록에 없으면 원래 값을 그대로 돌려준다(안전 폴백). */
