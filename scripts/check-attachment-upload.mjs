@@ -126,7 +126,112 @@ if (!token) {
   check("비로그인 대리 업로드 차단", anonTry.status === 401 || anonTry.status === 403, `HTTP ${anonTry.status}`);
 }
 
-// 7) 되돌아오기 방지 — 파일을 서버로 통과시키는(formData) 업로드 라우트가 다시 생기면 잡는다.
+// 7) 나머지 업로드 화면 4곳 — 환자 서류함 · 화상상담 서류 · 비자 서류 · 사후관리 경과
+//    화면을 눌러보는 대신 «그 화면이 부르는 주소»를 같은 방식으로 두드린다.
+//    필요한 표본(상담·비자신청·문의)은 여기서 만들고 끝나면 지운다 — 실데이터를 늘리면 안 된다.
+async function loginAs(email) {
+  const { data } = await anon.auth.signInWithPassword({
+    email,
+    password: process.env.TEST_ACCOUNT_PASSWORD || "Healwith2026!",
+  });
+  return data?.session?.access_token || null;
+}
+
+/** sign → PUT → commit 한 바퀴. 성공하면 { ok:true, path }. */
+async function uploadTo(endpoint, tok, fields, buf, name, type) {
+  const call = (body) =>
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+      body: JSON.stringify(body),
+    }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => ({})) }));
+
+  const sign = await call({ phase: "sign", name, type, size: buf.length, ...fields });
+  if (!sign.json.ok) return { ok: false, error: sign.json.error || `HTTP ${sign.status}` };
+  const put = await fetch(sign.json.signedUrl, { method: "PUT", headers: { "content-type": type }, body: buf });
+  if (!put.ok) return { ok: false, error: `put_${put.status}`, path: sign.json.path };
+  const commit = await call({ phase: "commit", path: sign.json.path, name, type, ...fields });
+  return { ok: !!commit.json.ok, error: commit.json.error, path: sign.json.path, data: commit.json };
+}
+
+const patientTok = await loginAs("patient@test.com");
+const clinicTok = await loginAs("clinic@test.com");
+const buf8 = pdf(8); // 8MB — 예전 4.5MB 벽이면 반드시 죽는 크기
+const cleanup = [];
+
+if (!patientTok) {
+  check("환자 계정 로그인", false, "patient@test.com 로그인 실패");
+} else {
+  const { data: me } = await anon.auth.getUser(patientTok);
+  const patientId = me?.user?.id;
+
+  // 이 환자가 참가자인 상담 1건 — 환자 서류함·화상상담 서류가 둘 다 이걸 쓴다.
+  const { data: cs } = await admin
+    .from("consultation_sessions")
+    .select("id")
+    .eq("patient_user_id", patientId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!cs) {
+    check("환자 서류함 / 화상상담 서류", false, "표본 상담이 없어 못 쟀음");
+  } else {
+    const r1 = await uploadTo(`${BASE}/api/patient/documents`, patientTok, { consultationId: cs.id, documentType: "other" }, buf8, "patient_8mb.pdf", "application/pdf");
+    check("환자 서류함 업로드 (8MB)", r1.ok, r1.error || "");
+    if (r1.data?.data?.id) cleanup.push(() => admin.from("consultation_documents").delete().eq("id", r1.data.data.id));
+    if (r1.path) cleanup.push(() => admin.storage.from("documents").remove([r1.path]));
+
+    const r2 = await uploadTo(`${BASE}/api/khidi/consultation/${cs.id}/documents`, patientTok, { documentType: "other" }, buf8, "consult_8mb.pdf", "application/pdf");
+    check("화상상담 서류 공유 업로드 (8MB)", r2.ok, r2.error || "");
+    if (r2.data?.data?.id) cleanup.push(() => admin.from("consultation_documents").delete().eq("id", r2.data.data.id));
+    if (r2.path) cleanup.push(() => admin.storage.from("documents").remove([r2.path]));
+  }
+
+  // 비자 서류 — 표본 신청서를 만들고 끝나면 지운다.
+  const { data: va } = await admin
+    .from("visa_applications")
+    .insert({ patient_user_id: patientId, visa_type: "C-3-3", nationality: "KZ", status: "draft" })
+    .select("id")
+    .single();
+  if (!va) {
+    check("비자 서류 업로드", false, "표본 비자신청 생성 실패 — 못 쟀음");
+  } else {
+    const r3 = await uploadTo(`${BASE}/api/khidi/visa/applications/${va.id}/documents`, patientTok, { document_type: "passport" }, buf8, "visa_8mb.pdf", "application/pdf");
+    check("비자 서류 업로드 (8MB)", r3.ok, r3.error || "");
+    if (r3.path) cleanup.push(() => admin.storage.from("documents").remove([r3.path]));
+    cleanup.push(() => admin.from("visa_documents").delete().eq("application_id", va.id));
+    cleanup.push(() => admin.from("visa_status_history").delete().eq("application_id", va.id));
+    cleanup.push(() => admin.from("visa_applications").delete().eq("id", va.id));
+  }
+}
+
+// 사후관리 경과 — 해외 의료기관이 자기 케이스에 올린다. 표본 문의를 is_test 로 만들고 지운다.
+if (!clinicTok) {
+  check("사후관리 경과 업로드", false, "clinic@test.com 로그인 실패");
+} else {
+  const { data: ag } = await admin.from("agencies").select("id").eq("partner_type", "medical_institution").limit(1).maybeSingle();
+  const { data: inq2 } = await admin
+    .from("inquiries")
+    .insert({ agency_id: ag?.id, is_test: true, case_status: "follow_up" })
+    .select("id")
+    .single();
+  if (!inq2) {
+    check("사후관리 경과 업로드", false, "표본 문의 생성 실패 — 못 쟀음");
+  } else {
+    const r4 = await uploadTo(`${BASE}/api/khidi/progress`, clinicTok, { inquiryId: String(inq2.id), recordType: "test_result" }, buf8, "progress_8mb.pdf", "application/pdf");
+    check("사후관리 경과 업로드 (8MB)", r4.ok, r4.error || "");
+    if (r4.path) cleanup.push(() => admin.storage.from("documents").remove([r4.path]));
+    cleanup.push(() => admin.from("progress_records").delete().eq("inquiry_id", inq2.id));
+    cleanup.push(() => admin.from("case_status_history").delete().eq("inquiry_id", inq2.id));
+    cleanup.push(() => admin.from("inquiries").delete().eq("id", inq2.id));
+  }
+}
+
+for (const fn of cleanup) {
+  try { await fn(); } catch (e) { console.log("  (정리 실패:", e.message, ")"); }
+}
+
+// 8) 되돌아오기 방지 — 파일을 서버로 통과시키는(formData) 업로드 라우트가 다시 생기면 잡는다.
 //    4.5MB 벽에 걸리는 방식이라, 새로 짤 때 무심코 옛 패턴을 베끼는 걸 막는 게 목적.
 //    예외는 «4.5MB 안쪽이 확실한» 것만: 어드민 이미지(4MB)·STT 오디오 조각(1.5MB).
 const FORMDATA_OK = new Set([
