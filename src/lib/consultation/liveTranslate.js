@@ -50,10 +50,17 @@ export function isLiveTranslateEnabledClient() {
   return process.env.NEXT_PUBLIC_LIVE_TRANSLATE_ENABLED === "true";
 }
 
-// 방 수명 설정 (공식 예제 기준 — 우리 토큰 TTL(2h)보다 길지만 빈 방은 일찍 닫음).
-export const ROOM_EMPTY_TIMEOUT = 60; // 빈 방 60초 후 종료
-export const ROOM_DEPARTURE_TIMEOUT = 30; // 마지막 1명 퇴장 후 30초
-// PO 결정(2026-07-03): 어떤 상황에서도 인원 제한 두지 않음. 과부하 발생 시 그때 가이드.
-//   → 사실상 무제한(LiveKit 플랜 한도가 별개의 실제 천장 — 계정 설정이지 우리 코드 아님).
-//   (이 값은 통역 에이전트 켤 때 RoomConfiguration.maxParticipants 로만 쓰임. 평소엔 미적용.)
-export const ROOM_MAX_PARTICIPANTS = 1_000_000;
+// ⚠️ 방 수명 설정 상수(ROOM_EMPTY_TIMEOUT 60 · ROOM_DEPARTURE_TIMEOUT 30 ·
+//    ROOM_MAX_PARTICIPANTS 1,000,000)는 2026-07-31 삭제했다. **선언만 돼 있고 저장소 어디서도
+//    안 쓰였다** — 우리는 방을 직접 만들지 않고(첫 입장자가 들어올 때 LiveKit 이 자동 생성)
+//    토큰에도 방 설정을 안 싣기 때문에, 실제로 적용되는 값은 처음부터 LiveKit 서버 기본값이었다.
+//
+//    남겨두면 안 되는 이유가 둘:
+//    ① 「빈 방 60초」로 설정돼 있다고 읽히지만 사실이 아니다. 평가·인수인계 문서에 이 값을
+//       인용하면 그대로 허위 서술이 된다.
+//    ② 지금 와서 그대로 «켜면» 오히려 나빠진다 — 상담은 의사가 먼저 들어와 환자를 기다리는
+//       구조인데 60초면 환자가 조금만 늦어도 방이 닫힌다. 기본값(더 김)이 우리 쓰임에 맞다.
+//
+//    방 수명을 정말 우리 값으로 정해야 할 때가 오면, 상수만 되살리지 말고 **토큰 발급 시
+//    방 설정을 함께 싣는 경로까지** 만들어라. 그러지 않으면 같은 「죽은 설정」이 반복된다.
+//    실제 기본값이 몇 초인지는 LiveKit 대시보드에서 확인할 것(코드에는 근거가 없다).

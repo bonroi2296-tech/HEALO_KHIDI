@@ -12,7 +12,7 @@ import "server-only";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "./supabaseAdmin";
 import { getEmbedding } from "../chat/generateReply";
-import { hashQuery, logRagDisabled } from "./ragQueryEvents";
+import { hashQuery, logRagDisabled, insertRagQueryEvent } from "./ragQueryEvents";
 
 function computeThreadHash(threadId: string): number {
   const hash = createHash("sha256").update(threadId).digest();
@@ -68,9 +68,25 @@ export async function safeRagSearch(params: SafeRagSearchParams): Promise<SafeRa
     return [];
   }
 
+  // 관측 기록(2026-07-31 연결). 이 파일 맨 위 주석과 ragQueryEvents.ts 는 「실패/0결과 운영 감지」를
+  // 목적으로 적혀 있었는데, 정작 insertRagQueryEvent 를 **아무도 부르지 않아** 표가 0건이었다
+  // (AI 채팅은 666건 돌았다). 아래 세 갈래는 전부 조용히 [] 를 돌려주고, 남는 건 console.error 뿐인데
+  // 실행 기록은 1시간이면 사라진다 → **AI 가 근거를 하나도 못 찾고 답한 경우를 영영 알 수 없었다.**
+  const startedAt = Date.now();
+  const queryTextHash = hashQuery(query);
+
   const embedding = await getEmbedding(query);
   if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
     console.error("[safeRagSearch] Embedding failed or empty, returning no chunks");
+    await insertRagQueryEvent({
+      source,
+      threadId,
+      queryTextHash,
+      lang: lang || null,
+      resultCount: 0,
+      status: "embedding_failed",
+      latencyMs: Date.now() - startedAt,
+    });
     return [];
   }
 
@@ -89,14 +105,38 @@ export async function safeRagSearch(params: SafeRagSearchParams): Promise<SafeRa
 
   if (error) {
     console.error("[safeRagSearch] RPC error:", error.message);
+    // detail 은 내부 운영 표라 원인 메시지를 남긴다(API 응답으로는 절대 안 나간다 — 보안 규칙).
+    await insertRagQueryEvent({
+      source,
+      threadId,
+      queryTextHash,
+      lang: lang || null,
+      resultCount: 0,
+      status: "rpc_failed",
+      latencyMs: Date.now() - startedAt,
+      detail: { message: error.message },
+    });
     return [];
   }
 
-  if (!data || !Array.isArray(data)) {
+  const rows = !data || !Array.isArray(data) ? [] : data;
+
+  // 0건도 반드시 남긴다 — 「검색은 성공했는데 근거가 없었다」가 환각이 나오는 자리다.
+  await insertRagQueryEvent({
+    source,
+    threadId,
+    queryTextHash,
+    lang: lang || null,
+    resultCount: rows.length,
+    status: rows.length === 0 ? "zero_results" : "ok",
+    latencyMs: Date.now() - startedAt,
+  });
+
+  if (rows.length === 0) {
     return [];
   }
 
-  return data.map((row: any) => ({
+  return rows.map((row: any) => ({
     chunk_id: row.chunk_id ?? undefined,
     document_id: row.document_id ?? undefined,
     chunk_index: row.chunk_index ?? undefined,

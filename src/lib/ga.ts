@@ -20,6 +20,33 @@ export const GA_ID = "G-6JJCQXZJ9T";
 const getGaId = () => GA_ID;
 
 /**
+ * 주소에서 «열쇠»를 가린다 — 측정 도구로 새어 나가면 안 되는 것 (2026-07-31 신설).
+ *
+ * 무엇이 문제였나: /survey/<토큰> · /claim/<토큰> · /opinion/<토큰> · /c/<코드> 는
+ *   **로그인 없이 열리는 링크**다. 그 토큰 자체가 인증 수단이라 주소를 아는 사람은 누구나
+ *   그 환자의 설문·소견서·상담방에 들어간다. 그런데 page_location 에 전체 주소를 그대로
+ *   실어 보내고 있었다 → 환자 열쇠가 구글(GA4)·버셀 측정 기록에 남는다.
+ *   개인정보 문제이기 전에 **접근권한 유출**이다.
+ *
+ * 어디에 쓰나: GA4 page_view 의 page_location·page_path, 버셀 웹 애널리틱스 beforeSend.
+ *   측정값으로서의 쓸모(어느 화면이 얼마나 열렸나)는 그대로 남는다 — 토큰 자리만 가린다.
+ */
+const TOKEN_PATH_RE = /\/(survey|claim|opinion|c)\/[^/?#]+/gi;
+const TOKEN_QUERY_RE = /([?&](?:token|code|t)=)[^&#]+/gi;
+
+export const maskSecretPath = (input: string): string => {
+  if (!input) return input;
+  try {
+    return input
+      .replace(TOKEN_PATH_RE, (_m, seg) => `/${String(seg).toLowerCase()}/[token]`)
+      .replace(TOKEN_QUERY_RE, (_m, prefix) => `${prefix}[redacted]`);
+  } catch {
+    // 가리기에 실패하면 «원문을 보내느니 아무것도 안 보낸다» — 유출 쪽이 훨씬 비싸다.
+    return "";
+  }
+};
+
+/**
  * 쿠키 동의가 "all"("Accept All")인지. 분석툴 로드/발화 게이트의 단일 기준.
  * CookieConsent.jsx 가 localStorage["healo_cookie_consent"] 에 "essential" | "all" 저장.
  * SSR/차단 환경에서는 false (안전: 동의 없으면 추적 X).
@@ -181,9 +208,10 @@ export const pageview = (url: string) => {
   //    실제로 병원·암종 상세는 데이터를 불러오는 도중에 이걸 부르므로, 던지면 그 뒤
   //    로딩이 통째로 중단된다. 호출부마다 감싸는 대신 여기서 한 번에 막는다.
   try {
+    // 🔑 열쇠 링크(/survey·/claim·/opinion·/c)는 토큰 자리를 가려서 보낸다 — maskSecretPath 주석 참고.
     window.gtag("event", "page_view", {
-      page_location: window.location.href,
-      page_path: url,
+      page_location: maskSecretPath(window.location.href),
+      page_path: maskSecretPath(url),
       ...commonParams(),
     });
     noteSent("page_view");
