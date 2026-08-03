@@ -62,9 +62,13 @@ font * {
 .pt-safe-area {
   padding-top: env(safe-area-inset-top, 0);
 }
+/* ⚠️ 100vh 는 «키보드를 무시한 고정 높이»다 — 폰에서 키보드가 올라와도 그대로라서
+   화면이 키보드 뒤로 밀려 입력칸이 안 보인다(2026-07-31 PO 실기기: 로그인 화면이
+   통째로 검게 남고 폼이 사라짐). 100dvh 는 «지금 실제로 보이는 높이»라 키보드만큼 줄어든다.
+   첫 줄은 아주 옛 브라우저용 폴백 — 지우지 마라. */
 .min-h-screen-safe {
   min-height: 100vh;
-  min-height: calc(100vh - env(safe-area-inset-bottom, 0));
+  min-height: calc(100dvh - env(safe-area-inset-bottom, 0));
 }
 
 /* 터치 타겟 최소 44px 권장 (접근성) */

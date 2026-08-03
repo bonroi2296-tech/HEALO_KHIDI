@@ -16,7 +16,19 @@
     </style>
 
 
+    <!-- 앱을 열 때 잠깐 뜨는 첫 화면(스플래시).
+         ⚠️ 안드로이드 12+ 는 여기 android:background 를 «무시하고» 시스템이 정한 대로 그린다
+         → 배경은 폰 테마(다크 모드면 검정), 가운데엔 런처 아이콘을 그대로 확대해 보여준다.
+         그래서 PO 실기기(다크 모드)에서 «검은 배경 + 어색한 동그란 로고»가 떴다(2026-07-31 제보).
+         아래 세 줄이 12+ 에서 실제로 먹는 항목이다: 배경은 브랜드 teal, 아이콘은 배경원 없는
+         전경 레이어만, 스플래시가 끝나면 본 테마로 넘긴다. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- 흰 배경인 이유: 로고 자체가 teal→남색 그라데이션이라 teal 배경에 두면 묻힌다
+             (에뮬레이터에서 실제로 확인함). 홈 화면 아이콘과도 같은 «흰 바탕 + 로고» 가 된다. -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <!-- 안드로이드 11 이하 폴백 -->
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>

@@ -117,7 +117,7 @@ export default function ResetPasswordClient() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
+    <div className="min-h-[calc(100dvh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900">{pick(L.title, langCode)}</h2>

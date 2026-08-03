@@ -428,8 +428,14 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               </div>
             </div>
 
-            {/* Bottom: Auth */}
-            <div className="border-t border-gray-100 px-5 py-4">
+            {/* Bottom: Auth
+                ⚠️ 아래 여백을 클래스(pb-safe-area)로 주면 같은 요소의 py-4 에 눌려 안 먹는다.
+                안드로이드 3버튼 내비게이션(◁ ○ |||)이 있는 폰에서 로그인·회원가입 버튼이
+                시스템 버튼줄에 깔렸다(2026-07-31 PO 실기기). 인라인 스타일은 항상 이긴다. */}
+            <div
+              className="border-t border-gray-100 px-5 py-4"
+              style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+            >
               {session ? (
                 <>
                   <a href="/account/password" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-2.5 px-4 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
@@ -667,8 +673,34 @@ export const PersonalConciergeCTA = ({ onClick, className = "" }) => {
   );
 };
 
+/**
+ * 키보드가 올라와 있나 — 폰에서만 의미 있다.
+ *
+ * 왜 필요한가 (2026-07-31 에뮬레이터 재현): 하단 탭바가 `fixed` 라서 키보드가 올라오면
+ * 키보드 바로 위에 그대로 붙어 있고, 그 자리에 있던 **「로그인」 버튼을 덮어버린다.**
+ * PO 실기기에서는 삼성 키보드가 더 높아 폼이 통째로 안 보였다.
+ * → 키보드가 떠 있는 동안엔 탭바를 감춘다(입력 중엔 어차피 아무도 안 누른다).
+ *
+ * 재는 법: 화면 전체 높이 - «지금 실제로 보이는 높이». 150px 넘게 줄면 키보드로 본다
+ * (주소창 숨김 같은 잔움직임은 100px 아래라 안 걸린다).
+ */
+function useKeyboardOpen() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    const check = () => setOpen(window.innerHeight - vv.height > 150);
+    vv.addEventListener("resize", check);
+    check();
+    return () => vv.removeEventListener("resize", check);
+  }, []);
+  return open;
+}
+
 export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   const langCode = useLangCode();
+  const keyboardOpen = useKeyboardOpen();
+  if (keyboardOpen) return null;
   return (
     <div className="md:hidden fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       <div className="grid grid-cols-3 h-16 items-center relative">
