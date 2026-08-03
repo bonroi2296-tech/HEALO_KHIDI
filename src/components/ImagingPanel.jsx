@@ -22,7 +22,12 @@ const WINDOWS = [
   { key: "brain", label: "뇌", ww: 80, wc: 40 },
 ];
 
-export default function ImagingPanel({ inquiryId, path, name, onClose }) {
+/**
+ * @param endpoint  준비 창구 주소. 코디는 문의 번호로, 의료진(소견 링크)은 토큰으로 —
+ *                  화면은 하나, 문 앞에서만 갈린다.
+ * @param withAuth  로그인 토큰을 붙일지(코디 화면만 true). 소견 링크는 계정이 없다.
+ */
+export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, path, name, onClose }) {
   const [stage, setStage] = useState("loading"); // loading | ready | error
   const [errText, setErrText] = useState("");
   const [series, setSeries] = useState([]);
@@ -43,12 +48,16 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
     let dead = false;
     (async () => {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setErrText("로그인이 필요합니다."); setStage("error"); return; }
-        const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/imaging`, {
+        const headers = { "Content-Type": "application/json" };
+        if (withAuth) {
+          const supabase = createSupabaseBrowserClient();
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) { setErrText("로그인이 필요합니다."); setStage("error"); return; }
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+        const res = await fetch(endpoint || `/api/coordinator/inquiries/${inquiryId}/imaging`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          headers,
           body: JSON.stringify({ path }),
         });
         const j = await res.json();
@@ -72,7 +81,7 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
       }
     })();
     return () => { dead = true; };
-  }, [inquiryId, path]);
+  }, [inquiryId, endpoint, withAuth, path]);
 
   // 2) 보는 장만 구간으로 받아 그린다
   const draw = useCallback(async () => {

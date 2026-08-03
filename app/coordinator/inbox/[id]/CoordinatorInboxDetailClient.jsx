@@ -24,7 +24,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
-import ImagingPanel from "./ImagingPanel";
+import ImagingPanel from "@/components/ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {

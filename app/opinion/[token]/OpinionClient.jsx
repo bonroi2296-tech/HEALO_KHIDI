@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
+import ImagingPanel from "@/components/ImagingPanel";
 
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
