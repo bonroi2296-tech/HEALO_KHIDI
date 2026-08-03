@@ -667,8 +667,34 @@ export const PersonalConciergeCTA = ({ onClick, className = "" }) => {
   );
 };
 
+/**
+ * 키보드가 올라와 있나 — 폰에서만 의미 있다.
+ *
+ * 왜 필요한가 (2026-07-31 에뮬레이터 재현): 하단 탭바가 `fixed` 라서 키보드가 올라오면
+ * 키보드 바로 위에 그대로 붙어 있고, 그 자리에 있던 **「로그인」 버튼을 덮어버린다.**
+ * PO 실기기에서는 삼성 키보드가 더 높아 폼이 통째로 안 보였다.
+ * → 키보드가 떠 있는 동안엔 탭바를 감춘다(입력 중엔 어차피 아무도 안 누른다).
+ *
+ * 재는 법: 화면 전체 높이 - «지금 실제로 보이는 높이». 150px 넘게 줄면 키보드로 본다
+ * (주소창 숨김 같은 잔움직임은 100px 아래라 안 걸린다).
+ */
+function useKeyboardOpen() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    const check = () => setOpen(window.innerHeight - vv.height > 150);
+    vv.addEventListener("resize", check);
+    check();
+    return () => vv.removeEventListener("resize", check);
+  }, []);
+  return open;
+}
+
 export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   const langCode = useLangCode();
+  const keyboardOpen = useKeyboardOpen();
+  if (keyboardOpen) return null;
   return (
     <div className="md:hidden fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       <div className="grid grid-cols-3 h-16 items-center relative">
