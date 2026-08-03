@@ -245,8 +245,8 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       //    디스패치). 옛 루프는 「켜서 토스트 보고 → 다시 꺼서 다음 회차 준비」였는데,
       //    그 «다시 끄기»가 매번 봇을 쫓아내 **봇이 방에 붙을 8초를 스스로 없애 버렸다**
       //    (실측: 4회 전부 pending 토스트 → 봇=false. 앱은 멀쩡했다).
-      //    → 클릭 없이 읽히는 신호로 판정한다: 봇 대기 배지(`voice-bot-pending`)는
-      //      `!agentPresent` 일 때만 그려지므로, **사라짐 = 봇 입장**이다.
+      //    → 클릭 없이 읽히는 신호로 판정한다: 통역 버튼의 `data-agent-present` 속성은
+      //      봇 재실만 반영한다(토글 상태·배지와 무관 — 2026-07-29 자가감사로 교체).
       // ⚠️ 채팅 패널을 «닫고» 시작한다. 자막 오버레이는 `{!panelOpen && …}` 이라 패널이 열려
       //    있으면 **아예 렌더되지 않는다**(2026-07-11 PO: 모바일에서 패널이 자막을 덮음).
       //    4단계 채팅 검사가 패널을 열어둔 채 끝나서, 봇이 자막 34건을 보낸 실행에서도
@@ -254,7 +254,6 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
       await robotA.locator('button[aria-label="Toggle chat panel"]').first().click();
 
-      const pendingBadge = robotB.getByTestId("voice-bot-pending").first();
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
 
@@ -299,9 +298,16 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         .then((t) => t.trim())
         .catch(() => "(토스트 못 봄)");
 
-      // 워커가 방에 붙기까지 수 초 — 배지가 사라지길 기다린다(끄지 않고 그냥 본다).
+      // 워커가 방에 붙기까지 수 초 — 통역 버튼의 «봇 재실» 표시가 1 이 되길 기다린다.
+      // ⚠️ 예전엔 «봇 대기 배지가 사라짐»으로 판정했는데 그건 거짓 초록이 난다: 그 배지는
+      //    이제 «통역을 켠 동안»에만 그려지고, 서버가 «준비 중»이라 답하면 앱이 토글을 스스로
+      //    되돌리므로 **봇이 안 와도 배지가 사라진다**. 봇 재실만 반영하는 속성으로 본다.
+      //    (2026-07-29 자가감사 — 이게 우리에게 하나뿐인 자동 통화 확인이라 더 정확해야 한다)
       try {
-        await pendingBadge.waitFor({ state: "hidden", timeout: 45_000 });
+        await robotB
+          .locator('[data-testid="voice-toggle"][data-agent-present="1"]')
+          .first()
+          .waitFor({ state: "attached", timeout: 45_000 });
         botPresent = true;
       } catch {
         botPresent = false;
@@ -343,8 +349,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       let botLeft: boolean | null = null;
       if (botPresent) {
         await voiceBtn.click(); // 통역 끄기 = 방에 원하는 사람이 없으면 봇 퇴장
-        botLeft = await pendingBadge
-          .waitFor({ state: "visible", timeout: 45_000 })
+        // 여기서도 «대기 배지가 다시 보임»으로 보면 안 된다 — 통역을 껐으니 배지는 애초에
+        // 안 그려져서 **봇이 나갔든 말든 항상 «안 나갔다»**가 나온다(거짓 빨강).
+        botLeft = await robotB
+          .locator('[data-testid="voice-toggle"][data-agent-present="0"]')
+          .first()
+          .waitFor({ state: "attached", timeout: 45_000 })
           .then(() => true)
           .catch(() => false);
         console.log(`[robot-call] 통역봇 퇴장=${botLeft}`);

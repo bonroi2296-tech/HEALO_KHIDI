@@ -50,8 +50,24 @@ const assigned = new Map();
  * @param {string} [seed] 표시 이름 또는 참가자 identity
  * @returns {{ text: string, border: string, dot: string }}
  */
+/**
+ * 색 배정용 이름 정규화 — 대소문자·앞뒤 공백·연속 공백 차이는 «같은 사람»으로 본다.
+ *
+ * 왜(2026-07-29 실측): 회선이 끊겨 다시 들어온 참가자가 이름을 손으로 다시 쳐서
+ *   «Эльдар» → «эльдар» 로 대소문자만 달라졌다. 그 한 글자 차이로 색이 갈리고
+ *   연속 발화 묶기도 끊겨서, **한 사람이 자막에서 두 사람처럼** 보였다.
+ *   (= PO 가 말한 «화자 구분이 안 된다»를 우리가 한 겹 더 만든 셈)
+ * 표시되는 이름 자체는 사용자가 친 그대로 둔다 — 남의 이름을 우리가 고쳐 쓰지 않는다.
+ */
+export function speakerKey(seed) {
+  return String(seed || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
 export function speakerColor(seed) {
-  const s = typeof seed === "string" ? seed.trim() : "";
+  const s = speakerKey(seed);
   if (!s) return SPEAKER_COLORS[0];
   if (!assigned.has(s)) {
     assigned.set(s, assigned.size % SPEAKER_COLORS.length);

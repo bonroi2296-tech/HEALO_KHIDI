@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
+import { uploadDirect } from "@/lib/uploadAttachment";
 import { t } from "@/lib/i18n";
 
 // 비자 신청 상태별 배지 색상 — 라벨은 i18n(visaAppDetail.status.*).
@@ -100,25 +101,18 @@ export default function VisaApplicationDetailClient({ applicationId }) {
     if (!file) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("document_type", uploadType);
-      formData.append(
-        "document_label",
-        DOCUMENT_TYPES.includes(uploadType)
-          ? t(`visaAppDetail.docType.${uploadType}`, lang)
-          : uploadType
-      );
-      const res = await fetch(
+      const json = await uploadDirect(
         `/api/khidi/visa/applications/${applicationId}/documents`,
+        file,
         {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }
+          document_type: uploadType,
+          document_label: DOCUMENT_TYPES.includes(uploadType)
+            ? t(`visaAppDetail.docType.${uploadType}`, lang)
+            : uploadType,
+        },
+        { fetch: (url, init) => fetch(url, { ...init, credentials: "include" }) }
       );
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
+      if (!json.ok) {
         throw new Error(json.error || json.detail || "upload_failed");
       }
       await loadAll();
