@@ -181,7 +181,7 @@ export function InquiryIntakePage({ setView }) {
           <p className="text-sm font-semibold text-gray-900 mb-1.5">{t('intakeForm.soft.title', langCode)}</p>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">{t('intakeForm.soft.desc', langCode)}</p>
           <div className="flex flex-col gap-2">
-            <button onClick={() => router.push('/signup')} className="w-full px-4 py-3 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition">{t('intakeForm.soft.cta', langCode)}</button>
+            <button onClick={() => router.push('/signup')} className="w-full px-4 py-3 text-sm font-bold bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition">{t('intakeForm.soft.cta', langCode)}</button>
             <button onClick={() => (setView?.('home') || router.push('/'))} className="w-full px-4 py-2.5 text-sm text-gray-500 hover:text-teal-700 transition">{t('intakeForm.soft.later', langCode)}</button>
           </div>
         </div>

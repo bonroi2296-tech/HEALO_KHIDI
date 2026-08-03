@@ -310,7 +310,7 @@ export default function SymptomsClient() {
                 {(result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor') && (
                   <button
                     onClick={() => router.push('/patient/rebooking')}
-                    className="mt-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition"
+                    className="mt-2 px-4 py-2 bg-teal-700 text-white rounded-lg text-sm font-medium hover:bg-teal-800 transition"
                   >
                     {t('patientSymptoms.rebookConfirm', lang)}
                   </button>

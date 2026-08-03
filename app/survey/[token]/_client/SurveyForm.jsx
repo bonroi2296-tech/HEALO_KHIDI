@@ -251,7 +251,7 @@ function ScoreSelector({ qIndex, value, onChange, scaleLabels }) {
             <div
               className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all
                 ${value === score
-                  ? "bg-teal-600 border-teal-600 text-white"
+                  ? "bg-teal-700 border-teal-700 text-white"
                   : "border-gray-300 text-gray-500 hover:border-teal-500 hover:text-teal-700"
                 }`}
             >
@@ -406,7 +406,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded, pati
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold
+            className="w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white font-semibold
                        tracking-widest uppercase text-xs py-4 rounded-sm transition-colors"
           >
             {submitting ? s.submitting : s.submit}

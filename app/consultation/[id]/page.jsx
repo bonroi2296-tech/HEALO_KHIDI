@@ -186,7 +186,7 @@ function AudioUnblock({ copy }) {
   return (
     <button
       onClick={() => room.startAudio().catch(() => {})}
-      className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg animate-pulse"
+      className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg animate-pulse"
     >
       <Volume2 size={16} /> {c.tapToEnableAudio}
     </button>
@@ -2678,7 +2678,7 @@ export default function ConsultationRoomPage() {
           <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.idleClosedBody}</p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+            className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 font-semibold transition-colors"
           >
             {c.idleRejoin}
           </button>
@@ -2770,7 +2770,7 @@ export default function ConsultationRoomPage() {
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="mt-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-lg"
+                    className="mt-1 px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded-lg"
                   >
                     {c.retryLabel}
                   </button>
@@ -3058,7 +3058,7 @@ export default function ConsultationRoomPage() {
             <p className="text-sm text-gray-400 leading-relaxed mb-5">{c.stillThereBody}</p>
             <button
               onClick={stayInRoom}
-              className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+              className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 font-semibold transition-colors"
             >
               {c.stillThereYes}
             </button>
@@ -3378,7 +3378,7 @@ export default function ConsultationRoomPage() {
                         setConnectError(false);
                         setConnectAttempt((a) => a + 1);
                       }}
-                      className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold px-6 py-3 rounded-full shadow-xl"
+                      className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold px-6 py-3 rounded-full shadow-xl"
                     >
                       {c.retryConnect}
                     </button>
