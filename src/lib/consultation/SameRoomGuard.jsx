@@ -23,6 +23,23 @@ import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
 import { useSameRoomDetect } from "./useSameRoomDetect";
 
+/**
+ * 「마이크가 실제로 올라오면 딱 한 번 끈다」 핸들러를 만든다.
+ * 왜 따로 뽑았나: 이 한 번-만-끄기가 하울링 차단의 실제 동작이라 단위시험 대상이다
+ * (이 저장소엔 리액트 렌더 시험 도구가 없어 효과 안에 두면 아무도 못 잰다).
+ * @param {object} room — LiveKit Room
+ * @returns {(pub?: {source?: string}) => void}
+ */
+export function createMicMuteOnce(room) {
+  let done = false;
+  return (pub) => {
+    if (done) return;
+    if (pub?.source && pub.source !== Track.Source.Microphone) return;
+    done = true;
+    room?.localParticipant?.setMicrophoneEnabled?.(false)?.catch?.(() => {});
+  };
+}
+
 /** 방의 오디오 트랙(내 마이크 / 상대 마이크)을 모아 훅에 넘길 형태로. */
 function useAudioTracks(room) {
   const [tick, setTick] = useState(0);
@@ -141,6 +158,24 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
     ];
     events.forEach((e) => room.on(e, silence));
     return () => events.forEach((e) => room.off(e, silence));
+  }, [screenOnly, room]);
+
+  // ⚠️ 내 마이크는 «끄고 나서 도로 켜진다» — 그 자리를 막는다.
+  // LiveKit 리액트 컴포넌트는 `audio={true}` 일 때 **접속이 끝난 뒤**(SignalConnected)에
+  // `setMicrophoneEnabled(true)` 로 마이크를 올린다. 그런데 회선 판정(①번 방어선)은 방이
+  // 붙기 «전»에 이미 돌아서 `setMicrophoneEnabled(false)` 를 부른다 — 그 시점엔 올라온 트랙이
+  // 없어 아무 일도 안 일어나고(livekit 이 «끄고 싶다»를 기억하지 않는다), 잠시 뒤 마이크가
+  // 그냥 켜진다. 결과: 배너는 「소리를 껐어요」라는데 **마이크는 살아서 송신 중** —
+  // 하울링의 절반(내 마이크 → 상대 스피커)이 그대로 남고, 사용자는 꺼진 줄 안다(privacy).
+  //   → 마이크가 «실제로 올라오는» 순간에 한 번 더 끈다.
+  // ponytail: 딱 한 번만 끈다. 매번 끄면 사람이 마이크 버튼을 눌러도 그 자리에서 도로
+  //   꺼져 버튼이 먹통이 된다. 천장: 재접속으로 마이크가 다시 올라오면 안 잡는다 —
+  //   그때 필요해지면 「되돌리기 뒤 다시 끄기」가 아니라 여기에 재접속 이벤트를 더해라.
+  useEffect(() => {
+    if (!screenOnly || !room) return;
+    const muteOnce = createMicMuteOnce(room);
+    room.on(RoomEvent.LocalTrackPublished, muteOnce);
+    return () => room.off(RoomEvent.LocalTrackPublished, muteOnce);
   }, [screenOnly, room]);
 
   // ── ①번 방어선: 같은 인터넷 회선이면 «울리기 전에» 조용히 들어간다 ──
