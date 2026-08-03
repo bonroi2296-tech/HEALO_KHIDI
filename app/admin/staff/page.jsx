@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -326,7 +327,7 @@ export default function AdminStaffPage() {
                 <button
                   onClick={() => {
                     setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "" });
-                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    window.scrollTo({ top: 0, behavior: scrollBehavior() });
                   }}
                   className="text-xs font-semibold text-gray-600 hover:text-teal-700 px-2 py-1"
                 >

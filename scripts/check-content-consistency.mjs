@@ -2711,6 +2711,50 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── [움직임줄이기] 어지럼·구역이 있는 환자를 위한 「움직임 줄이기」가 살아있는가 ──────
+// 왜 (2026-08-04 실측): 움직임을 쓰는 파일 156개 중 사용자의 «움직임 줄이기» 설정을 존중하는
+//   건 2개뿐이었다. 항암 중 구역·어지럼은 우리 환자에게 예외가 아니라 기본값에 가깝다.
+//   지금은 src/index.css 한 블록이 CSS 움직임 전부를 덮는다 → **파일별 검사가 필요 없다.**
+//   그래서 이 가드는 딱 두 가지만 본다(정직하게 = 이게 전부다):
+//     ① 그 전역 블록이 아직 있는가 (리팩터·파일 교체로 조용히 사라지는 것 차단)
+//     ② CSS 로 «못 끄는» 부류가 새로 들어오는가 — `behavior: "smooth"` 를 손으로 박는 것.
+//        옵션으로 «부드럽게»를 넣으면 CSS 의 scroll-behavior:auto 가 이기지 못한다.
+//        → scrollBehavior() (src/lib/a11y/prefersReducedMotion.js) 를 쓰라고 잡는다.
+// 만들기 전 3문답(CLAUDE.md 규칙 7):
+//   ①검출 조건: 문자열 존재 여부 — 기계적으로 명확 ✅
+//   ②덮는 범위: CSS 움직임은 전역 블록이 100%, 이 가드는 «그 블록이 사라지는» 회귀 + JS 부류 신규 유입
+//   ③회피 유인: 없음(대체 API 가 더 짧다)
+// 못 잡는 것: requestAnimationFrame 으로 손수 그리는 움직임, 라이브러리 내부 애니메이션.
+//   그건 코드리뷰 몫이다.
+{
+  const CSS_FILE = "src/index.css";
+  let css = "";
+  try { css = readFileSync(join(ROOT, CSS_FILE), "utf8"); } catch { css = ""; }
+  if (!/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/.test(css) || !/animation-duration/.test(css)) {
+    errors.push(
+      `[움직임줄이기] ${CSS_FILE} 에 전역 «움직임 줄이기» 블록이 없다. ` +
+        `@media (prefers-reduced-motion: reduce) 안에서 animation-duration/transition-duration 을 죽이는 블록이 사라지면 ` +
+        `156개 파일의 움직임이 «줄이기를 켠 사용자»에게 그대로 재생된다(어지럼·구역). 지우지 말고 되살려라.`
+    );
+  }
+
+  const HELPER = "prefersReducedMotion";
+  const files = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f));
+  for (const file of files) {
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if (!/behavior\s*:\s*["']smooth["']/.test(raw)) continue;
+    if (raw.includes(HELPER)) continue; // 헬퍼를 쓰면서 폴백 문자열을 들고 있는 경우는 정상
+    const line = raw.split(/\r?\n/).findIndex((l) => /behavior\s*:\s*["']smooth["']/.test(l)) + 1;
+    errors.push(
+      `[움직임줄이기] ${file.replace(/\\/g, "/")}:${line} — behavior:"smooth" 를 손으로 박았다. ` +
+        `이건 CSS 의 prefers-reduced-motion 이 «못 끄는» 부류다(옵션이 이긴다). ` +
+        `scrollBehavior() from "@/lib/a11y/prefersReducedMotion" 로 바꿔라 — 줄이기를 켠 사용자에겐 "auto" 를 준다.`
+    );
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

@@ -148,6 +148,11 @@ motion:
   default:     "transition-all duration-200"   # 기본 전환 — 이거 하나로 통일
   emphasis:    "duration-300"                   # 큰 요소(모달 등장 등) 예외만
   forbidden:   "duration-500+ 남발 / 호버 확대(scale)·회전(rotate) / 의미 없는 fade"
+  # ♿ 「움직임 줄이기」는 이제 신경 안 써도 된다 — src/index.css 전역 블록이 CSS 움직임을 전부 끈다.
+  #    단 하나 예외: 자바스크립트로 «부드럽게»를 «옵션에 박는» 부류(scrollIntoView/scrollTo의
+  #    behavior:"smooth")는 CSS 가 못 이긴다 → scrollBehavior() from "@/lib/a11y/prefersReducedMotion".
+  #    (check:content 의 [움직임줄이기] 가드가 둘 다 막는다. 왜 필요한가: 항암 중 구역·어지럼)
+  reduced_motion: "전역 자동 — JS 의 behavior:\"smooth\" 만 scrollBehavior() 로"
 
 # ============================================================
 # 5. i18n — 6개 언어 대응 (우리만의 제약)
