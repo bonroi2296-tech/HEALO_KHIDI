@@ -25,6 +25,7 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
     "check:legal-citations": "node scripts/check-legal-citations.mjs --selftest && node scripts/check-legal-citations.mjs",
+    "check:metric-honesty": "node scripts/check-metric-honesty.mjs --selftest && node scripts/check-metric-honesty.mjs",
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:rules": "node scripts/check-rules.mjs",

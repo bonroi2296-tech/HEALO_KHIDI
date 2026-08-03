@@ -60,6 +60,8 @@ jobs:
         run: npm run check:legal
       - name: 법 조문 인용 (환자 노출 문구의 조문 번호가 실제 그 조문인지 — §15 오인용 재발 차단)
         run: npm run check:legal-citations
+      - name: 성과지표 정직성 (공식 산출물이 시험 데이터를 실적으로 세는 것 차단 — 3회 재발)
+        run: npm run check:metric-honesty
       - name: 환자·공개 화면 원시 err.message 노출 차단 (보안 — POSTMORTEMS #52 재발방지)
         run: npm run check:err-exposure
       - name: 암종 콘텐츠 6개 언어 완성 (합병증·FAQ·통계 번역 누락 차단)
