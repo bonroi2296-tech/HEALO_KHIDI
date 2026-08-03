@@ -33,6 +33,16 @@ describe("khidiCountState — 실적 집계 판정", () => {
     expect(khidiCountState({ session_type: "follow_up", inquiry_id: "42", status: "completed" })).toBe("counted");
   });
 
+  it("🔴 시험용 방은 배지를 안 띄운다 — kpi.ts 가 빼고 세므로 화면도 빼야 숫자가 맞는다", () => {
+    // 2026-08-03 실측: 「지난 상담인데 완료 안 함」 81건 중 78건이 시험분이었다.
+    // 안 빼면 화면이 「실적 78건이 밀렸다」고 거짓 경보를 낸다.
+    expect(khidiCountState({ session_type: "pre_consultation", inquiry_id: null, status: "scheduled", is_test: true })).toBeNull();
+    expect(khidiCountState({ session_type: "follow_up", inquiry_id: 41, status: "completed", is_test: true })).toBeNull();
+    // false·없음은 «진짜»로 취급한다(기본값이 시험이면 실적이 통째로 사라진다).
+    expect(khidiCountState({ session_type: "pre_consultation", inquiry_id: 41, status: "completed", is_test: false })).toBe("counted");
+    expect(khidiCountState({ session_type: "pre_consultation", inquiry_id: 41, status: "completed" })).toBe("counted");
+  });
+
   it("빠진 값이 들어와도 터지지 않는다", () => {
     expect(khidiCountState({})).toBeNull();
     expect(khidiCountState({ session_type: null })).toBeNull();
