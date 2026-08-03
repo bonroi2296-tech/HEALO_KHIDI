@@ -46,7 +46,7 @@ function looksDicom(b: Uint8Array): boolean {
 }
 
 /** .rar / .zip / 낱개 .dcm → 파일 바이트 목록 */
-async function unpack(buf: Buffer, name: string): Promise<Uint8Array[]> {
+async function unpack(buf: Buffer): Promise<Uint8Array[]> {
   const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
   const isRar = buf[0] === 0x52 && buf[1] === 0x61 && buf[2] === 0x72 && buf[3] === 0x21;
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (dl.error || !dl.data) return Response.json({ ok: false, error: "download_failed" }, { status: 404 });
       const buf = Buffer.from(await dl.data.arrayBuffer());
 
-      const items = await unpack(buf, path);
+      const items = await unpack(buf);
       if (!items.length) return Response.json({ ok: false, error: "no_dicom" }, { status: 400 });
       if (items.length > MAX_SLICES) return Response.json({ ok: false, error: "too_many_slices" }, { status: 400 });
 
