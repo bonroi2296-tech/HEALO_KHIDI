@@ -40,6 +40,10 @@ type Geometry = {
   barTop: number | null;
   barBottom: number | null;
   contentTop: number | null;
+  /** 어떤 상자를 본문으로 골랐는지 — 헛짚었을 때 로그만 보고 알 수 있게 */
+  contentBox: string | null;
+  /** 화면 첫 글자들 — 문지기(권한 없음) 화면을 본문으로 착각하지 않게 */
+  bodyHead: string;
   safeTopVar: string;
 };
 
@@ -63,9 +67,15 @@ async function measure(page: Page): Promise<Geometry> {
       if (!bar || r.top < bar.top) bar = r;
     }
 
-    const main = document.querySelector("main");
-    const contentTop = main
-      ? round(main.getBoundingClientRect().top + (parseFloat(getComputedStyle(main).paddingTop) || 0))
+    // ⚠️ 본문 상자를 고를 때 «맨 바깥 <main id="main-content">» 를 잡으면 안 된다.
+    //    그건 전 화면 공통 껍데기라 위끝이 항상 0 이다 → 무조건 「가림」으로 잘못 나온다
+    //    (2026-08-03 첫 실행에서 4건 다 그렇게 헛짚었다). 포털이 «자기 layout 에서» 만든
+    //    안쪽 <main> 또는 본문 여백 상자(.healo-portal-offset)를 쓴다.
+    const inner =
+      document.querySelector("main:not(#main-content)") ||
+      document.querySelector(".healo-portal-offset");
+    const contentTop = inner
+      ? round(inner.getBoundingClientRect().top + (parseFloat(getComputedStyle(inner).paddingTop) || 0))
       : null;
 
     return {
@@ -73,6 +83,8 @@ async function measure(page: Page): Promise<Geometry> {
       barTop: bar ? round(bar.top) : null,
       barBottom: bar ? round(bar.bottom) : null,
       contentTop,
+      contentBox: inner ? `${inner.tagName.toLowerCase()}.${String(inner.className).slice(0, 40)}` : null,
+      bodyHead: (document.body.innerText || "").trim().replace(/\s+/g, " ").slice(0, 120),
       safeTopVar: getComputedStyle(document.documentElement).getPropertyValue("--healo-safe-top").trim(),
     };
   });
@@ -112,13 +124,20 @@ test.describe("포털 위 여백 사슬 @smoke", () => {
       await loginAs(page, c.role);
       await page.goto(c.path);
       await page.waitForLoadState("domcontentloaded");
-      await expect(page.locator("header")).toBeVisible({ timeout: 30_000 });
-      // 문지기(게이트) 통과 후 본문이 마운트될 때까지
-      await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator("header").first()).toBeVisible({ timeout: 30_000 });
+      // 문지기(게이트)를 통과해 «그 포털의» 본문 상자가 실제로 붙을 때까지 기다린다.
+      // 여기서 못 기다리면 문지기 화면을 본문으로 착각해 엉뚱한 숫자를 재게 된다.
+      await expect(
+        page.locator("main:not(#main-content), .healo-portal-offset").first()
+      ).toBeAttached({ timeout: 30_000 });
 
       // ① 보통 브라우저 — 안전영역 0
       const plain = await measure(page);
-      expectNoOverlap(plain, `${c.label}/브라우저`);
+      expect(
+        plain.contentTop,
+        `${c.label}: 본문 상자를 못 찾았다 — 문지기에 막혔을 수 있다. 화면 첫 글자: "${plain.bodyHead}"`
+      ).not.toBeNull();
+      expectNoOverlap(plain, `${c.label}/브라우저 (본문상자=${plain.contentBox})`);
 
       // ② 스토어 앱 — 상태표시줄만큼 안전영역이 붙는 경우.
       //    안전영역 흉내는 크롬 개발자도구 명령(CDP)으로만 되고, 지원 안 하는 판이면 조용히 건너뛴다.
@@ -141,7 +160,7 @@ test.describe("포털 위 여백 사슬 @smoke", () => {
           native.safeTopVar,
           "스토어 앱 표식이 붙었는데도 위 안전영역 값이 0 이다 — 스위치가 안 걸렸다"
         ).not.toBe("0px");
-        expectNoOverlap(native, `${c.label}/스토어앱`);
+        expectNoOverlap(native, `${c.label}/스토어앱 (본문상자=${native.contentBox})`);
       }
     });
   }
