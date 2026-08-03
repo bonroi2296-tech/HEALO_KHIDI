@@ -151,7 +151,13 @@ const nextConfig = {
               //   → 와일드카드로 계열 호스트를 함께 연다.
               // mc.yandex.ru: 러시아/CIS 핵심시장용 Yandex Metrica. AnalyticsWrapper 에 코드는 이미
               //   있으나 CSP 에 없어 env 를 넣어도 동작하지 않는 상태였다(스크립트 로드부터 차단).
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
+              // integrations.livekit.io: 화상상담 잡음 제거(Krisp)가 켜질 때 여기로 요청을 보낸다.
+              //   ⚠️ 빠져 있으면 잡음 제거가 **조용히 안 켜진다** — 켜기 실패는 통화를 안 끊으려고
+              //   일부러 삼키게 돼 있어(page.jsx NoiseFilter) 화면엔 아무 표시도 안 난다.
+              //   실제로 2026-07-28 에 켠 이래 실서비스에서 한 번도 돈 적이 없었다(2026-08-03 발각:
+              //   야간 로봇 통화 로그 + 실서비스 상담방에서 직접 찔러 «차단됨» 확인).
+              //   배경 소음이 그대로 마이크로 나가면 자막(음성인식) 오인식으로 직결된다.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://integrations.livekit.io https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
               "media-src 'self' blob:",
               // ⚠️ worker-src 를 안 적으면 script-src 로 폴백돼 **blob: 워커가 전부 차단된다**
               //    (2026-07-28 안드로이드 에뮬레이터 콘솔에서 발각 — 브라우저에서도 나던 것을 아무도 안 봤다).
