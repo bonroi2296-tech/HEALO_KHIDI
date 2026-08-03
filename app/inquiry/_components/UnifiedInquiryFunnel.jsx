@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
 import { uploadAttachment } from "@/lib/uploadAttachment";
+import { describeUpload } from "@/lib/uploadPolicy";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
@@ -686,7 +687,7 @@ export default function UnifiedInquiryFunnel() {
             >
               <UploadCloud size={24} className="mx-auto text-gray-400 mb-2" />
               <p className="text-xs text-gray-500">{tl("uploadDrop", lang)}</p>
-              <p className="text-[11px] text-gray-400 mt-1">{tl("uploadHint", lang)}</p>
+              <p className="text-[11px] text-gray-400 mt-1">{describeUpload("medicalDoc", lang)} · {MAX_ATTACHMENTS}</p>
             </div>
             <input
               ref={fileInputRef}

@@ -108,6 +108,8 @@ export const INTAKE_UI = {
   briefRequest: { ko: "원하는 것", en: "Wants", ru: "Запрос", kz: "Сұраныс", zh: "需求", ja: "希望" },
   briefPoints: { ko: "코디가 볼 포인트", en: "Points for coordinator", ru: "На что обратить внимание", kz: "Назар аударатын тұстар", zh: "协调员关注点", ja: "確認ポイント" },
   briefFlags: { ko: "주의", en: "Flags", ru: "Внимание", kz: "Ескерту", zh: "注意", ja: "注意" },
+  // 첨부를 못 읽고 만든 브리프는 «자료를 보고 쓴 것»처럼 보이면 안 된다 — 그대로 표시한다.
+  briefUnreadable: { ko: "⚠ 첨부 {n}개를 읽지 못한 채 만든 브리프입니다 — 원본을 직접 확인하세요.", en: "⚠ This brief was written without reading {n} attachment(s) — open the originals.", ru: "⚠ Бриф составлен без {n} вложени(я/й) — откройте оригиналы.", kz: "⚠ {n} тіркеме оқылмай жасалған бриф — түпнұсқаны қараңыз.", zh: "⚠ 本简报未读取 {n} 个附件——请查看原件。", ja: "⚠ 添付 {n} 件を読めないまま作成した概要です — 原本をご確認ください。" },
   briefDisclaimer: { ko: "AI가 정리한 초안입니다. 진단이 아니며 코디·의료진 검수가 필요합니다.", en: "AI-generated draft — not a diagnosis; coordinator/doctor review required.", ru: "Черновик ИИ — не диагноз; требуется проверка координатора/врача.", kz: "AI жобасы — диагноз емес; тексеру қажет.", zh: "AI草稿——非诊断，需协调员/医生审核。", ja: "AIによる下書きです。診断ではなく確認が必要です。" },
   briefFailed: { ko: "브리프 생성에 실패했어요. 잠시 후 다시 시도해 주세요.", en: "Failed to generate the brief. Please try again.", ru: "Не удалось создать бриф. Повторите попытку.", kz: "Бриф жасалмады. Қайталап көріңіз.", zh: "简报生成失败，请稍后重试。", ja: "概要の生成に失敗しました。再度お試しください。" },
 };

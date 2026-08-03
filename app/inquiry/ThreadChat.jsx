@@ -7,6 +7,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
+import { describeUpload } from "@/lib/uploadPolicy";
 
 // GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
 const ga = (name, params) => { try { event(name, params); } catch {} };
@@ -1001,7 +1002,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             {t("chat.upload.dropHere", langCode) || "Drop files here to attach"}
           </p>
           <p className="text-[11px] text-teal-700 mt-1">
-            {t("chat.upload.dropHint", langCode) || `Test results or photos · up to ${MAX_ATTACHMENTS} files`}
+            {describeUpload("medicalDoc", langCode)} · {MAX_ATTACHMENTS}
           </p>
         </div>
       )}

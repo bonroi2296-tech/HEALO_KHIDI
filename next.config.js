@@ -329,6 +329,9 @@ const nextConfig = {
   // Sentry(@sentry/nextjs)가 의존하는 OpenTelemetry 계열을 번들에서 제외 —
   // 빌드 chunks 에 require 주입되며 "Cannot find module" 나던 문제의 해법.
   serverExternalPackages: [
+    // mupdf 는 WASM 이라 번들러가 건드리면 .wasm 을 잃는다 — 서버에서 그대로 불러오게 둔다.
+    // (큰 스캔 PDF 를 AI 가 읽을 수 있게 줄이는 데 쓴다 — src/lib/documents/aiReadable.ts)
+    "mupdf",
     "@sentry/nextjs",
     "@opentelemetry/instrumentation",
     "import-in-the-middle",

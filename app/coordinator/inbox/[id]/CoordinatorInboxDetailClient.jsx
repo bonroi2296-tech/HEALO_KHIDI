@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
+import { describeUpload } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -22,6 +23,13 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+
+// 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
+function isImagingBundle(a) {
+  const n = String(a?.name || a?.path || "").toLowerCase();
+  const t = String(a?.type || "").toLowerCase();
+  return /\.(zip|rar|dcm)$/.test(n) || t.includes("zip") || t.includes("rar") || t.includes("dicom");
+}
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -896,6 +904,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </ul>
               </div>
             )}
+            {/* 못 읽은 첨부가 있으면 «있다»고 말한다 — 조용히 빼면 코디가 다 반영된 줄 안다(문의 #60). */}
+            {brief.unreadable > 0 && (
+              <p className="text-[12px] font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                {pick(INTAKE_UI.briefUnreadable, lang).replace("{n}", String(brief.unreadable))}
+              </p>
+            )}
             <p className="text-[11px] text-gray-500 pt-1.5 border-t border-teal-100">{pick(INTAKE_UI.briefDisclaimer, lang)}</p>
           </div>
         )}
@@ -1107,6 +1121,16 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <ExternalLink size={14} className="text-gray-500 shrink-0" />
                       )}
                     </button>
+                    {/* 병원 CD(CT) 묶음이면 번역 대신 영상 뷰어로 — 자바·CD뷰어 설치 없이 브라우저에서 본다. */}
+                    {isImagingBundle(a) ? (
+                      <Link
+                        href={`/coordinator/imaging/${inquiryId}?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`}
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition"
+                      >
+                        <Video size={14} /> 영상 보기
+                      </Link>
+                    ) : (
+                    <>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
                     <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label={L.atLangGroup}>
                       {OUT_LANGS.map((o) => (
@@ -1151,6 +1175,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       )}
                       <span className="hidden sm:inline">{L.atDownload}</span>
                     </button>
+                    </>
+                    )}
                   </div>
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
@@ -1159,6 +1185,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <p className="text-sm text-amber-700">
                           {entry.error === "unsupported_type"
                             ? L.atErrFormat
+                            : entry.error === "file_too_large"
+                            ? L.atErrTooBig
                             : L.atErrTranslate}
                         </p>
                       ) : (
@@ -1186,6 +1214,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           <div className="mt-3 pt-3 border-t border-gray-100">
             <p className="text-sm font-semibold text-gray-800">{L.ibStaffUploadTitle}</p>
             <p className="text-xs text-gray-500 mt-0.5">{L.ibStaffUploadHint}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{describeUpload("medicalDoc", lang)}</p>
             <div className="mt-2 flex items-center gap-2">
               <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer">
                 <FileText size={14} />

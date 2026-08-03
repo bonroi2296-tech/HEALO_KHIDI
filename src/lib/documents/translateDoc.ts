@@ -16,6 +16,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
+import { getAiReadable } from "./aiReadable";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { glossaryBlock, type DocLang, type GlossaryEntry } from "./medicalGlossary";
@@ -254,15 +255,15 @@ export async function translateMedicalDoc(opts: {
   }
 
   // 저장소에서 파일 바이트 로드.
+  // 큰 스캔 PDF 는 그대로 넣으면 모델이 요청 자체를 반려한다(실측 137MB → INVALID_ARGUMENT).
+  // getAiReadable 이 필요하면 줄여서 준다(130.9MB → 9.0MB, 눈으로 차이 없음). 원본은 안 건드린다.
   let base64: string;
-  try {
-    const { data, error } = await supabaseAdmin.storage.from("attachments").download(opts.path);
-    if (error || !data) return { ok: false, error: "download_failed" };
-    const buf = Buffer.from(await data.arrayBuffer());
-    if (buf.length > MAX_BYTES) return { ok: false, error: "file_too_large" };
-    base64 = buf.toString("base64");
-  } catch {
-    return { ok: false, error: "download_failed" };
+  let sendMime = mime;
+  {
+    const doc = await getAiReadable("attachments", opts.path, mime);
+    if (!doc.ok) return { ok: false, error: doc.reason === "download_failed" ? "download_failed" : "file_too_large" };
+    base64 = doc.buffer.toString("base64");
+    sendMime = doc.mimeType;
   }
 
   // 학습 용어사전(코디 수정 축적)을 씨앗 사전과 병합해 프롬프트에 주입.
@@ -275,7 +276,7 @@ export async function translateMedicalDoc(opts: {
       systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
       contents: [{ role: "user", parts: [
         { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
-        { inlineData: { mimeType: mime, data: base64 } },
+        { inlineData: { mimeType: sendMime, data: base64 } },
       ] }],
       // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
       safetySettings: [
@@ -386,15 +387,15 @@ export async function verifyTranslationNumbers(opts: {
   const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
   if (!MODEL_READABLE.has(mime)) return { ok: false, error: "unsupported_type" };
 
+  // 큰 스캔 PDF 는 그대로 넣으면 모델이 요청 자체를 반려한다(실측 137MB → INVALID_ARGUMENT).
+  // getAiReadable 이 필요하면 줄여서 준다(130.9MB → 9.0MB, 눈으로 차이 없음). 원본은 안 건드린다.
   let base64: string;
-  try {
-    const { data, error } = await supabaseAdmin.storage.from("attachments").download(opts.path);
-    if (error || !data) return { ok: false, error: "download_failed" };
-    const buf = Buffer.from(await data.arrayBuffer());
-    if (buf.length > MAX_BYTES) return { ok: false, error: "file_too_large" };
-    base64 = buf.toString("base64");
-  } catch {
-    return { ok: false, error: "download_failed" };
+  let sendMime = mime;
+  {
+    const doc = await getAiReadable("attachments", opts.path, mime);
+    if (!doc.ok) return { ok: false, error: doc.reason === "download_failed" ? "download_failed" : "file_too_large" };
+    base64 = doc.buffer.toString("base64");
+    sendMime = doc.mimeType;
   }
 
   try {
@@ -410,7 +411,7 @@ export async function verifyTranslationNumbers(opts: {
       ].join("\n") }] },
       contents: [{ role: "user", parts: [
         { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the attached ORIGINAL image. Return only JSON.` },
-        { inlineData: { mimeType: mime, data: base64 } },
+        { inlineData: { mimeType: sendMime, data: base64 } },
       ] }],
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },

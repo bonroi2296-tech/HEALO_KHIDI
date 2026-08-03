@@ -85,7 +85,9 @@ export async function POST(
           if (dec) map = readBriefMap(JSON.parse(dec));
         }
       } catch { /* 못 읽으면 새로 시작 */ }
-      map[lang] = result.brief;
+      // 「못 읽은 첨부 수」를 브리프와 «같이» 저장한다. 안 그러면 캐시에서 꺼내 보여줄 때
+      // 그 숫자가 사라져 «자료를 다 보고 쓴 브리프»처럼 보인다(문의 #60 에서 실제로 그랬다).
+      map[lang] = { ...result.brief, unreadable: result.unreadableCount };
       const enc = encryptStringNullable(JSON.stringify(map));
       // 새 컬럼(coordinator_brief*)은 생성 타입(database.types)에 아직 없어 as any 로 우회(마이그레이션은 적용됨).
       await supabaseAdmin

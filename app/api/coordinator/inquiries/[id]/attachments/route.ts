@@ -32,6 +32,12 @@ const ALLOWED_TYPES = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  // 병원 CD 통째로 — 안에 든 CT(DICOM) 는 코디 화면의 영상 뷰어가 브라우저에서 풀어 보여준다.
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  "application/dicom",
 ];
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {

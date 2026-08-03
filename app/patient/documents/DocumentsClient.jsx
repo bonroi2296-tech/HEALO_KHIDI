@@ -7,6 +7,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from '@/lib/uploadAttachment';
+import { describeUpload, UPLOAD_POLICY } from '@/lib/uploadPolicy';
 import { kstDate } from '@/lib/datetime/kst';
 
 // DB document_type 코드 → 표시 라벨 키(중앙 사전)
@@ -239,11 +240,11 @@ export default function DocumentsClient() {
           >
             <Upload size={36} className="text-gray-500 mx-auto mb-3" />
             <p className="text-sm font-semibold mb-1">{t('patientDocs.dragDrop', lang)}</p>
-            <p className="text-xs text-gray-500">{t('patientDocs.formats', lang)} · {t('patientDocs.maxSize', lang)}</p>
+            <p className="text-xs text-gray-500">{describeUpload('medicalDoc', lang)}</p>
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept={UPLOAD_POLICY.medicalDoc.accept}
               onChange={handleFileSelect}
               className="hidden"
               aria-hidden="true"
