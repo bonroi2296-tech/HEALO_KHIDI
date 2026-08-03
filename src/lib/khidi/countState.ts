@@ -26,6 +26,8 @@ export interface CountableSession {
   session_type?: string | null;
   inquiry_id?: number | string | null;
   status?: string | null;
+  /** 시험용 방인가. `kpi.ts` 는 시험분을 빼고 세므로 화면도 같이 빼야 숫자가 맞는다. */
+  is_test?: boolean | null;
 }
 
 /**
@@ -38,6 +40,12 @@ export interface CountableSession {
  */
 export function khidiCountState(c: CountableSession): KhidiCountState {
   if (!c) return null;
+  // 🔴 2026-08-03 추가 — 시험용 방은 애초에 집계 대상이 아니다.
+  //    `kpi.ts` 는 `fetchTestSessionIds` 로 시험분을 «빼고» 세는데 화면은 안 빼고 있었다.
+  //    실측: 「지난 상담인데 완료 안 함」 81건 중 **78건이 시험분**이었다 — 그대로 두면
+  //    화면이 «실적 78건이 밀렸다»고 거짓 경보를 내고, 그걸 없애려면 시험 방 78개를
+  //    사람이 하나씩 눌러야 한다. 배지·배너가 조용해야 진짜 3건이 눈에 띈다.
+  if (c.is_test === true) return null;
   if (!KHIDI_COUNTED_TYPES.includes(c.session_type as (typeof KHIDI_COUNTED_TYPES)[number])) {
     return null;
   }

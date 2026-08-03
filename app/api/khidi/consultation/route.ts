@@ -260,6 +260,7 @@ export async function GET(request: NextRequest) {
         ended_at,
         status,
         inquiry_id,
+        is_test,
         patient_language,
         doctor_language,
         livekit_room_name,

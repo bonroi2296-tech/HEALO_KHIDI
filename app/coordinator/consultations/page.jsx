@@ -67,6 +67,9 @@ export default function CoordinatorConsultationsPage() {
         setUnclosedCount(
           rows.filter(
             (c) =>
+              // 🔴 2026-08-03 추가 — 시험용 방은 뺀다. kpi.ts 는 시험분을 빼고 세는데
+              //    이 배너만 안 빼고 있었다(실측: 81건 중 78건이 시험분 = 거짓 경보).
+              c.is_test !== true &&
               KHIDI_COUNTED_TYPES.includes(c.session_type) &&
               c.status !== 'completed' &&
               c.status !== 'cancelled' &&

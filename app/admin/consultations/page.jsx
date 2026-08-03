@@ -246,6 +246,8 @@ export default function ConsultationsPage() {
   // 「지난 상담인데 아직 완료가 아닌」 집계 대상 수. 탭과 무관하게 따로 센다 —
   // 목록은 탭(예정/완료/…)으로 걸러져 오므로, 목록에서 세면 「완료」 탭에서 배너가 사라진다.
   const [unclosedCount, setUnclosedCount] = useState(0);
+  // 서버가 한 번에 200건까지만 준다 — 거기 걸렸으면 「이게 전부가 아니다」를 밝힌다.
+  const [unclosedTruncated, setUnclosedTruncated] = useState(false);
   const [inquiryOptions, setInquiryOptions] = useState([]);
   // AI 회의록 생성 상태: { [consultationId]: { loading, data, error } }
   const [summaryState, setSummaryState] = useState({});
@@ -305,6 +307,8 @@ export default function ConsultationsPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) return;
+      // 200 은 서버 상한과 같은 값이다(그 이상 요청해도 서버가 200 으로 자른다).
+      // 미완료가 200 을 넘으면 숫자가 «조용히» 모자라게 나오므로 아래에서 잘렸는지 표시한다.
       const res = await fetch("/api/khidi/consultation?limit=200&status=scheduled", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -312,14 +316,21 @@ export default function ConsultationsPage() {
       if (!result.ok) return;
       // 지금 시각은 «가져온 그 순간» 한 번만 읽는다 — 그리는 중에 읽으면 다시 그릴 때마다 값이 달라진다.
       const now = Date.now();
+      const rows = result.data || [];
       setUnclosedCount(
-        (result.data || []).filter(
+        rows.filter(
           (c) =>
+            // 🔴 시험용 방은 뺀다. kpi.ts 가 빼고 세는데 화면만 안 빼면 거짓 경보가 된다
+            //    (2026-08-03 실측: 81건 중 78건이 시험분이었다).
+            c.is_test !== true &&
             KHIDI_COUNTED_TYPES.includes(c.session_type) &&
             c.scheduled_at &&
             new Date(c.scheduled_at).getTime() < now
         ).length
       );
+      // 서버 상한에 걸렸으면 「이 숫자가 전부가 아니다」를 화면에 밝힌다 — 말없이 자르면
+      // 「다 처리했다」로 읽힌다(CLAUDE.md: 조용한 상한 금지).
+      setUnclosedTruncated(rows.length >= 200);
     } catch (error) {
       // 배너는 «덤»이라 실패해도 목록은 그대로 보여야 한다.
       console.error("[ConsultationsPage] fetchUnclosedCount error:", error);
@@ -630,7 +641,8 @@ export default function ConsultationsPage() {
           <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-900">
-              {L.cUnclosedTitle} ({unclosedCount})
+              {L.cUnclosedTitle} ({unclosedCount}
+              {unclosedTruncated ? "+" : ""})
             </p>
             <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{L.cUnclosedBody}</p>
           </div>
