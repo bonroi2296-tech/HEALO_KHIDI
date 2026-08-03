@@ -265,23 +265,25 @@ p, .body { font-size: var(--body-size); line-height: var(--body-leading); }
 /* 포털 고정 상단바가 가리는 만큼 본문을 밀어주는 여백 — **단일 SoR**.
  * 상단바(app/ClientShell.jsx PortalTopBar)는 `pt-safe-area` + 안쪽 `h-14 md:h-16` 이므로
  * 실제 높이 = 안전영역 + 바 높이. 예전엔 본문이 `pt-14 md:pt-16` 만 줘서 상태표시줄이 있는
- * 기기(앱·노치 폰)에서 본문 윗부분이 상단바에 가렸다. 바 높이를 바꾸면 여기도 같이 바꿔라. */
+ * 기기(앱·노치 폰)에서 본문 윗부분이 상단바에 가렸다. 바 높이를 바꾸면 여기도 같이 바꿔라.
+ * ⚠️ 안전영역 값은 `env(...)` 를 직접 쓰지 말고 `var(--healo-safe-top)` 를 써라 —
+ *    설치 앱일 때만 켜지는 스위치가 그 변수에 들어 있다(정의·이유: src/index.css). */
 .healo-portal-offset {
-  padding-top: calc(3.5rem + env(safe-area-inset-top, 0));
+  padding-top: calc(3.5rem + var(--healo-safe-top));
 }
 @media (min-width: 768px) {
   .healo-portal-offset {
-    padding-top: calc(4rem + env(safe-area-inset-top, 0));
+    padding-top: calc(4rem + var(--healo-safe-top));
   }
 }
 
 /* ※ 상단바 «바로 아래»에 붙는 고정/스티키 요소는 전용 클래스를 만들지 않고
- *   Tailwind 임의값 `top-[calc(3.5rem+env(safe-area-inset-top,0px))]` 을 쓴다.
+ *   Tailwind 임의값 `top-[calc(3.5rem+var(--healo-safe-top))]` 을 쓴다.
  *   왜: 전용 클래스의 `@media(min-width:768px)` 가 Tailwind 의 `lg:top-0` 보다 늦게 실려
  *   데스크톱 값을 덮어버릴 수 있다(둘 다 클래스 1개라 우선순위가 같아 «순서»가 이긴다). */
 
 /* iOS safe area — HEALO Nav/Footer 에 적용 권장 */
-.healo-safe-top    { padding-top:    env(safe-area-inset-top); }
+.healo-safe-top    { padding-top:    var(--healo-safe-top); }
 .healo-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .healo-safe-left   { padding-left:   env(safe-area-inset-left); }
 .healo-safe-right  { padding-right:  env(safe-area-inset-right); }

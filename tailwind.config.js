@@ -12,7 +12,8 @@ export default {
       },
       padding: {
         'safe': 'env(safe-area-inset-bottom)',
-        'safe-top': 'env(safe-area-inset-top)',
+        // 위쪽만 변수를 거친다 — 설치 앱일 때만 켜지는 스위치(정의·이유: src/index.css).
+        'safe-top': 'var(--healo-safe-top)',
         'safe-left': 'env(safe-area-inset-left)',
         'safe-right': 'env(safe-area-inset-right)',
       },

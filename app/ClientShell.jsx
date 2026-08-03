@@ -343,7 +343,9 @@ function ClientShellContent({
         <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
-      {!isPortalPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100 pt-safe-area">
+      {/* 푸터에 붙어 있던 `pt-safe-area` 제거(2026-08-03) — 위쪽 안전영역은 «화면 맨 위 상태표시줄»을
+          피하는 값이라 맨 아래 푸터와는 상관이 없다. 설치 앱에서 푸터 위에 빈 칸만 만들던 오타성 클래스. */}
+      {!isPortalPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 text-sm text-gray-600">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>

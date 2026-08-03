@@ -55,12 +55,38 @@ font * {
   font-family: inherit !important;
 }
 
+/* ===== 위쪽 안전영역(상태표시줄·노치) 단일 SoR =====
+   ⚠️ 위 여백은 «홈 화면에 설치해 전체화면으로 띄웠을 때»만 필요하다.
+   보통 브라우저 탭·카톡/인스타 등 앱 안 브라우저에서는 브라우저 주소창이 이미 상태표시줄
+   아래에 있으므로, env(safe-area-inset-top) 을 그대로 먹이면 «아무것도 없는 빈 칸»이 생긴다.
+   실측(2026-08-03 PO 제보 화면, 1440x3120 / 배율 3.5): 상단바 mint 띠가 설계값 57px 이 아니라
+   94px 로 그려짐 = 정확히 상태표시줄 높이 37px 만큼 로고 위가 비어 있었다. 안드로이드 15 부터
+   앱 안 브라우저가 화면 끝까지 그리도록 강제돼 웹뷰가 상태표시줄 높이를 그대로 알려주는 탓.
+   → 그래서 «홈 화면에 설치(standalone/fullscreen)» 또는 «스토어 앱 웹뷰» 일 때만 값을 켠다.
+   아래쪽(env(safe-area-inset-bottom)) 은 브라우저 탭에서도 홈 인디케이터가 진짜로 겹치므로 그대로 둔다.
+   ※ 상단바 «높이»를 쓰는 곳(본문 여백·바로 밑에 붙는 sticky)은 전부 이 변수를 써라 —
+      한쪽만 고치면 헤더는 붙었는데 본문만 37px 내려가는 어긋남이 난다. */
+:root {
+  --healo-safe-top: 0px;
+}
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  :root {
+    --healo-safe-top: env(safe-area-inset-top, 0px);
+  }
+}
+/* 스토어 앱(Capacitor 웹뷰)은 라이브 사이트를 그대로 띄우는데 display-mode 는 browser 로 잡힌다.
+   여기선 노치·상태표시줄이 진짜로 화면을 덮으므로 반드시 켜야 한다 → app/layout.jsx 가 첫 그림 전에
+   <html data-healo-native="1"> 를 붙인다. 우선순위가 위 media 규칙보다 높아 순서와 무관하게 이긴다. */
+html[data-healo-native="1"] {
+  --healo-safe-top: env(safe-area-inset-top, 0px);
+}
+
 /* 모바일: 하단 safe area (노치/홈 바) */
 .pb-safe-area {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .pt-safe-area {
-  padding-top: env(safe-area-inset-top, 0);
+  padding-top: var(--healo-safe-top);
 }
 /* ⚠️ 100vh 는 «키보드를 무시한 고정 높이»다 — 폰에서 키보드가 올라와도 그대로라서
    화면이 키보드 뒤로 밀려 입력칸이 안 보인다(2026-07-31 PO 실기기: 로그인 화면이
@@ -114,10 +140,8 @@ font * {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 포털(관리자/병원) 메인 콘텐츠 상단 여백: 상단바 + 네비바 높이 반영 */
-.portal-main-offset {
-  padding-top: env(safe-area-inset-top, 0);
-}
+/* (삭제 2026-08-03) .portal-main-offset — 쓰는 곳이 한 군데도 없는 죽은 규칙이었다.
+   포털 본문 여백의 단일 SoR 은 app/styles/healo-tokens.css 의 .healo-portal-offset. */
 
 /* ===== 홈 히어로 레이아웃 ===== */
 .healo-hero-section {
