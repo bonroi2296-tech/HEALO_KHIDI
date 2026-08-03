@@ -28,6 +28,9 @@ const LABELS = {
     signature: "확인 서명",
     patientSig: "환자 서명",
     healoSig: "healwith 대표자",
+    totalPatient: "환자 부담 합계",
+    hospitalPaidTitle: "참고 — 병원이 지급하는 항목 (환자 부담 아님)",
+    hospitalPaidNote: "유치수수료는 「의료해외진출 및 외국인환자 유치 지원을 위한 통합고시」 제2조제1호에 따라 의료기관이 유치사업자에게 지급하는 비용입니다. 환자에게 청구되지 않으며 위 「환자 부담 합계」에 포함되지 않습니다.",
     disclaimer: "본 견적서는 예상 금액이며, 실제 비용은 진료 후 의료기관 청구서에 따릅니다. 본 문서를 확인하지 않고는 진료계약을 체결할 수 없습니다.",
     fields: {
       name: "성명", nationality: "국적", passport: "여권번호",
@@ -59,6 +62,9 @@ const LABELS = {
     signature: "Confirmation",
     patientSig: "Patient signature",
     healoSig: "healwith representative",
+    totalPatient: "Total payable by patient",
+    hospitalPaidTitle: "For reference — paid by the hospital (not charged to the patient)",
+    hospitalPaidNote: "Under Article 2(1) of the Integrated Notice on Support for Overseas Expansion of Healthcare and Attraction of Foreign Patients, the facilitator fee is paid by the medical institution to the facilitator. It is not charged to the patient and is excluded from the total above.",
     disclaimer: "This quotation is an estimate. Final amount follows the hospital's post-treatment invoice. No treatment contract may be concluded without acknowledging this document.",
     fields: {
       name: "Full name", nationality: "Nationality", passport: "Passport no.",
@@ -113,10 +119,20 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
   const hospital = data?.hospital || {};
   const treatment = data?.treatment || {};
   const costs = data?.costs || [];
-  const totalKRW = costs.reduce((s, c) => s + (Number(c.krw) || 0), 0);
+  // 유치수수료처럼 «병원이 우리에게 주는 돈»은 환자가 내는 금액이 아니다(통합고시 제2조1호).
+  // 합계에 섞으면 환자가 자기 부담으로 읽는다 — 2026-08-04 실측: 1,200만 + 수수료 300만이
+  // 환자 서명란 위 「합계 1,500만」으로 찍히고 있었다. FAQ 6개 언어는 "환자에게 청구되지
+  // 않습니다"라고 말하는데 견적서는 반대로 말하던 것. 표시는 법정 고지 성격이라 유지하고,
+  // 합계에서만 뺀다.
+  const isHospitalPaid = (c) => c?.payer === "hospital";
+  const patientCosts = costs.filter((c) => !isHospitalPaid(c));
+  const hospitalCosts = costs.filter(isHospitalPaid);
+  const totalKRW = patientCosts.reduce((s, c) => s + (Number(c.krw) || 0), 0);
   // USD 총액은 모든 라인에 USD 가 있을 때만(일부만 있으면 KRW 와 안 맞아 오해 — MONEY-4). 없으면 숨김.
-  const allHaveUsd = costs.length > 0 && costs.every((c) => Number(c.usd) > 0);
-  const totalUSD = allHaveUsd ? costs.reduce((s, c) => s + (Number(c.usd) || 0), 0) : null;
+  const allHaveUsd = patientCosts.length > 0 && patientCosts.every((c) => Number(c.usd) > 0);
+  const totalUSD = allHaveUsd
+    ? patientCosts.reduce((s, c) => s + (Number(c.usd) || 0), 0)
+    : null;
 
   return (
     <Document>
@@ -181,7 +197,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
             <Text style={{ ...styles.costNote, textTransform: "uppercase", letterSpacing: 1 }}>{L.fields.note}</Text>
             <Text style={{ ...styles.costAmount, ...styles.bodyBold }}>{L.fields.amount}</Text>
           </View>
-          {costs.map((c, i) => (
+          {patientCosts.map((c, i) => (
             <View key={i} style={styles.costRow}>
               <Text style={styles.costDesc}>{c.label}</Text>
               <Text style={styles.costNote}>{c.note || ""}</Text>
@@ -191,10 +207,10 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
               </Text>
             </View>
           ))}
-          {/* Total */}
+          {/* Total — 환자 부담분만 */}
           <View style={styles.costRowFinal}>
             <Text style={{ ...styles.costDesc, ...styles.bodyBold, textTransform: "uppercase", letterSpacing: 1 }}>
-              {lang === "ko" ? "합계" : "Total"}
+              {L.totalPatient}
             </Text>
             <Text style={styles.costNote}></Text>
             <View style={styles.costAmount}>
@@ -205,6 +221,25 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
             </View>
           </View>
         </View>
+
+        {/* 병원 부담분 — 법정 고지 항목이라 «보여주되», 위 합계에는 넣지 않는다 */}
+        {hospitalCosts.length > 0 && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ ...styles.small, ...styles.bodyBold }}>{L.hospitalPaidTitle}</Text>
+            {hospitalCosts.map((c, i) => (
+              <View key={`h${i}`} style={styles.costRow}>
+                <Text style={styles.costDesc}>{c.label}</Text>
+                <Text style={styles.costNote}>{c.note || ""}</Text>
+                <Text style={styles.costAmount}>
+                  {c.krw != null ? fmtKRW(c.krw) : ""}
+                  {c.usd != null ? `\n${fmtUSD(c.usd)}` : ""}
+                </Text>
+              </View>
+            ))}
+            <Text style={{ ...styles.small, marginTop: 4 }}>※ {L.hospitalPaidNote}</Text>
+          </View>
+        )}
+
         <Text style={{ ...styles.small, marginTop: 10 }}>
           ※ {L.disclaimer}
         </Text>

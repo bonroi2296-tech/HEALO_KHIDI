@@ -87,8 +87,11 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
     setItems(next);
   }
 
-  const totalKrw = items.reduce((s, it) => s + (Number(it.krw) || 0), 0);
-  const totalUsd = items.reduce((s, it) => s + (Number(it.usd) || 0), 0);
+  // 합계는 «환자 부담분만». 유치수수료는 통합고시 제2조1호상 병원이 우리에게 주는 돈이라
+  // 환자 청구액이 아니다(2026-08-04 견적서 실측에서 300만원이 환자 합계로 잡히던 것).
+  const patientItems = items.filter((it) => it.payer !== "hospital");
+  const totalKrw = patientItems.reduce((s, it) => s + (Number(it.krw) || 0), 0);
+  const totalUsd = patientItems.reduce((s, it) => s + (Number(it.usd) || 0), 0);
 
   async function handleSave() {
     setSaving(true);
@@ -98,6 +101,7 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
         note: it.note || "",
         krw: it.krw ? Number(it.krw) : null,
         usd: it.usd ? Number(it.usd) : null,
+        payer: it.payer === "hospital" ? "hospital" : "patient",
       }));
       const res = await fetch(
         `/api/khidi/cost-estimates/${estimateId}`,
@@ -261,6 +265,7 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
             <tr>
               <th className="px-3 py-2 text-left">{L.coColItem}</th>
               <th className="px-3 py-2 text-left">{L.coColNote}</th>
+              <th className="px-3 py-2 text-left">{L.coColPayer}</th>
               <th className="px-3 py-2 text-right">KRW</th>
               <th className="px-3 py-2 text-right">USD</th>
               {canEdit && <th className="px-3 py-2"></th>}
@@ -269,7 +274,7 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
           <tbody className="divide-y divide-gray-200">
             {items.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 5 : 4} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-sm text-gray-500">
                   {L.coNoItems} {canEdit ? L.coNoItemsHint : ""}
                 </td>
               </tr>
@@ -300,6 +305,22 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
                     />
                   ) : (
                     <span className="text-gray-600">{it.note}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {canEdit ? (
+                    <select
+                      value={it.payer === "hospital" ? "hospital" : "patient"}
+                      onChange={(e) => updateItem(i, "payer", e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="patient">{L.coPayerPatient}</option>
+                      <option value="hospital">{L.coPayerHospital}</option>
+                    </select>
+                  ) : (
+                    <span className="text-gray-600">
+                      {it.payer === "hospital" ? L.coPayerHospital : L.coPayerPatient}
+                    </span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
@@ -342,7 +363,7 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
           {items.length > 0 && (
             <tfoot className="bg-gray-50 font-medium">
               <tr>
-                <td colSpan={2} className="px-3 py-2 text-right">{L.coTotal}</td>
+                <td colSpan={3} className="px-3 py-2 text-right">{L.coTotalPatient}</td>
                 <td className="px-3 py-2 text-right font-mono">{fmtNum(totalKrw)}</td>
                 <td className="px-3 py-2 text-right font-mono">{fmtNum(totalUsd)}</td>
                 {canEdit && <td></td>}
