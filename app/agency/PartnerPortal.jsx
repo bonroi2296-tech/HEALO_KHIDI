@@ -19,7 +19,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadAttachment, uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { STAGES, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
-import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
+import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import ManualDrawer from "../_components/ManualDrawer";
 
 const supabase = createSupabaseBrowserClient();
@@ -439,17 +440,11 @@ const TR_MSG = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 
-// 케이스 단계별 "다음 단계 안내"(에이전시가 지금·다음을 이해) + 빈 화면 온보딩 — 6개 언어. 위 TR 에 병합.
-// nextStep_<case_status> 키는 caseStatus.ts 의 단계 key 와 1:1.
+// 빈 화면 온보딩 + 환자 연결 링크 복사 — 6개 언어. 위 TR 에 병합.
+// (단계별 "다음 단계 안내"는 src/lib/khidi/nextStepGuide.ts 로 옮겼다 — 공개 진행상황
+//  화면과 같은 문구를 써야 해서. 여기 다시 넣지 말 것.)
 const TR_GUIDE = {
   ko: {
-    nextStep_intake: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
-    nextStep_consultation: "사전상담·병원 검토를 진행하고 있어요. 회신을 기다리고 있어요.",
-    nextStep_preparation: "치료 일정·견적과 비자·예약을 준비 중이에요.",
-    nextStep_treatment: "환자가 입국해 치료를 받고 있어요.",
-    nextStep_follow_up: "치료 후 사후관리를 진행 중이에요.",
-    nextStep_completed: "완료된 케이스예요.",
-    nextStep_on_hold: "현재 보류 상태예요. 궁금하면 코디에게 메시지를 보내세요.",
     emptyHeading: "아직 의뢰한 환자가 없어요",
     emptySub: "첫 환자를 의뢰하면 여기서 진행 상황을 실시간으로 확인할 수 있어요.",
     emptyStep1: "환자 정보·서류로 의뢰",
@@ -459,13 +454,6 @@ const TR_GUIDE = {
     claimCopied: "복사됨!",
   },
   en: {
-    nextStep_intake: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
-    nextStep_consultation: "Pre-consultation and hospital review are underway. Awaiting their reply.",
-    nextStep_preparation: "Coordinating the treatment schedule, quote, visa and booking.",
-    nextStep_treatment: "The patient has arrived and is receiving treatment.",
-    nextStep_follow_up: "Follow-up care is underway after treatment.",
-    nextStep_completed: "This case is completed.",
-    nextStep_on_hold: "Currently on hold. Message the coordinator if you have questions.",
     emptyHeading: "No referred patients yet",
     emptySub: "Refer your first patient to track their progress here in real time.",
     emptyStep1: "Refer with patient info & documents",
@@ -475,13 +463,6 @@ const TR_GUIDE = {
     claimCopied: "Copied!",
   },
   ru: {
-    nextStep_intake: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
-    nextStep_consultation: "Идёт предварительная консультация и рассмотрение в больнице. Ожидаем ответа.",
-    nextStep_preparation: "Согласуем сроки лечения, смету, визу и бронирование.",
-    nextStep_treatment: "Пациент прибыл и проходит лечение.",
-    nextStep_follow_up: "После лечения идёт наблюдение.",
-    nextStep_completed: "Случай завершён.",
-    nextStep_on_hold: "Сейчас приостановлено. Напишите координатору, если есть вопросы.",
     emptyHeading: "Пока нет направленных пациентов",
     emptySub: "Направьте первого пациента, чтобы отслеживать его ход здесь в реальном времени.",
     emptyStep1: "Направьте с данными и документами пациента",
@@ -491,13 +472,6 @@ const TR_GUIDE = {
     claimCopied: "Скопировано!",
   },
   kz: {
-    nextStep_intake: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
-    nextStep_consultation: "Алдын ала кеңес және аурухана қарауы жүргізілуде. Жауабын күтудеміз.",
-    nextStep_preparation: "Емдеу кестесі, бағасы, виза мен брондауды дайындаудамыз.",
-    nextStep_treatment: "Науқас келіп, ем қабылдап жатыр.",
-    nextStep_follow_up: "Емнен кейін бақылау жүргізілуде.",
-    nextStep_completed: "Бұл жағдай аяқталды.",
-    nextStep_on_hold: "Қазір кейінге қалдырылған. Сұрағыңыз болса, үйлестірушіге жазыңыз.",
     emptyHeading: "Әзірге жолданған науқас жоқ",
     emptySub: "Бірінші науқасты жолдаңыз, барысын осында нақты уақытта қадағалай аласыз.",
     emptyStep1: "Науқас деректері мен құжаттарымен жолдаңыз",
@@ -507,13 +481,6 @@ const TR_GUIDE = {
     claimCopied: "Көшірілді!",
   },
   zh: {
-    nextStep_intake: "协调员正在审核资料，即将确认医院能否治疗。",
-    nextStep_consultation: "正在进行初步咨询与医院评估，正在等待回复。",
-    nextStep_preparation: "正在协调治疗日程、报价、签证与预约。",
-    nextStep_treatment: "患者已入境，正在接受治疗。",
-    nextStep_follow_up: "治疗后正在进行后续护理。",
-    nextStep_completed: "此病例已完成。",
-    nextStep_on_hold: "目前暂缓。如有疑问，请给协调员留言。",
     emptyHeading: "还没有转介的患者",
     emptySub: "转介第一位患者后，即可在此实时追踪进度。",
     emptyStep1: "用患者信息与资料转介",
@@ -523,13 +490,6 @@ const TR_GUIDE = {
     claimCopied: "已复制！",
   },
   ja: {
-    nextStep_intake: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
-    nextStep_consultation: "事前相談・病院検討を進めています。返答を待っています。",
-    nextStep_preparation: "治療日程・見積とビザ・予約を準備中です。",
-    nextStep_treatment: "患者が入国し、治療を受けています。",
-    nextStep_follow_up: "治療後の経過観察を進めています。",
-    nextStep_completed: "この案件は完了しました。",
-    nextStep_on_hold: "現在保留中です。ご質問があればコーディネーターにメッセージしてください。",
     emptyHeading: "まだ紹介した患者はいません",
     emptySub: "最初の患者を紹介すると、ここで進捗をリアルタイムに確認できます。",
     emptyStep1: "患者情報・書類で紹介",
@@ -1054,12 +1014,12 @@ export default function PartnerPortal({ expected = "agency" }) {
                       {noteIsTr(c.case_status_note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
                     </p>
                   )}
-                  {/* 구단계 값(과거 이력 등)이 흘러 들어와도 신단계 키로 별칭 해석 — 안내문구가 조용히
-                      사라지지 않게(TR_GUIDE 는 신 6단계 키로만 정의돼 있음). */}
-                  {c.case_status && tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`) && (
+                  {/* 안내문구는 nextStepGuide.ts 단일 정의 — 공개 진행상황 화면(/claim/[token])이
+                      같은 말을 해야 해서 꺼냈다. 구단계 값 별칭 해석도 그 안에서 한다. */}
+                  {nextStepGuide(c.case_status, lang) && (
                     <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
                       <ArrowRight size={12} className="mt-0.5 shrink-0" />
-                      <span>{tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`)}</span>
+                      <span>{nextStepGuide(c.case_status, lang)}</span>
                     </p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-500">

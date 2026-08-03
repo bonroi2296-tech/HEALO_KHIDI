@@ -548,8 +548,10 @@
 #
 # Automation priorities:
 # 자동화 우선순위:
-# 1. Inquiry confirmation emails → implemented (Resend API).
-#    문의 확인 이메일 → 구현됨 (Resend API).
+# 1. Inquiry confirmation emails → implemented 2026-08-03 (Resend API).
+#    문의 확인 이메일 → 2026-08-03 구현됨 (Resend). 그 전까지 이 줄은 «사실이 아니었다» —
+#    나가던 건 운영진 알림뿐이고 문의자에게 가는 자동 메일은 0건이었다.
+#    지금은 접수 즉시 진행상황 주소(/claim/<public_token>)를 같이 보낸다.
 # 2. Error alerting → implemented (Sentry).
 #    에러 알림 → 구현됨 (Sentry).
 # 3. Health monitoring → implemented (/api/health).

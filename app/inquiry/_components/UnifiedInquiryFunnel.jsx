@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check, ChevronRight, ChevronLeft, UploadCloud, X, File,
-  AlertCircle, Loader2, Shield, Clock,
+  AlertCircle, Loader2, Shield, Clock, Copy, ExternalLink,
   Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
@@ -449,15 +449,26 @@ export default function UnifiedInquiryFunnel() {
   }
 
   // ─── 가입 처리 ───────────────────────────────────────────────────
+  // 가입이 끝나면 **이 문의의 케이스 주소로 되돌아온다**(?redirect=/claim/<주소>).
+  // 그래야 가입한 계정에 이 문의가 확실히 붙는다 — 전에는 from=inquiry 만 붙어서
+  // 「가입 이메일과 문의 이메일이 같을 때만 붙는」 이메일 대조 폴백에 기대고 있었다
+  // (구글 가입은 이메일이 다를 수 있어 그대로 끊겼다). SignupClient 는 /claim/ 로
+  // 시작하는 redirect 만 허용한다(오픈리다이렉트 차단).
+  const claimRedirect = publicToken
+    ? `&redirect=${encodeURIComponent(`/claim/${publicToken}`)}`
+    : "";
+
   function handleSignupGoogle() {
     safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "google" });
-    router.push("/signup?provider=google&from=inquiry");
+    router.push(`/signup?provider=google&from=inquiry${claimRedirect}`);
   }
 
   function handleSignupEmail() {
     safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "email" });
     const email = form1.email || "";
-    router.push(`/signup?from=inquiry${email ? `&email=${encodeURIComponent(email)}` : ""}`);
+    router.push(
+      `/signup?from=inquiry${email ? `&email=${encodeURIComponent(email)}` : ""}${claimRedirect}`
+    );
   }
 
   function handleDropoff(fromPhase) {
@@ -476,6 +487,9 @@ export default function UnifiedInquiryFunnel() {
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-3">{tl("doneTitle", lang)}</h2>
         <p className="text-gray-500 text-sm leading-relaxed">{tl("doneBody", lang)}</p>
+        <div className="text-left mt-6">
+          <TrackBox token={publicToken} lang={lang} emailed={!!form1.email} />
+        </div>
         <button
           onClick={() => router.push("/")}
           className="mt-8 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition"
@@ -497,6 +511,8 @@ export default function UnifiedInquiryFunnel() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{tl("step2SuccessTitle", lang)}</h2>
           <p className="text-gray-500 text-sm leading-relaxed">{tl("step2SuccessBody", lang)}</p>
         </div>
+
+        <TrackBox token={publicToken} lang={lang} emailed={!!form1.email} />
 
         <div className="border-t border-gray-100 my-6" />
 
@@ -562,6 +578,10 @@ export default function UnifiedInquiryFunnel() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{tl("successTitle", lang)}</h2>
           <p className="text-gray-500 text-sm leading-relaxed">{successMsg}</p>
         </div>
+
+        {/* step1 만 하고 끊는 사람이 실제로 많다 — 여기서 주소를 안 주면 그 사람은
+            진행상황을 볼 방법이 영영 없다(가입 유도는 step2-success 에만 있다). */}
+        <TrackBox token={publicToken} lang={lang} emailed={!!form1.email} />
 
         <div className="border-t border-gray-100 my-6" />
 
@@ -1251,6 +1271,58 @@ export default function UnifiedInquiryFunnel() {
           : <>{tl("submitStep1", lang)} <ChevronRight size={18} /></>
         }
       </button>
+    </div>
+  );
+}
+
+// ─── 진행상황 주소 안내 ───────────────────────────────────────────
+// 규칙 하나: 「접수되면 들어온 그 채널로 주소를 돌려준다」(PO 결정 2026-08-03).
+// 웹 폼으로 온 사람의 «그 채널» = 이 완료 화면 + 접수 확인 메일.
+// 전엔 step1 응답으로 받은 주소를 화면 메모리에만 들고 있다가 버려서,
+// 새로고침하면 본인도 자기 문의를 다시 못 찾았다.
+function TrackBox({ token, lang, emailed }) {
+  const [copied, setCopied] = useState(false);
+  if (!token) return null;
+
+  // 서버 렌더 때는 origin 을 모른다 → 클라이언트에서만 그린다(빈 주소 노출 방지).
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  if (!origin) return null;
+  const url = `${origin}/claim/${token}`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* 클립보드 거부 브라우저 — 주소는 아래에 그대로 보이니 직접 복사 가능 */
+    }
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 mb-5">
+      <p className="text-sm font-bold text-gray-900 mb-1">{tl("trackTitle", lang)}</p>
+      <p className="text-xs text-gray-500 leading-relaxed">{tl("trackBody", lang)}</p>
+      {emailed && <p className="text-xs text-gray-400 mt-1">{tl("trackEmailed", lang)}</p>}
+      <p className="mt-3 text-xs text-gray-600 break-all bg-white rounded-lg px-3 py-2 border border-gray-200">
+        {url}
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={copy}
+          className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white hover:border-teal-400 hover:bg-teal-50 transition flex items-center justify-center gap-1.5"
+        >
+          {copied
+            ? <><Check size={14} className="text-teal-700" /> {tl("trackCopied", lang)}</>
+            : <><Copy size={14} /> {tl("trackCopy", lang)}</>}
+        </button>
+        <a
+          href={url}
+          className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-teal-700 text-white hover:bg-teal-800 transition flex items-center justify-center gap-1.5"
+        >
+          <ExternalLink size={14} /> {tl("trackOpen", lang)}
+        </a>
+      </div>
     </div>
   );
 }

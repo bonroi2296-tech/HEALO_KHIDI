@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
       step1_completed_at: i.step1_completed_at,
       step2_completed_at: i.step2_completed_at,
       created_at: i.created_at,
-      // 접수 주체 구분: agency_id 있으면 에이전시 의뢰, 없으면 환자 직접 접수.
+      // 접수 주체: agency_id 가 있으면 에이전시 의뢰. **없다고 「환자 본인」인 것은 아니다** —
+      // 공개 폼은 접수자가 본인인지 대리인인지 묻지 않고, agency_id 는 로그인한 에이전시
+      // 계정일 때만 붙는다(비회원 에이전시 접수가 여기 걸린다). 화면 라벨도 단정하지 않는다.
       agency_id: i.agency_id || null,
       agency_name: i.agencies?.name || null,
     }));
