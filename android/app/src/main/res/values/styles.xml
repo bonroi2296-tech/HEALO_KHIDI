@@ -26,7 +26,13 @@
         <!-- 흰 배경인 이유: 로고 자체가 teal→남색 그라데이션이라 teal 배경에 두면 묻힌다
              (에뮬레이터에서 실제로 확인함). 홈 화면 아이콘과도 같은 «흰 바탕 + 로고» 가 된다. -->
         <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <!-- ⚠️ 안드로이드 12+ 는 첫 화면 로고를 «동그랗게» 오려낸다. 앞면 그림을 그대로 넣으면
+             네모 캔버스 모서리로 튀어나온 «말풍선 꼬리»가 원 밖이라 잘린다(2026-08-03 PO 제보).
+             아이콘 «배경색»을 함께 지정하면 시스템이 로고를 캔버스의 2/3 로 줄여 그린다 →
+             꼬리까지 원 안에 들어온다. 배경도 흰색이라 눈에는 «흰 바탕 + 로고» 그대로다.
+             (여백을 %로 직접 주는 방법은 안 된다 — layer-list 는 퍼센트를 안 받는다.) -->
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">#FFFFFF</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <!-- 안드로이드 11 이하 폴백 -->
         <item name="android:background">@drawable/splash</item>
