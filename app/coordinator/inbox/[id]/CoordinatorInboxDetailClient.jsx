@@ -395,6 +395,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
   const [staffStage, setStaffStage] = useState("uploading"); // 'compressing' | 'uploading'
+  // 진단용(임시) — 콘솔에서 window.__pdfDebug(file) 로 한 쪽만 그려본다.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.__pdfDebug = async (f) => (await import("@/lib/compressPdf")).__debugRenderOnePage(f);
+    }
+  }, []);
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
