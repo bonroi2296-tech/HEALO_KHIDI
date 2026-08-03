@@ -14,6 +14,7 @@ import {
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -388,6 +389,45 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard 미지원 시 무시 */ }
+  }
+
+  // 코디가 환자 대신 서류 올리기 — 메일·왓츠앱으로 따로 받은 자료용(문의 #60 에서 필요해짐).
+  const [staffUploading, setStaffUploading] = useState(false);
+  const [staffProgress, setStaffProgress] = useState(0);
+  const [staffMsg, setStaffMsg] = useState(null);
+  async function staffUpload(file) {
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setStaffMsg({ type: "err", text: L.ibStaffUploadTooLarge });
+      return;
+    }
+    setStaffUploading(true);
+    setStaffProgress(0);
+    setStaffMsg(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setStaffMsg({ type: "err", text: L.ibLoginRequired }); return; }
+      const authFetch = (url, init) =>
+        fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${session.access_token}` } });
+
+      const res = await uploadDirect(
+        `/api/coordinator/inquiries/${inquiryId}/attachments`,
+        file,
+        {},
+        { fetch: authFetch, onProgress: setStaffProgress }
+      );
+      if (res.ok) {
+        setStaffMsg({ type: "ok", text: L.ibStaffUploadOk });
+        await load();
+      } else {
+        setStaffMsg({ type: "err", text: res.error === "file_too_large" ? L.ibStaffUploadTooLarge : L.ibStaffUploadFail });
+      }
+    } catch {
+      setStaffMsg({ type: "err", text: L.ibStaffUploadFail });
+    } finally {
+      setStaffUploading(false);
+      setStaffProgress(0);
+    }
   }
 
   // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
@@ -1024,11 +1064,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         );
       })()}
 
-      {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람. */}
-      {Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0 && (
-        <Card title={`${L.ibAttachmentsCard} (${inquiry.attachments.length})`}>
+      {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
+          첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
+      {(() => {
+        const atts = Array.isArray(inquiry.attachments) ? inquiry.attachments : [];
+        return (
+        <Card title={`${L.ibAttachmentsCard} (${atts.length})`}>
           <div className="space-y-2">
-            {inquiry.attachments.map((a, i) => {
+            {atts.map((a, i) => {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
@@ -1052,6 +1095,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
                       {cat && cat !== "other" && (
                         <span className="text-[11px] text-gray-500 shrink-0">{cat}</span>
+                      )}
+                      {typeof a === "object" && a?.uploaded_by_staff && (
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                          {L.ibStaffUploadBadge}
+                        </span>
                       )}
                       {attLoadingPath === path ? (
                         <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
@@ -1133,8 +1181,36 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               );
             })}
           </div>
+
+          {/* 환자 대신 올리기 — 메일·왓츠앱으로 따로 받은 자료를 문의에 붙인다(문의 #60). */}
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <p className="text-sm font-semibold text-gray-800">{L.ibStaffUploadTitle}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{L.ibStaffUploadHint}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer">
+                <FileText size={14} />
+                {L.ibStaffUploadBtn}
+                <input
+                  type="file"
+                  className="hidden"
+                  disabled={staffUploading}
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
+                />
+              </label>
+              {staffUploading && (
+                <span className="text-xs text-teal-700">{Math.round(staffProgress * 100)}%</span>
+              )}
+              {staffMsg && (
+                <span className={`text-xs ${staffMsg.type === "ok" ? "text-green-700" : "text-red-700"}`}>
+                  {staffMsg.text}
+                </span>
+              )}
+            </div>
+          </div>
         </Card>
-      )}
+        );
+      })()}
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection inquiryId={inquiryId} />
