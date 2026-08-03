@@ -301,6 +301,61 @@ export default function ContentEditorClient() {
     return needle.length >= 4 ? `${path}#:~:text=${encodeURIComponent(needle)}` : path;
   };
 
+  // ── 미리보기 (2026-08-03 다시 만듦) ───────────────────────────────
+  // 이전 판은 «새 탭으로 여는 링크»였다. PO 가 두 번 «미리보기로 해달라»고 했는데 링크로 줄여
+  // 놨고, 게다가 병기 문구는 **2단계**에 있어 그냥 열면 채널 선택 화면만 떴다
+  // («화면 열기 누르니깐 문의페이지 나오는데?»). → 이 자리에서 화면을 띄우고 그 문구를 칠한다.
+  const [previewKey, setPreviewKey] = useState(null); // 지금 펼친 줄
+  const [previewNote, setPreviewNote] = useState(""); // 못 찾았을 때 알릴 말
+
+  /** 미리보기 창 안에서 그 문구를 찾아 노랗게 칠하고 그 자리로 스크롤. 같은 출처라 안이 보인다. */
+  // ⚠️ 창이 «떴다»와 «그려졌다»는 다른 사건이다. 문의폼은 브라우저에서 그리는 화면이라
+  //    onLoad 직후에 찾으면 아직 아무것도 없다(2026-08-03 실측: 0건). 몇 번 더 두드린다.
+  const highlightSoon = (frame, needles) => {
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      if (highlightInFrame(frame, needles, tries >= 6)) return; // 찾으면 끝
+      if (tries < 6) setTimeout(tick, 400);
+    };
+    tick();
+  };
+
+  const highlightInFrame = (frame, needles, lastTry = true) => {
+    setPreviewNote("");
+    // ⚠️ 공유 참조(useRef)로 잡으면 «어느 창인지»가 어긋난다 — 2026-08-03 실측: 창은 떴는데
+    //    한 번도 안 칠해졌고 안내문도 안 떴다. 창을 띄운 그 자리에서 «그 창»을 직접 넘겨받는다.
+    const doc = frame?.contentDocument || frame?.contentWindow?.document;
+    // 2글자 문구(「병기」·「모름」)가 실제로 많다 — 최소 길이를 길게 잡으면 그것들이 통째로 빠진다.
+    const list = (Array.isArray(needles) ? needles : [needles]).filter((n) => n && n.length >= 2);
+    if (!doc || list.length === 0) return true; // 찾을 글자가 없으면 더 두드릴 이유도 없다
+    // 미리보기는 «사이트가 지금 쓰는 언어»로 뜬다(코디 포털 언어와 별개). 그래서 지금 고치는
+    // 언어 값·한국어·영어를 모두 시도한다 — 하나라도 맞으면 칠한다.
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (!node.nodeValue || !list.some((n) => node.nodeValue.includes(n))) continue;
+      const el = node.parentElement;
+      if (!el) continue;
+      el.style.background = "#fde68a";
+      el.style.outline = "2px solid #f59e0b";
+      el.style.borderRadius = "4px";
+      el.scrollIntoView({ block: "center" });
+      return true;
+    }
+    // 못 찾은 건 «없다»가 아니라 «이 화면에선 아직 안 보인다»일 수 있다 — 정직하게 알린다.
+    if (lastTry) setPreviewNote(L.cePreviewNotFound || "이 화면에서 그 문구를 못 찾았어요 — 버튼을 눌러야 나오는 자리일 수 있어요.");
+    return false;
+  };
+
+  /** 미리보기에서 찾을 글자 후보 — 지금 고치는 언어·한국어·영어를 다 준다.
+   *  미리보기 창은 «사이트가 지금 쓰는 언어»로 뜨므로 편집 언어 하나만 주면 대개 못 찾는다. */
+  const needleOf = (v) =>
+    [v?.[editLang], v?.ko, v?.en]
+      .filter(Boolean)
+      .map((x) => String(x).replace(/^[^\p{L}\p{N}]+/u, "").split("\n")[0].trim().slice(0, 40))
+      .filter((x) => x.length >= 2);
+
   const logNeedle = logQ.trim().toLowerCase();
   const shownLogs = !logNeedle
     ? logs
@@ -524,7 +579,10 @@ export default function ContentEditorClient() {
                     const scr = (r.place?.screenId && L["ceScr_" + r.place.screenId]) || r.place?.screen || null;
                     const note = (r.place?.noteId && L["ceNote_" + r.place.noteId]) || r.place?.note || null;
                     const where = whereOf(r.key, r.place?.where);
-                    const href = previewHref(r.place?.path, r.values);
+                    // reach = 그 문구가 실제로 «보이는» 자리(문의폼 2단계 등). 없으면 화면 첫 주소.
+                    const reach = r.place?.reach || r.place?.path || null;
+                    const href = previewHref(reach, r.values);
+                    const isOpen2 = previewKey === r.key;
                     // 묶음 제목이 이미 화면 이름이면 줄마다 또 달지 않는다(같은 말이 두 번 뜬다).
                     const dupOfHeader = scr && r.section === r.place?.screen;
                     if (!scr && !note && !where && !href) return null;
@@ -534,13 +592,17 @@ export default function ContentEditorClient() {
                           <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">{scr}</span>
                         )}
                         {where && <span className="text-[11px] text-gray-700">{where}</span>}
-                        {href && (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] text-teal-700 underline hover:no-underline"
+                        {reach && (
+                          <button
+                            type="button"
+                            onClick={() => { setPreviewNote(""); setPreviewKey(isOpen2 ? null : r.key); }}
+                            className={`text-[11px] px-2 py-0.5 rounded-full border ${isOpen2 ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                           >
+                            {isOpen2 ? (L.cePreviewClose || "미리보기 닫기") : (L.cePreviewOpen || "미리보기")}
+                          </button>
+                        )}
+                        {href && (
+                          <a href={href} target="_blank" rel="noreferrer" className="text-[11px] text-gray-500 underline hover:no-underline">
                             {L.ceOpenScreen}
                           </a>
                         )}
@@ -640,6 +702,31 @@ export default function ContentEditorClient() {
                         />
                       </div>
                     </>
+                  )}
+
+                  {/* 미리보기 — 새 탭이 아니라 «이 자리»에서 그 화면을 띄우고 문구를 칠한다.
+                      2026-08-03 PO: «새 탭으로 말고 미리보기로 해달라니깐». 같은 출처라
+                      창 안을 들여다볼 수 있어 문구를 찾아 노랗게 칠하고 그 자리로 스크롤한다. */}
+                  {previewKey === r.key && (
+                    <div className="mt-3 border-t border-gray-100 pt-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] text-gray-500">
+                          {(r.place?.reach || r.place?.path)}
+                        </span>
+                        {previewNote && (
+                          <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded">{previewNote}</span>
+                        )}
+                      </div>
+                      <iframe
+                        title={`preview-${r.key}`}
+                        src={r.place?.reach || r.place?.path}
+                        onLoad={(e) => highlightSoon(e.currentTarget, needleOf(values[r.key] || r.values))}
+                        className="w-full h-[420px] rounded-lg border border-gray-200 bg-white"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        {L.cePreviewHint || "고친 문구는 저장한 뒤 새로고침하면 이 화면에도 반영됩니다."}
+                      </p>
+                    </div>
                   )}
                   </div>
                 </Fragment>
