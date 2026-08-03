@@ -85,19 +85,22 @@ export async function POST(request: NextRequest) {
     // 그 경로(path)만 여기로 보낸다(서버 경유 시 4.5MB 에서 끊기던 문제).
     const fileName = sanitizeString(body.name, 200);
     const fileType = normalizeMime(fileName, String(body.type || ""));
-    const hasFile = body.phase === "sign" || !!body.path;
-
-    // ⚠️ 선언 크기는 «서명 단계에서만» 검사한다.
-    //   2단계(commit)에서 body.size 를 다시 보면, 클라가 그 값을 안 실어 보낸 순간
-    //   Number(undefined)=NaN → «파일이 너무 큼» 으로 잘못 튕긴다(실제로 그렇게 터졌다).
-    //   2단계의 크기 검사는 verifyUploaded 가 «저장된 실물»을 재서 하므로 여기선 안 본다.
-    const declaredSize = body.phase === "sign" ? Number(body.size) : null;
-    const check =
-      declaredSize !== null
-        ? validateProgressUpload({ inquiryId, hasFile, fileType, fileSize: declaredSize, note })
-        : validateProgressUpload({ inquiryId, hasFile: false, note: hasFile ? note || "." : note });
-    if (!check.ok) {
-      return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    // 검사는 단계별로 나눈다.
+    //   ⚠️ 선언 크기(body.size)는 «서명 단계에서만» 본다. 2단계에서 또 보면 클라가 그 값을
+    //   안 실어 보낸 순간 Number(undefined)=NaN → «파일이 너무 큼»으로 잘못 튕긴다(실제로 그랬다).
+    //   2단계의 크기·형식 검사는 verifyUploaded 가 «저장된 실물»을 재서 한다.
+    const idOk = Number.isInteger(Number(inquiryId)) && Number(inquiryId) > 0;
+    if (body.phase === "sign") {
+      const check = validateProgressUpload({
+        inquiryId, hasFile: true, fileType, fileSize: Number(body.size), note,
+      });
+      if (!check.ok) return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    } else if (!body.path) {
+      // 파일 없는 «메모형» 경과 — note 가 비어 있으면 의미가 없다.
+      const check = validateProgressUpload({ inquiryId, hasFile: false, note });
+      if (!check.ok) return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+    } else if (!idOk) {
+      return NextResponse.json({ ok: false, error: "invalid_inquiry" }, { status: 400 });
     }
 
     // 본 의료기관이 의뢰한 케이스인지 확인 (권한 경계)

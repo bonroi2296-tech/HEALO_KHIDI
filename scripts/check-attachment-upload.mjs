@@ -45,7 +45,16 @@ async function upload(buf, name, type) {
 const exists = async (path) =>
   !(await admin.storage.from("attachments").createSignedUrl(path, 30)).error;
 
+const startedAt = new Date().toISOString();
 let failed = 0;
+// 검사기가 만든 흔적은 «검사 성공 여부와 무관하게» 전부 여기 담고 마지막에 지운다.
+// 예전엔 성공 경로에서만 정리해서, 실패한 회차가 실데이터(테스트 문의·저장소 파일)를 남겼다.
+const cleanup = [];
+const createdObjects = []; // [bucket, path] — 마지막에 «정말 사라졌는지» 대조한다
+const rmObj = (bucket, path) => {
+  createdObjects.push([bucket, path]);
+  cleanup.push(() => admin.storage.from(bucket).remove([path]));
+};
 const check = (label, cond, detail = "") => {
   console.log(`${cond ? "PASS" : "FAIL"}  ${label}${detail ? ` — ${detail}` : ""}`);
   if (!cond) failed++;
@@ -54,13 +63,16 @@ const check = (label, cond, detail = "") => {
 // 1) 131MB PDF — 문의 #60 에서 환자가 못 올렸던 바로 그 크기(예전엔 4.5MB 에서 413)
 const big = await upload(pdf(131), "131mb.pdf", "application/pdf");
 check("131MB PDF 업로드 (문의 #60 실제 크기)", big.ok, big.error || "");
-if (big.path) await admin.storage.from("attachments").remove([big.path]);
+if (big.path) rmObj("attachments", big.path);
 
 // 2) 위장 파일(선언은 PDF, 내용은 아님) — 거부 + 저장소에서 삭제되어야 한다
 const fakeBuf = Buffer.alloc(1024 * 1024, 0x41);
 const fake = await upload(fakeBuf, "fake.pdf", "application/pdf");
 check("위장 파일 거부", !fake.ok && fake.error === "invalid_file_content", fake.error || "통과돼버림");
-if (fake.path) check("위장 파일 저장소에서 삭제됨", !(await exists(fake.path)));
+if (fake.path) {
+  check("위장 파일 저장소에서 삭제됨", !(await exists(fake.path)));
+  rmObj("attachments", fake.path); // 서버가 이미 지웠어도, 검사가 중간에 깨진 회차를 대비해 한 번 더
+}
 
 // 3) 상한 초과 — 서명 단계에서 막혀야 한다
 const over = await post({ phase: "sign", name: "huge.pdf", type: "application/pdf", size: 250 * 1024 * 1024 });
@@ -113,8 +125,8 @@ if (!token) {
 
   // 흔적 정리 — 검사기가 실데이터를 늘리면 안 된다.
   if (sign.json.path) {
-    await admin.storage.from("attachments").remove([sign.json.path]);
-    await admin.from("inquiries").update({ attachments: inq.attachments || [] }).eq("id", inq.id);
+    rmObj("attachments", sign.json.path);
+    cleanup.push(() => admin.from("inquiries").update({ attachments: inq.attachments || [] }).eq("id", inq.id));
   }
 
   // 로그인 안 한 사람은 못 써야 한다
@@ -137,12 +149,26 @@ async function loginAs(email) {
   return data?.session?.access_token || null;
 }
 
+// ⚠️ 화면마다 «인증을 어디서 읽는지»가 다르다.
+//   /api/patient/documents 는 쿠키만 본다(createSupabaseServerClientFromRequest = 쿠키 전용).
+//   나머지는 Authorization 헤더도 받는다. 브라우저는 늘 둘 다 갖고 있어 티가 안 나지만,
+//   검사기는 브라우저가 아니므로 그 화면이 실제로 쓰는 방식 그대로 두드려야 한다.
+const PROJECT_REF = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
+function authOf(tok, mode) {
+  if (mode === "cookie") {
+    const payload = { access_token: tok, refresh_token: "", expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: "bearer", user: null };
+    const v = "base64-" + Buffer.from(JSON.stringify(payload)).toString("base64");
+    return { Cookie: `sb-${PROJECT_REF}-auth-token=${v}` };
+  }
+  return { Authorization: `Bearer ${tok}` };
+}
+
 /** sign → PUT → commit 한 바퀴. 성공하면 { ok:true, path }. */
-async function uploadTo(endpoint, tok, fields, buf, name, type) {
+async function uploadTo(endpoint, tok, fields, buf, name, type, mode = "bearer") {
   const call = (body) =>
     fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+      headers: { "Content-Type": "application/json", ...authOf(tok, mode) },
       body: JSON.stringify(body),
     }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => ({})) }));
 
@@ -157,7 +183,6 @@ async function uploadTo(endpoint, tok, fields, buf, name, type) {
 const patientTok = await loginAs("patient@test.com");
 const clinicTok = await loginAs("clinic@test.com");
 const buf8 = pdf(8); // 8MB — 예전 4.5MB 벽이면 반드시 죽는 크기
-const cleanup = [];
 
 if (!patientTok) {
   check("환자 계정 로그인", false, "patient@test.com 로그인 실패");
@@ -176,15 +201,15 @@ if (!patientTok) {
   if (!cs) {
     check("환자 서류함 / 화상상담 서류", false, "표본 상담이 없어 못 쟀음");
   } else {
-    const r1 = await uploadTo(`${BASE}/api/patient/documents`, patientTok, { consultationId: cs.id, documentType: "other" }, buf8, "patient_8mb.pdf", "application/pdf");
+    const r1 = await uploadTo(`${BASE}/api/patient/documents`, patientTok, { consultationId: cs.id, documentType: "other" }, buf8, "patient_8mb.pdf", "application/pdf", "cookie");
     check("환자 서류함 업로드 (8MB)", r1.ok, r1.error || "");
     if (r1.data?.data?.id) cleanup.push(() => admin.from("consultation_documents").delete().eq("id", r1.data.data.id));
-    if (r1.path) cleanup.push(() => admin.storage.from("documents").remove([r1.path]));
+    if (r1.path) rmObj("documents", r1.path);
 
     const r2 = await uploadTo(`${BASE}/api/khidi/consultation/${cs.id}/documents`, patientTok, { documentType: "other" }, buf8, "consult_8mb.pdf", "application/pdf");
     check("화상상담 서류 공유 업로드 (8MB)", r2.ok, r2.error || "");
     if (r2.data?.data?.id) cleanup.push(() => admin.from("consultation_documents").delete().eq("id", r2.data.data.id));
-    if (r2.path) cleanup.push(() => admin.storage.from("documents").remove([r2.path]));
+    if (r2.path) rmObj("documents", r2.path);
   }
 
   // 비자 서류 — 표본 신청서를 만들고 끝나면 지운다.
@@ -198,7 +223,7 @@ if (!patientTok) {
   } else {
     const r3 = await uploadTo(`${BASE}/api/khidi/visa/applications/${va.id}/documents`, patientTok, { document_type: "passport" }, buf8, "visa_8mb.pdf", "application/pdf");
     check("비자 서류 업로드 (8MB)", r3.ok, r3.error || "");
-    if (r3.path) cleanup.push(() => admin.storage.from("documents").remove([r3.path]));
+    if (r3.path) rmObj("documents", r3.path);
     cleanup.push(() => admin.from("visa_documents").delete().eq("application_id", va.id));
     cleanup.push(() => admin.from("visa_status_history").delete().eq("application_id", va.id));
     cleanup.push(() => admin.from("visa_applications").delete().eq("id", va.id));
@@ -220,16 +245,26 @@ if (!clinicTok) {
   } else {
     const r4 = await uploadTo(`${BASE}/api/khidi/progress`, clinicTok, { inquiryId: String(inq2.id), recordType: "test_result" }, buf8, "progress_8mb.pdf", "application/pdf");
     check("사후관리 경과 업로드 (8MB)", r4.ok, r4.error || "");
-    if (r4.path) cleanup.push(() => admin.storage.from("documents").remove([r4.path]));
+    if (r4.path) rmObj("documents", r4.path);
     cleanup.push(() => admin.from("progress_records").delete().eq("inquiry_id", inq2.id));
     cleanup.push(() => admin.from("case_status_history").delete().eq("inquiry_id", inq2.id));
     cleanup.push(() => admin.from("inquiries").delete().eq("id", inq2.id));
   }
 }
 
+const leftovers = [];
 for (const fn of cleanup) {
-  try { await fn(); } catch (e) { console.log("  (정리 실패:", e.message, ")"); }
+  try { await fn(); } catch (e) { leftovers.push(e.message); }
 }
+// 「지웠다」가 아니라 「없어졌다」를 확인한다 — 검사기가 실데이터를 남기면 그 자체가 결함이다.
+const { data: strayInq } = await admin
+  .from("inquiries").select("id").eq("is_test", true).gt("created_at", startedAt).limit(5);
+(strayInq || []).forEach((r) => leftovers.push(`문의 #${r.id}`));
+for (const [bucket, path] of createdObjects) {
+  const { error } = await admin.storage.from(bucket).createSignedUrl(path, 30);
+  if (!error) leftovers.push(`${bucket}/${path}`);
+}
+check("검사기가 남긴 흔적 없음", leftovers.length === 0, leftovers.join(", "));
 
 // 8) 되돌아오기 방지 — 파일을 서버로 통과시키는(formData) 업로드 라우트가 다시 생기면 잡는다.
 //    4.5MB 벽에 걸리는 방식이라, 새로 짤 때 무심코 옛 패턴을 베끼는 걸 막는 게 목적.
