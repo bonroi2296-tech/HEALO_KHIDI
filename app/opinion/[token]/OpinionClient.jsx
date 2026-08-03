@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
+import ImagingPanel from "@/components/ImagingPanel";
 
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
@@ -133,6 +134,13 @@ export default function OpinionClient({ token }) {
               {c.brief.red_flags.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
           )}
+          {/* CT 초견 — 대표 장면 몇 장만 본 «참고용 초안». 판독은 원장님 몫이라 눈에 띄게 갈라 놓는다. */}
+          {c.brief.imaging_note && (
+            <div className="mt-2 pt-2 border-t border-amber-200">
+              <p className="text-[11px] text-amber-700 font-semibold mb-0.5">CT 초견 (AI 초안 — 판독 아님)</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{c.brief.imaging_note}</p>
+            </div>
+          )}
         </section>
       )}
 
@@ -166,6 +174,20 @@ export default function OpinionClient({ token }) {
             <p className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed">{c.message}</p>
           </div>
         )}
+        {/* 접수 «이후»에 들어온 환자 상태 — 서류엔 없는 정보다. 서류보다 최근일 수 있어 위에 둔다. */}
+        {c.followUps?.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] text-gray-500 mb-1">접수 후 추가 정보 ({c.followUps.length})</p>
+            <ul className="space-y-2">
+              {c.followUps.map((f, i) => (
+                <li key={i} className="bg-teal-50 border border-teal-100 rounded-lg p-3">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{String(f.at || "").slice(0, 10)} 코디네이터 전달</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {c.attachments?.length > 0 && (
           <div>
             <p className="text-[11px] text-gray-400 mb-1.5">첨부 의료기록 ({c.attachments.length})</p>
@@ -179,7 +201,10 @@ export default function OpinionClient({ token }) {
                   ) : (
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
                   )}
-                  {a.translated ? (
+                  {a.imaging ? (
+                    // CT 묶음은 번역이 아니라 «영상 보기» — 내려받지 않고 이 화면에서 본다.
+                    <ImagingToggle token={token} path={a.path} name={a.name} />
+                  ) : a.translated ? (
                     <TranslatedDocToggle doc={a.translated} />
                   ) : (
                     a.url && <p className="text-xs text-gray-400 mt-1">번역 실패 — 원본을 직접 확인해 주세요.</p>
@@ -259,11 +284,17 @@ function TranslatedDocToggle({ doc }) {
 // 검사지 하나에 패널(CBC·소변·호르몬…)이 여러 개라 전부 펼치면 스크롤이 너무 길어짐 —
 // 패널(섹션)별로 접어두고, 원장님은 이상치(▲▼) 있는 패널부터 골라 열어보면 됨.
 function TranslatedDocView({ doc }) {
-  if (!doc?.sections?.length) return null;
+  // 쪽 고르기 — 원본 쪽 번호 그대로. 한 화면에 한 쪽씩 본다(20쪽을 한 줄로 늘어놓으면 못 본다).
+  const [pageSel, setPageSel] = useState(1); // 0 = 전체
+  const all = doc?.sections || [];
+  const pageList = [...new Set(all.map((s) => s?.page).filter(Boolean))].sort((a, b) => a - b);
+  const curPage = !pageList.length || pageSel === 0 ? 0 : (pageList.includes(pageSel) ? pageSel : pageList[0]);
+  const shown = all.filter((s) => curPage === 0 || s?.page === curPage);
+  if (!all.length) return null;
   return (
     <div className="mt-2 border border-gray-200 rounded-xl bg-white p-3 space-y-3">
       {doc.docTypeShort && <p className="text-xs font-semibold text-teal-700">{doc.docType || doc.docTypeShort}</p>}
-      {doc.sections.map((s, si) => (
+      {shown.map((s, si) => (
         <div key={si} className={si > 0 ? "pt-3 border-t border-gray-100" : ""}>
           {s.title && <p className="text-sm font-semibold text-gray-700 mb-1">{s.title}</p>}
           {s.note && <p className="text-xs text-gray-400 mb-1">{s.note}</p>}
@@ -273,6 +304,61 @@ function TranslatedDocView({ doc }) {
           {s.text && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
         </div>
       ))}
+      {/* 쪽 버튼은 «아래»에 — 다 읽고 나면 손이 여기 있다(위에 두면 매번 올라가야 한다, PO 지시) */}
+      {pageList.length > 1 && (
+        <PagePicker list={pageList} cur={curPage} onPick={setPageSel} />
+      )}
+    </div>
+  );
+}
+
+/** 쪽 고르기 줄 — 코디 화면·의료진 화면이 같은 모양을 쓴다. */
+function PagePicker({ list, cur, onPick }) {
+  const at = list.indexOf(cur);
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-gray-100">
+      <button onClick={() => onPick(list[Math.max(0, at - 1)])} disabled={cur === 0 || at <= 0}
+        className="px-2 py-1 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 disabled:opacity-30">이전</button>
+      {list.map((p) => (
+        <button key={p} onClick={() => onPick(p)}
+          className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
+            cur === p ? "border-teal-700 bg-teal-700 text-white font-semibold" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+          {p}
+        </button>
+      ))}
+      <button onClick={() => onPick(list[Math.min(list.length - 1, at + 1)])} disabled={cur === 0 || at === list.length - 1}
+        className="px-2 py-1 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 disabled:opacity-30">다음</button>
+      <button onClick={() => onPick(cur === 0 ? list[0] : 0)}
+        className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
+          cur === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+        전체
+      </button>
+      <span className="text-[11px] text-gray-400 ml-auto">원본 {list.length}쪽</span>
+    </div>
+  );
+}
+
+/** CT 묶음 — 눌러야 준비를 시작한다(처음 한 번 수십 초 걸리므로 자동으로 안 연다). */
+function ImagingToggle({ token, path, name }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline"
+      >
+        <ChevronDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        CT 영상 {open ? "접기" : "이 화면에서 보기"}
+      </button>
+      {open && (
+        <ImagingPanel
+          endpoint={`/api/opinions/${token}/imaging`}
+          withAuth={false}
+          path={path}
+          name={name}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -332,6 +332,9 @@ const nextConfig = {
     // mupdf 는 WASM 이라 번들러가 건드리면 .wasm 을 잃는다 — 서버에서 그대로 불러오게 둔다.
     // (큰 스캔 PDF 를 AI 가 읽을 수 있게 줄이는 데 쓴다 — src/lib/documents/aiReadable.ts)
     "mupdf",
+    // node-unrar-js 도 WASM. 번들러가 .wasm 을 «모듈»로 삼키려다 실패한다
+    // (Turbopack: "Module not found: Can't resolve 'a'"). 서버에서 그대로 불러오게 둔다.
+    "node-unrar-js",
     "@sentry/nextjs",
     "@opentelemetry/instrumentation",
     "import-in-the-middle",

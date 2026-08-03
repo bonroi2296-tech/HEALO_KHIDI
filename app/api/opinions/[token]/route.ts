@@ -29,21 +29,29 @@ import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import { readFollowUps } from "@/lib/inquiry/followUps";
+import { readBriefMap } from "@/lib/inquiry/caseBrief";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
-function decodeCachedBrief(encBrief: unknown): { overview: string; request: string; points: string[]; red_flags: string[] } | null {
+function decodeCachedBrief(encBrief: unknown): { overview: string; request: string; points: string[]; red_flags: string[]; imaging_note?: string } | null {
   if (typeof encBrief !== "string" || !encBrief) return null;
   try {
     const dec = decryptStringNullable(encBrief);
     if (!dec) return null;
-    const parsed = JSON.parse(dec);
+    // ⚠️ 캐시는 2026-07-29 부터 **언어별 묶음**({ko:…, ru:…})이다. 예전처럼 parsed.overview 만
+    //   보면 항상 «브리프 없음»이 되어 **의료진 화면에서 케이스 요약이 통째로 사라진다**
+    //   (2026-08-03 PO 지적으로 발각 — 그동안 조용히 안 뜨고 있었다).
+    //   readBriefMap 이 옛 형식·새 형식을 둘 다 흡수한다. 의료진 화면은 한국어로 읽는다.
+    const map = readBriefMap(JSON.parse(dec));
+    const parsed = map.ko || map.en || Object.values(map)[0];
     if (!parsed?.overview) return null;
     return {
       overview: String(parsed.overview || ""),
       request: String(parsed.request || ""),
       points: Array.isArray(parsed.points) ? parsed.points.map((s: any) => String(s)) : [],
       red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map((s: any) => String(s)) : [],
+      imaging_note: parsed.imaging_note ? String(parsed.imaging_note) : undefined,
     };
   } catch {
     return null;
@@ -81,7 +89,16 @@ function patientName(first?: string | null, last?: string | null): string {
 // translateMedicalDoc 은 캐시 우선 — 코디가 이미 번역해뒀으면 즉시, 아니면 그 자리에서 생성(최초 1회만 비용 발생).
 // 첨부가 많은 케이스에서 비용 폭주 방지를 위해 앞 5개까지만 번역.
 const MAX_TRANSLATE = 5;
-async function signAttachments(atts: any): Promise<{ name: string; url: string | null; translated: unknown | null }[]> {
+/** 병원 CD 묶음(.rar/.zip/.dcm)인가 — 이건 번역이 아니라 «영상 보기»로 열어야 한다. */
+function isImagingBundle(a: any): boolean {
+  const n = String(a?.name || a?.path || "").toLowerCase();
+  const t = String(a?.type || "").toLowerCase();
+  return /\.(rar|zip|dcm)$/.test(n) || t.includes("rar") || t.includes("zip") || t.includes("dicom");
+}
+
+async function signAttachments(atts: any): Promise<
+  { name: string; url: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
+> {
   if (!Array.isArray(atts) || atts.length === 0) return [];
   return Promise.all(
     atts.slice(0, 20).map(async (a: any, i: number) => {
@@ -90,12 +107,16 @@ async function signAttachments(atts: any): Promise<{ name: string; url: string |
         const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
         url = data?.signedUrl || null;
       }
+      // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
+      const imaging = isImagingBundle(a);
       let translated: unknown | null = null;
-      if (a?.path && i < MAX_TRANSLATE) {
+      if (a?.path && !imaging && i < MAX_TRANSLATE) {
         const result = await translateMedicalDoc({ path: a.path, name: a?.name, lang: "ko" }).catch(() => null);
         if (result?.ok) translated = result.doc;
       }
-      return { name: a?.name || "첨부파일", url, translated };
+      // path 를 같이 주는 이유: 영상 보기 창구가 «어느 파일인지»를 알아야 한다.
+      // 남의 파일을 넣어도 창구에서 이 링크의 문의 것인지 다시 확인한다.
+      return { name: a?.name || "첨부파일", url, translated, path: a?.path || undefined, imaging };
     })
   );
 }
@@ -134,7 +155,7 @@ export async function GET(
 
     const { data: inqRaw } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, coordinator_brief")
+      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, follow_ups, coordinator_brief")
       .eq("id", req.inquiry_id)
       .maybeSingle();
     if (!inqRaw) {
@@ -169,6 +190,8 @@ export async function GET(
         message: typeof inq.message === "string" ? inq.message : null,
         clinical: pickDetail(inq.intake),
         attachments: await signAttachments(inqRaw.attachments),
+        // 접수 후 추가로 들어온 환자 상태 — 서류엔 없지만 판단에 필요하다(PO 지시 2026-08-03).
+        followUps: readFollowUps((inqRaw as any).follow_ups),
         // 코디가 만들어둔 AI 케이스 브리프(한국어 요약) — 없으면 null(코디가 아직 안 만든 케이스).
         brief: decodeCachedBrief(inqRaw.coordinator_brief),
       },

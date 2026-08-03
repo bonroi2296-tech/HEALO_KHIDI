@@ -12,6 +12,7 @@ import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
@@ -23,6 +24,8 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+import FollowUpsSection from "./FollowUpsSection";
+import ImagingPanel from "@/components/ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -148,6 +151,22 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   const langLabel = (OUT_LANGS.find((o) => o.key === lang) || {}).label || lang;
   const view = editing && draft ? draft : doc;
 
+  // 쪽 고르기 — 20쪽짜리를 한 줄로 쭉 늘어놓으면 못 본다(PO 요청 2026-08-03).
+  // 번역이 쪽별로 돌아가서 각 칸에 page 가 붙어 있다. 옛 번역엔 없으니 그때는 그냥 다 보여준다.
+  const [pageSel, setPageSel] = useState(1); // 0 = 전체
+  const allSections = view.sections || [];
+  const pageList = [...new Set(allSections.map((s) => s?.page).filter(Boolean))].sort((a, b) => a - b);
+  const curPage = !pageList.length || pageSel === 0 ? 0 : (pageList.includes(pageSel) ? pageSel : pageList[0]);
+  // 편집 저장은 «원래 번호»로 해야 한다 — 걸러낸 순서로 쓰면 엉뚱한 칸이 바뀐다.
+  const shown = allSections
+    .map((s, i) => [s, i])
+    .filter(([s]) => curPage === 0 || s?.page === curPage);
+  const pageStep = (d) => {
+    const at = pageList.indexOf(curPage);
+    const next = pageList[Math.max(0, Math.min(pageList.length - 1, at + d))];
+    if (next) setPageSel(next);
+  };
+
   function startEdit() { setDraft(JSON.parse(JSON.stringify(doc))); setEditing(true); }
   function cancelEdit() { setEditing(false); setDraft(null); }
   function patch(updater) {
@@ -230,7 +249,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
         {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
       <div className="space-y-4">
-        {(view.sections || []).map((s, si) => (
+        {shown.map(([s, si]) => (
           <div key={si}>
             {s.title && <div className="text-sm font-semibold text-gray-700 mb-1">{s.title}</div>}
             {s.note != null && s.note !== "" && (
@@ -279,6 +298,37 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
           </div>
         ))}
       </div>
+
+      {/* 쪽 고르기 — 원본 쪽 번호 그대로. 「전체」는 예전처럼 쭉 이어서 본다(인쇄·복사 전 확인용). */}
+      {pageList.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-gray-100">
+          <button onClick={() => pageStep(-1)} disabled={curPage === 0 || curPage === pageList[0]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="이전 쪽">
+            <ChevronLeft size={14} />
+          </button>
+          <div className="flex items-center gap-1 flex-wrap">
+            {pageList.map((p) => (
+              <button key={p} onClick={() => setPageSel(p)}
+                className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
+                  curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                               : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => pageStep(1)} disabled={curPage === 0 || curPage === pageList[pageList.length - 1]}
+            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
+            <ChevronRight size={14} />
+          </button>
+          <button onClick={() => setPageSel(curPage === 0 ? pageList[0] : 0)}
+            className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
+              curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
+            전체
+          </button>
+          <span className="text-[11px] text-gray-500 ml-auto">원본 {pageList.length}쪽</span>
+        </div>
+      )}
 
       {/* 편집 모드: 용어 사전 등록(원문→대상언어). 다음 번역부터 반영 */}
       {editing && (
@@ -402,6 +452,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 코디가 환자 대신 서류 올리기 — 메일·왓츠앱으로 따로 받은 자료용(문의 #60 에서 필요해짐).
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
+  const [openImaging, setOpenImaging] = useState(null); // 펼쳐 놓은 CT 묶음의 경로
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
@@ -904,6 +955,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </ul>
               </div>
             )}
+            {/* CT 초견 — 대표 장면 몇 장을 보고 적은 «참고용 초안». 코디가 판독으로 읽지 않게 갈라 놓는다. */}
+            {brief.imaging_note && (
+              <div className="rounded-lg bg-white border border-teal-100 px-3 py-2">
+                <span className="text-xs font-semibold text-teal-700">{pick(INTAKE_UI.briefImaging, lang)}</span>
+                <p className="mt-1 text-gray-800 whitespace-pre-wrap leading-relaxed">{brief.imaging_note}</p>
+              </div>
+            )}
             {/* 못 읽은 첨부가 있으면 «있다»고 말한다 — 조용히 빼면 코디가 다 반영된 줄 안다(문의 #60). */}
             {brief.unreadable > 0 && (
               <p className="text-[12px] font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
@@ -1123,12 +1181,17 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     </button>
                     {/* 병원 CD(CT) 묶음이면 번역 대신 영상 뷰어로 — 자바·CD뷰어 설치 없이 브라우저에서 본다. */}
                     {isImagingBundle(a) ? (
-                      <Link
-                        href={`/coordinator/imaging/${inquiryId}?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`}
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition"
+                      <button
+                        type="button"
+                        onClick={() => setOpenImaging((v) => (v === path ? null : path))}
+                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-medium transition ${
+                          openImaging === path
+                            ? "border-teal-700 bg-teal-700 text-white"
+                            : "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                        }`}
                       >
-                        <Video size={14} /> 영상 보기
-                      </Link>
+                        <Video size={14} /> {openImaging === path ? "닫기" : "영상 보기"}
+                      </button>
                     ) : (
                     <>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
@@ -1178,6 +1241,17 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     </>
                     )}
                   </div>
+                  {/* CT 영상 — 같은 화면에서 펼친다(다른 쪽으로 안 넘어간다, PO 요청) */}
+                  {openImaging === path && (
+                    <div className="border-t border-gray-100 px-3 pb-3">
+                      <ImagingPanel
+                        inquiryId={inquiryId}
+                        path={path}
+                        name={name}
+                        onClose={() => setOpenImaging(null)}
+                      />
+                    </div>
+                  )}
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
@@ -1187,6 +1261,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                             ? L.atErrFormat
                             : entry.error === "file_too_large"
                             ? L.atErrTooBig
+                            : entry.error === "too_long"
+                            ? L.atErrTooLong
                             : L.atErrTranslate}
                         </p>
                       ) : (
@@ -1223,7 +1299,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
@@ -1240,6 +1316,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </Card>
         );
       })()}
+
+      {/* 접수 후 추가 정보(글) — 메신저로 뒤늦게 들어온 환자 상태. 소견 화면·케이스 브리프에도 흐른다. */}
+      <FollowUpsSection inquiryId={inquiryId} />
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection inquiryId={inquiryId} />
