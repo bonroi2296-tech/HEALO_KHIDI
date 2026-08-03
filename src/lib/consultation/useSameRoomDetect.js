@@ -140,14 +140,18 @@ export function bothLoud(localSamples, remoteSamples, n = FAST_LEN, thresh = HOW
  * @param {MediaStreamTrack|null} opts.localTrack  — 내 마이크 트랙 (LiveKit 이 이미 만든 것)
  * @param {Array<{identity: string, track: MediaStreamTrack}>} opts.remoteTracks — 상대 마이크 트랙들
  * @param {boolean} opts.enabled — 내 마이크가 켜져 있을 때만 의미가 있다
- * @returns {{ sameRoomWith: string|null, feedbackOnset: boolean }}
- *   sameRoomWith: 같은 공간으로 판정된 상대 identity.
+ * @returns {{ sameRoomWith: string|null, feedbackOnset: boolean, feedbackPeers: string[] }}
+ *   sameRoomWith: 같은 공간으로 판정된 상대 identity(배너 문구용 대표 1명).
  *   feedbackOnset: 그 판정이 '하울링 즉발'(양쪽 동시 큰 소리)로 잡힌 것 = 자동 음소거 대상.
+ *   feedbackPeers: 하울링 즉발로 잡힌 상대 **전원**. 한 방에 기기가 3대 이상이면 «한 대만
+ *     끄기»로는 나머지끼리 계속 하울링한다(2026-07-29 실회의: 같은 사무실 IP 로 3대 접속)
+ *     → 그룹 전체를 보고 한 대만 남기는 판단을 하려면 목록이 필요하다.
  */
 export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
   const [sameRoomWith, setSameRoomWith] = useState(null);
   // 하울링 즉발(빠른 경로)로 확정됐는지 — 배너가 이걸 보고 '경고'가 아니라 '자동 음소거'로 대응.
   const [feedbackOnset, setFeedbackOnset] = useState(false);
+  const [feedbackPeers, setFeedbackPeers] = useState([]);
   const suspectSinceRef = useRef({}); // identity → 상관 의심 시작 시각(느린 경로)
   const loudSinceRef = useRef({});    // identity → 양쪽 동시 큰 소리 시작 시각(빠른 경로)
 
@@ -155,6 +159,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
     if (!enabled || !localTrack || !remoteTracks?.length) {
       setSameRoomWith(null);
       setFeedbackOnset(false);
+      setFeedbackPeers((prev) => (prev.length ? [] : prev));
       suspectSinceRef.current = {};
       loudSinceRef.current = {};
       return;
@@ -221,6 +226,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       const now = Date.now();
       let confirmed = null; // 같은 공간으로 판정된 상대 identity
       let fast = false;     // 이번 확정이 하울링 즉발(빠른 경로)인가
+      const fastPeers = []; // 하울링 즉발로 잡힌 상대 전원(3대 이상 대응)
 
       for (const r of nodes.remotes) {
         // ── 빠른 경로: 양쪽 마이크가 동시에 계속 큰 소리 = 하울링 즉발 ──
@@ -240,6 +246,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
           else if (now - since >= need) {
             confirmed = r.identity;
             fast = true;
+            fastPeers.push(r.identity);
           }
         } else {
           delete loudSinceRef.current[r.identity];
@@ -260,6 +267,12 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
 
       setSameRoomWith((prev) => (prev === confirmed ? prev : confirmed));
       setFeedbackOnset((prev) => (prev === fast ? prev : fast));
+      fastPeers.sort();
+      setFeedbackPeers((prev) =>
+        prev.length === fastPeers.length && prev.every((v, i) => v === fastPeers[i])
+          ? prev
+          : fastPeers
+      );
     }, WINDOW_MS);
 
     return () => {
@@ -274,5 +287,5 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
     };
   }, [enabled, localTrack, remoteTracks]);
 
-  return { sameRoomWith, feedbackOnset };
+  return { sameRoomWith, feedbackOnset, feedbackPeers };
 }
