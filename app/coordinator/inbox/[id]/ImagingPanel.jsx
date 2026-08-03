@@ -27,6 +27,7 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
   const [errText, setErrText] = useState("");
   const [series, setSeries] = useState([]);
   const [urls, setUrls] = useState({});
+  const [skipped, setSkipped] = useState([]); // 그림이 없어 못 그리는 항목(선량 기록 등)
   const [sIdx, setSIdx] = useState(0);
   const [slice, setSlice] = useState(0);
   const [ww, setWw] = useState(350);
@@ -58,7 +59,7 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
           setStage("error");
           return;
         }
-        setSeries(j.series); setUrls(j.urls);
+        setSeries(j.series); setUrls(j.urls); setSkipped(j.skipped || []);
         setWw(j.series[0]?.ww || 350); setWc(j.series[0]?.wc || 40);
         setStage("ready");
       } catch (e) {
@@ -187,6 +188,14 @@ export default function ImagingPanel({ inquiryId, path, name, onClose }) {
                   </button>
                 ))}
               </div>
+              {/* 못 그린 게 있으면 «있다»고 말한다 — 조용히 빼면 «CD 안에 이게 전부»로 착각한다. */}
+              {skipped.length > 0 && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                  이 묶음엔 그림이 아닌 기록도 {skipped.reduce((a, b) => a + b.count, 0)}건 들어 있습니다
+                  ({skipped.map((s) => `${s.desc}${s.modality ? ` · ${s.modality}` : ""}`).join(", ")}) —
+                  화면에 못 그리는 형식이라 원본 묶음을 내려받아 확인하세요.
+                </p>
+              )}
               <p className="text-[11px] text-gray-500">
                 마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
               </p>

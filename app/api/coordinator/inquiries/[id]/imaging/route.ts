@@ -99,9 +99,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     // 이미 정리해 둔 게 있으면 그걸 쓴다(같은 검사를 두 번 풀지 않는다).
     let series: SeriesOut[] | null = null;
+    let skippedOut: { desc: string; modality: string; count: number }[] = [];
     const cached = await supabaseAdmin.storage.from(BUCKET).download(manifestPath(path));
     if (cached.data) {
-      try { series = JSON.parse(await cached.data.text()).series; } catch { series = null; }
+      try {
+        const m = JSON.parse(await cached.data.text());
+        series = m.series;
+        skippedOut = m.skipped || [];
+      } catch { series = null; }
     }
 
     if (!series) {
@@ -115,12 +120,25 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
       const dicomParser = (await import("dicom-parser")).default;
       const groups = new Map<string, { meta: any; slices: { instance: number; pixels: Buffer }[] }>();
+      // 그림이 없는 항목(선량 기록 SR 등)은 그릴 수 없다. 그래도 «있었다»는 사실은 남긴다 —
+      // 조용히 빼면 코디가 «CD 안에 이게 전부»로 착각한다(PO 지적 2026-08-03).
+      const skipped = new Map<string, { desc: string; modality: string; count: number }>();
 
       for (const bytes of items) {
         let ds: any;
         try { ds = dicomParser.parseDicom(bytes); } catch { continue; }
         const el = ds.elements.x7fe00010;
-        if (!el) continue;
+        if (!el) {
+          const k = (() => { try { return ds.string("x0020000e") || "?"; } catch { return "?"; } })();
+          const g0 = skipped.get(k) || {
+            desc: (() => { try { return ds.string("x0008103e") || "(이름 없음)"; } catch { return "(이름 없음)"; } })(),
+            modality: (() => { try { return ds.string("x00080060") || ""; } catch { return ""; } })(),
+            count: 0,
+          };
+          g0.count++;
+          skipped.set(k, g0);
+          continue;
+        }
         const str = (t: string) => { try { return ds.string(t) || ""; } catch { return ""; } };
         const u16 = (t: string) => { try { return ds.uint16(t) || 0; } catch { return 0; } };
         const first = (v: string) => parseFloat(String(v).split("\\")[0]);
@@ -177,12 +195,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       //   그러면 목록이 안 남아 열 때마다 601장을 다시 푼다(실측: 매번 16초). octet-stream 으로.
       const mUp = await supabaseAdmin.storage
         .from(BUCKET)
-        .upload(manifestPath(path), Buffer.from(JSON.stringify({ v: 1, series: built })), {
+        .upload(manifestPath(path), Buffer.from(JSON.stringify({ v: 1, series: built, skipped: [...skipped.values()] })), {
           contentType: "application/octet-stream",
           upsert: true,
         });
       if (mUp.error) console.error("[imaging] manifest 저장 실패(다음에 또 푼다):", mUp.error.message);
       series = built;
+      skippedOut = [...skipped.values()];
     }
 
     // 시리즈 덩어리마다 서명 주소 — 브라우저는 보는 장의 구간만 잘라 받는다.
@@ -192,7 +211,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const urls: Record<string, string> = {};
     (signed || []).forEach((s: any) => { if (s?.path && s?.signedUrl) urls[s.path] = s.signedUrl; });
 
-    return Response.json({ ok: true, series, urls });
+    return Response.json({ ok: true, series, urls, skipped: skippedOut });
   } catch (err) {
     console.error("[imaging] exception:", err);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
