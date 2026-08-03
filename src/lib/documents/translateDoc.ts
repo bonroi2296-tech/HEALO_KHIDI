@@ -127,6 +127,10 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     "4. Do NOT add any diagnosis, interpretation, opinion, or clinical advice. This is a translation, not a reading.",
     "5. COMPLETENESS — read EVERY page of the document. Any section that contains results, findings, or measurements in the source MUST include those values. NEVER output a section that has only a header/patient info and no results. Concretely: for a smear/microscopy, transcribe every measured value (leukocytes, flora, epithelium, etc.); for an infection/STI PCR panel, list EVERY pathogen tested with its positive/negative (or detected/not-detected) result; for any quantitative assay, give every value. A section with a results table in the source but empty results in your output is a FAILURE.",
     `6. UNREADABLE ≠ OMIT — if a value or line is too faint, blurred, cropped, or handwritten to read with confidence, write '${unread}' in its place. NEVER silently drop it. Flagging an unreadable value is far safer than leaving it out.`,
+    // 실측 2026-08-03: 「양측 신장 실질의弥漫性(미만성) 변화」 — 뜻은 맞지만 한자가 섞여 읽기 나쁘다.
+    lang === "ko"
+      ? "7. Write Korean in Hangul only. NEVER use Chinese characters (한자) — write 미만성, not 弥漫性. Latin medical abbreviations and the source term in parentheses are fine."
+      : null,
     glossary ? "" : null,
     glossary ? `GLOSSARY — for these source terms, use EXACTLY this ${T} translation (respect any [note]):` : null,
     glossary || null,

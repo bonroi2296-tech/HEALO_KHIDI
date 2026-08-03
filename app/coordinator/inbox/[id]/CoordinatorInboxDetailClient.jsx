@@ -24,6 +24,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
@@ -325,7 +326,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
                             : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
             전체
           </button>
-          <span className="text-[11px] text-gray-400 ml-auto">원본 {pageList.length}쪽</span>
+          <span className="text-[11px] text-gray-500 ml-auto">원본 {pageList.length}쪽</span>
         </div>
       )}
 
@@ -954,6 +955,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </ul>
               </div>
             )}
+            {/* CT 초견 — 대표 장면 몇 장을 보고 적은 «참고용 초안». 코디가 판독으로 읽지 않게 갈라 놓는다. */}
+            {brief.imaging_note && (
+              <div className="rounded-lg bg-white border border-teal-100 px-3 py-2">
+                <span className="text-xs font-semibold text-teal-700">{pick(INTAKE_UI.briefImaging, lang)}</span>
+                <p className="mt-1 text-gray-800 whitespace-pre-wrap leading-relaxed">{brief.imaging_note}</p>
+              </div>
+            )}
             {/* 못 읽은 첨부가 있으면 «있다»고 말한다 — 조용히 빼면 코디가 다 반영된 줄 안다(문의 #60). */}
             {brief.unreadable > 0 && (
               <p className="text-[12px] font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
@@ -1291,7 +1299,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
@@ -1308,6 +1316,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </Card>
         );
       })()}
+
+      {/* 접수 후 추가 정보(글) — 메신저로 뒤늦게 들어온 환자 상태. 소견 화면·케이스 브리프에도 흐른다. */}
+      <FollowUpsSection inquiryId={inquiryId} />
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection inquiryId={inquiryId} />

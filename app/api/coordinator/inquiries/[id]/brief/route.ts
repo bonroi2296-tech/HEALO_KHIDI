@@ -15,7 +15,7 @@ import { generateCaseBrief, briefSig, normalizeBriefLang, readBriefMap } from "@
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
 const BRIEF_FIELDS = [
-  "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments",
+  "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments", "follow_ups",
   // ⚠️ 캐시 두 칸도 반드시 읽어와야 한다. 안 읽으면 «이전 값»이 늘 비어 보여서
   //    언어별 묶음을 덧붙이지 못하고 **통째로 덮어쓴다**(러시아어 만들면 한국어가 날아감).
   //    2026-07-29 실측으로 잡음: 러 → 한 → 러 순으로 열었더니 마지막 러시아어가 다시 만들어졌다.
@@ -80,7 +80,7 @@ export async function POST(
         const prev = (data as any)?.coordinator_brief;
         const prevSig = (data as any)?.coordinator_brief_sig || "";
         // 첨부가 바뀌었으면 옛 언어 것도 낡았다 → 새로 시작(다음 열람 때 각 언어가 다시 만들어진다).
-        if (prev && prevSig === briefSig(inquiry?.attachments || [])) {
+        if (prev && prevSig === briefSig(inquiry?.attachments || [], (inquiry as any)?.follow_ups)) {
           const dec = decryptStringNullable(prev);
           if (dec) map = readBriefMap(JSON.parse(dec));
         }
@@ -92,7 +92,7 @@ export async function POST(
       // 새 컬럼(coordinator_brief*)은 생성 타입(database.types)에 아직 없어 as any 로 우회(마이그레이션은 적용됨).
       await supabaseAdmin
         .from("inquiries")
-        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || []) } as any)
+        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || [], (inquiry as any)?.follow_ups) } as any)
         .eq("id", Number(id));
     } catch (e: any) {
       console.error("[coordinator/brief] cache write error:", e?.message);

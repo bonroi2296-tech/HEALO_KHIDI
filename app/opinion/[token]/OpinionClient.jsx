@@ -134,6 +134,13 @@ export default function OpinionClient({ token }) {
               {c.brief.red_flags.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
           )}
+          {/* CT 초견 — 대표 장면 몇 장만 본 «참고용 초안». 판독은 원장님 몫이라 눈에 띄게 갈라 놓는다. */}
+          {c.brief.imaging_note && (
+            <div className="mt-2 pt-2 border-t border-amber-200">
+              <p className="text-[11px] text-amber-700 font-semibold mb-0.5">CT 초견 (AI 초안 — 판독 아님)</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{c.brief.imaging_note}</p>
+            </div>
+          )}
         </section>
       )}
 
@@ -165,6 +172,20 @@ export default function OpinionClient({ token }) {
           <div className="mb-3">
             <p className="text-[11px] text-gray-400 mb-1">환자 메시지</p>
             <p className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed">{c.message}</p>
+          </div>
+        )}
+        {/* 접수 «이후»에 들어온 환자 상태 — 서류엔 없는 정보다. 서류보다 최근일 수 있어 위에 둔다. */}
+        {c.followUps?.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] text-gray-500 mb-1">접수 후 추가 정보 ({c.followUps.length})</p>
+            <ul className="space-y-2">
+              {c.followUps.map((f, i) => (
+                <li key={i} className="bg-teal-50 border border-teal-100 rounded-lg p-3">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{String(f.at || "").slice(0, 10)} 코디네이터 전달</p>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {c.attachments?.length > 0 && (

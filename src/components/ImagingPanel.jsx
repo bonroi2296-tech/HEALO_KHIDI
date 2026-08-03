@@ -247,7 +247,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
                 </p>
               )}
               {extras.length > 0 && (
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-gray-500">
                   CD 에 딸려 온 {extras.map((e) => `${e.kind} ${e.count}건`).join(", ")}은 의료 내용이 아니라 뺐습니다.
                 </p>
               )}

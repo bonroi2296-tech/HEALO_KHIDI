@@ -135,7 +135,7 @@ export async function GET(
           const map = readBriefMap(JSON.parse(dec));
           const want = normalizeBriefLang(request.nextUrl.searchParams.get("lang"));
           inquiry.brief = map[want] || null;
-          inquiry.briefStale = ((data as any)?.coordinator_brief_sig || "") !== briefSig((data as any)?.attachments || []);
+          inquiry.briefStale = ((data as any)?.coordinator_brief_sig || "") !== briefSig((data as any)?.attachments || [], (data as any)?.follow_ups);
           // 내 언어 것이 아직 없으면 «없음»으로 준다 → 화면이 그 언어로 새로 만든다.
           if (!inquiry.brief) inquiry.briefStale = true;
         }

@@ -2976,6 +2976,7 @@ export type Database = {
           contact_method: string | null
           coordinator_brief: string | null
           coordinator_brief_sig: string | null
+          follow_ups: Json | null
           created_at: string
           email: string | null
           encrypted_contact: Json | null
@@ -3040,6 +3041,7 @@ export type Database = {
           contact_method?: string | null
           coordinator_brief?: string | null
           coordinator_brief_sig?: string | null
+          follow_ups?: Json | null
           created_at?: string
           email?: string | null
           encrypted_contact?: Json | null
@@ -3104,6 +3106,7 @@ export type Database = {
           contact_method?: string | null
           coordinator_brief?: string | null
           coordinator_brief_sig?: string | null
+          follow_ups?: Json | null
           created_at?: string
           email?: string | null
           encrypted_contact?: Json | null
