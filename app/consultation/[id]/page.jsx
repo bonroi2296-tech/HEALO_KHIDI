@@ -1701,6 +1701,20 @@ export default function ConsultationRoomPage() {
     }
   }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
 
+  // ── 방에 들어오면 자막을 한 번 자동으로 켠다 (2026-08-03) ──
+  // 예전엔 기본 꺼짐이라 «사람이 버튼을 눌러야» 켜졌다. 8/3 실회의 2건 실측:
+  //   첫 입장 → 첫 자막까지 회의A 13분 26초, 회의B 11분 32초.
+  //   회의B 는 첫 자막 줄이 **문장 중간**에서 시작한다 = 대화가 이미 돌던 중에 켜졌다는 뜻.
+  // 그 시간 동안 통역도 기록도 통째로 없었고, 결국 손님이 먼저 «러시아어 자막이 안 보인다»고
+  // 말했다(16:12:43). 우리가 파는 기능을 손님이 켜 달라고 말하게 두면 안 된다.
+  // 딱 한 번만 켠다 — 끈 사람에게 도로 켜지면 버튼이 먹통으로 느껴진다.
+  const autoCaptionsOnRef = useRef(false);
+  useEffect(() => {
+    if (autoCaptionsOnRef.current || !myIdentity || translationEnabled) return;
+    autoCaptionsOnRef.current = true;
+    toggleTranslation();
+  }, [myIdentity, translationEnabled, toggleTranslation]);
+
   // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
   // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
   useEffect(() => {
