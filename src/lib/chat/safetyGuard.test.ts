@@ -40,6 +40,10 @@ const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
   { desc: "ru устранит рак", text: "Наша терапия устранит рак.", flag: "cure_claim" },
   { desc: "ru излечивает рак", text: "Этот метод излечивает рак.", flag: "cure_claim" },
   { desc: "ru устраняет рак", text: "Препарат устраняет рак навсегда.", flag: "cure_claim" },
+  // 🔴 「비ASCII 뒤 \w」 함정 전수 스캔(2026-08-03) — 완치 규칙만이 아니라 다른 카테고리도 죽어 있었다
+  { desc: "ru 하루 2정 복용", text: "Принимайте 2 таблетки в день.", flag: "drug_advice" },
+  { desc: "ru 아침 3캡슐", text: "Пейте по 3 капсулы утром.", flag: "drug_advice" },
+  { desc: "ru 생존율 20%", text: "Выживаемость составляет 20%.", flag: "prognosis_claim" },
   { desc: "en cure cancer", text: "This immunotherapy will cure your cancer completely.", flag: "cure_claim" },
   { desc: "ru вылечит рак", text: "Иммунотерапия полностью вылечит ваш рак.", flag: "cure_claim" },
   { desc: "kk толық емдеу", text: "Бұл ем қатерлі ісікті толық емдейді.", flag: "cure_claim" },
