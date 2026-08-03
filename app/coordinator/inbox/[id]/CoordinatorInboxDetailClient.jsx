@@ -394,6 +394,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 코디가 환자 대신 서류 올리기 — 메일·왓츠앱으로 따로 받은 자료용(문의 #60 에서 필요해짐).
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
+  const [staffStage, setStaffStage] = useState("uploading"); // 'compressing' | 'uploading'
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
@@ -402,6 +403,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     }
     setStaffUploading(true);
     setStaffProgress(0);
+    setStaffStage("uploading");
     setStaffMsg(null);
     try {
       const supabase = createSupabaseBrowserClient();
@@ -414,7 +416,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         `/api/coordinator/inquiries/${inquiryId}/attachments`,
         file,
         {},
-        { fetch: authFetch, onProgress: setStaffProgress }
+        { fetch: authFetch, onProgress: setStaffProgress, onStage: setStaffStage }
       );
       if (res.ok) {
         setStaffMsg({ type: "ok", text: L.ibStaffUploadOk });
@@ -1199,7 +1201,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 />
               </label>
               {staffUploading && (
-                <span className="text-xs text-teal-700">{Math.round(staffProgress * 100)}%</span>
+                <span className="text-xs text-teal-700">
+                  {staffStage === "compressing" ? L.ibStaffCompressing : L.ibStaffUploading} {Math.round(staffProgress * 100)}%
+                </span>
               )}
               {staffMsg && (
                 <span className={`text-xs ${staffMsg.type === "ok" ? "text-green-700" : "text-red-700"}`}>

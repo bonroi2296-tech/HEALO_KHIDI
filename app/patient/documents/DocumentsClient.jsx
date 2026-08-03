@@ -45,6 +45,7 @@ export default function DocumentsClient() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState('uploading'); // 'compressing' | 'uploading'
   const [docType, setDocType] = useState('medical_record');
   const [description, setDescription] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -110,6 +111,7 @@ export default function DocumentsClient() {
 
     setUploading(true);
     setProgress(0);
+    setStage('uploading');
     setMessage(null);
 
     try {
@@ -122,7 +124,7 @@ export default function DocumentsClient() {
         '/api/patient/documents',
         file,
         { consultationId: selectedConsultId, documentType: docType, description },
-        { fetch: authFetch, onProgress: setProgress }
+        { fetch: authFetch, onProgress: setProgress, onStage: setStage }
       );
       if (result.ok) {
         setMessage({ type: 'success', text: t('patientDocs.success', lang) });
@@ -281,7 +283,7 @@ export default function DocumentsClient() {
           {uploading && (
             <div className="py-3">
               <div className="text-center text-teal-700 font-medium text-sm mb-2">
-                {t('patientDocs.uploading', lang)} {Math.round(progress * 100)}%
+                {t(stage === 'compressing' ? 'patientDocs.compressing' : 'patientDocs.uploading', lang)} {Math.round(progress * 100)}%
               </div>
               {/* 큰 파일은 몇 분 걸린다 — 막대가 없으면 멈춘 줄 알고 나간다. */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

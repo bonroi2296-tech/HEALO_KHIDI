@@ -26,13 +26,26 @@ async function readJson(res) {
  * @param file      File 객체
  * @param extra     화면별 부가 필드(consultationId, docType …) — 두 단계 모두에 함께 보냄
  * @param opts.fetch  인증 헤더가 필요한 화면용 fetch 대체 함수
- * @param opts.onProgress  0~1 진행률 콜백 (50MB 업로드는 몇 분 걸린다 — 표시 없으면 멈춘 줄 안다)
+ * @param opts.onProgress  0~1 진행률 콜백 (큰 파일은 몇 분 걸린다 — 표시 없으면 멈춘 줄 안다)
+ * @param opts.onStage  "compressing" | "uploading" — 큰 스캔 PDF 는 올리기 «전»에 줄이는데,
+ *   그동안 「올리는 중 0%」로 보이면 멈춘 줄 안다. 단계 이름을 화면에 그대로 띄워라.
  */
 export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
   const doFetch = opts.fetch || fetch;
   if (!file) return { ok: false, error: "file_required" };
 
   try {
+    // 0) 스캔 PDF 는 올리기 전에 줄인다(실측: 130.9MB → 9.5MB, 눈으로 차이 없음).
+    //    올리는 시간이 짧아지고, AI 가 읽는 상한(18MB) 안에 들어와 브리프·번역이 실제로 동작한다.
+    //    못 줄이면 원본 그대로 진행한다 — 압축은 관문이 아니다.
+    if (file.type === "application/pdf" && file.size >= 8 * 1024 * 1024) {
+      opts.onStage?.("compressing");
+      const { maybeCompressPdf } = await import("./compressPdf");
+      file = await maybeCompressPdf(file, opts.onProgress);
+      opts.onStage?.("uploading");
+      opts.onProgress?.(0);
+    }
+
     // 1) 서명 URL 발급
     const sign = await readJson(
       await doFetch(endpoint, {
