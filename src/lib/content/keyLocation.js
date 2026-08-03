@@ -91,6 +91,9 @@ const REACH = [
   [/^inquiryFunnel.(human|messenger|channelComingSoon)/, "/inquiry?preview=human-channels"],
   [/^inquiryFunnel./, "/inquiry?preview=step1"],
   [/^intakeLabels.cancer./, "/inquiry?preview=step1"],
+  // 채팅 시작 문구는 «AI 상담사» 화면 안에 있다 — 채널 선택 화면만 열면 영원히 안 보인다
+  // (2026-08-03 전 화면 훑기에서 발견).
+  [/^chat./, "/inquiry?preview=ai-chat"],
 ];
 
 /** key → 그 문구가 보이는 화면 주소(단계까지). 없으면 null. */

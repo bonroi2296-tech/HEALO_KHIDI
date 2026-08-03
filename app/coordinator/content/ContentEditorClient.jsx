@@ -315,8 +315,10 @@ export default function ContentEditorClient() {
     let tries = 0;
     const tick = () => {
       tries += 1;
-      if (highlightInFrame(frame, needles, tries >= 6)) return; // 찾으면 끝
-      if (tries < 6) setTimeout(tick, 400);
+      // 2.4초로는 모자랐다(2026-08-03 실측: 자주 묻는 질문 화면이 아직 준비 중이라 놓침).
+      // 넉넉히 8초까지 두드린다 — 찾으면 즉시 멈추므로 빠른 화면에선 첫 번에 끝난다.
+      if (highlightInFrame(frame, needles, tries >= 16)) return;
+      if (tries < 16) setTimeout(tick, 500);
     };
     tick();
   };
@@ -331,12 +333,26 @@ export default function ContentEditorClient() {
     if (!doc || list.length === 0) return true; // 찾을 글자가 없으면 더 두드릴 이유도 없다
     // 미리보기는 «사이트가 지금 쓰는 언어»로 뜬다(코디 포털 언어와 별개). 그래서 지금 고치는
     // 언어 값·한국어·영어를 모두 시도한다 — 하나라도 맞으면 칠한다.
+    // ⚠️ 눈에 «보이는» 글자만 칠한다. 안 그러면 검색엔진용 데이터(JSON-LD)나 숨은 요소에
+    //    칠해져 화면상 아무 일도 안 일어난 것처럼 보인다 — 2026-08-03 실측: 자주 묻는 질문
+    //    미리보기가 `{"@context":"https://s…` 스크립트 안을 칠하고 있었다(같은 문답이
+    //    검색엔진용으로도 박혀 있어서 그쪽이 먼저 걸린다).
+    const HIDDEN_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "TITLE"]);
+    const isVisible = (el) => {
+      for (let n = el; n && n !== doc.body; n = n.parentElement) {
+        if (HIDDEN_TAGS.has(n.tagName)) return false;
+        if (n.hidden || n.getAttribute?.("aria-hidden") === "true") return false;
+        const st = frame.contentWindow?.getComputedStyle?.(n);
+        if (st && (st.display === "none" || st.visibility === "hidden")) return false;
+      }
+      return true;
+    };
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walker.nextNode())) {
       if (!node.nodeValue || !list.some((n) => node.nodeValue.includes(n))) continue;
       const el = node.parentElement;
-      if (!el) continue;
+      if (!el || !isVisible(el)) continue;
       el.style.background = "#fde68a";
       el.style.outline = "2px solid #f59e0b";
       el.style.borderRadius = "4px";

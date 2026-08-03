@@ -129,7 +129,7 @@ export default function UnifiedInquiryFunnel() {
   //     제출을 거치지 않고는 갈 수 없는 자리라 미리보기용 문 하나를 낸다.
   //     ⚠️ 화면만 그린다 — 여기로 들어와도 저장·전송은 평소와 똑같이 검증을 거친다.
   const previewPhase = searchParams?.get("preview") || null;
-  const PREVIEWABLE = ["step1", "step2", "step1-success", "step2-success", "channel-select", "human-channels"];
+  const PREVIEWABLE = ["step1", "step2", "step1-success", "step2-success", "channel-select", "human-channels", "ai-chat"];
 
   // from_chat 이 있으면 채널 선택 건너뛰고 바로 step1 (AI 챗에서 폼 전환된 케이스)
   const initialPhase = PREVIEWABLE.includes(previewPhase)
