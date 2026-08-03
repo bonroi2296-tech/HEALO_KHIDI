@@ -134,7 +134,7 @@ function roleLabel(role, c) {
 // 내 LiveKit identity 도 같이 올린다 — 통역봇 호출 API 가 «누가 통역을 원하는가»를
 // 참가자 속성으로 기록하는 데 쓴다(봇을 언제 내보낼지 판정). 통역 버튼은 방 컨텍스트
 // 밖(페이지 레벨)에 정의돼 있어 identity 를 직접 못 읽는다 → 이미 있는 이 브릿지에 얹었다.
-function MicStateBridge({ onChange, onIdentity }) {
+function MicStateBridge({ onChange, onIdentity, onName }) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   useEffect(() => {
     onChange?.(!!isMicrophoneEnabled);
@@ -142,6 +142,12 @@ function MicStateBridge({ onChange, onIdentity }) {
   useEffect(() => {
     if (localParticipant?.identity) onIdentity?.(localParticipant.identity);
   }, [localParticipant?.identity, onIdentity]);
+  // 내 표시 이름 — 기록에 «누가 말했나»를 남기는 데 쓴다. 듣는 쪽(ListenModeBridge)은
+  // 원래 붙이는데 말하는 쪽만 안 붙여서, 2026-08-03 실회의 회의록에 «(이름없음)» 줄이
+  // 38줄(14.6%) 남았다 — 그것도 전부 우리 쪽 발언이었다.
+  useEffect(() => {
+    if (localParticipant?.name) onName?.(localParticipant.name);
+  }, [localParticipant?.name, onName]);
   return null;
 }
 
@@ -939,6 +945,12 @@ export default function ConsultationRoomPage() {
   const [agentPresent, setAgentPresent] = useState(false);
   // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
   const [myIdentity, setMyIdentity] = useState(null);
+  // 내 표시 이름 (MicStateBridge 가 채움) — 서버 STT 에 넘겨 회의록에 화자로 남긴다.
+  // ref 로도 들고 있는 이유: STT 녹음 사이클은 effect 안에서 돌아 최신 state 를 못 읽는다.
+  const myNameRef = useRef("");
+  const setMyName = useCallback((n) => {
+    myNameRef.current = n || "";
+  }, []);
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
@@ -2664,6 +2676,8 @@ export default function ConsultationRoomPage() {
               fd.append("targetLang", targetLang);
               // 직전 대화 문맥 — 전사(동음이의)·번역(대명사) 양쪽 정확도에 기여. ref 라 의존성 불변.
               fd.append("context", JSON.stringify(contextForApi(convoContextRef.current)));
+              // 화자 이름 — 없으면 회의록에 «(이름없음)» 으로 남는다(2026-08-03 실측 38줄).
+              if (myNameRef.current) fd.append("speakerName", myNameRef.current);
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
@@ -3461,7 +3475,7 @@ export default function ConsultationRoomPage() {
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
               {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
-              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} />
+              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} onName={setMyName} />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
