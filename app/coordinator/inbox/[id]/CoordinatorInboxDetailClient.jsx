@@ -1205,6 +1205,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                             ? L.atErrFormat
                             : entry.error === "file_too_large"
                             ? L.atErrTooBig
+                            : entry.error === "too_long"
+                            ? L.atErrTooLong
                             : L.atErrTranslate}
                         </p>
                       ) : (

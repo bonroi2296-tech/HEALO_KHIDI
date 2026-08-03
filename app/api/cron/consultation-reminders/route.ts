@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   // 25~35분 후 예정인 세션 조회
   const { data: sessions, error: sessionsErr } = await supabaseAdmin
     .from("consultation_sessions")
-    .select("id, scheduled_at, status, patient_language, patient_timezone")
+    .select("id, scheduled_at, status, patient_language")
     .gte("scheduled_at", windowStart)
     .lte("scheduled_at", windowEnd)
     .eq("status", "scheduled");
@@ -116,11 +116,6 @@ export async function GET(request: NextRequest) {
           inviteUrl,
           scheduledAt: session.scheduled_at,
           role: token.role,
-          // 상대 현지 시각은 환자·게스트 메일에만 (의료진은 한국 시각이면 충분)
-          patientTimezone:
-            token.role === "patient" || token.role === "guest"
-              ? (session as any).patient_timezone
-              : null,
           lang: ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ko",
         });
 

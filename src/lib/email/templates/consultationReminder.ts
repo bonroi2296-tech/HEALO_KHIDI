@@ -6,8 +6,6 @@
  * 기존 consultationInvite.ts 의 스타일/구조와 통일.
  */
 
-import { isPatientTimezone, timezoneCountryLabel } from "@/lib/consultation/patientTimezones";
-
 export interface ConsultationReminderProps {
   recipientName?: string;
   joinUrl: string;
@@ -16,8 +14,6 @@ export interface ConsultationReminderProps {
   doctorName?: string;
   hospitalName?: string;
   lang?: "ko" | "en" | "ru" | "kk" | "zh" | "ja";
-  /** 상대 국가 시간대(IANA). 있으면 «상대 현지 시각»을 뒤에 붙인다. */
-  patientTimezone?: string | null;
 }
 
 const STRINGS: Record<
@@ -127,25 +123,21 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     zh: "zh-CN",
     ja: "ja-JP",
   };
-  const locale = localeMap[langKey] ?? "ko-KR";
-  const fmtIn = (timeZone: string, timeZoneName?: "short" | "long") =>
-    new Date(props.scheduledAt).toLocaleString(locale, {
+  const scheduledFormatted = new Date(props.scheduledAt).toLocaleString(
+    localeMap[langKey] ?? "ko-KR",
+    {
       year: "numeric",
       month: "short",
       day: "numeric",
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
-      timeZone,
-      timeZoneName,
-    });
-  // 상담은 한국시간 진행 — 서버(UTC) 기준으로 찍히면 시각이 틀림.
-  // "GMT+9" 만으론 어느 나라 시간인지 안 보인다 → long("한국 표준시"). 상대 국가를 골라 뒀으면
-  // 그 나라 현지 시각을 뒤에 붙인다(초대 메일과 동일 규칙).
-  const patientTz = isPatientTimezone(props.patientTimezone) ? props.patientTimezone : null;
-  const scheduledFormatted = patientTz
-    ? `${fmtIn("Asia/Seoul", "long")}  ·  ${fmtIn(patientTz)} (${timezoneCountryLabel(patientTz, locale)})`
-    : fmtIn("Asia/Seoul", "long");
+      timeZone: "Asia/Seoul", // 상담은 한국시간 진행 — 서버(UTC) 기준으로 찍히면 시각이 틀림
+      // "GMT+9" 만으론 어느 나라 시간인지 안 보인다 → long("한국 표준시"). 상대 현지 시각은
+      // 초대 메일에 첨부한 일정 파일이 달력에서 자동으로 맞춰 준다(사람이 국가를 고르지 않는다).
+      timeZoneName: "long",
+    }
+  );
 
   // 의사/병원 카드 (있을 때만)
   const providerCard =

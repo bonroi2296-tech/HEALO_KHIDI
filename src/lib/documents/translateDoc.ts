@@ -287,7 +287,10 @@ export async function translateMedicalDoc(opts: {
       ],
       generationConfig: {
         temperature: 0, // 충실 번역 — 창의성 0
-        maxOutputTokens: 8192,
+        // ⚠️ 8192 였다가 65536 으로 올림(2026-08-03 실측). 20쪽 진료기록을 그대로 옮기면
+        //   18,345 토큰이 나오는데 8192 에서 끊겨 **원본의 3분의 1만 저장되고 있었다**
+        //   (저장본 8,948자 vs 끝까지 26,789자). 「요약 금지」라고 적어놓고 상한이 요약을 강제했다.
+        maxOutputTokens: 65536,
         thinkingConfig: { thinkingLevel: "minimal" },
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
@@ -305,6 +308,15 @@ export async function translateMedicalDoc(opts: {
       completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
       meta: { mime, lang },
     }).catch(() => {});
+
+    // ⚠️ 「길이 상한에 걸려 끊겼다」를 반드시 잡는다. 안 잡으면 잘린 번역이 «완역»처럼 저장된다
+    //   (2026-08-03 PO 지적으로 발견 — 원본의 3분의 1만 들어 있었는데 화면엔 아무 표시가 없었다).
+    //   로우 데이터를 다루는 화면이라 «조금 잘린 것»도 완역으로 보이면 안 된다.
+    const finish = json?.candidates?.[0]?.finishReason;
+    if (finish === "MAX_TOKENS") {
+      console.error("[translateDoc] 응답이 길이 상한에서 끊겼다 — 저장하지 않는다:", opts.path);
+      return { ok: false, error: "too_long" };
+    }
 
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
     let parsed: any = null;

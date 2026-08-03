@@ -136,7 +136,7 @@ export async function POST(
         const { data: session, error: sessionReadErr } = await supabaseAdmin
           .from("consultation_sessions")
           .select(
-            "scheduled_at, hospital_id, partner_doctor_id, patient_language, patient_timezone"
+            "scheduled_at, hospital_id, partner_doctor_id, patient_language"
           )
           .eq("id", consultationId)
           .maybeSingle();
@@ -193,9 +193,6 @@ export async function POST(
           hospitalAddress,
           doctorName,
           doctorSpecialty,
-          // 스태프(의료진) 메일엔 상대 현지 시각이 필요 없다 — 환자·게스트 링크에만.
-          patientTimezone:
-            role === "patient" || role === "guest" ? sessionAny?.patient_timezone : null,
           lang: ["ko", "en", "ru", "kz", "zh", "ja"].includes(preferredLang)
             ? (preferredLang as any)
             : "ko",

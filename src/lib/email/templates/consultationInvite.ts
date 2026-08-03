@@ -4,8 +4,6 @@
  * 단순 HTML (React Email 없이 — 이메일 클라이언트 호환성 최대화)
  */
 
-import { isPatientTimezone, timezoneCountryLabel } from "@/lib/consultation/patientTimezones";
-
 export interface ConsultationInviteProps {
   recipientName?: string;
   inviteUrl: string;
@@ -16,8 +14,6 @@ export interface ConsultationInviteProps {
   hospitalName?: string;
   hospitalAddress?: string;
   lang?: "ko" | "en" | "ru" | "kz" | "zh" | "ja";
-  /** 상대 국가 시간대(IANA). 있으면 «상대 현지 시각»을 같이 적는다 — 없으면 UTC 로 대체. */
-  patientTimezone?: string | null;
 }
 
 const STRINGS = {
@@ -122,13 +118,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       timeZone,
       timeZoneName,
     });
-  // 상대 국가를 골라 뒀으면 UTC 대신 «그 나라 현지 시각»을 적는다 — 받는 사람이 계산할 게 없어진다.
-  // 예: "3 авг. 15:00 Корея  ·  3 авг. 11:00 (Казахстан)"
-  const patientTz = isPatientTimezone(props.patientTimezone) ? props.patientTimezone : null;
-  const secondLine = patientTz
-    ? `${fmtIn(patientTz, undefined)} (${timezoneCountryLabel(patientTz, locale)})`
-    : fmtIn("UTC", "short");
-  const scheduledFormatted = `${fmtIn("Asia/Seoul", "long")}  ·  ${secondLine}`;
+  // 예: "пн, 3 авг. 2026, 15:00 Корея, стандартное время  ·  06:00 UTC"
+  // ⛔ 「상대 국가를 골라 현지 시각을 적는다」는 안 한다(2026-08-03 PO): 코디가 매번 국적을 확인해야
+  //    하고 틀리면 «잘못된 시각»을 통지하게 된다. 현지 시각 환산은 첨부한 일정 파일(icsInvite.ts)이
+  //    받는 사람 달력에서 자동으로 한다 — 사람이 고를 일이 없다.
+  const scheduledFormatted = `${fmtIn("Asia/Seoul", "long")}  ·  ${fmtIn("UTC", "short")}`;
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =

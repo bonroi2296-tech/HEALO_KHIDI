@@ -8,7 +8,6 @@
 import { useState, useEffect } from "react";
 import { Video, X } from "lucide-react";
 import { KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
-import { PATIENT_TIMEZONES, timezoneCountryLabel } from "@/lib/consultation/patientTimezones";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
@@ -48,8 +47,6 @@ const TR = {
     phInviteePhone: "휴대폰 번호 (선택) — 국가번호 포함, 예: +77011234567", waSend: "WhatsApp 으로 보내기",
     emailSentToTpl: "✉️ 초대장 보냄: {list}", emailNotSent: "✉️ 이메일을 안 넣어 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
-    lblPatientCountry: "상대 국가 (선택)", patientCountryNone: "— 안 고름 (메일에 한국 시각 + UTC) —",
-    patientCountryHint: "안 골라도 됩니다 — 메일에 일정 파일이 함께 나가고, 받는 사람 달력이 «그 사람 시간»으로 표시합니다. 상대 나라를 확실히 알 때만 고르세요(메일 본문에도 현지 시각이 적힙니다).",
     lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
     notesInquiryPrefix: "문의",
     btnCancel: "취소", btnSubmitting: "생성 중…", btnSubmit: "상담 예약 생성",
@@ -80,8 +77,6 @@ const TR = {
     phInviteePhone: "Phone number (optional) — with country code, e.g. +77011234567", waSend: "Send via WhatsApp",
     emailSentToTpl: "✉️ Invitation sent to: {list}", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
-    lblPatientCountry: "Recipient's country (optional)", patientCountryNone: "— Not set (email shows Korea time + UTC) —",
-    patientCountryHint: "Optional — a calendar file is attached to the email, so the recipient's calendar already shows it in their own time. Pick a country only if you are sure (the email body then also shows that local time).",
     lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
     notesInquiryPrefix: "Inquiry",
     btnCancel: "Cancel", btnSubmitting: "Creating…", btnSubmit: "Schedule consultation",
@@ -112,8 +107,6 @@ const TR = {
     phInviteePhone: "Номер телефона (необязательно) — с кодом страны, напр. +77011234567", waSend: "Отправить в WhatsApp",
     emailSentToTpl: "✉️ Приглашение отправлено: {list}", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
-    lblPatientCountry: "Страна получателя (необязательно)", patientCountryNone: "— Не выбрано (в письме время Кореи + UTC) —",
-    patientCountryHint: "Необязательно — к письму прикладывается файл календаря, и календарь получателя сам покажет время в его часовом поясе. Выбирайте страну, только если уверены (тогда местное время будет и в тексте письма).",
     lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
     notesInquiryPrefix: "Заявка",
     btnCancel: "Отмена", btnSubmitting: "Создание…", btnSubmit: "Запланировать консультацию",
@@ -144,8 +137,6 @@ const TR = {
     phInviteePhone: "Телефон нөмірі (міндетті емес) — ел кодымен, мыс. +77011234567", waSend: "WhatsApp арқылы жіберу",
     emailSentToTpl: "✉️ Шақыру жіберілді: {list}", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
-    lblPatientCountry: "Алушының елі (міндетті емес)", patientCountryNone: "— Таңдалмаған (хатта Корея уақыты + UTC) —",
-    patientCountryHint: "Міндетті емес — хатқа күнтізбе файлы тіркеледі, алушының күнтізбесі уақытты өз белдеуінде көрсетеді. Елді тек сенімді болсаңыз таңдаңыз (сонда жергілікті уақыт хат мәтінінде де болады).",
     lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
     notesInquiryPrefix: "Өтінім",
     btnCancel: "Бас тарту", btnSubmitting: "Жасалуда…", btnSubmit: "Кеңесті жоспарлау",
@@ -176,8 +167,6 @@ const TR = {
     phInviteePhone: "手机号（可选）— 含国家代码，如 +77011234567", waSend: "通过 WhatsApp 发送",
     emailSentToTpl: "✉️ 已发送邀请：{list}", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
-    lblPatientCountry: "对方所在国家（可选）", patientCountryNone: "— 未选择（邮件仅显示韩国时间 + UTC）—",
-    patientCountryHint: "可不选 — 邮件会附带日历文件，收件人的日历会自动按其所在时区显示。仅在确定对方国家时才选择（届时邮件正文也会标注当地时间）。",
     lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
     notesInquiryPrefix: "咨询",
     btnCancel: "取消", btnSubmitting: "创建中…", btnSubmit: "创建会诊预约",
@@ -208,8 +197,6 @@ const TR = {
     phInviteePhone: "電話番号（任意）— 国番号を含む 例: +77011234567", waSend: "WhatsApp で送信",
     emailSentToTpl: "✉️ 招待状を送信: {list}", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
-    lblPatientCountry: "相手の国（任意）", patientCountryNone: "— 未選択（メールは韓国時間 + UTC のみ）—",
-    patientCountryHint: "任意です — メールにカレンダーファイルが添付され、受信者のカレンダーが各自の時間帯で表示します。相手の国が確実な場合だけ選んでください（その場合は本文にも現地時刻を併記）。",
     lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
     notesInquiryPrefix: "問い合わせ",
     btnCancel: "キャンセル", btnSubmitting: "作成中…", btnSubmit: "相談予約を作成",
@@ -232,31 +219,12 @@ const WA_MSG = {
   zh: "healwith — 在线会诊\n🕒 {time}（韩国时间 GMT+9）\n🔗 {url}",
 };
 
-function waLink(phone, patientLang, url, scheduledAtKst, patientTz) {
+function waLink(phone, patientLang, url, scheduledAtKst) {
   const digits = String(phone || "").replace(/\D/g, "");
   const time = String(scheduledAtKst || "").replace("T", " ");
   const tpl = WA_MSG[patientLang] || WA_MSG.ru;
-  // 상대 국가를 골랐으면 그 나라 현지 시각도 붙인다 (메일과 같은 규칙)
-  const local = localTimePreview(scheduledAtKst, patientTz, LOCALE_MAP[patientLang] || "ru-RU");
-  const localLine = local
-    ? `\n🕒 ${local} (${timezoneCountryLabel(patientTz, LOCALE_MAP[patientLang] || "ru-RU")})`
-    : "";
-  const text = tpl.replace("{time}", time).replace("{url}", url) + localLine;
+  const text = tpl.replace("{time}", time).replace("{url}", url);
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-}
-
-// datetime-local 값(KST 기준 naive 문자열) → 해당 국가 현지 시각 "8월 3일 11:00". 못 재면 "".
-function localTimePreview(scheduledAtKst, tz, locale) {
-  if (!tz || !scheduledAtKst) return "";
-  const d = new Date(`${scheduledAtKst}+09:00`);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(locale, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: tz,
-  });
 }
 
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
@@ -275,10 +243,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       scheduled_at: d.toISOString().slice(0, 16),
       // 언어는 화면에서 고르지 않는다 — 문의를 고르면 그 환자 언어로 자동(없으면 러시아어).
       patient_language: "ru",
-      // 상대 국가(시간대) — «아는 경우에만» 고르는 칸. 기본은 비움.
-      // ⛔ 언어로 자동 추측하지 않는다: 러시아어 쓰는 카자흐 환자가 많아 추측이 곧 «틀린 시각»이 된다.
-      //    비워 두면 메일엔 한국 시각 + UTC 가 나가고, 첨부한 일정 파일이 각자 시간대로 그려준다.
-      patient_timezone: "",
       notes: "",
       // 통합 초대 링크 1개(role=guest) — 환자·의사 등 모두 이 링크로 입장.
       // inviteeName/Email 은 자동 발송용 대표 수신자(보통 환자).
@@ -466,7 +430,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
         scheduledAtKst: form.scheduled_at,
         phone: form.inviteePhone,
         patientLang: form.patient_language,
-        patientTz: form.patient_timezone,
       });
     } catch (err) {
       console.error("[CreateConsultationModal] error:", err);
@@ -519,7 +482,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                   </p>
                   {created.phone && (
                     <a
-                      href={waLink(created.phone, created.patientLang, inv.url, created.scheduledAtKst, created.patientTz)}
+                      href={waLink(created.phone, created.patientLang, inv.url, created.scheduledAtKst)}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-lg text-sm font-semibold hover:brightness-95"
@@ -659,25 +622,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
               onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
-          </Field>
-
-          {/* 상대 국가 — 메일에 «상대 현지 시각»을 적기 위해서만 쓴다(2026-08-03 PO).
-              기존엔 한국 시각 + UTC 만 적혀 받는 사람이 직접 환산해야 했다. */}
-          <Field label={tt("lblPatientCountry")}>
-            <select
-              value={form.patient_timezone || ""}
-              onChange={(e) => setForm({ ...form, patient_timezone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              <option value="">{tt("patientCountryNone")}</option>
-              {PATIENT_TIMEZONES.map(({ tz }) => (
-                <option key={tz} value={tz}>
-                  {timezoneCountryLabel(tz, LOCALE_MAP[lang] || "en-US")} ·{" "}
-                  {localTimePreview(form.scheduled_at, tz, LOCALE_MAP[lang] || "en-US")}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-gray-500 mt-1">{tt("patientCountryHint")}</p>
           </Field>
 
           {/* 세션 유형 — 실적 집계가 여기서 갈린다(파트너 미팅은 KHIDI 실적에서 빠짐).
