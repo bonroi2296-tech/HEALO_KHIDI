@@ -23,7 +23,9 @@
          아래 세 줄이 12+ 에서 실제로 먹는 항목이다: 배경은 브랜드 teal, 아이콘은 배경원 없는
          전경 레이어만, 스플래시가 끝나면 본 테마로 넘긴다. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#0d9488</item>
+        <!-- 흰 배경인 이유: 로고 자체가 teal→남색 그라데이션이라 teal 배경에 두면 묻힌다
+             (에뮬레이터에서 실제로 확인함). 홈 화면 아이콘과도 같은 «흰 바탕 + 로고» 가 된다. -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <!-- 안드로이드 11 이하 폴백 -->
