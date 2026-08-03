@@ -28,9 +28,18 @@ export interface SignBody {
   path?: string;
 }
 
+/**
+ * 저장소에 쓸 «파일 이름 조각» 세척. 화면에 보이는 이름이 아니다 —
+ * 원래 이름은 DB(attachments[].name)에 그대로 남고, 여기서 만드는 건 저장소 키뿐이다.
+ *
+ * ⚠️ 아스키만 남긴다. 한글을 살려두면 Supabase 가 **키를 거부한다**
+ *   (실측 2026-08-03: `신장_초음파_검사.jpg` → 서명은 200 으로 내주고 PUT 에서 400 InvalidKey).
+ *   서명 단계는 통과하므로 화면엔 그냥 「업로드 실패」만 뜬다 — 원인이 안 보인다.
+ *   키릴 파일명은 원래부터 `_` 로 바뀌어 살아남았고, 한글만 예외로 열어둔 게 화근이었다.
+ */
 export function sanitizeFileName(name: string): string {
   return name
-    .replace(/[^a-zA-Z0-9가-힣._-]/g, "_")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
     .replace(/_{2,}/g, "_")
     .slice(0, 200);
 }
