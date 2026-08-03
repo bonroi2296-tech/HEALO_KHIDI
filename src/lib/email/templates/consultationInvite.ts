@@ -105,7 +105,9 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
     : lang === "zh" ? "zh-CN"
     : lang === "ja" ? "ja-JP"
     : "en-US";
-  const fmtIn = (timeZone: string) =>
+  // ponytail: 한국 시각은 timeZoneName "long"("한국 표준시"/"Korean Standard Time"/"Корея, стандартное время")
+  // — "GMT+9" 만 보면 어느 나라 시간인지 안 보인다(2026-08-03 PO 지적). UTC 는 long 이 장황해 short 유지.
+  const fmtIn = (timeZone: string, timeZoneName: "short" | "long") =>
     new Date(props.scheduledAt).toLocaleString(locale, {
       year: "numeric",
       month: "short",
@@ -114,10 +116,10 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       hour: "2-digit",
       minute: "2-digit",
       timeZone,
-      timeZoneName: "short",
+      timeZoneName,
     });
-  // 예: "2026. 10. 5. (월) 오후 2:00 GMT+9  ·  오전 5:00 UTC"
-  const scheduledFormatted = `${fmtIn("Asia/Seoul")}  ·  ${fmtIn("UTC")}`;
+  // 예: "2026. 10. 5. (월) 오후 2:00 대한민국 표준시  ·  오전 5:00 UTC"
+  const scheduledFormatted = `${fmtIn("Asia/Seoul", "long")}  ·  ${fmtIn("UTC", "short")}`;
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =

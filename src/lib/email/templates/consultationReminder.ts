@@ -133,7 +133,8 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "Asia/Seoul", // 상담은 한국시간 진행 — 서버(UTC) 기준으로 찍히면 시각이 틀림
-      timeZoneName: "short",
+      // "GMT+9" 는 어느 나라 시간인지 안 보인다 → long("한국 표준시") 로 (초대 메일과 동일)
+      timeZoneName: "long",
     }
   );
 
