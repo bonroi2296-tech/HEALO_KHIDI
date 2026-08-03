@@ -40,7 +40,28 @@ const LANG_NAMES: Record<string, string> = {
 
 // 도메인 프라이밍 — 한국어 구어 동음이의 오인식("큰 다리로 컨택"→신체 '다리'), 고유명사 깨짐,
 // 코드스위치(카자흐+러시아, 한국어+영어 차용어)를 줄이기 위해 매 호출에 맥락을 주입한다.
-const DOMAIN_PRIMING = `Domain: a Korea–CIS medical-tourism teleconsultation (cancer / oncology care). Participants: a Korean doctor, a coordinator, and a foreign patient (often from Kazakhstan or Russia). Frequent proper nouns and business terms appear — hospital names, cancer types, drug/test names, staff names, and words like "바이어"(buyer), "컨택/컨택트"(contact), "에이전시"(agency), "인플루언서"(influencer), and brand names. Treat these as proper nouns; do NOT mis-hear them as unrelated homophones (e.g. "큰 다리" = a big bridge, never the body part "leg"; "유플러스/Uplus" is a company, not "you plus"). The speaker may code-switch (e.g. Kazakh mixed with Russian, or Korean mixed with English loanwords) — transcribe exactly as spoken in whatever languages are used.`;
+//
+// ⚠️ 2026-08-03 실측으로 «내용을 알려주는 문장»을 걷어냈다. 예전 문구는 방에 누가 있는지까지
+//    적어 줬다 — "참가자: 한국인 의사, 코디네이터, 그리고 **주로 카자흐스탄·러시아에서 온
+//    외국인 환자**", 그리고 "**직원 이름**·병원 이름이 자주 나온다".
+//    소리가 흐리거나 문장이 잘리면 모델은 그 설명을 **재료로 삼아 지어냈다.** 2대 동시 발화
+//    실측(46줄)에서 나온 지어냄 8줄이 정확히 그 모양이었다:
+//      · "안녕하세요, 저는 아나르굴입니다. 카자흐스탄에서 왔습니다." (아무도 안 한 말)
+//      · "from Seoul." → "from Seoul National University Hospital." (없는 병원명 완성)
+//    금지 문구는 이미 있었는데도 그랬다 — **금지보다 먼저 읽히는 「누가 있는지」 설명이
+//    지어낼 거리를 쥐여 주고 있었다.** 그래서 금지를 강화하는 대신 재료를 없앴다.
+//    남긴 것: 동음이의·차용어 구분(이건 과거 실측으로 효과가 확인된 부분).
+const DOMAIN_PRIMING = `Domain: a Korea–CIS medical-tourism teleconsultation (cancer / oncology care). Korean, Russian, Kazakh and English may all be spoken, sometimes code-switched inside one sentence — transcribe exactly as spoken, in whatever languages are actually used. When a word is genuinely ambiguous, prefer the medical/business reading over an unrelated homophone (e.g. "큰 다리" = a big bridge, never the body part "leg"; "유플러스/Uplus" is a company, not "you plus"; "바이어"=buyer, "컨택/컨택트"=contact, "에이전시"=agency, "인플루언서"=influencer). This is disambiguation guidance ONLY — it tells you how to read what you hear, never what to expect.`;
+
+// 지어냄 금지 — **두 프롬프트 모두**에 넣는다.
+// 왜 상수로 뺐나: 예전엔 JSON 경로(전사+번역)에만 있었고 «전사만» 경로에는 한 줄도 없었다.
+//   그 경로는 출발어와 도착어가 같을 때 돈다(같은 언어끼리 회의 = 흔한 경우) — 즉 금지가
+//   통째로 빠진 채로 돌던 자리가 실제로 있었다. 한 곳에만 적으면 또 갈라진다.
+const NO_INVENTION = `TRANSCRIBE ONLY WHAT IS ACTUALLY AUDIBLE. This is a medical setting — invented content is dangerous and will be stored in the patient's consultation record.
+- The clip may start or end mid-sentence. Keep the fragment exactly as heard; NEVER add words to complete a cut-off sentence.
+- NEVER add a person's name, nationality, hospital, diagnosis, or greeting that you did not actually hear, even when the domain makes it plausible.
+- If the audio is only silence, breathing, background noise, or music, return the empty result — do NOT produce "Здравствуйте"/"안녕하세요" or any filler phrase.
+- When in doubt, output LESS. A short faithful fragment is correct; a fluent invented sentence is a failure.`;
 
 // 대화 문맥(직전 발화) — 클라이언트 링버퍼에서 FormData 로 전달. 전사(동음이의)·번역(대명사)
 // 양쪽 정확도에 기여. 개수·길이 상한으로 프롬프트 오염 방지.
@@ -181,8 +202,7 @@ export async function POST(
 ${contextBlock}The speaker most likely speaks ${langName}, but this microphone may be shared by people speaking different languages — DETECT the language actually spoken (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
 1. Transcribe the speech verbatim in the original language(s), but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words and proper nouns exactly.
 2. If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
-The clip may start or end mid-sentence: transcribe and translate the fragment faithfully AS-IS — never invent a completion for a cut-off sentence (this is a medical setting; invented content is dangerous).
-If the audio contains only silence, background noise, breathing, or music, you MUST return the empty JSON — NEVER invent greetings ("Здравствуйте", "안녕하세요") or filler phrases for unclear audio.
+${NO_INVENTION}
 Respond with ONLY this JSON on one line, no markdown, no code fences:
 {"t":"<transcript>","x":"<translation>","l":"<detected language code>"}
 If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":"","l":""}`,
@@ -221,7 +241,9 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
               {
                 type: "text",
                 text: `${DOMAIN_PRIMING}
-${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking ${langName} (may include code-switching) during a medical consultation. Output ONLY the transcript in the original language(s), nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words and proper nouns exactly. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
+${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking ${langName} (may include code-switching) during a medical consultation. Output ONLY the transcript in the original language(s), nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words and proper nouns exactly.
+${NO_INVENTION}
+If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
               },
             ],
           },
