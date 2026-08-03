@@ -26,11 +26,21 @@ import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 // 입력 토큰 폭주 방지: 대화 원문 길이 상한(초과 시 뒤쪽=최근 발화 우선 보존)
 const MAX_TRANSCRIPT_CHARS = 12000;
 
+// 회의록에 적을 화자 이름.
+//
+// ⚠️ 이름이 있으면 «반드시» 이름을 쓴다. 언어로 «의사/환자»를 추측하는 건 최후의 수단이다
+//    (2026-07-29 자가감사에서 발견): 우리 코디가 러시아어로 말하는 회의가 실제로 있는데
+//    (2026-07-29 회의: 우리 직원 Assel 이 러시아어 발화 다수), 언어로만 가르면 그 발화가
+//    전부 «환자»로 기록된다. 회의록은 KHIDI 실적 근거로도 쓰이므로 허위 귀속은 위험하다.
+//    speaker_name 은 2026-07-27부터 채워지고 있고 그날 기록에도 이름이 다 들어 있었다.
 function speakerLabel(
+  speakerName: string | null,
   sourceLang: string | null,
   doctorLang: string | null,
   patientLang: string | null
 ): string {
+  const name = (speakerName || "").trim();
+  if (name) return name;
   if (sourceLang && doctorLang && sourceLang === doctorLang) return "의사";
   if (sourceLang && patientLang && sourceLang === patientLang) return "환자";
   return sourceLang ? `발화(${sourceLang})` : "발화";
@@ -88,7 +98,7 @@ export async function POST(
     const { data: rawRows, error: trErr } = await supabaseAdmin
       .from("consultation_translations")
       .select(
-        "source_lang, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
+        "source_lang, speaker_name, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
       )
       .eq("session_id", consultationId)
       .order("created_at", { ascending: true });
@@ -112,6 +122,7 @@ export async function POST(
     let transcript = rows
       .map((r: any) => {
         const who = speakerLabel(
+          r.speaker_name,
           r.source_lang,
           session.doctor_language,
           session.patient_language

@@ -61,6 +61,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__Supabase__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/guard-destructive.mjs",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

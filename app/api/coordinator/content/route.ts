@@ -140,9 +140,22 @@ export async function GET(request: NextRequest) {
         }
         // matched=false 인 홈 항목은 "직접 맞진 않았지만 같은 블록이라 함께 온" 줄(편집기에서 배지 표시)
         const matched = r.section === "화면 텍스트" ? true : homeDirect.has(r.key);
-        return { key: r.key, section: r.section, label: r.label, values, editedLangs, matched };
+        // 2026-07-31 PO 지적: 검색 결과가 «costCalc.disclaimer» 같은 코드 이름만 줘서
+        // «각각의 텍스트가 어디에 박혀 있는지 찾기가 어렵다». 변경 이력엔 이미 붙어 있던
+        // 「어느 화면인가 + 화면 열기」를 검색 결과에도 준다(같은 describeKey 재사용).
+        const place = describeKey(r.key, homeLabelOf);
+        // 묶음 제목도 「화면 텍스트」 한 덩어리 대신 화면별로 — 「stage」처럼 넓게 걸리는 말이
+        // 수십 줄 나올 때 화면 단위로 갈라져야 눈으로 훑을 수 있다.
+        const section =
+          r.section === "화면 텍스트" && place.screen ? place.screen : r.section;
+        return { key: r.key, section, label: r.label, values, editedLangs, matched, place };
       });
-      return NextResponse.json({ ok: true, results: merged });
+      // 화면이 같은 줄끼리 붙어 있어야 편집기가 묶음 제목을 한 번만 그린다(원래 순서는 안정 정렬로 보존).
+      const grouped = merged
+        .map((r, i) => ({ r, i }))
+        .sort((a, b) => a.r.section.localeCompare(b.r.section) || a.i - b.i)
+        .map(({ r }) => r);
+      return NextResponse.json({ ok: true, results: grouped });
     }
     return NextResponse.json({ ok: true, results: [] });
   } catch {

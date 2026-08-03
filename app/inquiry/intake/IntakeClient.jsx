@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, UploadCloud, File, X } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { uploadAttachment } from '@/lib/uploadAttachment';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 
@@ -120,11 +121,9 @@ export function InquiryIntakePage({ setView }) {
       let extraPaths = [];
       if (files.length) {
         for (const file of files) {
-          const uploadForm = new FormData();
-          uploadForm.append('file', file);
-          const uploadRes = await fetch('/api/attachments/upload', { method: 'POST', body: uploadForm });
-          const uploadResult = await uploadRes.json();
+          const uploadResult = await uploadAttachment(file);
           if (uploadResult.ok) extraPaths.push({ path: uploadResult.path, name: uploadResult.name, type: uploadResult.type || null });
+          else toast.error(t(uploadResult.error === 'file_too_large' ? 'chat.upload.tooLarge' : 'chat.upload.failed', langCode));
         }
       }
 
@@ -181,7 +180,7 @@ export function InquiryIntakePage({ setView }) {
           <p className="text-sm font-semibold text-gray-900 mb-1.5">{t('intakeForm.soft.title', langCode)}</p>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">{t('intakeForm.soft.desc', langCode)}</p>
           <div className="flex flex-col gap-2">
-            <button onClick={() => router.push('/signup')} className="w-full px-4 py-3 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition">{t('intakeForm.soft.cta', langCode)}</button>
+            <button onClick={() => router.push('/signup')} className="w-full px-4 py-3 text-sm font-bold bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition">{t('intakeForm.soft.cta', langCode)}</button>
             <button onClick={() => (setView?.('home') || router.push('/'))} className="w-full px-4 py-2.5 text-sm text-gray-500 hover:text-teal-700 transition">{t('intakeForm.soft.later', langCode)}</button>
           </div>
         </div>

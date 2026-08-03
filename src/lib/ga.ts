@@ -11,7 +11,10 @@ declare global {
 
 // ponytail: GA4 측정ID는 공개값(브라우저 번들에 노출). Vercel env(NEXT_PUBLIC_GA_ID)가
 // 옛 실험 속성 G-TH0ZK2G9B9 로 오염돼 있어, 코드 상수를 단일 진실원천으로 고정한다.
-// 정식 속성: healwith-cb0cb (Probelle 계정). 속성 바꾸려면 여기 한 줄만 수정.
+// 정식 속성: healwith-cb0cb. 속성 바꾸려면 여기 한 줄만 수정.
+// ⚠️ 옛 주석은 「(Probelle 계정)」이라 적혀 있어 «힐위드가 프로벨르 밑에 있다»로 읽혔다 — 아니다.
+//    같은 구글 계정(bonroi2296)으로 힐위드와 프로벨르 자사몰 GA4 를 **각각** 만들어 둔 것뿐이고,
+//    둘은 서로 별개 속성이다(2026-08-03 PO 확인). 로그인 계정이 같아서 화면에 나란히 보일 뿐.
 export const GA_ID = "G-6JJCQXZJ9T";
 
 const getGaId = () => GA_ID;
