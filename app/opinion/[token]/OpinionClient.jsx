@@ -11,6 +11,7 @@ import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown, Eye, Downloa
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 import ImagingPanel from "@/components/ImagingPanel";
 import { uploadDirect } from "@/lib/uploadAttachment";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 /** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
 const canPreview = (name) => /\.(pdf|jpe?g|png|gif|webp)$/i.test(String(name || ""));
@@ -98,7 +99,8 @@ export default function OpinionClient({ token }) {
       }
       setSubmitted(true);
       // 화면 맨 위로 — 「제출되었습니다」가 위에 뜨는데 아래에 머물러 있으면 «눌린 건가?» 싶다.
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // 「움직임 줄이기」를 켠 분에겐 스르륵 없이 즉시 이동한다(어지럼·구역).
+      window.scrollTo({ top: 0, behavior: scrollBehavior() });
     } catch {
       setSubmitError("네트워크 오류입니다. 잠시 후 다시 시도해 주세요.");
     } finally {

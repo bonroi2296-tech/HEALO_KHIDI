@@ -194,7 +194,14 @@ function buildPrompt(lang: BriefLang, withImaging = false): string {
       ? `- imaging_note: a PRELIMINARY observation of the CT slices attached (evenly sampled from the study — NOT the full series). Write 2-5 short sentences in ${L}: which body region is shown, and any obvious findings (mass, fluid, dilated collecting system, effusion, enlarged nodes) with their location. Use hedged wording throughout (the ${L} equivalent of "appears/suspected"). This is a reading aid for a NON-MEDICAL coordinator before a doctor reads the study — say so plainly at the end of the field. NEVER state a definitive diagnosis, stage, or treatment. If the sampled slices are not informative, say that instead of guessing. Omit this field entirely when no CT slices are attached.`
       : null,
     ``,
-    `TERMS: write anatomy in the standard ${L} clinical term, never a transliteration of the source sound (Korean: 대동맥 not 아오르타).`,
+    `TERMS: write anatomy in the standard ${L} clinical term, never a transliteration of the source sound (Korean: 대동맥 not 아오르타, 수신증 not 수뇨관신배확장증).`,
+    // ⚠️ 아래 두 줄은 2026-08-04 문의 #60 에서 실제로 터진 것이다. 지우지 마라.
+    //   ①「Противопоказаний к авиаперелетам нет/есть 등 표기 확인 필요」처럼 **원문 문장과
+    //     모델의 망설임이 통째로** 한국어 칸에 박혔다. 읽는 사람은 러시아어를 모른다.
+    //   ②원문은 «нет»(금기 없음)인데 요약에는 「항공편 이용 금기 상태」라고 **정반대**로 적혔다.
+    //     이건 «환자가 한국에 올 수 있느냐»를 뒤집는 문장이라 오역 중 가장 위험한 종류다.
+    `LANGUAGE PURITY: every field must be readable by someone who knows ONLY ${L}. Never paste a source-language sentence into the output. If a source phrase is genuinely ambiguous, translate it and add the short original in parentheses — never the whole sentence, and never your own deliberation about which reading is right.`,
+    `NEGATION SAFETY: never flip a negation. Russian "нет" = absent/none, "есть" = present. If a record says a contraindication is ABSENT, do not write that it exists. When two documents disagree, or you are unsure of the polarity, do NOT assert either one — write it as "needs confirmation" in red_flags only, and keep it OUT of overview. An inverted negation about fitness to fly, contraindications, or metastasis changes the whole plan.`,
     `RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in \`request\`) from your clinical INFERENCE (goes in \`points\`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. **Write every output field in ${L}** (medical terms may keep their standard Latin/technical form).`,
     `Return ONLY the JSON object.`,
   ].join("\n");
