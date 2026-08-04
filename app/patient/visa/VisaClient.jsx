@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
+import { isNativeApp } from '@/lib/isNativeApp';
 
 // 국적 선택지 — value 는 API 로직 키(그대로), 표시 라벨은 중앙 i18n 사전 patientVisa.nations.* 키.
 const NATIONALITY_VALUES = ['ru', 'kz', 'mn', 'uz', 'kg', 'tj', 'az', 'zh', 'ja', 'en'];
@@ -187,6 +188,13 @@ export default function VisaClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
+  // 스토어 앱 안에서는 「인쇄」를 감춘다 — 앱에 박힌 브라우저는 window.print() 를 받아도
+  // 아무 일도 안 한다(안드로이드 웹뷰는 인쇄 기능이 아예 없다). 눌러도 반응 없는 버튼이 되므로.
+  // ⚠️ 폰이라고 감추는 게 아니다 — 폰 «브라우저»는 「PDF 로 저장」이 되니 그대로 둔다.
+  // (판정 함수는 브라우저에서만 참값 → 첫 그림에 쓰면 수화 불일치. 반드시 이펙트로 늦춘다.)
+  const [inNativeApp, setInNativeApp] = useState(false);
+  useEffect(() => { setInNativeApp(isNativeApp()); }, []);
+
   // 서류 체크 저장소 판별: 로그인 환자면 계정(서버), 아니면 localStorage 폴백
   const [sync, setSync] = useState('loading'); // 'loading' | 'account' | 'local'
   const [accountChecks, setAccountChecks] = useState({}); // { [visaType]: {docId:true} }
@@ -345,13 +353,15 @@ export default function VisaClient() {
             </a>
           </div>
 
-          {/* Print Button */}
-          <button
-            onClick={() => window.print()}
-            className="self-center px-6 py-3 rounded-lg bg-teal-700 text-white text-[15px] font-semibold hover:bg-teal-700 transition-all duration-200"
-          >
-            {t('patientVisa.print', lang)}
-          </button>
+          {/* Print Button — 스토어 앱 안에서는 눌러도 아무 일이 없어서 감춘다(위 inNativeApp 주석) */}
+          {!inNativeApp && (
+            <button
+              onClick={() => window.print()}
+              className="self-center px-6 py-3 rounded-lg bg-teal-700 text-white text-[15px] font-semibold hover:bg-teal-700 transition-all duration-200"
+            >
+              {t('patientVisa.print', lang)}
+            </button>
+          )}
         </div>
       ) : null}
 
