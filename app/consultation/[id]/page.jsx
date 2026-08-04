@@ -3527,6 +3527,10 @@ export default function ConsultationRoomPage() {
                 dcActivityRef={dcActivityRef}
                 onSubtitle={handleListenSubtitle}
                 onAudioHealth={onListenHealth}
+                // 같은 인터넷 회선(= 같은 사무실)에 먼저 들어온 기기가 없을 때만 «기록 담당».
+                // 뒤따라 들어온 기기는 화면 자막은 그대로 보되 DB 에는 안 쌓는다 —
+                // 2026-08-04 실회의에서 사무실 PC 4대가 같은 말을 서로 다르게 번역해 저장했다.
+                record={sameNetworkPeers === 0}
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid copy={c} />
