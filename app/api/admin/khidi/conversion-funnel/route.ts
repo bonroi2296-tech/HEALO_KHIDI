@@ -44,11 +44,16 @@ export async function GET(request: NextRequest) {
     // 테스트/실제 분리: ?includeTest=1 이면 테스트 데이터도 포함(평소엔 실적만).
     const includeTest = searchParams.get("includeTest") === "1";
 
-    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }, { data: sourceRows, error: e4 }] = await Promise.all([
+    // 유입 축: locale(화면 언어) | referrer(어디서) | landing(첫 페이지). 기본은 언어.
+    const axisRaw = searchParams.get("arrivalAxis") || "locale";
+    const arrivalAxis = ["locale", "referrer", "landing"].includes(axisRaw) ? axisRaw : "locale";
+
+    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }, { data: sourceRows, error: e4 }, { data: arrivalRows, error: e5 }] = await Promise.all([
       (supabaseAdmin as any).rpc("conversion_funnel", { p_from: from, p_to: to, p_nationality: nationality, p_include_test: includeTest }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_country", { p_from: from, p_to: to, p_include_test: includeTest }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_org", { p_from: from, p_to: to, p_include_test: includeTest }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_source", { p_from: from, p_to: to, p_include_test: includeTest }),
+      (supabaseAdmin as any).rpc("conversion_funnel_by_arrival", { p_from: from, p_to: to, p_include_test: includeTest, p_axis: arrivalAxis }),
     ]);
     if (e1 || e2) {
       console.error("[conversion-funnel] rpc error:", e1?.message || e2?.message);
@@ -56,6 +61,8 @@ export async function GET(request: NextRequest) {
     }
     if (e3) console.error("[conversion-funnel] by_org rpc error:", e3?.message);
     if (e4) console.error("[conversion-funnel] by_source rpc error:", e4?.message);
+    // 유입 집계는 없어도 나머지 화면은 떠야 한다(함수 미적용 환경에서도 대시보드가 통째로 죽지 않게).
+    if (e5) console.error("[conversion-funnel] by_arrival rpc error:", e5?.message);
 
     const f = funnelRows?.[0] ?? {
       total_inquiries: 0, pre_consult: 0, visa_or_quote: 0, admitted: 0, followup: 0, lost: 0,
@@ -158,7 +165,7 @@ export async function GET(request: NextRequest) {
       }))
     );
 
-    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], bySource: sourceRows || [], pending, admitted });
+    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], bySource: sourceRows || [], byArrival: arrivalRows || [], arrivalAxis, pending, admitted });
   } catch (err: any) {
     console.error("[conversion-funnel] error:", err?.message?.slice(0, 200));
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
