@@ -15,6 +15,7 @@ import { generateGuestToken, type GuestRole } from "@/lib/auth/guestToken";
 import { resolveInviteExpiry } from "@/lib/auth/inviteExpiry";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
+import { buildConsultationIcs } from "@/lib/email/icsInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { siteUrl } from "@/lib/siteUrl";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
@@ -197,11 +198,24 @@ export async function POST(
             : "ko",
         });
 
+        // 일정 파일 첨부 — 받는 사람 달력이 «자기 시간대»로 그려준다(국가를 물어볼 필요 없음).
         const sendResult = await sendEmail({
           to: resolvedEmail,
           subject,
           html,
           text,
+          attachments: [
+            {
+              filename: "healwith-consultation.ics",
+              content: buildConsultationIcs({
+                uid: consultationId,
+                scheduledAt: sessionAny.scheduled_at,
+                joinUrl: inviteUrl,
+                lang: preferredLang,
+              }),
+              contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+            },
+          ],
           tags: { type: "consultation_invite", consultation_id: consultationId, role },
         });
         // provider === "console" 은 메일러 미설정(개발 폴백) → 실제 발송 안 됨. 정직하게 미발송 처리.

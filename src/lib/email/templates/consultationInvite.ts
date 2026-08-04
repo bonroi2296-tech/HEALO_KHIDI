@@ -105,7 +105,9 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
     : lang === "zh" ? "zh-CN"
     : lang === "ja" ? "ja-JP"
     : "en-US";
-  const fmtIn = (timeZone: string) =>
+  // ponytail: 한국 시각은 timeZoneName "long"("한국 표준시"/"Korean Standard Time"/"Корея, стандартное время")
+  // — "GMT+9" 만 보면 어느 나라 시간인지 안 보인다(2026-08-03 PO 지적). UTC 는 long 이 장황해 short 유지.
+  const fmtIn = (timeZone: string, timeZoneName?: "short" | "long") =>
     new Date(props.scheduledAt).toLocaleString(locale, {
       year: "numeric",
       month: "short",
@@ -114,10 +116,47 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       hour: "2-digit",
       minute: "2-digit",
       timeZone,
-      timeZoneName: "short",
+      timeZoneName,
     });
-  // 예: "2026. 10. 5. (월) 오후 2:00 GMT+9  ·  오전 5:00 UTC"
-  const scheduledFormatted = `${fmtIn("Asia/Seoul")}  ·  ${fmtIn("UTC")}`;
+  // 예: "пн, 3 авг. 2026, 15:00 Корея, стандартное время  ·  06:00 UTC"
+  // ⛔ 「상대 국가를 골라 현지 시각을 적는다」는 안 한다(2026-08-03 PO): 코디가 매번 국적을 확인해야
+  //    하고 틀리면 «잘못된 시각»을 통지하게 된다. 현지 시각 환산은 첨부한 일정 파일(icsInvite.ts)이
+  //    받는 사람 달력에서 자동으로 한다 — 사람이 고를 일이 없다.
+  // 한 줄에 몰아넣으면 "Корея, стандартное время" 처럼 긴 이름에서 줄이 흘러넘쳐 라벨과 어긋난다
+  // → 굵은 한국 시각 한 줄 + 회색 UTC 한 줄로 쌓는다.
+  const scheduledKst = fmtIn("Asia/Seoul", "long");
+  const scheduledUtc = fmtIn("UTC", "short");
+
+  // 「혹시 첨부가 안 열릴 때」의 대비책(2026-08-03 PO) — 주요 도시 시각을 시:분만 한 줄로.
+  // 코디가 국가를 고르는 게 아니라 «메일 언어»로 정해지므로 사람 실수가 낄 자리가 없다.
+  const CITIES: Record<string, { tz: string; name: string }[]> = {
+    ru: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Москва" },
+    ],
+    kz: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Мәскеу" },
+    ],
+    zh: [{ tz: "Asia/Shanghai", name: "北京" }],
+    ja: [{ tz: "Asia/Tokyo", name: "東京" }],
+    // ko·en 은 대상 지역이 특정되지 않아 넣지 않는다(UTC 한 줄로 충분).
+  };
+  const hhmm = (tz: string) =>
+    new Date(props.scheduledAt).toLocaleString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: tz,
+    });
+  const cityTimes = (CITIES[lang] || []).map((c) => `${c.name} ${hhmm(c.tz)}`).join("  ·  ");
+
+  const scheduledFormatted = [scheduledKst, scheduledUtc, cityTimes]
+    .filter(Boolean)
+    .join("  ·  "); // 글자만 있는 대체 본문용
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =
@@ -194,8 +233,16 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
           <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#334155;">${escape(s.intro)}</p>
 
           <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:12px 0;">
-            <tr><td style="padding:8px 0;color:#64748b;font-size:13px;">${escape(s.timeLabel)}:</td>
-                <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${escape(scheduledFormatted)}</td></tr>
+            <tr><td style="padding:8px 0;">
+              <div style="color:#64748b;font-size:13px;margin-bottom:4px;">${escape(s.timeLabel)}</div>
+              <div style="color:#0f172a;font-size:15px;font-weight:700;">${escape(scheduledKst)}</div>
+              <div style="color:#64748b;font-size:13px;margin-top:2px;">${escape(scheduledUtc)}</div>
+              ${
+                cityTimes
+                  ? `<div style="color:#64748b;font-size:13px;margin-top:6px;">${escape(cityTimes)}</div>`
+                  : ""
+              }
+            </td></tr>
           </table>
 
           ${hospitalDoctorCard}
