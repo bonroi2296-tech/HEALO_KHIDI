@@ -27,16 +27,24 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://healwith.co.kr',
     androidScheme: 'https',
-    // ⚠️ 이 목록이 없으면 «구글 로그인이 앱에서 원천적으로 안 된다» (2026-07-28 확인).
-    //    캡시터는 server.url 과 호스트가 다른 이동을 만나면 앱 안에서 열지 않고
-    //    시스템 브라우저로 던진다(안드로이드 Bridge.java / iOS WebViewDelegationHandler.swift).
-    //    → 사용자는 크롬·사파리에서 로그인하고, 세션 쿠키도 거기 생겨 앱은 로그아웃 그대로였다.
-    //    OAuth 왕복 경로: 우리 도메인 → Supabase(authorize) → 구글 → Supabase(callback) → 우리 도메인.
-    //    🔒 보안 경계이므로 **꼭 필요한 호스트만** 넣는다(와일드카드로 넓히지 말 것).
-    allowNavigation: [
-      'accounts.google.com',
-      'hvwwlkawaxabhtumjhrg.supabase.co',
-    ],
+    // ⚠️ 구글 주소를 여기 넣지 마라 — 넣으면 구글 로그인이 «앱 안»에서 열리는데,
+    //    구글은 앱에 박힌 브라우저(웹뷰) 안에서의 로그인을 정책으로 막는다.
+    //    2026-08-04 실측: 앱 안에서 로그인 화면까지는 뜨지만 다음 단계
+    //    `accounts.google.com/signin/oauth/consent` 에서 «400 Bad Request» 로 끝난다
+    //    (PO 실기기 + 흉내기 양쪽에서 같은 주소로 재현).
+    //
+    //    그래서 바깥 로그인은 **일부러 시스템 브라우저(크롬)로 내보낸다.** 캡시터는 여기 없는
+    //    호스트로의 이동을 만나면 앱 밖 브라우저로 던진다.
+    //    돌아오는 길: 구글 → Supabase(callback) → healwith.co.kr/auth/callback →
+    //    안드로이드가 **앱 링크**로 이 주소를 앱에 돌려준다(AndroidManifest 의 autoVerify).
+    //    🔒 그 돌려주기가 되려면 사이트가 앱을 인정해야 한다 →
+    //       `/.well-known/assetlinks.json` 에 서명 지문이 들어 있어야 한다
+    //       (환경변수 ANDROID_APP_FINGERPRINTS. 2026-08-04 채워 넣음).
+    //       ⚠️ 안드로이드는 «설치할 때» 이 파일을 확인한다 → 파일이 살아난 «뒤에» 앱을 깔아야 한다.
+    //
+    //    2026-07-28 에 목록을 넣었던 이유(「세션이 크롬에 생겨 앱은 로그아웃」)는
+    //    앱 링크가 검증되면 해소된다 — 그때는 지문 파일이 비어 있어서 안 됐던 것이다.
+    allowNavigation: [],
     // 인터넷이 끊겨 사이트를 못 불러오면 «하얀 화면» 대신 이 로컬 파일을 띄운다.
     // 파일은 webDir(=public) 안에 있어 앱에 같이 포장된다. 홈화면 추가(PWA)의
     // 오프라인 화면(public/sw.js)과 **같은 파일**을 쓴다 — 두 벌로 갈라지지 않게.
