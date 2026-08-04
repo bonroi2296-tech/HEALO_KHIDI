@@ -50,15 +50,24 @@ UPDATE hospitals
  WHERE name LIKE '면력한방병원%'
    AND medical_institution_grade IS NULL;
 
--- ⚠️ 대학병원 4곳(고려대 구로·신촌세브란스·이대목동·이대서울)은 **일부러 비워 둔다.**
---    상급종합병원 지정은 보건복지부가 3년마다 고시하는 것이고(제5기 2024~2026),
---    이 세션에서 공식 명단을 끝까지 확인하지 못했다(HIRA 조회 키 없음 · 명단 페이지 접근 실패).
---    추측해서 넣으면 «상한을 잘못 적용»하게 되고 그게 곧 등록취소 사유다.
---    비워 두면 코드가 15% 로 막으므로 «법을 넘는 방향»으로는 절대 안 틀린다.
---    채우는 방법: ①HIRA_API_KEY 를 넣고 getHospBasisList 의 clCdNm 조회
---               ②각 병원 요양기관 정보 또는 유치의료기관 등록증 확인
+-- 4) 대학병원 4곳 — 보건복지부 «제5기 상급종합병원 지정기관 현황» 원문 대조 결과 (2026-08-04)
+--    출처: 보도자료 첨부 PDF — https://www.mohw.go.kr/boardDownload.es?bid=0027&list_no=1479568&seq=2
+--          (사본을 docs/reference/제5기_상급종합병원_지정명단_복지부.pdf 에 보관. 서울권 14곳 명단)
+--    · 고려대학교의과대학부속«구로»병원   → 명단 있음 → tertiary (15%)
+--    · 연세대학교의과대학«세브란스»병원   → 명단 있음 → tertiary (15%)
+--    · 이화여자대학교의과대학부속«목동»병원 → 명단 있음 → tertiary (15%)
+--    · 이대서울병원                      → **명단 없음** → 종합병원 general (20%)
+--      (서울권 명단의 '…서울…병원'은 삼성서울·서울대·서울아산·서울성모 4곳뿐이고 이대서울은 없다)
+UPDATE hospitals SET medical_institution_grade = 'tertiary'
+ WHERE name IN ('고려대학교 구로병원', '신촌세브란스병원', '이대목동병원');
+UPDATE hospitals SET medical_institution_grade = 'general'
+ WHERE name = '이대서울병원';
 
--- 4) 확인용
+-- 🔴 **재검토: 2026-12-31** — 제5기 지정기간이 그날 끝난다(2024-01-01 ~ 2026-12-31).
+--    제6기 명단이 나오면 위 4곳을 다시 대조하라. 지정에서 빠지면 상한이 15%→20% 로 «올라가고»,
+--    새로 지정되면 20%→15% 로 «내려간다». 내려가는 쪽을 놓치면 그게 곧 위반이다.
+
+-- 5) 확인용
 SELECT name, medical_institution_grade
   FROM hospitals
  WHERE is_partner = true
