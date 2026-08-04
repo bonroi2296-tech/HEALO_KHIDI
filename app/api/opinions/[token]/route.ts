@@ -30,7 +30,8 @@ import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import { readFollowUps } from "@/lib/inquiry/followUps";
-import { readBriefMap } from "@/lib/inquiry/caseBrief";
+import { readBriefMap, briefSig, generateCaseBrief } from "@/lib/inquiry/caseBrief";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -55,6 +56,55 @@ function decodeCachedBrief(encBrief: unknown): { overview: string; request: stri
     };
   } catch {
     return null;
+  }
+}
+
+
+/**
+ * 의료진이 볼 요약이 «낡았으면» 여기서 다시 만든다.
+ *
+ * 왜 (2026-08-04): 예전엔 저장된 것을 읽기만 했다. 요약을 다시 만드는 건 «코디가 화면을 열 때»뿐이라,
+ *   자료를 새로 올린 뒤 코디가 안 들어가면 **원장님은 낡은 요약을 본다**(실제로 그랬다 — CT 를 붙였는데
+ *   요약엔 「첨부 1개를 읽지 못함」이 그대로 남아 있었다).
+ *   요약은 판단의 출발점이라 낡은 채로 보여주는 게 안 보여주는 것보다 나쁘다.
+ *
+ * 비용: 낡았을 때 한 번만 모델을 부르고 결과를 저장한다(다음 열람부터는 공짜).
+ *   실패하면 저장된 것을 그대로 쓴다 — 화면이 비지 않게.
+ */
+async function freshBrief(inqRaw: any, inq: any) {
+  const cached = decodeCachedBrief(inqRaw?.coordinator_brief);
+  const want = briefSig(inqRaw?.attachments || [], inqRaw?.follow_ups);
+  const have = inqRaw?.coordinator_brief_sig || "";
+  if (cached && want === have) return cached;
+
+  try {
+    const r = await generateCaseBrief({
+      inquiry: inq,
+      attachments: Array.isArray(inqRaw?.attachments) ? inqRaw.attachments : [],
+      lang: "ko",
+    });
+    if (!r.ok) return cached;
+    // 언어별 묶음을 지키면서 한국어 칸만 갈아끼운다(코디가 만든 다른 언어 요약을 안 지운다).
+    let map: any = {};
+    try {
+      const dec = decryptStringNullable(inqRaw?.coordinator_brief || null);
+      if (dec && want === have) map = readBriefMap(JSON.parse(dec));
+    } catch { /* 못 읽으면 새로 시작 */ }
+    map.ko = { ...r.brief, unreadable: r.unreadableCount };
+    await (supabaseAdmin as any)
+      .from("inquiries")
+      .update({ coordinator_brief: encryptStringNullable(JSON.stringify(map)), coordinator_brief_sig: want })
+      .eq("id", inqRaw.id);
+    return {
+      overview: r.brief.overview,
+      request: r.brief.request,
+      points: r.brief.points || [],
+      red_flags: r.brief.red_flags || [],
+      imaging_note: r.brief.imaging_note,
+    };
+  } catch (e: any) {
+    console.error("[opinions/:token] 요약 재생성 실패(저장된 것으로 진행):", e?.message);
+    return cached;
   }
 }
 
@@ -155,7 +205,7 @@ export async function GET(
 
     const { data: inqRaw } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, follow_ups, coordinator_brief")
+      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, follow_ups, coordinator_brief, coordinator_brief_sig")
       .eq("id", req.inquiry_id)
       .maybeSingle();
     if (!inqRaw) {
@@ -193,7 +243,7 @@ export async function GET(
         // 접수 후 추가로 들어온 환자 상태 — 서류엔 없지만 판단에 필요하다(PO 지시 2026-08-03).
         followUps: readFollowUps((inqRaw as any).follow_ups),
         // 코디가 만들어둔 AI 케이스 브리프(한국어 요약) — 없으면 null(코디가 아직 안 만든 케이스).
-        brief: decodeCachedBrief(inqRaw.coordinator_brief),
+        brief: await freshBrief(inqRaw, inq),
       },
     });
   } catch (e: any) {
