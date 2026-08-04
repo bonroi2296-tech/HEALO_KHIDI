@@ -194,7 +194,11 @@ function buildPrompt(lang: BriefLang, withImaging = false): string {
       ? `- imaging_note: a PRELIMINARY observation of the CT slices attached (evenly sampled from the study — NOT the full series). Write 2-5 short sentences in ${L}: which body region is shown, and any obvious findings (mass, fluid, dilated collecting system, effusion, enlarged nodes) with their location. Use hedged wording throughout (the ${L} equivalent of "appears/suspected"). This is a reading aid for a NON-MEDICAL coordinator before a doctor reads the study — say so plainly at the end of the field. NEVER state a definitive diagnosis, stage, or treatment. If the sampled slices are not informative, say that instead of guessing. Omit this field entirely when no CT slices are attached.`
       : null,
     ``,
-    `TERMS: write anatomy in the standard ${L} clinical term, never a transliteration of the source sound (Korean: 대동맥 not 아오르타, 수신증 not 수뇨관신배확장증).`,
+    `TERMS: write anatomy in the standard ${L} clinical term, never a transliteration of the source sound (Korean: 대동맥 not 아오르타, 수신증 not 수뇨관신배확장증). Never invent a term that does not exist in ${L} clinical usage (Korean: there is no such word as 세종격동).`,
+    // ⚠️ 이 브리프를 «가장 먼저 읽는 사람은 의학 지식이 없는 코디네이터»다 (PO 지시 2026-08-04:
+    //   «의사들은 알아먹더라도 먼저 보는 사람은 전문 의료인이 아니잖아»). 「폐야」·「종격동」을
+    //   그대로 쓰면 코디는 무슨 말인지 모른 채 에이전시에 옮긴다. 쉬운 말이 «먼저», 전문 용어는 괄호로.
+    `PLAIN WORDS FIRST: the FIRST reader is a coordinator with NO medical training; a doctor reads it later. So lead with everyday ${L} and put the clinical term in parentheses after it — never the other way round. Korean examples: 「양쪽 폐 전체(폐야)」, 「양쪽 폐 사이 가운데 공간 — 심장·큰 혈관·기도가 있는 곳(종격동)」, 「콩팥에 소변이 고여 부은 상태(수신증)」, 「배 안에 물이 참(복수)」. If a finding cannot be said in everyday words, add one short clause explaining what that body part does or where it is. This applies to overview, points, red_flags and imaging_note alike.`,
     // ⚠️ 아래 두 줄은 2026-08-04 문의 #60 에서 실제로 터진 것이다. 지우지 마라.
     //   ①「Противопоказаний к авиаперелетам нет/есть 등 표기 확인 필요」처럼 **원문 문장과
     //     모델의 망설임이 통째로** 한국어 칸에 박혔다. 읽는 사람은 러시아어를 모른다.
