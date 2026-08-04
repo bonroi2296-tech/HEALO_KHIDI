@@ -434,7 +434,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 시스템 버튼줄에 깔렸다(2026-07-31 PO 실기기). 인라인 스타일은 항상 이긴다. */}
             <div
               className="border-t border-gray-100 px-5 py-4"
-              style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+              style={{ paddingBottom: "calc(1rem + var(--healo-safe-bottom))" }}
             >
               {session ? (
                 <>

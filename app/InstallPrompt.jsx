@@ -72,7 +72,16 @@ export default function InstallPrompt({ lang = "en" }) {
   if (HIDE_ON.some((p) => barePath.startsWith(p))) return null;
   if (!deferred && !iosHint) return null;
 
-  const wrap = { position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 60, maxWidth: 480, margin: "0 auto" };
+  // ⚠️ 아래 여백(bottom)은 인라인이 아니라 «클래스»로 준다 — 화면 폭에 따라 달라야 하고
+  //    두 가지를 반드시 피해야 하기 때문이다(2026-08-03 실측으로 둘 다 실제로 겹쳤다):
+  //      ① 쿠키 동의 배너(z-9999) — 이 카드(z-60)보다 위라서 그냥 «덮인다». 배너가 알려주는
+  //         자기 높이(--cookie-banner-h)만큼 비켜 앉아야 한다(CookieConsent 주석의 그 규칙).
+  //      ② 폰 하단 탭바(진료과목·문의·병원, 높이 5rem 자리) — 폰에서만 있으므로 md 이상은 작게.
+  //    + 아래 안전영역(홈 인디케이터)도 더한다. 실측 전: 카드 699~808 vs 탭바 755~820 · 배너 590~820.
+  const wrapCls =
+    "fixed bottom-[calc(5rem+var(--cookie-banner-h,0px)+var(--healo-safe-bottom))] " +
+    "md:bottom-[calc(1rem+var(--cookie-banner-h,0px)+var(--healo-safe-bottom))]";
+  const wrap = { position: "fixed", left: 12, right: 12, zIndex: 60, maxWidth: 480, margin: "0 auto" };
   const card = { display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: "12px 14px" };
   const icon = <img src="/icons/icon-96x96.png" alt="" width={40} height={40} style={{ borderRadius: 10, flexShrink: 0 }} />;
   const closeBtn = <button onClick={dismiss} aria-label={t.close} style={{ flexShrink: 0, background: "none", border: "none", fontSize: 20, lineHeight: 1, color: "#9ca3af", cursor: "pointer", padding: 4 }}>×</button>;
@@ -80,7 +89,7 @@ export default function InstallPrompt({ lang = "en" }) {
   // 안드로이드/데스크톱: 원클릭 설치 버튼
   if (deferred) {
     return (
-      <div role="dialog" aria-label={t.install} style={wrap}>
+      <div role="dialog" aria-label={t.install} className={wrapCls} style={wrap}>
         <div style={card}>
           {icon}
           <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.35 }}>{t.install}</div>
@@ -93,7 +102,7 @@ export default function InstallPrompt({ lang = "en" }) {
 
   // iOS 사파리: 수동 안내
   return (
-    <div role="dialog" aria-label={t.ios} style={wrap}>
+    <div role="dialog" aria-label={t.ios} className={wrapCls} style={wrap}>
       <div style={{ ...card, alignItems: "flex-start", padding: "14px 16px" }}>
         {icon}
         <div style={{ flex: 1, minWidth: 0 }}>

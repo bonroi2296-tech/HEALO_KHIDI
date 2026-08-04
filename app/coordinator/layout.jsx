@@ -115,7 +115,7 @@ export default function CoordinatorLayout({ children }) {
     <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
     <div className="flex min-h-screen bg-gray-50 healo-portal-offset">
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top,0px))] md:top-[calc(4rem+env(safe-area-inset-top,0px))] left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
@@ -143,8 +143,10 @@ export default function CoordinatorLayout({ children }) {
       </aside>
 
       {/* Content — 메시지 화면은 풀블리드(2단 채팅이 화면을 꽉 채우게). 나머지는 가운데 정렬+여백. */}
+      {/* ⚠️ 아래 두 main 의 위 여백 pt-[4.5rem] = 모바일 메뉴 줄(위 h-[4.5rem]) 높이.
+          그 줄 높이를 바꾸면 여기 둘 다 같이 바꿔라 — 한쪽만 고치면 본문 윗줄이 가린다. */}
       {pathname === '/coordinator/messages' ? (
-        <main className="flex-1 overflow-hidden pt-12 lg:pt-0">
+        <main className="flex-1 overflow-hidden pt-[4.5rem] lg:pt-0">
           {children}
         </main>
       ) : (
@@ -156,7 +158,7 @@ export default function CoordinatorLayout({ children }) {
            실측(콘텐츠 편집, 문서 10,985px): 저장바가 맨 위 기준 10,889px 지점에 정적으로 앉아
            편집 중엔 화면에 없었고 끝까지 내려야 보였다.
            ⚠️ 메시지 화면은 위 분기의 `overflow-hidden` 을 그대로 쓴다(2단 채팅 풀블리드 — 건드리지 말 것). */
-        <main className="flex-1 pt-14 lg:pt-0">
+        <main className="flex-1 pt-[4.5rem] lg:pt-0">
           {/* pb: 쿠키 동의 배너(`fixed bottom-0`)가 화면 맨 아래 내용을 덮는다 — 코디 화면엔
               바닥 여백이 없어 「더 보기」 같은 마지막 버튼이 눌리지 않았다(2026-07-29 실측,
               elementFromPoint 가 배너를 반환). 배너가 알려주는 높이만큼 비워 둔다(닫히면 0). */}
