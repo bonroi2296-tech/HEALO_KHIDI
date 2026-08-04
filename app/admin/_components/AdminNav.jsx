@@ -348,7 +348,9 @@ export function AdminNav() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setIsMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+          {/* 오른쪽에서 나온다 — 여는 버튼(☰)이 오른쪽 위에 있기 때문.
+              왼쪽에서 나오면 «누른 곳»과 «열린 곳»이 반대라 어색하다(2026-08-04 PO 지적). */}
+          <aside className="absolute right-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
             {navContent}
           </aside>
         </div>

@@ -139,7 +139,8 @@ export function HospitalNav() {
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+          {/* 여는 버튼(☰)이 오른쪽 위라 서랍도 오른쪽에서 나온다 (2026-08-04 PO 지적) */}
+          <aside className="absolute right-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
             {navContent}
           </aside>
         </div>

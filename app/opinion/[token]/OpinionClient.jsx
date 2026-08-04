@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
+import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown, Eye, Download, X, Paperclip } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 import ImagingPanel from "@/components/ImagingPanel";
 
@@ -22,6 +22,8 @@ export default function OpinionClient({ token }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  // 첨부를 «내려받지 않고» 바로 띄워 보는 창(PO 요청 2026-08-04)
+  const [preview, setPreview] = useState(null); // { url, name }
 
   useEffect(() => {
     let alive = true;
@@ -205,9 +207,21 @@ export default function OpinionClient({ token }) {
                     )}
                   </div>
                   {a.url ? (
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
-                      <FileText size={15} /> <span className="truncate">{a.name}</span> <span className="text-gray-400 text-xs">(원본)</span>
-                    </a>
+                    // 예전엔 누르면 바로 내려받기만 됐다. 원장님이 «잠깐 보고 싶을 뿐»인 경우가 더 많다(PO 요청).
+                    <div className="flex items-center gap-2 flex-wrap text-sm">
+                      <FileText size={15} className="text-teal-700 shrink-0" />
+                      <span className="truncate text-gray-800">{a.name}</span>
+                      <button
+                        onClick={() => setPreview({ url: a.url, name: a.name })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
+                      >
+                        <Eye size={12} /> 미리보기
+                      </button>
+                      <a href={a.url} download={a.name}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 transition">
+                        <Download size={12} /> 내려받기
+                      </a>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
                   )}
@@ -270,6 +284,33 @@ export default function OpinionClient({ token }) {
           {submitting ? "제출 중…" : "소견 제출"}
         </button>
       </section>
+
+      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 브라우저 뷰어로. */}
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3" onClick={() => setPreview(null)}>
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-200">
+              <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a href={preview.url} download={preview.name}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
+                  <Download size={12} /> 내려받기
+                </a>
+                <button onClick={() => setPreview(null)} className="p-1 rounded hover:bg-gray-100 text-gray-500" aria-label="닫기">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
+              {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+                <img src={preview.url} alt={preview.name} className="max-w-full max-h-[80vh] object-contain" />
+              ) : (
+                <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
