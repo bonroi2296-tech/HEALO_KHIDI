@@ -16,6 +16,13 @@
  *   대장에 등록된 조문끼리 서로 뒤바뀐 인용(예: §8 자리에 §9). 조문 «내용»과 문장 «취지»의
  *   일치는 기계가 못 잰다 — 그건 사람이 원문을 보고 판단해야 한다.
  *   통신비밀보호법 등 대장에 없는 법령은 검사 범위 밖.
+ *   **법 이름이 조문 «뒤»에 오는데 그 사이에 다른 문서 이름이 끼어든 문장**
+ *   (예: "Article 999 Integrated Notice of the Act …" — of 없이 두 이름이 붙은 형태)은
+ *   사람이 읽어도 어느 쪽 조문인지 모호하고, 기계는 앞쪽(통합고시)에 붙인다 → 검사에서 빠진다.
+ *   2026-08-04 독립 리뷰가 이 형태를 지적했는데, «자연스러운» 두 형태
+ *   ("Article N of the Act …" / "Article N of the Integrated Notice …")는 각각 올바르게
+ *   갈리는 것을 자기시험으로 확인했으므로 **이 모호한 형태는 잡지 않기로 하고 여기 적어 둔다**
+ *   (코드를 비틀어 맞추면 자연스러운 문장 쪽에서 오탐이 난다).
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -149,7 +156,19 @@ function attributeArticles(line) {
           after = mk;
         }
       }
-      const chosen = afterDist < beforeDist ? after : before;
+      // ⚠️ 「앞이 «붙어 있으면» 앞이 이긴다」 — 거리 비교만 하면 거짓 통과가 난다.
+      //   2026-08-04 독립 리뷰가 잡은 실제 구멍:
+      //     "의료해외진출법 제15조와 통합고시 제3조에 따라 예상 진료비를 안내한다."
+      //   여기서 제15조는 «바로 앞» 의료해외진출법 것인데, 뒤의 「통합고시」가 거리상 더 가까워서
+      //   제15조가 통합고시(검사 대상 아님)에 붙어 **§15 진료비 오인용 규칙 자체가 조용히 통과**했다.
+      //   그 규칙 하나 때문에 이 검사기를 만들었는데, 새로 넣은 문구 스타일(통합고시와 의료해외진출법을
+      //   한 줄에 같이 쓰는 것)이 정확히 그 사각지대와 겹쳤다.
+      //   → 앞 법 이름과 조문 사이에 «다른 숫자가 없고 짧게 붙어 있으면» 무조건 앞이 주인이다.
+      //     뒤를 보는 건 어순이 반대인 언어(영어·러시아어)에서 «앞에 아무것도 없을 때»만 쓴다.
+      const beforeGap = before ? line.slice(before.pos, at) : null;
+      const beforeAdjacent =
+        before !== null && beforeGap.length <= 40 && !/\d/.test(beforeGap.replace(/^\S+/, ""));
+      const chosen = beforeAdjacent ? before : afterDist < beforeDist ? after : before;
       if (!chosen || !chosen.owner) continue; // 남의 법 조문 → 검사 대상 아님
       (out[chosen.owner] ||= new Set()).add(m[1]);
     }
@@ -229,6 +248,36 @@ const SELFTESTS = [
     name: "통합고시가 같은 줄에 있어도 «법률» 미등록 조문은 여전히 잡는다",
     line: "근거: 통합고시 제3조. 자세한 것은 의료해외진출법 제999조를 보라.",
     expect: true,
+  },
+  // ↓ 2026-08-04 독립 리뷰가 잡은 «거짓 통과» 4종. 전부 «잡혀야 하는데 안 잡히던» 것이다.
+  //   앞의 법 이름이 바로 붙어 있는데도, 뒤에 온 「통합고시」가 거리상 가깝다는 이유로
+  //   조문을 빼앗아 가서 검사 자체를 건너뛰었다.
+  {
+    name: "거짓통과- 뒤의 통합고시가 앞 법의 조문을 빼앗음(미등록)",
+    line: "근거: 의료해외진출법 제999조와 통합고시 제3조.",
+    expect: true,
+  },
+  {
+    // 제일 심각한 것 — 이 검사기를 만든 이유인 §15 규칙이 통째로 조용해졌다.
+    name: "거짓통과- §15 진료비 오인용이 통합고시 뒤에 숨음",
+    line: "의료해외진출법 제15조와 통합고시 제3조에 따라 예상 진료비를 안내한다.",
+    expect: true,
+  },
+  {
+    name: "거짓통과- 시행규칙이 앞 법의 조문을 빼앗음",
+    line: "의료해외진출법 제999조와 시행규칙 제7조",
+    expect: true,
+  },
+  {
+    // 영어 어순의 «자연스러운» 두 형태는 둘 다 올바르게 갈린다.
+    name: "영어- of the Act 형태는 우리 법 조문으로 잡는다",
+    line: "Under Article 999 of the Act on the Support for Overseas Expansion of Healthcare, …",
+    expect: true,
+  },
+  {
+    name: "영어- of the Integrated Notice 형태는 우리 법이 아니다",
+    line: "Under Article 999 of the Integrated Notice on Support for Overseas Expansion of Healthcare, …",
+    expect: false,
   },
 ];
 

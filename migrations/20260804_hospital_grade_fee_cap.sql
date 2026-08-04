@@ -58,10 +58,31 @@ UPDATE hospitals
 --    · 이화여자대학교의과대학부속«목동»병원 → 명단 있음 → tertiary (15%)
 --    · 이대서울병원                      → **명단 없음** → 종합병원 general (20%)
 --      (서울권 명단의 '…서울…병원'은 삼성서울·서울대·서울아산·서울성모 4곳뿐이고 이대서울은 없다)
+--    ⚠️ **반드시 `IS NULL` 을 붙인 채로 둬라.** 이 파일을 다시 돌릴 일이 생기는데(새 환경 구축,
+--       재적용, 마이그레이션 통합), 조건이 없으면 «나중에 사람이 올바르게 고쳐 놓은 값을 되돌린다».
+--       특히 이대서울병원이 제6기에 상급종합으로 지정돼 15% 로 낮춰 놨는데 이 줄이 다시 돌면
+--       **20% 로 올려버려서 기계가 위반을 허용하게 된다** — 아래 재검토 경고와 정면으로 어긋난다.
+--       (2026-08-04 독립 리뷰 지적)
 UPDATE hospitals SET medical_institution_grade = 'tertiary'
- WHERE name IN ('고려대학교 구로병원', '신촌세브란스병원', '이대목동병원');
+ WHERE name IN ('고려대학교 구로병원', '신촌세브란스병원', '이대목동병원')
+   AND medical_institution_grade IS NULL;
 UPDATE hospitals SET medical_institution_grade = 'general'
- WHERE name = '이대서울병원';
+ WHERE name = '이대서울병원'
+   AND medical_institution_grade IS NULL;
+
+-- 병원 «이름»으로 맞추므로, 이름이 바뀌거나 새 지점이 생기면 조용히 빠진다(0행 갱신은 오류가 아니다).
+-- 빠진 곳은 NULL 로 남아 코드가 15% 로 막으니 «법을 넘는» 사고는 안 나지만, 합법적인 20% 견적이
+-- 막히는 것도 문제다 → 남은 미확인을 여기서 «눈에 띄게» 알린다.
+DO $$
+DECLARE missing int;
+BEGIN
+  SELECT count(*) INTO missing
+    FROM hospitals
+   WHERE is_partner = true AND medical_institution_grade IS NULL;
+  IF missing > 0 THEN
+    RAISE WARNING '[유치수수료 상한] 종별 미확인 협력병원 %건 — 전부 가장 엄격한 15%% 로 막힌다. 어드민 병원 편집에서 종별을 채워라.', missing;
+  END IF;
+END $$;
 
 -- 🔴 **재검토: 2026-12-31** — 제5기 지정기간이 그날 끝난다(2024-01-01 ~ 2026-12-31).
 --    제6기 명단이 나오면 위 4곳을 다시 대조하라. 지정에서 빠지면 상한이 15%→20% 로 «올라가고»,

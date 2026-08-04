@@ -22,6 +22,13 @@
  *     부가세 구분 칸이 없어서 «세금 포함인지»를 알 수 없다. 세금 별도라면 이 검사는 실제보다
  *     엄격하게 잡는다 — 안전한 방향이라 그대로 둔다. 항목에 세금 칸이 생기면 여기도 같이 고쳐라.
  *   · 견적서에 안 적고 따로 정산하는 수수료는 당연히 못 잡는다. 이 검사는 «견적서에 적힌 것»만 본다.
+ *   · 원화와 달러를 «섞어» 적은 경우(진료비는 원화, 수수료는 달러) 두 통화의 환율을 우리가 정할 수 없어
+ *     비율을 못 낸다. 그 조합은 「같은 통화의 진료비가 0」으로 걸려 차단된다 — 통과시키는 것보다 낫다.
+ *
+ * ⚠️ 이 판정이 «실제로» 돌려면 estimate.hospital_id 가 조회돼야 한다.
+ *   2026-08-04 독립 리뷰: 타입에만 넣고 select 에서 빠뜨려 **상한이 항상 15% 로 판정**되고 있었다
+ *   (= 면력한방병원 20% 짜리 합법 견적까지 전부 막힘). requireCostEstimateAccess 의 select 를 건드릴 땐
+ *   반드시 이 판정부터 다시 확인하라.
  */
 
 /** 통합고시 제3조 — 의료기관 종별 유치수수료 상한(총 진료비 대비). */
@@ -80,76 +87,84 @@ export function checkFacilitationFeeCap(
   patientTotalKrw: number;
   /** 병원이 우리에게 지급하는 항목 합계 = 유치수수료 */
   facilitationFeeKrw: number;
-  /** facilitationFeeKrw / patientTotalKrw (분모 0이면 null) */
+  patientTotalUsd: number;
+  facilitationFeeUsd: number;
+  /** 판정에 실제로 쓰인 비율 (분모 0이거나 수수료 0이면 null) */
   ratio: number | null;
   cap: number;
   grade: MedicalInstitutionGrade | null;
   gradeKnown: boolean;
-  /** 상한을 넘지 않으려면 수수료가 얼마 이하여야 하는가 (원, 내림) */
+  /** 상한을 넘지 않으려면 수수료가 얼마 이하여야 하는가 (내림) */
   maxAllowedKrw: number;
-  reason: "ok" | "over_cap" | "no_patient_total";
+  maxAllowedUsd: number;
+  /** 어느 통화에서 걸렸나 — 화면이 숫자를 골라 보여줄 때 쓴다 */
+  currency: "KRW" | "USD" | null;
+  reason: "ok" | "over_cap" | "no_patient_total" | "negative_amount";
 } {
   const { cap, grade: g, gradeKnown } = resolveFeeCap(grade);
   const list = Array.isArray(items) ? items : [];
 
   const num = (v: unknown) => {
+    if (v === null || v === undefined || v === "") return 0;
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
 
-  let patientTotalKrw = 0;
-  let facilitationFeeKrw = 0;
+  let patientTotalKrw = 0, facilitationFeeKrw = 0;
+  let patientTotalUsd = 0, facilitationFeeUsd = 0;
+  let hasNegative = false;
+
   for (const it of list) {
+    const krw = num(it?.krw);
+    const usd = num(it?.usd);
+    // 음수 금액은 «상쇄 줄»로 상한을 우회하는 통로다 —
+    //   [수수료 500만, 조정 -300만] 이면 합계는 200만이라 통과하는데,
+    //   발급되는 견적서 PDF 는 병원 부담 항목을 «줄마다 따로» 찍으므로 종이에는 500만이 남는다.
+    //   (2026-08-04 독립 리뷰 지적) → 아예 받지 않는다.
+    if (krw < 0 || usd < 0) hasNegative = true;
+    if (it?.payer === "hospital") { facilitationFeeKrw += krw; facilitationFeeUsd += usd; }
     // payer 판정은 견적서 PDF·환자 화면과 **같은 식**이어야 한다 —
     // 값이 없거나 이상하면 「환자 부담」으로 본다(합계에 포함되는 안전한 쪽).
-    if (it?.payer === "hospital") facilitationFeeKrw += num(it?.krw);
-    else patientTotalKrw += num(it?.krw);
+    else { patientTotalKrw += krw; patientTotalUsd += usd; }
   }
 
   // 내림(floor)으로 계산한다 — 「딱 상한까지」가 목표일 때 반올림하면 1원 초과가 난다.
   const maxAllowedKrw = Math.floor(patientTotalKrw * cap);
-
-  if (facilitationFeeKrw <= 0) {
-    return {
-      ok: true, patientTotalKrw, facilitationFeeKrw, ratio: null,
-      cap, grade: g, gradeKnown, maxAllowedKrw, reason: "ok",
-    };
-  }
-  if (patientTotalKrw <= 0) {
-    // 수수료만 있고 진료비가 없다 = 비율을 낼 수 없다. 통과시키면 무한대 비율을 눈감는 셈이라 막는다.
-    return {
-      ok: false, patientTotalKrw, facilitationFeeKrw, ratio: null,
-      cap, grade: g, gradeKnown, maxAllowedKrw: 0, reason: "no_patient_total",
-    };
-  }
-
-  const ratio = facilitationFeeKrw / patientTotalKrw;
-  return {
-    ok: facilitationFeeKrw <= maxAllowedKrw,
-    patientTotalKrw, facilitationFeeKrw, ratio,
-    cap, grade: g, gradeKnown, maxAllowedKrw,
-    reason: facilitationFeeKrw <= maxAllowedKrw ? "ok" : "over_cap",
+  const maxAllowedUsd = Math.floor(patientTotalUsd * cap);
+  const base = {
+    patientTotalKrw, facilitationFeeKrw, patientTotalUsd, facilitationFeeUsd,
+    cap, grade: g, gradeKnown, maxAllowedKrw, maxAllowedUsd,
   };
-}
 
-/** 코디네이터 화면에 그대로 띄울 수 있는 한국어 설명. */
-export function describeFeeCapResult(r: ReturnType<typeof checkFacilitationFeeCap>): string {
-  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
-  const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
-  const gradeText = r.gradeKnown
-    ? GRADE_LABEL_KO[r.grade as MedicalInstitutionGrade]
-    : "종별 미확인(가장 엄격한 상급종합 기준을 적용함)";
+  if (hasNegative) {
+    return { ...base, ok: false, ratio: null, currency: null, reason: "negative_amount" };
+  }
 
-  if (r.reason === "no_patient_total") {
-    return `유치수수료 ${won(r.facilitationFeeKrw)} 가 있는데 환자 부담 진료비가 0원이라 상한 비율을 낼 수 없다. 진료비 항목을 먼저 넣어라. (${gradeText})`;
+  // ⚠️ 통화를 «둘 다» 본다. 원화 칸을 비우고 달러로만 적으면 예전 판은 수수료 0원으로 읽어
+  //    그냥 통과시켰다(2026-08-04 독립 리뷰가 잡은 실제 우회 경로). 수수료가 적힌 통화마다 검사한다.
+  const checks: Array<{ currency: "KRW" | "USD"; fee: number; total: number; max: number }> = [
+    { currency: "KRW", fee: facilitationFeeKrw, total: patientTotalKrw, max: maxAllowedKrw },
+    { currency: "USD", fee: facilitationFeeUsd, total: patientTotalUsd, max: maxAllowedUsd },
+  ];
+
+  for (const c of checks) {
+    if (c.fee <= 0) continue; // 그 통화로 적힌 수수료가 없다 → 검사할 게 없다
+    if (c.total <= 0) {
+      // 수수료만 있고 같은 통화의 진료비가 없다 = 비율을 낼 수 없다.
+      // 통과시키면 무한대 비율을 눈감는 셈이라 막는다.
+      return { ...base, ok: false, ratio: null, currency: c.currency, reason: "no_patient_total" };
+    }
+    if (c.fee > c.max) {
+      return { ...base, ok: false, ratio: c.fee / c.total, currency: c.currency, reason: "over_cap" };
+    }
   }
-  if (r.reason === "over_cap") {
-    return (
-      `유치수수료가 법정 상한을 넘었다 — ${gradeText} 상한 ${pct(r.cap)}, ` +
-      `현재 ${pct(r.ratio || 0)}. 환자 부담 진료비 ${won(r.patientTotalKrw)} 기준으로 ` +
-      `수수료는 ${won(r.maxAllowedKrw)} 이하여야 한다(현재 ${won(r.facilitationFeeKrw)}). ` +
-      `초과는 「의료해외진출법」 제9조제1항 위반이고 제24조제1항제6호 등록취소 사유다.`
-    );
-  }
-  return `유치수수료 ${won(r.facilitationFeeKrw)} — ${gradeText} 상한 ${pct(r.cap)} 이내(최대 ${won(r.maxAllowedKrw)}).`;
+
+  const shown = checks.find((c) => c.fee > 0);
+  return {
+    ...base,
+    ok: true,
+    ratio: shown ? shown.fee / shown.total : null,
+    currency: shown ? shown.currency : null,
+    reason: "ok",
+  };
 }

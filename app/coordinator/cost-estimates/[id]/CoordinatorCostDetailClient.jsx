@@ -25,16 +25,23 @@ function feeCapMessage(detail, L) {
   if (!detail) return L.coSaveFail;
   const won = (n) => `${Math.round(Number(n) || 0).toLocaleString("ko-KR")} KRW`;
   const pct = (n) => `${((Number(n) || 0) * 100).toFixed(1)}%`;
+  if (detail.reason === "negative_amount") {
+    return `${L.coFeeCapTitle}\n\n${L.coFeeCapNegative}`;
+  }
   if (detail.reason === "no_patient_total") {
     return `${L.coFeeCapTitle}\n\n${L.coFeeCapNoBase}\n\n${L.coFeeCapLaw}`;
   }
+  // 어느 통화에서 걸렸는지에 따라 그 통화의 숫자를 보여준다 — 원화 칸이 비어 있고
+  // 달러로만 적은 견적에서 원화 0원만 보여주면 코디가 무엇을 고쳐야 할지 모른다.
+  const usd = detail.currency === "USD";
+  const money = (n) => (usd ? `$${Math.round(Number(n) || 0).toLocaleString("en-US")}` : won(n));
   const lines = [
     L.coFeeCapTitle,
     "",
-    `· ${L.coFeeCapBase}: ${won(detail.patient_total_krw)}`,
+    `· ${L.coFeeCapBase}: ${money(usd ? detail.patient_total_usd : detail.patient_total_krw)}`,
     `· ${L.coFeeCapLimit}: ${pct(detail.cap)}`,
-    `· ${L.coFeeCapMax}: ${won(detail.max_allowed_krw)}`,
-    `· ${L.coFeeCapCurrent}: ${won(detail.facilitation_fee_krw)}`,
+    `· ${L.coFeeCapMax}: ${money(usd ? detail.max_allowed_usd : detail.max_allowed_krw)}`,
+    `· ${L.coFeeCapCurrent}: ${money(usd ? detail.facilitation_fee_usd : detail.facilitation_fee_krw)}`,
   ];
   if (detail.grade_known === false) lines.push("", `⚠️ ${L.coFeeCapGradeUnknown}`);
   lines.push("", L.coFeeCapLaw);
@@ -145,13 +152,15 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
       // 「저장 실패」 한 줄만 뜨면 코디가 무엇을 고쳐야 할지 몰라서 가드가 있으나 마나가 된다.
       if (!res.ok && json?.error === "facilitation_fee_over_cap") {
         alert(feeCapMessage(json.detail, L));
-        return;
+        return false; // ⚠️ «막혔다»를 부르는 쪽에 알려야 한다 — 아래 handleIssue 참고
       }
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
       alert(L.coSaveDone);
+      return true;
     } catch (_err) {
       alert(L.coSaveFail);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -186,12 +195,21 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
     if (!confirm(L.coIssueConfirm)) return;
     setIssuing(true);
     try {
-      await handleSave(); // 먼저 저장
+      // ⚠️ 저장이 «막혔으면» 발급으로 넘어가면 안 된다.
+      //    예전 판은 handleSave 가 조용히 return 만 해서, 수수료 상한 초과로 저장이 거부돼도
+      //    그대로 발급이 진행됐다 — 이전에 저장돼 있던 항목으로 견적서 PDF 가 나가고
+      //    status 가 issued 로 «되돌리기 어렵게» 넘어갔다(2026-08-04 독립 리뷰).
+      const saved = await handleSave();
+      if (saved === false) return;
       const res = await fetch(
         `/api/khidi/cost-estimates/${estimateId}/quotation`,
         { method: "POST", credentials: "include" }
       );
       const json = await res.json();
+      if (!res.ok && json?.error === "facilitation_fee_over_cap") {
+        alert(feeCapMessage(json.detail, L));
+        return;
+      }
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await load();
       alert(L.coIssueDone);

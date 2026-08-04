@@ -12,7 +12,7 @@ import { requireCostEstimateAccess } from "@/lib/auth/requireCostEstimateAccess"
 import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 const supabaseAdmin: any = _sb;
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
-import { checkFacilitationFeeCap, describeFeeCapResult } from "@/lib/legal/facilitationFeeCap";
+import { checkFacilitationFeeCap } from "@/lib/legal/facilitationFeeCap";
 import { getClientIp } from "@/lib/rateLimit";
 
 const VALID_STATUSES = [
@@ -121,46 +121,6 @@ export async function PATCH(
             );
           }
         }
-        // ── 유치수수료 법정 상한 검증 ────────────────────────────────
-        // 통합고시 제3조: 상급종합 15% / 종합병원·병원(한방 포함) 20% / 의원 30%.
-        // 초과 = 법 제9조제1항 위반 → 제24조제1항제6호 **등록 취소 사유**.
-        // PO 결정(2026-08-04)이 «상한을 꽉 채워 받는다» 라서 여유가 0이다 —
-        // 반올림 하나, 항목 분류 하나만 어긋나도 즉시 위반이 되므로 저장 길목에서 막는다.
-        // 병원 종별을 모르면(NULL) 가장 엄격한 15% 로 판정한다(틀리는 방향이 «덜 받는다»가 되게).
-        {
-          const hospitalId = payload.hospital_id ?? estimate.hospital_id;
-          let grade: unknown = null;
-          if (hospitalId) {
-            const { data: h } = await supabaseAdmin
-              .from("hospitals")
-              .select("medical_institution_grade")
-              .eq("id", hospitalId)
-              .maybeSingle();
-            grade = (h as any)?.medical_institution_grade ?? null;
-          }
-          const capCheck = checkFacilitationFeeCap(payload.quotation_items, grade);
-          if (!capCheck.ok) {
-            // 사유는 코드로만 내보낸다(보안 규칙: 원시 메시지 금지). 설명 문구는 화면이 만든다.
-            return Response.json(
-              {
-                ok: false,
-                error: "facilitation_fee_over_cap",
-                detail: {
-                  reason: capCheck.reason,
-                  cap: capCheck.cap,
-                  grade: capCheck.grade,
-                  grade_known: capCheck.gradeKnown,
-                  patient_total_krw: capCheck.patientTotalKrw,
-                  facilitation_fee_krw: capCheck.facilitationFeeKrw,
-                  max_allowed_krw: capCheck.maxAllowedKrw,
-                  message_ko: describeFeeCapResult(capCheck),
-                },
-              },
-              { status: 400 }
-            );
-          }
-        }
-
         updates.quotation_items = payload.quotation_items;
 
         // 총액 자동 계산 — **환자 부담분만** 더한다.
@@ -185,6 +145,67 @@ export async function PATCH(
         }
         updates.total_krw = total_krw;
         updates.total_usd = allHaveUsd ? total_usd : null;
+      }
+
+      // ── 유치수수료 법정 상한 검증 (항목이 바뀌든 «병원»이 바뀌든 매번) ──────────
+      // 통합고시 제3조: 상급종합 15% / 종합병원·병원(한방 포함) 20% / 의원 30%.
+      // 초과 = 법 제9조제1항 위반 → 제24조제1항제6호 **등록 취소 사유**.
+      // PO 결정(2026-08-04)이 «상한을 꽉 채워 받는다» 라서 여유가 0이다 —
+      // 반올림 하나, 항목 분류 하나만 어긋나도 즉시 위반이 되므로 저장 길목에서 막는다.
+      //
+      // ⚠️ **병원만 바꾸는 요청도 반드시 검사한다.** 예전 판은 항목이 있을 때만 검사해서,
+      //    ①20% 병원으로 20% 짜리 견적을 저장 → ②병원만 15% 병원으로 바꾸기
+      //    두 번의 요청으로 상한을 그냥 넘길 수 있었다(2026-08-04 독립 리뷰).
+      if (payload.quotation_items !== undefined || payload.hospital_id !== undefined) {
+        const finalHospitalId =
+          payload.hospital_id !== undefined ? payload.hospital_id : estimate.hospital_id;
+
+        // 항목이 이번 요청에 없으면 «이미 저장된 것»을 상대로 검사한다.
+        let finalItems = payload.quotation_items;
+        if (finalItems === undefined) {
+          const { data: cur } = await supabaseAdmin
+            .from("cost_estimates")
+            .select("quotation_items")
+            .eq("id", estimate.id)
+            .maybeSingle();
+          finalItems = (cur as any)?.quotation_items || [];
+        }
+
+        let grade: unknown = null;
+        if (finalHospitalId) {
+          const { data: h } = await supabaseAdmin
+            .from("hospitals")
+            .select("medical_institution_grade")
+            .eq("id", finalHospitalId)
+            .maybeSingle();
+          grade = (h as any)?.medical_institution_grade ?? null;
+        }
+
+        const capCheck = checkFacilitationFeeCap(finalItems, grade);
+        if (!capCheck.ok) {
+          // 사유는 «코드와 숫자»로만 내보낸다 — 완성된 문장은 화면이 6개 언어로 만든다
+          // (백오피스도 다국어라 서버가 한국어 문장을 내려주면 안 된다).
+          return Response.json(
+            {
+              ok: false,
+              error: "facilitation_fee_over_cap",
+              detail: {
+                reason: capCheck.reason,
+                cap: capCheck.cap,
+                grade: capCheck.grade,
+                grade_known: capCheck.gradeKnown,
+                currency: capCheck.currency,
+                patient_total_krw: capCheck.patientTotalKrw,
+                facilitation_fee_krw: capCheck.facilitationFeeKrw,
+                max_allowed_krw: capCheck.maxAllowedKrw,
+                patient_total_usd: capCheck.patientTotalUsd,
+                facilitation_fee_usd: capCheck.facilitationFeeUsd,
+                max_allowed_usd: capCheck.maxAllowedUsd,
+              },
+            },
+            { status: 400 }
+          );
+        }
       }
 
       if (payload.hospital_id !== undefined) updates.hospital_id = payload.hospital_id;

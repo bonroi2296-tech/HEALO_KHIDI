@@ -6,7 +6,7 @@
 <style>
   /* A4 인쇄 전용. 브라우저로 열어 Ctrl+P → 「배경 그래픽」 켜기 → A4 세로. */
   /* ⚠️ 이 값들은 「문서 1건 = 종이 1장」에 맞춰 실측으로 조인 것이다(2026-08-04).
-     처음엔 10.5pt/1.55 였는데 3건이 6쪽으로 넘쳐 122자짜리 «고아 페이지»가 생겼다.
+     처음엔 10.5pt/1.55 였는데 3건이 6쪽으로 넘쳤고, 뒤에 개인정보 수령자 표를 채우자 다시 4쪽이 됐다.
      글자를 키우거나 항목을 늘리면 다시 2장으로 갈라진다 — 고친 뒤 반드시 쪽수를 다시 세라. */
   @page { size: A4 portrait; margin: 11mm 12mm 9mm; }
   * { box-sizing: border-box; }
@@ -15,8 +15,8 @@
     margin: 0;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #111827;                 /* gray-900 — 17.7:1 */
-    font-size: 8.6pt;
-    line-height: 1.34;
+    font-size: 7.5pt;
+    line-height: 1.24;
   }
   .sheet { page-break-after: always; }
   .sheet:last-child { page-break-after: auto; }
@@ -32,15 +32,15 @@
   .legalref { font-size: 7.4pt; color: #4b5563; margin: 0; }
 
   h2 {
-    font-size: 9.8pt; margin: 10px 0 4px;
+    font-size: 9.0pt; margin: 8px 0 3px;
     padding-left: 8px; border-left: 4px solid #0f766e;
   }
-  h3 { font-size: 8.9pt; margin: 7px 0 3px; color: #115e59; }
+  h3 { font-size: 8.3pt; margin: 6px 0 2px; color: #115e59; }
   p, li { margin: 2px 0; }
   ul, ol { margin: 2px 0 2px 16px; padding: 0; }
 
-  table { width: 100%; border-collapse: collapse; margin: 4px 0 7px; font-size: 8.2pt; }
-  th, td { border: 1px solid #d1d5db; padding: 3px 6px; text-align: left; vertical-align: top; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 7px; font-size: 7.5pt; }
+  th, td { border: 1px solid #d1d5db; padding: 2.5px 5px; text-align: left; vertical-align: top; }
   th { background: #f0fdfa; font-weight: 600; width: 34%; }
 
   .box {
@@ -118,6 +118,7 @@
   <ul>
     <li>The attracting medical institution must provide you with a <strong>treatment contract and an estimate of expected treatment costs before the treatment contract is concluded</strong> (Article 8(2)2 of the Act). Please make sure you receive and read it.</li>
     <li>Cost figures shown on our website or in chat are <strong>reference ranges</strong>. Only the estimate issued by the medical institution is binding.</li>
+    <li>Before you sign a treatment contract we also tell you <strong>the facilitation fee rate or amount we receive from the medical institution</strong>, together with the scope of our service, what is excluded, how to cancel, and how complaints are handled.</li>
   </ul>
 
   <h3>3-3. Limits of what we can promise</h3>
@@ -208,19 +209,24 @@
   </ul>
 
   <h2>3. Who we share it with</h2>
-  <ul>
-    <li>The <strong>medical institution you choose</strong> — only what is needed for your consultation and treatment.</li>
-    <li>An <strong>overseas partner agency</strong>, only where you asked for local support and only with your consent.</li>
-    <li>We <strong>never sell</strong> personal information and never share it for advertising.</li>
-  </ul>
+  <p>Only with your consent, and only what each recipient needs:</p>
+  <table>
+    <tr><th>The medical institution you choose</th><td>Name, date of birth, contact, passport no., diagnosis, symptoms, medical records — for consultation, booking, treatment planning</td></tr>
+    <tr><th>Visa agency</th><td>Passport copy, letter of invitation, travel dates — to apply for a medical visa (C-3-3, G-1) on your behalf</td></tr>
+    <tr><th>Your local partner agency abroad</th><td>Name, contact, diagnosis, specialist opinion, treatment and schedule — local-language support and follow-up. Only the agency that referred you; it acts as an independent controller, not our processor.</td></tr>
+    <tr><th>Insurer</th><td>Where you asked for help claiming travel or international insurance</td></tr>
+    <tr><th>Service providers we use to run the platform</th><td>Vercel Inc. (US) · Supabase Inc. (US company, data stored in the Seoul region) · Google Ireland Ltd. (analytics) · Resend Inc. (US, email) · LiveKit Inc. (US, video) · Google LLC (US, AI chat &amp; translation)</td></tr>
+  </table>
+  <p>You may refuse any of these; refusing may limit the related service but never the core one. We <strong>never sell</strong> personal information and never share it for advertising.</p>
+  <p class="legalref">The full list, including each recipient's country and retention period, is in our privacy policy at https://healwith.co.kr/privacy.</p>
 
   <h2>4. How long we keep it</h2>
   <ul>
     <li><strong>Health information (sensitive data):</strong> kept only for as long as needed to provide the service — pre-consultation, treatment support and follow-up. It is destroyed <strong>without delay</strong> when you close your account or withdraw consent.</li>
-    <li><strong>Account information:</strong> kept while your membership is active; destroyed within 30 days of withdrawal. Accounts inactive for 3 years are destroyed after prior notice.</li>
+    <li><strong>Account information:</strong> kept while your membership is active; destroyed within 30 days of withdrawal. Accounts inactive for 3 years are destroyed after notice.</li>
     <li><strong>Records required by Korean law</strong> are kept for the statutory period — for example, records of consumer complaints and dispute handling: <strong>3 years</strong> (Article 6 of the Act on Consumer Protection in Electronic Commerce).</li>
-    <li><strong>Your medical records themselves are held by the medical institution</strong>, not by us, and are kept for 10 years under Article 22 of the Medical Service Act. We do not hold copies of those originals.</li>
-    <li>Destruction is irreversible: electronic files are permanently deleted, printed material is shredded.</li>
+    <li><strong>Your medical records themselves are held by the medical institution</strong>, not by us, for 10 years under Article 22 of the Medical Service Act. We hold no copies of those originals.</li>
+    <li>Destruction is irreversible: electronic files permanently deleted, printed material shredded.</li>
   </ul>
 
   <h2>5. How we protect it</h2>
@@ -233,7 +239,7 @@
   <h2>6. Your rights</h2>
   <ul>
     <li>You may request <strong>access, correction, deletion, or suspension of processing</strong>, and you may <strong>withdraw consent</strong> at any time.</li>
-    <li>Send the request to <strong>admin@healwith.co.kr</strong>. We act within <strong>10 days</strong>.</li>
+    <li>Send the request to <strong>admin@healwith.co.kr</strong>. We act within <strong>10 business days</strong>.</li>
     <li>Exercising these rights never disadvantages you.</li>
   </ul>
 
@@ -242,7 +248,8 @@
     <tr><th>Data Protection Officer</th><td>JUYOUNG KANG (강주영), Representative, BONROI</td></tr>
     <tr><th>Contact</th><td>admin@healwith.co.kr</td></tr>
     <tr><th>If you are not satisfied</th>
-        <td>Personal Information Dispute Mediation Committee — https://www.kopico.go.kr · Tel 1833-6972<br />
+        <td><strong>Personal Information Protection Commission</strong> (supervisory authority) — https://www.pipc.go.kr · Tel 182<br />
+            Personal Information Dispute Mediation Committee — https://www.kopico.go.kr · Tel 1833-6972<br />
             Korea Internet &amp; Security Agency Privacy Report Centre — https://privacy.kisa.or.kr · Tel 118</td></tr>
   </table>
 

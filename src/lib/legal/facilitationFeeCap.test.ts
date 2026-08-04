@@ -137,3 +137,95 @@ describe("빠져나갈 구멍 막기", () => {
     expect(checkFacilitationFeeCap(undefined, null).ok).toBe(true);
   });
 });
+
+describe("2026-08-04 독립 리뷰가 잡은 우회 경로 — 전부 막혀야 한다", () => {
+  it("달러로만 적으면 그냥 통과하던 구멍 (원화 칸이 비어 있어도 검사한다)", () => {
+    // 예전 판: krw 만 합산 → 수수료 0원으로 읽혀 ok. 견적서는 달러로 멀쩡히 발급됐다.
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", usd: 20_000, krw: null, payer: "patient" },
+        { label: "유치수수료", usd: 6_000, krw: null, payer: "hospital" }, // 30%
+      ],
+      "tertiary" // 15%
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("over_cap");
+    expect(r.currency).toBe("USD");
+    expect(r.maxAllowedUsd).toBe(3_000);
+  });
+
+  it("달러 수수료가 상한 이내면 통과", () => {
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", usd: 20_000, payer: "patient" },
+        { label: "유치수수료", usd: 3_000, payer: "hospital" },
+      ],
+      "tertiary"
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("진료비는 원화인데 수수료만 달러 = 환율을 우리가 못 정하므로 막는다", () => {
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", krw: 10_000_000, payer: "patient" },
+        { label: "유치수수료", usd: 6_000, payer: "hospital" },
+      ],
+      "hospital"
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("no_patient_total");
+    expect(r.currency).toBe("USD");
+  });
+
+  it("음수 상쇄 줄로 수수료를 낮춰 적는 것을 막는다", () => {
+    // 예전 판: 500만 + (-300만) = 200만 → 20% 통과. 그런데 견적서 PDF 는 병원 부담 항목을
+    // «줄마다 따로» 찍으므로 종이에는 500만(50%)이 남는다.
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", krw: 10_000_000, payer: "patient" },
+        { label: "유치수수료", krw: 5_000_000, payer: "hospital" },
+        { label: "조정", krw: -3_000_000, payer: "hospital" },
+      ],
+      "hospital"
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("negative_amount");
+  });
+
+  it("환자 항목이 음수여도 막는다 (분모를 줄여 비율을 낮추는 수법)", () => {
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", krw: 10_000_000, payer: "patient" },
+        { label: "할인", krw: -9_000_000, payer: "patient" },
+        { label: "유치수수료", krw: 200_000, payer: "hospital" },
+      ],
+      "hospital"
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("negative_amount");
+  });
+
+  it("병원을 바꾸면 판정도 바뀐다 — 같은 항목이 20%에선 통과, 15%에선 차단", () => {
+    // 「20% 병원으로 저장 → 병원만 15% 병원으로 변경」 두 단계 우회를 막으려면
+    // 라우트가 «병원만 바뀌는 요청»에도 이 판정을 돌려야 한다(route.ts).
+    const items = [
+      { label: "수술", krw: 10_000_000, payer: "patient" as const },
+      { label: "유치수수료", krw: 2_000_000, payer: "hospital" as const },
+    ];
+    expect(checkFacilitationFeeCap(items, "general").ok).toBe(true); // 20%
+    expect(checkFacilitationFeeCap(items, "tertiary").ok).toBe(false); // 15%
+  });
+
+  it("빈 문자열·null 은 0으로 보되 «음수 판정»을 오염시키지 않는다", () => {
+    const r = checkFacilitationFeeCap(
+      [
+        { label: "수술", krw: "10000000" as any, usd: "" as any, payer: "patient" },
+        { label: "수수료", krw: 1_500_000, usd: null, payer: "hospital" },
+      ],
+      "hospital"
+    );
+    expect(r.ok).toBe(true);
+    expect(r.reason).toBe("ok");
+  });
+});
