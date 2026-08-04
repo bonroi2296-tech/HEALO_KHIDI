@@ -117,6 +117,8 @@ const navGroups = [
   {
     title: "시스템",
     items: [
+      // 코디가 적은 개선 요청을 어드민에서도 본다(화면은 코디 포털 — admin 통과). 2026-08-04 PO 제안
+      { id: "staff-requests", label: "개선 요청함", icon: MessageSquare, href: "/coordinator/requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
       { id: "usage", label: "외부 서비스 사용량", icon: Wallet, href: "/admin/khidi/usage" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
