@@ -171,15 +171,23 @@ function isImagingBundle(a: any): boolean {
 }
 
 async function signAttachments(atts: any): Promise<
-  { name: string; url: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
+  { name: string; url: string | null; downloadUrl?: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
 > {
   if (!Array.isArray(atts) || atts.length === 0) return [];
   return Promise.all(
     atts.slice(0, 20).map(async (a: any, i: number) => {
       let url: string | null = null;
+      let downloadUrl: string | null = null;
       if (a?.path) {
-        const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
+        const store = supabaseAdmin.storage.from("attachments");
+        const { data } = await store.createSignedUrl(a.path, 3600);
         url = data?.signedUrl || null;
+        // 내려받기용 주소를 따로 만드는 이유 (PO 제보 2026-08-04 «얘만 다운받기 누르면 왜 이렇게 되냐»):
+        //   화면의 «내려받기» 표시(HTML download)는 **다른 서버의 파일에는 안 먹힌다.**
+        //   그래서 그림은 저장 창이 안 뜨고 그냥 탭에 열려 버렸다(.rar 처럼 못 여는 것만 우연히 잘 됐다).
+        //   저장소에 «이건 내려받는 파일»이라고 표시해 달라고 부탁하는 주소를 따로 받는다.
+        const dn = await store.createSignedUrl(a.path, 3600, { download: String(a?.name || "첨부파일") });
+        downloadUrl = dn.data?.signedUrl || url;
       }
       // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
       const imaging = isImagingBundle(a);
@@ -190,7 +198,7 @@ async function signAttachments(atts: any): Promise<
       }
       // path 를 같이 주는 이유: 영상 보기 창구가 «어느 파일인지»를 알아야 한다.
       // 남의 파일을 넣어도 창구에서 이 링크의 문의 것인지 다시 확인한다.
-      return { name: a?.name || "첨부파일", url, translated, path: a?.path || undefined, imaging };
+      return { name: a?.name || "첨부파일", url, downloadUrl, translated, path: a?.path || undefined, imaging };
     })
   );
 }

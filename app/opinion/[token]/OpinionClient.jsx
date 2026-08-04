@@ -11,6 +11,7 @@ import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown, Eye, Downloa
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 import ImagingPanel from "@/components/ImagingPanel";
 import { uploadDirect } from "@/lib/uploadAttachment";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 /** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
 const canPreview = (name) => /\.(pdf|jpe?g|png|gif|webp)$/i.test(String(name || ""));
@@ -78,7 +79,7 @@ export default function OpinionClient({ token }) {
   };
 
   const submit = async () => {
-    if (!doctorKey || opinion.trim().length < 5 || submitting) return;
+    if (blockReason || submitting) return; // 단추 잠금과 «같은 조건» — 아래 blockReason 참조
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -97,6 +98,9 @@ export default function OpinionClient({ token }) {
         return;
       }
       setSubmitted(true);
+      // 화면 맨 위로 — 「제출되었습니다」가 위에 뜨는데 아래에 머물러 있으면 «눌린 건가?» 싶다.
+      // 「움직임 줄이기」를 켠 분에겐 스르륵 없이 즉시 이동한다(어지럼·구역).
+      window.scrollTo({ top: 0, behavior: scrollBehavior() });
     } catch {
       setSubmitError("네트워크 오류입니다. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -144,6 +148,13 @@ export default function OpinionClient({ token }) {
   }
 
   const c = caseData || {};
+  // 제출을 막는 이유(없으면 null) — 단추를 잠그는 조건과 «같은 값»을 쓴다. 따로 적으면 어긋난다.
+  const blockReason =
+    uploading ? "서류를 올리는 중입니다. 잠시만요."
+    : !doctorKey ? "소견 주시는 분을 골라 주세요."
+    : opinion.trim().length < 5 ? `소견 내용을 조금 더 적어 주세요 (지금 ${opinion.trim().length}자 · 5자 이상).`
+    : null;
+
   return (
     <Shell>
       {/* AI 케이스 브리프 — 코디가 만들어둔 한국어 요약(원문이 러시아어 등이라도 이걸로 빠르게 파악) */}
@@ -244,13 +255,15 @@ export default function OpinionClient({ token }) {
                       {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
                       {canPreview(a.name) && (
                         <button
-                          onClick={() => setPreview({ url: a.url, name: a.name })}
+                          onClick={() => setPreview({ url: a.url, dl: a.downloadUrl, name: a.name, path: a.path })}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
                         >
                           <Eye size={12} /> 미리보기
                         </button>
                       )}
-                      <a href={a.url} download={a.name}
+                      {/* downloadUrl = 저장소가 «내려받기»로 내주는 주소. HTML 의 download 표시는
+                          다른 서버 파일엔 안 먹혀서, 그림이면 그냥 탭에 열려 버린다. */}
+                      <a href={a.downloadUrl || a.url} download={a.name}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 transition">
                         <Download size={12} /> 내려받기
                       </a>
@@ -337,23 +350,30 @@ export default function OpinionClient({ token }) {
 
         {submitError && <p className="text-sm text-red-600 mb-3">{submitError}</p>}
 
+        {/* 왜 안 눌리는지 «먼저» 말한다 (PO 제보 2026-08-04 «제출하기 버튼이 안눌리는데?»):
+            네 글자만 적어서 막혔는데 화면엔 아무 말도 없었다. 못 누르는 단추는 이유를 말해야 한다. */}
+        {blockReason && !submitting && (
+          <p className="text-sm text-amber-700 mb-2">{blockReason}</p>
+        )}
+
         <button
           onClick={submit}
-          disabled={!doctorKey || opinion.trim().length < 5 || submitting}
+          disabled={!!blockReason || submitting}
           className="w-full bg-teal-700 text-white py-3 rounded-lg text-sm font-semibold hover:bg-teal-800 transition disabled:opacity-40"
         >
           {submitting ? "제출 중…" : "소견 제출"}
         </button>
       </section>
 
-      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 브라우저 뷰어로. */}
+      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 서버가 그려서 사진으로. */}
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-200">
               <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
               <div className="flex items-center gap-1.5 shrink-0">
-                <a href={preview.url} download={preview.name}
+                {/* 내려받기는 항상 «원본» — 화면에 띄운 건 우리가 그린 사진이다(의료 원본은 그대로). */}
+                <a href={preview.dl || preview.url} download={preview.name}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
                   <Download size={12} /> 내려받기
                 </a>
@@ -362,13 +382,13 @@ export default function OpinionClient({ token }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
-              {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+            {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+              <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
                 <img src={preview.url} alt={preview.name} className="max-w-full max-h-[80vh] object-contain" />
-              ) : (
-                <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />
-              )}
-            </div>
+              </div>
+            ) : (
+              <PdfPages token={token} path={preview.path} name={preview.name} />
+            )}
           </div>
         </div>
       )}
@@ -486,6 +506,77 @@ function PagePicker({ list, cur, onPick }) {
       </button>
       <span className="text-[11px] text-gray-400 ml-auto">원본 {list.length}쪽</span>
     </div>
+  );
+}
+
+/**
+ * PDF 미리보기 — 우리 서버가 한 쪽씩 그려서 «사진»으로 준다.
+ *
+ * 왜 이렇게 (2026-08-04 PO: «아직도 pdf 미리보기 안 되는데?», 로컬에서도 안 보임):
+ *   처음엔 브라우저 내장 PDF 뷰어(<iframe>)에 맡겼는데 그건 환경을 너무 탄다 —
+ *   플러그인이 꺼져 있거나 차단 프로그램이 끼면 하얀 화면이고, **폰에서는 아예 안 뜬다**.
+ *   원장님이 폰으로 링크를 여는 일이 흔하다. 사진은 어디서든 뜬다.
+ */
+function PdfPages({ token, path, name }) {
+  const [pages, setPages] = useState(0);
+  const [p, setP] = useState(0);
+  const [err, setErr] = useState("");
+  // 쪽을 넘기면 새 사진이 다 올 때까지 «이전 쪽»이 그대로 떠 있다 — 그러면 안 넘어간 것처럼 보인다
+  // (PO 지적 2026-08-04: «이게 안 넘어가는건지 로딩 중인건지 헷갈려»). 그래서 그동안 표시를 띄운다.
+  const [drawing, setDrawing] = useState(true);
+  const src = (n) => `/api/opinions/${token}/page?path=${encodeURIComponent(path)}&p=${n}`;
+
+  useEffect(() => {
+    setPages(0); setP(0); setErr("");
+    if (!path) { setErr("이 파일은 미리보기를 만들 수 없다. 내려받아서 봐 주세요."); return; }
+    let alive = true;
+    fetch(`/api/opinions/${token}/page?path=${encodeURIComponent(path)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!alive) return; d?.ok ? setPages(d.pages) : setErr("미리보기를 만들지 못했다. 내려받아서 봐 주세요."); })
+      .catch(() => alive && setErr("미리보기를 만들지 못했다. 내려받아서 봐 주세요."));
+    return () => { alive = false; };
+  }, [token, path]);
+
+  if (err) return <div className="flex-1 flex items-center justify-center p-8 text-sm text-gray-500">{err}</div>;
+  if (!pages) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8 text-sm text-gray-500">
+        <Loader2 size={16} className="animate-spin mr-2" /> 여는 중…
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="relative flex-1 overflow-auto bg-gray-50 flex items-start justify-center p-3">
+        {/* key 를 쪽마다 다르게 주는 이유: 같은 자리를 재활용하면 **이전 쪽의 «다 그렸다» 신호가
+            새 쪽의 기다림 표시를 꺼버린다**(빨리 넘길 때 실제로 그랬다 — 표시가 안 떴다). */}
+        <img
+          key={p}
+          src={src(p)}
+          alt={`${name} ${p + 1}쪽`}
+          onLoad={() => setDrawing(false)}
+          onError={() => { setDrawing(false); setErr("이 쪽을 그리지 못했다. 내려받아서 봐 주세요."); }}
+          className={`max-w-full shadow-sm bg-white transition-opacity ${drawing ? "opacity-0" : "opacity-100"}`}
+        />
+        {/* 다음 쪽을 미리 받아 둔다 — 미리 받아 둔 쪽은 눌러도 기다림이 없다. */}
+        {p + 1 < pages && <img src={src(p + 1)} alt="" className="hidden" aria-hidden />}
+        {drawing && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-gray-200 shadow-sm text-xs text-gray-600">
+              <Loader2 size={13} className="animate-spin text-teal-700" /> {p + 1}쪽 여는 중…
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-gray-200 bg-white">
+        <button onClick={() => { setDrawing(true); setP((v) => Math.max(0, v - 1)); }} disabled={p === 0}
+          className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">◀ 이전</button>
+        <span className="text-xs text-gray-600 tabular-nums">{p + 1} / {pages}쪽</span>
+        <button onClick={() => { setDrawing(true); setP((v) => Math.min(pages - 1, v + 1)); }} disabled={p + 1 >= pages}
+          className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">다음 ▶</button>
+      </div>
+    </>
   );
 }
 

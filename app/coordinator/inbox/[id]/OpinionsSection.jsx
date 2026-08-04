@@ -381,6 +381,24 @@ function OpinionItem({ opinion, patientLang }) {
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{opinion.opinion_text}</p>
 
+      {/* 원장님이 소견과 «같이 낸» 서류(견적서 등). 저장은 되는데 화면에 안 떠서 코디가
+          있는 줄도 몰랐다(2026-08-04 발견 — 실제 제출본 1건이 묻혀 있었다). */}
+      {Array.isArray(opinion.files) && opinion.files.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-gray-500">같이 받은 서류</span>
+          {opinion.files.map((f, i) => (
+            <a
+              key={i}
+              href={f.url || "#"}
+              download={f.name}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-[11px] text-gray-700 hover:bg-gray-50 max-w-full truncate"
+            >
+              <Paperclip size={11} className="shrink-0" /> {f.name}
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* 에이전시 공개 — 접수 시점에 AI 초벌 번역(환자 언어) → 코디 교정 → 공개해야만 노출 */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
         <p className="text-[11px] text-blue-700 mb-1.5">

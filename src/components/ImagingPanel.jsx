@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, AlertCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, AlertCircle, X, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 // 방사선과에서 쓰는 표준 창(window) 값 그대로. 폭(WW)/중심(WL).
@@ -54,7 +54,9 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
   // ⚠️ 준비 실패는 errText 로 넣어도 «안 보였다» — errText 는 처음 열기 실패에만 쓰인다.
   //    그래서 까만 화면만 남고 이유가 안 뜬다(PO 제보 2026-08-04). 따로 칸을 둔다.
   const [prepErr, setPrepErr] = useState("");
+  const [playing, setPlaying] = useState(false);      // 자동 넘김(병원 판독기의 «시네»)
   const wantRef = useRef(0);                          // 서버에 «이 묶음을 만들어 달라»고 알릴 번호
+  const dragRef = useRef(null);                       // 누른 채 끌어서 넘기기
   const canvasRef = useRef(null);
   const cacheRef = useRef(new Map()); // "시리즈-장" → Int16Array (같은 장을 두 번 안 받는다)
 
@@ -167,11 +169,51 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
 
   const cur = series[sIdx];
   const curDoc = docKey ? docs.find((d) => d.key === docKey) : null;
-  const onWheel = (e) => {
-    if (!cur) return;
-    e.preventDefault();
-    setSlice((v) => Math.max(0, Math.min(cur.count - 1, v + (e.deltaY > 0 ? 1 : -1))));
+  /**
+   * 넘기는 방법 (PO 지적 2026-08-04: «하나씩 클릭하면 힘들고 스크롤은 너무 후루룩»).
+   *
+   * ⚠️ 마우스 바퀴(휠)로 넘기는 건 **뺐다**(PO 결정 2026-08-04). 그림 위에서 바퀴를 굴리면
+   *   장도 넘어가지만 **화면도 같이 내려가서** 장이 넘어간 걸 못 본다. 요즘 브라우저는
+   *   화면 굴리기를 막지 못하게 해 뒀으므로(수동 처리) 코드로 손쓸 수 없다.
+   *   되살리지 마라 — 「되는 것처럼 보이는데 실은 못 쓰는 기능」이 선택지만 늘린다.
+   */
+  // 끌기 — 기본은 «좌우»다. 바로 아래 막대가 좌우라 눈에 보이는 것과 손 방향이 같고,
+  //   화면 굴리기(위아래)와 방향이 안 겹친다. 다만 병원 판독기에 익숙한 분은 반사적으로
+  //   위아래로 끄시므로 그것도 조용히 받는다 — 많이 움직인 쪽을 따른다. 6px 에 한 장.
+  const onPointerDown = (e) => {
+    if (!cur || curDoc) return;
+    setPlaying(false);
+    dragRef.current = { x: e.clientX, y: e.clientY, base: slice };
+    // «이 손가락(마우스)을 내가 붙잡겠다»는 요청. 붙잡을 대상이 없으면 **오류를 던진다**
+    // (누르자마자 떼는 순간이 겹칠 때·시험용 가짜 신호일 때). 못 붙잡아도 끌기는 그대로
+    // 되므로 — 그림 밖으로 나가면 끊기는 정도 차이 — 조용히 넘어간다.
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch {}
   };
+  const onPointerMove = (e) => {
+    const d = dragRef.current;
+    if (!d || !cur) return;
+    e.preventDefault();
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    const moved = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+    const to = d.base + Math.round(moved / 6);
+    setSlice(Math.max(0, Math.min(cur.count - 1, to)));
+  };
+  const endDrag = () => { dragRef.current = null; };
+
+  // ③ 자동 넘김 — 초당 12장. **마지막 장에서 멈춘다**(PO 지시 2026-08-04).
+  //    판독기는 보통 처음으로 돌아가 계속 도는데, 그러면 «어디까지 봤는지»를 놓친다.
+  useEffect(() => {
+    if (!playing || !cur || curDoc) return;
+    const t = setInterval(() => {
+      setSlice((v) => {
+        if (v + 1 >= cur.count) { setPlaying(false); return cur.count - 1; }
+        return v + 1;
+      });
+    }, 1000 / 12);
+    return () => clearInterval(t);
+  }, [playing, cur, curDoc]);
+  useEffect(() => { setPlaying(false); }, [sIdx, docKey]); // 묶음을 바꾸면 멈춘다
 
   return (
     <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
@@ -202,44 +244,49 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
       )}
 
       {stage === "ready" && cur && (
-        <div className="grid gap-3 md:grid-cols-[190px_1fr]">
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-gray-500">촬영 묶음 ({series.length})</p>
+        // 고르는 줄은 «위에 가로로», 그림은 «아래 전체 폭으로» (PO 지시 2026-08-04).
+        // 전에는 왼쪽에 목록을 세로로 세웠는데, 화면이 조금만 좁아도 그림 자리가 쪼그라들어
+        // 정작 봐야 할 CT 가 손톱만 해졌다(실측: 화면 905px 일 때 그림 202px).
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-semibold text-gray-500 mr-0.5">촬영 묶음 ({series.length})</span>
             {series.map((s, i) => (
               <button
                 key={s.uid}
                 onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(DEFAULT_WW); setWc(DEFAULT_WC); if (s.ready === false) prepareSeries(i); }}
                 disabled={preparing}
-                className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition max-w-full truncate ${
                   !docKey && i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
-                <span className="block truncate">{s.desc}</span>
-                <span className="text-[11px] text-gray-500">{s.modality} · {s.count}장{s.ready === false ? " · 누르면 준비" : ""}</span>
+                {s.desc}
+                <span className="text-[11px] text-gray-500 ml-1.5">{s.count}장{s.ready === false ? " · 누르면 준비" : ""}</span>
               </button>
             ))}
 
-            {/* 그림이 아닌 «글» 기록도 같은 자리에서 고른다 — 내려받게 하지 않는다. */}
+            {/* 그림이 아닌 «글» 기록도 같은 줄에서 고른다 — 내려받게 하지 않는다. */}
             {docs.length > 0 && (
               <>
-                <p className="text-xs font-semibold text-gray-500 pt-2">글 기록 ({docs.length})</p>
+                <span className="text-xs font-semibold text-gray-500 ml-1 mr-0.5">글 기록 ({docs.length})</span>
                 {docs.map((d) => (
                   <button
                     key={d.key}
                     onClick={() => setDocKey(d.key)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                    className={`px-2.5 py-1.5 rounded-lg border text-xs transition max-w-full truncate ${
                       docKey === d.key ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                     }`}
                   >
-                    <span className="block truncate">{d.desc}</span>
-                    <span className="text-[11px] text-gray-500">{d.modality || "기록"} · {d.lines.length}줄</span>
+                    {d.desc}
+                    <span className="text-[11px] text-gray-500 ml-1.5">{d.lines.length}줄</span>
                   </button>
                 ))}
               </>
             )}
           </div>
 
-          <div>
+          {/* min-w-0 이 없으면 이 칸이 «그림의 원래 크기»만큼 벌어져 카드 밖으로 삐져나간다
+              (PO 제보 2026-08-04, 화면 폭 905px 에서 55px 넘침). */}
+          <div className="min-w-0">
             {preparing ? (
               <div className="bg-gray-100 rounded-lg py-16 text-center">
                 <Loader2 size={20} className="animate-spin text-teal-700 mx-auto mb-2" />
@@ -254,8 +301,21 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
                 </pre>
               </div>
             ) : (
-              <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center" onWheel={onWheel}>
-                <canvas ref={canvasRef} className="max-w-full max-h-[60vh]" style={{ imageRendering: "pixelated" }} />
+              <div
+                className="bg-black rounded-lg overflow-hidden flex items-center justify-center cursor-ew-resize select-none touch-none"
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+              >
+                {/* CT 원본은 한 장이 512칸짜리라, 그냥 두면 넓은 화면에서도 512px 로 머문다.
+                    폭에 맞춰 키운다(최대 820px). 늘릴 때 색을 섞지 않는다(pixelated) —
+                    없는 그림을 만들어 내면 판독에 방해가 된다. */}
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-auto max-w-[820px] max-h-[72vh] object-contain"
+                  style={{ imageRendering: "pixelated" }}
+                />
               </div>
             )}
             <div className="mt-2.5 space-y-2">
@@ -265,24 +325,41 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
                 </p>
               ) : (
               <div className="flex items-center gap-2">
-                {/* 휠은 빠르게 훑을 때, 버튼은 한 장씩 정확히 볼 때 — 둘 다 필요하다(PO 요청). */}
+                {/* 한 장씩 옮기는 단추 «둘»은 딱 붙여 한 덩어리로 둔다 — 연타하는 단추라서다.
+                    자동 넘김을 이 사이에 끼우면(⏮▶⏭ 모양) 빠르게 누르다 모드가 켜진다.
+                    ⏮▶⏭ 는 셋이 «같은 계열»일 때 쓰는 배치이고, 여기선 계열이 다르다(이동 vs 모드). */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    onClick={() => setSlice((v) => Math.max(0, v - 1))}
+                    disabled={slice <= 0}
+                    className="p-1.5 rounded-l-md rounded-r-sm border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                    aria-label="이전 장"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  <button
+                    onClick={() => setSlice((v) => Math.min(cur.count - 1, v + 1))}
+                    disabled={slice >= cur.count - 1}
+                    className="p-1.5 rounded-r-md rounded-l-sm border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                    aria-label="다음 장"
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+                {/* 자동 넘김 — 265장을 손으로 넘기는 건 무리다. 켜 두고 눈으로 훑는 게 판독 방식이다.
+                    성격이 다르므로 선을 하나 그어 갈라 둔다. */}
+                <span className="w-px h-5 bg-gray-200 shrink-0" aria-hidden />
                 <button
-                  onClick={() => setSlice((v) => Math.max(0, v - 1))}
-                  disabled={slice <= 0}
-                  className="p-1.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 shrink-0"
-                  aria-label="이전 장"
+                  // 마지막 장에서 다시 누르면 처음부터 — 아니면 눌러도 아무 일이 안 일어난다.
+                  onClick={() => { if (!playing && slice >= cur.count - 1) setSlice(0); setPlaying((v) => !v); }}
+                  className={`p-1.5 rounded-md border text-xs shrink-0 transition ${
+                    playing ? "border-teal-700 bg-teal-700 text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                  aria-label={playing ? "자동 넘김 멈춤" : "자동 넘김"}
                 >
-                  <ChevronLeft size={15} />
+                  {playing ? <Pause size={15} /> : <Play size={15} />}
                 </button>
-                <button
-                  onClick={() => setSlice((v) => Math.min(cur.count - 1, v + 1))}
-                  disabled={slice >= cur.count - 1}
-                  className="p-1.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 shrink-0"
-                  aria-label="다음 장"
-                >
-                  <ChevronRight size={15} />
-                </button>
-                <span className="text-xs text-gray-500 w-20 shrink-0 text-center">{slice + 1} / {cur.count}장</span>
+                <span className="text-xs text-gray-500 w-20 shrink-0 text-center tabular-nums">{slice + 1} / {cur.count}장</span>
                 <input
                   type="range" min={0} max={cur.count - 1} value={slice}
                   onChange={(e) => setSlice(Number(e.target.value))}
@@ -328,7 +405,8 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               )}
               {!curDoc && (
                 <p className="text-[11px] text-gray-500">
-                  좌우 버튼이나 마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
+                  장 넘기는 법 — <b>그림을 누른 채 좌우로 끌기</b>(가장 편합니다) · <b>▶ 자동 넘김</b> ·
+                  좌우 버튼 · 아래 막대. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
                 </p>
               )}
             </div>
