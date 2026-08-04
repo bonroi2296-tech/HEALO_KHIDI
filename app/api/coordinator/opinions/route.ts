@@ -228,15 +228,29 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, auto_translated_text, file_path, file_name, created_at")
+      // files = 원장님이 소견과 «같이 낸» 서류(견적서 등). 이게 빠져 있어서 저장은 되는데
+      //   코디 화면엔 안 떴다(PO 확인 요청 2026-08-04 로 발견 — 실제 제출본 1건이 안 보이고 있었다).
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, auto_translated_text, file_path, file_name, files, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 
     // 첨부 원본(문서·이미지)이 있으면 서명 URL로("이미 받은 소견"이 파일로 온 경우 코디가 원본 대조).
     const opinionsWithUrls = await Promise.all((opinions || []).map(async (o: any) => {
-      if (!o.file_path) return o;
-      const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(o.file_path, 3600);
-      return { ...o, file_url: data?.signedUrl || null };
+      const out: any = { ...o };
+      if (o.file_path) {
+        const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(o.file_path, 3600);
+        out.file_url = data?.signedUrl || null;
+      }
+      if (Array.isArray(o.files) && o.files.length) {
+        out.files = await Promise.all(o.files.slice(0, 5).map(async (f: any) => {
+          // 「내려받기」로 내주는 주소 — 그냥 주소면 그림·PDF 가 탭에 열려 버린다.
+          const { data } = await supabaseAdmin.storage
+            .from("attachments")
+            .createSignedUrl(String(f?.path || ""), 3600, { download: String(f?.name || "첨부") });
+          return { name: f?.name || "첨부", url: data?.signedUrl || null };
+        }));
+      }
+      return out;
     }));
 
     // 환자 언어 — 코디 화면의 "다시 번역" 버튼이 어느 언어로 번역할지 정하는 데 필요하다.
