@@ -109,7 +109,11 @@ export default function NotificationBell({ variant = 'fixed' }) {
       </button>
 
       {open && (
-        <div className="absolute top-11 right-0 w-80 max-w-[88vw] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[70]">
+      {/* 폰에서는 «종 아이콘 기준»으로 붙이지 않는다 — 백오피스 상단바는 종 옆에 언어·로그아웃이
+          더 있어 종이 화면 가운데쯤 온다. 그러면 320px 짜리 목록이 왼쪽 화면 밖으로 밀려나
+          제목 앞글자가 잘린다(2026-08-04 PO 제보, 실측 왼끝 -49px).
+          좁은 화면: 화면 양쪽 8px 만 남기고 펼친다. 넓은 화면(sm 이상): 기존처럼 종에 붙인다. */}
+        <div className="fixed left-2 right-2 top-14 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[70]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="text-sm font-bold text-gray-900">{t('notifBell.title', lang)}</span>
             <div className="flex items-center gap-1">
