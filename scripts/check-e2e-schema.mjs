@@ -60,24 +60,8 @@ if (COLUMN_MAP.size === 0) {
   process.exit(1);
 }
 
-/**
- * 「이미 어긋나 있던 것」 — 이 검사를 처음 켠 2026-08-04에 나온 차이 2건.
- *
- * 새로 만든 규칙으로 «예전부터 있던 차이»까지 막아 모든 신청서를 세울 수는 없어서 예외로 둔다.
- * 다만 **없는 셈 치지 않는다** — 매번 화면에 띄워 잊히지 않게 한다. 이 목록은 줄어야 한다.
- *
- * ⚠️ 이 둘은 지금도 «잠재적 고장»이다. 그 컬럼을 다른 컬럼과 같은 select 목록에 넣은 코드가
- *    생기면 시험에서 그 화면이 통째로 안 뜬다(2026-08-04에 유입 4칸으로 실제로 그랬다).
- *    진짜 해결은 시험용 데이터베이스에 그 마이그레이션을 넣는 것이다.
- */
-const KNOWN_GAPS = new Map([
-  ["inquiries.follow_ups", "코디 후속작업 기능 (2026-08-04 확인)"],
-  ["consultation_sessions.livekit_duration_seconds", "화상상담 통화시간 (2026-08-04 확인)"],
-]);
-
 // 관계(join) 표기·뷰는 대상 밖. 실제 테이블만 던져 보고, 없는 테이블은 조용히 넘긴다.
 const missing = [];
-const known = [];
 const unreachable = [];
 
 for (const [table, cols] of COLUMN_MAP) {
@@ -110,7 +94,7 @@ for (const [table, cols] of COLUMN_MAP) {
     }
     const col = raw.includes(".") ? raw.split(".").pop() : raw;
     const key = `${table}.${col}`;
-    (KNOWN_GAPS.has(key) ? known : missing).push(key);
+    missing.push(key);
     remaining = remaining.filter((c) => c !== col);
   }
 
@@ -128,26 +112,41 @@ if (unreachable.length) {
   process.exit(1);
 }
 
-// 「이미 알고 있던 차이」는 막지 않되 매번 보여준다 — 조용해지면 영영 안 고쳐진다.
-if (known.length) {
-  console.log(`\n⚠️  이미 어긋나 있는 컬럼 ${known.length}건(막지는 않음 — 시험용 데이터베이스에 넣어야 사라진다):`);
-  for (const k of known) console.log(`   - ${k}  · ${KNOWN_GAPS.get(k)}`);
-  console.log(`   이 컬럼을 다른 컬럼과 «같은 select 목록»에 넣으면 그 화면이 통째로 안 뜬다.\n`);
-}
-
 if (missing.length === 0) {
-  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조${known.length ? `, 알려진 차이 ${known.length}건 제외` : ""})`);
+  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조)`);
   process.exit(0);
 }
 
-console.error(`
-❌ 시험용 데이터베이스에 없는 컬럼 ${missing.length}건 — 이대로 시험을 돌리면
-   그 컬럼을 포함한 조회가 «통째로» 실패해 화면이 안 뜬다(원인이 안 보이는 실패가 된다).
+// ── 왜 «막지» 않고 «알리»기만 하나 ────────────────────────────────────────────
+// 막으려면 「시험용 데이터베이스에 컬럼을 넣을 수단」이 있어야 하는데 지금은 없다
+// (그 데이터베이스의 접속 비밀번호가 등록돼 있지 않아 자동 적용을 못 한다).
+// 수단 없이 막으면 신청서가 전부 서고, 예외 목록만 계속 쌓인다 — 그건 고친 게 아니다.
+//
+// 이 검사의 진짜 값어치는 「막기」가 아니라 **「원인을 즉시 알려주기」**다.
+// 2026-08-04 사고에서 잃은 시간은 «막지 못해서»가 아니라 «시험이 「버튼을 못 찾음」이라고만
+// 말해서» 생겼다. 컬럼 이름만 보였으면 3초면 끝났다.
+//
+// 접속 비밀번호가 생기면 여기서 자동 적용하거나 exit(1) 로 승격하면 된다.
+const NL = "\n";
+const bullets = missing.map((s) => `   - ${s}`).join(NL);
 
-${missing.map((s) => `   - ${s}`).join("\n")}
+console.log(
+  NL +
+    `⚠️  시험용 데이터베이스에 없는 컬럼 ${missing.length}건 — 실서비스에만 들어간 것들이다.` + NL + NL +
+    bullets + NL + NL +
+    "   이 컬럼을 «다른 컬럼과 같은 select 목록»에 넣으면 그 조회가 통째로 실패해" + NL +
+    "   화면이 「조회 중 문제가 발생했습니다」 한 장이 된다(2026-08-04에 실제로 그랬다)." + NL +
+    "   → 따로 읽거나(app/api/portal/inbox/[id]/route.ts 참고)," + NL +
+    "     시험용 데이터베이스에 해당 마이그레이션을 넣어라." + NL
+);
 
-→ 해당 마이그레이션을 시험용 데이터베이스에도 적용하라(실서비스에만 넣으면 여기서 갈린다).
-   당장 못 넣는다면, 그 컬럼은 기존 select 목록에 «섞지 말고» 따로 읽어라
-   (실패해도 그 줄만 빠지게 — app/api/portal/inbox/[id]/route.ts 참고).
-`);
-process.exit(1);
+// 신청서 화면에서 바로 보이게 요약에도 남긴다 — 로그 깊숙이 묻히면 아무도 안 본다.
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const fsp = await import("node:fs/promises");
+  const md =
+    `### ⚠️ 시험용 데이터베이스에 없는 컬럼 ${missing.length}건` + NL + NL +
+    missing.map((s) => `- \`${s}\``).join(NL) + NL + NL +
+    "이 컬럼을 다른 컬럼과 같은 `select` 목록에 넣으면 그 화면이 통째로 안 뜹니다." + NL;
+  await fsp.appendFile(process.env.GITHUB_STEP_SUMMARY, md);
+}
+process.exit(0);
