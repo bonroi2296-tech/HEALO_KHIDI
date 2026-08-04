@@ -25,6 +25,7 @@ import CookieConsent from "@/components/CookieConsent";
 // 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
 import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode, event, GA_EVENTS } from "@/lib/ga";
+import { captureArrival } from "@/lib/inquiry/arrival";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -121,6 +122,11 @@ export default function ClientShell({ children, initialLang = "en" }) {
     lastPageviewRef.current = pathname;
     pageview(pathname);
   }, [pathname]);
+
+  // 첫 진입 유입 기록 — «어디서 들어왔나」는 사이트 안에서 한 번이라도 이동하면 사라진다
+  // (referrer 가 우리 도메인으로 바뀜) → 도착한 순간 세션에 잡아 두고 문의 제출 때 동봉한다.
+  // GA 동의와 별개: 저장소에 세션 한정으로만 두고, DB 기록은 PIPA 동의를 받은 문의 제출 때만.
+  useEffect(() => { captureArrival(); }, []);
 
   // GA4 「DebugView」 스위치 — 주소에 ?ga_debug=1 을 붙여 연 탭에서만 켜진다(일반 방문자엔 영향 없음).
   // 분석은 «틀려도 화면이 멀쩡»해서 눈으로 검증할 방법이 없다 → 실서비스에서 직접 확인하는 통로.
