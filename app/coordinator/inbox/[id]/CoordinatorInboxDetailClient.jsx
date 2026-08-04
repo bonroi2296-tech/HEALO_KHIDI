@@ -21,8 +21,6 @@ import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
-// 언어 코드 → 원어 표기(Русский·Қазақша…). 「어디서 왔나」 줄에서만 쓴다.
-import { LANG_OPTIONS } from "@/lib/i18n";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
@@ -355,6 +353,10 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
     </div>
   );
 }
+
+// 「어디서 왔나」 줄의 언어 표기 — 원어로 적어 어느 언어 코디가 봐도 통한다.
+// 사전 모듈을 가져오지 않는다: 이 여섯 줄 때문에 화면에 사전 뭉치를 딸려 보낼 이유가 없다.
+const ARRIVAL_LANG = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", kk: "Қазақша", zh: "中文", ja: "日本語" };
 
 export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const L = useCoordinatorL();
@@ -825,7 +827,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 박으면 다른 언어 코디에게 한국어가 새어 나간다.
   const arrival = [
     inquiry.source_locale
-      ? (LANG_OPTIONS.find((l) => l.code === inquiry.source_locale)?.label || inquiry.source_locale)
+      ? (ARRIVAL_LANG[inquiry.source_locale] || inquiry.source_locale)
       : null,
     inquiry.referrer_host || null,
     inquiry.landing_path || null,
