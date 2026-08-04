@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown, Eye, Download, X, Paperclip } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 import ImagingPanel from "@/components/ImagingPanel";
+import { uploadDirect } from "@/lib/uploadAttachment";
 
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,10 @@ export default function OpinionClient({ token }) {
   const [submitError, setSubmitError] = useState("");
   // 첨부를 «내려받지 않고» 바로 띄워 보는 창(PO 요청 2026-08-04)
   const [preview, setPreview] = useState(null); // { url, name }
+  // 소견과 «같이» 낼 서류(견적서 등) — PO 요청 2026-08-04
+  const [files, setFiles] = useState([]);       // [{path,name,type}]
+  const [uploading, setUploading] = useState(false);
+  const [fileErr, setFileErr] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +52,28 @@ export default function OpinionClient({ token }) {
     return () => { alive = false; };
   }, [token]);
 
+  const addFile = async (file) => {
+    if (!file) return;
+    setUploading(true); setFileErr("");
+    try {
+      const r = await uploadDirect(`/api/opinions/${token}/upload`, file);
+      if (!r.ok) {
+        setFileErr(
+          r.error === "file_too_large" ? "파일이 너무 큽니다(50MB까지)."
+          : r.error === "invalid_file_type" ? "이 형식은 올릴 수 없습니다. PDF·이미지·워드·엑셀만 됩니다."
+          : r.error === "invalid_file_content" ? "파일 내용이 확장자와 다릅니다."
+          : "올리지 못했습니다. 다시 시도해 주세요."
+        );
+        return;
+      }
+      setFiles((prev) => [...prev, r.file].slice(0, 5));
+    } catch {
+      setFileErr("올리지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const submit = async () => {
     if (!doctorKey || opinion.trim().length < 5 || submitting) return;
     setSubmitting(true);
@@ -55,7 +82,7 @@ export default function OpinionClient({ token }) {
       const res = await fetch(`/api/opinions/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doctorKey, opinionText: opinion.trim() }),
+        body: JSON.stringify({ doctorKey, opinionText: opinion.trim(), files }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -273,6 +300,34 @@ export default function OpinionClient({ token }) {
           placeholder="검사지·상세를 보시고 소견을 남겨 주세요."
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none mb-3"
         />
+
+        {/* 서류 같이 내기 — 견적서·검사 안내문 등. 없어도 제출된다. */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-600 mb-1.5">서류 같이 내기 <span className="text-gray-400">(선택 · 견적서 등)</span></label>
+          {files.length > 0 && (
+            <ul className="space-y-1 mb-2">
+              {files.map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                  <Paperclip size={13} className="text-teal-700 shrink-0" />
+                  <span className="truncate">{f.name}</span>
+                  <button onClick={() => setFiles((p) => p.filter((_, k) => k !== i))}
+                    className="ml-auto p-0.5 rounded hover:bg-gray-200 text-gray-500" aria-label="빼기">
+                    <X size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer">
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
+            {uploading ? "올리는 중…" : "파일 선택"}
+            <input type="file" className="hidden" disabled={uploading || files.length >= 5}
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; addFile(f); }} />
+          </label>
+          <p className="text-[11px] text-gray-500 mt-1">PDF · 이미지 · 워드 · 엑셀 · 각 50MB · 최대 5개</p>
+          {fileErr && <p className="text-xs text-red-600 mt-1">{fileErr}</p>}
+        </div>
 
         {submitError && <p className="text-sm text-red-600 mb-3">{submitError}</p>}
 
