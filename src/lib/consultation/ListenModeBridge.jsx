@@ -50,6 +50,12 @@ import { RoomEvent, Track } from "livekit-client";
 const DC_SUPPRESS_MS = 60000;
 const MIN_BLOB_BYTES = 4000;
 
+// 「소리가 있었던 프레임」이 이만큼은 돼야 대화 문맥을 함께 보낸다(프레임 1개 = 0.1초 → 0.8초).
+// 이보다 짧은 조각은 문맥 없이 «들린 것만» 받아쓰게 한다 — 지어냄의 재료를 없애는 장치.
+// 왜 0.8초인가: 의미 있는 한 마디("네", "알겠습니다")는 그 아래로도 나오지만, 그런 짧은 말은
+// 문맥이 없어도 정확히 받아쓴다. 반대로 «문장을 완성해 버리는» 사고는 이 아래에서 났다.
+const VOICED_FOR_CONTEXT = 8;
+
 // ── 화자 귀속: «화면 테두리와 같은 신호»를 쓴다 ──
 // 왜: 참가자별로 트랙을 따로 전사하므로, 한 사무실에 기기가 여럿이면 같은 목소리를
 //   여러 마이크가 잡는다. 예전 규칙은 «STT 응답이 먼저 도착한 트랙이 그 발화의 주인» —
@@ -165,6 +171,7 @@ export function ListenModeBridge({
   dcActivityRef, // Map<identity, ts> — DataChannel 자막 최근 수신 시각
   onSubtitle, // ({ transcript, translated, lang, name, identity }) => void
   onAudioHealth, // ({ remoteAudioCount, contextState }) => void — "조용한 사망" 워치독용 (선택)
+  record = true, // 이 기기가 «기록 담당»인가. 같은 사무실 뒤따라 들어온 기기는 false (아래 noStore 주석)
 }) {
   // 원격 참가자 마이크 트랙 (본인 제외)
   const trackRefs = useTracks([Track.Source.Microphone]);
@@ -180,7 +187,7 @@ export function ListenModeBridge({
   // 언어·콜백·헤더는 ref 로 — 값이 바뀌어도 진행 중인 녹음 파이프라인을 재시작하지 않고
   // 다음 전송 시점에 최신값을 읽는다 (재시작하면 녹음 중이던 문장이 통째로 유실됨)
   const liveRef = useRef({});
-  liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle };
+  liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle, record };
 
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
@@ -382,8 +389,21 @@ function startPipeline({
     return () => {};
   }
 
+  // 이 트랙에서 **실제로 들린** 언어(직전 조각의 감지 결과). 다음 조각의 힌트로 되먹인다.
+  //
+  // ⚠️ 2026-08-04 실회의(카자흐어 진행)에서 드러난 구멍:
+  //   서버는 «카자흐어면 정확한 모델» 규칙을 갖고 있는데 그 판정을 **설정 언어**로만 한다.
+  //   그날 카자흐 참가자들은 입장 화면에서 언어를 러시아어로 골랐고(방 기본값), 그래서
+  //   lang=ru·targetLang=ko 로 요청이 나가 **카자흐어 발화 196줄(전체의 47%)이 전부 빠른
+  //   모델로** 처리됐다. 결과: 같은 문장을 매번 다르게 받아썼다 —
+  //     "아스타나에서 치료를 받지 않았다" ↔ "음식을 전혀 먹지 못한 지 일주일"
+  //     치료 기간이 "일주일" ↔ "2주" 로 갈림.
+  //   감지 결과는 응답이 와야 아니까 그 요청엔 못 쓴다. 대신 **다음 조각부터** 쓴다 —
+  //   회의는 한 번 카자흐어로 말하면 계속 그 언어라 두 번째 조각부터 바로 맞는다.
+  let detectedHint = null;
+
   // 조각 하나를 서버 STT 로 보낸다. partial=true 면 화면 표시 전용(기록·DB 저장 없음).
-  const sendChunk = async ({ blob, partial, mySeq, startedAt }) => {
+  const sendChunk = async ({ blob, partial, mySeq, startedAt, voiced = 99 }) => {
     const live = liveRef.current;
     // 화자 기기가 직접 자막을 보내는 중이면 스킵 (이중 자막 방지)
     const dcAt = live.dcActivityRef?.current?.get?.(identity) || 0;
@@ -400,25 +420,46 @@ function startPipeline({
     }
     const headers = await live.getAuthHeaders();
     if (!headers) return null;
-    // 내부용 필드(norm·at)는 빼고 보낸다 — 프롬프트·전송량을 안 늘리려고
-    const ctx = (live.contextRef?.current || [])
-      .slice(-6)
-      .map(({ speaker, lang, text }) => ({ speaker, lang, text }));
+    // ── 소리가 거의 없는 조각엔 «대화 문맥»을 안 준다 ──
+    // 2026-08-04 실회의: 「네」·「어머니」·「확인이」 같은 2~5글자 조각이 한국어 줄의 69% 였고,
+    // 그 사이에 **아무도 안 한 완성 문장**이 끼어 저장됐다 —
+    //   「치료 과정 중에 생긴 합병증으로 숨지셨습니다.」 (PO 확인: 의료진은 그런 말 한 적 없음)
+    //   「일단은 세 번째 수술을 권장하지는 않는다고 하셨습니다.」
+    // 살아 계신 환자 상담에서 «사망»이 기록에 남았다. 프롬프트엔 이미 「지어내지 마라」가
+    // 있는데도 뚫렸다 — **금지를 더 세게 쓰는 대신 재료를 뺀다**(2026-08-03 과 같은 처방).
+    // 소리가 짧을수록 모델은 «맥락에서 그럴듯한 문장»을 완성하려 든다. 그 맥락을 안 주면
+    // 지어낼 재료가 없다. 문맥은 동음이의·대명사 해소용이라, 짧은 조각에선 어차피 이득이 적다.
+    const tooQuietForContext = voiced < VOICED_FOR_CONTEXT;
+    const ctx = tooQuietForContext
+      ? []
+      : (live.contextRef?.current || [])
+          .slice(-6)
+          .map(({ speaker, lang, text }) => ({ speaker, lang, text }));
     // 강제 컷으로 잘린 앞조각을 문맥 맨 뒤에 붙여 뒷조각이 문장을 이어받게 한다
-    if (carryOver) ctx.push({ speaker: "other", lang: live.langHint, text: carryOver });
+    if (carryOver) ctx.push({ speaker: "other", lang: detectedHint || live.langHint, text: carryOver });
     const fd = new FormData();
     fd.append("audio", blob, "chunk.webm");
-    fd.append("lang", live.langHint);
+    // 이 트랙에서 실제로 들렸던 언어를 우선 — 설정 언어만 믿으면 카자흐어가 빠른 모델로 샌다(위 주석)
+    fd.append("lang", detectedHint || live.langHint);
     fd.append("targetLang", live.targetLang);
     fd.append("context", JSON.stringify(ctx));
     fd.append("speakerName", name || "");
     if (partial) fd.append("partial", "1");
+    // ── 기록은 «한 대만» 남긴다 ──
+    // 같은 사무실 기기가 여럿이면 각자 같은 소리를 받아써서 서버로 보낸다. 화면엔 각자 자막이
+    // 필요하니 전사는 그대로 하되, **DB 기록은 먼저 들어온 한 대만** 남긴다.
+    // 2026-08-04 실회의: 우리 사무실 PC 4대가 동시 접속 → 같은 말이 서로 «다른 번역»으로
+    // 여러 줄 저장됐고(중복 묶음의 71%가 번역 불일치), 화자 이름도 뒤섞였다
+    // (카자흐 참가자 이름에 붙은 한국어 발화 132줄).
+    if (!live.record) fd.append("noStore", "1");
     const res = await fetch(`/api/khidi/consultation/${live.consultationId}/stt`, {
       method: "POST",
       headers,
       body: fd,
     });
     const result = await res.json();
+    // 감지 언어를 기억해 다음 조각의 힌트로 쓴다(성공한 응답만 — 빈 응답에 휘둘리지 않게).
+    if (result?.ok && result.detectedLang) detectedHint = result.detectedLang;
     if (!result.ok || !result.transcript || !result.translated) return null;
     return { ...result, mySeq, startedAt, partial: !!partial };
   };
@@ -484,7 +525,7 @@ function startPipeline({
         partialInFlight = true;
         partialCount += 1;
         lastPartialAt = now;
-        sendChunk({ blob, partial: true, mySeq, startedAt })
+        sendChunk({ blob, partial: true, mySeq, startedAt, voiced: voicedFrames })
           .then((r) => r && emit(r))
           .catch(() => {})
           .finally(() => {
@@ -499,7 +540,7 @@ function startPipeline({
       if (!stopped) recordCycle();
       if (stopped || !hasSpeech || blob.size <= MIN_BLOB_BYTES) return;
       try {
-        const result = await sendChunk({ blob, partial: false, mySeq, startedAt });
+        const result = await sendChunk({ blob, partial: false, mySeq, startedAt, voiced: voicedFrames });
         if (!result) return;
         // 같은 전사 30초 내 반복 = 침묵 환각 패턴 → 스킵 (억제 시 타임스탬프 미갱신)
         const now = Date.now();

@@ -154,6 +154,10 @@ export async function POST(
     // partial=1 → 말하는 중 조각. 화면에만 띄우고 기록·DB 에는 남기지 않는다
     // (같은 발화가 조각 수만큼 기록에 쌓이면 회의록이 통째로 오염된다).
     const isPartial = String(formData.get("partial") || "") === "1";
+    // noStore=1 → 자막은 만들어 주되 **기록엔 안 남긴다**. 같은 사무실 기기가 여럿일 때
+    // 「기록 담당」 한 대만 남기려고 클라이언트가 붙인다(ListenModeBridge 의 record).
+    // 2026-08-04 실회의: PC 4대가 같은 말을 각자 받아써 «서로 다른 번역»으로 여러 줄 저장.
+    const noStore = String(formData.get("noStore") || "") === "1";
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -271,7 +275,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
     //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
     //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
     const effectiveSrc = detectedLang || lang;
-    if (!isPartial && transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (!isPartial && !noStore && transcript && translated && targetLang && effectiveSrc !== targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
