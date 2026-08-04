@@ -111,6 +111,49 @@ function expectNoOverlap(g: Geometry, where: string) {
   }
 }
 
+/**
+ * 공개 화면 «아래» 사슬 — 하단 탭바가 ①화면 끝에 붙어 있고 ②누를 만큼 크고 ③밑에 빈 칸이 없는지.
+ * 로그인 없이 도는 검사라 계정이 없어도 항상 돈다.
+ *
+ * 왜 이게 필요한가: 아래쪽 안전영역을 「안드로이드 브라우저면 0」으로 바꿨다(앱 안 브라우저가
+ * 시스템 버튼줄 높이를 잘못 알려줘 탭 밑에 47px 빈 칸이 생기던 문제). 이 검사는 그 고침이
+ * ①되돌아가(다시 빈 칸) ②지나쳐서(탭이 너무 작아짐) 둘 중 어느 쪽으로도 안 흐르게 잠근다.
+ */
+test.describe("공개 화면 하단 탭바 @smoke", () => {
+  test.use({ viewport: { width: 411, height: 820 } });
+
+  test("탭바가 화면 끝에 붙고, 밑에 빈 칸이 없고, 누를 만큼 크다", async ({ page }) => {
+    await page.goto("/en");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(1500);
+
+    const bar = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      let found: { top: number; bottom: number; height: number; padBottom: string } | null = null;
+      for (const el of Array.from(document.querySelectorAll("div,nav"))) {
+        const cs = getComputedStyle(el);
+        if (cs.position !== "fixed") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < window.innerWidth * 0.8) continue;
+        if (r.height < 30) continue;
+        if (Math.abs(r.bottom - vh) > 4) continue; // 화면 아래끝에 붙은 것만
+        if (r.top < vh / 2) continue;
+        if (!found || r.height > found.height) {
+          found = { top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height), padBottom: cs.paddingBottom };
+        }
+      }
+      return { vh, bar: found };
+    });
+
+    expect(bar.bar, "화면 아래에 붙은 탭바를 못 찾았다").not.toBeNull();
+    const b = bar.bar!;
+    // ① 화면 끝에 붙어 있다 = 탭 밑에 빈 칸이 없다(고치기 전엔 여기 47px 이 떠 있었다)
+    expect(b.bottom, `탭바 아래에 ${bar.vh - b.bottom}px 빈 칸이 생겼다`).toBeGreaterThanOrEqual(bar.vh - 2);
+    // ② 손가락으로 누를 수 있는 크기(접근성 하한 44px)보다 커야 한다 — 지나치게 줄이는 방향도 막는다
+    expect(b.height, "탭바가 44px 보다 작아져 누르기 어렵다").toBeGreaterThanOrEqual(44);
+  });
+});
+
 test.describe("포털 위 여백 사슬 @smoke", () => {
   for (const c of CASES) {
     test(`${c.label} 포털 — 폰에서 상단바·메뉴 줄·본문이 서로 안 가린다`, async ({ page }) => {

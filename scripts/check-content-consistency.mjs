@@ -187,6 +187,53 @@ const XSS_INNERHTML_BASELINE = {
 
 const errors = [];
 
+// ── 1c) 안전영역(노치·상태표시줄·시스템 버튼줄) 여백은 «변수를 거쳐야» 한다 ────────────
+// 왜 (2026-08-03): `env(safe-area-inset-*)` 를 그대로 쓰면 카톡 등 «앱 안 브라우저»에서
+//   빈 칸이 생긴다 — 안드로이드 15 부터 웹뷰가 시스템 막대 높이를 «피할 게 없는데도» 알려준다.
+//   실측: 상단바 57px 자리에 94px(로고 위 37px 빈 칸), 하단 탭바 65px 자리에 112px(탭 밑 47px).
+//   그래서 「어디서 열었나(브라우저/설치 앱/스토어 앱)」에 따라 켜지는 스위치를 변수에 넣었다.
+//   → 새로 `env(safe-area-inset-*)` 를 직접 쓰면 그 스위치를 우회해 같은 빈 칸이 되살아난다.
+// 쓸 것: var(--healo-safe-top) / --healo-safe-bottom / --healo-safe-left / --healo-safe-right
+//        (정의는 src/index.css 안전영역 절 — 거기만 env() 를 직접 쓴다)
+// ponytail: 주석 줄은 뺀다(설명에 env(...) 를 적는 건 정상). 독립 파일 public/offline.html 은
+//   우리 CSS 를 안 쓰므로 애초에 검사 대상 밖이다.
+// ⚠️ 공용 walk() 는 js/jsx/ts/tsx 만 돌려준다(CODE_EXT) — **CSS 는 안 본다.**
+//    처음 이 검사를 넣었을 때 그걸 몰라서, 일부러 넣은 위반(.css)을 못 잡는 «죽은 검사»였다.
+//    그래서 여기서만 CSS 까지 훑는 작은 걸음마를 따로 쓴다(공용 CODE_EXT 는 안 건드린다 —
+//    다른 규칙들이 그 값에 기대고 있어 같이 바뀌면 엉뚱한 데가 터진다).
+const walkCss = (dir) => {
+  const out = [];
+  let entries;
+  try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+  for (const e of entries) {
+    const rel = join(dir, e);
+    if (EXCLUDE.test("/" + rel.replace(/\\/g, "/") + "/")) continue;
+    let st;
+    try { st = statSync(join(ROOT, rel)); } catch { continue; }
+    if (st.isDirectory()) out.push(...walkCss(rel));
+    else if (/\.css$/.test(e)) out.push(rel);
+  }
+  return out;
+};
+const SAFE_AREA_ENV_RE = /env\(\s*safe-area-inset-(top|bottom|left|right)/;
+const SAFE_AREA_DEF_FILE = "src/index.css"; // 유일하게 env() 를 직접 쓰는 «정의» 파일
+const SAFE_AREA_FILES = [...["app", "src"].flatMap(walk), ...["app", "src"].flatMap(walkCss)];
+for (const file of SAFE_AREA_FILES) {
+  if (file === SAFE_AREA_DEF_FILE) continue;
+  const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+  lines.forEach((line, i) => {
+    const bare = line.trim();
+    if (bare.startsWith("*") || bare.startsWith("//") || bare.startsWith("/*")) return; // 주석
+    if (!SAFE_AREA_ENV_RE.test(line)) return;
+    errors.push(
+      `[안전영역] ${file}:${i + 1} — env(safe-area-inset-*) 를 직접 쓰지 마라. ` +
+        `앱 안 브라우저가 시스템 막대 높이를 잘못 알려줘 «빈 칸»이 생긴다(2026-08-03 실측 상단 37px·하단 47px). ` +
+        `var(--healo-safe-top|bottom|left|right) 를 써라 — 「어디서 열었나」에 따라 켜지는 스위치가 그 안에 있다. ` +
+        `(정의는 ${SAFE_AREA_DEF_FILE})\n    ${bare.slice(0, 120)}`
+    );
+  });
+}
+
 // ── 1d) 환자앱(6개어 프론트) JSX 텍스트에 하드코딩 한글 차단 ──────────────────
 // 왜: /patient 은 러·카 등 외국인 환자용 6개어 화면. 태그 사이 텍스트(>…<)에 한글을 직접
 //     박으면 비한국어 환자에게 한국어가 그대로 노출된다(2026-07-07 비자 허브 통짜 한글·
