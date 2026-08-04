@@ -55,3 +55,21 @@ export function followUpSig(raw: unknown): string {
   if (!Array.isArray(raw)) return "0";
   return `${raw.length}:${raw.map((x: any) => String(x?.at || "")).join("|")}`;
 }
+
+/** 한 줄을 «고친» 저장용 배열. 시각(at)으로 찾는다 — 화면이 그 값을 갖고 있다. */
+export function editFollowUp(raw: unknown, at: string, text: string): StoredFollowUp[] | null {
+  const prev: StoredFollowUp[] = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
+  const i = prev.findIndex((x) => String(x.at || "") === at);
+  if (i < 0) return null;
+  const next = [...prev];
+  // 적은 시각은 그대로 둔다 — 언제 들어온 정보인지가 판단 근거라 고쳐 쓰면 안 된다.
+  next[i] = { ...next[i], text_encrypted: encryptStringNullable(text.slice(0, FOLLOWUP_MAX_LEN)) };
+  return next;
+}
+
+/** 한 줄을 «지운» 저장용 배열. 잘못 적은 내용이 의료진에게 그대로 가는 걸 막는 통로다. */
+export function removeFollowUp(raw: unknown, at: string): StoredFollowUp[] | null {
+  const prev: StoredFollowUp[] = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
+  const next = prev.filter((x) => String(x.at || "") !== at);
+  return next.length === prev.length ? null : next;
+}
