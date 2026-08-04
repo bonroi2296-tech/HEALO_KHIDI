@@ -194,6 +194,16 @@ export default function OpinionClient({ token }) {
             <div className="space-y-3">
               {c.attachments.map((a, i) => (
                 <div key={i}>
+                  {/* 무슨 자료인지부터 한국어로 — 파일 이름이 러시아어·카자흐어라 이름만 봐선 모른다.
+                      코디 화면과 같은 딱지 모양을 쓴다(같은 자료가 화면마다 달라 보이면 안 된다). */}
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 shrink-0">
+                      {a.imaging ? "CT 영상" : a.translated?.docTypeShort || "의료기록"}
+                    </span>
+                    {!a.imaging && a.translated?.docType && (
+                      <span className="text-xs text-gray-500 truncate">{a.translated.docType}</span>
+                    )}
+                  </div>
                   {a.url ? (
                     <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
                       <FileText size={15} /> <span className="truncate">{a.name}</span> <span className="text-gray-400 text-xs">(원본)</span>
@@ -293,7 +303,7 @@ function TranslatedDocView({ doc }) {
   if (!all.length) return null;
   return (
     <div className="mt-2 border border-gray-200 rounded-xl bg-white p-3 space-y-3">
-      {doc.docTypeShort && <p className="text-xs font-semibold text-teal-700">{doc.docType || doc.docTypeShort}</p>}
+      {/* 종류 딱지는 «첨부 목록 줄»에 이미 있다 — 여기 또 적으면 같은 말이 두 번 나온다. */}
       {shown.map((s, si) => (
         <div key={si} className={si > 0 ? "pt-3 border-t border-gray-100" : ""}>
           {s.title && <p className="text-sm font-semibold text-gray-700 mb-1">{s.title}</p>}

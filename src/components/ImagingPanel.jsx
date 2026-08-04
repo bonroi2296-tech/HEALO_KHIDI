@@ -138,7 +138,11 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
   return (
     <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold text-gray-800">CT 영상 — {name}</p>
+        {/* 제목 모양을 번역본 카드와 맞춘다 — 같은 첨부인데 화면마다 달라 보이면 헷갈린다(PO 지적). */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 shrink-0">CT 영상</span>
+          <span className="text-xs text-gray-500 truncate">{name}</span>
+        </div>
         <button onClick={onClose} className="shrink-0 p-1 rounded hover:bg-gray-200 text-gray-500" aria-label="닫기">
           <X size={16} />
         </button>
