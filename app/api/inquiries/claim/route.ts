@@ -31,6 +31,7 @@ import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimi
 import { decryptAuto } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khidi/caseStatus";
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
+import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "inquiry_claim_view" };
 const CLAIM_RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "inquiry_claim" };
@@ -67,12 +68,21 @@ async function buildProgress(inq: any, lang: string) {
     .eq("inquiry_id", inq.id)
     .order("created_at", { ascending: true });
 
+  // 접수 코드도 DB 기본값도 case_status 를 안 채운다 → 코디가 손으로 옮기기 전까지 빈값이다
+  // (2026-08-04 실측: 최근 30일 문의 38건 중 34건, 89%). 빈값을 그대로 쓰면 환자 화면에
+  // "미지정"이 뜨고 막대가 텅 비고 다음 안내도 안 나온다 — 링크를 받은 사람 10명 중 9명이
+  // 그 화면을 본다는 뜻이었다. 이 주소가 열린다는 건 문의가 접수됐다는 뜻이므로 최소 사실인
+  // 「문의·의뢰 접수」로 본다.
+  // ⚠️ 화면에서만 그렇게 «본다» — DB 는 안 고친다. case_status 는 KHIDI 성과 집계
+  // (conversion-funnel·kpiHealthcheck)가 읽는 값이라, 빈칸을 일괄로 채우면 평가 숫자가 움직인다.
+  const status = inq.case_status || "intake";
+
   return {
-    caseStatus: inq.case_status || null,
-    caseStatusLabel: caseStatusLabelL(inq.case_status, lang),
+    caseStatus: status,
+    caseStatusLabel: caseStatusLabelL(status, lang),
     caseStatusNote: inq.case_status_note || null,
     caseStatusUpdatedAt: inq.case_status_updated_at || null,
-    nextStep: nextStepGuide(inq.case_status, lang),
+    nextStep: nextStepGuide(status, lang),
     // 진행바를 그리려면 화면이 단계 목록·순서를 알아야 한다. on_hold(order 99)는 막대에서 제외 —
     // 보류는 앞뒤로 움직이는 단계가 아니라 옆에 붙는 상태다(caseStatus.ts 주석과 같은 취급).
     steps: CASE_STATUS_STEPS.filter((s) => s.key !== "on_hold").map((s) => ({
@@ -82,12 +92,15 @@ async function buildProgress(inq: any, lang: string) {
     })),
     // 보류(on_hold)는 order 99 라 그대로 쓰면 막대가 전부 채워진 것처럼 보인다. 보류는 단계를
     // 전진/후퇴시키는 값이 아니므로 **보류 직전에 있던 단계**에 막대를 세운다(이력에서 역순으로 찾음).
+    // 보류로 시작해 이력이 아직 없으면 되짚을 앞 단계가 없다 → 막대가 0칸(텅 빈 화면)이 된다.
+    // 그때도 최소 사실인 「접수」에 세운다.
     currentOrder:
-      inq.case_status === "on_hold"
+      status === "on_hold"
         ? caseStatusOrder(
-            [...(hist || [])].reverse().find((h: any) => h.status !== "on_hold")?.status
+            [...(hist || [])].reverse().find((h: any) => h.status !== "on_hold")?.status ||
+              "intake"
           )
-        : caseStatusOrder(inq.case_status),
+        : caseStatusOrder(status),
     timeline: (hist || []).map((h: any) => ({
       status: h.status,
       label: caseStatusLabelL(h.status, lang),
@@ -152,8 +165,12 @@ export async function GET(request: NextRequest) {
       alreadyClaimed: Boolean(inq.user_id),
       preview: {
         firstNameMasked: maskFirstName(firstName),
-        cancerType: inq.cancer_type || null,
-        nationality: inq.nationality || null,
+        // 저장값은 영어 코드(stomach·liver·other…)라 그대로 내리면 러시아어 화면에도 "stomach"이
+        // 그대로 찍힌다(2026-08-04 실측: 67건 중 29건). 자유입력(한글 "위암" 등)은 사전에 없어
+        // 원문 그대로 통과된다 — cancerTypeLabelL 이 못 찾으면 키를 되돌려주는 성질을 그대로 씀.
+        cancerType: cancerTypeLabelL(inq.cancer_type, lang) || null,
+        // nationality 는 화면이 안 쓴다(ClaimClient 는 환자·치료분야·의뢰경로·접수일 4칸만 그린다).
+        // 이 주소는 메신저로 전달되므로 «안 쓰는 값은 안 내린다» — 옛 코드는 "KZ" 를 그냥 실어 보냈다.
         agencyName: (inq as any).agencies?.name || null,
         createdAt: inq.created_at || null,
       },
