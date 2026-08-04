@@ -502,6 +502,9 @@ function PdfPages({ token, path, name }) {
   const [pages, setPages] = useState(0);
   const [p, setP] = useState(0);
   const [err, setErr] = useState("");
+  // 쪽을 넘기면 새 사진이 다 올 때까지 «이전 쪽»이 그대로 떠 있다 — 그러면 안 넘어간 것처럼 보인다
+  // (PO 지적 2026-08-04: «이게 안 넘어가는건지 로딩 중인건지 헷갈려»). 그래서 그동안 표시를 띄운다.
+  const [drawing, setDrawing] = useState(true);
   const src = (n) => `/api/opinions/${token}/page?path=${encodeURIComponent(path)}&p=${n}`;
 
   useEffect(() => {
@@ -526,16 +529,32 @@ function PdfPages({ token, path, name }) {
 
   return (
     <>
-      <div className="flex-1 overflow-auto bg-gray-50 flex items-start justify-center p-3">
-        {/* 다음 쪽을 미리 받아 둔다 — 넘길 때 빈 화면이 안 보이게. */}
-        <img src={src(p)} alt={`${name} ${p + 1}쪽`} className="max-w-full shadow-sm bg-white" />
+      <div className="relative flex-1 overflow-auto bg-gray-50 flex items-start justify-center p-3">
+        {/* key 를 쪽마다 다르게 주는 이유: 같은 자리를 재활용하면 **이전 쪽의 «다 그렸다» 신호가
+            새 쪽의 기다림 표시를 꺼버린다**(빨리 넘길 때 실제로 그랬다 — 표시가 안 떴다). */}
+        <img
+          key={p}
+          src={src(p)}
+          alt={`${name} ${p + 1}쪽`}
+          onLoad={() => setDrawing(false)}
+          onError={() => { setDrawing(false); setErr("이 쪽을 그리지 못했다. 내려받아서 봐 주세요."); }}
+          className={`max-w-full shadow-sm bg-white transition-opacity ${drawing ? "opacity-0" : "opacity-100"}`}
+        />
+        {/* 다음 쪽을 미리 받아 둔다 — 미리 받아 둔 쪽은 눌러도 기다림이 없다. */}
         {p + 1 < pages && <img src={src(p + 1)} alt="" className="hidden" aria-hidden />}
+        {drawing && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-gray-200 shadow-sm text-xs text-gray-600">
+              <Loader2 size={13} className="animate-spin text-teal-700" /> {p + 1}쪽 여는 중…
+            </span>
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-gray-200 bg-white">
-        <button onClick={() => setP((v) => Math.max(0, v - 1))} disabled={p === 0}
+        <button onClick={() => { setDrawing(true); setP((v) => Math.max(0, v - 1)); }} disabled={p === 0}
           className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">◀ 이전</button>
         <span className="text-xs text-gray-600 tabular-nums">{p + 1} / {pages}쪽</span>
-        <button onClick={() => setP((v) => Math.min(pages - 1, v + 1))} disabled={p + 1 >= pages}
+        <button onClick={() => { setDrawing(true); setP((v) => Math.min(pages - 1, v + 1)); }} disabled={p + 1 >= pages}
           className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">다음 ▶</button>
       </div>
     </>
