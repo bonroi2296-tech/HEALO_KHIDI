@@ -4,7 +4,7 @@ import Link from "next/link";
 // 사진은 전부 로컬(/immune/...) 이라 next/image 로 webp·크기맞춤 변환이 그대로 먹는다.
 // 날 <img> 로 두면 원본 PNG(장당 ~290KB)를 그대로 내려받는다 (2026-07-27 PageSpeed 실측).
 import Image from "next/image";
-import { ArrowRight, Phone, MapPin, Clock, Car } from "lucide-react";
+import { ArrowRight, ArrowLeft, Phone, MapPin, Clock, Car } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
@@ -31,6 +31,14 @@ export default function ImmuneHospitalClient() {
     <div className="bg-white">
       {/* ── HERO ───────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pt-8 pb-10 md:pt-20 md:pb-16">
+        {/* 병원 목록으로 — 스토어 앱에는 브라우저 뒤로가기가 없다(아이폰은 쓸어넘기기도 꺼져 있음).
+            2026-08-04 화면 확인: 이 화면에서 목록으로 돌아갈 수단이 0개였다. */}
+        <Link
+          href="/hospitals"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={14} /> {t("partnerHospital.back", lang)}
+        </Link>
         <div className="grid md:grid-cols-[6fr_5fr] gap-8 md:gap-12 items-center">
           <div>
             <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
