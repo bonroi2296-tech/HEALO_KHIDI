@@ -36,16 +36,33 @@ import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason, Conn
 //   → ① 저대역 계층(h180) 하나 추가: 서버가 내려보낼 «싼 화질»이 생긴다.
 //     ② degradationPreference 'balanced': 좁아지면 해상도를 먼저 내리고 연결을 지킨다.
 //   화질 손해는 «회선이 나쁠 때만» 생기고, 좋을 때는 그대로 1080p 다. 끊기는 것보다 낫다.
+// ⚠️ 2026-08-04: 사람 얼굴은 720p 로 내린다 (화면 공유는 1080p 유지).
+//   왜: 7/29 에 이미 «우리가 상대 업로드에 1080p 를 강제해 끊김을 악화시켰다»고 진단하고
+//   저대역 계층만 추가했는데, **찍는 해상도와 송출 상한은 1080p 그대로 두었다.** 그래서
+//   폰은 여전히 1080p 로 «찍어서» 3겹으로 인코딩한다 — 배터리·발열·업로드가 전부 그만큼 든다.
+//   8/4 회의 실측: 외부 참가자 4명 **전원 모바일(4G)**, 그중 2명이 끊겼다(3회·2회).
+//   얼굴 화면은 720p 로도 충분하고, 글자를 읽어야 하는 화면 공유만 1080p 를 지킨다.
 const ROOM_OPTIONS = {
   adaptiveStream: true,
   dynacast: true,
-  videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
+  videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
   publishDefaults: {
-    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h1080],
-    videoEncoding: VideoPresets.h1080.encoding, // 명시 1080p(≈3Mbps) — 기본 720p 압축 탈출
+    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+    videoEncoding: VideoPresets.h720.encoding, // 사람 얼굴은 720p(≈1.7Mbps) — 모바일 업로드 부담 절감
     degradationPreference: "balanced",
-    // 화면 공유는 글자·이미지가 선명해야 함 → 1080p 인코딩
+    // 화면 공유는 글자·이미지가 선명해야 함 → 1080p 인코딩 유지
     screenShareEncoding: VideoPresets.h1080.encoding,
+  },
+  // ── 소리 설정을 «명시»한다 ──
+  // 여태 안 적어서 브라우저 기본값으로 돌았다. 그런데 하울링 감지 코드에는
+  // 「자동 음량조절이 하울링 음량을 눌러 문턱을 영영 못 넘긴다」고 적혀 있다 —
+  // 그 상황이 «기본값»으로 켜져 있던 셈이다. 여기 적어두면 다음에 실험할 자리가 생긴다.
+  // ponytail: 지금은 켜둔 채로 명시만 한다. 끄면 조용한 화자가 안 들릴 위험이 더 크고,
+  //   하울링 쪽은 2단 판정 문턱을 내려서(useSameRoomDetect) 먼저 대응한다.
+  audioCaptureDefaults: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
   },
 };
 import {
@@ -1204,7 +1221,7 @@ export default function ConsultationRoomPage() {
     if (timers.has(k)) clearTimeout(timers.get(k));
     const holdMs = interim
       ? 8000
-      : Math.min(30000, Math.max(12000, (text?.length || 0) * 140));
+      : Math.min(15000, Math.max(6000, (text?.length || 0) * 70));
     timers.set(
       k,
       setTimeout(() => {
@@ -1300,7 +1317,7 @@ export default function ConsultationRoomPage() {
       };
 
       // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
-      setTranslations((prev) => [...prev.slice(-299), entry]);
+      setTranslations((prev) => [...prev.slice(-1999), entry]);
 
       // 다음 번역의 문맥으로 축적
       pushConvoContext("self", srcLangOverride || myLang, original);
@@ -1318,7 +1335,7 @@ export default function ConsultationRoomPage() {
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
       if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
-      const holdMs = Math.min(30000, Math.max(12000, (translated?.length || 0) * 140));
+      const holdMs = Math.min(15000, Math.max(6000, (translated?.length || 0) * 70));
       subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), holdMs);
 
       // TTS playback
@@ -1337,10 +1354,19 @@ export default function ConsultationRoomPage() {
   //   (예전엔 isTranslating 중이면 그 조각을 통째로 버려서, 쉬지 않고 말하면 발화가 증발했음
   //    — 데스크톱 크롬 등 '잘 되는' 환경에서도 나던 '번역 완성도 낮음'의 숨은 원인.)
   const translateQueueRef = useRef([]);
-  const translatingRef = useRef(false);
+  // ── 번역을 «한 번에 하나씩» 하던 것을 3개까지 동시로 ──
+  // 왜 (2026-08-04 실측): AI 왕복이 1~3초인데 그날 회의는 **최대 1.4초에 한 줄**이 나왔다.
+  //   한 줄씩 처리하면 큐가 계속 밀리고, 상한을 넘으면 앞에서부터 **버린다** —
+  //   PO 제보 «밀려서 올라오는 느낌 / 한 명인데 여러 명이 말한 것처럼»이 이 구조다.
+  // 순서가 안 꼬이는 근거: 기록은 «말한 시각»(spokenAt)으로 찍고, 화면은 «발화 세대»(utter)로
+  //   순서 역전을 이미 걸러낸다. 그래서 도착이 뒤섞여도 순서는 지켜진다.
+  // ponytail: 3개. 더 늘리면 AI 호출이 몰려 상한(aiGuard)에 빨리 닿고, 왕복 1~2초가 하한이라
+  //   그 이상은 이득이 얇다.
+  const TRANSLATE_WORKERS = 3;
+  const translatingRef = useRef(0); // 지금 도는 일꾼 수
   const drainTranslateQueue = useCallback(async () => {
-    if (translatingRef.current) return; // 이미 처리 중 — 큐만 채우고 반환(중복 실행 방지)
-    translatingRef.current = true;
+    if (translatingRef.current >= TRANSLATE_WORKERS) return; // 일꾼이 다 찼으면 큐만 채우고 반환
+    translatingRef.current += 1;
     setIsTranslating(true);
     try {
       while (translateQueueRef.current.length) {
@@ -1403,8 +1429,13 @@ export default function ConsultationRoomPage() {
         }
       }
     } finally {
-      translatingRef.current = false;
-      setIsTranslating(false);
+      translatingRef.current -= 1;
+      // 「번역 중」 표시는 **마지막 일꾼이 끝날 때만** 끈다 — 하나 끝났다고 끄면 아직 도는
+      // 일꾼이 있는데 표시가 사라진다.
+      if (translatingRef.current <= 0) {
+        translatingRef.current = 0;
+        setIsTranslating(false);
+      }
     }
   }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
 
@@ -1426,8 +1457,10 @@ export default function ConsultationRoomPage() {
       const at = Date.now();
       q.push(quick ? { text: trimmed, pre: quick, utter, at } : { text: trimmed, utter, at });
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
-      if (q.length > 15) q.splice(0, q.length - 15);
-      drainTranslateQueue();
+      if (q.length > 40) q.splice(0, q.length - 40);
+      // 큐가 쌓여 있으면 일꾼을 더 깨운다(상한은 drainTranslateQueue 안에서 막는다).
+      // 한 번만 부르면 이미 도는 일꾼 하나가 다 처리할 때까지 나머지가 안 깨어난다.
+      for (let i = 0; i < Math.min(TRANSLATE_WORKERS, q.length); i++) drainTranslateQueue();
     },
     [drainTranslateQueue, targetLang]
   );
@@ -1485,7 +1518,7 @@ export default function ConsultationRoomPage() {
       // 「자막 기록」 패널에도 남긴다 — 상대 자막이 기록에 안 쌓이던 것 수정(PO 제보 2026-07-23).
       //   (통역봇이 통역하던 동안엔 자막이 이 경로로만 와서 기록이 통째로 비어 있었음.)
       setTranslations((prev) => [
-        ...prev.slice(-299),
+        ...prev.slice(-1999),
         {
           id: Date.now(),
           original_text: "",
@@ -1510,7 +1543,7 @@ export default function ConsultationRoomPage() {
       showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
       pushConvoContext("other", lang, text);
       setTranslations((prev) => [
-        ...prev.slice(-299),
+        ...prev.slice(-1999),
         {
           id: Date.now(),
           original_text: "",
@@ -1556,7 +1589,7 @@ export default function ConsultationRoomPage() {
       // created_at 은 **말한 시각**(녹음 시작)으로 — 응답 도착 시각으로 찍으면 늦게 온 조각이
       // 기록에서 뒤로 밀려 순서가 뒤죽박죽이 된다.
       setTranslations((prev) => [
-        ...prev.slice(-299),
+        ...prev.slice(-1999),
         {
           // ⚠️ 줄 번호는 «마이크(파이프라인)» 단위로 만든다. 화자 이름은 이제 «말하는 사람»으로
           //    바뀔 수 있어서, identity 로 만들면 서로 다른 마이크의 같은 번호가 겹쳐

@@ -165,7 +165,10 @@ export async function checkAiGuards(
 // ⚠️ 0순위 하드캡은 Google Cloud spend cap(PO 콘솔) — 이 코드 가드는 그 보조선이다.
 const CONSULT_SESSION_DAILY: RateLimitConfig = {
   windowMs: DAY_MS,
-  maxRequests: Number(process.env.AI_CONSULT_SESSION_DAILY || 5000),
+  // 2026-08-04 실측: 30분 회의가 1,035회(분당 34.5회) → 5,000 이면 **2시간 25분**에 상한.
+  // 상한을 넘기면 회의 도중 자막이 통째로 죽는다. 하루 전역 상한(30,000)이 비용을 막으므로
+  // 세션 상한은 «한 상담의 비정상 폭주»만 걸러내면 된다 → 6시간치로 올린다.
+  maxRequests: Number(process.env.AI_CONSULT_SESSION_DAILY || 12000),
   apiName: "ai_consult_session",
 };
 const CONSULT_GLOBAL_DAILY: RateLimitConfig = {
