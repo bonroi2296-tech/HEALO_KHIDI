@@ -413,7 +413,8 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               {!curDoc && (
                 <p className="text-[11px] text-gray-500">
                   장 넘기는 법 — <b>그림을 누른 채 위아래로 끌기</b>(가장 편합니다) · <b>▶ 자동 넘김</b>(초당 12장) ·
-                  마우스 휠 · 좌우 버튼 · 아래 막대. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
+                  마우스 가운데 바퀴 굴리기(노트북은 두 손가락으로 밀기) · 좌우 버튼 · 아래 막대.
+                  이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
                 </p>
               )}
             </div>
