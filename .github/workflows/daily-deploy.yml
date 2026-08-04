@@ -66,7 +66,22 @@ jobs:
           #    앞선 이력인지» 증명하지 못해 푸시가 non-fast-forward 로 거부된다(2026-07-28 실측).
           fetch-depth: 0
 
+      # 「오늘 하루만 쉰다」 — 정시 창구(Vercel 예약)와 «같은 목록»을 본다(단일 SoR).
+      # 여기만 빼먹으면 정시 창구는 쉬는데 예비가 그날치를 내보내 지시가 무력화된다.
+      - name: 오늘 창구 휴무인지 확인
+        id: holiday
+        run: |
+          set -uo pipefail
+          today="$(TZ=Asia/Seoul date +%Y-%m-%d)"
+          if grep -q "\"$today\"" src/lib/deploy/windowHoliday.ts; then
+            echo "오늘($today)은 창구 휴무 — 예비도 쉰다"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "오늘($today)은 정상 가동"
+          fi
+
       - name: 이미 나갔는지 확인 (실서비스가 도는 커밋과 대조)
+        if: steps.holiday.outputs.skip != '1'
         id: check
         run: |
           set -uo pipefail
@@ -89,7 +104,7 @@ jobs:
           HEALTH_URL: ${{ vars.HEALTH_URL || 'https://healwith.co.kr/api/health' }}
 
       - name: 배포 창구 열기 (main → production 브랜치)
-        if: steps.check.outputs.skip != '1'
+        if: steps.holiday.outputs.skip != '1' && steps.check.outputs.skip != '1'
         run: |
           set -euo pipefail
           # main 은 보호 브랜치라 로봇이 못 민다(GH006 — 깃허브가 GITHUB_TOKEN 이 만든 커밋에

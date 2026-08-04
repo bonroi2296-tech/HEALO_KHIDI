@@ -23,6 +23,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronSecret } from "@/lib/security/cronAuth";
+import { windowHolidayReason } from "@/lib/deploy/windowHoliday";
 
 const REPO = process.env.GITHUB_DEPLOY_REPO || "bonroi2296-tech/HEALO_KHIDI";
 const REPO_ID = Number(process.env.GITHUB_REPO_ID || 1178442315);
@@ -70,6 +71,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
   }
   const teamId = process.env.VERCEL_TEAM_ID;
+
+  // 「오늘 하루만 쉰다」 — 날짜를 명시한 날에만. 목록이 비면 무조건 가동하고, 지난 날짜는
+  // 저절로 무효라 다음 날 사람 손 없이 되살아난다(정의·시험: src/lib/deploy/windowHoliday.ts).
+  const holiday = windowHolidayReason();
+  if (holiday) {
+    console.log(`[cron/daily-deploy] 오늘은 창구 휴무 — ${holiday}`);
+    return NextResponse.json({ ok: true, deployed: false, reason: "holiday", why: holiday });
+  }
 
   try {
     const sha = await latestMainSha();
