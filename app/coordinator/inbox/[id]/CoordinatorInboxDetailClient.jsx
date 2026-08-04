@@ -1291,6 +1291,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             <p className="text-sm font-semibold text-gray-800">{L.ibStaffUploadTitle}</p>
             <p className="text-xs text-gray-500 mt-0.5">{L.ibStaffUploadHint}</p>
             <p className="text-xs text-gray-500 mt-0.5">{describeUpload("medicalDoc", lang)}</p>
+            {/* 병원 CD 도 여기로 올린다 — 안내에 없으면 «못 올리는 줄» 안다(파일 고르기는 이미 받고 있었다). */}
+            <p className="text-xs text-gray-500 mt-0.5">{describeUpload("imaging", lang)}</p>
             <div className="mt-2 flex items-center gap-2">
               <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer">
                 <FileText size={14} />
