@@ -47,7 +47,7 @@ const TR = {
     phInviteePhone: "휴대폰 번호 (선택) — 국가번호 포함, 예: +77011234567", waSend: "WhatsApp 으로 보내기",
     emailSentToTpl: "✉️ 초대장 보냄: {list}", emailNotSent: "✉️ 이메일을 안 넣어 초대장은 보내지 않았습니다 — 위 링크를 복사해 직접 전달하세요.",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
-    lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
+    lblSessionType: "세션 유형", sessionTypePlaceholder: "— 고르세요 —", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
     notesInquiryPrefix: "문의",
     btnCancel: "취소", btnSubmitting: "생성 중…", btnSubmit: "상담 예약 생성",
     rolePatient: "🧑 환자", roleDoctorLabel: "👨‍⚕️ 의사", roleTranslator: "🗣 통역사", roleCoordinatorLabel: "🤝 코디네이터", roleObserver: "👁 참관자", roleGuest: "🔗 참여",
@@ -77,7 +77,7 @@ const TR = {
     phInviteePhone: "Phone number (optional) — with country code, e.g. +77011234567", waSend: "Send via WhatsApp",
     emailSentToTpl: "✉️ Invitation sent to: {list}", emailNotSent: "✉️ No email entered — no invitation was sent. Copy the link above and share it yourself.",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
-    lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
+    lblSessionType: "Session type", sessionTypePlaceholder: "— Select —", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
     notesInquiryPrefix: "Inquiry",
     btnCancel: "Cancel", btnSubmitting: "Creating…", btnSubmit: "Schedule consultation",
     rolePatient: "🧑 Patient", roleDoctorLabel: "👨‍⚕️ Doctor", roleTranslator: "🗣 Interpreter", roleCoordinatorLabel: "🤝 Coordinator", roleObserver: "👁 Observer", roleGuest: "🔗 Participant",
@@ -107,7 +107,7 @@ const TR = {
     phInviteePhone: "Номер телефона (необязательно) — с кодом страны, напр. +77011234567", waSend: "Отправить в WhatsApp",
     emailSentToTpl: "✉️ Приглашение отправлено: {list}", emailNotSent: "✉️ Email не указан — приглашение не отправлено. Скопируйте ссылку выше и передайте сами.",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
-    lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
+    lblSessionType: "Тип сессии", sessionTypePlaceholder: "— Выберите —", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
     notesInquiryPrefix: "Заявка",
     btnCancel: "Отмена", btnSubmitting: "Создание…", btnSubmit: "Запланировать консультацию",
     rolePatient: "🧑 Пациент", roleDoctorLabel: "👨‍⚕️ Врач", roleTranslator: "🗣 Переводчик", roleCoordinatorLabel: "🤝 Координатор", roleObserver: "👁 Наблюдатель", roleGuest: "🔗 Участник",
@@ -137,7 +137,7 @@ const TR = {
     phInviteePhone: "Телефон нөмірі (міндетті емес) — ел кодымен, мыс. +77011234567", waSend: "WhatsApp арқылы жіберу",
     emailSentToTpl: "✉️ Шақыру жіберілді: {list}", emailNotSent: "✉️ Email енгізілмеген — шақыру жіберілмеді. Жоғарыдағы сілтемені көшіріп өзіңіз жіберіңіз.",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
-    lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
+    lblSessionType: "Сессия түрі", sessionTypePlaceholder: "— Таңдаңыз —", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
     notesInquiryPrefix: "Өтінім",
     btnCancel: "Бас тарту", btnSubmitting: "Жасалуда…", btnSubmit: "Кеңесті жоспарлау",
     rolePatient: "🧑 Науқас", roleDoctorLabel: "👨‍⚕️ Дәрігер", roleTranslator: "🗣 Аудармашы", roleCoordinatorLabel: "🤝 Үйлестіруші", roleObserver: "👁 Бақылаушы", roleGuest: "🔗 Қатысушы",
@@ -167,7 +167,7 @@ const TR = {
     phInviteePhone: "手机号（可选）— 含国家代码，如 +77011234567", waSend: "通过 WhatsApp 发送",
     emailSentToTpl: "✉️ 已发送邀请：{list}", emailNotSent: "✉️ 未填写邮箱，未发送邀请 — 请复制上方链接自行转发。",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
-    lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
+    lblSessionType: "会诊类型", sessionTypePlaceholder: "— 请选择 —", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
     notesInquiryPrefix: "咨询",
     btnCancel: "取消", btnSubmitting: "创建中…", btnSubmit: "创建会诊预约",
     rolePatient: "🧑 患者", roleDoctorLabel: "👨‍⚕️ 医生", roleTranslator: "🗣 翻译", roleCoordinatorLabel: "🤝 协调员", roleObserver: "👁 观察员", roleGuest: "🔗 参与者",
@@ -197,7 +197,7 @@ const TR = {
     phInviteePhone: "電話番号（任意）— 国番号を含む 例: +77011234567", waSend: "WhatsApp で送信",
     emailSentToTpl: "✉️ 招待状を送信: {list}", emailNotSent: "✉️ メール未入力のため招待状は送っていません — 上のリンクをコピーして直接お渡しください。",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
-    lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
+    lblSessionType: "セッション種別", sessionTypePlaceholder: "— 選択してください —", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
     notesInquiryPrefix: "問い合わせ",
     btnCancel: "キャンセル", btnSubmitting: "作成中…", btnSubmit: "相談予約を作成",
     rolePatient: "🧑 患者", roleDoctorLabel: "👨‍⚕️ 医師", roleTranslator: "🗣 通訳", roleCoordinatorLabel: "🤝 コーディネーター", roleObserver: "👁 参観者", roleGuest: "🔗 参加",
@@ -239,7 +239,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
     d.setHours(d.getHours() + 1, 0, 0, 0);
     return {
       selected_inquiry_id: "",
-      session_type: "pre_consultation",
+      // ⚠️ 기본값을 «비움»으로 둔다 — 고르지 않으면 저장이 안 된다(select required).
+      //   왜: 예전 기본값이 pre_consultation 이었다. 그래서 에이전시·내부 미팅을 만들 때
+      //   유형을 안 건드리면 그대로 「사전상담」으로 저장됐고, 그건 KHIDI 공식 실적에
+      //   «집계되는» 유형이다. 실제로 5건(7/29·7/31·8/3×3)이 그렇게 잘못 찍혀 있었다
+      //   (2026-08-04 PO 확인 후 partner_meeting 으로 정정). 실적 오분류는 허위실적으로
+      //   이어지므로 «기본값으로 조용히 정해지는» 것보다 한 번 더 고르게 하는 편이 싸다.
+      session_type: "",
       scheduled_at: d.toISOString().slice(0, 16),
       // 언어는 화면에서 고르지 않는다 — 문의를 고르면 그 환자 언어로 자동(없으면 러시아어).
       patient_language: "ru",
@@ -631,8 +637,10 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             <select
               value={form.session_type}
               onChange={(e) => setForm({ ...form, session_type: e.target.value })}
+              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
+              <option value="" disabled>{tt("sessionTypePlaceholder")}</option>
               <option value="pre_consultation">{tt("sessionTypePre")}</option>
               <option value="follow_up">{tt("sessionTypeFollow")}</option>
               <option value="emergency">{tt("sessionTypeEmergency")}</option>
