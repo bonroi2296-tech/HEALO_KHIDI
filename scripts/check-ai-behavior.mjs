@@ -36,7 +36,16 @@ async function startThread(language = "ko") {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     // PIPA: /start·/stream 이 동의를 요구함(게이트). 점검도 동의 포함해야 통과.
-    body: JSON.stringify({ language, consent: true, consent_version: "1.0.0" }),
+    // ⚠️ guest_email 은 «실적 오염» 방지용이다 — 3턴 넘게 대화하면 서버가 이 스레드를
+    //   진짜 문의로 승격시키는데, 식별값이 없으면 「테스트」 판정이 안 걸린다(2026-08-04 실측:
+    //   이렇게 새어 진짜로 잡힌 문의 17건). healo-test.invalid = 내부 전용 도메인.
+    body: JSON.stringify({
+      language,
+      consent: true,
+      consent_version: "1.0.0",
+      guest_name: "AI 동작 점검",
+      guest_email: "ai-behavior@healo-test.invalid",
+    }),
   });
   const j = await r.json();
   if (!j.ok) throw new Error(`start failed: ${JSON.stringify(j)}`);

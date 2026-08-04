@@ -37,6 +37,16 @@ async function startThread() {
       browser_session_id: `smoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       landing_path: "/inquiry",
       client_meta: { smoke_test: true },
+      // ⚠️ 이 한 줄이 «실적 오염»을 막는다 (2026-08-04 실측으로 추가).
+      //   이 스모크는 대화를 3턴 이상 끌고 가면 서버가 그 스레드를 **진짜 문의로 승격**시킨다
+      //   (promoteThreadToInquiry). 그런데 여기서 이메일을 안 주면 승격된 문의에 식별값이
+      //   하나도 없어 「테스트」 판정이 안 걸리고 is_test=false, 즉 진짜 문의로 남는다.
+      //   실측: 14일간 이렇게 만들어진 문의가 17건, 같은 기간 진짜 웹 문의는 3건이었다
+      //   (전부 사후에 is_test=true 로 정정). 스레드는 아래 cleanup 이 지우지만
+      //   **승격된 문의는 아무도 안 지운다** — 그래서 만드는 시점에 표식을 남긴다.
+      //   healo-test.invalid = 이 저장소의 내부 전용 도메인(resolveTestDomains 기본에 포함).
+      guest_name: "스모크 점검",
+      guest_email: "smoke@healo-test.invalid",
       // PIPA: /start·/stream 이 동의를 요구함(게이트). 스모크도 동의 포함해야 통과.
       consent: true,
       consent_version: "1.0.0",
