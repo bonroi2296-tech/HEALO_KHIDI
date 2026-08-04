@@ -7,11 +7,22 @@
  *   ③ 지금 살아있는 배포가 main 과 같은 커밋이면 빌드를 안 짓는다
  *   ④ 지을 때는 「창구 표식」을 반드시 실어 보낸다 — 빠지면 배포가 스스로 취소된다
  *   ⑤ 직전 배포가 실패·취소면 「같은 커밋」으로 보지 않는다 — 그날 배포가 통째로 사라지지 않게
+ *   ⑥ 「오늘 하루 휴무」로 지정된 날에는 아무것도 안 짓는다 (2026-08-04 추가)
+ *
+ * ⚠️ ①~⑤ 는 «평범한 날»의 계약이다. 휴무 목록에 오늘이 들어 있으면 라우트가 앞에서 돌아가므로
+ *    이 시험들이 달력에 따라 깨진다(2026-08-04 실제로 깨졌다). 그래서 아래에서 휴무 판정을
+ *    «평범한 날»로 고정하고, 휴무 자체는 ⑥에서 따로 확인한다.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
+
+// 기본값 = 평범한 날. ⑥ 에서만 휴무로 바꾼다.
+const holidayReason = vi.fn((): string | null => null);
+vi.mock("@/lib/deploy/windowHoliday", () => ({
+  windowHolidayReason: () => holidayReason(),
+}));
 
 const SECRET = "test-cron-secret";
 const call = (v: string) =>
@@ -98,5 +109,17 @@ describe("배포 창구 크론", () => {
     await GET(call(`Bearer ${SECRET}`));
 
     expect(calls.some((c) => c.method === "POST")).toBe(true);
+  });
+
+  it("⑥ 오늘이 「창구 휴무」면 새 머지가 있어도 아무것도 안 짓는다", async () => {
+    process.env.VERCEL_API_TOKEN = "vc-token";
+    holidayReason.mockReturnValueOnce("시험용 휴무");
+    const calls = stubWorld("new-sha", { sha: "old-sha" }); // 새 머지가 «있는» 상태
+
+    const { GET } = await import("./route");
+    const res = await GET(call(`Bearer ${SECRET}`));
+
+    expect(await res.json()).toMatchObject({ ok: true, deployed: false, reason: "holiday" });
+    expect(calls.some((c) => c.method === "POST"), "휴무인데 배포를 지었다").toBe(false);
   });
 });
