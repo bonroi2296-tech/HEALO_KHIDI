@@ -27,16 +27,27 @@ const SCAN_DIRS = ["src", "app"];
 const EXTS = new Set([".js", ".jsx", ".ts", ".tsx", ".md", ".json"]);
 const SKIP = /node_modules|\.next|dist|build|citations\.json|check-legal-citations\.mjs/;
 
-/** 조문 번호 추출 — 6개 언어 표기 */
+/** 조문 번호 추출 — 6개 언어 표기
+ *
+ * ⚠️ 두 곳에 함정이 있었다(2026-08-04 독립 리뷰가 잡음 — 만든 날 바로 새 언어가 안 걸렸다):
+ *  ① **「제2항」을 괄호로 쓰는 표기**: "Article 8(2) of the Act…" / "статье 8(2) Закона…".
+ *     조문 번호만 먹고 끊으면 남는 글자가 "(2) of the …" 라 **닫는 괄호가 먼저** 나온다.
+ *     아래 귀속 판정은 조문과 법 이름 사이에 쉼표·괄호가 있으면 「다른 항목」으로 보고 버리므로,
+ *     법 이름이 뒤에 오는 영어·러시아어 문장이 **통째로 검사 대상에서 빠졌다.**
+ *     → 항 번호 `(N)` 까지 같이 먹어서 사이에 괄호가 남지 않게 한다.
+ *  ② **카자흐어 격변화**: 사전 문장은 "8-бап"(원형)이 아니라 "8-бабының"(속격)으로 쓴다.
+ *     원형만 찾으면 카자흐어는 영원히 0건이다 → 어간 `ба(п|б)…` 뒤 어미를 허용한다.
+ *  둘 다 자기시험에 박아 뒀다(아래 SELFTESTS).
+ */
 const ARTICLE_PATTERNS = [
   /§\s*(\d+)/g,
   /제\s*(\d+)\s*조/g,
-  /Article\s+(\d+)/gi,
-  /Art\.\s*(\d+)/gi,
+  /Article\s+(\d+)(?:\s*\(\s*\d+\s*\))?/gi,
+  /Art\.\s*(\d+)(?:\s*\(\s*\d+\s*\))?/gi,
   /第\s*(\d+)\s*条/g,
   /第\s*(\d+)\s*條/g,
-  /стать[еи]\s+(\d+)/gi,
-  /(\d+)\s*-\s*бап/g,
+  /стать[еи]\s+(\d+)(?:\s*\(\s*\d+\s*\))?/gi,
+  /(\d+)\s*-\s*ба[пб]\S*/g,
 ];
 
 /** 진료비·견적 문맥 (6개 언어) — ② 규칙용 */
@@ -174,6 +185,28 @@ const SELFTESTS = [
   { name: "오탐- 법 이름이 뒤에(러시아어)", line: "чувствительным данным согласно PIPA §23 и к особой категории согласно статье 9 GDPR.", expect: false },
   { name: "오탐- 나열 속 다른 법", line: "대한민국 개인정보보호법(§28-8 포함), 의료법, 의료해외진출법을 기반으로", expect: false },
   { name: "오탐- 남의 법(통신비밀보호법)", line: "· 로그인 기록: 3개월 (통신비밀보호법 §15-2)", expect: false },
+  // ↓ 아래 4종은 2026-08-04 독립 리뷰가 「검사한다고 해놓고 안 하던 언어」를 짚어내 추가한 것.
+  //   전부 «잡혀야 하는데 안 잡히던» 부류다 — 통과 시험이 아니라 적발 시험이다.
+  {
+    name: "괄호 항번호 + 뒤에 오는 법 이름(영어)",
+    line: 'Under Article 999(2) of the Act on the Support for Overseas Expansion of Healthcare, the institution must…',
+    expect: true,
+  },
+  {
+    name: "괄호 항번호 + 뒤에 오는 법 이름(러시아어)",
+    line: "Согласно статье 999(2) Закона Кореи о привлечении иностранных пациентов, учреждение обязано…",
+    expect: true,
+  },
+  {
+    name: "카자흐어 격변화(-бабының)",
+    line: "Медициналық шетелдік даму туралы заң 999-бабының 2-тармағы бойынша",
+    expect: true,
+  },
+  {
+    name: "정상- 괄호 항번호가 등록된 조문이면 통과",
+    line: "Under Article 8(2) of the Act on the Support for Overseas Expansion of Healthcare, …",
+    expect: false,
+  },
 ];
 
 if (process.argv.includes("--selftest")) {

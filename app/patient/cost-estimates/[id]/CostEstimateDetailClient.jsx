@@ -231,12 +231,18 @@ export default function CostEstimateDetailClient({ estimateId }) {
         </section>
       )}
 
-      {/* 견적 항목 */}
-      {estimate.quotation_items && estimate.quotation_items.length > 0 && (
-        <section className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
-          <h2 className="px-4 py-3 font-medium text-sm bg-gray-50 border-b border-gray-200">
-            {t("costDetail.itemDetailTitle", lang)}
-          </h2>
+      {/* 견적 항목
+          ⚠️ 「병원이 지급하는 항목」은 위 합계(total_krw)에 «안» 들어간다 — 통합고시 제2조제1호상
+             유치수수료는 의료기관이 유치사업자에게 주는 돈이지 환자가 내는 돈이 아니다.
+             그래서 한 표에 섞어 늘어놓으면 «항목을 더한 값 ≠ 합계» 가 되어 환자가 계산이 안 맞는
+             견적서를 보게 된다(2026-08-04 독립 리뷰 지적 — 견적서 PDF·FAQ 는 이미 갈라 놓았는데
+             이 화면만 안 갈라져 있었다). 표를 두 덩이로 나눈다. */}
+      {estimate.quotation_items && estimate.quotation_items.length > 0 && (() => {
+        const items = estimate.quotation_items;
+        // payer 가 없거나 이상한 값이면 «환자 부담»으로 본다 — 안전한 쪽(합계에 포함)으로 기운다.
+        const hospitalItems = items.filter((it) => it?.payer === "hospital");
+        const patientItems = items.filter((it) => it?.payer !== "hospital");
+        const Table = ({ rows }) => (
           <table className="w-full text-sm">
             <thead className="text-xs text-gray-600">
               <tr>
@@ -247,22 +253,45 @@ export default function CostEstimateDetailClient({ estimateId }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {estimate.quotation_items.map((it, i) => (
+              {rows.map((it, i) => (
                 <tr key={i}>
                   <td className="px-4 py-2">{it.label}</td>
                   <td className="px-4 py-2 text-gray-600">{it.note || ""}</td>
-                  <td className="px-4 py-2 text-right font-mono">
+                  <td className="px-4 py-2 text-right font-mono tabular-nums">
                     {it.krw != null ? Number(it.krw).toLocaleString("ko-KR") : "—"}
                   </td>
-                  <td className="px-4 py-2 text-right font-mono">
+                  <td className="px-4 py-2 text-right font-mono tabular-nums">
                     {it.usd != null ? `$${Number(it.usd).toLocaleString("en-US")}` : "—"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </section>
-      )}
+        );
+        return (
+          <>
+            {patientItems.length > 0 && (
+              <section className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+                <h2 className="px-4 py-3 font-medium text-sm bg-gray-50 border-b border-gray-200">
+                  {t("costDetail.itemDetailTitle", lang)}
+                </h2>
+                <Table rows={patientItems} />
+              </section>
+            )}
+            {hospitalItems.length > 0 && (
+              <section className="mt-4 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                <h2 className="px-4 py-3 font-medium text-sm border-b border-gray-200">
+                  {t("costDetail.hospitalPaidTitle", lang)}
+                </h2>
+                <Table rows={hospitalItems} />
+                <p className="px-4 py-3 text-xs text-gray-600 border-t border-gray-200 leading-relaxed">
+                  ※ {t("costDetail.hospitalPaidNote", lang)}
+                </p>
+              </section>
+            )}
+          </>
+        );
+      })()}
 
       <p className="text-xs text-gray-500 mt-6 italic leading-relaxed">
         {t("costDetail.disclaimer", lang)}

@@ -2738,20 +2738,28 @@ const TEAL600_BASELINE = {
     );
   }
 
-  const HELPER = "prefersReducedMotion";
+  // 헬퍼 자신은 "smooth" 를 «돌려주는» 쪽이라 유일한 예외다. 파일 경로로만 뺀다.
+  //   ⚠️ 2026-08-04 독립 리뷰 지적으로 고침: 원래는 «파일 안에 prefersReducedMotion 이라는
+  //   글자가 있으면 그 파일 전체를 건너뛰기» 였다. 그러면 이번에 고친 5개 파일이 **영구 면제**가
+  //   되어, 같은 파일에 나중에 behavior:"smooth" 를 새로 박아도 검사가 통과한다.
+  //   → 파일 단위가 아니라 «줄 단위»로 본다.
+  const HELPER_FILE = "src/lib/a11y/prefersReducedMotion.js";
   const files = walk("app").concat(walk("src"))
     .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f));
   for (const file of files) {
+    const rel = file.replace(/\\/g, "/");
+    if (rel === HELPER_FILE) continue;
     let raw = "";
     try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-    if (!/behavior\s*:\s*["']smooth["']/.test(raw)) continue;
-    if (raw.includes(HELPER)) continue; // 헬퍼를 쓰면서 폴백 문자열을 들고 있는 경우는 정상
-    const line = raw.split(/\r?\n/).findIndex((l) => /behavior\s*:\s*["']smooth["']/.test(l)) + 1;
-    errors.push(
-      `[움직임줄이기] ${file.replace(/\\/g, "/")}:${line} — behavior:"smooth" 를 손으로 박았다. ` +
-        `이건 CSS 의 prefers-reduced-motion 이 «못 끄는» 부류다(옵션이 이긴다). ` +
-        `scrollBehavior() from "@/lib/a11y/prefersReducedMotion" 로 바꿔라 — 줄이기를 켠 사용자에겐 "auto" 를 준다.`
-    );
+    raw.split(/\r?\n/).forEach((l, i) => {
+      if (!/behavior\s*:\s*["']smooth["']/.test(l)) return;
+      errors.push(
+        `[움직임줄이기] ${rel}:${i + 1} — behavior:"smooth" 를 손으로 박았다. ` +
+          `이건 CSS 의 prefers-reduced-motion 이 «못 끄는» 부류다(옵션이 이긴다). ` +
+          `scrollBehavior() from "@/lib/a11y/prefersReducedMotion" 로 바꿔라 — 줄이기를 켠 사용자에겐 "auto" 를 준다.` +
+          `\n    ${l.trim().slice(0, 120)}`
+      );
+    });
   }
 }
 
