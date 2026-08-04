@@ -171,7 +171,6 @@ export function ListenModeBridge({
   dcActivityRef, // Map<identity, ts> — DataChannel 자막 최근 수신 시각
   onSubtitle, // ({ transcript, translated, lang, name, identity }) => void
   onAudioHealth, // ({ remoteAudioCount, contextState }) => void — "조용한 사망" 워치독용 (선택)
-  record = true, // 이 기기가 «기록 담당»인가. 같은 사무실 뒤따라 들어온 기기는 false (아래 noStore 주석)
 }) {
   // 원격 참가자 마이크 트랙 (본인 제외)
   const trackRefs = useTracks([Track.Source.Microphone]);
@@ -187,7 +186,7 @@ export function ListenModeBridge({
   // 언어·콜백·헤더는 ref 로 — 값이 바뀌어도 진행 중인 녹음 파이프라인을 재시작하지 않고
   // 다음 전송 시점에 최신값을 읽는다 (재시작하면 녹음 중이던 문장이 통째로 유실됨)
   const liveRef = useRef({});
-  liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle, record };
+  liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle };
 
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
@@ -445,13 +444,16 @@ function startPipeline({
     fd.append("context", JSON.stringify(ctx));
     fd.append("speakerName", name || "");
     if (partial) fd.append("partial", "1");
-    // ── 기록은 «한 대만» 남긴다 ──
-    // 같은 사무실 기기가 여럿이면 각자 같은 소리를 받아써서 서버로 보낸다. 화면엔 각자 자막이
-    // 필요하니 전사는 그대로 하되, **DB 기록은 먼저 들어온 한 대만** 남긴다.
-    // 2026-08-04 실회의: 우리 사무실 PC 4대가 동시 접속 → 같은 말이 서로 «다른 번역»으로
-    // 여러 줄 저장됐고(중복 묶음의 71%가 번역 불일치), 화자 이름도 뒤섞였다
-    // (카자흐 참가자 이름에 붙은 한국어 발화 132줄).
-    if (!live.record) fd.append("noStore", "1");
+    // ponytail: 「기록은 먼저 들어온 한 대만」을 2026-08-04 에 넣었다가 **같은 날 되돌렸다.**
+    //   자가감사에서 교환이 안 맞는 걸로 나왔다:
+    //     · 잡는 것 — 같은 언어쌍 순수 중복 8줄 / 414줄 = **1.9%**
+    //     · 새로 만드는 위험 — 「기록 담당」이 회의 중간에 나가면 **그 뒤 상대 말이 통째로 기록에서
+    //       사라진다**(각 기기가 «자기 말»은 계속 남기므로 우리 쪽만 남고 상대는 빈다).
+    //     · 게다가 절반만 잡았다 — 같은 회선 판정이 «게스트 입장»에서만 채워져서, 계정으로
+    //       로그인해 들어온 기기와 서로 다른 회선의 기기(그날 카자흐 4명)는 애초에 못 잡는다.
+    //   1.9% 를 지우려고 「기록 전체 소실」 위험을 사는 건 손해다.
+    //   제대로 고치려면 **서버가 저장 직전에 중복을 접어야** 한다(같은 상담·최근 8초·비슷한 문장).
+    //   암호문이라 SQL 비교가 안 되니 정규화 해시 컬럼이 필요 — 그건 따로 설계해서 하라.
     const res = await fetch(`/api/khidi/consultation/${live.consultationId}/stt`, {
       method: "POST",
       headers,
