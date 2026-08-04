@@ -194,6 +194,7 @@ function buildPrompt(lang: BriefLang, withImaging = false): string {
       ? `- imaging_note: a PRELIMINARY observation of the CT slices attached (evenly sampled from the study — NOT the full series). Write 2-5 short sentences in ${L}: which body region is shown, and any obvious findings (mass, fluid, dilated collecting system, effusion, enlarged nodes) with their location. Use hedged wording throughout (the ${L} equivalent of "appears/suspected"). This is a reading aid for a NON-MEDICAL coordinator before a doctor reads the study — say so plainly at the end of the field. NEVER state a definitive diagnosis, stage, or treatment. If the sampled slices are not informative, say that instead of guessing. Omit this field entirely when no CT slices are attached.`
       : null,
     ``,
+    `TERMS: write anatomy in the standard ${L} clinical term, never a transliteration of the source sound (Korean: 대동맥 not 아오르타).`,
     `RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in \`request\`) from your clinical INFERENCE (goes in \`points\`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. **Write every output field in ${L}** (medical terms may keep their standard Latin/technical form).`,
     `Return ONLY the JSON object.`,
   ].join("\n");

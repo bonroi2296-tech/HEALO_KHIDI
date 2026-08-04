@@ -12,12 +12,18 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, AlertCircle, X } from "lucide-react";
+import { Loader2, AlertCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 // 방사선과에서 쓰는 표준 창(window) 값 그대로. 폭(WW)/중심(WL).
 // ⚠️ 「연부조직」을 «복부»라고만 부르지 않는다 — 가슴·목에도 똑같이 쓰는 기본값이라,
 //   흉부 CT 를 보면서 「복부」라고 적혀 있으면 잘못 온 줄 안다(PO 지적 2026-08-03).
+// 화면을 열 때·묶음을 바꿀 때 항상 이 값으로 시작한다.
+// ⚠️ 예전엔 묶음마다 DICOM 안에 적힌 값을 그대로 썼다 → 폐 재구성 묶음만 「폐」로 열려
+//    같은 검사인데 묶음마다 다른 밝기로 보였다(PO 지적 2026-08-04). 기준이 흔들리면 비교가 안 된다.
+const DEFAULT_WW = 350;
+const DEFAULT_WC = 40;
+
 const WINDOWS = [
   { key: "soft", label: "연부조직(기본)", ww: 350, wc: 40 },
   { key: "liver", label: "간", ww: 150, wc: 60 },
@@ -42,9 +48,12 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
   const [docKey, setDocKey] = useState(null); // 글 기록을 보는 중이면 그 key
   const [sIdx, setSIdx] = useState(0);
   const [slice, setSlice] = useState(0);
-  const [ww, setWw] = useState(350);
-  const [wc, setWc] = useState(40);
+  const [ww, setWw] = useState(DEFAULT_WW);
+  const [wc, setWc] = useState(DEFAULT_WC);
   const [preparing, setPreparing] = useState(false); // 아직 안 만든 묶음을 지금 만드는 중
+  // ⚠️ 준비 실패는 errText 로 넣어도 «안 보였다» — errText 는 처음 열기 실패에만 쓰인다.
+  //    그래서 까만 화면만 남고 이유가 안 뜬다(PO 제보 2026-08-04). 따로 칸을 둔다.
+  const [prepErr, setPrepErr] = useState("");
   const wantRef = useRef(0);                          // 서버에 «이 묶음을 만들어 달라»고 알릴 번호
   const canvasRef = useRef(null);
   const cacheRef = useRef(new Map()); // "시리즈-장" → Int16Array (같은 장을 두 번 안 받는다)
@@ -79,7 +88,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
         }
         setSeries(j.series); setUrls(j.urls); setSkipped(j.skipped || []);
         setDocs(j.docs || []); setExtras(j.extras || []);
-        setWw(j.series[0]?.ww || 350); setWc(j.series[0]?.wc || 40);
+        setWw(DEFAULT_WW); setWc(DEFAULT_WC);
         setStage("ready");
       } catch (e) {
         console.error("[imaging] prepare failed:", e);
@@ -91,7 +100,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
 
   /** 아직 안 만든 묶음을 지금 만든다 — 압축을 다시 풀어야 해서 몇 초 걸린다(한 번만). */
   const prepareSeries = useCallback(async (i) => {
-    setPreparing(true);
+    setPreparing(true); setPrepErr("");
     try {
       const headers = { "Content-Type": "application/json" };
       if (withAuth) {
@@ -107,10 +116,10 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
         body: JSON.stringify({ path, series: i }),
       });
       const j = await res.json();
-      if (j.ok) { setSeries(j.series); setUrls(j.urls); }
-      else setErrText("이 촬영 묶음을 준비하지 못했습니다.");
+      if (j.ok) { setSeries(j.series); setUrls(j.urls); setPrepErr(""); }
+      else setPrepErr("이 촬영 묶음을 준비하지 못했습니다. 다시 눌러 보세요.");
     } catch {
-      setErrText("이 촬영 묶음을 준비하지 못했습니다.");
+      setPrepErr("이 촬영 묶음을 준비하지 못했습니다. 다시 눌러 보세요.");
     } finally {
       setPreparing(false);
     }
@@ -199,7 +208,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
             {series.map((s, i) => (
               <button
                 key={s.uid}
-                onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(s.ww); setWc(s.wc); if (s.ready === false) prepareSeries(i); }}
+                onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(DEFAULT_WW); setWc(DEFAULT_WC); if (s.ready === false) prepareSeries(i); }}
                 disabled={preparing}
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
                   !docKey && i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
@@ -255,8 +264,25 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
                   기기가 남긴 기록을 그대로 옮긴 것입니다(요약 아님). 판독은 의료진이 합니다.
                 </p>
               ) : (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-20 shrink-0">{slice + 1} / {cur.count}장</span>
+              <div className="flex items-center gap-2">
+                {/* 휠은 빠르게 훑을 때, 버튼은 한 장씩 정확히 볼 때 — 둘 다 필요하다(PO 요청). */}
+                <button
+                  onClick={() => setSlice((v) => Math.max(0, v - 1))}
+                  disabled={slice <= 0}
+                  className="p-1.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 shrink-0"
+                  aria-label="이전 장"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <button
+                  onClick={() => setSlice((v) => Math.min(cur.count - 1, v + 1))}
+                  disabled={slice >= cur.count - 1}
+                  className="p-1.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 shrink-0"
+                  aria-label="다음 장"
+                >
+                  <ChevronRight size={15} />
+                </button>
+                <span className="text-xs text-gray-500 w-20 shrink-0 text-center">{slice + 1} / {cur.count}장</span>
                 <input
                   type="range" min={0} max={cur.count - 1} value={slice}
                   onChange={(e) => setSlice(Number(e.target.value))}
@@ -290,6 +316,11 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
                   필요하면 원본 묶음을 내려받아 확인하세요.
                 </p>
               )}
+              {prepErr && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                  {prepErr}
+                </p>
+              )}
               {extras.length > 0 && (
                 <p className="text-[11px] text-gray-500">
                   CD 에 딸려 온 {extras.map((e) => `${e.kind} ${e.count}건`).join(", ")}은 의료 내용이 아니라 뺐습니다.
@@ -297,7 +328,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               )}
               {!curDoc && (
                 <p className="text-[11px] text-gray-500">
-                  마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
+                  좌우 버튼이나 마우스 휠로 장을 넘길 수 있습니다. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
                 </p>
               )}
             </div>
