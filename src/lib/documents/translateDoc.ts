@@ -131,6 +131,10 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     lang === "ko"
       ? "7. Write Korean in Hangul only. NEVER use Chinese characters (한자) — write 미만성, not 弥漫性. Latin medical abbreviations and the source term in parentheses are fine."
       : null,
+    // 실측 2026-08-04: аорта 를 「아오르타」로, хорда 를 「삭대/가삭」으로 «소리만» 옮겼다.
+    //   PO 가 «대아오르타가 뭐냐»고 잡아냈다. 병기는 괜찮지만 본문은 한국 의료진이 쓰는 말이어야 한다.
+    `8. TRANSLATE anatomy and medical terms into the standard ${T} clinical term — do NOT transliterate the sound of the source word. Examples for Korean: аорта → 대동맥 (NOT 아오르타), хорда → 부챙/덧줄 (NOT 삭대), почка → 신장, лоханка → 신우. You may add the source word in parentheses, but the ${T} term must come first and must be the word a ${T} clinician actually uses.`,
+    `9. Do not merge two different findings into one phrase. If the source says fluid in the pelvis, say fluid in the pelvis — do not add a body cavity the source did not mention.`,
     glossary ? "" : null,
     glossary ? `GLOSSARY — for these source terms, use EXACTLY this ${T} translation (respect any [note]):` : null,
     glossary || null,

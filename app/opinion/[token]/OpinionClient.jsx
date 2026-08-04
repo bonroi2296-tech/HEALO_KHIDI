@@ -7,9 +7,13 @@
  */
 
 import { useEffect, useState } from "react";
-import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
+import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown, Eye, Download, X, Paperclip } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 import ImagingPanel from "@/components/ImagingPanel";
+import { uploadDirect } from "@/lib/uploadAttachment";
+
+/** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
+const canPreview = (name) => /\.(pdf|jpe?g|png|gif|webp)$/i.test(String(name || ""));
 
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,12 @@ export default function OpinionClient({ token }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  // 첨부를 «내려받지 않고» 바로 띄워 보는 창(PO 요청 2026-08-04)
+  const [preview, setPreview] = useState(null); // { url, name }
+  // 소견과 «같이» 낼 서류(견적서 등) — PO 요청 2026-08-04
+  const [files, setFiles] = useState([]);       // [{path,name,type}]
+  const [uploading, setUploading] = useState(false);
+  const [fileErr, setFileErr] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -45,6 +55,28 @@ export default function OpinionClient({ token }) {
     return () => { alive = false; };
   }, [token]);
 
+  const addFile = async (file) => {
+    if (!file) return;
+    setUploading(true); setFileErr("");
+    try {
+      const r = await uploadDirect(`/api/opinions/${token}/upload`, file);
+      if (!r.ok) {
+        setFileErr(
+          r.error === "file_too_large" ? "파일이 너무 큽니다(50MB까지)."
+          : r.error === "invalid_file_type" ? "이 형식은 올릴 수 없습니다. PDF·이미지·워드·엑셀만 됩니다."
+          : r.error === "invalid_file_content" ? "파일 내용이 확장자와 다릅니다."
+          : "올리지 못했습니다. 다시 시도해 주세요."
+        );
+        return;
+      }
+      setFiles((prev) => [...prev, r.file].slice(0, 5));
+    } catch {
+      setFileErr("올리지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const submit = async () => {
     if (!doctorKey || opinion.trim().length < 5 || submitting) return;
     setSubmitting(true);
@@ -53,7 +85,7 @@ export default function OpinionClient({ token }) {
       const res = await fetch(`/api/opinions/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doctorKey, opinionText: opinion.trim() }),
+        body: JSON.stringify({ doctorKey, opinionText: opinion.trim(), files }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -205,9 +237,24 @@ export default function OpinionClient({ token }) {
                     )}
                   </div>
                   {a.url ? (
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
-                      <FileText size={15} /> <span className="truncate">{a.name}</span> <span className="text-gray-400 text-xs">(원본)</span>
-                    </a>
+                    // 예전엔 누르면 바로 내려받기만 됐다. 원장님이 «잠깐 보고 싶을 뿐»인 경우가 더 많다(PO 요청).
+                    <div className="flex items-center gap-2 flex-wrap text-sm">
+                      <FileText size={15} className="text-teal-700 shrink-0" />
+                      <span className="truncate text-gray-800">{a.name}</span>
+                      {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
+                      {canPreview(a.name) && (
+                        <button
+                          onClick={() => setPreview({ url: a.url, name: a.name })}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
+                        >
+                          <Eye size={12} /> 미리보기
+                        </button>
+                      )}
+                      <a href={a.url} download={a.name}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 transition">
+                        <Download size={12} /> 내려받기
+                      </a>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
                   )}
@@ -260,6 +307,34 @@ export default function OpinionClient({ token }) {
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none mb-3"
         />
 
+        {/* 서류 같이 내기 — 견적서·검사 안내문 등. 없어도 제출된다. */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-600 mb-1.5">서류 같이 내기 <span className="text-gray-400">(선택 · 견적서 등)</span></label>
+          {files.length > 0 && (
+            <ul className="space-y-1 mb-2">
+              {files.map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                  <Paperclip size={13} className="text-teal-700 shrink-0" />
+                  <span className="truncate">{f.name}</span>
+                  <button onClick={() => setFiles((p) => p.filter((_, k) => k !== i))}
+                    className="ml-auto p-0.5 rounded hover:bg-gray-200 text-gray-500" aria-label="빼기">
+                    <X size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition cursor-pointer">
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
+            {uploading ? "올리는 중…" : "파일 선택"}
+            <input type="file" className="hidden" disabled={uploading || files.length >= 5}
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; addFile(f); }} />
+          </label>
+          <p className="text-[11px] text-gray-500 mt-1">PDF · 이미지 · 워드 · 엑셀 · 각 50MB · 최대 5개</p>
+          {fileErr && <p className="text-xs text-red-600 mt-1">{fileErr}</p>}
+        </div>
+
         {submitError && <p className="text-sm text-red-600 mb-3">{submitError}</p>}
 
         <button
@@ -270,6 +345,33 @@ export default function OpinionClient({ token }) {
           {submitting ? "제출 중…" : "소견 제출"}
         </button>
       </section>
+
+      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 브라우저 뷰어로. */}
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3" onClick={() => setPreview(null)}>
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-200">
+              <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a href={preview.url} download={preview.name}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
+                  <Download size={12} /> 내려받기
+                </a>
+                <button onClick={() => setPreview(null)} className="p-1 rounded hover:bg-gray-100 text-gray-500" aria-label="닫기">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
+              {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+                <img src={preview.url} alt={preview.name} className="max-w-full max-h-[80vh] object-contain" />
+              ) : (
+                <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
