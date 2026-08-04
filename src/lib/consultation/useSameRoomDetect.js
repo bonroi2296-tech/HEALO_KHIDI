@@ -148,6 +148,14 @@ export function bothLoud(localSamples, remoteSamples, n = FAST_LEN, thresh = HOW
  *     → 그룹 전체를 보고 한 대만 남기는 판단을 하려면 목록이 필요하다.
  */
 export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
+  // ── 왜 숫자를 밖으로 내보내나 (2026-08-04) ──
+  // 이 감지기는 만든 뒤로 **한 번도 실측된 적이 없다.** 하울링이 났는지, 문턱을 넘었는지,
+  // 몇 초 만에 잡았는지가 아무 데도 안 남아서 「고쳤다 → 아니던데 → 또 고친다」가 반복됐다
+  // (PO 2026-08-04: "너 맨날 해결했다 하는데 제대로 되질 않던데"). 문턱(0.45 / 0.22)은
+  // 지금도 실측 0건짜리 추정값이다.
+  //   → 판정 순간의 실제 음량·단일음 수치를 ref 로 내보낸다. state 가 아니라 ref 인 이유:
+  //     60ms 마다 갱신되므로 state 면 초당 16번 화면을 다시 그린다.
+  const statsRef = useRef({ myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, peer: null });
   const [sameRoomWith, setSameRoomWith] = useState(null);
   // 하울링 즉발(빠른 경로)로 확정됐는지 — 배너가 이걸 보고 '경고'가 아니라 '자동 음소거'로 대응.
   const [feedbackOnset, setFeedbackOnset] = useState(false);
@@ -162,6 +170,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       setFeedbackPeers((prev) => (prev.length ? [] : prev));
       suspectSinceRef.current = {};
       loudSinceRef.current = {};
+      statsRef.current = { myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, peer: null };
       return;
     }
 
@@ -265,6 +274,30 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
         }
       }
 
+      // ── 실측용 숫자 (판정 결과가 아니라 «판정 재료»를 남긴다) ──
+      // 「자동 차단이 안 걸렸다」고 할 때 그게 소리가 작아서인지(문턱 미달) 단일음 판정이
+      // 안 나와서인지를 갈라야 문턱을 근거 있게 조절할 수 있다. 가장 시끄러운 상대 기준.
+      {
+        const my = meanOfLast(nodes.local.samples, FAST_LEN);
+        let loudest = null;
+        for (const r of nodes.remotes) {
+          const v = meanOfLast(r.samples, FAST_LEN);
+          if (!loudest || v > loudest.v) loudest = { v, r };
+        }
+        const s = statsRef.current;
+        s.myPeak = Math.max(s.myPeak, Number(my.toFixed(3)));
+        if (loudest) {
+          s.peerPeak = Math.max(s.peerPeak, Number(loudest.v.toFixed(3)));
+          s.peer = loudest.r.identity;
+          const hits = (arr) =>
+            arr.length < TONAL_WINDOW
+              ? 0
+              : arr.slice(-TONAL_WINDOW).filter(Boolean).length;
+          s.myTonal = Math.max(s.myTonal, hits(nodes.local.tonals));
+          s.peerTonal = Math.max(s.peerTonal, hits(loudest.r.tonals));
+        }
+      }
+
       setSameRoomWith((prev) => (prev === confirmed ? prev : confirmed));
       setFeedbackOnset((prev) => (prev === fast ? prev : fast));
       fastPeers.sort();
@@ -287,5 +320,5 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
     };
   }, [enabled, localTrack, remoteTracks]);
 
-  return { sameRoomWith, feedbackOnset, feedbackPeers };
+  return { sameRoomWith, feedbackOnset, feedbackPeers, statsRef };
 }

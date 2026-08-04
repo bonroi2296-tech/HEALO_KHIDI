@@ -107,8 +107,11 @@ function silenceParticipant(p, volume) {
  * @param {object} props.copy — 방 문구(6개 언어)
  * @param {number} [props.sameNetworkPeers] — 입장 시점에 «같은 인터넷 회선»으로 이미 방에
  *   들어와 있던 기기 수. 1 이상 = 거의 확실히 같은 사무실 → 소리를 안 내고 들어간다.
+ * @param {(type: string, message: string) => void} [props.report] — 진단 비콘 보내기.
+ *   이 감지기는 만든 뒤로 실측이 0건이라 「고쳤다 → 아니던데」가 반복됐다. 이제 판정이
+ *   일어날 때마다 그 순간의 실제 숫자를 남긴다.
  */
-export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
+export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
   const room = useRoomContext();
   const { localTrack, remoteTracks } = useAudioTracks(room);
   const [dismissed, setDismissed] = useState(false);
@@ -134,11 +137,17 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
   //   (껐다 켰다 깜빡임 없음). 같은 방의 다른 기기 스피커로 상대 목소리는 계속 들린다.
   const undoneRef = useRef(false);
 
-  const { sameRoomWith, feedbackOnset, feedbackPeers } = useSameRoomDetect({
+  const { sameRoomWith, feedbackOnset, feedbackPeers, statsRef } = useSameRoomDetect({
     localTrack,
     remoteTracks,
     enabled: !!localTrack && !dismissed && !screenOnly,
   });
+
+  /** 판정 순간의 실제 숫자를 한 줄로 — 나중에 기록에서 문턱을 근거 있게 조절하려고. */
+  const stats = () => {
+    const s = statsRef?.current || {};
+    return `my=${s.myPeak ?? 0} peer=${s.peerPeak ?? 0} tonal=${s.myTonal ?? 0}/${s.peerTonal ?? 0} (문턱 포화0.45 · AGC0.22+단일음4)`;
+  };
 
   /**
    * 이 기기를 "화면 전용"으로 — 내 마이크를 끄고 이 기기 스피커도 침묵시킨다.
@@ -252,10 +261,32 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0 }) {
     if (myId !== keeper) {
       autoMutedRef.current = true;
       setScreenOnly(true, undoneRef.current);
+      report?.(
+        "howling_muted",
+        `자동차단 ${undoneRef.current ? "스피커만" : "마이크+스피커"} · 같은방 ${group.length}대 · ${stats()}`
+      );
+    } else {
+      // 이 기기는 «남기기로 정해진 한 대»다 — 자동으로 안 끈다. 그런데 그 판단이 틀렸으면
+      // (예: 다른 기기가 백그라운드로 밀려 판정을 못 함) 아무도 안 꺼서 하울링이 남는다.
+      // 그 경우를 기록에서 구분할 수 있게 남긴다.
+      report?.("howling_kept", `이 기기가 소리 유지 대상 · 같은방 ${group.length}대 · ${stats()}`);
     }
     // setScreenOnly 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedbackOnset, sameRoomWith, peerKey, screenOnly, dismissed, room]);
+
+  // ── 「같은 방으로 보이는데 자동 차단은 안 걸린」 경우를 기록한다 ──
+  // 이게 제일 중요한 기록이다. 지금까지 «하울링이 났는데 아무 일도 안 일어난» 상황은
+  // 코드 어디에도 흔적을 안 남겼다 — 그래서 문턱(0.45 / 0.22)이 모자란 건지, 감지가 아예
+  // 안 돈 건지 구분할 방법이 없었고, 매번 추측으로 고쳤다.
+  // 여기에 남는 숫자가 다음 조절의 근거가 된다: peer 음량이 0.4 대인데 안 걸렸다 = 문턱 문제,
+  // 0.05 대다 = 소리가 아니라 감지 경로 문제(마이크 꺼짐·백그라운드 스로틀 등).
+  useEffect(() => {
+    if (!sameRoomWith || feedbackOnset || screenOnly || dismissed) return;
+    report?.("howling_missed", `같은방 의심(느린감지)인데 자동차단 미발동 · ${stats()}`);
+    // stats 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sameRoomWith, feedbackOnset, screenOnly, dismissed, report]);
 
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
