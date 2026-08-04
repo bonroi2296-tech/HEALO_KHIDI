@@ -12,6 +12,9 @@ import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/op
 import ImagingPanel from "@/components/ImagingPanel";
 import { uploadDirect } from "@/lib/uploadAttachment";
 
+/** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
+const canPreview = (name) => /\.(pdf|jpe?g|png|gif|webp)$/i.test(String(name || ""));
+
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
   const [caseData, setCaseData] = useState(null);
@@ -238,12 +241,15 @@ export default function OpinionClient({ token }) {
                     <div className="flex items-center gap-2 flex-wrap text-sm">
                       <FileText size={15} className="text-teal-700 shrink-0" />
                       <span className="truncate text-gray-800">{a.name}</span>
-                      <button
-                        onClick={() => setPreview({ url: a.url, name: a.name })}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
-                      >
-                        <Eye size={12} /> 미리보기
-                      </button>
+                      {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
+                      {canPreview(a.name) && (
+                        <button
+                          onClick={() => setPreview({ url: a.url, name: a.name })}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
+                        >
+                          <Eye size={12} /> 미리보기
+                        </button>
+                      )}
                       <a href={a.url} download={a.name}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 transition">
                         <Download size={12} /> 내려받기
