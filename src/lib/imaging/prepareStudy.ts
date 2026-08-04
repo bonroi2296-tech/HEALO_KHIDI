@@ -21,7 +21,10 @@ import { readFile } from "node:fs/promises";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 const BUCKET = "attachments";
-const MAX_SLICES = 1200; // 한 검사에 이보다 많으면 손대지 않는다(시간·저장소 폭주 방지)
+// 한 검사에 이보다 많으면 손대지 않는다. 1200 은 «모든 묶음을 미리 만들던» 시절 숫자였는데
+// 이제는 고른 묶음 하나만 만들므로 근거가 달라졌다(실측 601장 = 풀기 2.1초).
+// 여기서 드는 건 «푸는 동안 메모리»뿐이라 3000 까지 올린다.
+const MAX_SLICES = 3000;
 // 4 = «누를 때 만들기». 처음엔 제일 큰 묶음 하나만 만들어 두고, 나머지는 고를 때 만든다.
 //   왜: 전부 미리 만들면 한 검사에 301MB 가 쌓이는데 대부분 첫 묶음만 본다(실측 #60: s0·s1 각 133MB).
 //   첫 대기시간도 같이 줄어든다.
