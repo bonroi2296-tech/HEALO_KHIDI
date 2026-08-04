@@ -244,7 +244,8 @@ export default function OpinionClient({ token }) {
                       {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
                       {canPreview(a.name) && (
                         <button
-                          onClick={() => setPreview({ url: a.url, name: a.name })}
+                          // 가벼운 사본이 있으면 그걸 띄운다 — 130MB 원본은 다 받을 때까지 하얀 화면이다.
+                          onClick={() => setPreview({ url: a.previewUrl || a.url, name: a.name, full: a.url })}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
                         >
                           <Eye size={12} /> 미리보기
@@ -351,9 +352,15 @@ export default function OpinionClient({ token }) {
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-200">
-              <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
+              <p className="text-sm font-semibold text-gray-800 truncate">
+                {preview.name}
+                {preview.full && preview.full !== preview.url && (
+                  <span className="ml-1.5 font-normal text-xs text-gray-500">· 빨리 보기용 사본(원본은 내려받기)</span>
+                )}
+              </p>
               <div className="flex items-center gap-1.5 shrink-0">
-                <a href={preview.url} download={preview.name}
+                {/* 내려받기는 항상 «원본» — 화면에 띄운 게 가벼운 사본이어도 그렇다(의료 원본). */}
+                <a href={preview.full || preview.url} download={preview.name}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
                   <Download size={12} /> 내려받기
                 </a>
