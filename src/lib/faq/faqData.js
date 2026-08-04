@@ -29,6 +29,9 @@ export const FAQS = [
   // === Consultation ===
   { id: "consultation1", category: "consultation", qKey: "faqData.consultation1.q", aKey: "faqData.consultation1.a" },
   { id: "consultation2", category: "consultation", qKey: "faqData.consultation2.q", aKey: "faqData.consultation2.a" },
+  // 진료기록을 어떻게 보내는지 — 기능(문의 2단계 첨부)은 있는데 안내가 없어 폼에서 처음 마주쳤다.
+  // 문의 직전에 사람을 멈춰 세우는 칸 중 하나(대조표: docs/marketing/문의전_불안_8칸_대조.md).
+  { id: "consultation3", category: "consultation", qKey: "faqData.consultation3.q", aKey: "faqData.consultation3.a" },
 
   // === Treatment ===
   { id: "treatment1", category: "treatment", qKey: "faqData.treatment1.q", aKey: "faqData.treatment1.a" },
@@ -47,6 +50,9 @@ export const FAQS = [
   // === Payment ===
   { id: "payment1", category: "payment", qKey: "faqData.payment1.q", aKey: "faqData.payment1.a" },
   { id: "payment2", category: "payment", qKey: "faqData.payment2.q", aKey: "faqData.payment2.a" },
+  // 취소하면 어떻게 되나 — 여태 6개 언어 어디에도 답이 없던 칸(견적서에 적힌다는 말만 있었다).
+  // PO 결정 2026-08-03: 「환자가 우리에게 낼 돈이 없으니 우리 쪽 취소 비용은 0」.
+  { id: "payment3", category: "payment", qKey: "faqData.payment3.q", aKey: "faqData.payment3.a" },
 
   // === Privacy ===
   { id: "privacy1", category: "privacy", qKey: "faqData.privacy1.q", aKey: "faqData.privacy1.a" },

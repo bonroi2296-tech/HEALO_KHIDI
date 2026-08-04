@@ -23,6 +23,18 @@ const SOURCE_LABELS = {
   "(미상)": "(미상)",
 };
 
+// 「유입별」 표를 보는 세 가지 각도. 표는 하나만 두고 축만 바꾼다(표가 셋이면 화면만 길어진다).
+const ARRIVAL_AXES = [
+  { key: "locale", label: "화면 언어", col: "언어", hint: "어느 언어 화면에서 문의했는지 — 다국어에 들인 품이 실제 문의로 이어졌는지 봅니다." },
+  { key: "referrer", label: "어디서", col: "유입처", hint: "어느 사이트를 거쳐 왔는지 — 검색·에이전시·광고·직접 방문 구분." },
+  { key: "landing", label: "첫 페이지", col: "처음 들어온 페이지", hint: "우리 사이트에서 처음 열어 본 페이지 — 어느 글이 문의를 데려오는지 봅니다." },
+];
+
+// 언어 코드 → 사람이 읽는 이름
+const LOCALE_LABELS = {
+  ko: "한국어", en: "영어", ru: "러시아어", kz: "카자흐어", kk: "카자흐어", zh: "중국어", ja: "일본어",
+};
+
 export default function ConversionDashboard() {
   const [rangeKey, setRangeKey] = useState("90");
   const [data, setData] = useState(null);
@@ -31,6 +43,8 @@ export default function ConversionDashboard() {
   const [busyId, setBusyId] = useState(null);
   // 테스트 데이터 포함 보기(평소엔 실적만 = 평가에 제출하는 진짜 숫자).
   const [includeTest, setIncludeTest] = useState(false);
+  // 유입을 어느 축으로 볼지 — 화면 언어 / 어디서 왔나 / 처음 들어온 페이지.
+  const [arrivalAxis, setArrivalAxis] = useState("locale");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -41,6 +55,7 @@ export default function ConversionDashboard() {
       const from = new Date(to.getTime() - days * 86400000);
       let qs = `from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`;
       if (includeTest) qs += "&includeTest=1";
+      qs += `&arrivalAxis=${arrivalAxis}`;
       const res = await fetch(`/api/admin/khidi/conversion-funnel?${qs}`, {
         credentials: "include",
         cache: "no-store",
@@ -56,7 +71,7 @@ export default function ConversionDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [rangeKey, includeTest]);
+  }, [rangeKey, includeTest, arrivalAxis]);
 
   useEffect(() => {
     fetchData();
@@ -252,6 +267,64 @@ export default function ConversionDashboard() {
                       <td className="py-2 text-right text-gray-600">{s.followup}</td>
                       <td className="py-2 text-right text-gray-500">
                         {s.total > 0 ? `${Math.round((s.admitted / s.total) * 100)}%` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {/* 유입별 — 위 「채널별」이 우리 «안»의 폼 종류를 가른다면, 이건 «밖»에서 어떻게 왔는지를 가른다 */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <h2 className="text-sm font-bold text-gray-700">유입별 (밖에서 어떻게 왔나)</h2>
+              <div className="flex gap-1">
+                {ARRIVAL_AXES.map((a) => (
+                  <button
+                    key={a.key}
+                    onClick={() => setArrivalAxis(a.key)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium border ${
+                      arrivalAxis === a.key
+                        ? "bg-teal-700 text-white border-teal-600"
+                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              {ARRIVAL_AXES.find((a) => a.key === arrivalAxis)?.hint}
+              {" "}2026-08-03 이후 접수분부터 기록됩니다 — 그 전 문의는 「(기록 없음)」으로 묶입니다.
+            </p>
+            {(data?.byArrival ?? []).length === 0 ? (
+              <p className="text-sm text-gray-500">데이터 없음</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-100">
+                    <th className="py-2 font-medium">{ARRIVAL_AXES.find((a) => a.key === arrivalAxis)?.col}</th>
+                    <th className="py-2 font-medium text-right">문의</th>
+                    <th className="py-2 font-medium text-right">사전상담</th>
+                    <th className="py-2 font-medium text-right">유치확정</th>
+                    <th className="py-2 font-medium text-right">사후관리</th>
+                    <th className="py-2 font-medium text-right">유치율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.byArrival.map((r) => (
+                    <tr key={r.bucket} className="border-b border-gray-50">
+                      <td className="py-2 font-medium text-gray-800 break-all">
+                        {arrivalAxis === "locale" ? (LOCALE_LABELS[r.bucket] ?? r.bucket) : r.bucket}
+                      </td>
+                      <td className="py-2 text-right text-gray-600">{r.total}</td>
+                      <td className="py-2 text-right text-gray-600">{r.pre_consult}</td>
+                      <td className="py-2 text-right font-semibold text-teal-700">{r.admitted}</td>
+                      <td className="py-2 text-right text-gray-600">{r.followup}</td>
+                      <td className="py-2 text-right text-gray-500">
+                        {r.total > 0 ? `${Math.round((r.admitted / r.total) * 100)}%` : "—"}
                       </td>
                     </tr>
                   ))}

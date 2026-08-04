@@ -22,6 +22,7 @@ import { describeUpload } from "@/lib/uploadPolicy";
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
+import { getArrival } from "@/lib/inquiry/arrival";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
@@ -344,6 +345,8 @@ export default function UnifiedInquiryFunnel() {
           marketing: consents.marketing,
         },
         consentVersion: "2.0.0",
+        // 유입 기록 — 첫 진입 때 잡아둔 값(어디서 왔나·어느 페이지로 들어왔나) + 지금 화면 언어.
+        ...getArrival(lang),
       };
 
       // 로그인 상태면 토큰 동봉 → 서버가 본인 계정에 문의 귀속(마이페이지 '내 문의' 노출).
