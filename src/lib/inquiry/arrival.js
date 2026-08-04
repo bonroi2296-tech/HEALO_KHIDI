@@ -19,6 +19,19 @@
 const KEY = "healo_arrival";
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign"];
 
+// 주소 경로에 «비밀 열쇠»가 박혀 오는 화면들이 있다 — 상담 초대 링크(/c/<32자>),
+// 설문(/survey/<토큰>), 의견서(/opinions/<토큰>). 그 화면에서 문의로 넘어오면 열쇠가
+// 문의 표에 평문으로 남는다. 우리가 알고 싶은 건 «어느 종류의 페이지였나»뿐이므로 지운다.
+// 판정: 숫자를 포함한 20자 이상 조각 = 사람이 지은 이름이 아니다.
+//       («for-kazakh-patients»·«cost-calculator» 같은 진짜 경로는 숫자가 없어 안 걸린다.)
+const TOKENISH = /\/(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}(?=\/|$)/g;
+
+/** 경로에서 비밀 열쇠로 보이는 조각을 지우고 길이를 자른다. */
+export function safeLandingPath(p) {
+  if (typeof p !== "string" || !p) return null;
+  return p.replace(TOKENISH, "/:token").slice(0, 200);
+}
+
 /** 첫 진입 정보를 세션에 한 번만 기록. 두 번째 호출부터는 아무 일도 안 한다. */
 export function captureArrival() {
   try {
@@ -45,7 +58,7 @@ export function captureArrival() {
       JSON.stringify({
         referrerHost: host,
         utm: Object.keys(utm).length ? utm : null,
-        landingPath: location.pathname.slice(0, 200),
+        landingPath: safeLandingPath(location.pathname),
       })
     );
   } catch {

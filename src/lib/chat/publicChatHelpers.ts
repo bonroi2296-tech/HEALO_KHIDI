@@ -25,6 +25,8 @@ import {
 import { encryptStringNullable, decryptMaybe } from "@/lib/security/encryptionV2";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { shouldPromoteToInquiry } from "@/lib/chat/intakeGate";
+// 유입 경로에서 비밀 열쇠를 지우는 규칙은 폼 경로와 «같은 것»을 써야 한 표에서 같이 세어진다.
+import { safeLandingPath } from "@/lib/inquiry/arrival";
 
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
@@ -74,6 +76,17 @@ export function sanitizeAttachments(
 // 왜: 유치 전환 대시보드(/admin/khidi/conversion)는 inquiries 테이블만 센다. 승격이 없으면
 // AI 챗으로 들어온 리드가 평가지표(문의 접수→유치)에 0으로 잡혀 안 보인다.
 // (PO 결정 2026-06-29: 대화 3턴+ 면 등록.) 중복방지: chat_threads.inquiry_id 가 비어있을 때만.
+/** 유입 주소에서 호스트만. 우리 도메인·빈값·깨진 주소는 «유입 아님»(NULL)으로 본다. */
+export function hostOf(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw) return null;
+  try {
+    const h = new URL(raw).hostname;
+    return h && !h.endsWith("healwith.co.kr") ? h.slice(0, 120) : null;
+  } catch {
+    return null; // 주소가 아닌 값이 들어온 경우
+  }
+}
+
 async function promoteThreadToInquiry(
   thread: any,
   intake: any,
@@ -104,6 +117,21 @@ async function promoteThreadToInquiry(
   // 메신저 봇 스레드(텔레그램·왓츠앱)는 동의를 봇 버튼으로 받았음을 출처(consent_source)로 구분.
   const isTelegram = thread?.channel === "telegram";
   const isWhatsApp = thread?.channel === "whatsapp";
+
+  // 유입 기록 — 스레드가 «이미 갖고 있던» 값을 문의로 옮긴다.
+  // 왜 필요: 실적 문의의 절반 이상(2026-08-03 실측 31건 중 17건 = 55%)이 이 경로로 들어오는데,
+  // 여태 문의 쪽엔 아무것도 안 남아 「유입별」 집계가 절반도 못 보여줬다. 채팅 시작(public/chat/start)이
+  // metadata 에 language·landing_path·referrer·utm 을 이미 저장하고 있었다 — 옮기지 않았을 뿐이다.
+  // 메신저 봇(텔레그램·왓츠앱)은 웹 화면을 거치지 않아 값이 없다 → NULL. source 로 이미 구분된다.
+  const meta = thread?.metadata || {};
+  const arrival = isTelegram || isWhatsApp ? {} : {
+    source_locale: typeof meta.language === "string" ? meta.language.slice(0, 10) : null,
+    // 주소 전체가 아니라 «호스트»만 남긴다(뒤에 검색어·식별자가 붙어 오는 경로가 있다).
+    // 폼 경로(step1)와 같은 형태여야 한 표에서 같이 세어진다.
+    referrer_host: hostOf(meta.referrer),
+    landing_path: safeLandingPath(meta.landing_path),
+    utm: meta.utm && typeof meta.utm === "object" ? meta.utm : null,
+  };
   const tc = thread?.metadata?.consent || null;
   const consentFields = tc
     ? {
@@ -128,6 +156,7 @@ async function promoteThreadToInquiry(
       intake: { ...(intake || {}), ...consentFields },
       // KHIDI 채널별 집계(conversion bySource)의 기준값 — 메신저 봇 상담을 채널별로 센다.
       source: isTelegram ? "messenger_telegram" : isWhatsApp ? "messenger_whatsapp" : "ai_agent",
+      ...arrival,
       status: "received",
       is_test: isTest,
     })

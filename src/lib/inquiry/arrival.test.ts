@@ -2,7 +2,7 @@
 //  ① 내부 이동을 유입으로 세지 않는가  ② 첫 진입 값을 나중 이동이 덮어쓰지 않는가
 // (환경이 node 라 sessionStorage·location·document 를 직접 심는다)
 import { describe, it, expect, beforeEach } from "vitest";
-import { captureArrival, getArrival } from "./arrival.js";
+import { captureArrival, getArrival, safeLandingPath } from "./arrival.js";
 
 function fakeStorage() {
   const m = new Map<string, string>();
@@ -64,5 +64,25 @@ describe("captureArrival", () => {
 
     expect(() => captureArrival()).not.toThrow();
     expect(getArrival("kz")).toEqual({ sourceLocale: "kz", referrerHost: null, landingPath: null, utm: null });
+  });
+});
+
+describe("safeLandingPath", () => {
+  it("주소에 박힌 비밀 열쇠는 지운다", () => {
+    // 상담 초대 링크 · 설문 · 의견서 — 전부 주소 자체가 열쇠다
+    expect(safeLandingPath("/c/8abafd093c184320a8a0bf9d95f289e5")).toBe("/c/:token");
+    expect(safeLandingPath("/survey/51166d8c-cdef-4291-ab30-350b6d5d0e92")).toBe("/survey/:token");
+    expect(safeLandingPath("/ru/opinions/3475604f37c04c5e8f41c8d03823d58e/view")).toBe("/ru/opinions/:token/view");
+  });
+
+  it("진짜 페이지 경로는 건드리지 않는다(집계가 뭉개지면 안 된다)", () => {
+    for (const p of ["/ru/cost-calculator", "/kk/for-kazakh-patients", "/faq", "/ko/inquiry",
+                     "/hospitals/ewha-seoul", "/treatments/gastric-cancer"]) {
+      expect(safeLandingPath(p)).toBe(p);
+    }
+  });
+
+  it("값이 없으면 조용히 비운다", () => {
+    for (const v of [null, undefined, "", 42]) expect(safeLandingPath(v)).toBeNull();
   });
 });

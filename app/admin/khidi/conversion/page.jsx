@@ -297,7 +297,9 @@ export default function ConversionDashboard() {
             </div>
             <p className="text-xs text-gray-500 mb-3">
               {ARRIVAL_AXES.find((a) => a.key === arrivalAxis)?.hint}
-              {" "}2026-08-03 이후 접수분부터 기록됩니다 — 그 전 문의는 「(기록 없음)」으로 묶입니다.
+              {" "}웹 문의폼은 2026-08-03 접수분부터, AI 상담 경유는 그 이전 것도 되살렸습니다.
+              「(기록 없음)」은 기록이 시작되기 전에 폼으로 들어온 문의와, 웹 화면을 거치지 않는
+              메신저 상담(텔레그램·왓츠앱)·에이전시 대리접수입니다 — 없어진 게 아니라 원래 잴 수 없는 건입니다.
             </p>
             {(data?.byArrival ?? []).length === 0 ? (
               <p className="text-sm text-gray-500">데이터 없음</p>
