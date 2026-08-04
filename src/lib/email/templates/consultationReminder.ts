@@ -123,19 +123,27 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     zh: "zh-CN",
     ja: "ja-JP",
   };
-  const scheduledFormatted = new Date(props.scheduledAt).toLocaleString(
-    localeMap[langKey] ?? "ko-KR",
-    {
+  // ⚠️ 시간대 이름은 Intl 에 맡기지 않는다 — 상자마다 "오후 03:00 대한민국 표준시"/"PM 03:00
+  //    한국 표준시" 로 갈렸다(2026-08-04 실측, 초대 메일과 동일 사유). 24시간제 + 우리 문구로 고정.
+  const KST_LABEL: Record<string, string> = {
+    ko: "한국 표준시",
+    en: "Korea time (KST)",
+    ru: "время Кореи",
+    kk: "Корея уақыты",
+    zh: "韩国时间",
+    ja: "韓国時間",
+  };
+  const scheduledFormatted =
+    new Date(props.scheduledAt).toLocaleString(localeMap[langKey] ?? "ko-KR", {
       year: "numeric",
       month: "short",
       day: "numeric",
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
+      hourCycle: "h23",
       timeZone: "Asia/Seoul", // 상담은 한국시간 진행 — 서버(UTC) 기준으로 찍히면 시각이 틀림
-      timeZoneName: "short",
-    }
-  );
+    }) + ` ${KST_LABEL[langKey] ?? KST_LABEL.ko}`;
 
   // 의사/병원 카드 (있을 때만)
   const providerCard =

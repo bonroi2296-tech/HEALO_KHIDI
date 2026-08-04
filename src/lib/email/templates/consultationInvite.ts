@@ -21,7 +21,7 @@ const STRINGS = {
     subject: "healwith 원격 상담 초대 — 확인 부탁드립니다",
     greeting: (n: string) => `안녕하세요${n ? `, ${n}님` : ""}.`,
     intro: "healwith 원격 상담 예약이 확정되었습니다. 예약 시각에 아래 버튼으로 접속해주세요.",
-    timeLabel: "예약 시각",
+    timeLabel: "예약 시각", kstLabel: "한국 표준시",
     joinBtn: "상담 방 입장",
     reminder:
       "※ 이 링크는 본인 전용이며 타인에게 공유하지 마세요. 링크만 있으면 계정 가입 없이 입장 가능합니다.",
@@ -34,7 +34,7 @@ const STRINGS = {
     subject: "healwith telemedicine consultation invite",
     greeting: (n: string) => `Hello${n ? `, ${n}` : ""},`,
     intro: "Your healwith telemedicine consultation has been scheduled. Please click below to join at the appointment time.",
-    timeLabel: "Scheduled time",
+    timeLabel: "Scheduled time", kstLabel: "Korea time (KST)",
     joinBtn: "Join consultation",
     reminder:
       "※ This link is for you only — do not share. No account needed.",
@@ -47,7 +47,7 @@ const STRINGS = {
     subject: "healwith — приглашение на онлайн-консультацию",
     greeting: (n: string) => `Здравствуйте${n ? `, ${n}` : ""}!`,
     intro: "Ваша онлайн-консультация с healwith подтверждена. Нажмите кнопку ниже во время консультации.",
-    timeLabel: "Время",
+    timeLabel: "Время", kstLabel: "время Кореи",
     joinBtn: "Войти в консультацию",
     reminder:
       "※ Эта ссылка только для вас — не передавайте другим. Учётная запись не требуется.",
@@ -60,7 +60,7 @@ const STRINGS = {
     subject: "healwith — онлайн кеңес беруге шақыру",
     greeting: (n: string) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
     intro: "healwith онлайн кеңесіңіз бекітілді. Белгіленген уақытта төмендегі түймені басыңыз.",
-    timeLabel: "Уақыт",
+    timeLabel: "Уақыт", kstLabel: "Корея уақыты",
     joinBtn: "Кеңеске қосылу",
     reminder:
       "※ Бұл сілтеме тек сізге арналған — басқаларға бермеңіз. Есептік жазба қажет емес.",
@@ -73,7 +73,7 @@ const STRINGS = {
     subject: "healwith 远程会诊邀请 — 请确认",
     greeting: (n: string) => `您好${n ? `，${n}` : ""}，`,
     intro: "您的 healwith 远程会诊已确认。请在预约时间点击下方按钮加入。",
-    timeLabel: "预约时间",
+    timeLabel: "预约时间", kstLabel: "韩国时间",
     joinBtn: "进入会诊",
     reminder: "※ 此链接仅供您本人使用，请勿分享给他人。无需注册账户即可进入。",
     compat: "可在任何联网设备（电脑／平板／手机）上使用，推荐 Chrome 或 Safari，无需安装应用。",
@@ -84,7 +84,7 @@ const STRINGS = {
     subject: "healwith オンライン診療のご招待 — ご確認ください",
     greeting: (n: string) => `こんにちは${n ? `、${n}様` : ""}。`,
     intro: "healwith のオンライン診療が確定しました。予約時間に下のボタンからご参加ください。",
-    timeLabel: "予約時間",
+    timeLabel: "予約時間", kstLabel: "韓国時間",
     joinBtn: "診療ルームに入る",
     reminder: "※ このリンクはご本人専用です。他の方と共有しないでください。アカウント登録は不要です。",
     compat: "インターネットに接続できるPC／タブレット／スマートフォンからご参加いただけます（Chrome・Safari推奨）。アプリのインストールは不要です。",
@@ -105,6 +105,10 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
     : lang === "zh" ? "zh-CN"
     : lang === "ja" ? "ja-JP"
     : "en-US";
+  // ⚠️ 시간대 이름을 Intl 에 맡기지 마라(timeZoneName). 상자마다 결과가 달라진다 —
+  //    윈도우에선 "오후 03:00 대한민국 표준시", 자동 검사 리눅스에선 "PM 03:00 한국 표준시"
+  //    가 나왔다(2026-08-04 실측). 실서비스도 리눅스라 한국어 메일에 "PM" 이 나갈 뻔했다.
+  //    → 시:분은 24시간제로 못 박고, 나라 이름은 우리 문구(kstLabel)로 붙인다.
   const fmtIn = (timeZone: string) =>
     new Date(props.scheduledAt).toLocaleString(locale, {
       year: "numeric",
@@ -113,11 +117,49 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
+      hourCycle: "h23", // 자정을 24:00 으로 쓰는 로케일 방지
       timeZone,
-      timeZoneName: "short",
     });
-  // 예: "2026. 10. 5. (월) 오후 2:00 GMT+9  ·  오전 5:00 UTC"
-  const scheduledFormatted = `${fmtIn("Asia/Seoul")}  ·  ${fmtIn("UTC")}`;
+  // 예: "пн, 3 авг. 2026, 15:00 Корея, стандартное время  ·  06:00 UTC"
+  // ⛔ 「상대 국가를 골라 현지 시각을 적는다」는 안 한다(2026-08-03 PO): 코디가 매번 국적을 확인해야
+  //    하고 틀리면 «잘못된 시각»을 통지하게 된다. 현지 시각 환산은 첨부한 일정 파일(icsInvite.ts)이
+  //    받는 사람 달력에서 자동으로 한다 — 사람이 고를 일이 없다.
+  // 한 줄에 몰아넣으면 "Корея, стандартное время" 처럼 긴 이름에서 줄이 흘러넘쳐 라벨과 어긋난다
+  // → 굵은 한국 시각 한 줄 + 회색 UTC 한 줄로 쌓는다.
+  const scheduledKst = `${fmtIn("Asia/Seoul")} ${s.kstLabel}`;
+  const scheduledUtc = `${fmtIn("UTC")} UTC`;
+
+  // 「혹시 첨부가 안 열릴 때」의 대비책(2026-08-03 PO) — 주요 도시 시각을 시:분만 한 줄로.
+  // 코디가 국가를 고르는 게 아니라 «메일 언어»로 정해지므로 사람 실수가 낄 자리가 없다.
+  const CITIES: Record<string, { tz: string; name: string }[]> = {
+    ru: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Москва" },
+    ],
+    kz: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Мәскеу" },
+    ],
+    zh: [{ tz: "Asia/Shanghai", name: "北京" }],
+    ja: [{ tz: "Asia/Tokyo", name: "東京" }],
+    // ko·en 은 대상 지역이 특정되지 않아 넣지 않는다(UTC 한 줄로 충분).
+  };
+  const hhmm = (tz: string) =>
+    new Date(props.scheduledAt).toLocaleString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      timeZone: tz,
+    });
+  const cityTimes = (CITIES[lang] || []).map((c) => `${c.name} ${hhmm(c.tz)}`).join("  ·  ");
+
+  const scheduledFormatted = [scheduledKst, scheduledUtc, cityTimes]
+    .filter(Boolean)
+    .join("  ·  "); // 글자만 있는 대체 본문용
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =
@@ -194,8 +236,16 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
           <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#334155;">${escape(s.intro)}</p>
 
           <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:12px 0;">
-            <tr><td style="padding:8px 0;color:#64748b;font-size:13px;">${escape(s.timeLabel)}:</td>
-                <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${escape(scheduledFormatted)}</td></tr>
+            <tr><td style="padding:8px 0;">
+              <div style="color:#64748b;font-size:13px;margin-bottom:4px;">${escape(s.timeLabel)}</div>
+              <div style="color:#0f172a;font-size:15px;font-weight:700;">${escape(scheduledKst)}</div>
+              <div style="color:#64748b;font-size:13px;margin-top:2px;">${escape(scheduledUtc)}</div>
+              ${
+                cityTimes
+                  ? `<div style="color:#64748b;font-size:13px;margin-top:6px;">${escape(cityTimes)}</div>`
+                  : ""
+              }
+            </td></tr>
           </table>
 
           ${hospitalDoctorCard}
