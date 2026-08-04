@@ -200,13 +200,33 @@ function buildPrompt(lang: BriefLang, withImaging = false): string {
     //     모델의 망설임이 통째로** 한국어 칸에 박혔다. 읽는 사람은 러시아어를 모른다.
     //   ②원문은 «нет»(금기 없음)인데 요약에는 「항공편 이용 금기 상태」라고 **정반대**로 적혔다.
     //     이건 «환자가 한국에 올 수 있느냐»를 뒤집는 문장이라 오역 중 가장 위험한 종류다.
-    `LANGUAGE PURITY: every field must be readable by someone who knows ONLY ${L}. Never paste a source-language sentence into the output. If a source phrase is genuinely ambiguous, translate it and add the short original in parentheses — never the whole sentence, and never your own deliberation about which reading is right.`,
-    `NEGATION SAFETY: never flip a negation. Russian "нет" = absent/none, "есть" = present. If a record says a contraindication is ABSENT, do not write that it exists. When two documents disagree, or you are unsure of the polarity, do NOT assert either one — write it as "needs confirmation" in red_flags only, and keep it OUT of overview. An inverted negation about fitness to fly, contraindications, or metastasis changes the whole plan.`,
+    `LANGUAGE PURITY (hard): every field must contain ONLY ${L} (plus Latin medical abbreviations like ECOG, cT4N1M1, CT). NEVER output Cyrillic or any source-language text — not even quoted, not even in parentheses. Do not narrate your own uncertainty about wording ("marking needs checking", "page 11 says X but"). Say the fact plainly, or say it needs confirmation. One idea per sentence, short.`,
+    // ⚠️ 러시아어는 부정어가 **문장 맨 뒤**에 온다. 모델이 앞의 명사(「금기」)만 읽고 뒤집었다 —
+    //   2026-08-04 문의 #60 에서 실제로 «금기 없음»을 «금기 명시»로 두 번 연속 틀렸다.
+    `NEGATION SAFETY (critical): Russian puts the negation at the END of the clause. "Противопоказаний к авиаперелетам НЕТ" means there are **NO** contraindications to air travel — it is a clearance, not a warning. Never read the leading noun ("противопоказаний" = contraindications) as an assertion; always read to the end of the sentence for "нет" (absent) vs "есть" (present). The same applies to метастазов нет, асцита нет, выпота нет. If you are not certain of the polarity, do NOT assert either way — put "needs confirmation" in red_flags only and keep it OUT of overview. An inverted negation about fitness to fly, contraindications, or metastasis changes the entire plan.`,
     `RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in \`request\`) from your clinical INFERENCE (goes in \`points\`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. **Write every output field in ${L}** (medical terms may keep their standard Latin/technical form).`,
     `Return ONLY the JSON object.`,
   ].join("\n");
 }
 
+
+/**
+ * 한국어 칸에 섞여 나온 «러시아어 원문»을 걷어낸다.
+ *
+ * 왜 코드로도 막나 (2026-08-04): 프롬프트에 「원문을 붙이지 마라」를 적었는데도 모델이
+ *   괄호 안에 계속 끼워 넣었다 — 「'항공이송 금기(Противопоказаний к авиаперелетам
+ *   нет/есть)' 관련 언급」처럼. 읽는 사람은 러시아어를 모르니 이건 «없는 정보 + 방해»다.
+ *   검출 조건이 «키릴 문자가 있나»로 기계적으로 명확해서 코드로 막을 수 있는 부류다.
+ *   괄호째 지우고, 남는 겹공백·빈 괄호를 정리한다. 문장 전체가 러시아어면 그 줄은 버린다.
+ */
+function clean(v: any): string {
+  let s = String(v ?? "");
+  if (!/[Ѐ-ӿ]/.test(s)) return s.trim();
+  s = s.replace(/[（(][^)）]*[Ѐ-ӿ][^)）]*[)）]/g, "");   // 키릴이 든 괄호 통째로
+  s = s.replace(/['"“”'']\s*['"“”'']/g, "");                      // 안이 비어버린 따옴표
+  s = s.replace(/[Ѐ-ӿ][Ѐ-ӿ\s.,;:/-]*/g, "");   // 그래도 남은 키릴 덩어리
+  return s.replace(/\s{2,}/g, " ").replace(/\s+([,.)])/g, "$1").trim();
+}
 
 /** CT 묶음인가 — 모델에 통째로는 못 넣는다(압축 파일). */
 function isImagingBundle(a: Attachment): boolean {
@@ -330,12 +350,12 @@ export async function generateCaseBrief(opts: {
       ok: true,
       unreadableCount: unreadable,
       brief: {
-        overview: String(parsed.overview || ""),
-        request: String(parsed.request || ""),
-        points: Array.isArray(parsed.points) ? parsed.points.map((s: any) => String(s)) : [],
-        red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map((s: any) => String(s)) : [],
+        overview: clean(parsed.overview),
+        request: clean(parsed.request),
+        points: Array.isArray(parsed.points) ? parsed.points.map(clean).filter(Boolean) : [],
+        red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map(clean).filter(Boolean) : [],
         // CT 초견 — 담는 걸 빠뜨리면 모델이 잘 써 줘도 화면엔 «없음»으로 뜬다(실제로 그랬다).
-        ...(parsed.imaging_note ? { imaging_note: String(parsed.imaging_note) } : {}),
+        ...(parsed.imaging_note ? { imaging_note: clean(parsed.imaging_note) } : {}),
       },
     };
   } catch {
