@@ -92,7 +92,16 @@ export function findTestPollutedInquiryIds(
 /** 감사에서 쓸 테스트 도메인 목록(env → 기본 test.com). detectInquiryIsTest 와 동일 규칙. */
 export function resolveTestDomains(): string[] {
   const fromEnv = parseList(process.env.TEST_EMAIL_DOMAINS);
-  return fromEnv.length > 0 ? fromEnv : ["test.com"];
+  // ⚠️ healo-test.invalid 를 기본에 넣는 이유(2026-08-04 실측):
+  //   매일 새벽 실서비스 대상 자동 화면시험(e2e.yml JOB3, cron 19:00 UTC)이 AI 채팅으로
+  //   문의를 하나씩 만든다. 그 게스트 이메일이 e2e-test@healo-test.invalid 인데
+  //   기본 목록이 test.com 하나뿐이라 **로봇 문의가 「진짜 문의」로 저장돼 왔다.**
+  //   14일 실측: ai_agent 문의 17건 전부 is_test=false, 그중 11건이 매일 04:45~05:15 정각 패턴.
+  //   일일 오염감사(cron/kpi-snapshot)는 «로그인 계정»만 훑어서 게스트인 이걸 못 잡는다 —
+  //   그래서 사후 그물이 아니라 «만드는 시점»에서 막아야 한다.
+  //   healo-test.invalid 는 이미 이 저장소가 내부 전용으로 쓰는 도메인이다
+  //   (scripts/dev-login-as.mjs 의 허용 목록과 같은 뜻).
+  return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid"];
 }
 
 /**
