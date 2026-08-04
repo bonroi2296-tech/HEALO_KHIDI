@@ -239,7 +239,10 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
             )}
           </div>
 
-          <div>
+          {/* min-w-0 이 없으면 이 칸이 «그림의 원래 크기»만큼 벌어져 카드 밖으로 삐져나간다
+              (PO 제보 2026-08-04, 화면 폭 905px 에서 55px 넘침). 격자 칸의 기본 최소폭이
+              «내용물 크기»라서 그렇다 — max-w-full 만으론 안 잡힌다. */}
+          <div className="min-w-0">
             {preparing ? (
               <div className="bg-gray-100 rounded-lg py-16 text-center">
                 <Loader2 size={20} className="animate-spin text-teal-700 mx-auto mb-2" />
