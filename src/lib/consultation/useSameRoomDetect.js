@@ -52,7 +52,9 @@ const TONAL_SUSTAIN_MS = 600; // 2단은 오탐 여지가 커서 1단(200ms)보�
 const TONAL_WINDOW = 6;       // 단일음 판정 창: 최근 표본 6개(≈0.36초)
 const TONAL_NEED = 4;         // 그중 4개 이상이 단일음이어야
 const TONAL_PEAK_MIN = 110;   // 주파수 피크 최소 크기(0~255) — 이보다 작으면 배경음 수준
-const TONAL_RATIO = 5;        // 피크/평균 비 문턱. ponytail: 실측 없는 휴리스틱 초기값 — 2단이 안 잡으면 4로, 오탐이면 6으로.
+// 2026-08-04: 5 → 4. 코드가 「2단이 안 잡으면 4로」라고 적어 둔 그대로 내린다.
+// 근거: 8/4 회의에서 PO 가 하울링을 겪었는데 자동 차단 기록이 0건 = 2단이 안 잡았다.
+const TONAL_RATIO = 4;        // 피크/평균 비 문턱. ponytail: 실측 없는 휴리스틱 초기값 — 2단이 안 잡으면 4로, 오탐이면 6으로.
 
 function rms(analyser, buf) {
   analyser.getByteTimeDomainData(buf);

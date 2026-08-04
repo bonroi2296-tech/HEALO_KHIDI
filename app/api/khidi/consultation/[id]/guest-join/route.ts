@@ -27,7 +27,10 @@ import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
-const TOKEN_TTL_SECONDS = 2 * 60 * 60; // LiveKit JWT — 2h
+// 2026-08-04: 2h → 6h. 2시간을 넘기는 회의에서 **재입장이 막혔다**(만료된 입장권으로는
+// 다시 못 들어온다). 초대 토큰 자체의 수명(상담 시각 +12시간, 최소 72시간)은 그대로다 —
+// 여기서 늘리는 건 «방에 붙어 있는 동안» 쓰는 열쇠의 수명뿐이다.
+const TOKEN_TTL_SECONDS = 6 * 60 * 60; // LiveKit JWT — 6h
 
 const GUEST_JOIN_RATE = {
   windowMs: 60 * 1000,
