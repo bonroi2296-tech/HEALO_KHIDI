@@ -21,6 +21,8 @@ import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
+// 언어 코드 → 원어 표기(Русский·Қазақша…). 「어디서 왔나」 줄에서만 쓴다.
+import { LANG_OPTIONS } from "@/lib/i18n";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
@@ -818,6 +820,18 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const nationality =
     inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "—";
 
+  // 「어디서 왔나」 한 줄 — 있는 조각만 이어 붙인다. 하나도 없으면 줄 자체를 안 그린다.
+  // 언어는 «원어 표기»(Русский 등)로 — 이 화면은 6개 언어라 «러시아어 화면» 같은 한국어를
+  // 박으면 다른 언어 코디에게 한국어가 새어 나간다.
+  const arrival = [
+    inquiry.source_locale
+      ? (LANG_OPTIONS.find((l) => l.code === inquiry.source_locale)?.label || inquiry.source_locale)
+      : null,
+    inquiry.referrer_host || null,
+    inquiry.landing_path || null,
+    inquiry.utm?.utm_campaign || inquiry.utm?.utm_source || null,
+  ].filter(Boolean).join(" · ") || null;
+
   // intake JSONB 의 추가 정보(있으면 key/value 로 표시).
   // 혹시 복호화 안 된 암호문 문자열({"v":"v1",...})은 화면에 안 띄움.
   const looksEncrypted = (s) =>
@@ -1000,6 +1014,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             label={L.fieldLanguage}
             value={inquiry.preferred_language || inquiry.spoken_language}
           />
+          {/* 이 환자가 «어디서 왔는지» — 집계표(유치 전환 상세 › 유입별)만 있고 개별 건은 볼 수
+              없었다. 첫 응대 때 «러시아어 화면을 보고 온 사람인지 · 광고로 온 사람인지»를 알면
+              말투와 안내가 달라진다. 기록이 하나도 없는 건(옛 문의·메신저)엔 아예 안 뜬다. */}
+          {arrival && <Row icon={Globe} label={L.ibArrival} value={arrival} />}
         </Card>
       </div>
 

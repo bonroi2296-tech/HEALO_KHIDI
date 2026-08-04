@@ -38,6 +38,13 @@ const DETAIL_FIELDS = [
   "case_status_note",
   "match_accuracy",
   "source",
+  // 「어디서 왔나」 — 코디가 첫 응대 전에 보는 값(러시아어 화면인지·광고로 왔는지).
+  // 여기 안 넣으면 화면에 코드를 붙여도 «항상 비어 있음»이 되고, 그건 «기록이 없는 문의»와
+  // 구분이 안 돼 조용히 죽는다.
+  "source_locale",
+  "referrer_host",
+  "landing_path",
+  "utm",
   "short_memo",
   "step1_completed_at",
   "step2_completed_at",

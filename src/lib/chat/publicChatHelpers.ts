@@ -26,7 +26,7 @@ import { encryptStringNullable, decryptMaybe } from "@/lib/security/encryptionV2
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { shouldPromoteToInquiry } from "@/lib/chat/intakeGate";
 // 유입 경로에서 비밀 열쇠를 지우는 규칙은 폼 경로와 «같은 것»을 써야 한 표에서 같이 세어진다.
-import { safeLandingPath } from "@/lib/inquiry/arrival";
+import { safeLandingPath, safeUtm } from "@/lib/inquiry/arrival";
 import { trackingUrl, trackingMessageLine, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 
@@ -132,7 +132,7 @@ async function promoteThreadToInquiry(
     // 폼 경로(step1)와 같은 형태여야 한 표에서 같이 세어진다.
     referrer_host: hostOf(meta.referrer),
     landing_path: safeLandingPath(meta.landing_path),
-    utm: meta.utm && typeof meta.utm === "object" ? meta.utm : null,
+    utm: safeUtm(meta.utm),
   };
   const tc = thread?.metadata?.consent || null;
   const consentFields = tc
