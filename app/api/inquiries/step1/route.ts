@@ -20,6 +20,10 @@ import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { resolveAgencyIdForUser } from "@/lib/auth/resolveAgencyIdForUser";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceived";
+import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
+import { siteUrl } from "@/lib/siteUrl";
 
 const Step1Schema = z.object({
   firstName: z.string().min(1).max(100),
@@ -203,6 +207,36 @@ export async function POST(request: NextRequest) {
       contactMethod: data.email ? "email" : "phone",
       createdAt: new Date().toISOString(),
     }).catch(() => {}));
+
+    // 문의자에게 접수 확인 + 진행상황 주소. 규칙 하나 — 「접수되면 들어온 그 채널로 주소를
+    // 돌려준다」(PO 2026-08-03). 이메일이 없으면(전화·메신저 접수) 그냥 건너뛴다 —
+    // 그 사람 몫은 완료 화면과 봇 답장이 맡는다.
+    // 실패해도 접수 자체는 성공이다(메일은 부가). 그래서 catch 로 삼킨다.
+    const notifyTo = data.email; // 클로저 안에서 타입 좁힘이 풀리므로 밖에서 붙잡아 둔다
+    if (notifyTo) {
+      after(async () => {
+        try {
+          const { subject, html, text } = renderInquiryReceivedEmail({
+            recipientName: data.firstName || undefined,
+            trackUrl: trackingUrl(siteUrl(), row.public_token),
+            lang: toTrackingLang(data.preferredLanguage || data.spokenLanguage),
+          });
+          const res = await sendEmail({
+            to: notifyTo,
+            subject,
+            html,
+            text,
+            tags: { kind: "inquiry_received", inquiry: String(row.id) },
+          });
+          // 성공도 남긴다 — 「조용히 안 나간 메일」은 아무 흔적이 없어 몇 주 뒤에야 들통난다.
+          console.log(
+            `[/api/inquiries/step1] 접수확인 메일 #${row.id}: ${res.ok ? "발송" : "실패"} (${res.provider}${res.error ? ` — ${res.error}` : ""})`
+          );
+        } catch (e: any) {
+          console.error("[/api/inquiries/step1] 접수확인 메일 실패(무시):", e?.message);
+        }
+      });
+    }
 
     return Response.json({ ok: true, inquiryId: row.id, publicToken: row.public_token });
   } catch (e: any) {

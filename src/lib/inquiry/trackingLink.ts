@@ -1,0 +1,48 @@
+/**
+ * 진행상황 주소(공개 케이스 링크) — 만드는 곳 한 군데.
+ *
+ * 규칙 하나: **접수되면 들어온 그 채널로 이 주소를 돌려준다**(PO 결정 2026-08-03).
+ *  - 공개 문의 폼 → 완료 화면 + 접수 확인 메일
+ *  - 왓츠앱·텔레그램 → 그 대화창에 한 줄
+ *  - 우리가 손으로 넣은 건 → 코디 인박스의 복사 버튼
+ * 세 곳이 서로 다른 주소를 만들면 안 되므로 URL 조립과 안내 문구를 여기 모았다.
+ *
+ * 주소 자체는 새로 만들지 않는다 — inquiries.public_token 이 이미 모든 문의에 자동으로 붙는다.
+ */
+
+export type TrackingLang = "ko" | "en" | "ru" | "kz" | "zh" | "ja";
+
+export const TRACKING_LANGS: TrackingLang[] = ["ko", "en", "ru", "kz", "zh", "ja"];
+
+export function toTrackingLang(raw?: string | null): TrackingLang {
+  const v = (raw || "").toString().toLowerCase();
+  return (TRACKING_LANGS as string[]).includes(v) ? (v as TrackingLang) : "en";
+}
+
+/**
+ * 진행상황 주소.
+ *
+ * ⚠️ 언어 prefix 를 «붙이지 않는다». /claim/ 은 proxy.ts 의 GUEST_LINK_PREFIXES 에 있어
+ * 방문자 언어(쿠키 → Accept-Language)가 자동으로 주입된다 — /consultation/·/survey/ 와 같은
+ * 취급. `/ru/claim/...` 같은 주소는 rewrite 대상이 아니라 404 다.
+ */
+export function trackingUrl(baseUrl: string, publicToken: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/claim/${encodeURIComponent(publicToken)}`;
+}
+
+/**
+ * 메신저(왓츠앱·텔레그램)에 한 줄로 보낼 안내. 메일 본문에서도 같은 뜻을 쓴다.
+ * 짧게 유지할 것 — 봇 답장 뒤에 바로 붙는 줄이라 길면 대화가 밀린다.
+ */
+const LINE: Record<TrackingLang, (url: string) => string> = {
+  ko: (u) => `문의가 접수됐습니다. 진행 상황은 여기서 언제든 확인하실 수 있어요 (가입 불필요): ${u}`,
+  en: (u) => `Your inquiry is registered. You can check the progress here anytime — no sign-up needed: ${u}`,
+  ru: (u) => `Ваша заявка принята. Ход дела можно посмотреть здесь в любое время, регистрация не нужна: ${u}`,
+  kz: (u) => `Өтініміңіз қабылданды. Барысын кез келген уақытта осы жерден көре аласыз, тіркелу қажет емес: ${u}`,
+  zh: (u) => `您的咨询已受理。可随时在此查看进度，无需注册：${u}`,
+  ja: (u) => `お問い合わせを受け付けました。進捗はいつでもこちらでご確認いただけます（登録不要）: ${u}`,
+};
+
+export function trackingMessageLine(url: string, lang: TrackingLang = "en"): string {
+  return (LINE[lang] || LINE.en)(url);
+}

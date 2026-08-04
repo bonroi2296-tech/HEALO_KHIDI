@@ -59,7 +59,7 @@ function isPublicLocalePath(pathname: string) {
 
 // 토큰 링크로 «계정 없이» 들어오는 화면. SEO 대상이 아니라 URL 언어화는 안 하지만,
 // 방문자 본인 언어로는 보여야 한다(러/카 환자가 실제로 여는 유일한 화면들).
-const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/"];
+const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/"];
 function detectLocale(request: NextRequest) {
   // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;

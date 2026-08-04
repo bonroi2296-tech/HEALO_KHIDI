@@ -27,6 +27,8 @@ import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { shouldPromoteToInquiry } from "@/lib/chat/intakeGate";
 // 유입 경로에서 비밀 열쇠를 지우는 규칙은 폼 경로와 «같은 것»을 써야 한 표에서 같이 세어진다.
 import { safeLandingPath } from "@/lib/inquiry/arrival";
+import { trackingUrl, trackingMessageLine, toTrackingLang } from "@/lib/inquiry/trackingLink";
+import { siteUrl } from "@/lib/siteUrl";
 
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
@@ -158,9 +160,12 @@ async function promoteThreadToInquiry(
       source: isTelegram ? "messenger_telegram" : isWhatsApp ? "messenger_whatsapp" : "ai_agent",
       ...arrival,
       status: "received",
+      // 케이스 단계를 여기서 박는다. 전에는 비워둬서 이 경로로 들어온 문의는 환자·에이전시가
+      // 보는 진행상황이 통째로 백지였다(2026-08-03). 폼·에이전시 의뢰 경로와 같은 시작점.
+      case_status: "intake",
       is_test: isTest,
     })
-    .select("id")
+    .select("id, public_token")
     .single();
 
   if (error) {
@@ -175,6 +180,58 @@ async function promoteThreadToInquiry(
       .update({ inquiry_id: data.id })
       .eq("id", thread.id)
       .is("inquiry_id", null);
+
+    // 진행상황 타임라인의 첫 줄. 없으면 화면에 「지나온 기록」이 안 그려진다.
+    await (supabaseAdmin as any)
+      .from("case_status_history")
+      .insert({ inquiry_id: data.id, status: "intake", note: "메신저 상담에서 접수" })
+      .then(undefined, () => { /* 이력 실패는 무시 — 접수 자체는 성공 */ });
+
+    // 접수되면 «들어온 그 채널로» 진행상황 주소를 돌려준다(PO 결정 2026-08-03).
+    // 메신저로 온 사람은 이메일이 없을 수 있어 이 채널이 유일한 통로다. 실패해도 접수는 성공.
+    await sendTrackingLinkToMessenger(thread, data.public_token, lang);
+  }
+}
+
+/**
+ * 왓츠앱·텔레그램 대화창에 진행상황 주소 한 줄. 웹 채팅(ai_agent)은 대상이 아니다 —
+ * 그 사람은 완료 화면과 확인 메일로 이미 받는다.
+ *
+ * 보낸 내용은 chat_messages 에도 남긴다. 안 남기면 코디 화면이 「환자가 실제로 본 대화」와
+ * 어긋난다(코디는 우리가 뭘 보냈는지 모른 채 응대하게 된다).
+ */
+async function sendTrackingLinkToMessenger(thread: any, publicToken: string | null, lang: string) {
+  if (!publicToken) return;
+  if (thread?.channel !== "telegram" && thread?.channel !== "whatsapp") return;
+
+  try {
+    const url = trackingUrl(siteUrl(), publicToken);
+    const text = trackingMessageLine(url, toTrackingLang(lang));
+
+    let sent = false;
+    if (thread.channel === "telegram") {
+      const chatId = thread.metadata?.telegram?.chat_id;
+      if (!chatId) return;
+      const { sendTelegramPatientMessage } = await import("@/lib/messaging/telegram");
+      sent = await sendTelegramPatientMessage(chatId, text);
+    } else {
+      const waId = thread.metadata?.whatsapp?.wa_id;
+      if (!waId) return;
+      const { sendWhatsAppPatientMessage } = await import("@/lib/messaging/whatsapp");
+      sent = (await sendWhatsAppPatientMessage(waId, text)).sent;
+    }
+
+    // actor_type 은 'patient'|'admin'|'system' 만 허용(chat_messages CHECK 제약).
+    // 봇이 보낸 줄은 webhook 들과 같이 'system'.
+    const { error: msgErr } = await (supabaseAdmin as any).from("chat_messages").insert({
+      thread_id: thread.id,
+      actor_type: "system",
+      message_text: text,
+      metadata: { kind: "tracking_link", ...(sent ? {} : { delivery: "failed" }) },
+    });
+    if (msgErr) console.warn("[promoteThreadToInquiry] 주소 발송 기록 실패:", msgErr.message);
+  } catch (e: any) {
+    console.warn("[promoteThreadToInquiry] 진행상황 주소 발송 실패(무시):", e?.message);
   }
 }
 
