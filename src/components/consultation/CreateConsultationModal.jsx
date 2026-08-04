@@ -28,6 +28,7 @@ const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh
 const TR = {
   ko: {
     errAuth: "인증 오류 — 다시 로그인하세요", errCreateFailedTpl: "생성 실패: {msg}", errCreateFailed: "생성 실패",
+    errPastSchedule: "지난 시각으로는 예약할 수 없어요 — 시각을 다시 골라 주세요.",
     doneTitle: "상담 예약 생성 완료", doneDesc: "아래 참여 링크를 모든 참여자에게 공유하세요.",
     inviteLinkLabelTpl: "{role} 초대 링크",
     noteHeading: "📋 전달 시 참고사항",
@@ -58,6 +59,7 @@ const TR = {
   },
   en: {
     errAuth: "Authentication error — please log in again", errCreateFailedTpl: "Creation failed: {msg}", errCreateFailed: "Creation failed",
+    errPastSchedule: "You can't schedule a time in the past — please pick another time.",
     doneTitle: "Consultation scheduled", doneDesc: "Share the join link below with all participants.",
     inviteLinkLabelTpl: "{role} invite link",
     noteHeading: "📋 Notes when sharing",
@@ -88,6 +90,7 @@ const TR = {
   },
   ru: {
     errAuth: "Ошибка авторизации — войдите снова", errCreateFailedTpl: "Не удалось создать: {msg}", errCreateFailed: "Не удалось создать",
+    errPastSchedule: "Нельзя назначить на прошедшее время — выберите другое время.",
     doneTitle: "Консультация запланирована", doneDesc: "Отправьте ссылку для входа ниже всем участникам.",
     inviteLinkLabelTpl: "Ссылка-приглашение: {role}",
     noteHeading: "📋 При передаче учтите",
@@ -118,6 +121,7 @@ const TR = {
   },
   kz: {
     errAuth: "Аутентификация қатесі — қайта кіріңіз", errCreateFailedTpl: "Жасау сәтсіз: {msg}", errCreateFailed: "Жасау сәтсіз",
+    errPastSchedule: "Өткен уақытқа жоспарлау мүмкін емес — басқа уақыт таңдаңыз.",
     doneTitle: "Кеңес жоспарланды", doneDesc: "Төмендегі кіру сілтемесін барлық қатысушыларға жіберіңіз.",
     inviteLinkLabelTpl: "{role} шақыру сілтемесі",
     noteHeading: "📋 Жіберу кезінде ескеріңіз",
@@ -148,6 +152,7 @@ const TR = {
   },
   zh: {
     errAuth: "身份验证错误 — 请重新登录", errCreateFailedTpl: "创建失败：{msg}", errCreateFailed: "创建失败",
+    errPastSchedule: "不能预约已过去的时间，请重新选择。",
     doneTitle: "会诊预约创建完成", doneDesc: "请将以下加入链接分享给所有参与者。",
     inviteLinkLabelTpl: "{role}邀请链接",
     noteHeading: "📋 分享时请注意",
@@ -178,6 +183,7 @@ const TR = {
   },
   ja: {
     errAuth: "認証エラー — 再度ログインしてください", errCreateFailedTpl: "作成に失敗しました: {msg}", errCreateFailed: "作成に失敗しました",
+    errPastSchedule: "過去の時刻には予約できません。別の時刻を選んでください。",
     doneTitle: "相談予約を作成しました", doneDesc: "以下の参加リンクを全参加者に共有してください。",
     inviteLinkLabelTpl: "{role}招待リンク",
     noteHeading: "📋 共有時の注意事項",
@@ -233,10 +239,21 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
   const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
+  // 지금(한국시간)을 datetime-local 이 쓰는 «YYYY-MM-DDTHH:mm» 문자열로.
+  // 아래 제출부가 이 칸의 값을 «KST 로 해석»하므로, 기본값·하한도 반드시 KST 로 만들어야 한다.
+  const kstInputNow = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 16);
+  // 지난 시각은 못 고르게 — 달력 위젯의 하한. 모달을 연 시점으로 고정(매 렌더 바뀌면 입력이 튄다).
+  const [minScheduledAt] = useState(kstInputNow);
+
   const [form, setForm] = useState(() => {
-    // 기본 값: 1시간 후로 예약
-    const d = new Date();
-    d.setHours(d.getHours() + 1, 0, 0, 0);
+    // 기본 값: 1시간 후, 정각으로.
+    // ⚠️ 예전엔 `new Date(); d.setHours(+1); d.toISOString()` 이었다. toISOString() 은 **UTC** 인데
+    //    제출부는 그 문자열을 **KST(+09:00)로 해석**한다 → 기본값이 **9시간 과거로 밀렸다.**
+    //    2026-08-04 실측: 저녁 6시 18분에 모달을 열면 기본값이 그날 «오전 10시 18분»(이미 지난 시각).
+    //    시각만 «오후 3시»로 고치면 날짜는 그날 그대로라 «만들자마자 지난 회의»가 됐고,
+    //    목록에서 아래로 밀려 «내가 만든 게 안 보인다»가 됐다(2026-08-04 PO 제보).
+    const d = new Date(Date.now() + 9 * 3600 * 1000);
+    d.setUTCHours(d.getUTCHours() + 1, 0, 0, 0);
     return {
       selected_inquiry_id: "",
       // ⚠️ 기본값을 «비움»으로 둔다 — 고르지 않으면 저장이 안 된다(select required).
@@ -341,6 +358,12 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // 지난 시각 차단 — 위 min 은 브라우저마다 강제 정도가 달라 여기서 한 번 더 막는다.
+    // 1분 여유: 「지금」으로 잡고 저장을 누르는 사이에 초가 지나 반려되는 걸 막는다.
+    if (new Date(`${form.scheduled_at}+09:00`).getTime() < Date.now() - 60000) {
+      toast.error(tt("errPastSchedule"));
+      return;
+    }
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -624,6 +647,9 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             <input
               type="datetime-local"
               required
+              // 지난 시각은 아예 못 고르게 — 「만들자마자 지난 회의」 재발 방지.
+              // (브라우저마다 min 강제 정도가 다르므로 제출 때 한 번 더 막는다)
+              min={minScheduledAt}
               value={form.scheduled_at}
               onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"

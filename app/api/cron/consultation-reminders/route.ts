@@ -152,6 +152,18 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── 좀비 방 청소 ──
+  // 새 예약(cron)을 만들지 않고 여기 얹는다. 10분마다 도는 유일한 상담 관련 예약이고
+  // 하는 일(상담 시간 관리)이 같은 갈래라 여기가 제 자리다. 실패해도 리마인더는 안 막는다.
+  // 왜 필요한지·왜 기존 장치로 안 잡혔는지 → src/lib/consultation/closeStaleRooms.ts
+  let staleRooms: unknown = null;
+  try {
+    const { closeStaleRooms } = await import("@/lib/consultation/closeStaleRooms");
+    staleRooms = await closeStaleRooms();
+  } catch (e: any) {
+    console.warn("[cron/reminders] 좀비 방 청소 실패:", e?.message);
+  }
+
   return Response.json({
     ok: true,
     sessionsChecked: sessions?.length || 0,
@@ -159,6 +171,7 @@ export async function GET(request: NextRequest) {
     staffPushed,
     skipped,
     errors,
+    staleRooms,
   });
 }
 
