@@ -68,17 +68,27 @@ jobs:
 
       # 「오늘 하루만 쉰다」 — 정시 창구(Vercel 예약)와 «같은 목록»을 본다(단일 SoR).
       # 여기만 빼먹으면 정시 창구는 쉬는데 예비가 그날치를 내보내 지시가 무력화된다.
+      #
+      # ⚠️ 휴무는 «저절로 나가는 것»만 막는다. 사람이 직접 누른 실행(workflow_dispatch)은 통과다.
+      #    2026-08-04 실측으로 발견: 휴무를 넣은 이유 자체가 "PO 가 오후 1시에 직접 내보내기로 함"
+      #    이었는데, 그 손으로 누른 실행까지 막혀서 «눌러도 아무 일도 안 일어나는» 상태였다.
+      #    그날 오전 배포도 손으로 누른 것이었으니(11:25) 이 경로가 실제로 쓰인다.
+      #    휴무 = 「자동으로 나가지 마라」이지 「PO 도 못 내보낸다」가 아니다.
       - name: 오늘 창구 휴무인지 확인
         id: holiday
         run: |
           set -uo pipefail
           today="$(TZ=Asia/Seoul date +%Y-%m-%d)"
-          if grep -q "\"$today\"" src/lib/deploy/windowHoliday.ts; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "손으로 누른 실행 — 휴무여도 내보낸다"
+          elif grep -q "\"$today\"" src/lib/deploy/windowHoliday.ts; then
             echo "오늘($today)은 창구 휴무 — 예비도 쉰다"
             echo "skip=1" >> "$GITHUB_OUTPUT"
           else
             echo "오늘($today)은 정상 가동"
           fi
+        env:
+          EVENT_NAME: ${{ github.event_name }}
 
       - name: 이미 나갔는지 확인 (실서비스가 도는 커밋과 대조)
         if: steps.holiday.outputs.skip != '1'
