@@ -71,40 +71,64 @@ function decodeCachedBrief(encBrief: unknown): { overview: string; request: stri
  * 비용: 낡았을 때 한 번만 모델을 부르고 결과를 저장한다(다음 열람부터는 공짜).
  *   실패하면 저장된 것을 그대로 쓴다 — 화면이 비지 않게.
  */
-async function freshBrief(inqRaw: any, inq: any) {
+async function regenBrief(inqRaw: any, inq: any, want: string) {
+  const r = await generateCaseBrief({
+    inquiry: inq,
+    attachments: Array.isArray(inqRaw?.attachments) ? inqRaw.attachments : [],
+    lang: "ko",
+  });
+  if (!r.ok) return null;
+  // 언어별 묶음을 지키면서 한국어 칸만 갈아끼운다(코디가 만든 다른 언어 요약을 안 지운다).
+  let map: any = {};
+  try {
+    const dec = decryptStringNullable(inqRaw?.coordinator_brief || null);
+    if (dec) map = readBriefMap(JSON.parse(dec));
+  } catch { /* 못 읽으면 새로 시작 */ }
+  map.ko = { ...r.brief, unreadable: r.unreadableCount };
+  await (supabaseAdmin as any)
+    .from("inquiries")
+    .update({ coordinator_brief: encryptStringNullable(JSON.stringify(map)), coordinator_brief_sig: want })
+    .eq("id", inqRaw.id);
+  return {
+    overview: r.brief.overview,
+    request: r.brief.request,
+    points: r.brief.points || [],
+    red_flags: r.brief.red_flags || [],
+    imaging_note: r.brief.imaging_note,
+  };
+}
+
+/**
+ * 의료진이 볼 요약. 낡았으면 다시 만들되 **화면을 세워두지 않는다.**
+ *
+ * 왜 이렇게 (2026-08-04 자체 점검에서 잡음): 어제는 낡았을 때 그 자리에서 만들고 «기다렸다».
+ *   요약 만들기는 CT 장면까지 보느라 26~40초가 걸린다(실측) — 원장님이 링크를 열면
+ *   40초 동안 빈 화면을 보게 된다. 요약 하나 새로 하자고 화면을 못 쓰게 만드는 건 손해다.
+ *
+ *   · 최신이면 → 그대로.
+ *   · 낡았으면 → **있는 것을 즉시 보여주고**, 응답 뒤에 조용히 새로 만들어 저장한다(다음 열람은 최신).
+ *   · 아예 없으면 → 그때만 만들어서 준다(안 그러면 요약이 통째로 안 보인다).
+ */
+async function briefForDoctor(inqRaw: any, inq: any) {
   const cached = decodeCachedBrief(inqRaw?.coordinator_brief);
   const want = briefSig(inqRaw?.attachments || [], inqRaw?.follow_ups);
   const have = inqRaw?.coordinator_brief_sig || "";
   if (cached && want === have) return cached;
 
-  try {
-    const r = await generateCaseBrief({
-      inquiry: inq,
-      attachments: Array.isArray(inqRaw?.attachments) ? inqRaw.attachments : [],
-      lang: "ko",
+  if (cached) {
+    // after(): 응답을 보낸 «뒤»에도 함수를 살려 둔다(서버리스가 얼어붙지 않게).
+    after(async () => {
+      try { await regenBrief(inqRaw, inq, want); }
+      catch (e: any) { console.error("[opinions/:token] 요약 갱신 실패:", e?.message); }
     });
-    if (!r.ok) return cached;
-    // 언어별 묶음을 지키면서 한국어 칸만 갈아끼운다(코디가 만든 다른 언어 요약을 안 지운다).
-    let map: any = {};
-    try {
-      const dec = decryptStringNullable(inqRaw?.coordinator_brief || null);
-      if (dec && want === have) map = readBriefMap(JSON.parse(dec));
-    } catch { /* 못 읽으면 새로 시작 */ }
-    map.ko = { ...r.brief, unreadable: r.unreadableCount };
-    await (supabaseAdmin as any)
-      .from("inquiries")
-      .update({ coordinator_brief: encryptStringNullable(JSON.stringify(map)), coordinator_brief_sig: want })
-      .eq("id", inqRaw.id);
-    return {
-      overview: r.brief.overview,
-      request: r.brief.request,
-      points: r.brief.points || [],
-      red_flags: r.brief.red_flags || [],
-      imaging_note: r.brief.imaging_note,
-    };
-  } catch (e: any) {
-    console.error("[opinions/:token] 요약 재생성 실패(저장된 것으로 진행):", e?.message);
     return cached;
+  }
+
+  try {
+    return await regenBrief(inqRaw, inq, want);
+  } catch (e: any) {
+    console.error("[opinions/:token] 요약 생성 실패:", e?.message);
+    return null;
   }
 }
 
@@ -243,7 +267,7 @@ export async function GET(
         // 접수 후 추가로 들어온 환자 상태 — 서류엔 없지만 판단에 필요하다(PO 지시 2026-08-03).
         followUps: readFollowUps((inqRaw as any).follow_ups),
         // 코디가 만들어둔 AI 케이스 브리프(한국어 요약) — 없으면 null(코디가 아직 안 만든 케이스).
-        brief: await freshBrief(inqRaw, inq),
+        brief: await briefForDoctor(inqRaw, inq),
       },
     });
   } catch (e: any) {
