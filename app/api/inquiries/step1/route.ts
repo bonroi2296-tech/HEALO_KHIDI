@@ -41,6 +41,12 @@ const Step1Schema = z.object({
   // PIPA 동의 (출시 법적 필수). 키별 boolean. 필수 4종은 서버에서도 재확인(폼 우회 방지).
   consents: z.record(z.boolean()).optional(),
   consentVersion: z.string().max(20).optional(),
+  // 유입 기록(선택) — «어느 언어 화면·어디서·어느 페이지를 보고» 들어온 문의인지.
+  // 브라우저가 보내는 값이라 신뢰할 수 없다 → 형태·길이만 제한하고 그대로 저장(집계용, 권한 판단에 안 씀).
+  sourceLocale: z.enum(["ko", "en", "ru", "kz", "kk", "zh", "ja"]).nullable().optional(),
+  referrerHost: z.string().max(120).nullable().optional(),
+  landingPath: z.string().max(200).nullable().optional(),
+  utm: z.record(z.string().max(60)).nullable().optional(),
 });
 
 // 외국인 의료정보 수집·국외이전이라 아래 4종은 법적 필수 동의.
@@ -166,6 +172,14 @@ export async function POST(request: NextRequest) {
         match_accuracy: 60,
         step1_completed_at: new Date().toISOString(),
         ai_chat_thread_id: data.aiChatThreadId ?? null,
+        // source(채널)는 여기서 안 넣는다 — DB 기본값이 'web' 이고 그게 맞다.
+        // (AI 채팅에서 만들어지는 문의는 publicChatHelpers 가 'ai_agent'·'messenger_*' 로 따로 찍는다.)
+        // 유입 기록 — 다국어·콘텐츠가 실제로 문의를 데려왔는지 나중에 세기 위한 네 칸.
+        // 없으면 NULL(예전 문의·저장소 차단 브라우저)이고, 접수 자체는 이 값들과 무관하게 진행된다.
+        source_locale: data.sourceLocale ?? null,
+        referrer_host: data.referrerHost ?? null,
+        landing_path: data.landingPath ?? null,
+        utm: data.utm ?? null,
         user_id: userId,
         // 에이전시 유저의 공개 폼 접수를 본인 에이전시로 귀속(포털 가시성). 비에이전시/게스트는 null.
         agency_id: agencyId,

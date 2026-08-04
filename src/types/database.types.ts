@@ -3018,6 +3018,10 @@ export type Database = {
           quality_signals: Json
           short_memo: string | null
           source: string | null
+          landing_path: string | null
+          referrer_host: string | null
+          source_locale: string | null
+          utm: Json | null
           spoken_language: string | null
           status: string | null
           status_reason: string | null
@@ -3083,6 +3087,10 @@ export type Database = {
           quality_signals?: Json
           short_memo?: string | null
           source?: string | null
+          landing_path?: string | null
+          referrer_host?: string | null
+          source_locale?: string | null
+          utm?: Json | null
           spoken_language?: string | null
           status?: string | null
           status_reason?: string | null
@@ -3148,6 +3156,10 @@ export type Database = {
           quality_signals?: Json
           short_memo?: string | null
           source?: string | null
+          landing_path?: string | null
+          referrer_host?: string | null
+          source_locale?: string | null
+          utm?: Json | null
           spoken_language?: string | null
           status?: string | null
           status_reason?: string | null
