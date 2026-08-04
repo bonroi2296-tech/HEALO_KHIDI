@@ -38,13 +38,6 @@ const DETAIL_FIELDS = [
   "case_status_note",
   "match_accuracy",
   "source",
-  // 「어디서 왔나」 — 코디가 첫 응대 전에 보는 값(러시아어 화면인지·광고로 왔는지).
-  // 여기 안 넣으면 화면에 코드를 붙여도 «항상 비어 있음»이 되고, 그건 «기록이 없는 문의»와
-  // 구분이 안 돼 조용히 죽는다.
-  "source_locale",
-  "referrer_host",
-  "landing_path",
-  "utm",
   "short_memo",
   "step1_completed_at",
   "step2_completed_at",
@@ -93,6 +86,20 @@ export async function GET(
       console.error("[portal/inbox/:id] query error:", error.message);
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
+
+    // 「어디서 왔나」 네 칸은 «따로» 읽는다 — 위 목록에 섞으면 그 컬럼이 아직 없는 환경에서
+    // 조회 «전체»가 죽어 문의 상세가 통째로 안 열린다(2026-08-04 동작 시험에서 실제로 그랬다:
+    // 화면에 「조회 중 문제가 발생했습니다」만 떴다). 여기서 실패하면 그 줄만 안 보이면 된다.
+    let arrival: Record<string, unknown> = {};
+    {
+      const { data: a } = await supabaseAdmin
+        .from("inquiries")
+        .select("source_locale, referrer_host, landing_path, utm")
+        .eq("id", Number(rawId))
+        .single();
+      if (a) arrival = a as Record<string, unknown>;
+    }
+    Object.assign(data as object, arrival);
 
     // PII 복호화 (staff 인증 통과 후 서버에서만). 실패해도 나머지는 반환(fail-safe).
     let inquiry: any = data;
