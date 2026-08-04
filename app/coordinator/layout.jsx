@@ -157,7 +157,7 @@ export default function CoordinatorLayout({ children }) {
            실측(콘텐츠 편집, 문서 10,985px): 저장바가 맨 위 기준 10,889px 지점에 정적으로 앉아
            편집 중엔 화면에 없었고 끝까지 내려야 보였다.
            ⚠️ 메시지 화면은 위 분기의 `overflow-hidden` 을 그대로 쓴다(2단 채팅 풀블리드 — 건드리지 말 것). */
-        <main className="flex-1 pt-14 lg:pt-0">
+        <main className="flex-1 min-w-0 pt-14 lg:pt-0">
           {/* pb: 쿠키 동의 배너(`fixed bottom-0`)가 화면 맨 아래 내용을 덮는다 — 코디 화면엔
               바닥 여백이 없어 「더 보기」 같은 마지막 버튼이 눌리지 않았다(2026-07-29 실측,
               elementFromPoint 가 배너를 반환). 배너가 알려주는 높이만큼 비워 둔다(닫히면 0). */}

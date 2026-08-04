@@ -202,37 +202,40 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
       )}
 
       {stage === "ready" && cur && (
-        <div className="grid gap-3 md:grid-cols-[190px_1fr]">
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-gray-500">촬영 묶음 ({series.length})</p>
+        // 고르는 줄은 «위에 가로로», 그림은 «아래 전체 폭으로» (PO 지시 2026-08-04).
+        // 전에는 왼쪽에 목록을 세로로 세웠는데, 화면이 조금만 좁아도 그림 자리가 쪼그라들어
+        // 정작 봐야 할 CT 가 손톱만 해졌다(실측: 화면 905px 일 때 그림 202px).
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-semibold text-gray-500 mr-0.5">촬영 묶음 ({series.length})</span>
             {series.map((s, i) => (
               <button
                 key={s.uid}
                 onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(DEFAULT_WW); setWc(DEFAULT_WC); if (s.ready === false) prepareSeries(i); }}
                 disabled={preparing}
-                className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition max-w-full truncate ${
                   !docKey && i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
-                <span className="block truncate">{s.desc}</span>
-                <span className="text-[11px] text-gray-500">{s.modality} · {s.count}장{s.ready === false ? " · 누르면 준비" : ""}</span>
+                {s.desc}
+                <span className="text-[11px] text-gray-500 ml-1.5">{s.count}장{s.ready === false ? " · 누르면 준비" : ""}</span>
               </button>
             ))}
 
-            {/* 그림이 아닌 «글» 기록도 같은 자리에서 고른다 — 내려받게 하지 않는다. */}
+            {/* 그림이 아닌 «글» 기록도 같은 줄에서 고른다 — 내려받게 하지 않는다. */}
             {docs.length > 0 && (
               <>
-                <p className="text-xs font-semibold text-gray-500 pt-2">글 기록 ({docs.length})</p>
+                <span className="text-xs font-semibold text-gray-500 ml-1 mr-0.5">글 기록 ({docs.length})</span>
                 {docs.map((d) => (
                   <button
                     key={d.key}
                     onClick={() => setDocKey(d.key)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                    className={`px-2.5 py-1.5 rounded-lg border text-xs transition max-w-full truncate ${
                       docKey === d.key ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                     }`}
                   >
-                    <span className="block truncate">{d.desc}</span>
-                    <span className="text-[11px] text-gray-500">{d.modality || "기록"} · {d.lines.length}줄</span>
+                    {d.desc}
+                    <span className="text-[11px] text-gray-500 ml-1.5">{d.lines.length}줄</span>
                   </button>
                 ))}
               </>
@@ -240,8 +243,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
           </div>
 
           {/* min-w-0 이 없으면 이 칸이 «그림의 원래 크기»만큼 벌어져 카드 밖으로 삐져나간다
-              (PO 제보 2026-08-04, 화면 폭 905px 에서 55px 넘침). 격자 칸의 기본 최소폭이
-              «내용물 크기»라서 그렇다 — max-w-full 만으론 안 잡힌다. */}
+              (PO 제보 2026-08-04, 화면 폭 905px 에서 55px 넘침). */}
           <div className="min-w-0">
             {preparing ? (
               <div className="bg-gray-100 rounded-lg py-16 text-center">
@@ -258,7 +260,14 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               </div>
             ) : (
               <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center" onWheel={onWheel}>
-                <canvas ref={canvasRef} className="max-w-full max-h-[60vh]" style={{ imageRendering: "pixelated" }} />
+                {/* CT 원본은 한 장이 512칸짜리라, 그냥 두면 넓은 화면에서도 512px 로 머문다.
+                    폭에 맞춰 키운다(최대 820px). 늘릴 때 색을 섞지 않는다(pixelated) —
+                    없는 그림을 만들어 내면 판독에 방해가 된다. */}
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-auto max-w-[820px] max-h-[72vh] object-contain"
+                  style={{ imageRendering: "pixelated" }}
+                />
               </div>
             )}
             <div className="mt-2.5 space-y-2">
