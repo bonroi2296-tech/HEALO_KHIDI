@@ -44,6 +44,8 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
   const [slice, setSlice] = useState(0);
   const [ww, setWw] = useState(350);
   const [wc, setWc] = useState(40);
+  const [preparing, setPreparing] = useState(false); // 아직 안 만든 묶음을 지금 만드는 중
+  const wantRef = useRef(0);                          // 서버에 «이 묶음을 만들어 달라»고 알릴 번호
   const canvasRef = useRef(null);
   const cacheRef = useRef(new Map()); // "시리즈-장" → Int16Array (같은 장을 두 번 안 받는다)
 
@@ -62,7 +64,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
         const res = await fetch(endpoint || `/api/coordinator/inquiries/${inquiryId}/imaging`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ path }),
+          body: JSON.stringify({ path, series: wantRef.current }),
         });
         const j = await res.json();
         if (dead) return;
@@ -86,6 +88,33 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
     })();
     return () => { dead = true; };
   }, [inquiryId, endpoint, withAuth, path]);
+
+  /** 아직 안 만든 묶음을 지금 만든다 — 압축을 다시 풀어야 해서 몇 초 걸린다(한 번만). */
+  const prepareSeries = useCallback(async (i) => {
+    setPreparing(true);
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (withAuth) {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      wantRef.current = i;
+      const res = await fetch(endpoint || `/api/coordinator/inquiries/${inquiryId}/imaging`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ path, series: i }),
+      });
+      const j = await res.json();
+      if (j.ok) { setSeries(j.series); setUrls(j.urls); }
+      else setErrText("이 촬영 묶음을 준비하지 못했습니다.");
+    } catch {
+      setErrText("이 촬영 묶음을 준비하지 못했습니다.");
+    } finally {
+      setPreparing(false);
+    }
+  }, [endpoint, withAuth, inquiryId, path]);
 
   // 2) 보는 장만 구간으로 받아 그린다
   const draw = useCallback(async () => {
@@ -170,13 +199,14 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
             {series.map((s, i) => (
               <button
                 key={s.uid}
-                onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(s.ww); setWc(s.wc); }}
+                onClick={() => { setDocKey(null); setSIdx(i); setSlice(0); setWw(s.ww); setWc(s.wc); if (s.ready === false) prepareSeries(i); }}
+                disabled={preparing}
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs transition ${
                   !docKey && i === sIdx ? "border-teal-700 bg-teal-50 text-teal-800 font-semibold" : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
                 <span className="block truncate">{s.desc}</span>
-                <span className="text-[11px] text-gray-500">{s.modality} · {s.count}장</span>
+                <span className="text-[11px] text-gray-500">{s.modality} · {s.count}장{s.ready === false ? " · 누르면 준비" : ""}</span>
               </button>
             ))}
 
@@ -201,7 +231,13 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
           </div>
 
           <div>
-            {curDoc ? (
+            {preparing ? (
+              <div className="bg-gray-100 rounded-lg py-16 text-center">
+                <Loader2 size={20} className="animate-spin text-teal-700 mx-auto mb-2" />
+                <p className="text-sm text-gray-700">이 촬영 묶음을 준비하는 중…</p>
+                <p className="text-xs text-gray-500 mt-1">처음 고를 때 한 번만 걸립니다.</p>
+              </div>
+            ) : curDoc ? (
               // 글 기록은 원문 그대로 — 줄여 쓰거나 요약하지 않는다(로우 데이터).
               <div className="rounded-lg border border-gray-200 bg-white p-3 max-h-[60vh] overflow-auto">
                 <pre className="text-[11.5px] leading-relaxed text-gray-800 whitespace-pre-wrap font-mono">

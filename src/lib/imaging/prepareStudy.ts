@@ -22,7 +22,10 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 const BUCKET = "attachments";
 const MAX_SLICES = 1200; // 한 검사에 이보다 많으면 손대지 않는다(시간·저장소 폭주 방지)
-const MANIFEST_V = 3;    // 3 = 글 기록(docs)·비의료 파일(extras) 포함. 낮으면 다시 푼다.
+// 4 = «누를 때 만들기». 처음엔 제일 큰 묶음 하나만 만들어 두고, 나머지는 고를 때 만든다.
+//   왜: 전부 미리 만들면 한 검사에 301MB 가 쌓이는데 대부분 첫 묶음만 본다(실측 #60: s0·s1 각 133MB).
+//   첫 대기시간도 같이 줄어든다.
+const MANIFEST_V = 4;
 const URL_TTL = 60 * 60;
 
 type SeriesOut = {
@@ -30,6 +33,7 @@ type SeriesOut = {
   rows: number; cols: number; signed: boolean;
   slope: number; intercept: number; ww: number; wc: number;
   file: string; sliceBytes: number; count: number;
+  ready?: boolean;   // 픽셀 덩어리를 실제로 만들어 뒀나(아니면 고를 때 만든다)
 };
 
 const manifestPath = (p: string) => `${p}.study.json`;
@@ -212,6 +216,63 @@ export async function renderSlicesPng(
   return { images, seriesDesc: s.desc || "", total: s.count };
 }
 
+
+/**
+ * 목록은 이미 있는데 «고른 묶음»만 아직 안 만들어졌을 때 — 그것 하나만 만든다.
+ * 압축을 다시 풀어야 하므로 몇 초 걸린다(실측 풀기 2.3초 + 올리기). 한 번만 내면 다음부터는 즉시.
+ */
+async function buildOneSeries(
+  path: string,
+  series: SeriesOut[],
+  wanted: number,
+  rest: { skippedOut: any[]; docsOut: any[]; extrasOut: any[] }
+): Promise<{ ok: true; series: SeriesOut[] } | { ok: false; error: string; status: number }> {
+  const target = series[wanted];
+  if (!target) return { ok: false, error: "invalid_series", status: 400 };
+
+  const dl = await supabaseAdmin.storage.from(BUCKET).download(path);
+  if (dl.error || !dl.data) return { ok: false, error: "download_failed", status: 404 };
+  const buf = Buffer.from(await dl.data.arrayBuffer());
+
+  const dicomParser = (await import("dicom-parser")).default;
+  const slices: { instance: number; pixels: Buffer }[] = [];
+  for (const { bytes } of (await unpack(buf)).filter((e) => looksDicom(e.bytes))) {
+    let ds: any;
+    try { ds = dicomParser.parseDicom(bytes); } catch { continue; }
+    const el = ds.elements.x7fe00010;
+    if (!el || el.length !== target.sliceBytes) continue;
+    const str = (t: string) => { try { return ds.string(t) || ""; } catch { return ""; } };
+    if ((str("x0020000e") || "unknown") !== target.uid) continue;
+    slices.push({
+      instance: parseInt(str("x00200013") || "0", 10),
+      pixels: Buffer.from(bytes.buffer, bytes.byteOffset + el.dataOffset, el.length),
+    });
+  }
+  if (!slices.length) return { ok: false, error: "no_dicom", status: 400 };
+  slices.sort((a, b) => a.instance - b.instance);
+
+  const up = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(target.file, Buffer.concat(slices.map((x) => x.pixels)), {
+      contentType: "application/octet-stream",
+      upsert: true,
+    });
+  if (up.error) {
+    console.error("[imaging] series upload:", up.error.message);
+    return { ok: false, error: "prepare_failed", status: 500 };
+  }
+
+  const next = series.map((x, i) => (i === wanted ? { ...x, count: slices.length, ready: true } : x));
+  await supabaseAdmin.storage.from(BUCKET).upload(
+    manifestPath(path),
+    Buffer.from(JSON.stringify({
+      v: MANIFEST_V, series: next, skipped: rest.skippedOut, docs: rest.docsOut, extras: rest.extrasOut,
+    })),
+    { contentType: "application/octet-stream", upsert: true }
+  );
+  return { ok: true, series: next };
+}
+
 /** 목록 파일 원본(내부용). 없거나 판이 낮으면 null. */
 async function readPreparedStudyRaw(path: string): Promise<{ series: SeriesOut[]; docs: any[] } | null> {
   const cached = await supabaseAdmin.storage.from(BUCKET).download(manifestPath(path));
@@ -226,7 +287,7 @@ async function readPreparedStudyRaw(path: string): Promise<{ series: SeriesOut[]
 }
 
 /** 묶음 하나를 «볼 수 있게» 준비한다. 두 번째부터는 만들어 둔 목록을 그대로 돌려준다. */
-export async function prepareStudy(path: string): Promise<StudyResult> {
+export async function prepareStudy(path: string, wanted = 0): Promise<StudyResult> {
   // 이미 정리해 둔 게 있으면 그걸 쓴다(같은 검사를 두 번 풀지 않는다).
   let series: SeriesOut[] | null = null;
   let skippedOut: { desc: string; modality: string; count: number }[] = [];
@@ -244,6 +305,14 @@ export async function prepareStudy(path: string): Promise<StudyResult> {
         extrasOut = m.extras || [];
       }
     } catch { series = null; }
+  }
+
+  // 목록은 있는데 «고른 묶음»이 아직 안 만들어졌으면 그것만 만든다(다시 풀어야 한다).
+  const needBuild = !series || !series[wanted] || series[wanted].ready === false;
+  if (series && needBuild) {
+    const made = await buildOneSeries(path, series, wanted, { skippedOut, docsOut, extrasOut });
+    if (!made.ok) return made;
+    series = made.series;
   }
 
   if (!series) {
@@ -343,15 +412,20 @@ export async function prepareStudy(path: string): Promise<StudyResult> {
       if (!g.slices.length || !g.meta.rows || !g.meta.cols) continue;
       g.slices.sort((a, b) => a.instance - b.instance);
       const file = seriesPath(path, i);
-      const blob = Buffer.concat(g.slices.map((s) => s.pixels));
-      const up = await supabaseAdmin.storage
-        .from(BUCKET)
-        .upload(file, blob, { contentType: "application/octet-stream", upsert: true });
-      if (up.error) {
-        console.error("[imaging] series upload:", up.error.message);
-        return { ok: false as const, error: "prepare_failed", status: 500 };
+      // 처음엔 «고른 묶음»(기본 = 제일 큰 것) 하나만 실제로 만든다. 나머지는 목록에만 올려두고
+      // 코디·의료진이 그걸 누를 때 만든다 — 대부분 안 누르는 것에 133MB 씩 쓰지 않으려고.
+      const makeNow = built.length === wanted;
+      if (makeNow) {
+        const blob = Buffer.concat(g.slices.map((s) => s.pixels));
+        const up = await supabaseAdmin.storage
+          .from(BUCKET)
+          .upload(file, blob, { contentType: "application/octet-stream", upsert: true });
+        if (up.error) {
+          console.error("[imaging] series upload:", up.error.message);
+          return { ok: false as const, error: "prepare_failed", status: 500 };
+        }
       }
-      built.push({ ...g.meta, file, count: g.slices.length });
+      built.push({ ...g.meta, file, count: g.slices.length, ready: makeNow });
     }
     if (!built.length) return { ok: false as const, error: "no_dicom", status: 400 };
 
@@ -380,7 +454,7 @@ export async function prepareStudy(path: string): Promise<StudyResult> {
   // 시리즈 덩어리마다 서명 주소 — 브라우저는 보는 장의 구간만 잘라 받는다.
   const { data: signed } = await supabaseAdmin.storage
     .from(BUCKET)
-    .createSignedUrls(series.map((s) => s.file), URL_TTL);
+    .createSignedUrls(series.filter((s) => s.ready !== false).map((s) => s.file), URL_TTL);
   const urls: Record<string, string> = {};
   (signed || []).forEach((s: any) => { if (s?.path && s?.signedUrl) urls[s.path] = s.signedUrl; });
 
