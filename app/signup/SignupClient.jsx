@@ -206,7 +206,12 @@ export const SignUpPage = ({ setView }) => {
             // Supabase 원문 error.message(영문)를 사용자에게 노출하지 않음 — 6개어 일반 안내만,
             // 원문은 콘솔 로그로(진단용). 같은 파일 다른 에러들과 규약 통일(2026-07-02 전수 감사).
             console.error('[SignUpPage] signUp error:', error.message);
-            toast.error(t("signup.errorFailed", langCode));
+            // 「유출된 비밀번호 차단」에 걸린 경우만 따로 안내한다(2026-08-04).
+            // 왜: 이 검사가 2026-07-28~29 사이 켜졌는데 화면은 «가입에 실패했습니다» 만 띄웠다.
+            // 이유도 다음 행동도 안 알려주니 사용자는 «같은 비밀번호로 다시» 누른다 — 우리 화면
+            // 정책(8자+영문+특수문자)은 통과한 값이라 본인은 뭘 고쳐야 하는지 알 길이 없다.
+            const isWeakPassword = error.code === 'weak_password' || /weak/i.test(error.message || '');
+            toast.error(t(isWeakPassword ? "signup.errorWeakPassword" : "signup.errorFailed", langCode));
             setLoading(false);
             return;
         }
