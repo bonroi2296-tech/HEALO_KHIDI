@@ -3054,7 +3054,7 @@ export default function ConsultationRoomPage() {
         </div>
         {/* 모바일 고정 입장 바 — 카드가 backdrop-blur(fixed 기준 조상)라 카드 '밖'에 렌더.
             폼 밖이므로 제출은 joinAsGuest 직접 호출(검증은 함수 안에서 동일 수행). */}
-        <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-900/95 backdrop-blur border-t border-gray-700">
+        <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-2.5 pb-[max(0.75rem,var(--healo-safe-bottom))] bg-gray-900/95 backdrop-blur border-t border-gray-700">
           {!guestName.trim() && (
             <p className="text-[11px] text-gray-400 text-center mb-1.5">{c.enterNameHint}</p>
           )}

@@ -194,6 +194,24 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
+        {/* 안전영역(노치·상태표시줄·시스템 버튼줄) 여백 스위치가 보는 표식 2개.
+            ① data-healo-native — 스토어 앱(Capacitor 웹뷰) 안인가. 앱은 라이브 사이트를 그대로
+               웹뷰로 띄우는데, 웹뷰는 `display-mode: standalone` 에 안 걸리면서도 상태표시줄·노치
+               밑에 내용을 그린다. 그래서 설치 PWA 와 달리 별도 표식이 필요하다.
+               판정 기준은 src/lib/isNativeApp.ts 와 같은 짝(capacitor.config.ts 의 appendUserAgent).
+            ② data-healo-os — 안드로이드인가. 아래쪽 여백만 이걸 본다: 안드로이드 브라우저는
+               시스템 버튼줄을 이미 피해서 그려주는데도 앱 안 브라우저가 그 높이를 알려줘 빈 칸이 생긴다.
+               아이폰은 보통 탭에서도 홈 인디케이터가 진짜로 덮으므로 손대지 않는다.
+            ⚠️ 첫 그림 «전에» 붙어야 헤더가 한 번 올라갔다 내려오는 깜빡임이 없다 → head 인라인. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var u=navigator.userAgent||"";var c=window.Capacitor;var d=document.documentElement;' +
+              'if(u.indexOf("healwith-app")>-1||(c&&c.isNativePlatform&&c.isNativePlatform()))' +
+              'd.setAttribute("data-healo-native","1");' +
+              'if(/Android/i.test(u))d.setAttribute("data-healo-os","android")}catch(e){}',
+          }}
+        />
         {/* 이 방문자 언어의 사전만 주입 (21개 언어 통짜 = 번들 264KB 를 뺀 대신).
             t() 는 화면 곳곳에서 동기로 불리므로 React 가 붙기 전에 값이 있어야 한다
             (나중에 도착하는 방식이면 글자가 빈칸으로 그려졌다 채워진다).

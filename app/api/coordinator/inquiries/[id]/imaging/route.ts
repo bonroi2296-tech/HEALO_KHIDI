@@ -22,12 +22,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if (!auth.success) return auth.response;
 
   try {
-    const { path } = await request.json();
+    const { path, series } = await request.json();
     if (typeof path !== "string" || !path.startsWith(`inquiry/${id}/`)) {
       return Response.json({ ok: false, error: "invalid_path" }, { status: 400 });
     }
 
-    const r = await prepareStudy(path);
+    const want = Number.isInteger(series) && series >= 0 && series < 50 ? series : 0;
+    const r = await prepareStudy(path, want);
     if (!r.ok) return Response.json({ ok: false, error: r.error }, { status: r.status });
     return Response.json(r);
   } catch (err) {

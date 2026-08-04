@@ -747,7 +747,10 @@ export default function PartnerPortal({ expected = "agency" }) {
 
   return (
     <>
-    <div className="max-w-5xl mx-auto px-4 pt-20 md:pt-24 pb-10">
+    {/* 위 여백 = 전역 포털 상단바(h-14 md:h-16) + 안전영역 + 보기용 간격.
+        ⚠️ 숫자를 손으로 박지 마라 — 상단바가 커지거나 노치 기기에서 여백이 붙으면 화면이 «가린다».
+        (2026-08-03: pt-20 고정값이라 스토어 앱에서 14px 가리고 있었다) */}
+    <div className="max-w-5xl mx-auto px-4 pt-[calc(3.5rem+1.5rem+var(--healo-safe-top))] md:pt-[calc(4rem+2rem+var(--healo-safe-top))] pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">{data?.agency?.name} {tt("titleSuffix")}</h1>
@@ -1143,7 +1146,8 @@ export default function PartnerPortal({ expected = "agency" }) {
 }
 
 function Center({ children, className = "" }) {
-  return <div className={`max-w-3xl mx-auto px-4 py-24 text-center text-gray-500 ${className}`}>{children}</div>;
+  // 위 여백은 전역 포털 상단바 + 안전영역만큼 «먼저» 비우고 그 뒤에 보기용 간격을 준다.
+  return <div className={`max-w-3xl mx-auto px-4 pt-[calc(3.5rem+4rem+var(--healo-safe-top))] pb-24 text-center text-gray-500 ${className}`}>{children}</div>;
 }
 
 // 폼 섹션 — 제목 + 내용 묶음 (인테이크 폼처럼 명확한 구획)

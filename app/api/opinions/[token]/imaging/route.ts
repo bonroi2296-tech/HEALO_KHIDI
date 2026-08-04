@@ -46,13 +46,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       return Response.json({ ok: false, error: "invalid_link" }, { status: 404 });
     }
 
-    const { path } = await request.json();
+    const { path, series } = await request.json();
     // 링크가 가리키는 문의의 파일만. 남의 문의 경로를 넣어도 여기서 막힌다.
     if (typeof path !== "string" || !path.startsWith(`inquiry/${req.inquiry_id}/`)) {
       return Response.json({ ok: false, error: "invalid_path" }, { status: 400 });
     }
 
-    const r = await prepareStudy(path);
+    const want = Number.isInteger(series) && series >= 0 && series < 50 ? series : 0;
+    const r = await prepareStudy(path, want);
     if (!r.ok) return Response.json({ ok: false, error: r.error }, { status: r.status });
     return Response.json(r);
   } catch (err) {

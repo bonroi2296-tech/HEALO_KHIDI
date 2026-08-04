@@ -63,7 +63,7 @@ export default function PatientLayout({ children }) {
   const isMoreActive = MORE_TABS.some(tab => pathname === tab.href || pathname.startsWith(tab.href + '/'));
 
   return (
-    <div className="min-h-screen bg-gray-50 healo-portal-offset pb-[calc(5rem+var(--cookie-banner-h,0px)+env(safe-area-inset-bottom,0px))] lg:pb-0">
+    <div className="min-h-screen bg-gray-50 healo-portal-offset pb-[calc(5rem+var(--cookie-banner-h,0px)+var(--healo-safe-bottom))] lg:pb-0">
       {/* ⚠️ 알림 종을 여기서 또 띄우지 마라 — 상단바(ClientShell)가 로그인한 사람에게 이미 종을 그린다.
           2026-07-29 폰 실측: 환자 화면에 종이 «두 개» 떴고, 떠다니는 종(variant="fixed")이
           상단바 오른쪽을 덮어 옆 아이콘이 잘렸다. 종은 상단바 것 하나로 충분하다. */}

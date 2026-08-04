@@ -56,7 +56,7 @@ export default function ManualDrawer({ role, buttonLabel }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={label}
-        className="fixed bottom-[calc(1.25rem+var(--cookie-banner-h,0px)+env(safe-area-inset-bottom,0px))] right-5 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-white text-gray-700 border border-gray-200 shadow-lg hover:shadow-xl hover:text-teal-700 hover:border-teal-200 transition-all duration-200 min-h-[44px]"
+        className="fixed bottom-[calc(1.25rem+var(--cookie-banner-h,0px)+var(--healo-safe-bottom))] right-5 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-white text-gray-700 border border-gray-200 shadow-lg hover:shadow-xl hover:text-teal-700 hover:border-teal-200 transition-all duration-200 min-h-[44px]"
       >
         <BookOpen size={18} className="text-teal-600" />
         <span className="text-sm font-semibold hidden sm:inline">{label}</span>

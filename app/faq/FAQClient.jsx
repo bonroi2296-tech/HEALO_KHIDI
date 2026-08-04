@@ -34,7 +34,7 @@ export default function FAQClient() {
       </section>
 
       {/* Category filter */}
-      <section className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] md:top-[calc(4rem+env(safe-area-inset-top,0px))] z-20 bg-white/90 backdrop-blur border-y border-gray-200">
+      <section className="sticky top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] z-20 bg-white/90 backdrop-blur border-y border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center gap-2.5">
           <span className="text-xs text-gray-500 mr-1 shrink-0">
             {filtered.length} {t("faqPage.qaSuffix", lang)}
