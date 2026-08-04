@@ -112,6 +112,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
     import("@/lib/app/hideSplash")
       .then((m) => m.hideSplashWhenReady())
       .catch(() => { /* 네이티브 아님 → 무시 */ });
+    // 안드로이드 하드웨어 「뒤로」 — 안 받으면 앞 화면이 아니라 앱이 꺼진다(2026-08-04 흉내기 실측).
+    import("@/lib/app/androidBackButton")
+      .then((m) => m.registerAndroidBackButton())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
   }, []);
 
   // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
