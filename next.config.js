@@ -188,6 +188,10 @@ const nextConfig = {
               //    매 방문마다 콘솔에 CSP 위반이 찍히고 리플레이가 반쪽으로 돌았다.
               //    → 우리 출처와 blob: 만 연다(외부 도메인 워커는 계속 차단).
               "worker-src 'self' blob:",
+              // 소견 화면의 «미리보기» — 첨부 PDF 를 내려받지 않고 그 자리에서 띄운다(PO 요청 2026-08-04).
+              //   frame-src 를 안 적으면 default-src 'self' 로 폴백돼 **우리 저장소 PDF 도 막힌다**
+              //   (실측: 미리보기 창은 열리는데 안이 하얗다). 여는 건 우리 저장소 하나뿐 — 외부는 계속 차단.
+              "frame-src 'self' https://*.supabase.co blob:",
               // 같은 사유 — 편집기 미리보기용. 외부 사이트의 씌우기는 계속 차단.
               "frame-ancestors 'self'",
               "base-uri 'self'",
