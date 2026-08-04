@@ -78,7 +78,7 @@ export default function OpinionClient({ token }) {
   };
 
   const submit = async () => {
-    if (!doctorKey || opinion.trim().length < 5 || submitting) return;
+    if (blockReason || submitting) return; // 단추 잠금과 «같은 조건» — 아래 blockReason 참조
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -144,6 +144,13 @@ export default function OpinionClient({ token }) {
   }
 
   const c = caseData || {};
+  // 제출을 막는 이유(없으면 null) — 단추를 잠그는 조건과 «같은 값»을 쓴다. 따로 적으면 어긋난다.
+  const blockReason =
+    uploading ? "서류를 올리는 중입니다. 잠시만요."
+    : !doctorKey ? "소견 주시는 분을 골라 주세요."
+    : opinion.trim().length < 5 ? `소견 내용을 조금 더 적어 주세요 (지금 ${opinion.trim().length}자 · 5자 이상).`
+    : null;
+
   return (
     <Shell>
       {/* AI 케이스 브리프 — 코디가 만들어둔 한국어 요약(원문이 러시아어 등이라도 이걸로 빠르게 파악) */}
@@ -244,13 +251,15 @@ export default function OpinionClient({ token }) {
                       {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
                       {canPreview(a.name) && (
                         <button
-                          onClick={() => setPreview({ url: a.url, name: a.name, path: a.path })}
+                          onClick={() => setPreview({ url: a.url, dl: a.downloadUrl, name: a.name, path: a.path })}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
                         >
                           <Eye size={12} /> 미리보기
                         </button>
                       )}
-                      <a href={a.url} download={a.name}
+                      {/* downloadUrl = 저장소가 «내려받기»로 내주는 주소. HTML 의 download 표시는
+                          다른 서버 파일엔 안 먹혀서, 그림이면 그냥 탭에 열려 버린다. */}
+                      <a href={a.downloadUrl || a.url} download={a.name}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-600 text-xs hover:bg-gray-50 transition">
                         <Download size={12} /> 내려받기
                       </a>
@@ -337,9 +346,15 @@ export default function OpinionClient({ token }) {
 
         {submitError && <p className="text-sm text-red-600 mb-3">{submitError}</p>}
 
+        {/* 왜 안 눌리는지 «먼저» 말한다 (PO 제보 2026-08-04 «제출하기 버튼이 안눌리는데?»):
+            네 글자만 적어서 막혔는데 화면엔 아무 말도 없었다. 못 누르는 단추는 이유를 말해야 한다. */}
+        {blockReason && !submitting && (
+          <p className="text-sm text-amber-700 mb-2">{blockReason}</p>
+        )}
+
         <button
           onClick={submit}
-          disabled={!doctorKey || opinion.trim().length < 5 || submitting}
+          disabled={!!blockReason || submitting}
           className="w-full bg-teal-700 text-white py-3 rounded-lg text-sm font-semibold hover:bg-teal-800 transition disabled:opacity-40"
         >
           {submitting ? "제출 중…" : "소견 제출"}
@@ -354,7 +369,7 @@ export default function OpinionClient({ token }) {
               <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
               <div className="flex items-center gap-1.5 shrink-0">
                 {/* 내려받기는 항상 «원본» — 화면에 띄운 건 우리가 그린 사진이다(의료 원본은 그대로). */}
-                <a href={preview.url} download={preview.name}
+                <a href={preview.dl || preview.url} download={preview.name}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
                   <Download size={12} /> 내려받기
                 </a>
