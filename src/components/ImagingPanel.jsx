@@ -193,7 +193,10 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
     if (!cur || curDoc) return;
     setPlaying(false);
     dragRef.current = { y: e.clientY, base: slice };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    // «이 손가락(마우스)을 내가 붙잡겠다»는 요청. 붙잡을 대상이 없으면 **오류를 던진다**
+    // (누르자마자 떼는 순간이 겹칠 때·시험용 가짜 신호일 때). 못 붙잡아도 끌기는 그대로
+    // 되므로 — 그림 밖으로 나가면 끊기는 정도 차이 — 조용히 넘어간다.
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch {}
   };
   const onPointerMove = (e) => {
     const d = dragRef.current;
