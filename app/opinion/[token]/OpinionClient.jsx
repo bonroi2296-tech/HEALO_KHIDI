@@ -244,8 +244,7 @@ export default function OpinionClient({ token }) {
                       {/* 압축파일(CT 묶음)은 화면에 띄울 수 없다 — 버튼을 달면 빈 창만 뜬다. */}
                       {canPreview(a.name) && (
                         <button
-                          // 가벼운 사본이 있으면 그걸 띄운다 — 130MB 원본은 다 받을 때까지 하얀 화면이다.
-                          onClick={() => setPreview({ url: a.previewUrl || a.url, name: a.name, full: a.url })}
+                          onClick={() => setPreview({ url: a.url, name: a.name, path: a.path })}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-teal-200 bg-teal-50 text-teal-700 text-xs hover:bg-teal-100 transition"
                         >
                           <Eye size={12} /> 미리보기
@@ -347,20 +346,15 @@ export default function OpinionClient({ token }) {
         </button>
       </section>
 
-      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 브라우저 뷰어로. */}
+      {/* 미리보기 — 내려받지 않고 그 자리에서 본다. 사진은 그대로, PDF 는 서버가 그려서 사진으로. */}
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-200">
-              <p className="text-sm font-semibold text-gray-800 truncate">
-                {preview.name}
-                {preview.full && preview.full !== preview.url && (
-                  <span className="ml-1.5 font-normal text-xs text-gray-500">· 빨리 보기용 사본(원본은 내려받기)</span>
-                )}
-              </p>
+              <p className="text-sm font-semibold text-gray-800 truncate">{preview.name}</p>
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* 내려받기는 항상 «원본» — 화면에 띄운 게 가벼운 사본이어도 그렇다(의료 원본). */}
-                <a href={preview.full || preview.url} download={preview.name}
+                {/* 내려받기는 항상 «원본» — 화면에 띄운 건 우리가 그린 사진이다(의료 원본은 그대로). */}
+                <a href={preview.url} download={preview.name}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50">
                   <Download size={12} /> 내려받기
                 </a>
@@ -369,13 +363,13 @@ export default function OpinionClient({ token }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
-              {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+            {/\.(jpe?g|png|gif|webp)$/i.test(preview.name) ? (
+              <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center">
                 <img src={preview.url} alt={preview.name} className="max-w-full max-h-[80vh] object-contain" />
-              ) : (
-                <iframe src={preview.url} title={preview.name} className="w-full h-[80vh] border-0" />
-              )}
-            </div>
+              </div>
+            ) : (
+              <PdfPages token={token} path={preview.path} name={preview.name} />
+            )}
           </div>
         </div>
       )}
@@ -493,6 +487,58 @@ function PagePicker({ list, cur, onPick }) {
       </button>
       <span className="text-[11px] text-gray-400 ml-auto">원본 {list.length}쪽</span>
     </div>
+  );
+}
+
+/**
+ * PDF 미리보기 — 우리 서버가 한 쪽씩 그려서 «사진»으로 준다.
+ *
+ * 왜 이렇게 (2026-08-04 PO: «아직도 pdf 미리보기 안 되는데?», 로컬에서도 안 보임):
+ *   처음엔 브라우저 내장 PDF 뷰어(<iframe>)에 맡겼는데 그건 환경을 너무 탄다 —
+ *   플러그인이 꺼져 있거나 차단 프로그램이 끼면 하얀 화면이고, **폰에서는 아예 안 뜬다**.
+ *   원장님이 폰으로 링크를 여는 일이 흔하다. 사진은 어디서든 뜬다.
+ */
+function PdfPages({ token, path, name }) {
+  const [pages, setPages] = useState(0);
+  const [p, setP] = useState(0);
+  const [err, setErr] = useState("");
+  const src = (n) => `/api/opinions/${token}/page?path=${encodeURIComponent(path)}&p=${n}`;
+
+  useEffect(() => {
+    setPages(0); setP(0); setErr("");
+    if (!path) { setErr("이 파일은 미리보기를 만들 수 없다. 내려받아서 봐 주세요."); return; }
+    let alive = true;
+    fetch(`/api/opinions/${token}/page?path=${encodeURIComponent(path)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!alive) return; d?.ok ? setPages(d.pages) : setErr("미리보기를 만들지 못했다. 내려받아서 봐 주세요."); })
+      .catch(() => alive && setErr("미리보기를 만들지 못했다. 내려받아서 봐 주세요."));
+    return () => { alive = false; };
+  }, [token, path]);
+
+  if (err) return <div className="flex-1 flex items-center justify-center p-8 text-sm text-gray-500">{err}</div>;
+  if (!pages) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8 text-sm text-gray-500">
+        <Loader2 size={16} className="animate-spin mr-2" /> 여는 중…
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-1 overflow-auto bg-gray-50 flex items-start justify-center p-3">
+        {/* 다음 쪽을 미리 받아 둔다 — 넘길 때 빈 화면이 안 보이게. */}
+        <img src={src(p)} alt={`${name} ${p + 1}쪽`} className="max-w-full shadow-sm bg-white" />
+        {p + 1 < pages && <img src={src(p + 1)} alt="" className="hidden" aria-hidden />}
+      </div>
+      <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-gray-200 bg-white">
+        <button onClick={() => setP((v) => Math.max(0, v - 1))} disabled={p === 0}
+          className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">◀ 이전</button>
+        <span className="text-xs text-gray-600 tabular-nums">{p + 1} / {pages}쪽</span>
+        <button onClick={() => setP((v) => Math.min(pages - 1, v + 1))} disabled={p + 1 >= pages}
+          className="px-2.5 py-1 rounded border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30">다음 ▶</button>
+      </div>
+    </>
   );
 }
 

@@ -170,32 +170,16 @@ function isImagingBundle(a: any): boolean {
   return /\.(rar|zip|dcm)$/.test(n) || t.includes("rar") || t.includes("zip") || t.includes("dicom");
 }
 
-/**
- * 미리보기용 «가벼운 사본» 주소. 없으면 null(= 원본으로 본다).
- *
- * 왜 (2026-08-04 PO 제보 «용량이 커서 그런지 미리보기 안 되던데?»): 문의 #60 의 진료기록 PDF 는
- *   130.9MB 다(20쪽이 통째로 스캔 사진). 이걸 그대로 브라우저 뷰어에 물리면 다 받을 때까지
- *   하얀 화면이라 «고장난 것»으로 보인다. AI 에 넣으려고 만들어 둔 9.0MB 사본이 같은 20쪽에
- *   눈으로 구별이 안 되는 화질이라, **미리보기는 그걸 쓴다**. 내려받기는 원본 그대로다(의료 원본).
- */
-async function lightPreviewUrl(path: string, name: string): Promise<string | null> {
-  if (!/\.pdf$/i.test(String(name || path))) return null;
-  const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(`${path}.ai.pdf`, 3600);
-  return data?.signedUrl || null;
-}
-
 async function signAttachments(atts: any): Promise<
-  { name: string; url: string | null; previewUrl?: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
+  { name: string; url: string | null; translated: unknown | null; path?: string; imaging?: boolean }[]
 > {
   if (!Array.isArray(atts) || atts.length === 0) return [];
   return Promise.all(
     atts.slice(0, 20).map(async (a: any, i: number) => {
       let url: string | null = null;
-      let previewUrl: string | null = null;
       if (a?.path) {
         const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
         url = data?.signedUrl || null;
-        previewUrl = await lightPreviewUrl(a.path, a?.name || "");
       }
       // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
       const imaging = isImagingBundle(a);
@@ -206,7 +190,7 @@ async function signAttachments(atts: any): Promise<
       }
       // path 를 같이 주는 이유: 영상 보기 창구가 «어느 파일인지»를 알아야 한다.
       // 남의 파일을 넣어도 창구에서 이 링크의 문의 것인지 다시 확인한다.
-      return { name: a?.name || "첨부파일", url, previewUrl, translated, path: a?.path || undefined, imaging };
+      return { name: a?.name || "첨부파일", url, translated, path: a?.path || undefined, imaging };
     })
   );
 }
