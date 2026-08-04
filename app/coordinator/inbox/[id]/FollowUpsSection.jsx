@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { MessageSquarePlus, Loader2 } from "lucide-react";
+import { MessageSquarePlus, Loader2, Pencil, Trash2, Check, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useDateLocale } from "@/lib/i18n/coordinator";
 
@@ -31,6 +31,9 @@ export default function FollowUpsSection({ inquiryId }) {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [editAt, setEditAt] = useState(null);   // 고치는 중인 줄(적힌 시각으로 찾는다)
+  const [editText, setEditText] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -65,6 +68,34 @@ export default function FollowUpsSection({ inquiryId }) {
     }
   }
 
+  async function send(method, body) {
+    setBusy(true); setErr("");
+    try {
+      const res = await authFetch(`/api/coordinator/inquiries/${inquiryId}/follow-ups`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json();
+      if (!d.ok) { setErr("저장하지 못했습니다."); return false; }
+      setItems(d.followUps || []);
+      return true;
+    } catch { setErr("저장하지 못했습니다."); return false; }
+    finally { setBusy(false); }
+  }
+
+  async function saveEdit(at) {
+    const t = editText.trim();
+    if (t.length < 2) return;
+    if (await send("PATCH", { at, text: t })) { setEditAt(null); setEditText(""); }
+  }
+
+  // 지우는 이유: 잘못 적으면 «의료진 화면에 그대로» 간다. 되돌릴 길이 있어야 한다.
+  async function removeOne(at) {
+    if (!window.confirm("이 추가 정보를 지웁니다. 의료진 화면에서도 사라집니다.")) return;
+    await send("DELETE", { at });
+  }
+
   const fmt = (iso) => { try { return new Date(iso).toLocaleString(loc || "ko-KR"); } catch { return iso; } };
 
   return (
@@ -82,8 +113,41 @@ export default function FollowUpsSection({ inquiryId }) {
         <ul className="space-y-2 mb-3">
           {items.map((f, i) => (
             <li key={i} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
-              <p className="text-[11px] text-gray-500 mt-1">{fmt(f.at)} · {f.by}</p>
+              {editAt === f.at ? (
+                <>
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <button onClick={() => saveEdit(f.at)} disabled={busy || editText.trim().length < 2}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
+                      <Check size={12} /> 저장
+                    </button>
+                    <button onClick={() => { setEditAt(null); setEditText(""); }}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50">
+                      <X size={12} /> 취소
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[11px] text-gray-500">{fmt(f.at)} · {f.by}</p>
+                    <button onClick={() => { setEditAt(f.at); setEditText(f.text); }} disabled={busy}
+                      className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-teal-700 disabled:opacity-40">
+                      <Pencil size={11} /> 고치기
+                    </button>
+                    <button onClick={() => removeOne(f.at)} disabled={busy}
+                      className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-red-700 disabled:opacity-40">
+                      <Trash2 size={11} /> 지우기
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
