@@ -27,18 +27,11 @@ import { execFileSync } from "node:child_process";
  * 새로 추가할 땐 반드시: ①왜 지금 고칠 수 없는지(상위 패치 부재 등) ②우리 코드에서
  * 실제로 닿는 경로가 있는지 ③만료일. 만료일엔 재검토해서 지우거나 연장한다.
  */
-const ALLOWLIST = [
-  {
-    id: "GHSA-mh99-v99m-4gvg",
-    package: "brace-expansion",
-    expires: "2026-08-25",
-    reason:
-      "상위 패치 부재: 공고 대상이 5.0.7 이하 전부이고, 우리 체인(exceljs→archiver→glob→minimatch@3, " +
-      "eslint 계열)이 물고 있는 1.x·2.x 유지보수 라인엔 아직 패치판이 없다(2026-07-25 확인). " +
-      "도달 경로: glob 패턴을 사용자 입력으로 받는 곳이 없다 — 패턴은 전부 우리가 코드에 " +
-      "박아둔 값이라 크래프트된 패턴으로 DoS 를 유발할 통로가 없다. 만료일에 상위 패치 재확인.",
-  },
-];
+// 2026-08-04: 예외 목록을 비웠다. `brace-expansion`(GHSA-mh99-v99m-4gvg)은 2026-07-25 에
+//   「상위 패치가 없어서」 한시 예외로 넣었던 건데, 그 뒤 패치판이 나와 `npm audit fix` 로
+//   실제로 올라갔다. 이 검사기가 스스로 «더 이상 audit 에 안 잡힌다 → 지워라» 라고 알려준
+//   대로 지운다. **죽은 예외를 남겨두면 다음 사람이 「아직 못 고치는 것」으로 읽는다.**
+const ALLOWLIST = [];
 
 const LEVELS = new Set(["high", "critical"]);
 
