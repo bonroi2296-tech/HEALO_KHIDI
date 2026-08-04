@@ -27,6 +27,16 @@ const RATE = {
 
 const VALID_TYPES = new Set(["connect_error", "connect_timeout", "media_failure"]);
 
+// ── 소리 상태 기록 (오류가 아니다) ──
+// 하울링 감지기는 만든 뒤로 실측이 0건이었다. 「고쳤다 → 아니던데 → 또 고친다」가 반복된
+// 진짜 이유가 이것이다(2026-08-04 PO: "너 맨날 해결했다 하는데 제대로 되질 않던데").
+//   howling_muted  — 자동 차단이 걸렸다(무엇을 껐는지 포함)
+//   howling_kept   — 이 기기는 «소리 유지 대상»으로 정해져 안 껐다
+//   howling_missed — 같은 방으로 보이는데 자동 차단이 안 걸렸다  ← 제일 중요한 기록
+// ⚠️ 오류(CONSULTATION_CLIENT_ERROR)와 **다른 이름으로** 남긴다. 같이 세면 하울링 한 번에
+//    「오류 폭증」 종이 울려 직원이 헛걸음한다(그 경보는 10분에 8건이면 발사된다).
+const AUDIO_TYPES = new Set(["howling_muted", "howling_kept", "howling_missed"]);
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -54,9 +64,10 @@ export async function POST(
     }
 
     const type = typeof body?.type === "string" ? body.type : "";
-    if (!VALID_TYPES.has(type)) {
+    if (!VALID_TYPES.has(type) && !AUDIO_TYPES.has(type)) {
       return Response.json({ ok: false, error: "invalid_type" }, { status: 400 });
     }
+    const isAudio = AUDIO_TYPES.has(type);
     const message =
       typeof body?.message === "string" ? body.message.slice(0, 300) : "";
 
@@ -72,7 +83,7 @@ export async function POST(
       const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
       await supabaseAdmin.from("admin_audit_logs").insert({
         admin_email: "client-event@consultation",
-        action: "CONSULTATION_CLIENT_ERROR",
+        action: isAudio ? "CONSULTATION_AUDIO_EVENT" : "CONSULTATION_CLIENT_ERROR",
         metadata: {
           consultation_id: consultationId,
           type,
@@ -83,6 +94,9 @@ export async function POST(
           user_agent: userAgent,
         },
       } as any);
+
+      // 소리 기록은 오류가 아니다 — 폭증 경보를 울리지 않는다(직원 헛걸음 방지).
+      if (isAudio) return Response.json({ ok: true });
 
       // ── 오류 폭증 경보 (안전망 ③, 2026-07-15 PO 승인) ──
       // 같은 상담에서 최근 10분 내 오류 비콘이 임계치(8건)를 넘으면 직원 종 알림 —

@@ -3498,7 +3498,11 @@ export default function ConsultationRoomPage() {
               {/* Gemini Live Translate 브릿지 — 스위치 꺼짐이면 무동작(null).
                   켜지면 내 언어 통역 음성·자막을 기존 자막 UI 로 흘려보낸다. */}
               {/* 같은 공간 다른 기기 감지 → 하울링 안내 배너 (감지만 자동, 끄기는 사람이) */}
-              <SameRoomGuard copy={c} sameNetworkPeers={sameNetworkPeers} />
+              <SameRoomGuard
+                copy={c}
+                sameNetworkPeers={sameNetworkPeers}
+                report={reportClientEvent}
+              />
               {/* 상대가 고른 언어를 따라가 "내 말이 나갈 언어"를 자동 설정 (렌더링 없음).
                   언어 선택을 «내 언어» 하나로 줄인 대가로, 보낼 언어는 상대에게서 알아낸다. */}
               <PartnerLangBridge myLang={myLang} onPartnerLang={setTargetLang} />
