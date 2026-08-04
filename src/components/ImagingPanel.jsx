@@ -56,8 +56,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
   const [prepErr, setPrepErr] = useState("");
   const [playing, setPlaying] = useState(false);      // 자동 넘김(병원 판독기의 «시네»)
   const wantRef = useRef(0);                          // 서버에 «이 묶음을 만들어 달라»고 알릴 번호
-  const wheelRef = useRef(0);                         // 휠을 조금씩 모아서 한 장씩 — 안 그러면 후루룩 지나간다
-  const dragRef = useRef(null);                       // 누른 채 위아래로 끌어서 넘기기
+  const dragRef = useRef(null);                       // 누른 채 끌어서 넘기기
   const canvasRef = useRef(null);
   const cacheRef = useRef(new Map()); // "시리즈-장" → Int16Array (같은 장을 두 번 안 받는다)
 
@@ -170,29 +169,21 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
 
   const cur = series[sIdx];
   const curDoc = docKey ? docs.find((d) => d.key === docKey) : null;
-  const step = useCallback((d) => {
-    if (!cur) return;
-    setSlice((v) => Math.max(0, Math.min(cur.count - 1, v + d)));
-  }, [cur]);
-
   /**
-   * 넘기는 방법 3가지 (PO 지적 2026-08-04: «하나씩 클릭하면 힘들고 스크롤은 너무 후루룩»).
-   * 병원 판독기가 쓰는 방법 그대로다 — ①끌기 ②자동 넘김 ③휠·화살표.
+   * 넘기는 방법 (PO 지적 2026-08-04: «하나씩 클릭하면 힘들고 스크롤은 너무 후루룩»).
+   *
+   * ⚠️ 마우스 바퀴(휠)로 넘기는 건 **뺐다**(PO 결정 2026-08-04). 그림 위에서 바퀴를 굴리면
+   *   장도 넘어가지만 **화면도 같이 내려가서** 장이 넘어간 걸 못 본다. 요즘 브라우저는
+   *   화면 굴리기를 막지 못하게 해 뒀으므로(수동 처리) 코드로 손쓸 수 없다.
+   *   되살리지 마라 — 「되는 것처럼 보이는데 실은 못 쓰는 기능」이 선택지만 늘린다.
    */
-  // ① 휠: 조금씩 모아서 한 장. 요즘 마우스·터치패드는 한 번 굴려도 신호를 수십 번 보내서
-  //    그대로 받으면 수십 장이 지나간다(PO 가 «후루룩»이라고 한 게 이것).
-  const onWheel = (e) => {
-    if (!cur) return;
-    e.preventDefault();
-    wheelRef.current += e.deltaY;
-    const n = Math.trunc(wheelRef.current / 40);
-    if (n) { wheelRef.current -= n * 40; step(n); }
-  };
-  // ② 끌기: 누른 채 위아래로 — 병원에서 실제로 쓰는 방식. 세로 6px 에 한 장이라 미세 조정이 된다.
+  // 끌기 — 기본은 «좌우»다. 바로 아래 막대가 좌우라 눈에 보이는 것과 손 방향이 같고,
+  //   화면 굴리기(위아래)와 방향이 안 겹친다. 다만 병원 판독기에 익숙한 분은 반사적으로
+  //   위아래로 끄시므로 그것도 조용히 받는다 — 많이 움직인 쪽을 따른다. 6px 에 한 장.
   const onPointerDown = (e) => {
     if (!cur || curDoc) return;
     setPlaying(false);
-    dragRef.current = { y: e.clientY, base: slice };
+    dragRef.current = { x: e.clientX, y: e.clientY, base: slice };
     // «이 손가락(마우스)을 내가 붙잡겠다»는 요청. 붙잡을 대상이 없으면 **오류를 던진다**
     // (누르자마자 떼는 순간이 겹칠 때·시험용 가짜 신호일 때). 못 붙잡아도 끌기는 그대로
     // 되므로 — 그림 밖으로 나가면 끊기는 정도 차이 — 조용히 넘어간다.
@@ -202,7 +193,10 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
     const d = dragRef.current;
     if (!d || !cur) return;
     e.preventDefault();
-    const to = d.base + Math.round((e.clientY - d.y) / 6);
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    const moved = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+    const to = d.base + Math.round(moved / 6);
     setSlice(Math.max(0, Math.min(cur.count - 1, to)));
   };
   const endDrag = () => { dragRef.current = null; };
@@ -308,8 +302,7 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               </div>
             ) : (
               <div
-                className="bg-black rounded-lg overflow-hidden flex items-center justify-center cursor-ns-resize select-none touch-none"
-                onWheel={onWheel}
+                className="bg-black rounded-lg overflow-hidden flex items-center justify-center cursor-ew-resize select-none touch-none"
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={endDrag}
@@ -412,9 +405,8 @@ export default function ImagingPanel({ inquiryId, endpoint, withAuth = true, pat
               )}
               {!curDoc && (
                 <p className="text-[11px] text-gray-500">
-                  장 넘기는 법 — <b>그림을 누른 채 위아래로 끌기</b>(가장 편합니다) · <b>▶ 자동 넘김</b>(초당 12장) ·
-                  마우스 가운데 바퀴 굴리기(노트북은 두 손가락으로 밀기) · 좌우 버튼 · 아래 막대.
-                  이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
+                  장 넘기는 법 — <b>그림을 누른 채 좌우로 끌기</b>(가장 편합니다) · <b>▶ 자동 넘김</b> ·
+                  좌우 버튼 · 아래 막대. 이 화면은 «보기»용입니다 — 판독은 의료진이 합니다.
                 </p>
               )}
             </div>
