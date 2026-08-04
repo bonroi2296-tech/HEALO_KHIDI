@@ -126,7 +126,37 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   // → 굵은 한국 시각 한 줄 + 회색 UTC 한 줄로 쌓는다.
   const scheduledKst = fmtIn("Asia/Seoul", "long");
   const scheduledUtc = fmtIn("UTC", "short");
-  const scheduledFormatted = `${scheduledKst}  ·  ${scheduledUtc}`; // 글자만 있는 대체 본문용
+
+  // 「혹시 첨부가 안 열릴 때」의 대비책(2026-08-03 PO) — 주요 도시 시각을 시:분만 한 줄로.
+  // 코디가 국가를 고르는 게 아니라 «메일 언어»로 정해지므로 사람 실수가 낄 자리가 없다.
+  const CITIES: Record<string, { tz: string; name: string }[]> = {
+    ru: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Москва" },
+    ],
+    kz: [
+      { tz: "Asia/Almaty", name: "Алматы" },
+      { tz: "Asia/Tashkent", name: "Ташкент" },
+      { tz: "Asia/Bishkek", name: "Бишкек" },
+      { tz: "Europe/Moscow", name: "Мәскеу" },
+    ],
+    zh: [{ tz: "Asia/Shanghai", name: "北京" }],
+    ja: [{ tz: "Asia/Tokyo", name: "東京" }],
+    // ko·en 은 대상 지역이 특정되지 않아 넣지 않는다(UTC 한 줄로 충분).
+  };
+  const hhmm = (tz: string) =>
+    new Date(props.scheduledAt).toLocaleString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: tz,
+    });
+  const cityTimes = (CITIES[lang] || []).map((c) => `${c.name} ${hhmm(c.tz)}`).join("  ·  ");
+
+  const scheduledFormatted = [scheduledKst, scheduledUtc, cityTimes]
+    .filter(Boolean)
+    .join("  ·  "); // 글자만 있는 대체 본문용
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =
@@ -207,6 +237,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
               <div style="color:#64748b;font-size:13px;margin-bottom:4px;">${escape(s.timeLabel)}</div>
               <div style="color:#0f172a;font-size:15px;font-weight:700;">${escape(scheduledKst)}</div>
               <div style="color:#64748b;font-size:13px;margin-top:2px;">${escape(scheduledUtc)}</div>
+              ${
+                cityTimes
+                  ? `<div style="color:#64748b;font-size:13px;margin-top:6px;">${escape(cityTimes)}</div>`
+                  : ""
+              }
             </td></tr>
           </table>
 
