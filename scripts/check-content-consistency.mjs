@@ -219,7 +219,11 @@ const SAFE_AREA_ENV_RE = /env\(\s*safe-area-inset-(top|bottom|left|right)/;
 const SAFE_AREA_DEF_FILE = "src/index.css"; // 유일하게 env() 를 직접 쓰는 «정의» 파일
 const SAFE_AREA_FILES = [...["app", "src"].flatMap(walk), ...["app", "src"].flatMap(walkCss)];
 for (const file of SAFE_AREA_FILES) {
-  if (file === SAFE_AREA_DEF_FILE) continue;
+  // ⚠️ 경로 구분자를 맞춘 뒤 비교한다. join() 은 윈도우에서 `src\index.css` 를 주는데
+  //    비교 대상은 `src/index.css` 라, 정의 파일이 스스로에게 걸려 **윈도우에서만 12건 실패**했다
+  //    (2026-08-04 실측 — CI(리눅스)는 초록, PO PC 는 빨강). 검사기가 자기 PC 에서만 틀리면
+  //    사람이 검사기를 믿지 않게 된다.
+  if (file.replace(/\\/g, "/") === SAFE_AREA_DEF_FILE) continue;
   const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
   lines.forEach((line, i) => {
     const bare = line.trim();

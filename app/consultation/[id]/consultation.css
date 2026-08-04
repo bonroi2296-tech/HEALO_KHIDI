@@ -92,10 +92,32 @@
   border-top: 1px solid rgb(55 65 81); /* gray-700 */
   padding: 8px 6px;
   border-radius: 12px 12px 0 0;
+  /* 버튼이 두 줄로 접혀도 바는 절대 안 줄어든다 — 줄어들면 아래 줄이 잘린다 */
+  flex-shrink: 0;
+}
+
+/* ── 폰에서 「종료」 버튼이 반만 보이던 것 (2026-08-04 PO 스크린샷) ──
+   버튼이 두 줄로 접히는 것 자체는 정상인데, 늘어난 두 번째 줄이 통째로 잘렸다.
+   원인: LiveKit 기본 컨테이너(.lk-room-container)가 `position:relative; height:100%` 일 뿐
+   **세로 flex 가 아니다.** 그래서 영상 영역이 «남는 만큼만 차지하도록» 줄어들 줄 모르고,
+   바가 커진 만큼 상자 밖으로 밀려났다 → 바깥 상자의 「넘치면 자르기」에 잘렸다.
+   → 세로 flex 로 만들어 영상이 줄고 바는 제 높이를 지키게 한다. */
+.lk-room-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 영상 영역이 실제로 줄어들 수 있게 — flex 자식은 min-height:auto 때문에 콘텐츠보다 못 줄어든다 */
+.lk-room-container > * {
+  min-height: 0;
 }
 
 /* ── 통화 컨트롤 바: 줌 문법 — 아이콘 위·라벨 아래(모바일 포함 항상), 꺼짐은 빨강 ──
    (2026-07-15 PO 제보: 아이콘만으론 연령대 높은 사용자가 버튼 뜻을 못 알아봄) */
+/* ⚠️ 이 규칙은 Tailwind 의 `hidden`(=display:none)보다 우선순위가 높다(0,2,0 vs 0,1,0).
+   그래서 「모바일에선 화면 공유 버튼 숨김」(hidden sm:inline-flex)이 **안 먹고 있었다** —
+   폰에서도 버튼이 하나 더 남아 두 줄로 더 잘 접혔다(2026-08-04 PO 스크린샷에서 확인).
+   아래 .hidden 규칙으로 숨김이 다시 이기게 한다. */
 .hw-controls .lk-button,
 .hw-ctrl-btn {
   display: inline-flex;
@@ -107,6 +129,11 @@
   padding: 7px 10px;
   font-size: 10px;
   line-height: 1.1;
+}
+/* 「모바일에선 숨김」이 위 규칙을 이기게 (화면 공유 버튼 등) */
+.hw-controls .lk-button.hidden,
+.hw-ctrl-btn.hidden {
+  display: none;
 }
 /* 마이크·카메라 꺼짐 = 빨간 배경(줌과 동일 신호). 화면공유는 '안 하는 중'이 기본이라 제외.
    !important: LiveKit 기본 테마(.lk-button 배경)가 캐스케이드에서 이겨 색이 안 먹던 것(실측) 강제 */
