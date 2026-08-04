@@ -146,7 +146,7 @@ export default function CoordinatorLayout({ children }) {
       {/* ⚠️ 아래 두 main 의 위 여백 pt-[4.5rem] = 모바일 메뉴 줄(위 h-[4.5rem]) 높이.
           그 줄 높이를 바꾸면 여기 둘 다 같이 바꿔라 — 한쪽만 고치면 본문 윗줄이 가린다. */}
       {pathname === '/coordinator/messages' ? (
-        <main className="flex-1 overflow-hidden pt-[4.5rem] lg:pt-0">
+        <main className="flex-1 min-w-0 overflow-hidden pt-[4.5rem] lg:pt-0">
           {children}
         </main>
       ) : (
@@ -157,8 +157,13 @@ export default function CoordinatorLayout({ children }) {
            안쪽의 `position: sticky` 가 **움직이지 않는 상자를 기준 삼아 아예 안 붙었다.**
            실측(콘텐츠 편집, 문서 10,985px): 저장바가 맨 위 기준 10,889px 지점에 정적으로 앉아
            편집 중엔 화면에 없었고 끝까지 내려야 보였다.
-           ⚠️ 메시지 화면은 위 분기의 `overflow-hidden` 을 그대로 쓴다(2단 채팅 풀블리드 — 건드리지 말 것). */
-        <main className="flex-1 pt-[4.5rem] lg:pt-0">
+           ⚠️ 메시지 화면은 위 분기의 `overflow-hidden` 을 그대로 쓴다(2단 채팅 풀블리드 — 건드리지 말 것).
+
+           min-w-0: 이게 없으면 폰에서 «오른쪽이 잘려 안 보이는» 화면이 무더기로 생긴다.
+           가로로 나란히 놓인 칸(flex)은 기본값이 «내용보다 좁아지지 않기»라, 안쪽에 넓은 표나
+           안 잘리는 긴 글자가 하나만 있어도 이 칸이 화면 밖까지 늘어난다. 그런데 옆으로 밀 수도
+           없어서(부모가 잘라냄) 그 부분은 «영영 못 보는 영역»이 된다(2026-08-04 실측). */
+        <main className="flex-1 min-w-0 pt-[4.5rem] lg:pt-0">
           {/* pb: 쿠키 동의 배너(`fixed bottom-0`)가 화면 맨 아래 내용을 덮는다 — 코디 화면엔
               바닥 여백이 없어 「더 보기」 같은 마지막 버튼이 눌리지 않았다(2026-07-29 실측,
               elementFromPoint 가 배너를 반환). 배너가 알려주는 높이만큼 비워 둔다(닫히면 0). */}

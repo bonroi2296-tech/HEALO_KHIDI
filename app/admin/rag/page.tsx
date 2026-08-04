@@ -119,9 +119,9 @@ export default function RagAdminPage() {
           value={normalizeText}
           onChange={(e) => setNormalizeText(e.target.value)}
         />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
-            className="border rounded-lg p-2"
+            className="border rounded-lg p-2 min-w-0 max-w-full"
             value={selectedInquiryId}
             onChange={(e) => setSelectedInquiryId(e.target.value)}
           >
@@ -143,9 +143,9 @@ export default function RagAdminPage() {
 
       <section className="bg-white p-6 rounded-xl border border-gray-200 space-y-4">
         <h2 className="text-lg font-bold text-gray-900">B) 수집(ingest) 테스트</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
-            className="border rounded-lg p-2"
+            className="border rounded-lg p-2 min-w-0 max-w-full"
             value={ingestSourceType}
             onChange={(e) => setIngestSourceType(e.target.value)}
           >
@@ -171,7 +171,7 @@ export default function RagAdminPage() {
 
       <section className="bg-white p-6 rounded-xl border border-gray-200 space-y-4">
         <h2 className="text-lg font-bold text-gray-900">C) 검색 테스트</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <input
             className="border rounded-lg p-2 flex-1"
             placeholder="검색어..."
@@ -179,7 +179,7 @@ export default function RagAdminPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <select
-            className="border rounded-lg p-2"
+            className="border rounded-lg p-2 min-w-0 max-w-full"
             value={searchLang}
             onChange={(e) => setSearchLang(e.target.value)}
           >
