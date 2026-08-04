@@ -122,7 +122,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   // ⛔ 「상대 국가를 골라 현지 시각을 적는다」는 안 한다(2026-08-03 PO): 코디가 매번 국적을 확인해야
   //    하고 틀리면 «잘못된 시각»을 통지하게 된다. 현지 시각 환산은 첨부한 일정 파일(icsInvite.ts)이
   //    받는 사람 달력에서 자동으로 한다 — 사람이 고를 일이 없다.
-  const scheduledFormatted = `${fmtIn("Asia/Seoul", "long")}  ·  ${fmtIn("UTC", "short")}`;
+  // 한 줄에 몰아넣으면 "Корея, стандартное время" 처럼 긴 이름에서 줄이 흘러넘쳐 라벨과 어긋난다
+  // → 굵은 한국 시각 한 줄 + 회색 UTC 한 줄로 쌓는다.
+  const scheduledKst = fmtIn("Asia/Seoul", "long");
+  const scheduledUtc = fmtIn("UTC", "short");
+  const scheduledFormatted = `${scheduledKst}  ·  ${scheduledUtc}`; // 글자만 있는 대체 본문용
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =
@@ -199,8 +203,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
           <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#334155;">${escape(s.intro)}</p>
 
           <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:12px 0;">
-            <tr><td style="padding:8px 0;color:#64748b;font-size:13px;">${escape(s.timeLabel)}:</td>
-                <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${escape(scheduledFormatted)}</td></tr>
+            <tr><td style="padding:8px 0;">
+              <div style="color:#64748b;font-size:13px;margin-bottom:4px;">${escape(s.timeLabel)}</div>
+              <div style="color:#0f172a;font-size:15px;font-weight:700;">${escape(scheduledKst)}</div>
+              <div style="color:#64748b;font-size:13px;margin-top:2px;">${escape(scheduledUtc)}</div>
+            </td></tr>
           </table>
 
           ${hospitalDoctorCard}
