@@ -69,7 +69,8 @@
     "audit:a11y": "node scripts/audit/a11y-scan.mjs",
     "audit:lighthouse": "node scripts/audit/lighthouse-scan.mjs",
     "prepare": "node scripts/install-hooks.js",
-    "test:alarms": "bash scripts/test-session-alarms.sh"
+    "test:alarms": "bash scripts/test-session-alarms.sh",
+    "check:e2e-schema": "node scripts/check-e2e-schema.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
