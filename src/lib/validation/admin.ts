@@ -56,6 +56,15 @@ export const HospitalCreateSchema = z.object({
   // Extended metadata fields
   business_registration_number: z.string().optional().nullable(),
   medical_institution_code: z.string().optional().nullable(),
+  // 의료기관 종별 — 유치수수료 법정 상한 판정에 쓴다(통합고시 제3조).
+  //   tertiary=상급종합 15% / general=종합병원 20% / hospital=병원·한방병원 20% / clinic=의원 30%.
+  //   ⚠️ 이 칸이 스키마에 없으면 zod 가 조용히 버려서 **관리자 화면으로는 영영 채울 수 없다** —
+  //      그러면 새로 등록한 병원은 전부 「미확인」이 되고, 코드가 가장 엄격한 15% 로 막아
+  //      합법적인 20%·30% 견적이 저장 자체가 안 된다(2026-08-04 독립 리뷰 지적).
+  medical_institution_grade: z
+    .enum(["tertiary", "general", "hospital", "clinic"])
+    .optional()
+    .nullable(),
   certifications: z.array(z.any()).optional().default([]),
   medical_equipment: z.array(z.string()).optional().default([]),
   insurance_accepted: z.boolean().optional().default(false),

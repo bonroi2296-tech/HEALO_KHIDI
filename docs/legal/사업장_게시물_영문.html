@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Required Workplace Notices — BONROI (healwith)</title>
+<style>
+  /* A4 인쇄 전용. 브라우저로 열어 Ctrl+P → 「배경 그래픽」 켜기 → A4 세로. */
+  /* ⚠️ 이 값들은 「문서 1건 = 종이 1장」에 맞춰 실측으로 조인 것이다(2026-08-04).
+     처음엔 10.5pt/1.55 였는데 3건이 6쪽으로 넘쳤고, 뒤에 개인정보 수령자 표를 채우자 다시 4쪽이 됐다.
+     글자를 키우거나 항목을 늘리면 다시 2장으로 갈라진다 — 고친 뒤 반드시 쪽수를 다시 세라. */
+  @page { size: A4 portrait; margin: 11mm 12mm 9mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #111827;                 /* gray-900 — 17.7:1 */
+    font-size: 7.5pt;
+    line-height: 1.24;
+  }
+  .sheet { page-break-after: always; }
+  .sheet:last-child { page-break-after: auto; }
+
+  header.doc {
+    border-bottom: 3px solid #0f766e;   /* teal-700 */
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .brand { font-size: 10.5pt; font-weight: 700; color: #0f766e; letter-spacing: .2px; }
+  .brand small { font-weight: 500; color: #374151; font-size: 8pt; }
+  h1 { font-size: 13.5pt; margin: 4px 0 2px; line-height: 1.2; }
+  .legalref { font-size: 7.4pt; color: #4b5563; margin: 0; }
+
+  h2 {
+    font-size: 9.0pt; margin: 8px 0 3px;
+    padding-left: 8px; border-left: 4px solid #0f766e;
+  }
+  h3 { font-size: 8.3pt; margin: 6px 0 2px; color: #115e59; }
+  p, li { margin: 2px 0; }
+  ul, ol { margin: 2px 0 2px 16px; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 7px; font-size: 7.5pt; }
+  th, td { border: 1px solid #d1d5db; padding: 2.5px 5px; text-align: left; vertical-align: top; }
+  th { background: #f0fdfa; font-weight: 600; width: 34%; }
+
+  .box {
+    border: 1px solid #99f6e4; background: #f0fdfa;
+    border-radius: 8px; padding: 6px 10px; margin: 7px 0;
+  }
+  .foot {
+    margin-top: 10px; padding-top: 6px; border-top: 1px solid #d1d5db;
+    font-size: 7.4pt; color: #4b5563;
+  }
+  a { color: #0f766e; }
+  .noprint {
+    background: #fffbeb; border: 1px dashed #b45309; color: #78350f;
+    border-radius: 8px; padding: 10px 12px; margin: 0 0 16px; font-size: 9.5pt;
+  }
+  @media print { .noprint { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="noprint">
+  <strong>🖨 인쇄 안내 (이 상자는 인쇄되지 않는다)</strong><br />
+  브라우저로 이 파일을 열고 <strong>Ctrl+P</strong> → 용지 <strong>A4 세로</strong> → 옵션에서 <strong>「배경 그래픽」을 켜라</strong>(안 켜면 teal 선·표 음영이 빠진다).
+  총 <strong>3장</strong>이 나온다(문서 1건 = 종이 1장). 세 장 모두 사업장(사무실) 안, <strong>방문자가 볼 수 있는 곳</strong>에 게시한다.<br />
+  근거: 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」 제8조제1항 + 같은 법 시행규칙 제7조제1항 —
+  <strong>영어로 적은 문서</strong>를 사업장 내에 게시해야 한다(3가지 항목).
+  미게시 시 같은 법 제31조제1항제1호 <strong>과태료 500만원 이하</strong>, 제22조제2항제2호 <strong>시정명령</strong> 대상.<br />
+  ※ 시행규칙 제7조<strong>제2항</strong>(「환자의 권리와 의무」 게시·비치)은 <strong>유치의료기관(병원)</strong>의 의무다 — 우리는 유치<strong>사업자</strong>라 해당하지 않는다.
+</div>
+
+<!-- ══════════════════ SHEET 1 ══════════════════ -->
+<section class="sheet">
+  <header class="doc">
+    <div class="brand">BONROI <small>· service name: healwith</small></div>
+    <h1>Scope and Conditions of Services Provided</h1>
+    <p class="legalref">Posted pursuant to Article 8(1) of the Act on Support for Overseas Expansion of Healthcare and Attraction of Foreign Patients, and Article 7(1)1 of its Enforcement Rule.</p>
+  </header>
+
+  <h2>1. Who we are</h2>
+  <table>
+    <tr><th>Business name</th><td>BONROI (본로이) — service name: <strong>healwith</strong></td></tr>
+    <tr><th>Representative</th><td>JUYOUNG KANG (강주영)</td></tr>
+    <tr><th>Business registration no.</th><td>463-35-00902</td></tr>
+    <tr><th>Foreign patient attraction<br />business registration no.</th><td><strong>A-2026-01-02-06761</strong><br />Registered with the Mayor of Seoul · Valid 2026-03-11 – 2029-03-10</td></tr>
+    <tr><th>Address</th><td>Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea<br />(Magok-dong, Woosung SB Tower)</td></tr>
+    <tr><th>Contact</th><td>admin@healwith.co.kr</td></tr>
+  </table>
+
+  <div class="box">
+    <strong>We are not a medical institution.</strong> BONROI does not diagnose, treat, or perform any medical procedure.
+    All medical care is provided by the licensed Korean medical institution you choose. We introduce and support; the hospital treats.
+  </div>
+
+  <h2>2. Services we provide</h2>
+  <ul>
+    <li>Introduction and referral to registered Korean medical institutions suited to your condition</li>
+    <li>Assistance with appointment scheduling and medical record preparation</li>
+    <li>Interpretation support (Korean, English, Russian, Kazakh, Chinese, Japanese)</li>
+    <li>Guidance on the treatment contract and the estimated treatment cost issued by the medical institution</li>
+    <li>Support with visa documentation, arrival, accommodation and transport arrangements</li>
+    <li>Pre-consultation and post-treatment follow-up coordination</li>
+  </ul>
+
+  <h2>3. Conditions</h2>
+  <h3>3-1. Cost to the patient</h3>
+  <ul>
+    <li><strong>The facilitation fee is paid by the medical institution to BONROI, not by the patient.</strong>
+        Under Article 2(1) of the Integrated Notice on Support for Overseas Expansion of Healthcare and Attraction of Foreign Patients, the facilitation fee is a payment from the medical institution to the facilitator.
+        It is never added to the amount you are billed.</li>
+    <li>You pay the medical institution directly for treatment, according to the estimate the institution issues to you.</li>
+    <li>Any optional add-on service that would be charged to you (for example, a paid airport pickup) is agreed with you in writing <em>in advance</em>. No charge is applied without your prior written agreement.</li>
+  </ul>
+
+  <h3>3-2. Before the treatment contract</h3>
+  <ul>
+    <li>The attracting medical institution must provide you with a <strong>treatment contract and an estimate of expected treatment costs before the treatment contract is concluded</strong> (Article 8(2)2 of the Act). Please make sure you receive and read it.</li>
+    <li>Cost figures shown on our website or in chat are <strong>reference ranges</strong>. Only the estimate issued by the medical institution is binding.</li>
+    <li>Before you sign a treatment contract we also tell you <strong>the facilitation fee rate or amount we receive from the medical institution</strong>, together with the scope of our service, what is excluded, how to cancel, and how complaints are handled.</li>
+  </ul>
+
+  <h3>3-3. Limits of what we can promise</h3>
+  <ul>
+    <li>We do not guarantee any medical outcome, cure, or recovery period.</li>
+    <li>Treatment eligibility is decided by the medical institution's physicians, not by us.</li>
+    <li>Scheduling may change for medical or administrative reasons; we will inform you as soon as we know.</li>
+  </ul>
+
+  <h3>3-4. Cancellation</h3>
+  <ul>
+    <li>You may withdraw from our facilitation service at any time, at no cost, by contacting admin@healwith.co.kr.</li>
+    <li>Cancellation of treatment itself, and any refund of amounts already paid to the medical institution, follow that institution's own policy. We will assist you in communicating the request.</li>
+  </ul>
+
+  <p class="foot">BONROI (healwith) · Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul · admin@healwith.co.kr · Registration A-2026-01-02-06761</p>
+</section>
+
+<!-- ══════════════════ SHEET 2 ══════════════════ -->
+<section class="sheet">
+  <header class="doc">
+    <div class="brand">BONROI <small>· service name: healwith</small></div>
+    <h1>Complaint and Dispute Resolution Procedure</h1>
+    <p class="legalref">Posted pursuant to Article 8(1) of the Act on Support for Overseas Expansion of Healthcare and Attraction of Foreign Patients, and Article 7(1)2 of its Enforcement Rule.</p>
+  </header>
+
+  <h2>Step 1 — Tell us directly</h2>
+  <table>
+    <tr><th>Email</th><td><strong>admin@healwith.co.kr</strong></td></tr>
+    <tr><th>In person</th><td>Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul</td></tr>
+    <tr><th>Languages accepted</th><td>Korean, English, Russian, Kazakh, Chinese, Japanese</td></tr>
+    <tr><th>Acknowledgement</th><td>Within <strong>3 business days</strong> of receipt</td></tr>
+    <tr><th>Resolution or written reply</th><td>Within <strong>14 days</strong> of receipt. If more time is needed, we will tell you why and give you a new date.</td></tr>
+  </table>
+  <p>Complaints are recorded and kept. Filing a complaint never affects the care you receive.</p>
+
+  <h2>Step 2 — If the matter concerns the medical treatment itself</h2>
+  <p>Medical judgement, side effects, and medical accidents are the responsibility of the treating medical institution. Raise these with the institution first. We will help you communicate and will forward your request.</p>
+
+  <h2>Step 3 — Independent mediation (free of charge)</h2>
+  <p>If the matter is not resolved, you may apply to an independent Korean body. You are not required to go through us.</p>
+  <table>
+    <tr><th>Medical disputes</th>
+        <td><strong>Korea Medical Dispute Mediation and Arbitration Agency</strong><br />
+            https://www.k-medi.or.kr · Tel 1670-2545</td></tr>
+    <tr><th>Consumer / service disputes</th>
+        <td><strong>Korea Consumer Agency</strong><br />
+            https://www.kca.go.kr · Tel 1372</td></tr>
+    <tr><th>Personal information disputes</th>
+        <td><strong>Personal Information Dispute Mediation Committee</strong><br />
+            https://www.kopico.go.kr · Tel 1833-6972</td></tr>
+    <tr><th>Foreign patient attraction —<br />registration and conduct</th>
+        <td><strong>Seoul Metropolitan Government</strong> (our registering authority) · Tel 120<br />
+            <strong>Ministry of Health and Welfare</strong> · Tel 129</td></tr>
+  </table>
+
+  <h2>Step 4 — Litigation</h2>
+  <p>Where a dispute proceeds to litigation, the Seoul Central District Court is the court of first instance. <strong>If your address is outside the Republic of Korea, you may instead choose the court having jurisdiction over your place of residence.</strong> Korean law governs, without prejudice to any mandatory consumer-protection rules of your country of residence.</p>
+
+  <div class="box">
+    <strong>Interpretation is provided at no cost</strong> at every step above. If you cannot write in Korean or English, write in Russian or Kazakh — we will translate.
+  </div>
+
+  <p class="foot">BONROI (healwith) · Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul · admin@healwith.co.kr · Registration A-2026-01-02-06761</p>
+</section>
+
+<!-- ══════════════════ SHEET 3 ══════════════════ -->
+<section class="sheet">
+  <header class="doc">
+    <div class="brand">BONROI <small>· service name: healwith</small></div>
+    <h1>Protection of Health and Personal Information</h1>
+    <p class="legalref">Posted pursuant to Article 8(1) of the Act on Support for Overseas Expansion of Healthcare and Attraction of Foreign Patients, and Article 7(1)3 of its Enforcement Rule. Governed by the Personal Information Protection Act of Korea (PIPA).</p>
+  </header>
+
+  <h2>1. What we collect and why</h2>
+  <table>
+    <tr><th>Identification</th><td>Name, date of birth, sex, nationality, contact details — to identify you and to communicate</td></tr>
+    <tr><th>Health information<br />(sensitive data)</th><td>Diagnosis, medical records, imaging, test results — to introduce a suitable medical institution and to support your care</td></tr>
+    <tr><th>Travel and stay</th><td>Passport details, visa status, arrival plan, accommodation — for visa documentation and arrival support</td></tr>
+    <tr><th>Service usage</th><td>IP address, cookies, session logs — for security and service operation</td></tr>
+  </table>
+
+  <h2>2. Legal basis</h2>
+  <ul>
+    <li><strong>Health information is sensitive data</strong> under Article 23 of PIPA. We process it <strong>only with your separate, explicit consent</strong>.</li>
+    <li>Transfer of your information outside Korea requires your <strong>separate consent</strong> under Article 28-8 of PIPA. We tell you the recipient, the country, the purpose, and the retention period before you decide.</li>
+    <li>You may refuse any consent. Refusing consent for non-essential purposes does not affect the core service.</li>
+  </ul>
+
+  <h2>3. Who we share it with</h2>
+  <p>Only with your consent, and only what each recipient needs:</p>
+  <table>
+    <tr><th>The medical institution you choose</th><td>Name, date of birth, contact, passport no., diagnosis, symptoms, medical records — for consultation, booking, treatment planning</td></tr>
+    <tr><th>Visa agency</th><td>Passport copy, letter of invitation, travel dates — to apply for a medical visa (C-3-3, G-1) on your behalf</td></tr>
+    <tr><th>Your local partner agency abroad</th><td>Name, contact, diagnosis, specialist opinion, treatment and schedule — local-language support and follow-up. Only the agency that referred you; it acts as an independent controller, not our processor.</td></tr>
+    <tr><th>Insurer</th><td>Where you asked for help claiming travel or international insurance</td></tr>
+    <tr><th>Service providers we use to run the platform</th><td>Vercel Inc. (US) · Supabase Inc. (US company, data stored in the Seoul region) · Google Ireland Ltd. (analytics) · Resend Inc. (US, email) · LiveKit Inc. (US, video) · Google LLC (US, AI chat &amp; translation)</td></tr>
+  </table>
+  <p>You may refuse any of these; refusing may limit the related service but never the core one. We <strong>never sell</strong> personal information and never share it for advertising.</p>
+  <p class="legalref">The full list, including each recipient's country and retention period, is in our privacy policy at https://healwith.co.kr/privacy.</p>
+
+  <h2>4. How long we keep it</h2>
+  <ul>
+    <li><strong>Health information (sensitive data):</strong> kept only for as long as needed to provide the service — pre-consultation, treatment support and follow-up. It is destroyed <strong>without delay</strong> when you close your account or withdraw consent.</li>
+    <li><strong>Account information:</strong> kept while your membership is active; destroyed within 30 days of withdrawal. Accounts inactive for 3 years are destroyed after notice.</li>
+    <li><strong>Records required by Korean law</strong> are kept for the statutory period — for example, records of consumer complaints and dispute handling: <strong>3 years</strong> (Article 6 of the Act on Consumer Protection in Electronic Commerce).</li>
+    <li><strong>Your medical records themselves are held by the medical institution</strong>, not by us, for 10 years under Article 22 of the Medical Service Act. We hold no copies of those originals.</li>
+    <li>Destruction is irreversible: electronic files permanently deleted, printed material shredded.</li>
+  </ul>
+
+  <h2>5. How we protect it</h2>
+  <ul>
+    <li>Health information and identifying details are stored <strong>encrypted (AES-256-GCM)</strong>.</li>
+    <li>All connections use TLS. Access is restricted by role and every access is logged.</li>
+    <li>Staff handling your data are bound by confidentiality obligations.</li>
+  </ul>
+
+  <h2>6. Your rights</h2>
+  <ul>
+    <li>You may request <strong>access, correction, deletion, or suspension of processing</strong>, and you may <strong>withdraw consent</strong> at any time.</li>
+    <li>Send the request to <strong>admin@healwith.co.kr</strong>. We act within <strong>10 business days</strong>.</li>
+    <li>Exercising these rights never disadvantages you.</li>
+  </ul>
+
+  <h2>7. Who is responsible</h2>
+  <table>
+    <tr><th>Data Protection Officer</th><td>JUYOUNG KANG (강주영), Representative, BONROI</td></tr>
+    <tr><th>Contact</th><td>admin@healwith.co.kr</td></tr>
+    <tr><th>If you are not satisfied</th>
+        <td><strong>Personal Information Protection Commission</strong> (supervisory authority) — https://www.pipc.go.kr · Tel 182<br />
+            Personal Information Dispute Mediation Committee — https://www.kopico.go.kr · Tel 1833-6972<br />
+            Korea Internet &amp; Security Agency Privacy Report Centre — https://privacy.kisa.or.kr · Tel 118</td></tr>
+  </table>
+
+  <p class="foot">BONROI (healwith) · Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul · admin@healwith.co.kr · Registration A-2026-01-02-06761<br />
+  Full privacy policy: https://healwith.co.kr/privacy</p>
+</section>
+
+</body>
+</html>

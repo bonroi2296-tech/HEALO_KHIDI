@@ -24,6 +24,9 @@ interface CostEstimateRow {
   status: string;
   consultation_id: string | null;
   intake_id: string | null;
+  // 어느 병원 견적인지 — 유치수수료 법정 상한이 «병원 종별»마다 다르기 때문에
+  // 견적 저장 길목에서 이 값으로 종별을 찾아 상한을 판정한다(facilitationFeeCap.ts).
+  hospital_id: string | null;
 }
 
 export type CostRole = "admin" | "coordinator" | "patient";
@@ -86,7 +89,10 @@ export async function requireCostEstimateAccess(
 
   const { data: estimateRaw, error } = await supabaseAdmin
     .from("cost_estimates")
-    .select("id, patient_user_id, coordinator_user_id, status, consultation_id, intake_id")
+    // ⚠️ hospital_id 를 빼면 유치수수료 법정 상한이 «항상 미확인(15%)»으로 판정된다 —
+    //    타입에만 넣고 select 에서 빠뜨려 실제로 그런 일이 났다(2026-08-04 독립 리뷰).
+    //    strict:false + as 캐스팅이라 타입검사도 안 잡는다. 컬럼을 지울 땐 상한 판정부터 확인하라.
+    .select("id, patient_user_id, coordinator_user_id, status, consultation_id, intake_id, hospital_id")
     .eq("id", estimateId)
     .maybeSingle();
   const estimate = estimateRaw as CostEstimateRow | null;

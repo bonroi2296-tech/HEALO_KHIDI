@@ -14,6 +14,7 @@ import { requireCostEstimateAccess } from "@/lib/auth/requireCostEstimateAccess"
 import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 const supabaseAdmin: any = _sb;
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { checkFacilitationFeeCap } from "@/lib/legal/facilitationFeeCap";
 
 export async function POST(
   request: NextRequest,
@@ -50,6 +51,47 @@ export async function POST(
         },
         { status: 400 }
       );
+    }
+
+    // ── 유치수수료 법정 상한 재검증 — **여기가 진짜 관문이다** ──────────────
+    // 저장(PATCH)에서 한 번 막지만, 실제로 법적 의미가 생기는 시점은 «환자에게 나가는 견적서
+    // PDF 를 발급하고 issued 로 넘기는» 이 순간이다. 저장을 안 거치고 온 옛 항목, 저장 차단을
+    // 무시하고 이어진 화면 흐름, 다른 경로로 들어온 값 — 전부 여기서 걸러야 한다.
+    // (2026-08-04 독립 리뷰: 이 경로에 검사가 아예 없어서, 저장이 막혀도 발급은 그대로 나갔다.
+    //  게다가 발급은 status 를 issued 로 바꿔 «되돌리기 어려운» 상태 전이를 만든다.)
+    {
+      let grade: unknown = null;
+      if (estimate.hospital_id) {
+        const { data: h } = await supabaseAdmin
+          .from("hospitals")
+          .select("medical_institution_grade")
+          .eq("id", estimate.hospital_id)
+          .maybeSingle();
+        grade = h?.medical_institution_grade ?? null;
+      }
+      const capCheck = checkFacilitationFeeCap(estimate.quotation_items, grade);
+      if (!capCheck.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "facilitation_fee_over_cap",
+            detail: {
+              reason: capCheck.reason,
+              cap: capCheck.cap,
+              grade: capCheck.grade,
+              grade_known: capCheck.gradeKnown,
+              currency: capCheck.currency,
+              patient_total_krw: capCheck.patientTotalKrw,
+              facilitation_fee_krw: capCheck.facilitationFeeKrw,
+              max_allowed_krw: capCheck.maxAllowedKrw,
+              patient_total_usd: capCheck.patientTotalUsd,
+              facilitation_fee_usd: capCheck.facilitationFeeUsd,
+              max_allowed_usd: capCheck.maxAllowedUsd,
+            },
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const allowedStates = ["hospital_pending", "draft"];
