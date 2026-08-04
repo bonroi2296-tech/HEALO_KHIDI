@@ -318,6 +318,17 @@ export async function POST(
 
     const doctorName = rosterName(doctorKey) || "그 외 의료진";
 
+    // 소견과 «같이» 올린 서류(견적서 등). 업로드 창구가 이미 위장 검사까지 끝낸 것만 온다.
+    // 경로는 여기서 한 번 더 본다 — 남의 문의 폴더를 적어 보내도 못 붙게.
+    const files = (Array.isArray(body?.files) ? body.files : [])
+      .filter((f: any) => f && typeof f.path === "string" && f.path.startsWith(`inquiry/${req.inquiry_id}/opinion/`))
+      .slice(0, 5)
+      .map((f: any) => ({
+        path: String(f.path),
+        name: String(f.name || "첨부").slice(0, 300),
+        type: String(f.type || ""),
+      }));
+
     const { data: row, error: insErr } = await (supabaseAdmin as any)
       .from("case_opinions")
       .insert({
@@ -326,6 +337,7 @@ export async function POST(
         doctor_key: doctorKey,
         doctor_name: doctorName,
         opinion_text: opinionText.slice(0, 8000),
+        files: files.length ? files : null,
         submitted_ip: ip,
       })
       .select("id")
