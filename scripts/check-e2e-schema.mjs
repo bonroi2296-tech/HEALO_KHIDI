@@ -60,33 +60,61 @@ if (COLUMN_MAP.size === 0) {
   process.exit(1);
 }
 
+/**
+ * 「이미 어긋나 있던 것」 — 이 검사를 처음 켠 2026-08-04에 나온 차이 2건.
+ *
+ * 새로 만든 규칙으로 «예전부터 있던 차이»까지 막아 모든 신청서를 세울 수는 없어서 예외로 둔다.
+ * 다만 **없는 셈 치지 않는다** — 매번 화면에 띄워 잊히지 않게 한다. 이 목록은 줄어야 한다.
+ *
+ * ⚠️ 이 둘은 지금도 «잠재적 고장»이다. 그 컬럼을 다른 컬럼과 같은 select 목록에 넣은 코드가
+ *    생기면 시험에서 그 화면이 통째로 안 뜬다(2026-08-04에 유입 4칸으로 실제로 그랬다).
+ *    진짜 해결은 시험용 데이터베이스에 그 마이그레이션을 넣는 것이다.
+ */
+const KNOWN_GAPS = new Map([
+  ["inquiries.follow_ups", "코디 후속작업 기능 (2026-08-04 확인)"],
+  ["consultation_sessions.livekit_duration_seconds", "화상상담 통화시간 (2026-08-04 확인)"],
+]);
+
 // 관계(join) 표기·뷰는 대상 밖. 실제 테이블만 던져 보고, 없는 테이블은 조용히 넘긴다.
 const missing = [];
+const known = [];
 const unreachable = [];
 
 for (const [table, cols] of COLUMN_MAP) {
-  const select = [...cols].join(",");
-  const url = `${URL_}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=0`;
-  let res;
-  try {
-    res = await fetch(url, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
-  } catch (e) {
-    unreachable.push(`${table}: 접속 실패(${e.message})`);
-    continue;
-  }
-  if (res.ok) continue;
+  // PostgREST 는 «없는 컬럼»을 한 번에 하나만 알려준다 → 찾을 때마다 빼고 다시 묻는다.
+  // 한 테이블에서 무한히 돌지 않도록 컬럼 수만큼만 반복한다.
+  let remaining = [...cols];
+  let unreachableHere = null;
 
-  const body = await res.text().catch(() => "");
-  // 테이블 자체가 없는 경우(PGRST205)는 «아직 안 만든 것»이라 여기서 다루지 않는다.
-  if (res.status === 404 || /PGRST205|does not exist.*relation/i.test(body)) continue;
+  for (let round = 0; round <= cols.size; round++) {
+    if (remaining.length === 0) break;
+    const url = `${URL_}/rest/v1/${table}?select=${encodeURIComponent(remaining.join(","))}&limit=0`;
+    let res;
+    try {
+      res = await fetch(url, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
+    } catch (e) {
+      unreachableHere = `${table}: 접속 실패(${e.message})`;
+      break;
+    }
+    if (res.ok) break;
 
-  // 컬럼이 없으면 PostgREST 가 이름을 대준다: column "x" does not exist / 42703
-  const col = /column\s+"?([\w.]+)"?\s+does not exist/i.exec(body)?.[1];
-  if (col || /42703|PGRST204/.test(body)) {
-    missing.push(`${table}${col ? ` → ${col}` : ""}`);
-  } else if (res.status >= 500) {
-    unreachable.push(`${table}: ${res.status}`);
+    const body = await res.text().catch(() => "");
+    // 테이블 자체가 없는 경우(PGRST205)는 «아직 안 만든 것»이라 여기서 다루지 않는다.
+    if (res.status === 404 || /PGRST205|does not exist.*relation/i.test(body)) break;
+
+    // 컬럼이 없으면 PostgREST 가 이름을 대준다: column "x" does not exist / 42703
+    const raw = /column\s+"?([\w.]+)"?\s+does not exist/i.exec(body)?.[1];
+    if (!raw) {
+      if (res.status >= 500) unreachableHere = `${table}: ${res.status}`;
+      break; // 컬럼 문제가 아닌 오류 — 더 캐지 않는다
+    }
+    const col = raw.includes(".") ? raw.split(".").pop() : raw;
+    const key = `${table}.${col}`;
+    (KNOWN_GAPS.has(key) ? known : missing).push(key);
+    remaining = remaining.filter((c) => c !== col);
   }
+
+  if (unreachableHere) unreachable.push(unreachableHere);
 }
 
 // ⚠️ 「못 물어본 것」을 「이상 없음」으로 넘기지 않는다.
@@ -100,8 +128,15 @@ if (unreachable.length) {
   process.exit(1);
 }
 
+// 「이미 알고 있던 차이」는 막지 않되 매번 보여준다 — 조용해지면 영영 안 고쳐진다.
+if (known.length) {
+  console.log(`\n⚠️  이미 어긋나 있는 컬럼 ${known.length}건(막지는 않음 — 시험용 데이터베이스에 넣어야 사라진다):`);
+  for (const k of known) console.log(`   - ${k}  · ${KNOWN_GAPS.get(k)}`);
+  console.log(`   이 컬럼을 다른 컬럼과 «같은 select 목록»에 넣으면 그 화면이 통째로 안 뜬다.\n`);
+}
+
 if (missing.length === 0) {
-  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조)`);
+  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조${known.length ? `, 알려진 차이 ${known.length}건 제외` : ""})`);
   process.exit(0);
 }
 
