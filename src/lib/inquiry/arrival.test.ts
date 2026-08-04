@@ -2,7 +2,7 @@
 //  ① 내부 이동을 유입으로 세지 않는가  ② 첫 진입 값을 나중 이동이 덮어쓰지 않는가
 // (환경이 node 라 sessionStorage·location·document 를 직접 심는다)
 import { describe, it, expect, beforeEach } from "vitest";
-import { captureArrival, getArrival, safeLandingPath } from "./arrival.js";
+import { captureArrival, getArrival, safeLandingPath, safeUtm } from "./arrival.js";
 
 function fakeStorage() {
   const m = new Map<string, string>();
@@ -84,5 +84,23 @@ describe("safeLandingPath", () => {
 
   it("값이 없으면 조용히 비운다", () => {
     for (const v of [null, undefined, "", 42]) expect(safeLandingPath(v)).toBeNull();
+  });
+});
+
+describe("safeUtm", () => {
+  it("아는 세 칸만 남긴다 — 나머지는 버린다", () => {
+    expect(safeUtm({ utm_source: "google", utm_campaign: "kz", 몰래: "x", nested: { a: 1 } }))
+      .toEqual({ utm_source: "google", utm_campaign: "kz" });
+  });
+
+  it("값이 길면 자른다(표를 부풀리지 못하게)", () => {
+    const r = safeUtm({ utm_source: "a".repeat(500) });
+    expect(r?.utm_source?.length).toBe(60);
+  });
+
+  it("객체가 아니거나 쓸 값이 없으면 비운다", () => {
+    for (const v of [null, undefined, "google", 42, [], {}, { 몰래: "x" }, { utm_source: 5 }]) {
+      expect(safeUtm(v)).toBeNull();
+    }
   });
 });

@@ -354,6 +354,10 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   );
 }
 
+// 「어디서 왔나」 줄의 언어 표기 — 원어로 적어 어느 언어 코디가 봐도 통한다.
+// 사전 모듈을 가져오지 않는다: 이 여섯 줄 때문에 화면에 사전 뭉치를 딸려 보낼 이유가 없다.
+const ARRIVAL_LANG = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", kk: "Қазақша", zh: "中文", ja: "日本語" };
+
 export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const L = useCoordinatorL();
   const lang = useBackofficeLang();
@@ -818,6 +822,18 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const nationality =
     inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "—";
 
+  // 「어디서 왔나」 한 줄 — 있는 조각만 이어 붙인다. 하나도 없으면 줄 자체를 안 그린다.
+  // 언어는 «원어 표기»(Русский 등)로 — 이 화면은 6개 언어라 «러시아어 화면» 같은 한국어를
+  // 박으면 다른 언어 코디에게 한국어가 새어 나간다.
+  const arrival = [
+    inquiry.source_locale
+      ? (ARRIVAL_LANG[inquiry.source_locale] || inquiry.source_locale)
+      : null,
+    inquiry.referrer_host || null,
+    inquiry.landing_path || null,
+    inquiry.utm?.utm_campaign || inquiry.utm?.utm_source || null,
+  ].filter(Boolean).join(" · ") || null;
+
   // intake JSONB 의 추가 정보(있으면 key/value 로 표시).
   // 혹시 복호화 안 된 암호문 문자열({"v":"v1",...})은 화면에 안 띄움.
   const looksEncrypted = (s) =>
@@ -1000,6 +1016,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             label={L.fieldLanguage}
             value={inquiry.preferred_language || inquiry.spoken_language}
           />
+          {/* 이 환자가 «어디서 왔는지» — 집계표(유치 전환 상세 › 유입별)만 있고 개별 건은 볼 수
+              없었다. 첫 응대 때 «러시아어 화면을 보고 온 사람인지 · 광고로 온 사람인지»를 알면
+              말투와 안내가 달라진다. 기록이 하나도 없는 건(옛 문의·메신저)엔 아예 안 뜬다. */}
+          {arrival && <Row icon={Globe} label={L.ibArrival} value={arrival} />}
         </Card>
       </div>
 

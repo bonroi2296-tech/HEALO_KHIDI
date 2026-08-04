@@ -426,6 +426,7 @@ const CT = {
   ibContactId: { ko: "연락처(ID)", en: "Contact (ID)", ru: "Контакт (ID)", kz: "Байланыс (ID)", zh: "联系方式(ID)", ja: "連絡先(ID)" },
   ibEmail: { ko: "이메일", en: "Email", ru: "Эл. почта", kz: "Эл. пошта", zh: "电子邮件", ja: "メール" },
   ibPhone: { ko: "전화", en: "Phone", ru: "Телефон", kz: "Телефон", zh: "电话", ja: "電話" },
+  ibArrival: { ko: "어디서 왔나", en: "Came from", ru: "Откуда пришёл", kz: "Қайдан келді", zh: "来源", ja: "流入元" },
   ibMedicalCard: { ko: "의료 · 여정 정보", en: "Medical & journey info", ru: "Медицинская информация и маршрут", kz: "Медициналық және сапар ақпараты", zh: "医疗与行程信息", ja: "医療・行程情報" },
   ibPreferredDate: { ko: "희망일", en: "Preferred date", ru: "Желаемая дата", kz: "Қалаған күні", zh: "期望日期", ja: "希望日" },
   ibFlexible: { ko: "조율 가능", en: "flexible", ru: "можно согласовать", kz: "келісуге болады", zh: "可协调", ja: "調整可能" },

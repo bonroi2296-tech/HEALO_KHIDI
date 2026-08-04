@@ -32,6 +32,23 @@ export function safeLandingPath(p) {
   return p.replace(TOKENISH, "/:token").slice(0, 200);
 }
 
+/**
+ * 캠페인 값을 «아는 세 칸»으로만 추린다.
+ *
+ * 왜: 채팅 시작 API 는 브라우저가 보낸 캠페인 값을 검사 없이 통째로 보관한다. 그건 그 화면
+ * 안에서만 쓰이던 값이었는데, 이제 문의 표로 옮겨지므로 아무 모양이나 들어올 수 있게 됐다.
+ * 폼 경로는 원래 세 칸만 뽑았다 — 두 경로가 «같은 모양»이어야 한 표에서 같이 세어진다.
+ */
+export function safeUtm(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out = {};
+  for (const k of UTM_KEYS) {
+    const v = raw[k];
+    if (typeof v === "string" && v) out[k] = v.slice(0, 60);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 /** 첫 진입 정보를 세션에 한 번만 기록. 두 번째 호출부터는 아무 일도 안 한다. */
 export function captureArrival() {
   try {
