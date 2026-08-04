@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   isTestEmail,
   isOfficeIp,
@@ -7,7 +7,32 @@ import {
   fetchTestSessionIds,
   findTestPollutedInquiryIds,
   idsToInFilter,
+  resolveTestDomains,
 } from "./testData";
+
+describe("resolveTestDomains — 기본 목록", () => {
+  // ⚠️ 실행 환경(.env.local·CI)에 TEST_EMAIL_DOMAINS 가 이미 있으면 「기본값」을 못 잰다.
+  //    stubEnv 로 빈 값을 씌워 «env 없음» 상태를 확실히 만든다(파일 하나만 돌릴 때와
+  //    전체를 돌릴 때 결과가 달라지던 원인 — 2026-08-04).
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("env 가 없으면 test.com + healo-test.invalid 둘 다 테스트로 본다", () => {
+    vi.stubEnv("TEST_EMAIL_DOMAINS", "");
+    const domains = resolveTestDomains();
+    expect(domains).toContain("test.com");
+    // 매일 새벽 자동 화면시험(e2e)이 쓰는 도메인. 빠지면 로봇 문의가 진짜 실적으로 잡힌다.
+    expect(domains).toContain("healo-test.invalid");
+    // 목록만 맞고 «만드는 시점의 판정»이 안 따라오면 의미 없다 — 거기까지 확인한다.
+    expect(detectInquiryIsTest({ email: "e2e-test@healo-test.invalid" })).toBe(true);
+    expect(detectInquiryIsTest({ email: "patient@gmail.com" })).toBe(false);
+  });
+
+  it("env 를 주면 env 가 이긴다(기존 동작 유지)", () => {
+    vi.stubEnv("TEST_EMAIL_DOMAINS", "only-this.com");
+    expect(resolveTestDomains()).toEqual(["only-this.com"]);
+    expect(detectInquiryIsTest({ email: "e2e-test@healo-test.invalid" })).toBe(false);
+  });
+});
 
 describe("isTestEmail", () => {
   it("도메인 일치 시 true (대소문자·공백 무시)", () => {
