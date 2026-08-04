@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 // DB actor_type 코드 → 표시 라벨 키(중앙 사전). 코드값은 서버/DB 비교용이라 그대로 두고
 // 라벨만 t() 경유. 알 수 없는 actor_type 은 기존과 동일하게 system 라벨로 폴백.
@@ -111,7 +112,7 @@ export default function MessagesClient() {
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: scrollBehavior() });
   }, [messages]);
 
   if (!loading && !user) {

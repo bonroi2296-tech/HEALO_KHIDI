@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 // 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료. 라벨은 컴포넌트에서 L로 해석.
 const STATUS_VALUES = ["open", "waiting_coordinator", "waiting_patient", "resolved"];
@@ -175,7 +176,7 @@ export default function CoordinatorMessagesClient() {
   //  5초 폴링이 매번 같은 배열을 새로 set 해서 가만히 있어도 5초마다 스크롤이 내려가던 버그)
   useEffect(() => {
     if (messages.length > prevCountRef.current) {
-      msgEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      msgEndRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest" });
     }
     prevCountRef.current = messages.length;
   }, [messages]);

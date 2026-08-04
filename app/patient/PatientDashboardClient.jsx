@@ -6,6 +6,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { kstDate } from '@/lib/datetime/kst';
+import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
   Upload, ChevronRight, AlertCircle, User, Phone, ArrowRight,
@@ -167,7 +168,7 @@ export default function PatientDashboardClient() {
               onClick={() => {
                 if (!item.href) return;
                 if (item.href.startsWith('#')) {
-                  document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+                  document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: scrollBehavior() });
                 } else {
                   router.push(item.href);
                 }

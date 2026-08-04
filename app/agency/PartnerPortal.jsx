@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { kstDateTime } from "@/lib/datetime/kst";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
   Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Stethoscope, Languages,
@@ -1414,7 +1415,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [open, onClose]);
 
-  useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, open]);
+  useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: scrollBehavior() }); }, [messages.length, open]);
 
   // 코디(상대) 메시지 자동번역 — 내가 쓴 것(agency)은 제외, 나머지 한글 메시지만 상대 언어로.
   useEffect(() => {

@@ -78,7 +78,7 @@ export async function PATCH(
     const payload = await request.json();
     const updates: Record<string, any> = {};
 
-    // 환자 동의 (의료해외진출법 §15 서명)
+    // 환자 동의 서명 (근거: 의료해외진출법 제8조제2항 — §15 아님)
     if (role === "patient" && payload.accept === true) {
       if (estimate.status !== "issued") {
         return Response.json(
@@ -110,15 +110,33 @@ export async function PATCH(
             { status: 400 }
           );
         }
+        // payer 는 "patient"(기본) 또는 "hospital" 만 허용. 알 수 없는 값이 들어오면
+        // 「환자 부담이 아닌데 환자 부담으로 계산」되는 조용한 사고가 나므로 여기서 막는다.
+        for (const item of payload.quotation_items) {
+          if (item?.payer !== undefined && item.payer !== "patient" && item.payer !== "hospital") {
+            return Response.json(
+              { ok: false, error: "invalid_payer" },
+              { status: 400 }
+            );
+          }
+        }
         updates.quotation_items = payload.quotation_items;
 
-        // 총액 자동 계산. USD 총액은 '모든 라인에 USD 가 있을 때만' 낸다 — 일부 라인만 USD 면
+        // 총액 자동 계산 — **환자 부담분만** 더한다.
+        // 유치수수료는 통합고시 제2조1호상 «의료기관이 유치사업자에게 지급»하는 돈이라 환자
+        // 청구액이 아니다. 예전엔 모든 항목을 무조건 합산해서, 코디가 수수료를 한 줄 넣으면
+        // 환자 서명란 위 합계가 그만큼 부풀었다(2026-08-04 실측 300만원). FAQ 6개 언어의
+        // "환자에게 청구되지 않습니다"와 정면으로 어긋나던 것.
+        // USD 총액은 '모든 라인에 USD 가 있을 때만' 낸다 — 일부 라인만 USD 면
         // KRW 총액과 안 맞는 USD 총액이 법적 견적서·환자화면에 찍힌다(MONEY-4). 불완전하면 null 로
         // 저장 → 표시 화면들(total_usd truthy 가드)이 자동으로 USD 를 숨긴다(환율 임의계산 안 함).
+        const patientItems = payload.quotation_items.filter(
+          (item: any) => item?.payer !== "hospital"
+        );
         let total_krw = 0;
         let total_usd = 0;
-        let allHaveUsd = payload.quotation_items.length > 0;
-        for (const item of payload.quotation_items) {
+        let allHaveUsd = patientItems.length > 0;
+        for (const item of patientItems) {
           total_krw += Number(item.krw) || 0;
           const usd = Number(item.usd) || 0;
           total_usd += usd;

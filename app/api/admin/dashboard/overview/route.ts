@@ -64,9 +64,19 @@ export async function GET(request: NextRequest) {
       count("chat_threads"),
       count("chat_threads", (q) => q.eq("channel", "telegram")),
       count("chat_threads", (q) => q.eq("channel", "whatsapp")),
-      count("consultation_sessions"),
-      count("consultation_sessions", (q) => q.gte("scheduled_at", new Date().toISOString())),
-      count("cost_estimates"),
+      // 상담·견적 카드는 «실적만» 센다 (2026-08-04).
+      //   ① consultation_sessions: is_test 표식이 있는데 이 카드만 안 걸러서, 시험분 79건이 섞여
+      //      화면에 95건으로 떴다(실제 실환자 상담은 15건). 다른 집계(KHIDI 지표)는 이미 거르고
+      //      있었으므로 이 카드만 어긋나 있던 것 — inquiries 카드와 같은 방식으로 맞춘다.
+      //   ② cost_estimates: 시연용 6건이 quotation_issued_at 만 채워져 있고 quotation_no·PDF·
+      //      항목은 전부 비어 있다(만들어진 시각보다 «발급 시각»이 앞서는 모순 데이터).
+      //      진짜 발행은 PDF 생성 경로가 quotation_pdf_url 을 채우므로 그걸 기준으로 센다.
+      //      ⚠️ 데이터는 건드리지 않았다 — 세는 기준만 고쳤다.
+      count("consultation_sessions", (q) => q.or("is_test.is.null,is_test.eq.false")),
+      count("consultation_sessions", (q) =>
+        q.or("is_test.is.null,is_test.eq.false").gte("scheduled_at", new Date().toISOString())
+      ),
+      count("cost_estimates", (q) => q.not("quotation_pdf_url", "is", null)),
       count("content_change_log"),
       count("agencies", (q) => q.eq("is_active", true)),
       count("agency_users"),

@@ -104,6 +104,12 @@ export async function GET(request: NextRequest) {
           .from("consultation_sessions")
           .select("id", { count: "exact", head: true })
           .eq("status", "completed")
+          // 시험 상담을 빼고 센다 — 이 숫자는 「요즘 상담이 아예 안 도는 것 아닌가」를 감시하는
+          // 무응답 경보(deadman)의 재료다. 시험분이 섞이면 실제로는 실적이 0인데도 경보가
+          // 「돌고 있다」고 판정해 **조용히 입을 다문다**(2026-08-04 독립 리뷰 지적:
+          // 이 파일은 아래 문의 감사에서 is_test 를 언급한다는 이유로 성과지표 정직성 검사를
+          // 통과하고 있었지만, 정작 상담을 세는 이 질의는 안 걸러지고 있었다).
+          .or("is_test.is.null,is_test.eq.false")
           .gte("ended_at", since),
         (supabaseAdmin as any)
           .from("surveys")

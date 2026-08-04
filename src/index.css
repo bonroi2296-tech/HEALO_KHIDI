@@ -9,6 +9,31 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ===== ♿ 「움직임 줄이기」 존중 — 전 화면 공통 =====
+   왜 (2026-08-04 실측): 움직임을 쓰는 파일이 156개인데 사용자의 「움직임 줄이기」 설정을
+   존중하는 파일은 2개뿐이었다(병원 판 motion.jsx · /hospitals). 그 2개 중 하나는 자기 주석에
+   *"의료 사이트라 어지럼증·전정장애 환자가 실제 방문자다. 이건 선택이 아니라 요건"* 이라고
+   써 놓고도, 정작 환자가 매일 쓰는 본체(홈·문의 대화·환자 채팅·화상상담)에는 안 걸려 있었다.
+   우리 환자는 항암 중이라 «구역·어지럼»이 기본값에 가깝고, 뇌전이 환자도 있다.
+   파일 156개를 하나씩 고치는 대신 여기서 한 번에 끈다(개별 컴포넌트 재발 방지 — 폰트·줄바꿈과 같은 방식).
+   ⚠️ 이건 «모두의 화면»을 바꾸는 게 아니다. OS/브라우저에서 「움직임 줄이기」를 «켠 사람»에게만 적용된다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 예외 — 로딩 회전자(animate-spin, 코드에 109회)는 «멈추면» 고장난 화면으로 읽힌다.
+     "기다리는 중"이라는 뜻 자체가 사라지므로 끄지 않고 «느리게» 돌린다(0.75s → 1.5s). */
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 /* 🔥 한글 폰트 깨짐 방지: 한글 우선 폰트 스택
    html 에도 지정 — 아래 inherit 규칙의 상속 사슬이 브라우저 기본(명조)으로 끝나지 않게 */
 html,

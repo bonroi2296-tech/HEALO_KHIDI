@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         .from("consultation_sessions")
         // 기간 필터는 scheduled_at 기준 — KPI 대시보드(kpi.ts K-02)와 동일 축.
         // created_at 기준이면 예약일이 월 경계를 넘는 세션에서 증빙 CSV 와 대시보드 숫자가 어긋남(2026-07-02 전수 감사).
-        .select("id, inquiry_id, hospital_id, session_type, status, scheduled_at, created_at")
+        .select("id, inquiry_id, hospital_id, session_type, status, scheduled_at, created_at, is_test")
         .gte("scheduled_at", from).lt("scheduled_at", to)
         .order("scheduled_at", { ascending: false }).limit(1000),
       (supabaseAdmin as any)
@@ -69,6 +69,12 @@ export async function GET(request: NextRequest) {
       const testSet = new Set(await fetchTestInquiryIds(supabaseAdmin));
       sessionRows = sessionRows.filter((s: any) => !testSet.has(s.inquiry_id));
       refRows = refRows.filter((r: any) => !testSet.has(r.inquiry_id));
+      // ⚠️ 위 거름망은 「시험 문의에 딸린 상담」만 뺀다. 문의가 안 붙은 세션(inquiry_id=null)은
+      //    통과한다 — 바로 그 구멍으로 시험 상담 79건이 증빙 CSV 에 「사전상담」으로 실리고
+      //    있었다(2026-08-04 실측: 전체 95건 중 실적은 15건). 2026-07-02 에 이 구멍을 막으려고
+      //    세션 자체에 is_test 도장을 찍기 시작했는데(testData.ts detectSessionIsTest),
+      //    KPI 대시보드는 그 도장을 보고 이 증빙 API 만 안 보고 있었다.
+      sessionRows = sessionRows.filter((s: any) => s.is_test !== true);
     }
     // 파트너(에이전시·병원) 미팅은 KHIDI 성과지표가 아니다 → 증빙 CSV 에서 제외한다.
     // 2026-07-27 실측: 실제로 한 회의 10건이 전부 파트너 미팅인데 이 API 는 유형을 안 가리고
