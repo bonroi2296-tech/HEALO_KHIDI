@@ -217,7 +217,9 @@ export default function OpinionClient({ token }) {
                   ) : a.translated ? (
                     <TranslatedDocToggle doc={a.translated} />
                   ) : (
-                    a.url && <p className="text-xs text-gray-400 mt-1">번역 실패 — 원본을 직접 확인해 주세요.</p>
+                    // 미리 번역하는 건 앞 5개까지다. 나머지는 «누를 때» 번역한다 —
+                    // 조용히 원문만 내주면 «번역이 안 되는 서류»로 오해한다(PO 지적 2026-08-04).
+                    a.url && a.path && <TranslateOnDemand token={token} path={a.path} name={a.name} />
                   )}
                 </div>
               ))}
@@ -318,6 +320,43 @@ function TranslatedDocView({ doc }) {
       {pageList.length > 1 && (
         <PagePicker list={pageList} cur={curPage} onPick={setPageSel} />
       )}
+    </div>
+  );
+}
+
+
+/** 미리 번역해 두지 않은 첨부 — 원장님이 누를 때 그 자리에서 번역한다(한 번만, 다음엔 저장된 것). */
+function TranslateOnDemand({ token, path, name }) {
+  const [doc, setDoc] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function run() {
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(`/api/opinions/${token}/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path, name }),
+      });
+      const d = await res.json();
+      if (!d.ok) { setErr(d.error === "rate_limited" ? "잠시 후 다시 눌러 주세요." : "번역하지 못했습니다 — 원본을 확인해 주세요."); return; }
+      setDoc(d.doc);
+    } catch {
+      setErr("번역하지 못했습니다 — 원본을 확인해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (doc) return <TranslatedDocView doc={doc} />;
+  return (
+    <div className="mt-1.5">
+      <button onClick={run} disabled={busy} className="flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline disabled:opacity-50">
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <ChevronDown size={13} />}
+        {busy ? "번역하는 중… (문서가 길면 1분쯤)" : "한국어로 번역해 보기"}
+      </button>
+      {err && <p className="text-xs text-amber-700 mt-1">{err}</p>}
     </div>
   );
 }
