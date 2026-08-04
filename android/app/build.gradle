@@ -13,8 +13,8 @@ android {
         // 4 = 내부테스트 첫 도달분(2026-07-31 업로드). 폰까지 간 첫 번째 판이다.
         // 5 = 키보드(adjustResize)+ 첫 화면(스플래시) 수리. 4 에서는 둘 다 그대로였다(PO 실기기 확인).
         // 6 = 첫 화면 로고 잘림 수리(말풍선 꼬리가 «동그란 오리기» 밖이라 잘렸다 — PO 제보).
-        versionCode 6
-        versionName "1.0.5"
+        versionCode 7
+        versionName "1.0.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
