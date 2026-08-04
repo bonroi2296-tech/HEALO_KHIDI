@@ -23,8 +23,14 @@ export function toTrackingLang(raw?: string | null): TrackingLang {
  * 진행상황 주소.
  *
  * ⚠️ 언어 prefix 를 «붙이지 않는다». /claim/ 은 proxy.ts 의 GUEST_LINK_PREFIXES 에 있어
- * 방문자 언어(쿠키 → Accept-Language)가 자동으로 주입된다 — /consultation/·/survey/ 와 같은
- * 취급. `/ru/claim/...` 같은 주소는 rewrite 대상이 아니라 404 다.
+ * 방문자 언어(쿠키 → Accept-Language)를 proxy 가 감지해 healo_lang 쿠키로 심어준다 —
+ * /consultation/·/survey/ 와 같은 취급. `/ru/claim/...` 같은 주소는 rewrite 대상이 아니라 404 다.
+ *
+ * 2026-08-04 실측으로 바로잡음: 예전 주석은 «자동 주입된다»고만 적어 서버가 그린 첫 화면도
+ * 그 언어인 것처럼 읽혔는데, 실제로는 **첫 화면(서버 렌더)은 항상 영어**다 — page.jsx 가
+ * proxy 의 x-locale 헤더를 안 읽어 LangProvider 가 기본값 en 으로 그린다. 브라우저가 켜진
+ * 뒤에야 쿠키를 읽어 제 언어로 바뀐다(러시아어로 끝까지 확인함). 즉 «잠깐 영어가 스쳤다가
+ * 제 언어»가 현재 동작이고, 최종 언어는 맞다.
  */
 export function trackingUrl(baseUrl: string, publicToken: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/claim/${encodeURIComponent(publicToken)}`;
