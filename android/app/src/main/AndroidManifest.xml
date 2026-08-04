@@ -40,6 +40,16 @@
             </intent-filter>
         </activity>
 
+        <!-- 알림 아이콘 — 상태표시줄은 «단색 실루엣»만 그린다. 지정이 없으면 런처 아이콘을
+             통째로 뭉개서 «빈 동그라미»가 뜬다(2026-08-04 에뮬레이터에서 실제 확인).
+             ic_stat_healwith 는 로고 앞면 겹의 알파에서 뽑은 흰 실루엣이다. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_healwith" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
