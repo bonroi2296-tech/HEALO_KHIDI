@@ -16,6 +16,31 @@ const STATUSES = [
   "expired",
 ];
 
+/**
+ * 유치수수료 상한 초과 안내문을 6개 언어로 조립한다.
+ * ⚠️ 서버가 「완성된 한국어 문장」을 내려주게 하면 안 된다 — 백오피스도 6개 언어이기 때문에
+ *    서버는 «숫자»만 주고 문장은 여기서 만든다(2026-07-09 PO 결정: 예외 없이 전체 다국어).
+ */
+function feeCapMessage(detail, L) {
+  if (!detail) return L.coSaveFail;
+  const won = (n) => `${Math.round(Number(n) || 0).toLocaleString("ko-KR")} KRW`;
+  const pct = (n) => `${((Number(n) || 0) * 100).toFixed(1)}%`;
+  if (detail.reason === "no_patient_total") {
+    return `${L.coFeeCapTitle}\n\n${L.coFeeCapNoBase}\n\n${L.coFeeCapLaw}`;
+  }
+  const lines = [
+    L.coFeeCapTitle,
+    "",
+    `· ${L.coFeeCapBase}: ${won(detail.patient_total_krw)}`,
+    `· ${L.coFeeCapLimit}: ${pct(detail.cap)}`,
+    `· ${L.coFeeCapMax}: ${won(detail.max_allowed_krw)}`,
+    `· ${L.coFeeCapCurrent}: ${won(detail.facilitation_fee_krw)}`,
+  ];
+  if (detail.grade_known === false) lines.push("", `⚠️ ${L.coFeeCapGradeUnknown}`);
+  lines.push("", L.coFeeCapLaw);
+  return lines.join("\n");
+}
+
 export default function CoordinatorCostDetailClient({ estimateId }) {
   const L = useCoordinatorL();
   const dateLoc = useDateLocale();
@@ -116,6 +141,12 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
         }
       );
       const json = await res.json();
+      // 유치수수료 법정 상한 초과는 «왜 막혔는지»를 숫자로 보여준다.
+      // 「저장 실패」 한 줄만 뜨면 코디가 무엇을 고쳐야 할지 몰라서 가드가 있으나 마나가 된다.
+      if (!res.ok && json?.error === "facilitation_fee_over_cap") {
+        alert(feeCapMessage(json.detail, L));
+        return;
+      }
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
       alert(L.coSaveDone);

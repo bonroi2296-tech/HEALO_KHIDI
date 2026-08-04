@@ -12,6 +12,7 @@ import { requireCostEstimateAccess } from "@/lib/auth/requireCostEstimateAccess"
 import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 const supabaseAdmin: any = _sb;
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
+import { checkFacilitationFeeCap, describeFeeCapResult } from "@/lib/legal/facilitationFeeCap";
 import { getClientIp } from "@/lib/rateLimit";
 
 const VALID_STATUSES = [
@@ -120,6 +121,46 @@ export async function PATCH(
             );
           }
         }
+        // ── 유치수수료 법정 상한 검증 ────────────────────────────────
+        // 통합고시 제3조: 상급종합 15% / 종합병원·병원(한방 포함) 20% / 의원 30%.
+        // 초과 = 법 제9조제1항 위반 → 제24조제1항제6호 **등록 취소 사유**.
+        // PO 결정(2026-08-04)이 «상한을 꽉 채워 받는다» 라서 여유가 0이다 —
+        // 반올림 하나, 항목 분류 하나만 어긋나도 즉시 위반이 되므로 저장 길목에서 막는다.
+        // 병원 종별을 모르면(NULL) 가장 엄격한 15% 로 판정한다(틀리는 방향이 «덜 받는다»가 되게).
+        {
+          const hospitalId = payload.hospital_id ?? estimate.hospital_id;
+          let grade: unknown = null;
+          if (hospitalId) {
+            const { data: h } = await supabaseAdmin
+              .from("hospitals")
+              .select("medical_institution_grade")
+              .eq("id", hospitalId)
+              .maybeSingle();
+            grade = (h as any)?.medical_institution_grade ?? null;
+          }
+          const capCheck = checkFacilitationFeeCap(payload.quotation_items, grade);
+          if (!capCheck.ok) {
+            // 사유는 코드로만 내보낸다(보안 규칙: 원시 메시지 금지). 설명 문구는 화면이 만든다.
+            return Response.json(
+              {
+                ok: false,
+                error: "facilitation_fee_over_cap",
+                detail: {
+                  reason: capCheck.reason,
+                  cap: capCheck.cap,
+                  grade: capCheck.grade,
+                  grade_known: capCheck.gradeKnown,
+                  patient_total_krw: capCheck.patientTotalKrw,
+                  facilitation_fee_krw: capCheck.facilitationFeeKrw,
+                  max_allowed_krw: capCheck.maxAllowedKrw,
+                  message_ko: describeFeeCapResult(capCheck),
+                },
+              },
+              { status: 400 }
+            );
+          }
+        }
+
         updates.quotation_items = payload.quotation_items;
 
         // 총액 자동 계산 — **환자 부담분만** 더한다.

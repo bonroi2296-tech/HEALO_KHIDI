@@ -24,6 +24,9 @@ interface CostEstimateRow {
   status: string;
   consultation_id: string | null;
   intake_id: string | null;
+  // 어느 병원 견적인지 — 유치수수료 법정 상한이 «병원 종별»마다 다르기 때문에
+  // 견적 저장 길목에서 이 값으로 종별을 찾아 상한을 판정한다(facilitationFeeCap.ts).
+  hospital_id: string | null;
 }
 
 export type CostRole = "admin" | "coordinator" | "patient";
