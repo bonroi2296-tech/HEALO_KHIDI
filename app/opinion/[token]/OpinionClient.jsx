@@ -97,6 +97,8 @@ export default function OpinionClient({ token }) {
         return;
       }
       setSubmitted(true);
+      // 화면 맨 위로 — 「제출되었습니다」가 위에 뜨는데 아래에 머물러 있으면 «눌린 건가?» 싶다.
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setSubmitError("네트워크 오류입니다. 잠시 후 다시 시도해 주세요.");
     } finally {
