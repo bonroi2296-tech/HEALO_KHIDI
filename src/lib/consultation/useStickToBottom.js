@@ -32,6 +32,27 @@ export function shouldFollow(box, threshold = STICK_THRESHOLD_PX) {
 }
 
 /**
+ * 스크롤이 한 번 움직인 뒤 «바닥을 계속 따라갈지» 결정한다.
+ *
+ * ⚠️ 예전엔 «바닥 근처인가»만 보고 껐다 켰다 했다. 그런데 스크롤 이벤트는 **우리가 직접
+ *    내리는 스크롤에도** 불린다 — 자막이 빠르게 바뀌면(2026-08-04 실측 분당 44줄) 아직
+ *    자리가 안 잡힌 순간의 값을 읽어 «바닥에서 멀다»로 오해하고 따라가기를 꺼버렸다.
+ *    한 번 꺼지면 사람이 손으로 바닥까지 내려야만 다시 켜진다 → PO 제보
+ *    «스크롤이 올라가서 다시 내려야 한다 · 쌓일수록 심해진다».
+ * → **끄는 것은 사람이 위로 올렸을 때만.** 켜는 것은 예전처럼 바닥에 닿으면.
+ *
+ * 단위시험 대상이라 export (이 판정이 기능의 전부).
+ * @param {boolean} prev 지금 따라가는 중인가
+ * @param {boolean} wentUp 이번 움직임이 «위로» 였나
+ * @param {boolean} atBottom 지금 바닥 근처인가
+ */
+export function nextStick(prev, wentUp, atBottom) {
+  if (atBottom) return true;
+  if (wentUp) return false;
+  return prev; // 아래로 밀렸거나 높이가 출렁인 것 — 사람 뜻이 아니므로 그대로 둔다
+}
+
+/**
  * @param {any} dep — 이 값이 바뀌면 «새 줄이 왔다»로 보고 바닥으로 따라간다(목록 배열을 넘긴다).
  * @returns {{ setRef, onScroll, hasNew: boolean, jumpToBottom: () => void }}
  *   hasNew: 위로 올려 읽는 동안 새 줄이 쌓였다 → 화면에 «↓ 새 소식» 단추를 띄우는 근거.
@@ -46,6 +67,9 @@ export function useStickToBottom(dep) {
   //   그 «다시 내려야 해»였다 — 안 끌어내리는 것만으론 절반만 고친 것이다.
   const [hasNew, setHasNew] = useState(false);
 
+  // 직전 스크롤 위치 — «사람이 위로 올린 것»과 «프로그램이 바닥으로 내린 것»을 가르는 데 쓴다.
+  const lastTopRef = useRef(0);
+
   // 콜백 ref: 패널을 열거나 탭을 바꿔 컨테이너가 «새로 붙는 순간» 바닥으로.
   // (효과로는 못 잡는다 — 컨테이너만 새로 생기고 목록 값은 안 바뀌기 때문)
   const setRef = useCallback((el) => {
@@ -54,14 +78,19 @@ export function useStickToBottom(dep) {
       stickRef.current = true;
       setHasNew(false);
       el.scrollTop = el.scrollHeight;
+      lastTopRef.current = el.scrollTop; // 프로그램이 내린 것 — 다음에 «올렸다»로 오해하지 않게
     }
   }, []);
 
   const onScroll = useCallback(() => {
-    if (!elRef.current) return;
-    const follow = shouldFollow(elRef.current);
-    stickRef.current = follow;
-    if (follow) setHasNew(false); // 손으로 바닥까지 내려왔으면 «못 본 줄»은 없다
+    const el = elRef.current;
+    if (!el) return;
+    const top = el.scrollTop;
+    const wentUp = top < lastTopRef.current - 2; // 2px 여유 — 미세 떨림 무시
+    lastTopRef.current = top;
+    const atBottom = shouldFollow(el);
+    stickRef.current = nextStick(stickRef.current, wentUp, atBottom);
+    if (atBottom) setHasNew(false); // 바닥까지 내려왔으면 «못 본 줄»은 없다
   }, []);
 
   const jumpToBottom = useCallback(() => {
@@ -70,13 +99,16 @@ export function useStickToBottom(dep) {
     stickRef.current = true;
     setHasNew(false);
     el.scrollTop = el.scrollHeight;
+    lastTopRef.current = el.scrollTop;
   }, []);
 
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
-    if (stickRef.current) el.scrollTop = el.scrollHeight;
-    else setHasNew(true);
+    if (stickRef.current) {
+      el.scrollTop = el.scrollHeight;
+      lastTopRef.current = el.scrollTop;
+    } else setHasNew(true);
   }, [dep]);
 
   return { setRef, onScroll, hasNew, jumpToBottom };
