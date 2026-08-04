@@ -1229,6 +1229,11 @@ export default function ConsultationRoomPage() {
   // Language settings — default: doctor=ko, patient=ru
   const [myLang, setMyLang] = useState("ko");
   const [targetLang, setTargetLang] = useState("ru");
+  // 내 언어를 ref 로도 — 자막 수신 콜백은 다시 만들어지지 않아 state 최신값을 못 읽는다.
+  const myLangRef = useRef(myLang);
+  useEffect(() => {
+    myLangRef.current = myLang;
+  }, [myLang]);
 
   const subtitleTimerRef = useRef(null);
   // DataChannel publish 함수 ref (LiveKitRoom 내부 DataChannelBridge 에서 주입)
@@ -1436,6 +1441,15 @@ export default function ConsultationRoomPage() {
       // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
       // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
       if (voiceOnRef.current && agentPresentRef.current) return;
+      // ── 내 언어가 아닌 자막은 안 띄운다 ──
+      // 보내는 쪽은 «자기가 상대에게 보낼 언어»(targetLang)로 번역해 **방 전체**에 뿌린다.
+      // 참가자가 셋 이상이고 언어가 둘 이상이면, 남에게 가야 할 번역이 내 화면에도 뜬다.
+      // 2026-08-04 실회의(한국어·러시아어·카자흐어, 8명): 러시아어로 번역된 자막이 218줄
+      // 돌아다녔고 그게 한국어 화면에 그대로 떴다 — PO 제보 ③ «번역본이 외국어로 나온다».
+      // 자막 자리는 3개뿐이라 못 읽는 자막이 **내가 봐야 할 자막을 밀어낸다**
+      // (제보 ② «여러 명이 말한 것처럼» · ⑤ «카자흐어가 안 보인다»와 한 뿌리).
+      // ⚠️ 언어가 안 실려 온 자막(구버전 클라·통역봇)은 그대로 띄운다 — 모르면 보여준다.
+      if (lang && myLangRef.current && lang !== myLangRef.current) return;
       // 발화 세대 필터: 이 화자에게서 더 새 세대의 자막을 이미 봤으면 낡은 자막은 화면에 안 띄움.
       let stale = false;
       if (typeof utter === "number" && participantIdentity) {
