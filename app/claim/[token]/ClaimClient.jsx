@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Eye, Globe, FileDown } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, FileDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -713,20 +713,23 @@ function DocumentPreview({ doc, token, lang }) {
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
-          {doc.url && (
-            <a
-              href={doc.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-2.5 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-50"
-            >
-              <Download size={13} aria-hidden="true" />
-              {t("claimPage.documentsDownload", lang)}
-            </a>
-          )}
+        {/* 저장 단추는 **하나뿐이다** — 「내려받기」와 「PDF 로 저장」이 나란히 있으면
+            «둘이 뭐가 다른가»를 환자가 판단해야 한다(2026-08-05 PO 지적). 받는 건 언제나 PDF 다:
+            · 원본이 PDF 면 그 파일을 그대로 준다(원본이 제일 정확하다)
+            · 워드·그 밖이면 지금 보고 있는 화면을 PDF 로 뽑는다(워드 원본은 서버가 안 내준다) */}
+        {doc.isPdf && doc.url ? (
+          <a
+            href={doc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            <FileDown size={13} aria-hidden="true" />
+            {t("claimPage.opinionsPrint", lang)}
+          </a>
+        ) : (
           <SavePdfButton targetId={printId} lang={lang} />
-        </div>
+        )}
       </div>
     </div>
   );

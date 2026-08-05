@@ -202,7 +202,7 @@ async function buildSharedDocuments(inquiryId: number) {
     // 10분 = 화면을 열고 누르기엔 넉넉하고, 주소가 새어도 오래 살지 않는 길이.
     const { data: signed } = await supabaseAdmin.storage
       .from("attachments")
-      .createSignedUrls(paths, 600);
+      .createSignedUrls(paths, 600, { download: true });
     const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
 
     return data.map((d: any) => ({
@@ -215,7 +215,15 @@ async function buildSharedDocuments(inquiryId: number) {
       lang: d.lang || null,
       note: d.note || null,
       at: d.shared_at,
-      url: urlByPath.get(d.storage_path) ?? null,
+      // ⚠️ 원본 파일 주소는 **PDF·사진일 때만** 내린다 (2026-08-05 PO: *"docx 로 올리더라도
+      //    사용자는 pdf 로만 조회하고 다운받을 수 있게"*). 워드를 그대로 내주면 폰에서 못 열거나
+      //    서식이 깨진다 — 워드는 화면에 글로 그려 주고, 저장은 그 화면을 PDF 로 뽑게 한다.
+      //    사진 주소는 미리보기를 그리는 데 쓰이므로 남긴다(저장 단추는 화면 저장으로 간다).
+      url: /\.(pdf|jpe?g|png|webp)$/i.test(String(d.file_name || ""))
+        ? urlByPath.get(d.storage_path) ?? null
+        : null,
+      // 화면이 「원본을 그대로 받게 할지」를 판단하는 근거. 파일명으로 판단하지 않게 서버가 준다.
+      isPdf: /\.pdf$/i.test(String(d.file_name || "")),
     }));
   } catch (err: any) {
     console.error("[inquiries/claim] shared documents:", err?.message);
