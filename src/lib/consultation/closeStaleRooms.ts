@@ -65,17 +65,39 @@ export async function closeStaleRooms(nowMs: number = Date.now()): Promise<Close
   if (!rows.length) return out;
 
   const svc = new RoomServiceClient(url, key, secret);
+  const doneIds: string[] = [];
   for (const r of rows) {
     if (!r.livekit_room_name) continue;
     try {
       await svc.deleteRoom(r.livekit_room_name);
       out.closed.push(r.livekit_room_name);
+      doneIds.push(r.id);
     } catch (e: any) {
       // 이미 닫힌 방이면 LiveKit 이 not found 를 준다 — 그건 실패가 아니다(목표 상태 달성).
       const msg = String(e?.message || "");
-      if (/not.?found|does not exist/i.test(msg)) continue;
+      if (/not.?found|does not exist/i.test(msg)) {
+        doneIds.push(r.id); // 이미 없다 = 더 볼 필요 없다. 아래에서 «끝난 것»으로 표시한다.
+        continue;
+      }
       out.errors.push(r.livekit_room_name);
     }
+  }
+
+  // ── 「끝났다」고 DB 에 표시한다 ──
+  // ⚠️ 2026-08-05 실측으로 잡은 **내가 만든 결함**: 방을 닫고도(또는 이미 없어도) DB 를
+  //    안 고쳐서 **같은 20건을 10분마다 영원히 다시 조회하고 다시 지우려 들었다.**
+  //    화상 서버 헛호출이 10분마다 20번씩 나가고, 「아직 안 닫힌 방」 숫자가 영영 안 줄어
+  //    **진짜 좀비가 새로 생겨도 못 알아본다.** 목록에서 빼는 것까지가 청소다.
+  //
+  // 왜 livekit_duration_seconds 는 안 건드리나: 이 방들은 «언제 끝났는지»를 아무도 모른다
+  //   (끝났다는 신호를 한 번도 못 받아 null 이다). 여기서 시간을 지어내면 사용시간 집계가
+  //   오염된다 → 시각만 «정리한 시각»으로 찍고 길이는 null(=모름) 로 둔다.
+  if (doneIds.length) {
+    const { error: updErr } = await supabaseAdmin
+      .from("consultation_sessions")
+      .update({ livekit_ended_at: new Date(nowMs).toISOString() })
+      .in("id", doneIds);
+    if (updErr) out.errors.push("mark_ended_failed");
   }
   return out;
 }
