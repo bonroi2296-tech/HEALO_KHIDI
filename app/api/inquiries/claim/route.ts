@@ -16,7 +16,11 @@
  *   뜨고 아무것도 못 보던 문제(2026-08-03 PO 지적).
  * - 환자용 응답은 항상 명시적 필드 화이트리스트만(inquiries에 정산 등 민감 컬럼이 늘어도
  *   자동으로 새 나가지 않게). 이 주소는 메신저로 전달될 수 있으므로 연락처·생년월일·
- *   서류·견적·소견은 **의도적으로 안 내린다**.
+ *   환자가 낸 서류·견적·소견 원문은 **의도적으로 안 내린다**.
+ * - 단 하나의 예외: **코디가 「환자에게 보이기」를 켠 서류**(case_shared_documents). 우리가
+ *   환자에게 «보내려고» 만든 것(소견서·사전상담 정리본)이라 안 내리면 전달할 길이 없다.
+ *   올린다고 자동으로 나가지 않는다 — 코디가 한 건씩 켠 것만, 10분짜리 임시 주소로 나간다.
+ *   (2026-08-05 문의 #60: 소견서를 만들어 놓고도 환자에게 줄 통로가 없어 막혀 있었다.)
  * - 공개 GET은 rate limit. 에러는 internal_error 형만(원인 문자열 미노출).
  */
 export const runtime = "nodejs";
@@ -32,6 +36,7 @@ import { decryptAuto } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khidi/caseStatus";
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { t } from "@/lib/i18n";
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "inquiry_claim_view" };
 const CLAIM_RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "inquiry_claim" };
@@ -61,6 +66,27 @@ async function resolveInquiry(token: string) {
  * 「단계와 날짜」까지다. 이력의 note 는 코디가 환자·에이전시에게 보이라고 쓴 공개용 메모라 포함.
  * 조립 방식은 app/api/agency/inquiries/route.ts 의 historyMap 과 같다(같은 표를 1건만 읽음).
  */
+/**
+ * 이력 메모 중 **시스템이 자동으로 남긴 것**만 화면 언어로 바꾼다.
+ *
+ * 화상상담을 「완료」로 바꾸면 서버가 한국어 고정 문구를 이력에 남긴다
+ * (app/api/khidi/consultation/[id]/route.ts). 그게 러시아어 화면에도 한국어 그대로 떴다
+ * — 2026-08-05 문의 #60 러시아어 화면에서 실제로 확인.
+ *
+ * ⚠️ 코디가 손으로 쓴 메모는 **건드리지 않는다.** 사람이 쓴 문장을 기계가 바꾸면 뜻이 상한다
+ *    (그 위험은 이미 겪었다 — 케이스 브리프 「항공 금기 없음」 뒤집힘, 2026-08-04).
+ */
+const SYSTEM_NOTE_KEYS: Record<string, string> = {
+  "🩺 사전상담 완료 (원격상담)": "claimPage.noteConsultDone",
+  "🩺 사후관리 완료 (원격상담)": "claimPage.noteFollowUpDone",
+};
+
+function localizeSystemNote(note: string | null | undefined, lang: string): string | null {
+  if (!note) return null;
+  const key = SYSTEM_NOTE_KEYS[note.trim()];
+  return key ? t(key, lang) : note;
+}
+
 async function buildProgress(inq: any, lang: string) {
   const { data: hist } = await (supabaseAdmin as any)
     .from("case_status_history")
@@ -104,10 +130,49 @@ async function buildProgress(inq: any, lang: string) {
     timeline: (hist || []).map((h: any) => ({
       status: h.status,
       label: caseStatusLabelL(h.status, lang),
-      note: h.note || null,
+      note: localizeSystemNote(h.note, lang),
       at: h.created_at,
     })),
   };
+}
+
+/**
+ * 우리가 환자에게 보낸 서류 — **코디가 「환자에게 보이기」를 켠 것만.**
+ *
+ * 이 파일 머리말의 «서류는 의도적으로 안 내린다» 원칙을 여기 한 곳으로만 연다. 링크가 메신저로
+ * 굴러다닐 수 있으므로 ①코디가 고른 것만 ②이름·날짜·메모만 ③파일 주소는 10분짜리 임시 주소다.
+ *
+ * ⚠️ 표가 아직 없는 DB(마이그레이션 적용 전)에서도 **진행상황 화면 전체가 죽으면 안 된다.**
+ *    조회가 실패하면 빈 목록으로 넘긴다 — 서류 칸만 안 뜨고 나머지는 그대로 보인다.
+ */
+async function buildSharedDocuments(inquiryId: number) {
+  try {
+    const { data, error } = await (supabaseAdmin as any)
+      .from("case_shared_documents")
+      .select("id, file_name, note, shared_at, storage_path")
+      .eq("inquiry_id", inquiryId)
+      .eq("visible_to_patient", true)
+      .order("shared_at", { ascending: false });
+    if (error || !data?.length) return [];
+
+    const paths = data.map((d: any) => d.storage_path).filter(Boolean);
+    // 10분 = 화면을 열고 누르기엔 넉넉하고, 주소가 새어도 오래 살지 않는 길이.
+    const { data: signed } = await supabaseAdmin.storage
+      .from("attachments")
+      .createSignedUrls(paths, 600);
+    const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+
+    return data.map((d: any) => ({
+      id: d.id,
+      name: d.file_name,
+      note: d.note || null,
+      at: d.shared_at,
+      url: urlByPath.get(d.storage_path) ?? null,
+    }));
+  } catch (err: any) {
+    console.error("[inquiries/claim] shared documents:", err?.message);
+    return [];
+  }
 }
 
 /**
@@ -175,6 +240,7 @@ export async function GET(request: NextRequest) {
         createdAt: inq.created_at || null,
       },
       progress: await buildProgress(inq, lang),
+      documents: await buildSharedDocuments(inq.id),
     });
   } catch (err: any) {
     console.error("[inquiries/claim] GET error:", err?.message);

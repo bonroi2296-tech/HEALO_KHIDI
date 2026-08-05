@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -30,6 +30,7 @@ export default function ClaimClient({ token }) {
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const [preview, setPreview] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [documents, setDocuments] = useState([]);
 
   const [session, setSession] = useState(undefined); // undefined=확인중, null=비로그인
   const [claiming, setClaiming] = useState(false);
@@ -51,6 +52,7 @@ export default function ClaimClient({ token }) {
           setAlreadyClaimed(Boolean(data.alreadyClaimed));
           setPreview(data.preview || null);
           setProgress(data.progress || null);
+          setDocuments(Array.isArray(data.documents) ? data.documents : []);
         }
       } catch {
         if (alive) setError("network");
@@ -146,6 +148,7 @@ export default function ClaimClient({ token }) {
       {preview && <SummaryCard preview={preview} lang={lang} />}
       {progress && <ProgressBar progress={progress} />}
       {progress && <CurrentStep progress={progress} lang={lang} />}
+      {documents.length > 0 && <Documents documents={documents} lang={lang} />}
       {progress?.timeline?.length > 0 && <History timeline={progress.timeline} lang={lang} />}
 
       <div className="border-t border-gray-100 mt-8 pt-6">
@@ -247,6 +250,48 @@ function CurrentStep({ progress, lang }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * 우리가 보낸 서류 — 소견서·사전상담 정리본 등. 코디가 「환자에게 보이기」를 켠 것만 내려온다.
+ * 주소는 10분짜리라, 화면을 오래 열어두면 만료된다 → 안 열릴 때 새로고침하라고 미리 적어둔다
+ * (안 적으면 «링크가 죽었다» 문의로 돌아온다).
+ */
+function Documents({ documents, lang }) {
+  return (
+    <div className="mt-8">
+      <p className="text-xs font-bold text-gray-400">{t("claimPage.documentsTitle", lang)}</p>
+      <ul className="mt-3 space-y-2">
+        {documents.map((d) => (
+          <li key={d.id}>
+            <a
+              href={d.url || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                d.url
+                  ? "border-teal-200 bg-teal-50 hover:bg-teal-100"
+                  : "border-gray-200 bg-gray-50 pointer-events-none opacity-60"
+              }`}
+            >
+              <FileText size={18} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words font-semibold text-gray-900 text-sm">{d.name}</span>
+                {d.note && <span className="block text-xs text-gray-500 mt-0.5">{d.note}</span>}
+                {d.at && (
+                  <span className="block text-xs text-gray-400 mt-0.5">
+                    {new Date(d.at).toLocaleDateString()}
+                  </span>
+                )}
+              </span>
+              <Download size={16} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.documentsHint", lang)}</p>
     </div>
   );
 }
