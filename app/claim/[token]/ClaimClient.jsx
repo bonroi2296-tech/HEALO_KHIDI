@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Printer } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Printer, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -151,7 +151,7 @@ export default function ClaimClient({ token }) {
       {progress && <ProgressBar progress={progress} />}
       {progress && <CurrentStep progress={progress} lang={lang} />}
       {opinions.length > 0 && <Opinions opinions={opinions} lang={lang} />}
-      {documents.length > 0 && <Documents documents={documents} lang={lang} />}
+      {documents.length > 0 && <Documents documents={documents} lang={lang} token={token} />}
       {progress?.timeline?.length > 0 && <History timeline={progress.timeline} lang={lang} />}
 
       <div className="border-t border-gray-100 mt-8 pt-6">
@@ -168,6 +168,7 @@ export default function ClaimClient({ token }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-6">{t("claimPage.linkPrivacy", lang)}</p>
+      <DocStyles />
     </Shell>
   );
 }
@@ -319,14 +320,7 @@ function Opinions({ opinions, lang }) {
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
         {/* 환자가 병원·보험사에 낼 일이 생기면 본인이 뽑는다 — 우리가 매번 파일을 만들지 않는다. */}
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="print:hidden inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-        >
-          <Printer size={13} aria-hidden="true" />
-          {t("claimPage.opinionsPrint", lang)}
-        </button>
+        <PrintButton targetId="opinion-print" lang={lang} />
       </div>
 
       <div id="opinion-print" className="mt-3 space-y-4">
@@ -398,60 +392,223 @@ function Opinions({ opinions, lang }) {
         ))}
       </div>
 
-      {/* 인쇄하면 소견서만 나오게. 머리·바닥·쿠키띠·상담위젯이 같이 찍히면 그거야말로 짜친다.
-          ⚠️ 아래는 «평범한» style 태그여야 한다. styled-jsx 방식(태그에 jsx 속성을 붙이는 것)은
-          App Router 에서 렌더가 안 돼 CSS 가 통째로 증발한다 — POSTMORTEMS #113 실사고이고
-          `check-content-consistency` 가 막는다(이번에도 실제로 막혔다). */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #opinion-print, #opinion-print * { visibility: visible; }
-          #opinion-print { position: absolute; left: 0; top: 0; width: 100%; }
-          #opinion-print article { border: 0; padding: 0; }
-        }
-      `}</style>
     </div>
   );
 }
 
 /**
- * 우리가 보낸 서류 — 소견서·사전상담 정리본 등. 코디가 「환자에게 보이기」를 켠 것만 내려온다.
- * 주소는 10분짜리라, 화면을 오래 열어두면 만료된다 → 안 열릴 때 새로고침하라고 미리 적어둔다
- * (안 적으면 «링크가 죽었다» 문의로 돌아온다).
+ * 「인쇄 · PDF 로 저장」 — 누른 그 블록 하나만 찍는다.
+ *
+ * 워드 파일을 서버에서 PDF 로 «변환»하지 않는 대신 이 단추가 그 역할을 한다(브라우저의
+ * 인쇄 → 「PDF 로 저장」). 결과물은 같고, 글꼴은 그 사람 기기 것을 쓰니 키릴·한글이 안 깨진다.
  */
-function Documents({ documents, lang }) {
+function PrintButton({ targetId, lang }) {
+  const onPrint = () => {
+    document.querySelectorAll('[data-print="on"]').forEach((el) => el.removeAttribute("data-print"));
+    document.getElementById(targetId)?.setAttribute("data-print", "on");
+    window.print();
+  };
+  return (
+    <button
+      type="button"
+      onClick={onPrint}
+      className="no-print inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+    >
+      <Printer size={13} aria-hidden="true" />
+      {t("claimPage.opinionsPrint", lang)}
+    </button>
+  );
+}
+
+/**
+ * 인쇄하면 «누른 블록»만 나오게. 머리·바닥·쿠키띠·상담위젯이 같이 찍히면 그거야말로 짜친다.
+ *
+ * ⚠️ 아래는 «평범한» style 태그여야 한다. styled-jsx 방식(태그에 jsx 속성을 붙이는 것)은
+ * App Router 에서 렌더가 안 돼 CSS 가 통째로 증발한다 — POSTMORTEMS #113 실사고이고
+ * `check-content-consistency` 가 막는다(이번에도 실제로 막혔다).
+ */
+function DocStyles() {
+  return (
+    <style>{`
+      /* 워드에서 뽑아낸 글은 class 가 없다(정제 때 속성을 전부 버린다) → 여기서 기본 모양을 준다.
+         Tailwind preflight 가 h1·ul·table 의 브라우저 기본 서식을 지워놔서 안 주면 다 평평해진다. */
+      .doc-html h1, .doc-html h2, .doc-html h3 { font-weight: 700; color: #111827; margin: 1.1em 0 .4em; }
+      .doc-html h1 { font-size: 1.05rem; }
+      .doc-html h2 { font-size: 1rem; }
+      .doc-html h3 { font-size: .95rem; }
+      .doc-html p { margin: .55em 0; }
+      .doc-html ul, .doc-html ol { margin: .55em 0; padding-left: 1.25rem; list-style: disc; }
+      .doc-html ol { list-style: decimal; }
+      .doc-html li { margin: .25em 0; }
+      .doc-html strong, .doc-html b { font-weight: 700; }
+      /* 표는 폰에서 넘친다 → 가로로만 스크롤(본문이 옆으로 밀리면 안 된다) */
+      .doc-html table { display: block; overflow-x: auto; border-collapse: collapse; margin: .8em 0; max-width: 100%; }
+      .doc-html td, .doc-html th { border: 1px solid #e5e7eb; padding: .35rem .55rem; vertical-align: top; }
+      .doc-html th { background: #f9fafb; font-weight: 700; }
+
+      @media print {
+        body * { visibility: hidden; }
+        [data-print="on"], [data-print="on"] * { visibility: visible; }
+        [data-print="on"] { position: absolute; left: 0; top: 0; width: 100%; }
+        [data-print="on"] article { border: 0; padding: 0; }
+        .no-print { display: none !important; }
+      }
+    `}</style>
+  );
+}
+
+/**
+ * 우리가 보낸 서류 — 소견서·사전상담 정리본 등. 코디가 「환자에게 보이기」를 켠 것만 내려온다.
+ *
+ * 「보기」와 「내려받기」를 **둘 다** 준다(2026-08-05 PO). 보기는 서버가 그려서 준다 —
+ * PDF 는 한 쪽씩 사진으로(브라우저 내장 뷰어가 폰에서 하얗게 뜨는 사고가 있었다),
+ * 워드는 글로 풀어서(폰에 워드 앱이 없으면 아예 못 연다). 내려받기 주소는 10분짜리라
+ * 화면을 오래 열어두면 만료된다 → 안 열릴 때 새로고침하라고 미리 적어둔다.
+ */
+function Documents({ documents, lang, token }) {
+  const [openId, setOpenId] = useState(null);
+
   return (
     <div className="mt-8">
       <p className="text-xs font-bold text-gray-400">{t("claimPage.documentsTitle", lang)}</p>
       <ul className="mt-3 space-y-2">
         {documents.map((d) => (
-          <li key={d.id}>
-            <a
-              href={d.url || undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition ${
-                d.url
-                  ? "border-teal-200 bg-teal-50 hover:bg-teal-100"
-                  : "border-gray-200 bg-gray-50 pointer-events-none opacity-60"
-              }`}
-            >
+          <li key={d.id} className="rounded-xl border border-teal-200 bg-teal-50/70">
+            <div className="flex items-start gap-3 px-4 py-3">
               <FileText size={18} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
-              <span className="min-w-0 flex-1">
-                <span className="block break-words font-semibold text-gray-900 text-sm">{d.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-semibold text-gray-900">{d.name}</span>
                 {d.note && <span className="block text-xs text-gray-500 mt-0.5">{d.note}</span>}
                 {d.at && (
-                  <span className="block text-xs text-gray-400 mt-0.5">
+                  <span className="block text-xs text-gray-500 mt-0.5">
                     {new Date(d.at).toLocaleDateString()}
                   </span>
                 )}
-              </span>
-              <Download size={16} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
-            </a>
+                <div className="no-print mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(openId === d.id ? null : d.id)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800"
+                  >
+                    <Eye size={13} aria-hidden="true" />
+                    {openId === d.id ? t("claimPage.documentsClose", lang) : t("claimPage.documentsView", lang)}
+                  </button>
+                  {d.url && (
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-50"
+                    >
+                      <Download size={13} aria-hidden="true" />
+                      {t("claimPage.documentsDownload", lang)}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+            {openId === d.id && (
+              <DocumentPreview doc={d} token={token} lang={lang} />
+            )}
           </li>
         ))}
       </ul>
       <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.documentsHint", lang)}</p>
+    </div>
+  );
+}
+
+/**
+ * 서류 한 건의 미리보기. 서버가 종류를 판단해 준다(PDF=쪽 사진 / 워드=글 / 사진 / 없음).
+ *
+ * PDF 는 **한 쪽씩** 받는다 — 100쪽짜리를 한 번에 그리면 몇 십 초가 걸리고 그동안 화면이 멈춘다.
+ * 넘길 때 「여는 중」을 표시한다(멈춘 건지 기다리는 건지 알게 — 2026-08-04 같은 이유로 넣은 것).
+ */
+function DocumentPreview({ doc, token, lang }) {
+  const [state, setState] = useState({ status: "loading" });
+  const [page, setPage] = useState(0);
+  const printId = `doc-print-${doc.id}`;
+
+  useEffect(() => {
+    let alive = true;
+    setState({ status: "loading" });
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/inquiries/claim/document?token=${encodeURIComponent(token)}&docId=${encodeURIComponent(doc.id)}`
+        );
+        const data = await res.json();
+        if (!alive) return;
+        setState(res.ok && data.ok ? { status: "ok", ...data } : { status: "error" });
+      } catch {
+        if (alive) setState({ status: "error" });
+      }
+    })();
+    return () => { alive = false; };
+  }, [doc.id, token]);
+
+  if (state.status === "loading") {
+    return (
+      <div className="flex items-center gap-2 px-4 pb-4 text-sm text-gray-500">
+        <Loader2 size={15} className="animate-spin" /> {t("claimPage.documentsLoading", lang)}
+      </div>
+    );
+  }
+  if (state.status === "error" || state.kind === "none") {
+    return (
+      <p className="px-4 pb-4 text-sm text-gray-500">{t("claimPage.documentsNoPreview", lang)}</p>
+    );
+  }
+
+  return (
+    <div className="border-t border-teal-200 px-4 py-3">
+      <div className="no-print mb-2 flex items-center justify-between gap-3">
+        {state.kind === "pdf" && state.pages > 1 ? (
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded border border-gray-200 bg-white px-2 py-1 font-semibold disabled:opacity-40"
+            >
+              ‹
+            </button>
+            <span>{page + 1} / {state.pages}</span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(state.pages - 1, p + 1))}
+              disabled={page >= state.pages - 1}
+              className="rounded border border-gray-200 bg-white px-2 py-1 font-semibold disabled:opacity-40"
+            >
+              ›
+            </button>
+          </div>
+        ) : (
+          <span />
+        )}
+        <PrintButton targetId={printId} lang={lang} />
+      </div>
+
+      <div id={printId} className="rounded-lg bg-white p-3">
+        {state.kind === "pdf" && (
+          <img
+            key={page}
+            src={`/api/inquiries/claim/document?token=${encodeURIComponent(token)}&docId=${encodeURIComponent(doc.id)}&p=${page}`}
+            alt={`${doc.name} — ${page + 1}`}
+            className="mx-auto block h-auto w-full max-w-full"
+          />
+        )}
+        {state.kind === "image" && doc.url && (
+          <img src={doc.url} alt={doc.name} className="mx-auto block h-auto w-full max-w-full" />
+        )}
+        {state.kind === "html" && (
+          // 서버가 허용 목록으로 정제한 HTML (src/lib/documents/docxHtml.ts) — 원본 태그·속성은 안 넘어온다.
+          <div
+            className="doc-html text-sm leading-relaxed text-gray-800"
+            dangerouslySetInnerHTML={{ __html: state.html }}
+          />
+        )}
+      </div>
     </div>
   );
 }
