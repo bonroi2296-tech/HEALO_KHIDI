@@ -40,7 +40,7 @@ import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khid
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { t } from "@/lib/i18n";
-import { docDisplayTitle } from "@/lib/documents/sharedDocMeta";
+import { docDisplayTitle, withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "inquiry_claim_view" };
 const CLAIM_RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "inquiry_claim" };
@@ -220,7 +220,7 @@ async function buildSharedDocuments(inquiryId: number) {
       //    서식이 깨진다 — 워드는 화면에 글로 그려 주고, 저장은 그 화면을 PDF 로 뽑게 한다.
       //    사진 주소는 미리보기를 그리는 데 쓰이므로 남긴다(저장 단추는 화면 저장으로 간다).
       url: /\.(pdf|jpe?g|png|webp)$/i.test(String(d.file_name || ""))
-        ? urlByPath.get(d.storage_path) ?? null
+        ? withDownloadName(urlByPath.get(d.storage_path), String(d.file_name || "document"))
         : null,
       // 화면이 「원본을 그대로 받게 할지」를 판단하는 근거. 파일명으로 판단하지 않게 서버가 준다.
       isPdf: /\.pdf$/i.test(String(d.file_name || "")),

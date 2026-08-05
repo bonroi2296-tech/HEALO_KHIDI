@@ -51,3 +51,22 @@ export function docDisplayTitle(title: string | null | undefined, fileName: stri
   if (t) return t;
   return String(fileName).replace(/\.[a-z0-9]+$/i, "") || String(fileName);
 }
+
+/**
+ * 내려받을 때 뜨는 이름을 **원본 파일명**으로 맞춘다.
+ *
+ * 왜 (2026-08-05 PO: *"꼭 앞에 이런 변수가 들어가야해?"*): 저장소에 넣을 때 파일마다
+ * `<임의값>_원래이름.pdf` 로 저장한다 — 같은 이름을 올려도 서로 안 덮어쓰게 하려는 것이고
+ * **저장소 안에서만 필요한 장치**다. 그런데 서명 주소를 그냥 내주면 그 임의값이 붙은 채로
+ * 내려받기 창에 뜬다(`c065dd80-…_SECOND_OPINION_RU.pdf`). 저장 이름은 따로 지정해야 한다.
+ */
+export function withDownloadName(signedUrl: string | null | undefined, fileName: string): string | null {
+  if (!signedUrl) return null;
+  try {
+    const u = new URL(signedUrl);
+    u.searchParams.set("download", fileName); // 이미 있으면 갈아끼운다
+    return u.toString();
+  } catch {
+    return signedUrl; // 주소 모양이 예상과 다르면 원래 것을 그대로 — 내려받기가 죽는 것보다 낫다
+  }
+}

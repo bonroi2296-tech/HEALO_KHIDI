@@ -21,7 +21,7 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
-import { DOC_LANGS, guessDocLang } from "@/lib/documents/sharedDocMeta";
+import { DOC_LANGS, guessDocLang, withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 // ponytail: 새 표라 생성된 타입(src/types/database.types.ts)에 아직 없다 → `supabaseAdmin as any`.
 //   5,300줄짜리 타입 파일을 통째로 다시 뽑으면 병렬 세션과 충돌한다. 옆 파일들(claim·opinions)도
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         visible: r.visible_to_patient,
         sharedAt: r.shared_at,
         createdAt: r.created_at,
-        url: urlByPath.get(r.storage_path) ?? null,
+        url: withDownloadName(urlByPath.get(r.storage_path), String(r.file_name || "document")),
       })),
     });
   } catch (err) {

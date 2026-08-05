@@ -3,7 +3,7 @@
  * 착각한다) 사람 이름에 걸리는 오탐을 특히 잰다.
  */
 import { describe, it, expect } from "vitest";
-import { guessDocLang, docDisplayTitle } from "./sharedDocMeta";
+import { guessDocLang, docDisplayTitle, withDownloadName } from "./sharedDocMeta";
 
 describe("guessDocLang", () => {
   it("파일명의 언어 토막을 읽는다", () => {
@@ -35,5 +35,26 @@ describe("docDisplayTitle", () => {
   it("이름이 없으면 파일명에서 확장자만 뗀다", () => {
     expect(docDisplayTitle("", "SECOND_OPINION_RU.docx")).toBe("SECOND_OPINION_RU");
     expect(docDisplayTitle(null, "안내문.pdf")).toBe("안내문");
+  });
+});
+
+describe("withDownloadName", () => {
+  it("저장 이름을 원본 파일명으로 박는다", () => {
+    const out = withDownloadName(
+      "https://x.supabase.co/storage/v1/object/sign/attachments/inquiry/60/shared/c065dd80-abc_SECOND_OPINION_RU.pdf?token=aaa",
+      "SECOND OPINION_RU_AMANOV_TULEGEN.pdf"
+    );
+    expect(out).toContain("download=SECOND+OPINION_RU_AMANOV_TULEGEN.pdf");
+    expect(out).toContain("token=aaa"); // 서명은 그대로 살아 있어야 한다
+  });
+
+  it("이미 붙어 있던 download 값은 갈아끼운다", () => {
+    const out = withDownloadName("https://x/y.pdf?token=a&download=true", "소견서.pdf") || "";
+    expect(out.match(/download=/g)).toHaveLength(1);
+    expect(decodeURIComponent(out)).toContain("download=소견서.pdf");
+  });
+
+  it("주소가 없으면 null", () => {
+    expect(withDownloadName(null, "a.pdf")).toBeNull();
   });
 });
