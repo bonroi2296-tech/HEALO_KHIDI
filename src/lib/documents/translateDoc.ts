@@ -135,6 +135,24 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     //   PO 가 «대아오르타가 뭐냐»고 잡아냈다. 병기는 괜찮지만 본문은 한국 의료진이 쓰는 말이어야 한다.
     `8. TRANSLATE anatomy and medical terms into the standard ${T} clinical term — do NOT transliterate the sound of the source word. Examples for Korean: аорта → 대동맥 (NOT 아오르타), хорда → 부챙/덧줄 (NOT 삭대), почка → 신장, лоханка → 신우. You may add the source word in parentheses, but the ${T} term must come first and must be the word a ${T} clinician actually uses.`,
     `9. Do not merge two different findings into one phrase. If the source says fluid in the pelvis, say fluid in the pelvis — do not add a body cavity the source did not mention.`,
+    // 실측 2026-08-04: 「Ротация правой почки. Анэхогеное образование левой почки (заболевание?)」에서
+    //   «(заболевание?)» 가 **우측 신장 회전**으로 옮겨 붙었다. 이 환자는 «좌측» 신장암이라 그 물음표가
+    //   어느 소견에 걸리는지가 곧 뜻이다. 붙어 있던 자리를 옮기지 마라.
+    // ⚠️ 이 규칙이 두 번 깨졌다(2026-08-05). 「소견에 붙는다」로는 부족해서 **위치로** 못 박는다:
+    //   원문 「Ротация правой почки. Анэхогеное образование левой почки (заболевание?)」에서
+    //   «(заболевание?)» 가 두 번 다 **앞 문장(우측 회전)**으로 옮겨 갔다. 환자는 «좌측» 신장암이다.
+    `9-1. KEEP QUALIFIERS WHERE THEY ARE — mechanical rule: a parenthetical, "?", "suspected", a size, or a laterality attaches to the finding **immediately before it in the same sentence**, never to anything in a previous sentence. Split the source at each period FIRST, translate each sentence on its own, keep the source order, and re-attach every qualifier to the finding that preceded it inside that same sentence. Never merge two sentences.`,
+    // 실측 2026-08-05: 원문의 «(заболевание?)» 를 「(질환?)」으로만 옮겼더니 PO 가 **번역 오류로 읽었다.**
+    //   그 물음표는 판독의가 «확정 못 했다»고 남긴 것이라 지우면 안 되는 정보인데, 그대로 두면
+    //   우리 실수처럼 보인다 → 「누가 의심한 것인지」가 문장에서 드러나게 적는다.
+    `9-2. THE SOURCE'S OWN DOUBT — when the source writes a bare "?" after a finding, that question mark is the reporting doctor's own uncertainty. Never delete it, and never leave it as a bare "(?)" either: make it read as the source's doubt. Korean: 「…병변(원문에 «질환?»으로 기재 — 판독의도 확정하지 않음)」, not 「…병변(질환?)」. Same for «под вопросом», «не исключается», «?» after a diagnosis.`,
+    // 실측 2026-08-04(문의 #60 신장 초음파): анэхогенное 를 「무음영」으로, солевая инкрустация 를
+    //   「염분 착색」으로 옮겼다. 「음영(그림자)」과 「에코(반사)」는 다른 말이고, 무에코는 임상적으로
+    //   «대개 물이 찬 것»을 뜻해서 뜻이 통째로 달라진다. PO 가 «번역 제대로 한 거 맞아?»로 잡아냈다.
+    `10. ULTRASOUND/IMAGING WORDS — echo is not shadow. Korean: анэхогенный → 무에코 (NOT 무음영), гипоэхогенный → 저에코, гиперэхогенный → 고에코, изоэхогенный → 등에코, акустическая тень → 음향 음영. Deposits: солевая инкрустация → 염류 침착 (NOT 착색), кальцинат → 석회화. Structures: ЧЛС(чашечно-лоханочная система) → 신배-신우계, каликоэктазия → 신배 확장, паренхима → 실질.`,
+    // PO 지시 2026-08-04: 이 번역을 «가장 먼저 읽는 사람»은 의학 지식이 없는 코디네이터다.
+    //   원문을 깎지 말라는 규칙(4·5번)은 그대로 두고, «덧붙이는 것»만 허용한다.
+    `11. PLAIN-WORD GLOSS — the FIRST reader is a coordinator with NO medical training. After a term a layperson cannot parse, ADD a short everyday-${T} gloss in parentheses. Korean examples: 「무에코 병변(초음파에서 검게 비치는 것 — 대개 물이 찬 혹)」, 「수신증(콩팥에 소변이 고여 부은 상태)」, 「신배-신우계(콩팥 안에서 소변이 모이는 공간)」. ⚠️ ADD ONLY — never delete, shorten, or reword the source content to make room. Never invent a term that does not exist in ${T} clinical usage.`,
     glossary ? "" : null,
     glossary ? `GLOSSARY — for these source terms, use EXACTLY this ${T} translation (respect any [note]):` : null,
     glossary || null,
