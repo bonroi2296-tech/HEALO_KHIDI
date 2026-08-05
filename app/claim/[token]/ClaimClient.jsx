@@ -67,6 +67,7 @@ export default function ClaimClient({ token }) {
   const [progress, setProgress] = useState(null);
   const [opinions, setOpinions] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [intake, setIntake] = useState(null);
 
   const [session, setSession] = useState(undefined); // undefined=확인중, null=비로그인
   const [claiming, setClaiming] = useState(false);
@@ -90,6 +91,7 @@ export default function ClaimClient({ token }) {
           setProgress(data.progress || null);
           setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
+          setIntake(data.intake || null);
           applyPatientLang(data.patientLang, lang);
         }
       } catch {
@@ -179,6 +181,8 @@ export default function ClaimClient({ token }) {
   const stageOpinions = opinions.filter((o) => inStage(o.at));
   const stageDocuments = documents.filter((d) => inStage(d.at));
   const stageTimeline = timeline.filter((h) => inStage(h.at));
+  // 첫 단계(=접수)를 고른 상태인가. 「본인이 낸 내용」은 거기에만 붙인다.
+  const isFirstStage = reached.length > 0 && selected === reached[0];
 
   if (loading) {
     return (
@@ -231,13 +235,17 @@ export default function ClaimClient({ token }) {
       {progress && (
         <CurrentStep progress={progress} lang={lang} selected={selected} selectedLabel={stageLabel} />
       )}
+      {/* 「문의·의뢰 접수」 단계에서만 — 본인이 낸 내용. 그 단계를 눌렀는데 날짜 한 줄뿐이면
+          «내가 뭘 냈더라»를 확인할 데가 없다(2026-08-05 PO). */}
+      {isFirstStage && intake && <IntakeCard intake={intake} lang={lang} />}
       {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
       {stageTimeline.length > 0 && <History timeline={stageTimeline} lang={lang} />}
       {/* 지나온 단계인데 그때 받은 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
-      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageTimeline.length === 0 && (
+      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageTimeline.length === 0 &&
+        !(isFirstStage && intake) && (
         <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
       )}
 
@@ -296,6 +304,40 @@ function LangPicker({ lang }) {
         ))}
       </select>
     </label>
+  );
+}
+
+/**
+ * 「접수 내용」 — 본인이 낸 문의글·보낸 자료 개수·희망 시기.
+ *
+ * ⚠️ 자료 «파일»은 안 준다(서버가 개수만 내린다). 그건 환자가 «우리에게» 낸 원본이라
+ * 링크가 새면 피해가 크다 — 우리가 «환자에게 주는» 서류(아래 「받은 서류」)와 방향이 다르다.
+ */
+function IntakeCard({ intake, lang }) {
+  const rows = [];
+  if (intake.message) rows.push([t("claimPage.intakeMessage", lang), intake.message]);
+  if (intake.attachmentCount > 0) {
+    rows.push([t("claimPage.intakeFiles", lang), `${intake.attachmentCount}`]);
+  }
+  if (intake.preferredDate) {
+    rows.push([t("claimPage.intakeWhen", lang), new Date(intake.preferredDate).toLocaleDateString()]);
+  } else if (intake.preferredDateFlex) {
+    rows.push([t("claimPage.intakeWhen", lang), t("claimPage.intakeWhenFlex", lang)]);
+  }
+  if (!rows.length) return null;
+
+  return (
+    <div className="mt-8">
+      <p className="text-xs font-bold text-gray-400">{t("claimPage.intakeTitle", lang)}</p>
+      <dl className="mt-3 space-y-2.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs text-gray-500">{label}</dt>
+            <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-gray-800">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 

@@ -58,7 +58,8 @@ async function resolveInquiry(token: string) {
     .from("inquiries")
     .select(
       "id, first_name, cancer_type, user_id, agency_id, created_at, nationality, " +
-        "case_status, case_status_note, case_status_updated_at, preferred_language, agencies(name)"
+        "case_status, case_status_note, case_status_updated_at, preferred_language, " +
+        "message, attachments, preferred_date, preferred_date_flex, agencies(name)"
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -113,6 +114,33 @@ async function fetchCaseUpdates(inquiryId: number) {
     console.error("[inquiries/claim] case updates:", err?.message);
     return [];
   }
+}
+
+/**
+ * 「문의·의뢰 접수」 단계에서 보여줄 **본인이 낸 내용** (2026-08-05 PO:
+ * *"여기에선 본인이 의뢰한 내용 확인할 수 있게 해야 하는 거 아닌가?"*).
+ * 첫 단계를 눌렀는데 날짜 한 줄뿐이면 «내가 뭘 냈더라»를 확인할 데가 없다.
+ *
+ * 내리는 것: **본인이 쓴 문의글**, 보낸 자료 **개수**, 희망 시기.
+ * ⚠️ 안 내리는 것: **자료 파일 자체**. 그건 환자가 «우리에게» 낸 원본이라 링크가 새면
+ *    피해가 크다 — 개수만 알려 준다(「3개 보내주셨어요」). 이름·연락처·생년월일도 그대로 제외.
+ *    문의글은 위 요약 카드가 이미 「치료 분야: 간암」을 보여주는 것과 같은 층이라 함께 내린다.
+ */
+function buildIntakeSummary(inq: any) {
+  let message = "";
+  try {
+    message = (decryptMaybe(inq.message) || "").trim();
+  } catch {
+    /* 복호화 실패해도 화면 전체가 죽으면 안 된다 — 문의글만 빠진다 */
+  }
+  const attachments = Array.isArray(inq.attachments) ? inq.attachments.length : 0;
+  if (!message && !attachments && !inq.preferred_date && !inq.preferred_date_flex) return null;
+  return {
+    message: message || null,
+    attachmentCount: attachments,
+    preferredDate: inq.preferred_date || null,
+    preferredDateFlex: Boolean(inq.preferred_date_flex),
+  };
 }
 
 /**
@@ -360,6 +388,7 @@ export async function GET(request: NextRequest) {
       },
       // 「이 사람 언어」 — 접수 때 받은 값이다(추측 아님). 화면이 처음 열릴 때 이걸로 맞춘다.
       patientLang: inq.preferred_language || null,
+      intake: buildIntakeSummary(inq),
       progress: await buildProgress(inq, lang),
       opinions: await buildReleasedOpinions(inq.id),
       documents: await buildSharedDocuments(inq.id),
