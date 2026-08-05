@@ -13,11 +13,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Printer, Eye } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Eye, Globe, FileDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { t, isKnownLangCode } from "@/lib/i18n";
+import { t, isKnownLangCode, setLangCookie, LANG_OPTIONS_PRIMARY } from "@/lib/i18n";
 import { DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
 
 const supabase = createSupabaseBrowserClient();
@@ -181,7 +181,10 @@ export default function ClaimClient({ token }) {
 
   return (
     <Shell>
-      <h1 className="text-2xl font-extrabold text-gray-900">{t("claimPage.progressTitle", lang)}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-gray-900">{t("claimPage.progressTitle", lang)}</h1>
+        <LangPicker lang={lang} />
+      </div>
 
       {preview && <SummaryCard preview={preview} lang={lang} />}
       {progress && <ProgressBar progress={progress} />}
@@ -206,6 +209,45 @@ export default function ClaimClient({ token }) {
       <p className="text-xs text-gray-400 mt-6">{t("claimPage.linkPrivacy", lang)}</p>
       <DocStyles />
     </Shell>
+  );
+}
+
+/**
+ * 화면 안 언어 고르기 — 이 화면에는 **여기에도** 있어야 한다.
+ *
+ * 왜 (2026-08-05 PO): 사이트 위쪽에도 언어 단추가 있지만 **폰에서는 ☰ 메뉴 안에 숨는다.**
+ * 이 화면을 여는 사람 대부분이 왓츠앱 링크를 폰으로 누른 환자·가족이고, 자동 판정이 틀렸을 때
+ * (가족이 러시아어로 접수했는데 정작 읽는 분은 카자흐어만 읽는 경우) 숨은 메뉴를 찾아
+ * 들어가지 않는다. 화면 맨 위, 제목 옆에 둔다.
+ *
+ * 고르면 **「사람이 골랐다」 표식**을 같이 남긴다 — 그래야 다음에 열 때 자동 판정이
+ * 그 선택을 덮지 않는다(applyPatientLang 참고).
+ *
+ * 고른 언어를 «그 언어로» 적는다(한국어·Русский·Қазақша…). 못 읽는 언어로 적힌 목록에서
+ * 자기 언어를 찾는 게 이 단추의 유일한 쓸모라서.
+ */
+function LangPicker({ lang }) {
+  const onPick = (e) => {
+    const code = e.target.value;
+    if (!code || code === lang) return;
+    setLangCookie(code); // healo_lang + healo_lang_pick 을 같이 심는다
+    window.location.reload();
+  };
+  return (
+    <label className="no-print mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 focus-within:border-teal-500">
+      <Globe size={13} aria-hidden="true" />
+      <span className="sr-only">{t("claimPage.langLabel", lang)}</span>
+      <select
+        value={lang}
+        onChange={onPick}
+        aria-label={t("claimPage.langLabel", lang)}
+        className="cursor-pointer bg-transparent font-semibold text-gray-800 focus:outline-none"
+      >
+        {LANG_OPTIONS_PRIMARY.map((o) => (
+          <option key={o.code} value={o.code}>{o.label}</option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -353,11 +395,9 @@ function renderOpinionBody(text) {
 function Opinions({ opinions, lang }) {
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
-        {/* 환자가 병원·보험사에 낼 일이 생기면 본인이 뽑는다 — 우리가 매번 파일을 만들지 않는다. */}
-        <PrintButton targetId="opinion-print" lang={lang} />
-      </div>
+      {/* 여기엔 「PDF 로 저장」을 안 둔다(2026-08-05 PO): 같은 내용이 아래 「받은 서류」에 소견서
+          파일로 이미 있어서, 단추가 둘이면 «둘이 다른 것인가»로 읽힌다. */}
+      <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
 
       <div id="opinion-print" className="mt-3 space-y-4">
         {opinions.map((o) => (
@@ -433,13 +473,16 @@ function Opinions({ opinions, lang }) {
 }
 
 /**
- * 「인쇄 · PDF 로 저장」 — 누른 그 블록 하나만 찍는다.
+ * 「PDF 로 저장」 — 누른 그 블록 하나만 PDF 로 만든다.
  *
- * 워드 파일을 서버에서 PDF 로 «변환»하지 않는 대신 이 단추가 그 역할을 한다(브라우저의
- * 인쇄 → 「PDF 로 저장」). 결과물은 같고, 글꼴은 그 사람 기기 것을 쓰니 키릴·한글이 안 깨진다.
+ * 속은 브라우저 인쇄 기능이지만 **「인쇄」라고 쓰지 않는다**(2026-08-05 PO): 종이로 뽑으라는
+ * 뜻으로 읽히는데 실제로 필요한 건 파일이다. 창이 뜨면 「대상」을 «PDF 로 저장»으로 두고 저장한다.
+ *
+ * 워드 파일을 서버에서 PDF 로 «변환»하지 않는 대신 이 단추가 그 역할을 한다. 결과물은 같고,
+ * 글꼴은 그 사람 기기 것을 쓰니 키릴·한글이 안 깨진다.
  */
-function PrintButton({ targetId, lang }) {
-  const onPrint = () => {
+function SavePdfButton({ targetId, lang }) {
+  const onSave = () => {
     document.querySelectorAll('[data-print="on"]').forEach((el) => el.removeAttribute("data-print"));
     document.getElementById(targetId)?.setAttribute("data-print", "on");
     window.print();
@@ -447,10 +490,10 @@ function PrintButton({ targetId, lang }) {
   return (
     <button
       type="button"
-      onClick={onPrint}
-      className="no-print inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+      onClick={onSave}
+      className="no-print inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
     >
-      <Printer size={13} aria-hidden="true" />
+      <FileDown size={13} aria-hidden="true" />
       {t("claimPage.opinionsPrint", lang)}
     </button>
   );
@@ -526,7 +569,8 @@ function Documents({ documents, lang, token }) {
             {d.note && <span className="basis-full text-gray-500">{d.note}</span>}
           </span>
         </div>
-        <div className="no-print flex shrink-0 items-center gap-1.5">
+        {/* 줄에는 「보기」만. 내려받기·PDF 저장은 열어 본 «다음»에 필요한 것이라 미리보기 아래에 둔다. */}
+        <div className="no-print flex shrink-0 items-center">
           <button
             type="button"
             onClick={() => setOpenId(openId === d.id ? null : d.id)}
@@ -535,18 +579,6 @@ function Documents({ documents, lang, token }) {
             <Eye size={13} aria-hidden="true" />
             {openId === d.id ? t("claimPage.documentsClose", lang) : t("claimPage.documentsView", lang)}
           </button>
-          {d.url && (
-            <a
-              href={d.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={t("claimPage.documentsDownload", lang)}
-              className="inline-flex items-center rounded-lg border border-teal-300 bg-white p-1.5 text-teal-700 hover:bg-teal-50"
-            >
-              <Download size={14} aria-hidden="true" />
-              <span className="sr-only">{t("claimPage.documentsDownload", lang)}</span>
-            </a>
-          )}
         </div>
       </div>
       {openId === d.id && <DocumentPreview doc={d} token={token} lang={lang} />}
@@ -632,33 +664,6 @@ function DocumentPreview({ doc, token, lang }) {
 
   return (
     <div className="border-t border-teal-200 px-4 py-3">
-      <div className="no-print mb-2 flex items-center justify-between gap-3">
-        {state.kind === "pdf" && state.pages > 1 ? (
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded border border-gray-200 bg-white px-2 py-1 font-semibold disabled:opacity-40"
-            >
-              ‹
-            </button>
-            <span>{page + 1} / {state.pages}</span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(state.pages - 1, p + 1))}
-              disabled={page >= state.pages - 1}
-              className="rounded border border-gray-200 bg-white px-2 py-1 font-semibold disabled:opacity-40"
-            >
-              ›
-            </button>
-          </div>
-        ) : (
-          <span />
-        )}
-        <PrintButton targetId={printId} lang={lang} />
-      </div>
-
       <div id={printId} className="rounded-lg bg-white p-3">
         {state.kind === "pdf" && (
           <img
@@ -678,6 +683,50 @@ function DocumentPreview({ doc, token, lang }) {
             dangerouslySetInnerHTML={{ __html: state.html }}
           />
         )}
+      </div>
+
+      {/* 단추는 문서 «아래»에 둔다(2026-08-05 PO). 위에 있으면 다 읽고 나서 다시 올라가야 한다 —
+          쪽 넘기기도 마지막 줄을 읽은 자리에서 바로 눌리는 게 맞다. */}
+      <div className="no-print mt-2.5 flex flex-wrap items-center justify-between gap-2">
+        {state.kind === "pdf" && state.pages > 1 ? (
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded border border-gray-200 bg-white px-2.5 py-1 font-semibold disabled:opacity-40"
+              aria-label={t("claimPage.documentsPrevPage", lang)}
+            >
+              ‹
+            </button>
+            <span>{page + 1} / {state.pages}</span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(state.pages - 1, p + 1))}
+              disabled={page >= state.pages - 1}
+              className="rounded border border-gray-200 bg-white px-2.5 py-1 font-semibold disabled:opacity-40"
+              aria-label={t("claimPage.documentsNextPage", lang)}
+            >
+              ›
+            </button>
+          </div>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-2">
+          {doc.url && (
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-2.5 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-50"
+            >
+              <Download size={13} aria-hidden="true" />
+              {t("claimPage.documentsDownload", lang)}
+            </a>
+          )}
+          <SavePdfButton targetId={printId} lang={lang} />
+        </div>
       </div>
     </div>
   );
