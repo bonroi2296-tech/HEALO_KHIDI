@@ -138,7 +138,14 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     // 실측 2026-08-04: 「Ротация правой почки. Анэхогеное образование левой почки (заболевание?)」에서
     //   «(заболевание?)» 가 **우측 신장 회전**으로 옮겨 붙었다. 이 환자는 «좌측» 신장암이라 그 물음표가
     //   어느 소견에 걸리는지가 곧 뜻이다. 붙어 있던 자리를 옮기지 마라.
-    `9-1. KEEP QUALIFIERS WHERE THEY ARE — a parenthetical, a question mark, a "suspected/probable", a size, or a laterality belongs to the finding it sits on in the source. Never move it to a neighbouring sentence, and never merge two sentences so that one sentence's qualifier lands on the other's finding. Translate sentence by sentence, in the source's order.`,
+    // ⚠️ 이 규칙이 두 번 깨졌다(2026-08-05). 「소견에 붙는다」로는 부족해서 **위치로** 못 박는다:
+    //   원문 「Ротация правой почки. Анэхогеное образование левой почки (заболевание?)」에서
+    //   «(заболевание?)» 가 두 번 다 **앞 문장(우측 회전)**으로 옮겨 갔다. 환자는 «좌측» 신장암이다.
+    `9-1. KEEP QUALIFIERS WHERE THEY ARE — mechanical rule: a parenthetical, "?", "suspected", a size, or a laterality attaches to the finding **immediately before it in the same sentence**, never to anything in a previous sentence. Split the source at each period FIRST, translate each sentence on its own, keep the source order, and re-attach every qualifier to the finding that preceded it inside that same sentence. Never merge two sentences.`,
+    // 실측 2026-08-05: 원문의 «(заболевание?)» 를 「(질환?)」으로만 옮겼더니 PO 가 **번역 오류로 읽었다.**
+    //   그 물음표는 판독의가 «확정 못 했다»고 남긴 것이라 지우면 안 되는 정보인데, 그대로 두면
+    //   우리 실수처럼 보인다 → 「누가 의심한 것인지」가 문장에서 드러나게 적는다.
+    `9-2. THE SOURCE'S OWN DOUBT — when the source writes a bare "?" after a finding, that question mark is the reporting doctor's own uncertainty. Never delete it, and never leave it as a bare "(?)" either: make it read as the source's doubt. Korean: 「…병변(원문에 «질환?»으로 기재 — 판독의도 확정하지 않음)」, not 「…병변(질환?)」. Same for «под вопросом», «не исключается», «?» after a diagnosis.`,
     // 실측 2026-08-04(문의 #60 신장 초음파): анэхогенное 를 「무음영」으로, солевая инкрустация 를
     //   「염분 착색」으로 옮겼다. 「음영(그림자)」과 「에코(반사)」는 다른 말이고, 무에코는 임상적으로
     //   «대개 물이 찬 것»을 뜻해서 뜻이 통째로 달라진다. PO 가 «번역 제대로 한 거 맞아?»로 잡아냈다.
