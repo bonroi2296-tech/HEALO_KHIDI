@@ -28,6 +28,9 @@ export default function AppleSignInButton({
   redirectTarget,
   disabled,
   onError,
+  // 가입 화면에서는 옆의 구글 버튼이 「가입하기」라 애플만 「계속하기」면 두 줄이 어긋나 보인다
+  // (2026-08-05 PO 지적). 화면에 맞는 문구를 고르게 한다.
+  variant = "signin",
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -65,7 +68,9 @@ export default function AppleSignInButton({
         <path d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.02-.99.99-2.13 1.56-3.32 1.47-.03-1.1.44-2.23 1.24-3.03.86-.87 2.16-1.5 3.33-1.46zM20.9 17.02c-.6 1.38-.89 1.99-1.66 3.2-1.08 1.7-2.6 3.81-4.48 3.83-1.67.02-2.1-1.09-4.37-1.08-2.27.01-2.74 1.1-4.41 1.08-1.88-.02-3.32-1.93-4.4-3.62C-1.5 16.44-1.8 10.7 1.05 7.7c1.24-1.32 3.03-2.15 4.75-2.15 1.79 0 2.91 1.1 4.39 1.1 1.43 0 2.3-1.1 4.37-1.1 1.53 0 3.15.83 4.31 2.27-3.79 2.08-3.18 7.5.09 9.2z" />
       </svg>
       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900">
-        {busy ? t("auth.appleConnecting", langCode) : t("auth.appleContinue", langCode)}
+        {busy
+          ? t("auth.appleConnecting", langCode)
+          : t(variant === "signup" ? "auth.appleSignUp" : "auth.appleContinue", langCode)}
       </span>
     </button>
   );

@@ -528,6 +528,7 @@ export const SignUpPage = ({ setView }) => {
                             redirectTarget={redirectTarget}
                             disabled={loading}
                             onError={(msg) => toast.error(msg)}
+                            variant="signup"
                         />
                     </div>
                 </div>
