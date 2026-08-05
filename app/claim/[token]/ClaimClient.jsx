@@ -13,12 +13,13 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, FileDown } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, FileDown, Send, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t, isKnownLangCode, setLangCookie, LANG_OPTIONS_PRIMARY } from "@/lib/i18n";
 import { DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
+import { uploadDirect } from "@/lib/uploadAttachment";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -249,6 +250,9 @@ export default function ClaimClient({ token }) {
         <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
       )}
 
+      {/* 언제든 보인다 — 단계와 상관없이 «지금 더 알릴 게 생겼다»는 아무 때나 생긴다. */}
+      <SendMore token={token} lang={lang} />
+
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
           lang={lang}
@@ -304,6 +308,109 @@ function LangPicker({ lang }) {
         ))}
       </select>
     </label>
+  );
+}
+
+/**
+ * 「더 보내기」 — 환자가 이 화면에서 바로 추가 내용·자료를 보낸다 (2026-08-05 PO).
+ *
+ * 그동안은 왓츠앱으로 코디에게 보내고 **코디가 손으로 옮겨 적었다.** 여기서 보내면
+ * 코디가 늘 보던 자리(「추가 정보」·「첨부」)에 그대로 들어가고, 거기서 소견 화면·케이스
+ * 브리프까지 흐른다 — 코디가 새로 볼 화면이 없다.
+ *
+ * 보낸 뒤 목록을 다시 그리지 않는다: 「전해드렸어요」 한 줄로 끝낸다. 환자가 보낸 글이
+ * 곧바로 화면에 박히면 «이게 의료진에게 갔다»로 읽히는데, 실제로는 코디가 보고 판단한 뒤
+ * 넘어간다. 그 사이를 사실대로 적는다.
+ */
+function SendMore({ token, lang }) {
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [done, setDone] = useState("");
+  const [error, setError] = useState("");
+
+  const post = (body) =>
+    fetch("/api/inquiries/claim/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, ...body }),
+    });
+
+  const sendText = async () => {
+    const v = text.trim();
+    if (!v || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const res = await post({ text: v });
+      const data = await res.json();
+      if (data.ok) { setText(""); setDone(t("claimPage.sendMoreDone", lang)); }
+      else setError(t("claimPage.sendMoreFail", lang));
+    } catch {
+      setError(t("claimPage.sendMoreFail", lang));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendFiles = async (e) => {
+    const files = [...(e.target.files || [])];
+    e.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    setError("");
+    let failed = false;
+    for (let i = 0; i < files.length; i++) {
+      const res = await uploadDirect(
+        "/api/inquiries/claim/submit",
+        files[i],
+        { token },
+        { onProgress: (p) => setProgress((i + p) / files.length) }
+      );
+      if (!res.ok) failed = true;
+    }
+    setUploading(false);
+    setProgress(0);
+    if (failed) setError(t("claimPage.sendMoreFail", lang));
+    else setDone(t("claimPage.sendMoreDone", lang));
+  };
+
+  return (
+    <div className="no-print mt-8 rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-4">
+      <p className="text-sm font-bold text-gray-900">{t("claimPage.sendMoreTitle", lang)}</p>
+      <p className="mt-1 text-xs leading-relaxed text-gray-600">{t("claimPage.sendMoreHint", lang)}</p>
+
+      <textarea
+        value={text}
+        onChange={(e) => { setText(e.target.value); setDone(""); }}
+        rows={3}
+        maxLength={4000}
+        placeholder={t("claimPage.sendMorePlaceholder", lang)}
+        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+      />
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={sendText}
+          disabled={sending || !text.trim()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800 disabled:opacity-50"
+        >
+          {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          {t("claimPage.sendMoreSend", lang)}
+        </button>
+
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-3 py-2 text-sm font-bold text-teal-700 hover:bg-teal-50">
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
+          {uploading ? `${Math.round(progress * 100)}%` : t("claimPage.sendMoreFiles", lang)}
+          <input type="file" multiple className="hidden" disabled={uploading} onChange={sendFiles} />
+        </label>
+      </div>
+
+      {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </div>
   );
 }
 
