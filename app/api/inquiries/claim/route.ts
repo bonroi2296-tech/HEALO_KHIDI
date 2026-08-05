@@ -115,6 +115,33 @@ async function fetchCaseUpdates(inquiryId: number) {
   }
 }
 
+/**
+ * 「지나온 기록」에서 **연달아 같은 단계인 줄**을 하나로 접는다.
+ *
+ * 왜 (2026-08-05 PO: *"위엔 뭐 간략하게 설명해주는건 좋은데 겹치나..?"*): 문의 #60 화면에
+ * 「2026. 8. 4. 상담·검토 진행」이 **두 줄** 떠 있었다. 단계가 바뀔 때마다 이력을 남기는데
+ * 같은 단계로 다시 옮기거나 메모만 붙는 일이 있어서 그렇다. 환자에게 같은 말이 두 번 보이면
+ * 「내가 뭘 놓쳤나」가 된다.
+ *
+ * 접을 때 **메모가 있는 줄을 남긴다** — 정보가 든 쪽이 이긴다. 둘 다 메모가 있으면 둘 다 남긴다
+ * (서로 다른 소식이므로). 단계가 «다시 바뀐» 경우는 연속이 아니므로 그대로 둔다.
+ */
+function dedupeStages(hist: any[]): any[] {
+  const out: any[] = [];
+  for (const h of hist) {
+    const prev = out[out.length - 1];
+    if (prev && prev.status === h.status) {
+      const prevNote = String(prev.note || "").trim();
+      const curNote = String(h.note || "").trim();
+      if (!curNote) continue;              // 새 줄에 정보가 없다 → 버린다
+      if (!prevNote) { out[out.length - 1] = h; continue; } // 앞줄이 빈 줄이었다 → 갈아끼운다
+      // 둘 다 메모가 있으면 서로 다른 소식이다 → 둘 다 남긴다
+    }
+    out.push(h);
+  }
+  return out;
+}
+
 async function buildProgress(inq: any, lang: string) {
   const { data: hist } = await (supabaseAdmin as any)
     .from("case_status_history")
@@ -158,7 +185,7 @@ async function buildProgress(inq: any, lang: string) {
         : caseStatusOrder(status),
     // 단계 이력 + 코디 소식을 한 줄기로. 소식은 「단계 이름」이 없다(kind 로 화면이 구분한다).
     timeline: [
-      ...(hist || []).map((h: any) => ({
+      ...dedupeStages(hist || []).map((h: any) => ({
         kind: "stage",
         status: h.status,
         label: caseStatusLabelL(h.status, lang),
