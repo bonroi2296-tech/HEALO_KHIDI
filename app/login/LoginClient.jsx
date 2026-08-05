@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient, withAuthTimeout } from '@/lib/supabase/bro
 import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
+import AppleSignInButton from '@/components/auth/AppleSignInButton';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -225,6 +226,18 @@ export const LoginPage = ({ setView }) => {
                                 {oauthLoading ? t("login.googleConnecting", langCode) : t("login.googleContinue", langCode)}
                             </span>
                         </button>
+
+                        {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
+                            설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}
+                        <div className="mt-3">
+                            <AppleSignInButton
+                                supabase={supabase}
+                                langCode={langCode}
+                                redirectTarget={redirectTarget}
+                                disabled={loading || oauthLoading}
+                                onError={(msg) => toast.error(msg)}
+                            />
+                        </div>
                     </div>
                 </div>
 
