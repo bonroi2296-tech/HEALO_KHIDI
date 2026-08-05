@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -258,35 +258,158 @@ function CurrentStep({ progress, lang }) {
 }
 
 /**
- * 원장님 소견 — 코디가 「공개」를 누른 확정본을 **글 그대로** 보여준다.
+ * 소견 본문 경량 서식 — 코디가 붙여넣은 글을 «문서처럼» 그린다.
  *
- * 왜 글인가: 소견을 줄 때마다 문서 만들고 도장 받는 건 매번 못 한다(2026-08-05 PO). 확정본은
- * 이미 환자 언어로 교정돼 있으니 그대로 읽히면 된다. 도장 찍힌 종이는 환자가 다른 병원·보험사·
- * 비자에 낼 때만 필요하고, 그건 아래 「받은 서류」가 맡는다.
+ * 왜: 통째로 한 덩어리(whitespace-pre-wrap)로 두면 병원 소견서가 «메신저에 붙여넣은 글»처럼
+ * 보인다(2026-08-05 PO: *"파일로 주면 좀 짜치지 않을까"* — 파일이 문제가 아니라 «문서로 안
+ * 보이는 것»이 문제다). 규칙은 셋뿐이라 코디가 뭘 외울 필요가 없다:
+ *   · `1 제목` / `1. 제목` → 절 제목        (소견서 원본이 이미 이 꼴이다)
+ *   · `- 항목` / `• 항목` → 목록
+ *   · 나머지 → 문단, 빈 줄은 문단 구분
+ * 못 알아본 줄은 그냥 문단으로 나온다 — 서식을 몰라도 글이 깨지지 않는 게 이 방식의 요점이다.
+ */
+function renderOpinionBody(text) {
+  const blocks = [];
+  let list = null;
+
+  const flush = () => {
+    if (list) {
+      blocks.push({ kind: "list", items: list });
+      list = null;
+    }
+  };
+
+  for (const raw of String(text).split("\n")) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+
+    const bullet = line.match(/^[-•*]\s+(.*)$/);
+    if (bullet) {
+      (list ||= []).push(bullet[1]);
+      continue;
+    }
+    flush();
+
+    // 「7 Әрі қарайғы тактика」·「4. 우선순위」 꼴. 숫자만 있는 줄(날짜·수치)은 제목이 아니다.
+    const heading = line.match(/^(\d{1,2})[.)]?\s+(\S.*)$/);
+    if (heading && heading[2].length <= 80) {
+      blocks.push({ kind: "heading", no: heading[1], text: heading[2] });
+      continue;
+    }
+    blocks.push({ kind: "para", text: line });
+  }
+  flush();
+  return blocks;
+}
+
+/**
+ * 원장님 소견 — 코디가 「공개」를 누른 확정본을 화면에서 **소견서 모양으로** 보여준다.
  *
- * 줄바꿈을 살린다(whitespace-pre-wrap) — 원장님이 항목으로 나눠 쓴 글이라 한 덩어리로 뭉치면
- * 읽기가 훅 나빠진다. 안내 한 줄은 밑에 둔다: 이건 자문이지 담당의 처방을 대신하지 않는다.
+ * 왜 파일이 아니라 화면인가: 소견을 줄 때마다 문서 만들고 도장 받는 건 매번 못 한다(2026-08-05
+ * PO). 대신 화면이 문서의 «틀»을 맡는다 — 제목줄·서명 칸·인쇄 단추. 도장 찍힌 종이는 환자가
+ * 다른 병원·보험사·비자에 낼 때만 필요하고, 그건 아래 「받은 서류」가 맡는다.
+ *
+ * 병원명·등록번호를 코드에 박지 않는다: 소견 주는 곳이 면력한방병원이 아닐 수도 있어서
+ * (명단에 이대서울·이대목동이 있다) 박아두면 **틀린 기관 정보가 환자에게 나간다.** 서명 칸은
+ * 코디가 「소견 주신 분」에 적은 한 줄을 그대로 쓴다.
  */
 function Opinions({ opinions, lang }) {
   return (
     <div className="mt-8">
-      <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
-      <div className="mt-3 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
+        {/* 환자가 병원·보험사에 낼 일이 생기면 본인이 뽑는다 — 우리가 매번 파일을 만들지 않는다. */}
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="print:hidden inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          <Printer size={13} aria-hidden="true" />
+          {t("claimPage.opinionsPrint", lang)}
+        </button>
+      </div>
+
+      <div id="opinion-print" className="mt-3 space-y-4">
         {opinions.map((o) => (
-          <div key={o.id} className="rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-3.5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              {o.doctor && <span className="text-sm font-bold text-gray-900">{o.doctor}</span>}
-              {o.at && (
-                <span className="text-xs text-gray-500">{new Date(o.at).toLocaleDateString()}</span>
-              )}
+          <article key={o.id} className="rounded-xl border border-gray-200 bg-white px-5 py-5">
+            {/* 머리글 — 이 한 줄이 「메신저 글」과 「소견서」를 가른다 */}
+            <header className="border-b-2 border-teal-700 pb-2">
+              <p className="text-[15px] font-extrabold tracking-tight text-teal-800">
+                {t("claimPage.opinionsDocTitle", lang)}
+              </p>
+            </header>
+
+            <div className="mt-4 space-y-3 text-sm leading-relaxed text-gray-800">
+              {renderOpinionBody(o.text).map((b, i) => {
+                if (b.kind === "heading") {
+                  return (
+                    <h3
+                      key={i}
+                      className="border-b border-gray-200 pb-1 pt-2 text-sm font-bold text-gray-900"
+                    >
+                      <span className="text-teal-700">{b.no}</span> {b.text}
+                    </h3>
+                  );
+                }
+                if (b.kind === "list") {
+                  return (
+                    <ul key={i} className="ml-1 space-y-1.5">
+                      {b.items.map((it, j) => (
+                        <li key={j} className="flex gap-2 break-words">
+                          <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-teal-700" aria-hidden="true" />
+                          <span>{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                }
+                return <p key={i} className="break-words">{b.text}</p>;
+              })}
             </div>
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">
-              {o.text}
+
+            {/* 서명 칸 — 이름·직함·소속은 코디가 「소견 주신 분」에 적은 그대로 */}
+            {(o.doctor || o.at) && (
+              <footer className="mt-5 border-t border-gray-200 pt-3">
+                <dl className="space-y-1 text-xs">
+                  {o.doctor && (
+                    <div className="flex gap-3">
+                      <dt className="w-24 shrink-0 text-gray-500">
+                        {t("claimPage.opinionsDoctorLabel", lang)}
+                      </dt>
+                      <dd className="font-semibold text-gray-900">{o.doctor}</dd>
+                    </div>
+                  )}
+                  {o.at && (
+                    <div className="flex gap-3">
+                      <dt className="w-24 shrink-0 text-gray-500">
+                        {t("claimPage.opinionsDateLabel", lang)}
+                      </dt>
+                      <dd className="text-gray-900">{new Date(o.at).toLocaleDateString()}</dd>
+                    </div>
+                  )}
+                </dl>
+              </footer>
+            )}
+
+            <p className="mt-3 text-xs leading-relaxed text-gray-500">
+              {t("claimPage.opinionsHint", lang)}
             </p>
-          </div>
+          </article>
         ))}
       </div>
-      <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.opinionsHint", lang)}</p>
+
+      {/* 인쇄하면 소견서만 나오게. 머리·바닥·쿠키띠·상담위젯이 같이 찍히면 그거야말로 짜친다.
+          ⚠️ 아래는 «평범한» style 태그여야 한다. styled-jsx 방식(태그에 jsx 속성을 붙이는 것)은
+          App Router 에서 렌더가 안 돼 CSS 가 통째로 증발한다 — POSTMORTEMS #113 실사고이고
+          `check-content-consistency` 가 막는다(이번에도 실제로 막혔다). */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #opinion-print, #opinion-print * { visibility: visible; }
+          #opinion-print { position: absolute; left: 0; top: 0; width: 100%; }
+          #opinion-print article { border: 0; padding: 0; }
+        }
+      `}</style>
     </div>
   );
 }
