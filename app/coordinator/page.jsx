@@ -83,11 +83,15 @@ export default function CoordinatorDashboard() {
     init();
   }, [router]);
 
+  // ⚠️ id 를 따로 둔 이유: 「오늘 상담」과 「예정 상담」은 **같은 주소**로 간다.
+  //    예전엔 주소를 이름표(key)로 썼는데, 리액트는 이름표가 같으면 같은 칸으로 여겨
+  //    둘 중 하나가 사라지거나 겹칠 수 있다(2026-08-05 PO 화면에서 실제 오류로 확인).
+  //    새 칸을 넣을 땐 주소가 겹쳐도 되지만 id 는 겹치면 안 된다.
   const STAT_CARDS = [
-    { label: L.statPendingIntakes, value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
-    { label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-700', href: '/coordinator/consultations' },
-    { label: L.statActivePatients, value: stats.activePatients, icon: Video, color: 'bg-purple-50 text-purple-600', href: '/coordinator/consultations' },
-    { label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-700', href: '/coordinator/alerts' },
+    { id: 'pending-intakes', label: L.statPendingIntakes, value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
+    { id: 'today-consult', label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-700', href: '/coordinator/consultations' },
+    { id: 'scheduled-consult', label: L.statActivePatients, value: stats.activePatients, icon: Video, color: 'bg-purple-50 text-purple-600', href: '/coordinator/consultations' },
+    { id: 'urgent-alerts', label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-700', href: '/coordinator/alerts' },
   ];
 
   if (loading) {
@@ -111,7 +115,7 @@ export default function CoordinatorDashboard() {
           const Icon = card.icon;
           return (
             <button
-              key={card.href}
+              key={card.id}
               onClick={() => router.push(card.href)}
               className="bg-white rounded-xl border border-gray-100 p-4 text-left hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
