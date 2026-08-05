@@ -91,12 +91,37 @@ function localizeSystemNote(note: string | null | undefined, lang: string): stri
   return key ? t(key, lang) : note;
 }
 
+/**
+ * 코디가 남긴 «소식» — 「지나온 기록」에 단계 이력과 **시간순으로 섞어서** 넣는다.
+ *
+ * 왜 섞나 (2026-08-05 PO): 「이대서울병원에 문의했습니다」 같은 일은 **단계를 옮길 일이 아니다.**
+ * 그런데 환자가 궁금해하는 건 단계보다 이런 소식이다. 따로 칸을 만들면 두 곳을 봐야 하니
+ * 한 줄기로 합친다 — 환자에겐 「그동안 있었던 일」 하나면 된다.
+ *
+ * ⚠️ 표가 아직 없는 DB 에서도 진행상황이 통째로 죽지 않게, 실패하면 빈 목록으로 넘어간다.
+ */
+async function fetchCaseUpdates(inquiryId: number) {
+  try {
+    const { data, error } = await (supabaseAdmin as any)
+      .from("case_updates")
+      .select("body, created_at")
+      .eq("inquiry_id", inquiryId)
+      .order("created_at", { ascending: true });
+    if (error || !Array.isArray(data)) return [];
+    return data;
+  } catch (err: any) {
+    console.error("[inquiries/claim] case updates:", err?.message);
+    return [];
+  }
+}
+
 async function buildProgress(inq: any, lang: string) {
   const { data: hist } = await (supabaseAdmin as any)
     .from("case_status_history")
     .select("status, note, created_at")
     .eq("inquiry_id", inq.id)
     .order("created_at", { ascending: true });
+  const updates = await fetchCaseUpdates(inq.id);
 
   // 접수 코드도 DB 기본값도 case_status 를 안 채운다 → 코디가 손으로 옮기기 전까지 빈값이다
   // (2026-08-04 실측: 최근 30일 문의 38건 중 34건, 89%). 빈값을 그대로 쓰면 환자 화면에
@@ -131,12 +156,23 @@ async function buildProgress(inq: any, lang: string) {
               "intake"
           )
         : caseStatusOrder(status),
-    timeline: (hist || []).map((h: any) => ({
-      status: h.status,
-      label: caseStatusLabelL(h.status, lang),
-      note: localizeSystemNote(h.note, lang),
-      at: h.created_at,
-    })),
+    // 단계 이력 + 코디 소식을 한 줄기로. 소식은 「단계 이름」이 없다(kind 로 화면이 구분한다).
+    timeline: [
+      ...(hist || []).map((h: any) => ({
+        kind: "stage",
+        status: h.status,
+        label: caseStatusLabelL(h.status, lang),
+        note: localizeSystemNote(h.note, lang),
+        at: h.created_at,
+      })),
+      ...updates.map((u: any) => ({
+        kind: "update",
+        status: null,
+        label: null,
+        note: u.body,
+        at: u.created_at,
+      })),
+    ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()),
   };
 }
 

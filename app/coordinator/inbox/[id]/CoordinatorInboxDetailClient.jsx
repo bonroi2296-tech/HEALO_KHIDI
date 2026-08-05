@@ -25,6 +25,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 import SharedDocumentsSection from "./SharedDocumentsSection";
+import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
 
@@ -1348,6 +1349,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 우리 → 환자 방향 서류함. 소견 바로 아래 둔다 — 소견을 정리해 내보내는 게 다음 동작이라서. */}
       <SharedDocumentsSection inquiryId={inquiryId} />
+
+      {/* 환자에게 알릴 «중간 소식»(병원 문의·회신 등). 단계를 옮길 일이 아닌 것들이 여기 쌓인다.
+          아래 「진행 단계」의 메모는 한 칸이라 덮어쓰이지만, 이건 한 건씩 남는다. */}
+      <CaseUpdatesSection
+        inquiryId={inquiryId}
+        patientLang={inquiry?.preferred_language || inquiry?.spoken_language || null}
+      />
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>

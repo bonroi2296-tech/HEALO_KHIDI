@@ -722,9 +722,18 @@ function History({ timeline, lang }) {
             <span className="text-gray-400 shrink-0 w-24">
               {h.at ? new Date(h.at).toLocaleDateString() : ""}
             </span>
+            {/* 단계가 바뀐 줄에는 단계 이름이 크게, 코디가 남긴 소식에는 그 글이 크게.
+                소식은 단계 이름이 없다(kind="update") — 「상담·검토 진행」을 또 적어봐야
+                환자에겐 새 정보가 아니다. 알고 싶은 건 «무슨 일이 있었나»다. */}
             <span className={i === 0 ? "text-gray-900 font-semibold" : "text-gray-500"}>
-              {h.label}
-              {h.note && <span className="block text-xs text-gray-400 mt-0.5">{h.note}</span>}
+              {h.kind === "update" ? (
+                <span className="block whitespace-pre-wrap break-words">{h.note}</span>
+              ) : (
+                <>
+                  {h.label}
+                  {h.note && <span className="block text-xs text-gray-500 mt-0.5">{h.note}</span>}
+                </>
+              )}
             </span>
           </li>
         ))}
