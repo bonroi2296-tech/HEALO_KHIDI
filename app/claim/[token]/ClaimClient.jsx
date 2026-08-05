@@ -314,17 +314,15 @@ function LangPicker({ lang }) {
  * 링크가 새면 피해가 크다 — 우리가 «환자에게 주는» 서류(아래 「받은 서류」)와 방향이 다르다.
  */
 function IntakeCard({ intake, lang }) {
+  const files = intake.files || [];
   const rows = [];
   if (intake.message) rows.push([t("claimPage.intakeMessage", lang), intake.message]);
-  if (intake.attachmentCount > 0) {
-    rows.push([t("claimPage.intakeFiles", lang), `${intake.attachmentCount}`]);
-  }
   if (intake.preferredDate) {
     rows.push([t("claimPage.intakeWhen", lang), new Date(intake.preferredDate).toLocaleDateString()]);
   } else if (intake.preferredDateFlex) {
     rows.push([t("claimPage.intakeWhen", lang), t("claimPage.intakeWhenFlex", lang)]);
   }
-  if (!rows.length) return null;
+  if (!rows.length && !files.length) return null;
 
   return (
     <div className="mt-8">
@@ -336,6 +334,34 @@ function IntakeCard({ intake, lang }) {
             <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-gray-800">{value}</dd>
           </div>
         ))}
+        {files.length > 0 && (
+          <div>
+            <dt className="text-xs text-gray-500">{t("claimPage.intakeFiles", lang)}</dt>
+            <dd className="mt-1">
+              {/* 이름만 보여주지 않고 열 수 있게 준다 — 이 링크로 이미 소견 전문·소견서가 나가는데
+                  «자기가 보낸 자료»만 막으면 앞뒤가 안 맞는다(2026-08-05 PO). 주소는 10분짜리. */}
+              <ul className="space-y-1">
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-start gap-1.5">
+                    <FileText size={13} className="mt-[3px] shrink-0 text-gray-500" aria-hidden="true" />
+                    {f.url ? (
+                      <a
+                        href={f.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-sm text-teal-700 hover:underline"
+                      >
+                        {f.name}
+                      </a>
+                    ) : (
+                      <span className="break-all text-sm text-gray-800">{f.name}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        )}
       </dl>
     </div>
   );

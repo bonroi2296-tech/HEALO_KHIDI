@@ -121,23 +121,45 @@ async function fetchCaseUpdates(inquiryId: number) {
  * *"여기에선 본인이 의뢰한 내용 확인할 수 있게 해야 하는 거 아닌가?"*).
  * 첫 단계를 눌렀는데 날짜 한 줄뿐이면 «내가 뭘 냈더라»를 확인할 데가 없다.
  *
- * 내리는 것: **본인이 쓴 문의글**, 보낸 자료 **개수**, 희망 시기.
- * ⚠️ 안 내리는 것: **자료 파일 자체**. 그건 환자가 «우리에게» 낸 원본이라 링크가 새면
- *    피해가 크다 — 개수만 알려 준다(「3개 보내주셨어요」). 이름·연락처·생년월일도 그대로 제외.
- *    문의글은 위 요약 카드가 이미 「치료 분야: 간암」을 보여주는 것과 같은 층이라 함께 내린다.
+ * 내리는 것: **본인이 쓴 문의글**, 보낸 **자료 목록(이름 + 열기 주소)**, 희망 시기.
+ *
+ * ⚠️ 처음엔 자료를 개수만 내렸다가 바꿨다(2026-08-05 PO: *"본인이 보낸 자료가 뭔지도 확인할 수
+ *    있게 해야 하지 않을까?"*). **앞뒤가 안 맞아서다** — 이 링크로 이미 원장님 소견 전문과
+ *    소견서 PDF 가 나간다. 그보다 덜 민감할 것 없는 것들이다. 자기가 보낸 자료만 막을 이유가 없다.
+ *    주소는 다른 서류와 같은 **10분짜리 임시 주소**이고, 이름·연락처·생년월일은 그대로 제외한다.
  */
-function buildIntakeSummary(inq: any) {
+async function buildIntakeSummary(inq: any) {
   let message = "";
   try {
     message = (decryptMaybe(inq.message) || "").trim();
   } catch {
     /* 복호화 실패해도 화면 전체가 죽으면 안 된다 — 문의글만 빠진다 */
   }
-  const attachments = Array.isArray(inq.attachments) ? inq.attachments.length : 0;
-  if (!message && !attachments && !inq.preferred_date && !inq.preferred_date_flex) return null;
+
+  const raw = Array.isArray(inq.attachments) ? inq.attachments : [];
+  let files: { name: string; url: string | null }[] = [];
+  if (raw.length) {
+    try {
+      const paths = raw.map((a: any) => String(a?.path || "")).filter(Boolean);
+      const { data: signed } = await supabaseAdmin.storage
+        .from("attachments")
+        .createSignedUrls(paths, 600);
+      const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+      files = raw.map((a: any) => {
+        const name = String(a?.name || a?.path || "file");
+        return { name, url: withDownloadName(urlByPath.get(String(a?.path || "")), name) };
+      });
+    } catch (err: any) {
+      // 주소를 못 만들어도 «무엇을 보냈는지»는 알려 준다 — 이름만이라도 남긴다.
+      console.error("[inquiries/claim] intake files:", err?.message);
+      files = raw.map((a: any) => ({ name: String(a?.name || "file"), url: null }));
+    }
+  }
+
+  if (!message && !files.length && !inq.preferred_date && !inq.preferred_date_flex) return null;
   return {
     message: message || null,
-    attachmentCount: attachments,
+    files,
     preferredDate: inq.preferred_date || null,
     preferredDateFlex: Boolean(inq.preferred_date_flex),
   };
@@ -388,7 +410,7 @@ export async function GET(request: NextRequest) {
       },
       // 「이 사람 언어」 — 접수 때 받은 값이다(추측 아님). 화면이 처음 열릴 때 이걸로 맞춘다.
       patientLang: inq.preferred_language || null,
-      intake: buildIntakeSummary(inq),
+      intake: await buildIntakeSummary(inq),
       progress: await buildProgress(inq, lang),
       opinions: await buildReleasedOpinions(inq.id),
       documents: await buildSharedDocuments(inq.id),
