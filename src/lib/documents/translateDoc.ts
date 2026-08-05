@@ -135,6 +135,17 @@ function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
     //   PO 가 «대아오르타가 뭐냐»고 잡아냈다. 병기는 괜찮지만 본문은 한국 의료진이 쓰는 말이어야 한다.
     `8. TRANSLATE anatomy and medical terms into the standard ${T} clinical term — do NOT transliterate the sound of the source word. Examples for Korean: аорта → 대동맥 (NOT 아오르타), хорда → 부챙/덧줄 (NOT 삭대), почка → 신장, лоханка → 신우. You may add the source word in parentheses, but the ${T} term must come first and must be the word a ${T} clinician actually uses.`,
     `9. Do not merge two different findings into one phrase. If the source says fluid in the pelvis, say fluid in the pelvis — do not add a body cavity the source did not mention.`,
+    // 실측 2026-08-04: 「Ротация правой почки. Анэхогеное образование левой почки (заболевание?)」에서
+    //   «(заболевание?)» 가 **우측 신장 회전**으로 옮겨 붙었다. 이 환자는 «좌측» 신장암이라 그 물음표가
+    //   어느 소견에 걸리는지가 곧 뜻이다. 붙어 있던 자리를 옮기지 마라.
+    `9-1. KEEP QUALIFIERS WHERE THEY ARE — a parenthetical, a question mark, a "suspected/probable", a size, or a laterality belongs to the finding it sits on in the source. Never move it to a neighbouring sentence, and never merge two sentences so that one sentence's qualifier lands on the other's finding. Translate sentence by sentence, in the source's order.`,
+    // 실측 2026-08-04(문의 #60 신장 초음파): анэхогенное 를 「무음영」으로, солевая инкрустация 를
+    //   「염분 착색」으로 옮겼다. 「음영(그림자)」과 「에코(반사)」는 다른 말이고, 무에코는 임상적으로
+    //   «대개 물이 찬 것»을 뜻해서 뜻이 통째로 달라진다. PO 가 «번역 제대로 한 거 맞아?»로 잡아냈다.
+    `10. ULTRASOUND/IMAGING WORDS — echo is not shadow. Korean: анэхогенный → 무에코 (NOT 무음영), гипоэхогенный → 저에코, гиперэхогенный → 고에코, изоэхогенный → 등에코, акустическая тень → 음향 음영. Deposits: солевая инкрустация → 염류 침착 (NOT 착색), кальцинат → 석회화. Structures: ЧЛС(чашечно-лоханочная система) → 신배-신우계, каликоэктазия → 신배 확장, паренхима → 실질.`,
+    // PO 지시 2026-08-04: 이 번역을 «가장 먼저 읽는 사람»은 의학 지식이 없는 코디네이터다.
+    //   원문을 깎지 말라는 규칙(4·5번)은 그대로 두고, «덧붙이는 것»만 허용한다.
+    `11. PLAIN-WORD GLOSS — the FIRST reader is a coordinator with NO medical training. After a term a layperson cannot parse, ADD a short everyday-${T} gloss in parentheses. Korean examples: 「무에코 병변(초음파에서 검게 비치는 것 — 대개 물이 찬 혹)」, 「수신증(콩팥에 소변이 고여 부은 상태)」, 「신배-신우계(콩팥 안에서 소변이 모이는 공간)」. ⚠️ ADD ONLY — never delete, shorten, or reword the source content to make room. Never invent a term that does not exist in ${T} clinical usage.`,
     glossary ? "" : null,
     glossary ? `GLOSSARY — for these source terms, use EXACTLY this ${T} translation (respect any [note]):` : null,
     glossary || null,
