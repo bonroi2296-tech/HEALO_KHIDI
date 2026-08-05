@@ -142,6 +142,44 @@ export default function ClaimClient({ token }) {
 
   const redirectQS = `?redirect=${encodeURIComponent(`/claim/${token}`)}`;
 
+  /**
+   * 고른 단계에 «속한 것»만 추린다 — **날짜로 가른다.**
+   *
+   * 소견·서류·소식에 「몇 단계 것」이라는 표시를 따로 안 붙인다. 단계가 언제 시작됐는지는
+   * 이력이 이미 알고 있으니(case_status_history), 그 구간 [이 단계 시작, 다음 단계 시작) 안에
+   * 만들어진 것이 그 단계 것이다. 새 칸·새 컬럼이 필요 없고, 코디가 매번 「이건 몇 단계」를
+   * 고를 일도 없다 — 사람 손이 덜 가는 쪽이 안 틀린다.
+   *
+   * 첫 단계는 시작 시각이 없을 수 있다(이력이 없는 옛 문의) → 그때는 «맨 처음부터»로 본다.
+   */
+  const steps = progress?.steps || [];
+  const timeline = progress?.timeline || [];
+  const currentOrder = progress?.currentOrder ?? 0;
+  const [stage, setStage] = useState(null);
+  const selected = stage ?? currentOrder;
+
+  // 단계별 시작 시각 — 그 단계로 «처음» 옮겨간 순간.
+  const stageStart = new Map();
+  for (const h of timeline) {
+    if (h.kind !== "stage" || !h.status) continue;
+    const order = steps.find((s) => s.key === h.status)?.order;
+    if (order != null && !stageStart.has(order)) stageStart.set(order, new Date(h.at).getTime());
+  }
+  const reached = steps.filter((s) => currentOrder >= s.order).map((s) => s.order).sort((a, b) => a - b);
+  const idx = reached.indexOf(selected);
+  const from = idx <= 0 ? 0 : stageStart.get(selected) ?? 0;             // 첫 단계면 맨 처음부터
+  const nextOrder = idx >= 0 && idx < reached.length - 1 ? reached[idx + 1] : null;
+  const to = nextOrder != null ? stageStart.get(nextOrder) ?? Infinity : Infinity;
+  const inStage = (iso) => {
+    const at = new Date(iso).getTime();
+    return Number.isFinite(at) ? at >= from && at < to : true;
+  };
+
+  const stageLabel = steps.find((s) => s.order === selected)?.label || "";
+  const stageOpinions = opinions.filter((o) => inStage(o.at));
+  const stageDocuments = documents.filter((d) => inStage(d.at));
+  const stageTimeline = timeline.filter((h) => inStage(h.at));
+
   if (loading) {
     return (
       <Shell>
@@ -187,11 +225,21 @@ export default function ClaimClient({ token }) {
       </div>
 
       {preview && <SummaryCard preview={preview} lang={lang} />}
-      {progress && <ProgressBar progress={progress} />}
-      {progress && <CurrentStep progress={progress} lang={lang} />}
-      {opinions.length > 0 && <Opinions opinions={opinions} lang={lang} />}
-      {documents.length > 0 && <Documents documents={documents} lang={lang} token={token} />}
-      {progress?.timeline?.length > 0 && <History timeline={progress.timeline} lang={lang} />}
+      {progress && (
+        <ProgressBar progress={progress} selected={selected} onSelect={setStage} lang={lang} />
+      )}
+      {progress && (
+        <CurrentStep progress={progress} lang={lang} selected={selected} selectedLabel={stageLabel} />
+      )}
+      {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
+      {stageDocuments.length > 0 && (
+        <Documents documents={stageDocuments} lang={lang} token={token} />
+      )}
+      {stageTimeline.length > 0 && <History timeline={stageTimeline} lang={lang} />}
+      {/* 지나온 단계인데 그때 받은 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
+      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageTimeline.length === 0 && (
+        <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
+      )}
 
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
@@ -277,13 +325,24 @@ function SummaryCard({ preview, lang }) {
 }
 
 /** 6단계 막대. currentOrder 까지 채운다(보류는 서버가 직전 단계로 세워서 보낸다). */
-function ProgressBar({ progress }) {
+/**
+ * 6단계 막대 — **누를 수 있는 탭 노릇도 한다**(2026-08-05 PO).
+ *
+ * 왜: 치료가 진행되면 비자 서류·치료 자료가 계속 붙어 한 화면 스크롤로는 못 본다. 그렇다고
+ * 칸을 따로 6개 만들면 아직 안 온 단계는 **빈 칸**이 된다 — PO 답: *"빈칸 5개로 만들지 말고
+ * 그 탭은 비활성화 시키면 되지"*. 그래서 **아직 안 온 단계는 흐리게 잠그고**(못 누른다),
+ * 지나온·지금 단계만 눌러서 그때 받은 것만 본다.
+ *
+ * 새 칸을 만들지 않는다 — 이미 있는 막대가 곧 탭이다. 한 줄도 안 늘어난다.
+ */
+function ProgressBar({ progress, selected, onSelect, lang }) {
   const steps = progress.steps || [];
   if (!steps.length) return null;
   return (
     <div className="mt-7 flex items-start">
       {steps.map((s, i) => {
         const done = progress.currentOrder >= s.order;
+        const active = selected === s.order;
         return (
           <div key={s.key} className="flex-1 flex flex-col items-center relative">
             {i > 0 && (
@@ -292,19 +351,30 @@ function ProgressBar({ progress }) {
                 aria-hidden="true"
               />
             )}
-            <span
-              className={`relative z-10 w-[21px] h-[21px] rounded-full border-2 ${
-                done ? "bg-teal-700 border-teal-700" : "bg-white border-gray-300"
-              }`}
-              aria-hidden="true"
-            />
-            <span
-              className={`mt-2 text-[11px] leading-tight text-center px-0.5 ${
-                done ? "text-teal-700 font-semibold" : "text-gray-400"
+            <button
+              type="button"
+              onClick={() => done && onSelect(s.order)}
+              disabled={!done}
+              aria-current={active ? "step" : undefined}
+              title={done ? s.label : t("claimPage.stageLocked", lang)}
+              className={`z-10 flex flex-col items-center ${
+                done ? "cursor-pointer" : "cursor-not-allowed opacity-60"
               }`}
             >
-              {s.label}
-            </span>
+              <span
+                className={`relative z-10 block h-[21px] w-[21px] rounded-full border-2 ${
+                  done ? "bg-teal-700 border-teal-700" : "bg-white border-gray-300"
+                } ${active ? "ring-2 ring-teal-300 ring-offset-2" : ""}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`mt-2 px-0.5 text-center text-[11px] leading-tight ${
+                  active ? "text-teal-800 font-extrabold underline" : done ? "text-teal-700 font-semibold" : "text-gray-500"
+                }`}
+              >
+                {s.label}
+              </span>
+            </button>
           </div>
         );
       })}
@@ -312,18 +382,27 @@ function ProgressBar({ progress }) {
   );
 }
 
-function CurrentStep({ progress, lang }) {
+/**
+ * 고른 단계의 머리말. **지금 단계를 고르면** 「다음은요」 안내까지 같이 보이고,
+ * 지나온 단계를 고르면 그 단계 이름만 — 지난 일에 「다음은요」를 붙이면 지금 할 일로 오해한다.
+ */
+function CurrentStep({ progress, lang, selected, selectedLabel }) {
   if (!progress.caseStatus) {
     return <p className="mt-8 text-sm text-gray-500 leading-relaxed">{t("claimPage.notStarted", lang)}</p>;
   }
+  const isNow = selected === progress.currentOrder;
   return (
     <div className="mt-8">
-      <p className="text-xs font-bold text-gray-400">{t("claimPage.currentStepLabel", lang)}</p>
-      <h2 className="text-lg font-extrabold text-gray-900 mt-1">{progress.caseStatusLabel}</h2>
-      {progress.caseStatusNote && (
+      <p className="text-xs font-bold text-gray-400">
+        {isNow ? t("claimPage.currentStepLabel", lang) : t("claimPage.pastStepLabel", lang)}
+      </p>
+      <h2 className="text-lg font-extrabold text-gray-900 mt-1">
+        {isNow ? progress.caseStatusLabel : selectedLabel}
+      </h2>
+      {isNow && progress.caseStatusNote && (
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">{progress.caseStatusNote}</p>
       )}
-      {progress.nextStep && (
+      {isNow && progress.nextStep && (
         <div className="mt-4 bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
           <p className="text-xs font-bold text-teal-800">{t("claimPage.nextLabel", lang)}</p>
           <p className="text-sm text-teal-800 mt-1 leading-relaxed flex items-start gap-1.5">
