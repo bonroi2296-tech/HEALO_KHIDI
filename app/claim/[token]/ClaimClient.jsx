@@ -17,9 +17,44 @@ import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Download, Pri
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { t } from "@/lib/i18n";
+import { t, isKnownLangCode } from "@/lib/i18n";
+import { DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
 
 const supabase = createSupabaseBrowserClient();
+
+/**
+ * 이 화면을 «무슨 언어로 그릴까» — 위에서부터 걸리는 첫 칸 (2026-08-05 PO 질문에 대한 답).
+ *
+ *   1. 그 사람이 화면에서 고른 언어(healo_lang 쿠키)  ← 사람이 고른 건 무조건 이긴다
+ *   2. 문의서에 적힌 환자 언어(preferred_language)     ← 접수 때 «받은» 값이지 추측이 아니다
+ *   3. 브라우저 언어 → 4. 영어                          ← 그건 기존 LangContext 가 이미 한다
+ *
+ * 국적으로 추측하지 않는다: 카자흐스탄이라고 다 러시아어를 읽지 않고, 반대도 있다.
+ * 틀리면 「내가 못 읽는 언어」가 뜬다 — 그 대가가 영어로 한 번 뜨는 것보다 크다.
+ *
+ * 쿠키를 심고 새로 그린다(사이트 전체가 그 언어가 된다). 왓츠앱으로 링크를 받은 사람에게는
+ * 그게 맞다 — 다른 화면으로 넘어가도 계속 자기 언어다. 바꾸고 싶으면 위 언어 단추로 바꾼다.
+ */
+function applyPatientLang(patientLang, current) {
+  if (typeof document === "undefined" || !patientLang) return;
+  if (!isKnownLangCode(patientLang)) return;
+  if (patientLang === current) return;
+
+  // ⚠️ healo_lang 쿠키가 «있다»는 걸 「사람이 골랐다」로 읽으면 안 된다 — proxy.ts 가 이 화면에
+  //    들어올 때 브라우저 언어로 미리 심어 두기 때문이다. 사람이 고른 건 healo_lang_pick 로만 안다.
+  if (document.cookie.includes("healo_lang_pick=")) return;
+
+  // 한 번만 바꾼다. 혹시 다른 데서 쿠키를 되돌리더라도 새로고침이 무한히 돌지 않게.
+  try {
+    if (sessionStorage.getItem("claimLangApplied") === patientLang) return;
+    sessionStorage.setItem("claimLangApplied", patientLang);
+  } catch {
+    /* 시크릿 모드 등에서 sessionStorage 가 막혀도 아래는 그대로 진행 */
+  }
+
+  document.cookie = `healo_lang=${patientLang}; path=/; max-age=31536000`;
+  window.location.reload();
+}
 
 export default function ClaimClient({ token }) {
   const lang = useLang();
@@ -55,6 +90,7 @@ export default function ClaimClient({ token }) {
           setProgress(data.progress || null);
           setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
+          applyPatientLang(data.patientLang, lang);
         }
       } catch {
         if (alive) setError("network");
@@ -467,52 +503,86 @@ function DocStyles() {
  */
 function Documents({ documents, lang, token }) {
   const [openId, setOpenId] = useState(null);
+  const [showOther, setShowOther] = useState(false);
+
+  // 내 언어 것 + 언어를 안 정한 것을 위에, 다른 언어는 접어 둔다.
+  // **숨기지는 않는다** — 러시아어 화면을 보는 가족이 카자흐어 사본을 어르신께 보여줄 수 있다.
+  const matched = documents.filter((d) => !d.lang || d.lang === lang);
+  // ⚠️ 내 언어 서류가 하나도 없으면 접지 않는다. 안 그러면 목록이 텅 비고 「다른 언어」 단추만
+  //    남아, 서류가 있는데도 «아무것도 안 왔다»로 보인다(2026-08-05 한국어 화면에서 실제로 그랬다).
+  const foldOthers = matched.length > 0;
+  const mine = foldOthers ? matched : documents;
+  const other = foldOthers ? documents.filter((d) => d.lang && d.lang !== lang) : [];
+
+  const row = (d) => (
+    <li key={d.id} className={`overflow-hidden ${openId === d.id ? "bg-teal-50/70" : ""}`}>
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <FileText size={16} className="shrink-0 text-teal-700" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <span className="block break-words text-sm font-semibold text-gray-900">{d.name}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+            {d.lang && <span className="font-medium text-teal-800">{DOC_LANG_LABEL[d.lang] || d.lang}</span>}
+            {d.at && <span>{new Date(d.at).toLocaleDateString()}</span>}
+            {d.note && <span className="basis-full text-gray-500">{d.note}</span>}
+          </span>
+        </div>
+        <div className="no-print flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setOpenId(openId === d.id ? null : d.id)}
+            className="inline-flex items-center gap-1 rounded-lg bg-teal-700 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-teal-800"
+          >
+            <Eye size={13} aria-hidden="true" />
+            {openId === d.id ? t("claimPage.documentsClose", lang) : t("claimPage.documentsView", lang)}
+          </button>
+          {d.url && (
+            <a
+              href={d.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t("claimPage.documentsDownload", lang)}
+              className="inline-flex items-center rounded-lg border border-teal-300 bg-white p-1.5 text-teal-700 hover:bg-teal-50"
+            >
+              <Download size={14} aria-hidden="true" />
+              <span className="sr-only">{t("claimPage.documentsDownload", lang)}</span>
+            </a>
+          )}
+        </div>
+      </div>
+      {openId === d.id && <DocumentPreview doc={d} token={token} lang={lang} />}
+    </li>
+  );
 
   return (
     <div className="mt-8">
       <p className="text-xs font-bold text-gray-400">{t("claimPage.documentsTitle", lang)}</p>
-      <ul className="mt-3 space-y-2">
-        {documents.map((d) => (
-          <li key={d.id} className="rounded-xl border border-teal-200 bg-teal-50/70">
-            <div className="flex items-start gap-3 px-4 py-3">
-              <FileText size={18} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <span className="block break-words text-sm font-semibold text-gray-900">{d.name}</span>
-                {d.note && <span className="block text-xs text-gray-500 mt-0.5">{d.note}</span>}
-                {d.at && (
-                  <span className="block text-xs text-gray-500 mt-0.5">
-                    {new Date(d.at).toLocaleDateString()}
-                  </span>
-                )}
-                <div className="no-print mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(openId === d.id ? null : d.id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800"
-                  >
-                    <Eye size={13} aria-hidden="true" />
-                    {openId === d.id ? t("claimPage.documentsClose", lang) : t("claimPage.documentsView", lang)}
-                  </button>
-                  {d.url && (
-                    <a
-                      href={d.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-50"
-                    >
-                      <Download size={13} aria-hidden="true" />
-                      {t("claimPage.documentsDownload", lang)}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-            {openId === d.id && (
-              <DocumentPreview doc={d} token={token} lang={lang} />
-            )}
-          </li>
-        ))}
+
+      <ul className="mt-3 divide-y divide-teal-100 overflow-hidden rounded-xl border border-teal-200">
+        {mine.map(row)}
       </ul>
+
+      {other.length > 0 && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setShowOther((v) => !v)}
+            className="no-print inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:underline"
+          >
+            <ArrowRight
+              size={12}
+              className={`transition-transform ${showOther ? "rotate-90" : ""}`}
+              aria-hidden="true"
+            />
+            {t("claimPage.documentsOtherLangs", lang)} ({other.length})
+          </button>
+          {showOther && (
+            <ul className="mt-2 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
+              {other.map(row)}
+            </ul>
+          )}
+        </div>
+      )}
+
       <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.documentsHint", lang)}</p>
     </div>
   );

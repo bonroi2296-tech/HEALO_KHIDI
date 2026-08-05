@@ -21,6 +21,7 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
+import { DOC_LANGS, guessDocLang } from "@/lib/documents/sharedDocMeta";
 
 // ponytail: 새 표라 생성된 타입(src/types/database.types.ts)에 아직 없다 → `supabaseAdmin as any`.
 //   5,300줄짜리 타입 파일을 통째로 다시 뽑으면 병렬 세션과 충돌한다. 옆 파일들(claim·opinions)도
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   try {
     const { data, error } = await (supabaseAdmin as any)
       .from("case_shared_documents")
-      .select("id, file_name, storage_path, mime, size_bytes, note, visible_to_patient, shared_at, created_at")
+      .select("id, file_name, title, lang, storage_path, mime, size_bytes, note, visible_to_patient, shared_at, created_at")
       .eq("inquiry_id", id)
       .order("created_at", { ascending: false });
     if (error) throw error;
@@ -73,6 +74,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       documents: rows.map((r: any) => ({
         id: r.id,
         name: r.file_name,
+        title: r.title,
+        lang: r.lang,
         mime: r.mime,
         size: r.size_bytes,
         note: r.note,
@@ -153,6 +156,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         mime: type,
         size_bytes: verified.size,
         note: String(body.note || "").slice(0, 200) || null,
+        // 파일명에서 알아맞힌 «초깃값». 틀리면 코디가 화면에서 고친다.
+        lang: guessDocLang(String(body.name || path)),
         uploaded_by: auth.userId,
       })
       .select("id, file_name, visible_to_patient")
@@ -182,15 +187,30 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   try {
     const body = await request.json();
     const docId = String(body.docId || "");
-    const visible = Boolean(body.visible);
     if (!docId) return Response.json({ ok: false, error: "doc_required" }, { status: 400 });
+
+    // 보이기 토글과 이름·언어 수정이 같은 창구를 쓴다. **보낸 칸만** 바꾼다 —
+    // 이름만 고치려는 요청이 「보이기」를 조용히 꺼 버리면 안 된다.
+    const patch: Record<string, unknown> = {};
+    if (typeof body.visible === "boolean") {
+      patch.visible_to_patient = body.visible;
+      patch.shared_at = body.visible ? new Date().toISOString() : null;
+    }
+    if (typeof body.title === "string") patch.title = body.title.trim().slice(0, 120) || null;
+    if ("lang" in body) {
+      const l = String(body.lang || "");
+      patch.lang = (DOC_LANGS as readonly string[]).includes(l) ? l : null;
+    }
+    if (!Object.keys(patch).length) {
+      return Response.json({ ok: false, error: "nothing_to_update" }, { status: 400 });
+    }
 
     const { data, error } = await (supabaseAdmin as any)
       .from("case_shared_documents")
-      .update({ visible_to_patient: visible, shared_at: visible ? new Date().toISOString() : null })
+      .update(patch)
       .eq("id", docId)
       .eq("inquiry_id", id) // 다른 문의의 서류를 남의 문의에서 못 건드리게
-      .select("id, visible_to_patient, shared_at")
+      .select("id, title, lang, visible_to_patient, shared_at")
       .maybeSingle();
     if (error) throw error;
     if (!data) return Response.json({ ok: false, error: "not_found" }, { status: 404 });

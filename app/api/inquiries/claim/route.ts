@@ -40,6 +40,7 @@ import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khid
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { t } from "@/lib/i18n";
+import { docDisplayTitle } from "@/lib/documents/sharedDocMeta";
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "inquiry_claim_view" };
 const CLAIM_RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "inquiry_claim" };
@@ -191,7 +192,7 @@ async function buildSharedDocuments(inquiryId: number) {
   try {
     const { data, error } = await (supabaseAdmin as any)
       .from("case_shared_documents")
-      .select("id, file_name, note, shared_at, storage_path")
+      .select("id, file_name, title, lang, note, shared_at, storage_path")
       .eq("inquiry_id", inquiryId)
       .eq("visible_to_patient", true)
       .order("shared_at", { ascending: false });
@@ -206,7 +207,12 @@ async function buildSharedDocuments(inquiryId: number) {
 
     return data.map((d: any) => ({
       id: d.id,
-      name: d.file_name,
+      // 화면에 뜨는 이름 — 코디가 붙인 게 있으면 그것, 없으면 파일명(확장자만 뗀다).
+      // 파일명이 `SECOND OPINION_RU_AMANOV_TULEGEN.docx` 인 채로 뜨면 환자가 뭘 눌러야 할지 모른다.
+      name: docDisplayTitle(d.title, d.file_name),
+      fileName: d.file_name,
+      // 언어 — 화면이 «내 언어 것을 위로» 올리고 나머지는 접는 데 쓴다(숨기지는 않는다).
+      lang: d.lang || null,
       note: d.note || null,
       at: d.shared_at,
       url: urlByPath.get(d.storage_path) ?? null,
@@ -281,6 +287,8 @@ export async function GET(request: NextRequest) {
         agencyName: (inq as any).agencies?.name || null,
         createdAt: inq.created_at || null,
       },
+      // 「이 사람 언어」 — 접수 때 받은 값이다(추측 아님). 화면이 처음 열릴 때 이걸로 맞춘다.
+      patientLang: inq.preferred_language || null,
       progress: await buildProgress(inq, lang),
       opinions: await buildReleasedOpinions(inq.id),
       documents: await buildSharedDocuments(inq.id),
