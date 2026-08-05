@@ -345,6 +345,62 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         description: `${captionText} (ko 화자 → ru 청취자, 합성음 STT)`,
       });
 
+      // ── 자막이 «제대로» 떴는가 ──────────────────────────────────────────────
+      // 왜 새로 붙였나 (2026-08-04): 여태 이 검사는 «자막이 뜬다»까지만 봤다. 그런데 PO 가
+      //   실회의 화면을 보고 찾은 7건 중 **셋은 로그에 흔적이 0** 이었다 —
+      //     ③ 내 언어가 아닌 자막이 화면에 뜬다  ④ 스크롤이 저절로 위로 간다  ⑦ 이름표가 안 보인다
+      //   로그를 백 번 파도 못 찾는 것들이고, 실제로 못 찾았다. 그래서 «뜬다»가 아니라
+      //   «제대로 뜬다»를 로봇이 보게 한다 — 이 셋이 회귀하면 다음 날 아침에 잡힌다.
+      // ⚠️ 하드 실패로 걸지 않는다(위 자막 관측과 같은 이유 — 합성음 인식률이 미검증이라
+      //    첫날부터 expect 로 올리면 «앱은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 된다).
+      //    기록으로 남겨 «언제부터 나빠졌는지»를 되짚을 수 있게 한다.
+      const screenChecks: string[] = [];
+      if (botPresent && captionText.startsWith("자막 뜸")) {
+        // (1) 이름표 — 자막 줄 앞에 «이름 · 언어» 라벨이 붙는가.
+        //     이름이 비면 코드가 언어만 찍는다(page.jsx: `rs.name ? name + " · " : ""`).
+        const labels = await robotB
+          .locator('[data-testid="subtitle-text"]')
+          .locator("xpath=preceding-sibling::span[1]")
+          .allInnerTexts()
+          .catch(() => [] as string[]);
+        const withName = labels.filter((t) => t.includes("·")).length;
+        screenChecks.push(`이름표 ${withName}/${labels.length}줄`);
+
+        // (2) 내 언어가 아닌 자막이 섞였는가 — 로봇B 는 러시아어 사용자다.
+        //     한글이 섞여 있으면 «남에게 갈 번역»이 내 화면에 뜬 것(제보 ③).
+        const texts = await robotB
+          .getByTestId("subtitle-text")
+          .allInnerTexts()
+          .catch(() => [] as string[]);
+        const foreign = texts.filter((t) => /[가-힣]{2,}/.test(t)).length;
+        screenChecks.push(`남의 언어 섞임 ${foreign}/${texts.length}줄`);
+
+        // (3) 자막 기록이 바닥을 따라가는가 — 스크롤 상자와 바닥의 거리를 잰다.
+        //     120px 안이면 «따라가는 중»(useStickToBottom 의 shouldFollow 와 같은 기준).
+        const gap = await robotB
+          .evaluate(() => {
+            const boxes = Array.from(document.querySelectorAll("div")).filter(
+              (el) => el.scrollHeight > el.clientHeight + 40
+            );
+            if (!boxes.length) return -1;
+            const el = boxes[boxes.length - 1] as HTMLElement;
+            return el.scrollHeight - el.scrollTop - el.clientHeight;
+          })
+          .catch(() => -1);
+        screenChecks.push(gap < 0 ? "스크롤 상자 못 찾음" : `바닥까지 ${Math.round(gap)}px`);
+      }
+      const screenReport = screenChecks.length
+        ? screenChecks.join(" · ")
+        : "(자막을 못 봐 검사 생략)";
+      console.log(`[robot-call] 자막 «제대로» 검사 = ${screenReport}`);
+      test.info().annotations.push({ type: "caption-quality", description: screenReport });
+
+      // 화면 사진 — 사람이 «눈으로» 볼 수 있는 유일한 증거. 실패해도 남는다.
+      // 이게 없어서 2026-08-03~04 내내 로그만 보고 «고쳤다»고 말했다.
+      await robotB
+        .screenshot({ path: "test-results/robot-call-subtitle.png" })
+        .catch(() => {});
+
       // 끄면 나가는가 — PO 요구사항의 나머지 절반(2026-07-28). 봇이 들어온 경우에만 의미.
       let botLeft: boolean | null = null;
       if (botPresent) {
