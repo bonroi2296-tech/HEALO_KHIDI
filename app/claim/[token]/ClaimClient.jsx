@@ -30,6 +30,7 @@ export default function ClaimClient({ token }) {
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const [preview, setPreview] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [opinions, setOpinions] = useState([]);
   const [documents, setDocuments] = useState([]);
 
   const [session, setSession] = useState(undefined); // undefined=확인중, null=비로그인
@@ -52,6 +53,7 @@ export default function ClaimClient({ token }) {
           setAlreadyClaimed(Boolean(data.alreadyClaimed));
           setPreview(data.preview || null);
           setProgress(data.progress || null);
+          setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
         }
       } catch {
@@ -148,6 +150,7 @@ export default function ClaimClient({ token }) {
       {preview && <SummaryCard preview={preview} lang={lang} />}
       {progress && <ProgressBar progress={progress} />}
       {progress && <CurrentStep progress={progress} lang={lang} />}
+      {opinions.length > 0 && <Opinions opinions={opinions} lang={lang} />}
       {documents.length > 0 && <Documents documents={documents} lang={lang} />}
       {progress?.timeline?.length > 0 && <History timeline={progress.timeline} lang={lang} />}
 
@@ -250,6 +253,40 @@ function CurrentStep({ progress, lang }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * 원장님 소견 — 코디가 「공개」를 누른 확정본을 **글 그대로** 보여준다.
+ *
+ * 왜 글인가: 소견을 줄 때마다 문서 만들고 도장 받는 건 매번 못 한다(2026-08-05 PO). 확정본은
+ * 이미 환자 언어로 교정돼 있으니 그대로 읽히면 된다. 도장 찍힌 종이는 환자가 다른 병원·보험사·
+ * 비자에 낼 때만 필요하고, 그건 아래 「받은 서류」가 맡는다.
+ *
+ * 줄바꿈을 살린다(whitespace-pre-wrap) — 원장님이 항목으로 나눠 쓴 글이라 한 덩어리로 뭉치면
+ * 읽기가 훅 나빠진다. 안내 한 줄은 밑에 둔다: 이건 자문이지 담당의 처방을 대신하지 않는다.
+ */
+function Opinions({ opinions, lang }) {
+  return (
+    <div className="mt-8">
+      <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
+      <div className="mt-3 space-y-3">
+        {opinions.map((o) => (
+          <div key={o.id} className="rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-3.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              {o.doctor && <span className="text-sm font-bold text-gray-900">{o.doctor}</span>}
+              {o.at && (
+                <span className="text-xs text-gray-500">{new Date(o.at).toLocaleDateString()}</span>
+              )}
+            </div>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">
+              {o.text}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.opinionsHint", lang)}</p>
     </div>
   );
 }

@@ -331,6 +331,9 @@ function OpinionItem({ opinion, patientLang }) {
 
   const publish = async () => {
     if (!draft.trim()) return;
+    // 「공개」의 대상에 **환자 본인**이 들어가면서(2026-08-05) 되돌리기 어려운 무게가 생겼다 —
+    // 「4기·다발 전이」 같은 문장을 환자가 링크에서 바로 읽는다. 누르기 전에 한 번 알린다.
+    if (!window.confirm(L.soPublishConfirm)) return;
     setReleasing(true);
     try {
       const res = await authFetch(`/api/coordinator/opinions/${opinion.id}`, {
@@ -399,10 +402,11 @@ function OpinionItem({ opinion, patientLang }) {
         </div>
       )}
 
-      {/* 에이전시 공개 — 접수 시점에 AI 초벌 번역(환자 언어) → 코디 교정 → 공개해야만 노출 */}
+      {/* 공개 — 접수 시점에 AI 초벌 번역(환자 언어) → 코디 교정 → 공개해야만 노출.
+          2026-08-05 부터 대상이 «에이전시 + 환자 본인»이다(환자 진행상황 링크에 글로 뜬다). */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
         <p className="text-[11px] text-blue-700 mb-1.5">
-          에이전시에 보낼 확정본
+          환자·에이전시에 보낼 확정본
           {preTranslated ? L.soPublishAuto : L.soPublishManual}
         </p>
         <textarea

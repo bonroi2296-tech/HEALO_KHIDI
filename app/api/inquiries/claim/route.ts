@@ -21,6 +21,9 @@
  *   환자에게 «보내려고» 만든 것(소견서·사전상담 정리본)이라 안 내리면 전달할 길이 없다.
  *   올린다고 자동으로 나가지 않는다 — 코디가 한 건씩 켠 것만, 10분짜리 임시 주소로 나간다.
  *   (2026-08-05 문의 #60: 소견서를 만들어 놓고도 환자에게 줄 통로가 없어 막혀 있었다.)
+ * - 또 하나의 예외: **코디가 「공개」를 누른 소견 확정본**(case_opinions.released_text) — 글 그대로.
+ *   원장님 한국어 원문은 여전히 안 내린다. 평소엔 이 «글»이 전달 수단이고, 도장 찍힌 서류는
+ *   환자가 다른 기관에 낼 때만 만든다(2026-08-05 PO 결정 — 매번 문서·도장은 못 한다).
  * - 공개 GET은 rate limit. 에러는 internal_error 형만(원인 문자열 미노출).
  */
 export const runtime = "nodejs";
@@ -32,7 +35,7 @@ import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { resolveTier } from "@/lib/auth/accountTiers";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
-import { decryptAuto } from "@/lib/security/encryptionV2";
+import { decryptAuto, decryptMaybe } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khidi/caseStatus";
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
@@ -134,6 +137,45 @@ async function buildProgress(inq: any, lang: string) {
       at: h.created_at,
     })),
   };
+}
+
+/**
+ * 원장님 소견 — **코디가 「공개」를 누른 확정본만, 글 그대로.**
+ *
+ * 왜 서류(PDF)가 아니라 글인가 (2026-08-05 PO 결정): 소견을 줄 때마다 문서를 만들고 도장을 받는
+ * 건 매번 못 한다. 확정본은 이미 DB 에 있고(코디가 환자 언어로 교정한 released_text) 「공개」
+ * 단추도 이미 있다 — 그동안 그 공개본이 **에이전시 화면에만** 갔을 뿐이다. 같은 글을 환자
+ * 화면에도 흘리면 평소 경로에서 종이가 사라진다. 도장 찍힌 PDF 는 환자가 **다른 병원·보험사·
+ * 비자**에 낼 때만 필요하고, 그건 아래 서류함(case_shared_documents)이 맡는다.
+ *
+ * 내리는 건 released_text «만»이다 — 원장님 한국어 원문(opinion_text)은 내부용이라 안 내린다.
+ */
+async function buildReleasedOpinions(inquiryId: number) {
+  try {
+    const { data, error } = await (supabaseAdmin as any)
+      .from("case_opinions")
+      .select("id, doctor_name, attribution_note, released_text, released_at")
+      .eq("inquiry_id", inquiryId)
+      .not("released_at", "is", null)
+      .order("released_at", { ascending: false });
+    if (error || !data?.length) return [];
+
+    // ⚠️ case_opinions 는 **평문 저장**이다(암호화 컬럼이 아니다 — 2026-08-05 실측으로 확인).
+    //    그래서 decryptAuto 를 쓰면 안 된다: 평문을 「옛 RPC 암호문」으로 오인해 복호화를 시도하고
+    //    실패해 목록이 통째로 비어 버린다(실제로 그렇게 0건이 나왔다). decryptMaybe 는 암호문이면
+    //    풀고 평문이면 그대로 돌려주므로 나중에 이 컬럼이 암호화돼도 이 코드는 안 바뀐다.
+    return data
+      .map((o: any) => ({
+        id: o.id,
+        doctor: o.attribution_note || o.doctor_name || null,
+        text: decryptMaybe(o.released_text) || "",
+        at: o.released_at,
+      }))
+      .filter((o: any) => o.text.trim());
+  } catch (err: any) {
+    console.error("[inquiries/claim] released opinions:", err?.message);
+    return [];
+  }
 }
 
 /**
@@ -240,6 +282,7 @@ export async function GET(request: NextRequest) {
         createdAt: inq.created_at || null,
       },
       progress: await buildProgress(inq, lang),
+      opinions: await buildReleasedOpinions(inq.id),
       documents: await buildSharedDocuments(inq.id),
     });
   } catch (err: any) {
