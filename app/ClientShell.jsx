@@ -226,6 +226,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
   useEffect(() => {
     // 환자 포털은 portal 크롬은 쓰되 10분 자동 로그아웃은 제외 — 환자가 콘텐츠 읽는 중 끊기지 않게
     if (!isPortalPage || pathname.startsWith("/patient") || !session) return;
+    // 내 컴퓨터(개발 서버)에서는 끈다 — 화면을 띄워 두고 코드를 고치는 동안 10분마다 튕겨
+    // 매번 다시 로그인해야 했다(2026-08-05 PO). **실서비스는 그대로 10분이다** —
+    // NODE_ENV 는 빌드 때 값이 박히므로 실서비스 묶음에는 이 분기 자체가 안 들어간다.
+    if (process.env.NODE_ENV !== "production") return;
 
     lastActivityRef.current = Date.now();
     warningShownRef.current = false;
