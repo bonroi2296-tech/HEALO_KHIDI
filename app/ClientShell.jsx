@@ -26,6 +26,8 @@ import CookieConsent from "@/components/CookieConsent";
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
 import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode, event, GA_EVENTS } from "@/lib/ga";
 import { captureArrival } from "@/lib/inquiry/arrival";
+import { isNativeApp } from "@/lib/isNativeApp";
+import { shouldRunIdleLogout, IDLE_LIMIT_MS, IDLE_WARNING_MS } from "@/lib/auth/idleLogoutPolicy";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -109,6 +111,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
   useEffect(() => {
     import("@/lib/app/hideSplash")
       .then((m) => m.hideSplashWhenReady())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
+    // 안드로이드 하드웨어 「뒤로」 — 안 받으면 앞 화면이 아니라 앱이 꺼진다(2026-08-04 흉내기 실측).
+    import("@/lib/app/androidBackButton")
+      .then((m) => m.registerAndroidBackButton())
       .catch(() => { /* 네이티브 아님 → 무시 */ });
   }, []);
 
@@ -205,9 +211,9 @@ export default function ClientShell({ children, initialLang = "en" }) {
     pathname.startsWith("/clinic") ||
     pathname.startsWith("/patient");
 
-  // --- Idle timeout (portal pages only, 10 min) ---
-  const IDLE_LIMIT_MS = 10 * 60 * 1000;
-  const WARNING_MS = 9 * 60 * 1000;
+  // --- 무활동 자동 로그아웃 (포털 전용) ---
+  // ⚠️ 「어디서 돌리고 얼마나 기다릴지」는 @/lib/auth/idleLogoutPolicy 한 곳에서 정한다.
+  //    2026-08-04 PO 결정으로 기기별로 갈렸다(스토어 앱은 안 돌린다) — 이유는 그 파일 주석에.
   const CHECK_INTERVAL_MS = 30 * 1000;
   const THROTTLE_MS = 1000;
 
@@ -224,8 +230,8 @@ export default function ClientShell({ children, initialLang = "en" }) {
   }, []);
 
   useEffect(() => {
-    // 환자 포털은 portal 크롬은 쓰되 10분 자동 로그아웃은 제외 — 환자가 콘텐츠 읽는 중 끊기지 않게
-    if (!isPortalPage || pathname.startsWith("/patient") || !session) return;
+    // ⚠️ isNativeApp() 은 브라우저에서만 참값이 나온다(서버 렌더 중엔 항상 false) → 반드시 이펙트 안에서.
+    if (!shouldRunIdleLogout({ isPortalPage, pathname, hasSession: !!session, isNativeApp: isNativeApp() })) return;
 
     lastActivityRef.current = Date.now();
     warningShownRef.current = false;
@@ -233,18 +239,33 @@ export default function ClientShell({ children, initialLang = "en" }) {
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
     events.forEach((e) => window.addEventListener(e, resetActivity, { passive: true }));
 
+    // 창이 뒤에 있다가 «다시 보이는» 순간은 「자리를 비웠다」가 아니다 — 숨어 있는 동안엔
+    // 훔쳐볼 화면 자체가 없다. 이걸 안 재우면 탭 전환·전화 한 통 뒤 돌아오는 순간
+    // 그동안 쌓인 시간이 한꺼번에 판정돼 즉시 끊긴다(브라우저가 숨은 탭의 타이머를 늦추기 때문).
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      lastActivityRef.current = Date.now();
+      warningShownRef.current = false;
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    const stopListening = () => {
+      events.forEach((e) => window.removeEventListener(e, resetActivity));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+
     const timer = setInterval(() => {
       const idle = Date.now() - lastActivityRef.current;
       if (idle >= IDLE_LIMIT_MS) {
         clearInterval(timer);
-        events.forEach((e) => window.removeEventListener(e, resetActivity));
+        stopListening();
         loadSupabase().then((supabaseClient) => supabaseClient.auth.signOut()).then(() => {
           toast.error(t("auth.autoLogoutSecurity", getLangCodeFromCookie()));
           router.push("/login");
         });
         return;
       }
-      if (idle >= WARNING_MS && !warningShownRef.current) {
+      if (idle >= IDLE_WARNING_MS && !warningShownRef.current) {
         warningShownRef.current = true;
         toast.warning(t("auth.autoLogoutWarning", getLangCodeFromCookie()));
       }
@@ -252,7 +273,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
     return () => {
       clearInterval(timer);
-      events.forEach((e) => window.removeEventListener(e, resetActivity));
+      stopListening();
     };
   }, [isPortalPage, pathname, session, resetActivity, router, toast]);
 

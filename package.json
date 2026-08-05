@@ -76,6 +76,7 @@
     "@ai-sdk/google": "^3.0.64",
     "@aws-sdk/client-ses": "^3.999.0",
     "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
