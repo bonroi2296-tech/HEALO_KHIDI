@@ -546,16 +546,6 @@ function DocStyles() {
  */
 function Documents({ documents, lang, token }) {
   const [openId, setOpenId] = useState(null);
-  const [showOther, setShowOther] = useState(false);
-
-  // 내 언어 것 + 언어를 안 정한 것을 위에, 다른 언어는 접어 둔다.
-  // **숨기지는 않는다** — 러시아어 화면을 보는 가족이 카자흐어 사본을 어르신께 보여줄 수 있다.
-  const matched = documents.filter((d) => !d.lang || d.lang === lang);
-  // ⚠️ 내 언어 서류가 하나도 없으면 접지 않는다. 안 그러면 목록이 텅 비고 「다른 언어」 단추만
-  //    남아, 서류가 있는데도 «아무것도 안 왔다»로 보인다(2026-08-05 한국어 화면에서 실제로 그랬다).
-  const foldOthers = matched.length > 0;
-  const mine = foldOthers ? matched : documents;
-  const other = foldOthers ? documents.filter((d) => d.lang && d.lang !== lang) : [];
 
   const row = (d) => (
     <li key={d.id} className={`overflow-hidden ${openId === d.id ? "bg-teal-50/70" : ""}`}>
@@ -589,31 +579,13 @@ function Documents({ documents, lang, token }) {
     <div className="mt-8">
       <p className="text-xs font-bold text-gray-400">{t("claimPage.documentsTitle", lang)}</p>
 
+      {/* 언어가 달라도 **한 목록에 다 보인다**(2026-08-05 PO): 예전엔 「내 언어 것」만 펴고
+          나머지를 「다른 언어로 된 서류(n)」로 접었는데, 그러면 **어느 언어로 열었느냐에 따라
+          화면이 달라 보인다**. 러시아어 화면엔 접힘 단추가 있고 한국어 화면엔 없는 식이라
+          «왜 다르냐»가 된다. 어느 언어든 같은 화면 — 어느 언어 서류인지는 배지로 안다. */}
       <ul className="mt-3 divide-y divide-teal-100 overflow-hidden rounded-xl border border-teal-200">
-        {mine.map(row)}
+        {documents.map(row)}
       </ul>
-
-      {other.length > 0 && (
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={() => setShowOther((v) => !v)}
-            className="no-print inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:underline"
-          >
-            <ArrowRight
-              size={12}
-              className={`transition-transform ${showOther ? "rotate-90" : ""}`}
-              aria-hidden="true"
-            />
-            {t("claimPage.documentsOtherLangs", lang)} ({other.length})
-          </button>
-          {showOther && (
-            <ul className="mt-2 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
-              {other.map(row)}
-            </ul>
-          )}
-        </div>
-      )}
 
       <p className="text-xs text-gray-400 mt-2.5">{t("claimPage.documentsHint", lang)}</p>
     </div>
