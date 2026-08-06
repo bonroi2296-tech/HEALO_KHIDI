@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Run chat smoke test
         env:
           # 점검 대상(미설정 시 스크립트 기본값 https://healo-khidi.vercel.app)

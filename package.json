@@ -94,7 +94,7 @@
     "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.90.1",
+    "@supabase/supabase-js": "^2.112.1",
     "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.168",
     "axios": "^1.7.9",
