@@ -707,6 +707,7 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
               onClick={() => done && onSelect(s.order)}
               disabled={!done}
               aria-current={active ? "step" : undefined}
+              aria-label={done ? s.label : `${s.label} — ${t("claimPage.stageLocked", lang)}`}
               title={done ? s.label : t("claimPage.stageLocked", lang)}
               className={`z-10 flex w-full min-w-0 flex-col items-center ${
                 done ? "cursor-pointer" : "cursor-not-allowed opacity-60"
@@ -718,8 +719,12 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
                 } ${active ? "ring-2 ring-teal-300 ring-offset-2" : ""}`}
                 aria-hidden="true"
               />
+              {/* 폰에서는 이름을 숨긴다. 좁은 칸에 러시아어를 넣으면 「Консульт/ация и/рассмот/
+                  рение」처럼 **단어 중간이 잘려 읽히지 않는다**(2026-08-06 안드로이드 흉내기 실측).
+                  숨겨도 잃는 게 없다 — 고른 단계 이름은 바로 아래에 크게 뜨고, 각 점에는
+                  title·aria-label 이 그대로 붙어 있다. 넓은 화면에서는 그대로 보인다. */}
               <span
-                className={`mt-2 w-full break-words px-0.5 text-center text-[11px] leading-tight ${
+                className={`mt-2 hidden w-full px-0.5 text-center text-[11px] leading-tight break-words sm:block ${
                   active ? "text-teal-800 font-extrabold underline" : done ? "text-teal-700 font-semibold" : "text-gray-500"
                 }`}
               >
