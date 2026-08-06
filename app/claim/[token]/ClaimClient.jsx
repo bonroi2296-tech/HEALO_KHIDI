@@ -328,6 +328,7 @@ function SendMore({ token, lang }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState("");
+  const [sentFiles, setSentFiles] = useState([]);
   const [error, setError] = useState("");
 
   const post = (body) =>
@@ -354,13 +355,15 @@ function SendMore({ token, lang }) {
     }
   };
 
+  // 자료는 **고르는 즉시 간다** — 글을 안 써도 된다. 그래서 단추 이름도 「자료 보내기」다.
+  // (「첨부」라고 하면 «글에 붙여서 같이 보낸다»로 읽혀 자료만 보낸 사람이 갔는지 몰랐다 — 2026-08-05 PO)
   const sendFiles = async (e) => {
     const files = [...(e.target.files || [])];
     e.target.value = "";
     if (!files.length) return;
     setUploading(true);
     setError("");
-    let failed = false;
+    const ok = [];
     for (let i = 0; i < files.length; i++) {
       const res = await uploadDirect(
         "/api/inquiries/claim/submit",
@@ -368,11 +371,13 @@ function SendMore({ token, lang }) {
         { token },
         { onProgress: (p) => setProgress((i + p) / files.length) }
       );
-      if (!res.ok) failed = true;
+      if (res.ok) ok.push(files[i].name);
     }
     setUploading(false);
     setProgress(0);
-    if (failed) setError(t("claimPage.sendMoreFail", lang));
+    // 보낸 것의 «이름»을 남긴다. 「전해드렸어요」만 뜨면 뭐가 갔는지 몰라 또 보내게 된다.
+    if (ok.length) setSentFiles((prev) => [...prev, ...ok]);
+    if (ok.length < files.length) setError(t("claimPage.sendMoreFail", lang));
     else setDone(t("claimPage.sendMoreDone", lang));
   };
 
@@ -409,6 +414,17 @@ function SendMore({ token, lang }) {
       </div>
 
       {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
+      {/* 보낸 자료의 «이름»을 남긴다 — 「전해드렸어요」만 뜨면 뭐가 갔는지 몰라 또 보내게 된다. */}
+      {sentFiles.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5">
+          {sentFiles.map((n, i) => (
+            <li key={`${n}-${i}`} className="flex items-start gap-1.5 text-xs text-gray-600">
+              <CheckCircle2 size={12} className="mt-[3px] shrink-0 text-teal-700" aria-hidden="true" />
+              <span className="break-all">{n}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
