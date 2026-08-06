@@ -19,6 +19,10 @@ export const OPINION_ROSTER: { key: string; name: string }[] = [
   { key: "kang_juan", name: "강주안 원장" },
   { key: "ewha_seoul", name: "이대서울병원" },
   { key: "ewha_mokdong", name: "이대목동병원" },
+  // 2026-08-06: 협진 대학병원 4곳(app/partners/copy.js 표기)과 명단을 맞춘다. 세브란스에
+  // 첫 소견 요청을 보내는데 명단에 없어 "그 외 의료진"을 고르게 되던 것을 막는다.
+  { key: "severance_sinchon", name: "신촌세브란스병원" },
+  { key: "korea_guro", name: "고려대구로병원" },
 ];
 
 /** roster key → 표시 이름. 'other'(그 외 의료진)면 OPINION_OTHER_LABEL, 미상 key 면 null. */

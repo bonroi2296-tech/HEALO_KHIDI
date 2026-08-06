@@ -12,9 +12,16 @@ import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/op
 import ImagingPanel from "@/components/ImagingPanel";
 import { uploadDirect } from "@/lib/uploadAttachment";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { CANCER_TYPES, labelOf } from "@/lib/inquiry/intakeLabels";
+import { normalizeNationality } from "@/lib/khidi/nationality";
 
 /** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
 const canPreview = (name) => /\.(pdf|jpe?g|png|gif|webp)$/i.test(String(name || ""));
+
+// 이 화면은 한국 의료진 전용(제목·라벨이 한국어 고정)이라 저장된 코드값을 한국어로 풀어 보여준다.
+// 안 풀면 「liver」·「KZ」·「ru」 가 그대로 떠서 의료진이 코드값을 해석해야 한다(2026-08-06).
+const SPOKEN_LANGS = { ko: "한국어", en: "영어", ru: "러시아어", kz: "카자흐어", zh: "중국어", ja: "일본어" };
+const langName = (v) => SPOKEN_LANGS[String(v || "").toLowerCase()] || v;
 
 export default function OpinionClient({ token }) {
   const [loading, setLoading] = useState(true);
@@ -192,13 +199,16 @@ export default function OpinionClient({ token }) {
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">환자 / 임상 정보</h2>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700 mb-3">
           <span><span className="text-gray-400">환자</span> {c.patient}</span>
-          {c.nationality && <span><span className="text-gray-400">국적</span> {c.nationality}</span>}
-          {c.language && <span><span className="text-gray-400">언어</span> {c.language}</span>}
+          {c.nationality && <span><span className="text-gray-400">국적</span> {normalizeNationality(c.nationality)}</span>}
+          {c.language && <span><span className="text-gray-400">언어</span> {langName(c.language)}</span>}
         </div>
-        {(c.cancer_type || c.treatment_type) && (
+        {/* treatment_type 배지는 뺐다(2026-08-06): 실측상 암종을 그대로 복사한 낡은 칸이라
+            의료진 화면엔 「신장암 / liver」처럼 같은 말이 두 번, 그것도 코드값으로 뜬다.
+            전수 확인 — 두 칸이 같은 건 29건, 25건은 챗봇 라우팅 태그(general_inquiry).
+            KHIDI 집계는 계속 이 칸을 폴백으로 읽으므로 «표시»만 빼고 저장값은 그대로 둔다. */}
+        {c.cancer_type && (
           <div className="flex flex-wrap gap-2 mb-3">
-            {c.cancer_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{c.cancer_type}</span>}
-            {c.treatment_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">{c.treatment_type}</span>}
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{labelOf(CANCER_TYPES, c.cancer_type, "ko")}</span>
           </div>
         )}
         {c.clinical?.length > 0 && (
