@@ -70,12 +70,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 실제 컬럼명은 metadata (meta 아님). 여기만 POSTMORTEMS #59 수정에서 빠져 있어
+    // 퍼널 이벤트 4종이 매번 42703 으로 실패하고 있었다 — supabase-js 2.112 의
+    // 「없는 칸 쓰기」 검사가 잡아냈다(2.90 은 any 객체를 그냥 통과시켰다).
     const { error: insertError } = await supabaseAdmin
       .from("inquiry_events")
       .insert({
         inquiry_id: inquiryId || null,
         event_type: eventType,
-        meta,
+        metadata: meta,
       });
 
     if (insertError) {

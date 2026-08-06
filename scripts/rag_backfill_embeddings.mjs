@@ -89,7 +89,9 @@ async function main() {
   while (hasMore) {
     const { data: chunks, error } = await supabase
       .from("rag_chunks")
-      .select("id, content")
+      // metadata 도 같이 읽는다 — 모델·시각 부기정보를 여기에 「덧붙여」 써야 하므로
+      // (rag_chunks 에 embedding_model·embedded_at 전용 칸이 없다)
+      .select("id, content, metadata")
       .is("embedding", null)
       .order("id", { ascending: true })
       .limit(BATCH_SIZE);
@@ -120,8 +122,13 @@ async function main() {
           .from("rag_chunks")
           .update({
             embedding: JSON.stringify(embeddings[i]),
-            embedding_model: EMBEDDING_MODEL,
-            embedded_at: now,
+            // 기존 metadata 를 덮어쓰지 않고 부기정보만 덧붙인다.
+            // ⚠️ scripts/ 는 tsconfig 에서 제외돼 타입검사가 안 돈다 — 손으로 확인해야 한다.
+            metadata: {
+              ...(chunks[i].metadata || {}),
+              embedding_model: EMBEDDING_MODEL,
+              embedded_at: now,
+            },
           })
           .eq("id", chunks[i].id);
 

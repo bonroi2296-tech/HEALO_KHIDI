@@ -387,14 +387,16 @@ async function applyFix(
       chunk_index: ch.index,
       content: ch.content,
       embedding: JSON.stringify(embeddings[i]),
-      embedding_model: EMBEDDING_MODEL,
-      embedded_at: nowIso(),
+      // 모델·시각 부기정보는 rag_chunks 에 전용 칸이 없어 metadata 로 보관한다(ingest.ts 와 같은 처방).
+      // ⚠️ scripts/ 는 tsconfig 에서 제외돼 타입검사가 아예 안 돈다 — 손으로 확인해야 한다.
       metadata: {
         source_type: "playbook_pattern",
         source_id: patternId,
         lang: pattern.language || "en",
         title,
         version: 1,
+        embedding_model: EMBEDDING_MODEL,
+        embedded_at: nowIso(),
       },
     }));
 
