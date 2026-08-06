@@ -202,10 +202,13 @@ export default function OpinionClient({ token }) {
           {c.nationality && <span><span className="text-gray-400">국적</span> {normalizeNationality(c.nationality)}</span>}
           {c.language && <span><span className="text-gray-400">언어</span> {langName(c.language)}</span>}
         </div>
-        {(c.cancer_type || c.treatment_type) && (
+        {/* treatment_type 배지는 뺐다(2026-08-06): 실측상 암종을 그대로 복사한 낡은 칸이라
+            의료진 화면엔 「신장암 / liver」처럼 같은 말이 두 번, 그것도 코드값으로 뜬다.
+            전수 확인 — 두 칸이 같은 건 29건, 25건은 챗봇 라우팅 태그(general_inquiry).
+            KHIDI 집계는 계속 이 칸을 폴백으로 읽으므로 «표시»만 빼고 저장값은 그대로 둔다. */}
+        {c.cancer_type && (
           <div className="flex flex-wrap gap-2 mb-3">
-            {c.cancer_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{labelOf(CANCER_TYPES, c.cancer_type, "ko")}</span>}
-            {c.treatment_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">{c.treatment_type}</span>}
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{labelOf(CANCER_TYPES, c.cancer_type, "ko")}</span>
           </div>
         )}
         {c.clinical?.length > 0 && (
