@@ -17,7 +17,7 @@ import { CheckCircle2, Loader2, ShieldAlert, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { t } from "@/lib/i18n";
+import { t, dateLocale } from "@/lib/i18n";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -174,7 +174,7 @@ function SummaryCard({ preview, lang }) {
     [t("claimPage.agencyLabel", lang), preview.agencyName],
     [
       t("claimPage.receivedAtLabel", lang),
-      preview.createdAt ? new Date(preview.createdAt).toLocaleDateString() : null,
+      preview.createdAt ? new Date(preview.createdAt).toLocaleDateString(dateLocale(lang)) : null,
     ],
   ].filter(([, v]) => v);
 
@@ -264,7 +264,7 @@ function History({ timeline, lang }) {
               aria-hidden="true"
             />
             <span className="text-gray-400 shrink-0 w-24">
-              {h.at ? new Date(h.at).toLocaleDateString() : ""}
+              {h.at ? new Date(h.at).toLocaleDateString(dateLocale(lang)) : ""}
             </span>
             <span className={i === 0 ? "text-gray-900 font-semibold" : "text-gray-500"}>
               {h.label}
