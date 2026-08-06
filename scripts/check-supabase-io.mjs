@@ -11,6 +11,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { unquoteEnvValue } from "./_env.mjs";
 
 const PROJECT_REF = "hvwwlkawaxabhtumjhrg";
 const API = "https://api.supabase.com/v1";
@@ -22,7 +23,8 @@ function loadEnvLocal() {
       // CRLF(윈도) 줄끝 + 따옴표 감싼 값 허용 — 독립리뷰 CONFIRMED 2건 반영
       for (const line of readFileSync(resolve(dir, ".env.local"), "utf8").split(/\r?\n/)) {
         const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+        // 값 끝에 붙어 있는 「역슬래시 n」까지 벗긴다 — 안 벗기면 열쇠가 401 (2026-08-06)
+        if (m && !process.env[m[1]]) process.env[m[1]] = unquoteEnvValue(m[2]);
       }
       return;
     } catch { /* 다음 후보 폴더 */ }

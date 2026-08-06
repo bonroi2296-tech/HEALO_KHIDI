@@ -6,19 +6,16 @@
  *
  *   node scripts/check-attachment-upload.mjs [baseUrl]     (기본 http://localhost:3000)
  */
-import { readFileSync } from "node:fs";
+import { loadEnvLocal } from "./_env.mjs";
 import { spawnSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 const BASE = process.argv[2] || "http://localhost:3000";
 const API = `${BASE}/api/attachments/upload`;
 
-const env = Object.fromEntries(
-  readFileSync(".env.local", "utf8")
-    .split(/\r?\n/)
-    .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
-    .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "")])
-);
+// 값 끝의 리터럴 \n 까지 벗겨야 한다 — 안 그러면 service_role 열쇠가 401 이 나서
+// 이 검사가 «항상» 실패한다(2026-08-06 발견). 읽는 방법은 scripts/_env.mjs 한 곳에만 둔다.
+const env = loadEnvLocal();
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });

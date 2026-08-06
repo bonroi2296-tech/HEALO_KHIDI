@@ -35,6 +35,8 @@ export interface KpiResult {
   preConsultation: number;
   /** K-04: 사후관리 건수 (session_type='follow_up', status='completed') — scheduled_at 기준 */
   followUp: number;
+  /** K-02 추가분: 글로 전달한 사전상담 (의료진 소견을 환자에게 전달, released_at 기준) */
+  writtenOpinion: number;
   /** K-01: 환자유치 건수 (inquiries.outcome='admitted', created_at 코호트). 코디 수동 확정
    *  + 병원 '치료 확정'(hospital_leads converted) 자동 반영 — 전환 깔때기와 동일 정의. */
   attraction: number;
@@ -106,6 +108,34 @@ async function _fetchKpiInRange(
   const { count: preCount, error: e1 } = await preQ;
 
   if (e1) noteErr("pre_consultation count", e1.message);
+
+  // --- K-02 추가분: 「글로 전달한 사전상담」(의료진 소견 검토·전달) ---
+  // 진흥원 제출 정의(중간보고 베이스)의 증빙은 「HEALO 상담로그·AI/Human 기록」이지
+  // 「영상통화」가 아니다. 자체 측정명세가 K-02 를 「LiveKit 5분 이상」으로 좁혀 놓아
+  // 병원에서 검토해 환자에게 전달한 소견이 한 건도 안 세어지고 있었다(2026-08-06 PO 지시로 정정).
+  // 세는 기준 = 환자에게 실제로 전달된 것(released_at)만. 작성만 하고 안 보낸 초안은 제외.
+  const opinionQ = supabase
+    .from("case_opinions")
+    .select("inquiry_id", { count: "exact" })
+    .not("released_at", "is", null)
+    .gte("released_at", fromISO)
+    .lt("released_at", toISO);
+  const { data: opinionRows, count: opinionCountRaw, error: e1b } = await opinionQ;
+  if (e1b) noteErr("written opinion count", e1b.message);
+
+  // 시험용 문의에 딸린 소견은 제외 (세션 쪽 testSessionFilter 와 같은 취급)
+  let writtenOpinionCount = opinionCountRaw ?? 0;
+  if (!includeTest && (opinionRows?.length ?? 0) > 0) {
+    const oppIds = [...new Set((opinionRows as any[]).map((r) => r.inquiry_id).filter((v) => v != null))];
+    const { data: testInq, error: e1c } = await supabase
+      .from("inquiries")
+      .select("id")
+      .in("id", oppIds)
+      .eq("is_test", true);
+    if (e1c) noteErr("written opinion test filter", e1c.message);
+    const testSet = new Set((testInq ?? []).map((r: any) => r.id));
+    writtenOpinionCount = (opinionRows as any[]).filter((r) => !testSet.has(r.inquiry_id)).length;
+  }
 
   // --- K-04: 사후관리 건수 (완료 세션 수) ---
   let followQ = supabase
@@ -219,6 +249,7 @@ async function _fetchKpiInRange(
   return {
     preConsultation: preCount ?? 0,
     followUp: followCount ?? 0,
+    writtenOpinion: writtenOpinionCount,
     attraction: attractionCount ?? 0,
     satisfactionAvg,
     satisfactionResponseCount,

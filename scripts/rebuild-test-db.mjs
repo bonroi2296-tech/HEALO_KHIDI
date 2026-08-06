@@ -71,6 +71,19 @@ const PARTS = [
      join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped
      left join pg_attrdef d on d.adrelid=c.oid and d.adnum=a.attnum
      where c.relkind='r' group by c.relname order by c.relname`],
+  // ⚠️ 위 「테이블」은 CREATE TABLE **IF NOT EXISTS** 라 «이미 있는 표»는 통째로 건너뛴다
+  //    → 실서비스에 나중에 «칸만» 추가되면 검사용 DB 는 영영 안 따라온다.
+  //    2026-08-06 실측: 그렇게 11개 칸이 밀려 있었고(hospitals.enrichment_log·inquiries.utm 등),
+  //    없는 칸을 다른 칸과 같이 조회하면 그 조회가 **통째로** 실패해 화면이 오류 한 장이 된다.
+  //    (ADD COLUMN IF NOT EXISTS 라 이미 있으면 조용히 넘어가고, 칸을 지우지도 않는다.)
+  ["빠진 칸", `select 'alter table public.'||quote_ident(c.relname)||
+       ' add column if not exists '||quote_ident(a.attname)||' '||format_type(a.atttypid,a.atttypmod)||
+       coalesce(' default '||pg_get_expr(d.adbin,d.adrelid),'')||';' as s
+     from pg_class c
+     join pg_namespace n on n.oid=c.relnamespace and n.nspname='public'
+     join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped
+     left join pg_attrdef d on d.adrelid=c.oid and d.adnum=a.attnum
+     where c.relkind='r' order by c.relname, a.attnum`],
   // PK·UNIQUE 를 FK 보다 먼저 만든다(참조 대상이 있어야 FK 가 붙는다)
   ["제약", `select 'alter table public.'||quote_ident(rel.relname)||' add constraint '||quote_ident(con.conname)||' '||
        pg_get_constraintdef(con.oid)||';' as s
