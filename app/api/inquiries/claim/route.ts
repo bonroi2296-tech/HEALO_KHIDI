@@ -124,44 +124,53 @@ async function fetchCaseUpdates(inquiryId: number) {
  * 「보내주신 것」 **두 칸**으로 나뉘어 있었다. 만든 쪽에선 «접수 때 낸 것»과 «나중에 보낸 것»이지만
  * **환자에겐 둘 다 「내가 보낸 것」**이다. 두 칸을 오가며 찾게 만들 이유가 없다.
  *
- * ⚠️ 코디가 적은 「추가 정보」는 안 내린다 — 의료진에게 가는 내부 기록이지 환자에게 보여주려고
- *    쓴 글이 아니다. 가르는 기준은 `BY_PATIENT_LINK` 표시 하나.
+ * ⚠️ 「추가 정보」는 코디가 적은 것도 같이 내린다 — 이 칸에 쌓이는 건 정의상 **환자가 준 정보**다
+ *    (왓츠앱·메신저로 온 「지금 상태」를 코디가 옮겨 적은 것). 예전엔 «환자 링크로 직접 보낸 것»만
+ *    골랐는데, 그러면 **아셀 코디가 옮겨 적은 진짜 증상 기록이 환자 화면에서 사라진다**(2026-08-06
+ *    PO 지적, 문의 #60). 자료 쪽은 이미 코디가 대신 올린 것까지 다 보여주고 있었다 — 앞뒤가 안 맞았다.
+ *
+ * ⚠️ 환자가 «지운» 것은 안 내린다(`removed_at` 이 붙은 것). 지운 기록 자체는 DB 에 그대로 남고
+ *    코디 화면에는 「환자가 지움」으로 뜬다 — 냈다가 지우고 «안 냈다»고 하는 걸 막기 위해서다.
  *    파일 주소는 다른 서류와 같은 10분짜리 임시 주소, 저장 이름은 원본 파일명.
  */
 async function buildPatientSent(inq: any) {
-  const notes: { at: string; text: string }[] = [];
+  const notes: { at: string; text: string; mine: boolean }[] = [];
 
   // ① 처음 문의글 — 접수 시각을 그 글의 시각으로 본다(단계 가르기가 날짜로 도니까).
+  //    이건 못 지운다(mine=false) — 문의 그 자체라 지우면 케이스가 빈 껍데기가 된다.
   try {
     const first = (decryptMaybe(inq.message) || "").trim();
-    if (first) notes.push({ at: inq.created_at, text: first });
+    if (first) notes.push({ at: inq.created_at, text: first, mine: false });
   } catch {
     /* 복호화 실패해도 화면 전체가 죽으면 안 된다 */
   }
-  // ② 그 뒤에 «이 화면에서» 보낸 글
-  for (const f of readFollowUps(inq.follow_ups)) {
-    if (f.by === BY_PATIENT_LINK) notes.push({ at: f.at, text: f.text });
-  }
+  // ② 그 뒤에 들어온 추가 정보. 「이 화면에서 직접 보낸 것」만 본인이 지울 수 있다(mine).
+  const storedFU: any[] = Array.isArray(inq.follow_ups) ? inq.follow_ups : [];
+  readFollowUps(inq.follow_ups).forEach((f, i) => {
+    if (storedFU[i]?.removed_at) return;
+    notes.push({ at: f.at, text: f.text, mine: f.by === BY_PATIENT_LINK });
+  });
   notes.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   // ③ 자료 — 접수 때 낸 것과 나중에 보낸 것을 가리지 않는다(환자에겐 둘 다 «내가 보낸 자료»).
-  const raw = Array.isArray(inq.attachments) ? inq.attachments : [];
-  let files: { name: string; url: string | null }[] = [];
+  const raw = (Array.isArray(inq.attachments) ? inq.attachments : []).filter((a: any) => !a?.removed_at);
+  let files: { name: string; url: string | null; path: string; mine: boolean }[] = [];
   if (raw.length) {
+    const base = raw.map((a: any) => ({
+      name: String(a?.name || a?.path || "file"),
+      path: String(a?.path || ""),
+      mine: a?.uploaded_by_patient === true,
+    }));
     try {
-      const paths = raw.map((a: any) => String(a?.path || "")).filter(Boolean);
       const { data: signed } = await supabaseAdmin.storage
         .from("attachments")
-        .createSignedUrls(paths, 600);
+        .createSignedUrls(base.map((b) => b.path).filter(Boolean), 600);
       const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
-      files = raw.map((a: any) => {
-        const name = String(a?.name || a?.path || "file");
-        return { name, url: withDownloadName(urlByPath.get(String(a?.path || "")), name) };
-      });
+      files = base.map((b) => ({ ...b, url: withDownloadName(urlByPath.get(b.path), b.name) }));
     } catch (err: any) {
       // 주소를 못 만들어도 «무엇을 보냈는지»는 알려 준다.
       console.error("[inquiries/claim] sent files:", err?.message);
-      files = raw.map((a: any) => ({ name: String(a?.name || "file"), url: null }));
+      files = base.map((b) => ({ ...b, url: null }));
     }
   }
 

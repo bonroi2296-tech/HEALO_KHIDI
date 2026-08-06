@@ -3,6 +3,7 @@
  *
  * POST { token, text }                          → 추가 정보(글) 붙이기
  * POST { token, phase:"sign"|"commit", ... }    → 자료 올리기(브라우저 → 저장소 직행)
+ * POST { token, remove:{kind,id} }              → 본인이 보낸 것 «지우기»(화면에서만 — 기록은 남는다)
  *
  * 왜 (2026-08-05 PO): *"텍스트 문의 했던 내용을 여기서 사용자가 입력할 수 있게 해두고 그걸
  *   코디가 확인해서 의료진에 전달하는 흐름으로 가면 좋겠는데? 그리고 추가 서류도 올릴 수 있게"*
@@ -65,6 +66,48 @@ export async function POST(request: NextRequest) {
     if (findErr) throw findErr;
     const inq = rows?.[0];
     if (!inq) return Response.json({ ok: false, error: "invalid_link" }, { status: 404 });
+
+    // ── 본인이 보낸 것 지우기 ──
+    //
+    // 왜 (2026-08-06 PO): *"사용자가 잘못 올릴 수도 있으니깐 사용자가 지울 수도 있게 해줘야겠다.
+    //   근데 로그는 남기고 — 환자가 줬다가 지워서 안줬다고 할 수도 있잖아"*
+    //
+    // 그래서 **정말로 지우지 않는다.** 표시(`removed_at`)만 붙인다:
+    //   · 환자 화면 → 안 보인다(잘못 올린 걸 치울 수 있다)
+    //   · 코디 화면 → 「환자가 지움 · 날짜」로 보인다(냈던 사실은 남는다)
+    //   · 저장소 파일도 안 지운다 — 뒤에 「이런 자료 준 적 없다」는 말이 나오면 원본이 있어야 한다
+    //
+    // 지울 수 있는 건 **본인이 이 화면에서 보낸 것뿐**이다. 코디가 넣은 기록·대신 올린 자료는
+    // 이 링크를 가진 사람이 손댈 수 없다(링크는 왓츠앱으로 굴러다닐 수 있다).
+    if (body.remove) {
+      const kind = String(body.remove.kind || "");
+      const id = String(body.remove.id || "");
+      const now = new Date().toISOString();
+
+      if (kind === "file") {
+        const list: any[] = Array.isArray(inq.attachments) ? inq.attachments : [];
+        const idx = list.findIndex((a) => String(a?.path || "") === id && a?.uploaded_by_patient === true);
+        if (idx < 0) return Response.json({ ok: false, error: "not_yours" }, { status: 403 });
+        if (list[idx].removed_at) return Response.json({ ok: true }); // 이미 지운 것 — 다시 눌러도 탈 없이
+        const next = list.map((a, i) => (i === idx ? { ...a, removed_at: now } : a));
+        const { error } = await (supabaseAdmin as any).from("inquiries").update({ attachments: next }).eq("id", inq.id);
+        if (error) throw error;
+        return Response.json({ ok: true });
+      }
+
+      if (kind === "note") {
+        const list: any[] = Array.isArray(inq.follow_ups) ? inq.follow_ups : [];
+        const idx = list.findIndex((f) => String(f?.at || "") === id && f?.by === BY_PATIENT_LINK);
+        if (idx < 0) return Response.json({ ok: false, error: "not_yours" }, { status: 403 });
+        if (list[idx].removed_at) return Response.json({ ok: true });
+        const next = list.map((f, i) => (i === idx ? { ...f, removed_at: now } : f));
+        const { error } = await (supabaseAdmin as any).from("inquiries").update({ follow_ups: next }).eq("id", inq.id);
+        if (error) throw error;
+        return Response.json({ ok: true });
+      }
+
+      return Response.json({ ok: false, error: "bad_request" }, { status: 400 });
+    }
 
     // ── 자료 올리기 ──
     if (body.phase === "sign" || body.phase === "commit") {

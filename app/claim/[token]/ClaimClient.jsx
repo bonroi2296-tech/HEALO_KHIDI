@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, FileDown, Send, Paperclip } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, FileDown, Send, Paperclip, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -207,9 +207,11 @@ export default function ClaimClient({ token }) {
   const stageSent = [
     ...(sent?.notes || [])
       .filter((n) => inStage(n.at))
-      .map((n) => ({ kind: "note", at: n.at, label: n.text })),
+      .map((n) => ({ kind: "note", at: n.at, label: n.text, mine: n.mine, id: n.at })),
     ...(isFirstStage
-      ? (sent?.files || []).map((f) => ({ kind: "file", at: null, label: f.name, url: f.url }))
+      ? (sent?.files || []).map((f) => ({
+          kind: "file", at: null, label: f.name, url: f.url, mine: f.mine, id: f.path,
+        }))
       : []),
   ];
 
@@ -276,7 +278,7 @@ export default function ClaimClient({ token }) {
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
-      {stageSent.length > 0 && <SentItems items={stageSent} lang={lang} />}
+      {stageSent.length > 0 && <SentItems items={stageSent} lang={lang} token={token} />}
       {/* 지나온 단계인데 그때 오간 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
       {stageOpinions.length === 0 && stageDocuments.length === 0 && stageEvents.length === 0 &&
         stageSent.length === 0 && (
@@ -466,7 +468,31 @@ function SendMore({ token, lang }) {
  * 「보내주신 것」 두 칸으로 나뉘어 있었는데, **환자에겐 둘 다 「내가 보낸 것」**이다.
  * 이제 화면은 두 축으로만 읽힌다 — «우리가 준 것»(소견·서류) / «환자가 준 것»(이 칸).
  */
-function SentItems({ items, lang }) {
+function SentItems({ items, lang, token }) {
+  const [busy, setBusy] = useState("");
+
+  /**
+   * 본인이 «이 화면에서» 보낸 것만 지울 수 있다 (2026-08-06 PO: *"사용자가 잘못 올릴 수도
+   * 있으니깐 사용자가 지울 수도 있게"*). 화면에서 사라질 뿐 **기록은 남는다** — 코디 화면엔
+   * 「환자가 지움」으로 뜬다. 지우기 전에 한 번 물어본다(누르면 끝인 단추는 실수를 부른다).
+   */
+  const remove = async (h) => {
+    if (!window.confirm(t("claimPage.sentRemoveConfirm", lang))) return;
+    setBusy(h.id);
+    try {
+      const res = await fetch("/api/inquiries/claim/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, remove: { kind: h.kind, id: h.id } }),
+      });
+      const data = await res.json();
+      if (data.ok) window.location.reload();
+      else setBusy("");
+    } catch {
+      setBusy("");
+    }
+  };
+
   return (
     <div className="mt-8">
       <p className="text-xs font-bold text-gray-400">{t("claimPage.sendMoreSentTitle", lang)}</p>
@@ -495,6 +521,22 @@ function SentItems({ items, lang }) {
                 <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString()}</p>
               )}
             </div>
+            {h.mine && (
+              <button
+                type="button"
+                onClick={() => remove(h)}
+                disabled={busy === h.id}
+                aria-label={t("claimPage.sentRemove", lang)}
+                title={t("claimPage.sentRemove", lang)}
+                className="shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50"
+              >
+                {busy === h.id ? (
+                  <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <X size={13} aria-hidden="true" />
+                )}
+              </button>
+            )}
           </li>
         ))}
       </ul>

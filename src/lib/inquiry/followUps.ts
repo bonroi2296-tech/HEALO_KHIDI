@@ -11,8 +11,8 @@ import "server-only";
 
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
-export type FollowUp = { at: string; by: string; text: string };
-type StoredFollowUp = { at?: string; by?: string; text_encrypted?: string | null };
+export type FollowUp = { at: string; by: string; text: string; removedAt: string | null };
+type StoredFollowUp = { at?: string; by?: string; text_encrypted?: string | null; removed_at?: string | null };
 
 export const FOLLOWUP_MAX_LEN = 4000;
 
@@ -29,6 +29,9 @@ export function readFollowUps(raw: unknown): FollowUp[] {
       at: String(x.at || ""),
       by: String(x.by || ""),
       text: decryptStringNullable(x.text_encrypted ?? null) ?? "(읽지 못한 내용 — 원본 확인 필요)",
+      // 환자가 자기 화면에서 치운 것. **여기선 빼지 않고 표시만 붙인다** — 냈다가 지우고
+      // «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO).
+      removedAt: x.removed_at ?? null,
     }));
 }
 

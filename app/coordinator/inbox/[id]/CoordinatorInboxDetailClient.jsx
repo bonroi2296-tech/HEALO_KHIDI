@@ -1195,6 +1195,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           {L.ibStaffUploadBadge}
                         </span>
                       )}
+                      {/* 환자가 자기 화면에서 치운 자료 — **여기선 안 사라진다.** 냈다가 지우고
+                          «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO).
+                          파일도 저장소에 그대로라 그대로 열어볼 수 있다. */}
+                      {typeof a === "object" && a?.removed_at && (
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                          {L.ibPatientRemovedBadge} {new Date(a.removed_at).toLocaleDateString()}
+                        </span>
+                      )}
                       {attLoadingPath === path ? (
                         <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
                       ) : (
