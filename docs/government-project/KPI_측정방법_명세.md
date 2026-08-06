@@ -89,12 +89,20 @@ WHERE i.nationality NOT IN ('KR', 'Korea', '한국')
 
 ### 산출 SQL
 ```sql
-SELECT COUNT(*) AS 사전상담_건수
+-- ① 영상 사전상담
+SELECT COUNT(*) AS 영상_사전상담
 FROM consultation_sessions cs
 WHERE cs.session_type = 'pre_consultation'
   AND cs.status = 'completed'
-  AND cs.actual_duration_minutes >= 5
   AND cs.scheduled_at BETWEEN '2026-04-01' AND '2026-12-31';
+
+-- ② 글로 전달한 사전상담 (의료진 소견 전달 완료, 시험용 문의 제외)
+SELECT COUNT(*) AS 글_소견전달
+FROM case_opinions o
+LEFT JOIN inquiries i ON i.id = o.inquiry_id
+WHERE o.released_at IS NOT NULL
+  AND i.is_test IS NOT TRUE
+  AND o.released_at BETWEEN '2026-04-01' AND '2026-12-31';
 ```
 
 ### 보조 지표 (월간 보고용)

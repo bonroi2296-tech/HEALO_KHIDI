@@ -190,8 +190,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // C9: 사전상담 건수
-    monthSheet.getCell("C9").value = kpi.preConsultation;
+    // C9: 사전상담 건수 = 영상 + 글(의료진 소견 전달). 2026-08-06 PO 지시로 매체 확대 —
+    //     진흥원 증빙 정의가 「HEALO 상담로그·AI/Human 기록」이지 영상통화가 아니다.
+    //     상세: docs/government-project/KPI_측정방법_명세.md §3
+    monthSheet.getCell("C9").value =
+      (kpi.preConsultation ?? 0) + (kpi.writtenOpinion ?? 0);
     // C10: 사후관리 건수
     monthSheet.getCell("C10").value = kpi.followUp;
     // C11: 환자유치 건수
