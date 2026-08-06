@@ -41,6 +41,7 @@ import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { t } from "@/lib/i18n";
 import { docDisplayTitle, withDownloadName } from "@/lib/documents/sharedDocMeta";
+import { readFollowUps, BY_PATIENT_LINK } from "@/lib/inquiry/followUps";
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "inquiry_claim_view" };
 const CLAIM_RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "inquiry_claim" };
@@ -59,7 +60,7 @@ async function resolveInquiry(token: string) {
     .select(
       "id, first_name, cancer_type, user_id, agency_id, created_at, nationality, " +
         "case_status, case_status_note, case_status_updated_at, preferred_language, " +
-        "message, attachments, preferred_date, preferred_date_flex, agencies(name)"
+        "message, attachments, follow_ups, preferred_date, preferred_date_flex, agencies(name)"
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -163,6 +164,45 @@ async function buildIntakeSummary(inq: any) {
     preferredDate: inq.preferred_date || null,
     preferredDateFlex: Boolean(inq.preferred_date_flex),
   };
+}
+
+/**
+ * 환자가 **이 화면에서 직접 보낸 것** — 글과 자료.
+ *
+ * 왜 (2026-08-05 PO: *"텍스트 입력한건 출력이 안되는데?"*): 보내면 저장은 되는데 화면에
+ * 안 남아서 «내가 보냈나?»를 알 수 없었다. 새로고침하면 「전해드렸어요」도 사라진다.
+ * 자료는 이름이 남는데 글은 안 남는 것도 앞뒤가 안 맞았다.
+ *
+ * ⚠️ **환자가 보낸 것만** 내린다 — 코디가 적은 「추가 정보」는 내부 기록이라 안 내린다
+ *    (그건 의료진에게 가는 글이지 환자에게 보여주려고 쓴 글이 아니다). 가르는 기준은
+ *    `BY_PATIENT_LINK` 표시 하나뿐이라 헷갈릴 여지가 없다.
+ */
+async function buildPatientSent(inq: any) {
+  const notes = readFollowUps(inq.follow_ups)
+    .filter((f) => f.by === BY_PATIENT_LINK)
+    .map((f) => ({ at: f.at, text: f.text }));
+
+  const rawFiles = (Array.isArray(inq.attachments) ? inq.attachments : []).filter(
+    (a: any) => a?.uploaded_by_patient
+  );
+  let files: { name: string; url: string | null }[] = [];
+  if (rawFiles.length) {
+    try {
+      const paths = rawFiles.map((a: any) => String(a?.path || "")).filter(Boolean);
+      const { data: signed } = await supabaseAdmin.storage
+        .from("attachments")
+        .createSignedUrls(paths, 600);
+      const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
+      files = rawFiles.map((a: any) => {
+        const name = String(a?.name || "file");
+        return { name, url: withDownloadName(urlByPath.get(String(a?.path || "")), name) };
+      });
+    } catch {
+      files = rawFiles.map((a: any) => ({ name: String(a?.name || "file"), url: null }));
+    }
+  }
+
+  return notes.length || files.length ? { notes, files } : null;
 }
 
 /**
@@ -411,6 +451,7 @@ export async function GET(request: NextRequest) {
       // 「이 사람 언어」 — 접수 때 받은 값이다(추측 아님). 화면이 처음 열릴 때 이걸로 맞춘다.
       patientLang: inq.preferred_language || null,
       intake: await buildIntakeSummary(inq),
+      sent: await buildPatientSent(inq),
       progress: await buildProgress(inq, lang),
       opinions: await buildReleasedOpinions(inq.id),
       documents: await buildSharedDocuments(inq.id),

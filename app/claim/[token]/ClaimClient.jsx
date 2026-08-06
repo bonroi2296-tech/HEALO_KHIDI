@@ -69,6 +69,7 @@ export default function ClaimClient({ token }) {
   const [opinions, setOpinions] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [intake, setIntake] = useState(null);
+  const [sent, setSent] = useState(null);
 
   const [session, setSession] = useState(undefined); // undefined=확인중, null=비로그인
   const [claiming, setClaiming] = useState(false);
@@ -93,6 +94,7 @@ export default function ClaimClient({ token }) {
           setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
           setIntake(data.intake || null);
+          setSent(data.sent || null);
           applyPatientLang(data.patientLang, lang);
         }
       } catch {
@@ -251,7 +253,7 @@ export default function ClaimClient({ token }) {
       )}
 
       {/* 언제든 보인다 — 단계와 상관없이 «지금 더 알릴 게 생겼다»는 아무 때나 생긴다. */}
-      <SendMore token={token} lang={lang} />
+      <SendMore token={token} lang={lang} sent={sent} />
 
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
@@ -322,13 +324,19 @@ function LangPicker({ lang }) {
  * 곧바로 화면에 박히면 «이게 의료진에게 갔다»로 읽히는데, 실제로는 코디가 보고 판단한 뒤
  * 넘어간다. 그 사이를 사실대로 적는다.
  */
-function SendMore({ token, lang }) {
+function SendMore({ token, lang, sent }) {
+  // 서버가 내려준 «지금까지 보낸 것» + 이번에 방금 보낸 것. 새로고침해도 남는 건 앞의 것이다.
+  const [added, setAdded] = useState([]);
+  const history = [
+    ...(sent?.notes || []).map((n) => ({ kind: "note", at: n.at, label: n.text })),
+    ...(sent?.files || []).map((f) => ({ kind: "file", at: null, label: f.name, url: f.url })),
+    ...added,
+  ];
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState("");
-  const [sentFiles, setSentFiles] = useState([]);
   const [error, setError] = useState("");
 
   const post = (body) =>
@@ -346,7 +354,11 @@ function SendMore({ token, lang }) {
     try {
       const res = await post({ text: v });
       const data = await res.json();
-      if (data.ok) { setText(""); setDone(t("claimPage.sendMoreDone", lang)); }
+      if (data.ok) {
+        setAdded((prev) => [...prev, { kind: "note", at: new Date().toISOString(), label: v }]);
+        setText("");
+        setDone(t("claimPage.sendMoreDone", lang));
+      }
       else setError(t("claimPage.sendMoreFail", lang));
     } catch {
       setError(t("claimPage.sendMoreFail", lang));
@@ -376,7 +388,7 @@ function SendMore({ token, lang }) {
     setUploading(false);
     setProgress(0);
     // 보낸 것의 «이름»을 남긴다. 「전해드렸어요」만 뜨면 뭐가 갔는지 몰라 또 보내게 된다.
-    if (ok.length) setSentFiles((prev) => [...prev, ...ok]);
+    if (ok.length) setAdded((prev) => [...prev, ...ok.map((n) => ({ kind: "file", at: null, label: n }))]);
     if (ok.length < files.length) setError(t("claimPage.sendMoreFail", lang));
     else setDone(t("claimPage.sendMoreDone", lang));
   };
@@ -414,18 +426,34 @@ function SendMore({ token, lang }) {
       </div>
 
       {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
-      {/* 보낸 자료의 «이름»을 남긴다 — 「전해드렸어요」만 뜨면 뭐가 갔는지 몰라 또 보내게 된다. */}
-      {sentFiles.length > 0 && (
-        <ul className="mt-1.5 space-y-0.5">
-          {sentFiles.map((n, i) => (
-            <li key={`${n}-${i}`} className="flex items-start gap-1.5 text-xs text-gray-600">
-              <CheckCircle2 size={12} className="mt-[3px] shrink-0 text-teal-700" aria-hidden="true" />
-              <span className="break-all">{n}</span>
-            </li>
-          ))}
-        </ul>
-      )}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+
+      {/* 「보내주신 것」 — 글과 자료를 한 목록으로. **새로고침해도 남는다**(서버가 내려준다).
+          이게 없으면 보낸 사람이 «갔나?»를 몰라 같은 걸 또 보낸다(2026-08-05 PO 지적). */}
+      {history.length > 0 && (
+        <div className="mt-4 border-t border-teal-200 pt-3">
+          <p className="text-xs font-bold text-gray-500">{t("claimPage.sendMoreSentTitle", lang)}</p>
+          <ul className="mt-2 space-y-2">
+            {history.map((h, i) => (
+              <li key={`${h.label}-${i}`} className="flex items-start gap-1.5">
+                <CheckCircle2 size={12} className="mt-[4px] shrink-0 text-teal-700" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  {h.kind === "file" && h.url ? (
+                    <a href={h.url} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-teal-700 hover:underline">
+                      {h.label}
+                    </a>
+                  ) : (
+                    <p className="whitespace-pre-wrap break-words text-xs text-gray-700">{h.label}</p>
+                  )}
+                  {h.at && (
+                    <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString()}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

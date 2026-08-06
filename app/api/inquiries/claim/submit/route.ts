@@ -23,7 +23,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
-import { appendFollowUp, FOLLOWUP_MAX_LEN } from "@/lib/inquiry/followUps";
+import { appendFollowUp, FOLLOWUP_MAX_LEN, BY_PATIENT_LINK } from "@/lib/inquiry/followUps";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,9 +42,6 @@ const ALLOWED_TYPES = [
   "application/vnd.rar", "application/x-rar-compressed",
   "application/dicom",
 ];
-
-/** 「누가 보냈나」 표시 — 코디가 목록에서 한눈에 가른다. */
-const BY_PATIENT = "환자(진행상황 링크)";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -129,7 +126,7 @@ export async function POST(request: NextRequest) {
     const text = String(body?.text || "").trim().slice(0, FOLLOWUP_MAX_LEN);
     if (!text) return Response.json({ ok: false, error: "text_required" }, { status: 400 });
 
-    const next = appendFollowUp(inq.follow_ups, text, BY_PATIENT);
+    const next = appendFollowUp(inq.follow_ups, text, BY_PATIENT_LINK);
     const { error: upErr } = await (supabaseAdmin as any)
       .from("inquiries")
       .update({ follow_ups: next })
