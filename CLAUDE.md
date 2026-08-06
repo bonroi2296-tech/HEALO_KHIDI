@@ -159,12 +159,18 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 
 ---
 
-## 빌드 & 배포 (핵심만 — 상세는 `docs/rules/DEPLOY.md`)
+## 빌드 · 검사 · 배포 (핵심만 — 상세는 `docs/rules/DEPLOY.md`)
 
 ```bash
 npx next build --webpack   # 필수: --webpack (Turbopack 금지 — 빌드 실패)
 npm run dev                # dev 서버는 Turbopack 정상
+npm run check              # eslint + 빌드 한 방 (합치기 신청 전 기본)
+npm run typecheck          # tsc --noEmit
+npm run test:run           # 단위 테스트 1회 (watch 없이)
+npm run e2e:smoke          # 실제 여정 최소 검증 (playwright @smoke)
 ```
+
+- 전용 검사 30여 개(`check:i18n`·`check:err-exposure`·`check:migrations`·`check:schema-refs` 등)는 `npm run` 으로 목록 확인 — **건드린 영역 것만** 골라 돌려라.
 
 - **「머지는 자유, 배포만 하루 한 번」** (2026-07-28 PO 결정). PR은 바로 머지해도 실서비스 빌드가 안 돈다 — KST 오후 3시 `Daily Deploy` 창구가 main을 `production` 브랜치로 밀어 그 한 건만 빌드한다.
 - **머지했다 ≠ 실서비스에 나갔다.** 「배포됐다」고 말하기 전에 창구가 돌았는지 확인해라.
