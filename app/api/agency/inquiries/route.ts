@@ -15,6 +15,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { caseStatusLabel, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 // 에이전시는 본인이 의뢰한 환자만 조회한다(아래 GET 은 agency_id 로 스코프). 즉 여기 이름은
 // 에이전시가 직접 입력·의뢰한 자기 환자 → 실명을 그대로 표시한다. (PO 결정 2026-07-07: A***
@@ -39,13 +40,19 @@ async function buildAttachmentUrlMap(rows: any[]): Promise<Map<string, string>> 
   return map;
 }
 
+// 저장 이름은 «올릴 때 쓰던 이름»으로 박는다. 안 그러면 저장소 열쇠에 붙은 임의값이 그대로
+// 저장 이름이 돼서 에이전시 담당자 폴더에 `c065dd80-abc__.pdf` 로 쌓인다 — 뭐가 뭔지 못 찾는다
+// (2026-08-05 PO: *"꼭 앞에 이런 변수가 들어가야해? 너 매번 이러는데"*. 환자 화면부터 고치고 여기까지).
 function mapAttachments(atts: any, urlByPath: Map<string, string>): any[] {
-  return (Array.isArray(atts) ? atts : []).map((a: any) => ({
-    name: a?.name || null,
-    category: a?.category || "other",
-    type: a?.type || null,
-    url: a?.path ? (urlByPath.get(a.path) || null) : null,
-  }));
+  return (Array.isArray(atts) ? atts : []).map((a: any) => {
+    const name = a?.name || null;
+    return {
+      name,
+      category: a?.category || "other",
+      type: a?.type || null,
+      url: a?.path ? withDownloadName(urlByPath.get(a.path), name || "file") : null,
+    };
+  });
 }
 
 export async function GET(request: NextRequest) {

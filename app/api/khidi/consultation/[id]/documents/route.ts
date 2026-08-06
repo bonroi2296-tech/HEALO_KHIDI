@@ -4,6 +4,7 @@ import { uploadLimiter } from '@/lib/api/rateLimiter';
 import { sanitizeString } from '@/lib/api/sanitize';
 import { resolveConsultationActor } from '@/lib/auth/requireConsultationAccess';
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from '@/lib/storage/directUpload';
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -139,7 +140,12 @@ export async function GET(
         const { data: urlData } = await supabase.storage
           .from('documents')
           .createSignedUrl(doc.storage_path, 3600); // 1 hour expiry
-        return { ...doc, url: urlData?.signedUrl || null };
+        // 저장 이름은 «올릴 때 쓰던 이름»으로 — 저장소 열쇠의 임의값이 파일명이 되면
+        // 받아 놓고도 어느 상담 서류인지 못 찾는다(2026-08-05 PO 지적, 환자 화면부터 고쳐 왔다).
+        return {
+          ...doc,
+          url: withDownloadName(urlData?.signedUrl, String((doc as any).file_name || (doc as any).name || "document")),
+        };
       }),
     );
 

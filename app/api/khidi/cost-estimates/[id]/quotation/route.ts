@@ -15,6 +15,7 @@ import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 const supabaseAdmin: any = _sb;
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { checkFacilitationFeeCap } from "@/lib/legal/facilitationFeeCap";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 export async function POST(
   request: NextRequest,
@@ -244,12 +245,13 @@ export async function POST(
     const { data: signedUrlData } = await supabaseAdmin.storage
       .from("documents")
       .createSignedUrl(storagePath, 24 * 60 * 60);
+    // 저장 이름은 견적서 번호로 — 임의값 파일명으로 받으면 어느 건 견적서인지 모른다.
 
     return NextResponse.json({
       ok: true,
       data: {
         estimate: updated,
-        quotation_pdf_url: signedUrlData?.signedUrl || null,
+        quotation_pdf_url: withDownloadName(signedUrlData?.signedUrl, `${quotationNo}.pdf`),
       },
     });
   } catch (error: any) {
