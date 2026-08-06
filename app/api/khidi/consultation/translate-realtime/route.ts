@@ -20,6 +20,7 @@ import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { detectLanguage } from "@/lib/translate";
 import { looksLikeLeakedTranslation } from "@/lib/consultation/translateOutputGuard";
+import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
 
 // Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
 const ALLOWED_ORIGINS = new Set<string>([
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // partial=true: 말하는 중(interim) 부분 번역 — 화면 표시 전용이라 DB 기록을 남기지 않는다
     // (같은 발화가 확정 번역과 이중 기록되는 것 방지. 인증·비용가드는 동일 적용.)
-    const { text, sourceLang, targetLang, consultationId, speakerRole, context, partial } =
+    const { text, sourceLang, targetLang, consultationId, speakerRole, context, partial, sttEngine } =
       await request.json();
 
     if (!text || !sourceLang || !targetLang) {
@@ -209,6 +210,9 @@ ${text}`,
         sourceLang,
         targetLang,
         speakerRole: speakerRole || "unknown",
+        // 「어느 받아쓰기가 이 글을 만들었나」 — 클라이언트가 알려주지만 아는 값만 통과시킨다.
+        // 이 라우트는 브라우저 받아쓰기가 기본이고, 서버 받아쓰기 폴백도 여기로 올 수 있다.
+        sttEngine: normalizeSttEngine(sttEngine) ?? STT_ENGINES.BROWSER,
       }).catch((err) =>
         console.error("[translate-realtime] DB save error:", err.message)
       );
@@ -237,6 +241,7 @@ async function saveTranslationLog(
     sourceLang: string;
     targetLang: string;
     speakerRole: string;
+    sttEngine: string;
   }
 ) {
   const { getSupabaseServerClient } = await import(
@@ -250,6 +255,7 @@ async function saveTranslationLog(
       session_id: consultationId,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      stt_engine: data.sttEngine,
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,
