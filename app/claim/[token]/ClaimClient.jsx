@@ -184,17 +184,22 @@ export default function ClaimClient({ token }) {
   const stageTimelineAll = timeline.filter((h) => inStage(h.at));
 
   /**
-   * 그 단계의 «가장 새로운 소식»은 맨 위 진행상황 바로 밑으로 올린다 (2026-08-05 PO).
+   * 「지나온 기록」 칸을 없애고 그 단계에서 있었던 일을 **맨 위 한 칸**으로 모았다 (2026-08-05 PO:
+   * *"지나온 기록은 맨 하단에 필요한게 맞나? 너무 뭔가 복잡해지는 느낌인데"*).
    *
-   * 코디가 남긴 소식이 제일 새롭고 제일 구체적인데 화면 맨 아래 「지나온 기록」에 묻혀 있었다.
-   * 화면을 열고 알고 싶은 건 «지금 무슨 일이 있나»다 — 그건 위에 있어야 한다.
+   * 실제로 그 칸에 뭐가 들어있었는지 세어보니(문의 #60) — 「8/3 문의·의뢰 접수」「8/4 상담·검토
+   * 진행」. **단계 이름은 위 탭과 제목이 이미 말하고 있다.** 새 정보는 «날짜»와 «딸린 한 줄»
+   * (🩺 사전상담 완료)뿐이었다. 칸 하나가 통째로 그걸 담으려고 서 있었던 셈이다.
    *
-   * 올린 그 한 건은 아래 기록에서 뺀다 — 같은 줄이 두 군데 뜨면 방금 정리한 게 도로 흐트러진다.
-   * 그 앞의 소식들은 기록에 그대로 남는다(사라지지 않는다).
+   *   · 단계 이름만 있고 딸린 줄이 없는 것 → 버린다(중복)
+   *   · 딸린 줄이 있는 것 + 코디 소식      → 「이 단계에 있었던 일」로 새것부터
+   *   · 그 단계가 «언제 시작됐나»            → 제목 옆 날짜 한 줄
    */
-  const stageUpdates = stageTimelineAll.filter((h) => h.kind === "update");
-  const latestUpdate = stageUpdates.length ? stageUpdates[stageUpdates.length - 1] : null;
-  const stageTimeline = stageTimelineAll.filter((h) => h !== latestUpdate);
+  const stageEvents = stageTimelineAll
+    .filter((h) => h.note)
+    .map((h) => ({ at: h.at, text: h.note }))
+    .reverse();
+  const stageStartedAt = stageTimelineAll.find((h) => h.kind === "stage")?.at || null;
 
   const isFirstStage = reached.length > 0 && selected === reached[0];
   // 「보내주신 것」도 같은 규칙으로 그 단계 것만 추린다.
@@ -262,18 +267,18 @@ export default function ClaimClient({ token }) {
           lang={lang}
           selected={selected}
           selectedLabel={stageLabel}
-          latestUpdate={latestUpdate}
+          events={stageEvents}
+          startedAt={stageStartedAt}
         />
       )}
-      {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) → 지나온 기록 */}
+      {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) */}
       {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
       {stageSent.length > 0 && <SentItems items={stageSent} lang={lang} />}
-      {stageTimeline.length > 0 && <History timeline={stageTimeline} lang={lang} />}
       {/* 지나온 단계인데 그때 오간 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
-      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageTimeline.length === 0 &&
+      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageEvents.length === 0 &&
         stageSent.length === 0 && (
         <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
       )}
@@ -594,43 +599,58 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
  * 고른 단계의 머리말. **지금 단계를 고르면** 「다음은요」 안내까지 같이 보이고,
  * 지나온 단계를 고르면 그 단계 이름만 — 지난 일에 「다음은요」를 붙이면 지금 할 일로 오해한다.
  */
-function CurrentStep({ progress, lang, selected, selectedLabel, latestUpdate }) {
+function CurrentStep({ progress, lang, selected, selectedLabel, events, startedAt }) {
   if (!progress.caseStatus) {
     return <p className="mt-8 text-sm text-gray-500 leading-relaxed">{t("claimPage.notStarted", lang)}</p>;
   }
   const isNow = selected === progress.currentOrder;
+  const showNext = isNow && progress.nextStep;
   return (
     <div className="mt-8">
       <p className="text-xs font-bold text-gray-400">
         {isNow ? t("claimPage.currentStepLabel", lang) : t("claimPage.pastStepLabel", lang)}
       </p>
-      <h2 className="text-lg font-extrabold text-gray-900 mt-1">
-        {isNow ? progress.caseStatusLabel : selectedLabel}
-      </h2>
+      <div className="mt-1 flex items-baseline justify-between gap-3">
+        <h2 className="text-lg font-extrabold text-gray-900">
+          {isNow ? progress.caseStatusLabel : selectedLabel}
+        </h2>
+        {/* 단계가 «언제 시작됐나» — 예전엔 이 날짜 하나 때문에 아래에 칸이 하나 서 있었다. */}
+        {startedAt && (
+          <span className="shrink-0 text-xs text-gray-500">
+            {new Date(startedAt).toLocaleDateString()}
+          </span>
+        )}
+      </div>
       {isNow && progress.caseStatusNote && (
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">{progress.caseStatusNote}</p>
       )}
-      {/* 한 칸 안에 «무슨 일이 있었나»(코디 소식) + «앞으로 어떻게 되나»(단계 안내).
-          칸을 둘로 나누면 또 늘어난다 — 붙여서 한 칸으로 둔다. */}
-      {(latestUpdate || (isNow && progress.nextStep)) && (
+      {/* 한 칸 안에 «이 단계에 있었던 일»(새것부터) + «앞으로 어떻게 되나».
+          칸을 나누면 또 늘어난다 — 붙여서 한 칸으로 둔다. */}
+      {(events.length > 0 || showNext) && (
         <div className="mt-4 bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
-          {latestUpdate && (
+          {events.length > 0 && (
             <>
-              <p className="text-xs font-bold text-teal-800">
-                {t("claimPage.latestUpdateLabel", lang)}
-                {latestUpdate.at && (
-                  <span className="ml-2 font-normal text-teal-700">
-                    {new Date(latestUpdate.at).toLocaleDateString()}
-                  </span>
-                )}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-relaxed text-teal-900">
-                {latestUpdate.note}
-              </p>
+              <p className="text-xs font-bold text-teal-800">{t("claimPage.latestUpdateLabel", lang)}</p>
+              <ul className="mt-1.5 space-y-2">
+                {events.map((e, i) => (
+                  <li key={`${e.at}-${i}`}>
+                    <span className="mr-2 text-xs text-teal-700">
+                      {e.at ? new Date(e.at).toLocaleDateString() : ""}
+                    </span>
+                    <span
+                      className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${
+                        i === 0 ? "font-semibold text-teal-900" : "text-teal-800"
+                      }`}
+                    >
+                      {e.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </>
           )}
-          {isNow && progress.nextStep && (
-            <div className={latestUpdate ? "mt-3 border-t border-teal-200 pt-3" : ""}>
+          {showNext && (
+            <div className={events.length > 0 ? "mt-3 border-t border-teal-200 pt-3" : ""}>
               <p className="text-xs font-bold text-teal-800">{t("claimPage.nextLabel", lang)}</p>
               <p className="text-sm text-teal-800 mt-1 leading-relaxed flex items-start gap-1.5">
                 <ArrowRight size={13} className="mt-1 shrink-0" aria-hidden="true" />
@@ -1015,40 +1035,6 @@ function DocumentPreview({ doc, token, lang }) {
   );
 }
 
-function History({ timeline, lang }) {
-  const rows = [...timeline].reverse();
-  return (
-    <div className="mt-8">
-      <p className="text-xs font-bold text-gray-400">{t("claimPage.historyTitle", lang)}</p>
-      <ul className="mt-3 space-y-3">
-        {rows.map((h, i) => (
-          <li key={`${h.at}-${i}`} className="flex gap-3 text-sm">
-            <span
-              className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${i === 0 ? "bg-teal-700" : "bg-gray-300"}`}
-              aria-hidden="true"
-            />
-            <span className="text-gray-400 shrink-0 w-24">
-              {h.at ? new Date(h.at).toLocaleDateString() : ""}
-            </span>
-            {/* 단계가 바뀐 줄에는 단계 이름이 크게, 코디가 남긴 소식에는 그 글이 크게.
-                소식은 단계 이름이 없다(kind="update") — 「상담·검토 진행」을 또 적어봐야
-                환자에겐 새 정보가 아니다. 알고 싶은 건 «무슨 일이 있었나»다. */}
-            <span className={i === 0 ? "text-gray-900 font-semibold" : "text-gray-500"}>
-              {h.kind === "update" ? (
-                <span className="block whitespace-pre-wrap break-words">{h.note}</span>
-              ) : (
-                <>
-                  {h.label}
-                  {h.note && <span className="block text-xs text-gray-500 mt-0.5">{h.note}</span>}
-                </>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 /** 아래 띠 — 계정 연결/가입 권유. 여기가 무슨 상태가 되든 **위 진행상황은 그대로 남는다.** */
 function ConnectStrip({ lang, session, claiming, claimResult, alreadyClaimed, onPortal, onSignup, onLogin }) {
