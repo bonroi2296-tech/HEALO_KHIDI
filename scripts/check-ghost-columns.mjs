@@ -27,16 +27,30 @@ const EXTS = new Set([".ts", ".tsx", ".mts", ".mjs", ".js", ".jsx"]);
 const WRITE_METHODS = new Set(["insert", "update", "upsert"]);
 
 // ── .env.local 로더 (dotenv 없이, CRLF·따옴표 허용)
+//
+// ⚠️ 따옴표를 벗기는 것만으론 부족하다. 이 저장소의 .env.local 에는 값이 «리터럴 \n»으로
+//    끝나는 줄이 있다(SUPABASE_SERVICE_ROLE_KEY). 그걸 열쇠의 일부로 읽으면 401 «Invalid API key»
+//    가 나서, 멀쩡한 열쇠를 「폐기됐다」고 오진하게 된다(2026-08-06 실제로 그렇게 헛짚었다).
+//    Next.js 의 로더는 이걸 처리하므로 실서비스는 멀쩡하다 — 문제는 이런 «직접 읽는» 스크립트다.
+function unquote(v) {
+  const s = v.trim().replace(/^(["'])([\s\S]*)\1$/, "$2");
+  return s.replace(/\\n/g, "\n").trim();
+}
 const env = {};
 try {
   for (const line of readFileSync(join(ROOT, ".env.local"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-    if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+    if (m) env[m[1]] = unquote(m[2]);
   }
 } catch { /* env 없으면 아래에서 안내하고 종료 */ }
 
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// service_role 이 있으면 그걸 쓴다 — 접근권한 규칙(RLS)을 건너뛰므로 규칙이 꼬인 표
+// (예: user_roles 의 규칙이 자기를 다시 불러 42P17 무한재귀)까지 판정할 수 있다.
+// 없으면 anon 으로도 «칸 존재» 확인은 된다(그 표만 「판정 불가」로 남는다).
+const ANON =
+  env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function* walkFiles(dir) {
   let entries;
