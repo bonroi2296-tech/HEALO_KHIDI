@@ -8,6 +8,13 @@
 
 ## 1. KPI 정의 (KHIDI 공고 기준)
 
+> 🛑 **2026-08-06 재확인 (PO) — 목표치는 12건 / 120건 / 90점이다. 이걸로 끝난 얘기다.**
+> **최초 신청본 `01. 사업신청/[최종] 사업계획서_v3.docx` 의 성과지표 총괄표에는 옛 값이 남아 있다**
+> (유치 최소10·도전12 / 상담 최소80·도전96 / 만족도 최소80·도전85, 「환자당 8회(사전3+사후5)」).
+> **그 문서를 근거로 목표치를 다시 낮추지 마라** — 신청 단계 값이고, 확정 목표는 위 12/120/90이다.
+> 상담 120건의 구조는 **유치 12 × 10회(사전 5 + 사후 5)**. 단, 그 문서의 **증빙 방법
+> 「HEALO 로그, 상담일지」**는 유효하다(영상통화로 한정하지 않는 근거).
+>
 > ⚠️ **2026-07-27 정정** — 아래 목표치가 오래된 값(유치 10건 / 사전상담 80건 / 만족도 80점)으로
 > 남아 있어 현행 공식 목표로 고쳤다. **목표의 단일 소스(SoR)는 `src/lib/khidi/targets.ts`**이며
 > 유치 전환 대시보드(`/admin/khidi/conversion`)도 그 값으로 집계한다.
@@ -63,24 +70,46 @@ WHERE i.nationality NOT IN ('KR', 'Korea', '한국')
 
 ## 3. K-02. 원격 사전상담 건수
 
-### 정의
-**"LiveKit 영상 통화가 실제로 시작되고 5분 이상 유지된 사전상담 세션 수"**
+### 정의 (2026-08-06 PO 지시로 확대 — 아래 ⚠️ 경위 참조)
+**"환자 케이스에 대해 실제로 상담이 이루어지고 결과가 환자에게 전달된 건수"** — 매체는 둘:
+
+| 매체 | 세는 기준 |
+|---|---|
+| ① 영상 사전상담 | `consultation_sessions.session_type='pre_consultation'` AND `status='completed'` |
+| ② **글로 전달한 사전상담** | `case_opinions.released_at IS NOT NULL` (의료진 소견을 검토해 **환자에게 전달 완료**한 건) |
 
 단순 예약·취소된 세션 → 카운트 X.
-5분 미만 세션 → 카운트 X (네트워크 문제 등으로 즉시 종료된 경우 제외).
+소견을 **작성만 하고 환자에게 안 보낸 초안** → 카운트 X (`released_at` 이 판정 기준).
+시험용 문의(`inquiries.is_test=true`)에 딸린 것 → 전부 카운트 X.
+
+> ⚠️ **왜 고쳤나 (2026-08-06).** 옛 정의는 *"LiveKit 영상 통화가 5분 이상 유지된 세션"* 이었다.
+> 그런데 **진흥원 제출 정의의 증빙은 「HEALO 상담로그·AI/Human 기록」**이지 영상통화가 아니다
+> (`docs/KHIDI_중간보고_베이스.md` §2 지표표). 이 자체 명세가 매체를 영상으로 좁혀 놓아
+> **병원에서 검토해 환자에게 전달한 소견이 한 건도 안 세어지고 있었다**(실측: 3건 누락).
+> 또한 옛 SQL 의 `actual_duration_minutes` 는 **존재하지 않는 컬럼**이었고, 대체 컬럼
+> `duration_seconds` 도 전 건 `null` 이라 「5분 이상」 조건은 애초에 잴 수 없었다.
 
 ### 측정 데이터
-- `consultation_sessions` 테이블
-- `livekit_session_logs` (LiveKit Webhook 기록)
+- `consultation_sessions` 테이블 (영상)
+- `case_opinions` 테이블 (글 — `released_at`)
+- 구현: `src/lib/khidi/kpi.ts` (`preConsultation` + `writtenOpinion`), 합산은 `dashboardMetrics.consultCareTotal()`
 
 ### 산출 SQL
 ```sql
-SELECT COUNT(*) AS 사전상담_건수
+-- ① 영상 사전상담
+SELECT COUNT(*) AS 영상_사전상담
 FROM consultation_sessions cs
 WHERE cs.session_type = 'pre_consultation'
   AND cs.status = 'completed'
-  AND cs.actual_duration_minutes >= 5
   AND cs.scheduled_at BETWEEN '2026-04-01' AND '2026-12-31';
+
+-- ② 글로 전달한 사전상담 (의료진 소견 전달 완료, 시험용 문의 제외)
+SELECT COUNT(*) AS 글_소견전달
+FROM case_opinions o
+LEFT JOIN inquiries i ON i.id = o.inquiry_id
+WHERE o.released_at IS NOT NULL
+  AND i.is_test IS NOT TRUE
+  AND o.released_at BETWEEN '2026-04-01' AND '2026-12-31';
 ```
 
 ### 보조 지표 (월간 보고용)

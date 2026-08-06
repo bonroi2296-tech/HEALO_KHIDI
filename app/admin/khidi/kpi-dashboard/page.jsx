@@ -218,7 +218,9 @@ export default function KpiDashboardPage() {
 
   // 사업 누적: 사전상담+사후관리 합산 (공식 120 목표)
   const cumConsultCare =
-    cum != null ? consultCareTotal(cum.preConsultation, cum.followUp) : null;
+    cum != null
+      ? consultCareTotal(cum.preConsultation, cum.followUp, cum.writtenOpinion)
+      : null;
 
   // 월별 바 차트용 데이터 (daily → 일별 누적)
   const dailyChartData = daily.slice(-30).map((d) => ({
@@ -348,7 +350,11 @@ export default function KpiDashboardPage() {
             title="사전상담 + 사후관리 (합산)"
             actual={cumConsultCare}
             target={KPI_TARGETS.consultAndCare}
-            note={cum ? `사전 ${cum.preConsultation ?? 0} · 사후 ${cum.followUp ?? 0}` : ""}
+            note={
+              cum
+                ? `영상 사전상담 ${cum.preConsultation ?? 0} · 글 소견 전달 ${cum.writtenOpinion ?? 0} · 사후관리 ${cum.followUp ?? 0}`
+                : ""
+            }
             accentColor="teal"
           />
           <KpiCard

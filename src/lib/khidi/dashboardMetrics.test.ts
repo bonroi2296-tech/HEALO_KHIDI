@@ -73,6 +73,14 @@ describe("consultCareTotal", () => {
     expect(consultCareTotal(null, 5)).toBe(5);
     expect(consultCareTotal(null, null)).toBe(0);
   });
+  it("글로 전달한 사전상담(소견)도 합산한다 — 2026-08-06 정의 확대", () => {
+    expect(consultCareTotal(1, 0, 3)).toBe(4);
+    expect(consultCareTotal(null, null, 3)).toBe(3);
+  });
+  it("세 번째 인자를 안 주던 옛 호출부는 그대로 동작한다", () => {
+    expect(consultCareTotal(7, 5)).toBe(12);
+    expect(consultCareTotal(7, 5, null)).toBe(12);
+  });
 });
 
 describe("sharePct", () => {

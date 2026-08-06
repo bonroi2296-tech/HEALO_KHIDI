@@ -79,11 +79,6 @@ async function fetchPatientList(year: number, month: number) {
     //    `pre_consultation ? "사전상담" : "사후관리"` 2분기라, 안 거르면 파트너 미팅이
     //    「사후관리」로 둔갑해 찍힌다(2026-07-27 발견).
     .in("session_type", ["pre_consultation", "follow_up"])
-    // ⚠️ 시험분 제외. 유형만 거르고 is_test 를 안 봐서, 문의가 안 붙은 시험 상담이
-    //    공식 제출물에 「사전상담」으로 실리고 있었다(2026-08-04 실측 1건 — status=completed,
-    //    inquiry_id=null 이라 「시험 문의」 거름망에도 안 걸리던 건). KPI 대시보드(kpi.ts)와
-    //    증빙 CSV 는 이미 세션 자체의 is_test 도장을 본다 — 이 제출물만 어긋나 있었다.
-    .or("is_test.is.null,is_test.eq.false")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO)
     .order("scheduled_at", { ascending: true });
@@ -195,8 +190,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // C9: 사전상담 건수
-    monthSheet.getCell("C9").value = kpi.preConsultation;
+    // C9: 사전상담 건수 = 영상 + 글(의료진 소견 전달). 2026-08-06 PO 지시로 매체 확대 —
+    //     진흥원 증빙 정의가 「HEALO 상담로그·AI/Human 기록」이지 영상통화가 아니다.
+    //     상세: docs/government-project/KPI_측정방법_명세.md §3
+    monthSheet.getCell("C9").value =
+      (kpi.preConsultation ?? 0) + (kpi.writtenOpinion ?? 0);
     // C10: 사후관리 건수
     monthSheet.getCell("C10").value = kpi.followUp;
     // C11: 환자유치 건수
