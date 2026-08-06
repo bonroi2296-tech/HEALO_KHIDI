@@ -502,7 +502,15 @@ for (const k of envKeys) {
   for (const f of ENV_USERS.get(k) || []) seeds.push({ file: f, reason: `환경변수 «${k}»` });
 }
 
-const globalHits = changed.flatMap((f) => GLOBAL_FILES.filter((g) => g.re.test(f)).map((g) => ({ file: f, what: g.what })));
+// ⚠️ «실재하는» 파일만 본다. 경로 생김새만 보고 판정하면 오타나 이미 지워진 파일에도
+//    「사실상 전 화면」이라고 단정한다(실측: 없는 파일명을 줬더니 그대로 경보가 떴다).
+//    지워진 파일은 여기가 아니라 ③번 축(아직 부르는 곳)이 다뤄야 할 몫이다.
+const globalHits = changed
+  .filter((f) => fs.existsSync(path.join(ROOT, f)))
+  .flatMap((f) => GLOBAL_FILES.filter((g) => g.re.test(f)).map((g) => ({ file: f, what: g.what })));
+
+// --files 로 준 것 중 «없는» 파일은 조용히 넘기지 말고 말해준다 — 오타면 반경이 통째로 헛돈다.
+const missingInputs = EXPLICIT_FILES ? EXPLICIT_FILES.filter((f) => !fs.existsSync(path.join(ROOT, f))) : [];
 
 const { reached, via } = blastRadius(seeds);
 
@@ -590,6 +598,10 @@ const GRN = (s) => `\x1b[32m${s}\x1b[0m`;
 console.log("");
 console.log(B(`🎯 영향 반경 — ${label}`));
 console.log(DIM(`   코드 변경 ${codeChanged.length}개 파일 · 훑은 코드 ${ALL_FILES.length}개 · 화면/서버창구 ${ROUTE_FILES.length}개`));
+if (missingInputs.length) {
+  console.log(RED(`   ⚠️ 지정한 파일 중 ${missingInputs.length}개가 «없다» — 오타면 아래 반경이 통째로 헛돈다:`));
+  missingInputs.forEach((f) => console.log(RED(`      ${f}`)));
+}
 
 if (!codeChanged.length && !dbTables.length && !envKeys.length && !globalHits.length && !dangling.length) {
   console.log(DIM("\n   코드·DB·설정 변경이 없다. 볼 것 없음."));
