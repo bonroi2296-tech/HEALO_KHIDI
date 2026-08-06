@@ -63,15 +63,29 @@ WHERE i.nationality NOT IN ('KR', 'Korea', '한국')
 
 ## 3. K-02. 원격 사전상담 건수
 
-### 정의
-**"LiveKit 영상 통화가 실제로 시작되고 5분 이상 유지된 사전상담 세션 수"**
+### 정의 (2026-08-06 PO 지시로 확대 — 아래 ⚠️ 경위 참조)
+**"환자 케이스에 대해 실제로 상담이 이루어지고 결과가 환자에게 전달된 건수"** — 매체는 둘:
+
+| 매체 | 세는 기준 |
+|---|---|
+| ① 영상 사전상담 | `consultation_sessions.session_type='pre_consultation'` AND `status='completed'` |
+| ② **글로 전달한 사전상담** | `case_opinions.released_at IS NOT NULL` (의료진 소견을 검토해 **환자에게 전달 완료**한 건) |
 
 단순 예약·취소된 세션 → 카운트 X.
-5분 미만 세션 → 카운트 X (네트워크 문제 등으로 즉시 종료된 경우 제외).
+소견을 **작성만 하고 환자에게 안 보낸 초안** → 카운트 X (`released_at` 이 판정 기준).
+시험용 문의(`inquiries.is_test=true`)에 딸린 것 → 전부 카운트 X.
+
+> ⚠️ **왜 고쳤나 (2026-08-06).** 옛 정의는 *"LiveKit 영상 통화가 5분 이상 유지된 세션"* 이었다.
+> 그런데 **진흥원 제출 정의의 증빙은 「HEALO 상담로그·AI/Human 기록」**이지 영상통화가 아니다
+> (`docs/KHIDI_중간보고_베이스.md` §2 지표표). 이 자체 명세가 매체를 영상으로 좁혀 놓아
+> **병원에서 검토해 환자에게 전달한 소견이 한 건도 안 세어지고 있었다**(실측: 3건 누락).
+> 또한 옛 SQL 의 `actual_duration_minutes` 는 **존재하지 않는 컬럼**이었고, 대체 컬럼
+> `duration_seconds` 도 전 건 `null` 이라 「5분 이상」 조건은 애초에 잴 수 없었다.
 
 ### 측정 데이터
-- `consultation_sessions` 테이블
-- `livekit_session_logs` (LiveKit Webhook 기록)
+- `consultation_sessions` 테이블 (영상)
+- `case_opinions` 테이블 (글 — `released_at`)
+- 구현: `src/lib/khidi/kpi.ts` (`preConsultation` + `writtenOpinion`), 합산은 `dashboardMetrics.consultCareTotal()`
 
 ### 산출 SQL
 ```sql
