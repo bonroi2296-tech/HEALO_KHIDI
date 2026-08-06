@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLang } from '@/lib/i18n/LangContext';
-import { t } from '@/lib/i18n';
+import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   Activity, AlertTriangle, Plus, Send, Trash2,
@@ -344,7 +344,7 @@ export default function SymptomsClient() {
               return (
                 <div key={r.id} className="bg-white border border-gray-100 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">{new Date(r.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">{new Date(r.created_at).toLocaleString(dateLocale(lang))}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       risk >= 70 ? 'bg-red-100 text-red-700' :
                       risk >= 40 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'

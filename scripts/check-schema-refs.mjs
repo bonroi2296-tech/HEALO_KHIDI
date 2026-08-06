@@ -19,7 +19,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const ROOTS = ["src", "app"];
+// scripts 추가(2026-08-06): 여긴 tsconfig 제외라 타입검사가 «아예» 안 돈다. 실제로 이 폴더에서만
+// 없는 칸에 쓰는 자리 11건이 나왔다(죽은 스크립트 4개 — 같은 날 삭제). src·app 은 이제
+// supabase-js 2.112 의 타입 대조가 1차로 막지만, scripts 는 이 검사가 유일한 그물이다.
+const ROOTS = ["src", "app", "scripts"];
 const EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 
 // --- public 스키마 실재 테이블 (2026-06-30 스냅샷, 68개) ---
@@ -48,11 +51,24 @@ const PUBLIC_TABLES = new Set([
   "patient_visa_checklist", // 2026-07-01 적용 — 비자 서류 준비 체크 계정 저장. RLS=본인만
   "partner_outreach", // 2026-07-01 적용 (PR #567 — 파트너 아웃리치 추적기). RLS=서비스롤 전용
   "opinion_requests", // 2026-07-07 적용 — 전문의 세컨드 오피니언 요청(매직링크 토큰). RLS=서비스롤 전용
+  "staff_requests", // 2026-08-04 적용 — 스태프 개선 요청함(코디가 적고 PO·어시가 본다). RLS=서비스롤 전용
   "case_opinions", // 2026-07-07 적용 — 도착한 전문의 소견(코디·어드민 전용). RLS=서비스롤 전용
   "note_translations", // 2026-07-07 적용 — 코디 짧은 메모 자동번역 캐시(source_hash,target_lang). RLS=서비스롤 전용
   "playbook_responses", // 2026-07-20 적용 (POSTMORTEMS #97) — 플레이북 응대 원문·정제본·승인.
                         // 옛 `coordinator_responses` 는 동명의 견적 테이블과 충돌해 쓰기가 항상 실패했다
                         // → 전용 이름으로 분리. 견적용 coordinator_responses 는 그대로 남아 있음.
+
+  // ── 2026-08-06 갱신: information_schema 실측으로 대조하니 11개가 빠져 있었다.
+  //    (목록엔 있는데 실DB 에 없는 표는 0개 — 낡기만 했고 틀리진 않았다.)
+  "attachment_translations", // 첨부 문서 번역 캐시
+  "case_updates",            // 케이스 진행 알림
+  "case_shared_documents",   // 케이스에 공유된 서류
+  "center_menu_items",       // 센터 메뉴 구성
+  "doc_glossary_terms",      // 문서 번역 용어집
+  "v_today_funnel_stats",    // 오늘 퍼널 집계 «뷰»(표 아님 — 조회 전용)
+  // 백업 표 — 평문→암호문 이관 스크립트가 읽는다(backfill-backup-tables-encryption.ts)
+  "_backup_messages_20260720", "_backup_transcripts_20260720", "_backup_treatments_20260720",
+  "_backup_rag_documents_treatments_20260720", "_backup_session_type_20260727",
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
@@ -64,9 +80,15 @@ const ALLOWLIST = new Map([
   // (비어있음) 과거 dead-path(patients/users)는 제거·교정 완료 — KNOWN_ISSUES #35-S2.
 ]);
 
+// 검사기(check-*.mjs)는 뺀다 — 자기시험용 «가짜» 표 이름(__t·other·x·s)이 들어 있어서
+// 안 빼면 검사기가 서로의 시험 데이터를 유령 테이블로 신고한다(실제로 5건 오탐).
+// 검사기는 읽기 전용이라 여기서 빠져도 잃는 게 없다.
+const SELF_CHECK_FILES = /^check-.*\.mjs$/;
+
 function walk(dir, out) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+    if (SELF_CHECK_FILES.test(e.name)) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, out);
     else if (EXT.test(e.name)) out.push(p);

@@ -122,7 +122,12 @@ export async function POST(request: NextRequest) {
     console.log(`[${apiPath}] Public URL 생성:`, publicUrl);
 
     // 8) site_settings 업데이트
-    const fieldName = type === "logo" ? "logo_url" : "hero_background_url";
+    // 계산된 키({ [fieldName]: ... })는 칸 이름 검사를 통과해버린다 → 갈래별 리터럴로 적어
+    // 「없는 칸에 쓰기」가 여기서도 걸리게 한다.
+    const patch =
+      type === "logo"
+        ? { logo_url: publicUrl }
+        : { hero_background_url: publicUrl };
     
     // 기존 설정 확인
     const { data: existingRows, error: existingErr } = await supabaseAdmin
@@ -141,7 +146,7 @@ export async function POST(request: NextRequest) {
       // UPDATE
       const { error: updateError } = await supabaseAdmin
         .from("site_settings")
-        .update({ [fieldName]: publicUrl })
+        .update(patch)
         .eq("id", existing.id);
 
       if (updateError) {
@@ -155,7 +160,9 @@ export async function POST(request: NextRequest) {
       // INSERT
       const { error: insertError } = await supabaseAdmin
         .from("site_settings")
-        .insert({ [fieldName]: publicUrl } as any);
+        // key 는 비워둘 수 없는 칸인데 여기서 안 넣고 있었다 → 표가 비었을 때 새로 만들기가
+        // 반드시 실패했을 것. 실서비스의 유일한 줄이 key='default' 라 같은 값을 쓴다.
+        .insert({ ...patch, key: "default" });
 
       if (insertError) {
         console.error(`[${apiPath}] site_settings INSERT 실패:`, insertError);

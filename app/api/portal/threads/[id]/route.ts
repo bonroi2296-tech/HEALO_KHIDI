@@ -9,6 +9,7 @@ import { NextRequest, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { runPostResolve } from "@/lib/automation/postResolveWorker";
+import type { TablesUpdate } from "@/types/database.types";
 
 const VALID_STATUS = ["open", "waiting_coordinator", "waiting_patient", "resolved"];
 
@@ -34,7 +35,8 @@ export async function PATCH(
   }
 
   try {
-    const update: Record<string, any> = {
+    // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+    const update: TablesUpdate<"chat_threads"> = {
       status,
       updated_at: new Date().toISOString(),
     };

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
-  Settings,
+  Settings, MessageSquarePlus,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
@@ -31,6 +31,8 @@ const NAV_ITEMS = [
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
   { id: 'content', labelKey: 'navContent', label: '콘텐츠 편집', icon: FileText, href: '/coordinator/content' },
+  // 쓰다가 불편한 걸 그 자리에서 적어두는 칸 (2026-08-04 PO 제안)
+  { id: 'requests', labelKey: 'navRequests', icon: MessageSquarePlus, href: '/coordinator/requests' },
 ];
 
 export default function CoordinatorLayout({ children }) {
@@ -41,6 +43,13 @@ export default function CoordinatorLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // 개선 요청함이 「어느 화면에서 불편했는지」를 자동으로 붙일 수 있게 직전 화면을 남긴다.
+  // 요청함 자신은 빼야 한다 — 안 그러면 전부 「/coordinator/requests 에서 적음」이 된다.
+  useEffect(() => {
+    if (typeof window === 'undefined' || pathname === '/coordinator/requests') return;
+    try { sessionStorage.setItem('healo_last_path', pathname); } catch { /* 사파리 비공개 모드 등 */ }
+  }, [pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

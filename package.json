@@ -70,12 +70,14 @@
     "audit:lighthouse": "node scripts/audit/lighthouse-scan.mjs",
     "prepare": "node scripts/install-hooks.js",
     "test:alarms": "bash scripts/test-session-alarms.sh",
-    "check:e2e-schema": "node scripts/check-e2e-schema.mjs"
+    "check:e2e-schema": "node scripts/check-e2e-schema.mjs",
+    "check:ghost-columns": "node scripts/check-ghost-columns.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
     "@aws-sdk/client-ses": "^3.999.0",
     "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
@@ -93,7 +95,7 @@
     "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.90.1",
+    "@supabase/supabase-js": "^2.112.1",
     "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.168",
     "axios": "^1.7.9",

@@ -17,7 +17,7 @@ import { CheckCircle2, Loader2, ShieldAlert, ArrowRight, FileText, Eye, Globe, F
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { t, isKnownLangCode, setLangCookie, LANG_OPTIONS_PRIMARY } from "@/lib/i18n";
+import { t, dateLocale, isKnownLangCode, setLangCookie, LANG_OPTIONS_PRIMARY } from "@/lib/i18n";
 import { DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
 import { uploadDirect } from "@/lib/uploadAttachment";
 
@@ -612,7 +612,7 @@ function SentItems({ items, lang, token }) {
                 <p className="whitespace-pre-wrap break-words text-sm text-gray-800">{h.label}</p>
               )}
               {h.at && (
-                <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString()}</p>
+                <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString(dateLocale(lang))}</p>
               )}
             </div>
             {h.mine && (
@@ -647,13 +647,13 @@ function SummaryCard({ preview, lang }) {
     [t("claimPage.agencyLabel", lang), preview.agencyName],
     [
       t("claimPage.receivedAtLabel", lang),
-      preview.createdAt ? new Date(preview.createdAt).toLocaleDateString() : null,
+      preview.createdAt ? new Date(preview.createdAt).toLocaleDateString(dateLocale(lang)) : null,
     ],
     // 희망 시기는 «내가 보낸 것»이 아니라 케이스의 성질이라 맨 위 요약에 둔다.
     [
       t("claimPage.intakeWhen", lang),
       preview.preferredDate
-        ? new Date(preview.preferredDate).toLocaleDateString()
+        ? new Date(preview.preferredDate).toLocaleDateString(dateLocale(lang))
         : preview.preferredDateFlex
           ? t("claimPage.intakeWhenFlex", lang)
           : null,
@@ -753,7 +753,7 @@ function CurrentStep({ progress, lang, selected, selectedLabel, events, startedA
         {/* 단계가 «언제 시작됐나» — 예전엔 이 날짜 하나 때문에 아래에 칸이 하나 서 있었다. */}
         {startedAt && (
           <span className="shrink-0 text-xs text-gray-500">
-            {new Date(startedAt).toLocaleDateString()}
+            {new Date(startedAt).toLocaleDateString(dateLocale(lang))}
           </span>
         )}
       </div>
@@ -771,7 +771,7 @@ function CurrentStep({ progress, lang, selected, selectedLabel, events, startedA
                 {events.map((e, i) => (
                   <li key={`${e.at}-${i}`}>
                     <span className="mr-2 text-xs text-teal-700">
-                      {e.at ? new Date(e.at).toLocaleDateString() : ""}
+                      {e.at ? new Date(e.at).toLocaleDateString(dateLocale(lang)) : ""}
                     </span>
                     <span
                       className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${
@@ -918,7 +918,7 @@ function Opinions({ opinions, lang }) {
                       <dt className="w-24 shrink-0 text-gray-500">
                         {t("claimPage.opinionsDateLabel", lang)}
                       </dt>
-                      <dd className="text-gray-900">{new Date(o.at).toLocaleDateString()}</dd>
+                      <dd className="text-gray-900">{new Date(o.at).toLocaleDateString(dateLocale(lang))}</dd>
                     </div>
                   )}
                 </dl>
@@ -1019,7 +1019,7 @@ function Documents({ documents, lang, token }) {
           <span className="block break-words text-sm font-semibold text-gray-900">{d.name}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
             {d.lang && <span className="font-medium text-teal-800">{DOC_LANG_LABEL[d.lang] || d.lang}</span>}
-            {d.at && <span>{new Date(d.at).toLocaleDateString()}</span>}
+            {d.at && <span>{new Date(d.at).toLocaleDateString(dateLocale(lang))}</span>}
             {d.note && <span className="basis-full text-gray-500">{d.note}</span>}
           </span>
         </div>

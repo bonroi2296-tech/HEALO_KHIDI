@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLang } from '@/lib/i18n/LangContext';
-import { t } from '@/lib/i18n';
+import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { kstDate } from '@/lib/datetime/kst';
 import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
@@ -210,7 +210,7 @@ export default function PatientDashboardClient() {
                     <div>
                       <div className="font-medium text-sm">{cancer}</div>
                       <div className="text-xs text-gray-500">
-                        {q.created_at ? new Date(q.created_at).toLocaleDateString() : '-'}
+                        {q.created_at ? new Date(q.created_at).toLocaleDateString(dateLocale(lang)) : '-'}
                       </div>
                     </div>
                   </div>

@@ -178,9 +178,8 @@ async function approveAndIngest(patternId: string, pattern: any): Promise<{ ok: 
         chunk_index: chunk.index,
         content: chunk.content,
         embedding: JSON.stringify(embeddings[i]),
-        embedding_model: EMBEDDING_MODEL,
-        embedded_at: nowIso(),
-        metadata: { source_type: "playbook_pattern", source_id: patternId, lang: pattern.language || "en", title, version: 1 },
+        // 모델·시각 부기정보는 rag_chunks 에 전용 칸이 없어 metadata 로 보관한다(ingest.ts 와 같은 처방).
+        metadata: { source_type: "playbook_pattern", source_id: patternId, lang: pattern.language || "en", title, version: 1, embedding_model: EMBEDDING_MODEL, embedded_at: nowIso() },
       }));
 
       const { data: inserted, error: chunkErr } = await supabaseAdmin

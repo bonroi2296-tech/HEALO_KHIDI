@@ -15,6 +15,7 @@ import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
+import { useLang } from "@/lib/i18n/LangContext";
 
 // 포털 공통 문지기 문구 — 6개 언어. (코디·에이전시·의료기관 등 외국인 스태프가 보는 화면)
 const GATE_TR = {
@@ -29,7 +30,13 @@ const GATE_TR = {
 // portalName prop 은 더 이상 표시하지 않음(문구를 범용 "이 포털"로 통일) — 호출부 호환 위해 받되 무시.
 export default function StaffPortalGate({ allow = [], redirect, children }) {
   const [state, setState] = useState("checking"); // checking | ok | denied | login
-  const lang = useBackofficeLang();
+  const boLang = useBackofficeLang();
+  // 이 카드를 보는 사람은 «스태프가 아닌 사람»이다(스태프면 통과했을 테니).
+  // 그런데 언어를 스태프 전용 쿠키에서만 읽어 기본이 ko 라, 환자·애플 심사관처럼
+  // 화면을 영어로 보던 사람에게도 거절 문구만 한국어로 나왔다(2026-08-05 PO 지적).
+  // → 공개 화면 언어를 먼저 쓰고, 없을 때만 스태프 언어로 되돌아간다.
+  const publicLang = useLang();
+  const lang = publicLang || boLang;
   const L = { ...GATE_TR.en, ...(GATE_TR[lang] || {}) };
 
   useEffect(() => {

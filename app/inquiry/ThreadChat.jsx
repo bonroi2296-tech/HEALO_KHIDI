@@ -123,7 +123,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
           />
           <span className="text-[12px] leading-snug text-gray-600">
             {t("chat.identify.consent", langCode) ||
-              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+              "[Required] I agree to the collection of my personal & sensitive health data, its cross-border transfer to Korea, and its processing by Google Gemini (AI) for consultation."}
           </span>
         </label>
 
@@ -138,7 +138,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
 
         <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
           {t("chat.identify.privacyNote", langCode) ||
-            "We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
+            "Your messages are sent to Google Gemini (USA) to generate answers. Google does not use them to train its models. We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
         </p>
       </div>
     </div>
@@ -383,7 +383,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
           />
           <span className="text-[12px] leading-snug text-gray-700">
             {t("chat.identify.consent", langCode) ||
-              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+              "[Required] I agree to the collection of my personal & sensitive health data, its cross-border transfer to Korea, and its processing by Google Gemini (AI) for consultation."}
           </span>
         </label>
 
@@ -398,7 +398,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
 
         <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
           {t("chat.identify.privacyNote", langCode) ||
-            "We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
+            "Your messages are sent to Google Gemini (USA) to generate answers. Google does not use them to train its models. We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
         </p>
       </div>
     </div>

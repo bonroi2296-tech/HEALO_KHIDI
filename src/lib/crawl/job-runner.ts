@@ -9,6 +9,7 @@ import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { getCrawlSource, initCrawlSources } from "./index";
 import { getHiraCodesForGroups } from "./specialty-groups";
 import type { CrawlHospitalRow } from "./types";
+import type { TablesUpdate } from "../../types/database.types";
 
 export interface CrawlJobParams {
   source_id: string;
@@ -19,13 +20,14 @@ export interface CrawlJobParams {
   mode?: "full" | "search";
 }
 
-interface JobStats {
+// interface 가 아니라 type — interface 는 jsonb(Json) 자리에 못 들어간다(색인 서명 불일치).
+type JobStats = {
   new: number;
   changed: number;
   unchanged: number;
   closed: number;
   errors: number;
-}
+};
 
 const HIRA_BASE_URL = "http://apis.data.go.kr/B551182/hospInfoServicev2";
 const HIRA_ROWS_PER_PAGE = 100;
@@ -548,7 +550,8 @@ async function loadExistingHospitals(sourceId: string) {
   return map;
 }
 
-async function updateJob(jobId: string, updates: Record<string, any>) {
+// 실DB `crawl_jobs` 의 모양으로 못박는다 — 부르는 쪽 12곳이 전부 여기서 검사받는다.
+async function updateJob(jobId: string, updates: TablesUpdate<"crawl_jobs">) {
   await supabaseAdmin.from("crawl_jobs").update(updates).eq("id", jobId);
 }
 

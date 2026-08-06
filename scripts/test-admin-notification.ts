@@ -117,7 +117,7 @@ async function listRecentEvents() {
   try {
     const { data, error } = await supabaseAdmin
       .from("inquiry_events")
-      .select("id, inquiry_id, event_type, event_data, created_at")
+      .select("id, inquiry_id, event_type, metadata, created_at")
       .in("event_type", ["admin_notified", "admin_notify_failed"])
       .order("created_at", { ascending: false })
       .limit(10);
@@ -139,8 +139,8 @@ async function listRecentEvents() {
       console.log(`${icon} Inquiry #${event.inquiry_id} - ${date}`);
       console.log(`   타입: ${event.event_type}`);
 
-      if (event.event_data) {
-        const data = event.event_data;
+      if (event.metadata) {
+        const data = event.metadata;
         if (data.provider) console.log(`   제공자: ${data.provider}`);
         if (data.message_id) console.log(`   메시지 ID: ${data.message_id}`);
         if (data.masked_to) console.log(`   수신: ${data.masked_to}`);
@@ -214,7 +214,7 @@ async function showStats() {
     if (weekFailed > 0) {
       const { data: failures } = await supabaseAdmin
         .from("inquiry_events")
-        .select("event_data")
+        .select("metadata")
         .eq("event_type", "admin_notify_failed")
         .gte("created_at", sevenDaysAgo.toISOString());
 
@@ -223,7 +223,9 @@ async function showStats() {
 
         const errorCounts = new Map<string, number>();
         failures.forEach((f: any) => {
-          const error = f.event_data?.error || "unknown";
+          // 실제 칸 이름은 metadata (event_data 아님) — POSTMORTEMS #59 와 같은 부류.
+          // 이 자리는 «읽는» 쪽이라 조용히 빈값이 떨어져 「실패 원인 unknown」만 찍히고 있었다.
+          const error = f.metadata?.error || "unknown";
           errorCounts.set(error, (errorCounts.get(error) || 0) + 1);
         });
 

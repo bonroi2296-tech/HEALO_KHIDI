@@ -76,6 +76,20 @@ export const LANG_OPTIONS_PRIMARY = PRIMARY_ORDER
 /** 기타 언어 (접었을 때 스크롤 영역으로 제한) */
 export const LANG_OPTIONS_OTHER = LANG_OPTIONS.filter(l => !LOCALES.includes(l.code));
 
+/**
+ * 날짜·시간 표기용 BCP47 로케일 — `new Date(x).toLocaleDateString(dateLocale(lang))`.
+ *
+ * 왜 있나 (2026-08-05): 환자 화면이 `toLocaleDateString()` 을 인자 없이 불러
+ * **브라우저·서버의 지역 설정**을 따랐다. 그 결과 화면을 영어로 보는 사람에게도
+ * 날짜만 「2026. 8. 3.」 한국식으로 나왔다(애플 심사관 계정으로 실측).
+ *
+ * ⚠️ 백오피스에도 같은 표(`@/lib/i18n/coordinator` 의 dateLocale)가 있다. 합치지 않는 이유는
+ *    그쪽 모듈이 스태프 사전 전체를 끌고 와서, 공개 화면 번들이 통째로 무거워지기 때문이다.
+ *    값을 고칠 일이 생기면 «두 곳 다» 고쳐라.
+ */
+const BCP47_BY_LANG = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
+export const dateLocale = (lang) => BCP47_BY_LANG[lang] || "en-US";
+
 // 직접 고른 언어(healo_lang 쿠키)는 항상 우선. 공개 페이지는 proxy가 URL 언어로 쿠키를 맞춰줌.
 export const getLangCodeFromCookie = () => {
   if (typeof document === "undefined") return "en";

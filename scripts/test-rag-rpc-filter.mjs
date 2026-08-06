@@ -74,10 +74,11 @@ async function run() {
     chunk_index: 0,
     content: PREFIX + " failed chunk",
     embedding: JSON.stringify(dummyVec),
-    embedding_model: "gemini-embedding-001",
+    // embedding_model 은 rag_chunks 에 없는 칸이라 넣으면 insert 가 통째로 실패한다
+    // → 조각이 안 들어가 이 시험이 조용히 헛돌고 있었다. 시험용 조각이라 그냥 뺀다.
   });
   if (chunkErr) {
-    console.log("Note: rag_chunks.embedding insert may fail on schema, continuing with doc only.");
+    console.log("⚠️ rag_chunks insert 실패 — 이 시험은 조각 없이 문서만으로 진행된다:", chunkErr.message);
   }
 
   const { data: rpc1 } = await sb.rpc("rag_search_chunks_v1_1", {
@@ -121,7 +122,6 @@ async function run() {
       chunk_index: 0,
       content: PREFIX + " expired chunk",
       embedding: JSON.stringify(dummyVec),
-      embedding_model: "gemini-embedding-001",
     });
   }
   const { data: rpc2 } = await sb.rpc("rag_search_chunks_v1_1", {
@@ -182,7 +182,6 @@ async function run() {
         chunk_index: 0,
         content: PREFIX + " blocked chunk",
         embedding: JSON.stringify(dummyVec),
-        embedding_model: "gemini-embedding-001",
       });
     }
   }
