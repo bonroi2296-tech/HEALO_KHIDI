@@ -16,7 +16,12 @@ interface KakaoPlace {
   place_url: string;
 }
 
-async function searchKeyword(query: string, lat?: number, lng?: number): Promise<KakaoPlace | null> {
+// 위도·경도는 실DB 에서 null 일 수 있다(값이 없는 병원). 아래 if (lat && lng) 가 이미 걸러낸다.
+async function searchKeyword(
+  query: string,
+  lat?: number | null,
+  lng?: number | null,
+): Promise<KakaoPlace | null> {
   const params = new URLSearchParams({
     query,
     category_group_code: "HP8",

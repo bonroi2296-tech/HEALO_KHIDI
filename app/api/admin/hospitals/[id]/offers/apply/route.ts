@@ -17,6 +17,7 @@ import {
 } from "@/lib/audit/adminAuditLog";
 import { generateSlug } from "@/lib/utils/slug";
 import type { OffersPreviewPayload, OfferItem } from "@/lib/hospitalOffers/types";
+import type { TablesInsert } from "@/types/database.types";
 import { formatRecoveryTime, formatDuration } from "@/lib/hospitalOffers/formatOfferFields";
 
 export async function POST(
@@ -98,7 +99,8 @@ export async function POST(
       t.slug && t.slug.trim() ? t.slug.trim() : generateSlug(t.name);
     const slug = ensureUniqueSlug(baseSlug);
 
-    const basePayload: Record<string, unknown> = {
+    // 실DB `treatments` 의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(그냥 Record 면 안 걸린다)
+    const basePayload: TablesInsert<"treatments"> = {
       hospital_id: hospitalId,
       name: t.name.trim(),
       slug,

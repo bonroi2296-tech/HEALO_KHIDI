@@ -1036,6 +1036,62 @@ export type Database = {
           },
         ]
       }
+      case_shared_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          inquiry_id: number
+          lang: string | null
+          mime: string | null
+          note: string | null
+          shared_at: string | null
+          size_bytes: number | null
+          storage_path: string
+          title: string | null
+          uploaded_by: string | null
+          visible_to_patient: boolean
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          inquiry_id: number
+          lang?: string | null
+          mime?: string | null
+          note?: string | null
+          shared_at?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          title?: string | null
+          uploaded_by?: string | null
+          visible_to_patient?: boolean
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          inquiry_id?: number
+          lang?: string | null
+          mime?: string | null
+          note?: string | null
+          shared_at?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          title?: string | null
+          uploaded_by?: string | null
+          visible_to_patient?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_shared_documents_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_status_history: {
         Row: {
           created_at: string
@@ -1064,6 +1120,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "case_status_history_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_updates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inquiry_id: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inquiry_id: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inquiry_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_updates_inquiry_id_fkey"
             columns: ["inquiry_id"]
             isOneToOne: false
             referencedRelation: "inquiries"
@@ -2740,6 +2828,7 @@ export type Database = {
           display_order: number | null
           doctor_count: number | null
           doctor_profile: Json | null
+          enrichment_log: Json | null
           establishment_date: string | null
           external_ratings: Json | null
           faq: Json
@@ -2762,6 +2851,7 @@ export type Database = {
           location_zh: string | null
           longitude: number | null
           medical_equipment: string[] | null
+          medical_institution_grade: string | null
           meta_desc_en: string | null
           meta_desc_ja: string | null
           meta_desc_ko: string | null
@@ -2820,6 +2910,7 @@ export type Database = {
           display_order?: number | null
           doctor_count?: number | null
           doctor_profile?: Json | null
+          enrichment_log?: Json | null
           establishment_date?: string | null
           external_ratings?: Json | null
           faq?: Json
@@ -2842,6 +2933,7 @@ export type Database = {
           location_zh?: string | null
           longitude?: number | null
           medical_equipment?: string[] | null
+          medical_institution_grade?: string | null
           meta_desc_en?: string | null
           meta_desc_ja?: string | null
           meta_desc_ko?: string | null
@@ -2900,6 +2992,7 @@ export type Database = {
           display_order?: number | null
           doctor_count?: number | null
           doctor_profile?: Json | null
+          enrichment_log?: Json | null
           establishment_date?: string | null
           external_ratings?: Json | null
           faq?: Json
@@ -2922,6 +3015,7 @@ export type Database = {
           location_zh?: string | null
           longitude?: number | null
           medical_equipment?: string[] | null
+          medical_institution_grade?: string | null
           meta_desc_en?: string | null
           meta_desc_ja?: string | null
           meta_desc_ko?: string | null
@@ -2976,7 +3070,6 @@ export type Database = {
           contact_method: string | null
           coordinator_brief: string | null
           coordinator_brief_sig: string | null
-          follow_ups: Json | null
           created_at: string
           email: string | null
           encrypted_contact: Json | null
@@ -2984,6 +3077,7 @@ export type Database = {
           encrypted_name: Json | null
           encryption_version: number | null
           first_name: string | null
+          follow_ups: Json | null
           followup_started_at: string | null
           id: number
           info_requested_at: string | null
@@ -2995,6 +3089,7 @@ export type Database = {
           intake_data: Json
           intake_step: string | null
           is_test: boolean
+          landing_path: string | null
           last_name: string | null
           lead_quality: string | null
           lead_quality_factors: Json | null
@@ -3016,12 +3111,10 @@ export type Database = {
           public_token_rotated_at: string | null
           quality_evaluated_at: string | null
           quality_signals: Json
+          referrer_host: string | null
           short_memo: string | null
           source: string | null
-          landing_path: string | null
-          referrer_host: string | null
           source_locale: string | null
-          utm: Json | null
           spoken_language: string | null
           status: string | null
           status_reason: string | null
@@ -3030,6 +3123,7 @@ export type Database = {
           step2_completed_at: string | null
           treatment_type: string | null
           user_id: string | null
+          utm: Json | null
         }
         Insert: {
           agency_id?: string | null
@@ -3045,7 +3139,6 @@ export type Database = {
           contact_method?: string | null
           coordinator_brief?: string | null
           coordinator_brief_sig?: string | null
-          follow_ups?: Json | null
           created_at?: string
           email?: string | null
           encrypted_contact?: Json | null
@@ -3053,6 +3146,7 @@ export type Database = {
           encrypted_name?: Json | null
           encryption_version?: number | null
           first_name?: string | null
+          follow_ups?: Json | null
           followup_started_at?: string | null
           id?: never
           info_requested_at?: string | null
@@ -3064,6 +3158,7 @@ export type Database = {
           intake_data?: Json
           intake_step?: string | null
           is_test?: boolean
+          landing_path?: string | null
           last_name?: string | null
           lead_quality?: string | null
           lead_quality_factors?: Json | null
@@ -3085,12 +3180,10 @@ export type Database = {
           public_token_rotated_at?: string | null
           quality_evaluated_at?: string | null
           quality_signals?: Json
+          referrer_host?: string | null
           short_memo?: string | null
           source?: string | null
-          landing_path?: string | null
-          referrer_host?: string | null
           source_locale?: string | null
-          utm?: Json | null
           spoken_language?: string | null
           status?: string | null
           status_reason?: string | null
@@ -3099,6 +3192,7 @@ export type Database = {
           step2_completed_at?: string | null
           treatment_type?: string | null
           user_id?: string | null
+          utm?: Json | null
         }
         Update: {
           agency_id?: string | null
@@ -3114,7 +3208,6 @@ export type Database = {
           contact_method?: string | null
           coordinator_brief?: string | null
           coordinator_brief_sig?: string | null
-          follow_ups?: Json | null
           created_at?: string
           email?: string | null
           encrypted_contact?: Json | null
@@ -3122,6 +3215,7 @@ export type Database = {
           encrypted_name?: Json | null
           encryption_version?: number | null
           first_name?: string | null
+          follow_ups?: Json | null
           followup_started_at?: string | null
           id?: never
           info_requested_at?: string | null
@@ -3133,6 +3227,7 @@ export type Database = {
           intake_data?: Json
           intake_step?: string | null
           is_test?: boolean
+          landing_path?: string | null
           last_name?: string | null
           lead_quality?: string | null
           lead_quality_factors?: Json | null
@@ -3154,12 +3249,10 @@ export type Database = {
           public_token_rotated_at?: string | null
           quality_evaluated_at?: string | null
           quality_signals?: Json
+          referrer_host?: string | null
           short_memo?: string | null
           source?: string | null
-          landing_path?: string | null
-          referrer_host?: string | null
           source_locale?: string | null
-          utm?: Json | null
           spoken_language?: string | null
           status?: string | null
           status_reason?: string | null
@@ -3168,6 +3261,7 @@ export type Database = {
           step2_completed_at?: string | null
           treatment_type?: string | null
           user_id?: string | null
+          utm?: Json | null
         }
         Relationships: [
           {
@@ -4302,6 +4396,45 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_requests: {
+        Row: {
+          author_email: string | null
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          reply: string | null
+          resolved_at: string | null
+          screen_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          reply?: string | null
+          resolved_at?: string | null
+          screen_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          reply?: string | null
+          resolved_at?: string | null
+          screen_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       survey_responses: {
         Row: {
           comment: string | null
@@ -5077,6 +5210,21 @@ export type Database = {
           pre_consult: number
           total_inquiries: number
           visa_or_quote: number
+        }[]
+      }
+      conversion_funnel_by_arrival: {
+        Args: {
+          p_axis?: string
+          p_from: string
+          p_include_test?: boolean
+          p_to: string
+        }
+        Returns: {
+          admitted: number
+          bucket: string
+          followup: number
+          pre_consult: number
+          total: number
         }[]
       }
       conversion_funnel_by_country: {

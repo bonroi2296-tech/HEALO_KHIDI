@@ -164,14 +164,16 @@ export async function POST(
         chunk_index: chunk.index,
         content: chunk.content,
         embedding: JSON.stringify(embeddingResults[i]),
-        embedding_model: EMBEDDING_MODEL,
-        embedded_at: nowIso(),
+        // 모델·시각 부기정보는 rag_chunks 에 전용 칸이 없어 metadata 로 보관한다.
+        // (ingest.ts 가 이미 같은 처방으로 고쳐진 자리 — POSTMORTEMS 「적재 깨짐」 건)
         metadata: {
           source_type: "playbook_pattern",
           source_id: id,
           lang: pattern.language,
           title,
           version: 1,
+          embedding_model: EMBEDDING_MODEL,
+          embedded_at: nowIso(),
         },
       }));
 

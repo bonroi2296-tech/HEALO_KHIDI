@@ -23,6 +23,7 @@ import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkBlockRate } from "@/lib/alerts/operationalAlerts";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import type { TablesUpdate, Json } from "@/types/database.types";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -170,8 +171,11 @@ export async function POST(request: NextRequest) {
     const existingAttachments = Array.isArray(row.attachments) ? row.attachments : [];
     const mergedAttachments = [...existingAttachments, ...extra];
 
-    const updatePayload: Record<string, unknown> = { intake: encryptedIntake };
-    if (extra.length) updatePayload.attachments = mergedAttachments;
+    // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+    // intake·attachments 는 jsonb — 안에 뭐가 들어갈지는 화면마다 달라 형식으로 못 묶는다.
+    // 여기서 검사받는 건 「칸 이름」이고, 그게 이 가드의 목적이다.
+    const updatePayload: TablesUpdate<"inquiries"> = { intake: encryptedIntake as Json };
+    if (extra.length) updatePayload.attachments = mergedAttachments as Json;
 
     const { error: updateErr } = await supabaseAdmin
       .from("inquiries")

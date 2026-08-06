@@ -31,6 +31,7 @@ import {
   validationErrorResponse,
 } from "@/lib/validation/admin";
 import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
+import type { TablesInsert } from "@/types/database.types";
 
 /**
  * GET: 병원 목록 조회 (관리자 전용)
@@ -180,7 +181,8 @@ export async function POST(request: NextRequest) {
   // ========================================
   // 4. Payload 구성
   // ========================================
-  const payload: Record<string, any> = {
+  // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+  const payload: TablesInsert<"hospitals"> = {
     name: validatedData.name.trim(),
     slug,
     location_kr: validatedData.location_kr?.trim() || null,
