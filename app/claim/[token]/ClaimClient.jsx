@@ -693,7 +693,9 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
         const done = progress.currentOrder >= s.order;
         const active = selected === s.order;
         return (
-          <div key={s.key} className="flex-1 flex flex-col items-center relative">
+          // min-w-0 이 없으면 칸이 «글자 길이»만큼 벌어져 화면 밖으로 밀린다. 한국어에선
+          // 안 걸리고 러시아어에서 걸렸다 — 폰에서 「Завершено」가 30px 삐져나갔다(2026-08-06 실측).
+          <div key={s.key} className="relative flex min-w-0 flex-1 flex-col items-center">
             {i > 0 && (
               <span
                 className={`absolute top-[9px] right-1/2 w-full h-[3px] ${done ? "bg-teal-500" : "bg-gray-200"}`}
@@ -706,18 +708,18 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
               disabled={!done}
               aria-current={active ? "step" : undefined}
               title={done ? s.label : t("claimPage.stageLocked", lang)}
-              className={`z-10 flex flex-col items-center ${
+              className={`z-10 flex w-full min-w-0 flex-col items-center ${
                 done ? "cursor-pointer" : "cursor-not-allowed opacity-60"
               }`}
             >
               <span
-                className={`relative z-10 block h-[21px] w-[21px] rounded-full border-2 ${
+                className={`relative z-10 block h-[21px] w-[21px] shrink-0 rounded-full border-2 ${
                   done ? "bg-teal-700 border-teal-700" : "bg-white border-gray-300"
                 } ${active ? "ring-2 ring-teal-300 ring-offset-2" : ""}`}
                 aria-hidden="true"
               />
               <span
-                className={`mt-2 px-0.5 text-center text-[11px] leading-tight ${
+                className={`mt-2 w-full break-words px-0.5 text-center text-[11px] leading-tight ${
                   active ? "text-teal-800 font-extrabold underline" : done ? "text-teal-700 font-semibold" : "text-gray-500"
                 }`}
               >

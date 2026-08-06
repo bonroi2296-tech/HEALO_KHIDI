@@ -125,12 +125,15 @@ export default function PatientDashboardClient() {
       {/* Active/Scheduled Consultation CTA */}
       {consultations.some(c => c.status === 'active' || c.status === 'scheduled') && (
         <div className="mb-6 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+          {/* 폰에서 한 줄에 다 못 넣는다 — 러시아어처럼 단추 글자가 길면 잘렸다(실측: 단추 157px에
+              글자 182px, 25px 잘림. 한국어 「대기실 입장」은 짧아 안 걸렸다 / 2026-08-06).
+              좁으면 세로로 쌓고, 밀리는 건 «글이 아니라 설명 칸»이 되도록 min-w-0·shrink-0 로 정한다. */}
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="w-12 h-12 shrink-0 bg-white/20 rounded-xl flex items-center justify-center">
                 <Video size={24} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold">{t('patientDash.consultationCta', lang)}</p>
                 <p className="text-teal-100 text-sm">
                   {(() => {
@@ -149,7 +152,7 @@ export default function PatientDashboardClient() {
                 const c = active || scheduled;
                 if (c) router.push(`/consultation/${c.id}`);
               }}
-              className="flex items-center gap-2 bg-white text-teal-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-teal-50 transition text-sm whitespace-nowrap"
+              className="flex shrink-0 items-center justify-center gap-2 bg-white text-teal-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-teal-50 transition text-sm"
             >
               <Phone size={16} />
               {consultations.some(c => c.status === 'active') ? t('patientDash.joinNow', lang) : t('patientDash.enterWaiting', lang)}
