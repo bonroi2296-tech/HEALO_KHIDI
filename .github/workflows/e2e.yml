@@ -83,7 +83,8 @@ jobs:
     name: Smoke Tests (PR)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 반경 안 여정 검사(최대 6개)가 뒤에 붙어서 15 → 25 로 늘림
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -135,6 +136,47 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3dsa2F3YXhhYmh0dW1qaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzMwMDksImV4cCI6MjA5MDY0OTAwOX0.zwakXKKLkQqRpaa5F7qehAyMVpvvvJMCtaKsPSsQBsI' }}
           # 민감키 — 시크릿 필수(테스트 서버 server-side 라우트·PII 복호화용).
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
+
+      # 파생 파손을 «합치기 전»에 잡는 유일한 자리.
+      # 왜: 신청서에는 빠른 검사(@smoke) 24개만 돌고, 전체 여정 검사는 본판에 합친 «뒤»에만 돈다.
+      #     그런데 파생 파손은 정의상 «내가 안 열어본 화면»에서 나므로 빠른 검사 목록에 있을 이유가 없다.
+      #     → 이번 변경이 실제로 닿는 화면의 검사만 골라 여기서 돈다(전체 10~15분을 다 도는 게 아니라).
+      # ⚠️ 지금은 «비차단»이다 — 불안정한 검사가 섞여 상시 빨간불이 되면 아무도 안 보게 된다(#132 부류).
+      #     한 주 돌려보고 헛경보가 없으면 차단으로 올린다(로드맵: docs/rules/BUG_ROUTINE.md).
+      - name: 반경 안 여정 검사 (이번 변경이 닿는 화면만 골라서 — 비차단)
+        if: always()
+        continue-on-error: true
+        run: |
+          git fetch --depth=100 origin main 2>/dev/null || true
+          BASE=origin/main
+          git rev-parse --verify --quiet "$BASE" >/dev/null || BASE=HEAD~1
+          node scripts/blast-verify.mjs --base "$BASE" --max 6 2>&1 | tee /tmp/blast-verify.log
+          {
+            echo "## 🧪 반경 안 여정 검사"
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' /tmp/blast-verify.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          CI: "1"
+          E2E_SKIP_SERVER: "0"
+          E2E_BASE_URL: "http://localhost:3000"
+          E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
+          E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
+          E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
 

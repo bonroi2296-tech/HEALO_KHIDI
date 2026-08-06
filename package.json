@@ -72,7 +72,8 @@
     "test:alarms": "bash scripts/test-session-alarms.sh",
     "check:e2e-schema": "node scripts/check-e2e-schema.mjs",
     "check:ghost-columns": "node scripts/check-ghost-columns.mjs",
-    "blast": "node scripts/blast-radius.mjs"
+    "blast": "node scripts/blast-radius.mjs",
+    "blast:verify": "node scripts/blast-verify.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",

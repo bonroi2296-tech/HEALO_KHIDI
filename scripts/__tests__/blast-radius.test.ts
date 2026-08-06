@@ -90,6 +90,43 @@ describe("영향 반경 지도", () => {
     expect(r.vanished.length).toBe(0);
   });
 
+  // ── 부품 연결 «밖»의 축 (2차 확장) ─────────────────────────
+  // 첫 판은 import 로 이어진 것만 봤다. 반성문 실측으로는 그 밖이 더 크다:
+  // DB 표·칸 14건 · 화면 주소(문자열) 11건 · 환경변수 4건.
+  const CASE_DB = "db9f7606"; // 이사(마이그레이션) 파일 4개를 건드린 실제 커밋
+  const MIG = "migrations/20260805_case_updates.sql"; // 실재하는 이사 파일
+
+  it.runIf(commitExists(CASE_DB))("이사 파일을 건드리면 어느 표를 만졌는지 뽑아낸다", () => {
+    const r = run(["--commit", CASE_DB]);
+    expect(r.dbTables.length).toBeGreaterThan(0);
+  });
+
+  // 이 축이 존재하는 «이유»가 바로 이 경우다: #94·#95 는 코드를 한 줄도 안 고치고 표에
+  // 지키기 규칙만 하나 걸었는데 채팅 전송이 통째로 500 이 났다. 코드 변경이 0 이면
+  // 부품 연결 그래프에는 씨앗이 아예 없다 — DB 경유가 유일한 길이다.
+  it.runIf(fs.existsSync(path.join(ROOT, MIG)))(
+    "코드는 그대로고 «표만» 바꿔도 화면까지 반경이 이어진다 (#94·#95 부류)",
+    () => {
+      const r = run(["--files", MIG]);
+      expect(r.changed.length).toBe(0); // 코드 변경 0 — 부품 연결 씨앗이 없다
+      expect(r.dbTables.length).toBeGreaterThan(0);
+      const viaDb = r.impactedRoutes.filter((x: any) => x.reason && x.reason.includes("DB 표"));
+      expect(viaDb.length).toBeGreaterThan(0); // 그래도 화면까지 이어져야 한다
+    }
+  );
+
+  it("어디서나 쓰는 환경변수(NODE_ENV 등)는 반경으로 세지 않는다 (소음)", () => {
+    const r = run(["--commit", CASE_DB]);
+    expect(r.envKeys).not.toContain("NODE_ENV");
+  });
+
+  it("「이거 하나 바꾸면 사실상 전 화면」인 파일은 따로 짚어준다", () => {
+    const r = run(["--files", "src/lib/i18n/index.js", "tailwind.config.js"]);
+    const files = r.globalHits.map((g: any) => g.file);
+    expect(files).toContain("tailwind.config.js");
+    expect(files).toContain("src/lib/i18n/index.js");
+  });
+
   it("«옮긴 것»은 사라진 것으로 세지 않는다", () => {
     // 지운 줄과 더한 줄에 같은 표시자가 있으면 이동이다 — 이걸 못 가르면 리팩터링마다 거짓 경보가 난다.
     const r = run(["--files", "src/lib/i18n/index.js"]);

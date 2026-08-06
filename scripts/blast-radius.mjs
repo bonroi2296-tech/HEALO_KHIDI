@@ -180,20 +180,116 @@ function routeOf(file) {
 const ROUTE_FILES = ALL_FILES.filter((f) => routeOf(f));
 
 // ─────────────────────────────────────────────────────────────
+// 3-b) 부품 연결 «밖»의 씨앗 — 코드끼리 안 이어져도 파생은 일어난다
+//
+// 첫 판은 import 로 이어진 것만 봤다. 그런데 반성문 실측으로는 그 «밖»이 더 크다:
+//   DB 표·칸 부류 14건 · 화면 주소(문자열) 부류 11건 · 환경변수 부류 4건.
+//   #94/#95 는 표에 «지키기 규칙(CHECK)»을 하나 더 걸었더니 채팅 전송이 통째로 500 이 났는데
+//   화면엔 아무 표시가 없었다 — 그 표를 쓰는 코드가 어디까지 퍼져 있는지 아무도 안 봤다.
+//   #103 은 없는 칸 17개 때문에 치료 등록이 5개월간 0건이었다.
+// 기존 검사(check:schema-refs·check:ghost-columns)는 «코드 → DB» 방향(이 코드가 없는 칸을
+// 쓰나)을 본다. 여기서 보는 건 반대 방향 — «DB 를 바꿨는데 그게 어느 화면까지 가나».
+// ─────────────────────────────────────────────────────────────
+
+/** 표 이름 → 그 표를 쓰는 코드 파일들 */
+const TABLE_USERS = new Map();
+/** 환경변수 이름 → 그걸 읽는 코드 파일들 */
+const ENV_USERS = new Map();
+
+for (const f of ALL_FILES) {
+  let src = "";
+  try {
+    src = fs.readFileSync(path.join(ROOT, f), "utf8");
+  } catch {
+    continue;
+  }
+  for (const m of src.matchAll(/\.from\(\s*["'`]([a-z0-9_]+)["'`]/gi)) {
+    const t = m[1];
+    if (!TABLE_USERS.has(t)) TABLE_USERS.set(t, []);
+    TABLE_USERS.get(t).push(f);
+  }
+  for (const m of src.matchAll(/process\.env\.([A-Z0-9_]+)/g)) {
+    const k = m[1];
+    if (!ENV_USERS.has(k)) ENV_USERS.set(k, []);
+    ENV_USERS.get(k).push(f);
+  }
+}
+
+/** 바뀐 이사(마이그레이션) 파일에서 «어느 표를 건드렸나»를 뽑는다 */
+function tablesTouched(changedFiles, diffText) {
+  const migs = changedFiles.filter((f) => /^migrations\/.*\.sql$/i.test(f) || /^supabase\/migrations\/.*\.sql$/i.test(f));
+  if (!migs.length) return [];
+  // diff 가 있으면 «바뀐 줄»에서만, 없으면 파일 전체에서 뽑는다.
+  let text = "";
+  if (diffText) {
+    let cur = null;
+    for (const line of diffText.split("\n")) {
+      const gm = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+      if (gm) { cur = gm[2]; continue; }
+      if (!cur || !migs.includes(cur)) continue;
+      if (/^[+-]/.test(line) && !/^(\+\+\+|---)/.test(line)) text += line.slice(1) + "\n";
+    }
+  }
+  if (!text) {
+    for (const m of migs) {
+      try {
+        text += fs.readFileSync(path.join(ROOT, m), "utf8") + "\n";
+      } catch {}
+    }
+  }
+  const names = new Set();
+  const pats = [
+    /\b(?:CREATE|ALTER|DROP)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:public\.)?["']?([a-z0-9_]+)/gi,
+    /\bON\s+(?:public\.)?["']?([a-z0-9_]+)/gi, // 인덱스·접근권한 규칙
+    /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?["']?([a-z0-9_]+)/gi,
+  ];
+  for (const p of pats) for (const m of text.matchAll(p)) names.add(m[1].toLowerCase());
+  return [...names].filter((t) => TABLE_USERS.has(t));
+}
+
+// 어디서나 쓰는 것들 — 잡아봐야 「전부가 반경」이라 뜻이 없고 소음만 된다.
+const ENV_NOISE = new Set(["NODE_ENV", "VERCEL_ENV", "VERCEL_URL", "CI", "PORT", "npm_lifecycle_event"]);
+
+/** 바뀐 줄에서 건드린 환경변수 이름 */
+function envTouched(diffText) {
+  if (!diffText) return [];
+  const names = new Set();
+  for (const line of diffText.split("\n")) {
+    if (!/^[+-]/.test(line) || /^(\+\+\+|---)/.test(line)) continue;
+    for (const m of line.matchAll(/process\.env\.([A-Z0-9_]+)/g)) {
+      if (ENV_NOISE.has(m[1])) continue;
+      if (ENV_USERS.has(m[1])) names.add(m[1]);
+    }
+  }
+  return [...names];
+}
+
+/** 「이거 하나 바꾸면 사실상 전 화면」인 파일들 — 반경을 세는 게 의미 없으니 따로 말한다 */
+const GLOBAL_FILES = [
+  { re: /^tailwind\.config\.js$/, what: "화면 전체 스타일 규칙" },
+  { re: /^(src\/)?app\/globals\.css$/, what: "화면 전체 스타일" },
+  { re: /^app\/layout\.(t|j)sx?$/, what: "모든 화면을 감싸는 틀" },
+  { re: /^next\.config\.js$/, what: "앱 전체 설정(보안 머리말·주소 넘기기 포함)" },
+  { re: /^middleware\.(t|j)s$/, what: "모든 요청이 먼저 지나는 길목" },
+  { re: /^src\/lib\/i18n\//, what: "6개 언어 사전" },
+];
+
+// ─────────────────────────────────────────────────────────────
 // 4) 영향 반경 — 변경 파일에서 «들어오는 방향»으로 BFS
 // ─────────────────────────────────────────────────────────────
-function blastRadius(changedFiles) {
+/** seeds: [{ file, reason }] — reason 은 «왜 이게 출발점인가»(코드 변경 / DB 표 / 환경변수) */
+function blastRadius(seeds) {
   const seen = new Set();
   const queue = [];
-  /** 도달 경로 기록: 어떤 변경 파일에서 몇 다리 건너 닿았나 */
+  /** 도달 경로 기록: 어떤 출발점에서 몇 다리 건너 닿았나 */
   const via = new Map();
 
-  for (const f of changedFiles) {
-    if (!FILE_SET.has(f) && !f.startsWith("app/") && !f.startsWith("src/") && !f.startsWith("components/")) continue;
+  for (const { file: f, reason } of seeds) {
+    if (!FILE_SET.has(f)) continue;
     if (seen.has(f)) continue;
     seen.add(f);
     queue.push(f);
-    via.set(f, { from: f, hops: 0 });
+    via.set(f, { from: f, hops: 0, reason: reason || null });
   }
 
   while (queue.length) {
@@ -202,7 +298,7 @@ function blastRadius(changedFiles) {
     for (const parent of importedBy.get(cur) || []) {
       if (seen.has(parent)) continue;
       seen.add(parent);
-      via.set(parent, { from: curVia.from, hops: curVia.hops + 1 });
+      via.set(parent, { from: curVia.from, hops: curVia.hops + 1, reason: curVia.reason });
       queue.push(parent);
     }
   }
@@ -300,25 +396,55 @@ function walkAny(dir, out = []) {
 function danglingRefs(deletedPaths) {
   if (!deletedPaths.length) return [];
   const corpus = REF_SCAN_DIRS.flatMap((d) => walkAny(d));
-  const out = [];
+  const bodies = new Map();
+  const bodyOf = (f) => {
+    if (!bodies.has(f)) {
+      try {
+        bodies.set(f, fs.readFileSync(path.join(ROOT, f), "utf8"));
+      } catch {
+        bodies.set(f, "");
+      }
+    }
+    return bodies.get(f);
+  };
+
+  // 찾을 표시자 두 종류를 한 목록으로 모은다.
+  const needles = [];
   for (const del of deletedPaths) {
     const base = path.posix.basename(del);
-    // 파일 이름만으로 찾는다 — 부르는 쪽 경로 표기가 제각각이라(`/favicon.svg`·`@/…`·`../…`) 이름이 제일 튼튼하다.
-    // 이름이 너무 흔하면(index.js·page.jsx) 오탐이 쏟아지므로 건너뛴다.
-    if (/^(index|page|route|layout|loading|error|not-found)\./.test(base)) continue;
+    // ① 파일 이름 — 부르는 쪽 표기가 제각각이라(`/favicon.svg`·`@/…`·`../…`) 이름이 제일 튼튼하다.
+    //    이름이 너무 흔하면(index.js·page.jsx) 오탐이 쏟아지므로 건너뛴다.
+    if (!/^(index|page|route|layout|loading|error|not-found)\./.test(base)) {
+      needles.push({ deleted: del, needle: base, kind: "파일" });
+    }
+    // ② 사라진 «화면 주소» — 화면 파일을 지우면 그 주소가 통째로 없어지는데,
+    //    그리로 보내는 링크는 글자라 부품 연결 그래프에도, 빌드에도 안 걸린다.
+    //    반성문에서 이 부류가 11건이다(#31 목록이 없는 상세로 링크 → 404,
+    //    #107 언어 바꾸면 404, #104 폐기 주소 5개가 임시 넘김이라 검색엔진에 계속 남음).
+    const r = routeOf(del);
+    if (r && r.url !== "/" && r.url.length > 3 && !r.url.includes("[")) {
+      needles.push({ deleted: del, needle: r.url, kind: "화면 주소", url: r.url });
+    }
+  }
+
+  const out = [];
+  for (const n of needles) {
     const callers = [];
     for (const f of corpus) {
-      if (f === del) continue;
+      if (f === n.deleted) continue;
       if (deletedPaths.includes(f)) continue; // 같이 지워진 것끼리는 서로 불러도 상관없다
-      let body = "";
-      try {
-        body = fs.readFileSync(path.join(ROOT, f), "utf8");
-      } catch {
-        continue;
-      }
-      if (body.includes(base)) callers.push(f);
+      const body = bodyOf(f);
+      if (!body) continue;
+      if (n.kind === "화면 주소") {
+        // 주소는 «따옴표 안에서 그 주소로 끝나거나 하위 경로로 이어지는» 형태만 — `/visa` 가
+        // `/visa-guide` 를 잡으면 거짓 경보가 된다.
+        if (!new RegExp(`["'\`]${n.needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(["'\`/?#])`).test(body)) continue;
+      } else if (!body.includes(n.needle)) continue;
+      callers.push(f);
     }
-    if (callers.length) out.push({ deleted: del, callers: callers.slice(0, 6), more: Math.max(0, callers.length - 6) });
+    if (callers.length) {
+      out.push({ deleted: n.deleted, kind: n.kind, needle: n.needle, callers: callers.slice(0, 6), more: Math.max(0, callers.length - 6) });
+    }
   }
   return out;
 }
@@ -361,7 +487,23 @@ function coversFile(file) {
 // ─────────────────────────────────────────────────────────────
 const { files: changed, diff, label } = collectChanges();
 const codeChanged = changed.filter((f) => CODE_EXT.includes(path.extname(f)));
-const { reached, via } = blastRadius(codeChanged);
+
+// 출발점 모으기 — 코드 변경 + 부품 연결 «밖»의 경로(DB 표·환경변수)
+const seeds = codeChanged.map((f) => ({ file: f, reason: null }));
+
+const dbTables = tablesTouched(changed, diff);
+for (const t of dbTables) {
+  for (const f of TABLE_USERS.get(t) || []) seeds.push({ file: f, reason: `DB 표 «${t}»` });
+}
+
+const envKeys = envTouched(diff);
+for (const k of envKeys) {
+  for (const f of ENV_USERS.get(k) || []) seeds.push({ file: f, reason: `환경변수 «${k}»` });
+}
+
+const globalHits = changed.flatMap((f) => GLOBAL_FILES.filter((g) => g.re.test(f)).map((g) => ({ file: f, what: g.what })));
+
+const { reached, via } = blastRadius(seeds);
 
 const impactedRoutes = [];
 for (const f of reached) {
@@ -375,6 +517,7 @@ for (const f of reached) {
     kind: r.kind,
     hops: via.get(f)?.hops ?? 0,
     from: via.get(f)?.from ?? f,
+    reason: via.get(f)?.reason ?? null,
     directlyChanged,
     covered: covering.length > 0,
     coveredBySmoke: covering.some((c) => c.smoke),
@@ -421,7 +564,13 @@ const hotspots = codeChanged
 const uncovered = impactedRoutes.filter((r) => !r.covered && r.kind !== "layout");
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ label, changed: codeChanged, impactedRoutes, vanished, hotspots, uncovered }, null, 2));
+  console.log(
+    JSON.stringify(
+      { label, changed: codeChanged, impactedRoutes, vanished, dangling, hotspots, uncovered, dbTables, envKeys, globalHits },
+      null,
+      2
+    )
+  );
   process.exit(0);
 }
 
@@ -436,9 +585,29 @@ console.log("");
 console.log(B(`🎯 영향 반경 — ${label}`));
 console.log(DIM(`   코드 변경 ${codeChanged.length}개 파일 · 훑은 코드 ${ALL_FILES.length}개 · 화면/서버창구 ${ROUTE_FILES.length}개`));
 
-if (!codeChanged.length) {
-  console.log(DIM("\n   코드 변경이 없다. 볼 것 없음."));
+if (!codeChanged.length && !dbTables.length && !envKeys.length && !globalHits.length && !dangling.length) {
+  console.log(DIM("\n   코드·DB·설정 변경이 없다. 볼 것 없음."));
   process.exit(0);
+}
+
+// 부품 연결 «밖»의 출발점 — 코드끼리 안 이어져도 파생은 일어난다.
+if (dbTables.length || envKeys.length || globalHits.length) {
+  console.log("");
+  console.log(B("⓪ 부품 연결 «밖»으로도 퍼진다"));
+  for (const t of dbTables) {
+    const n = (TABLE_USERS.get(t) || []).length;
+    console.log(`   ${YEL(`DB 표 «${t}»`)} 를 바꿨다 → 이 표를 쓰는 코드 ${n}곳이 전부 반경 안이다`);
+  }
+  if (dbTables.length) {
+    console.log(DIM("     └ #94·#95 — 표에 «지키기 규칙»을 하나 걸었더니 채팅 전송이 통째로 500. 화면엔 무증상이었다"));
+  }
+  for (const k of envKeys) {
+    const n = (ENV_USERS.get(k) || []).length;
+    console.log(`   ${YEL(`환경변수 «${k}»`)} 를 건드렸다 → 이걸 읽는 코드 ${n}곳`);
+  }
+  for (const g of globalHits) {
+    console.log(`   ${RED(`${g.file}`)} — ${g.what}. ${RED("사실상 전 화면")}이라 반경을 세는 게 의미 없다`);
+  }
 }
 
 if (hotspots.length) {
@@ -469,7 +638,7 @@ if (!impactedRoutes.length) {
   }
   if (derived.length) {
     console.log(DIM(`   ─ ⚠️ 파생 — 내가 안 열어본 곳 (${derived.length}개). «A 고쳤는데 B 고장»은 여기서 난다`));
-    derived.slice(0, 40).forEach((r) => console.log(line(r) + DIM(`  ← ${r.from} 에서 ${r.hops}다리`)));
+    derived.slice(0, 40).forEach((r) => console.log(line(r) + DIM(`  ← ${r.reason ? r.reason + " 경유 " : ""}${r.from} 에서 ${r.hops}다리`)));
     if (derived.length > 40) console.log(DIM(`   … 외 ${derived.length - 40}개`));
   }
 }
@@ -490,11 +659,13 @@ if (dangling.length) {
   console.log(B("③-b ⚠️ 지웠는데 «아직 부르는 곳»이 있다"));
   console.log(DIM("   (부품 연결이 아니라 «글자로» 부르는 것 — 빌드도 타입검사도 이건 안 본다)"));
   for (const d of dangling) {
-    console.log(`   ${RED(d.deleted)} 를 아직 부른다:`);
+    const label = d.kind === "화면 주소" ? `${RED(d.needle)} (사라진 화면 주소)` : RED(d.needle);
+    console.log(`   ${label} 를 아직 부른다:`);
     d.callers.forEach((c) => console.log(`     ${c}`));
     if (d.more) console.log(DIM(`     … 외 ${d.more}곳`));
   }
-  console.log(DIM("   └ #27 — favicon.svg 를 지웠는데 sw.js 가 계속 불러 앱 설치 배너가 사라졌다"));
+  console.log(DIM("   └ #27 favicon.svg 를 지웠는데 sw.js 가 계속 불러 앱 설치 배너 소멸"));
+  console.log(DIM("   └ #31 목록이 없는 상세로 링크 → 404 (화면 주소 부류 11건)"));
 }
 
 console.log("");
