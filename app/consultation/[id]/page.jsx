@@ -79,6 +79,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { isPatientSideRole } from "@/lib/consultation/inviteRole";
@@ -1319,6 +1320,12 @@ export default function ConsultationRoomPage() {
   // 이전 번역이 끝나기 전에 다음 발화가 와도 '버리지' 않고 큐에 쌓아 순서대로 처리한다.
   //   (예전엔 isTranslating 중이면 그 조각을 통째로 버려서, 쉬지 않고 말하면 발화가 증발했음
   //    — 데스크톱 크롬 등 '잘 되는' 환경에서도 나던 '번역 완성도 낮음'의 숨은 원인.)
+  // 「이 자막을 어느 받아쓰기가 만들었나」 — 기록에 같이 남긴다(2026-08-06).
+  // 왜 ref 인가: 이 값을 쓰는 translateText 는 useCallback 이라, 상태로 넣으면 경로가 바뀔
+  //   때마다 함수가 새로 만들어져 번역 큐를 잡고 있는 참조들이 어긋난다. 읽는 시점만
+  //   맞으면 되므로 ref 로 둔다. (useServerStt 는 아래에서 계산되지만 ref 라 순서 무관)
+  const sttEngineRef = useRef(STT_ENGINES.BROWSER);
+
   const translateQueueRef = useRef([]);
   const translatingRef = useRef(false);
   const drainTranslateQueue = useCallback(async () => {
@@ -1347,6 +1354,7 @@ export default function ConsultationRoomPage() {
                 translatedText: item.pre,
                 sourceLanguage: myLang,
                 targetLanguage: targetLang,
+                sttEngine: STT_ENGINES.BACKCHANNEL,
               }),
             }).catch(() => {});
           }
@@ -1366,6 +1374,8 @@ export default function ConsultationRoomPage() {
               targetLang,
               consultationId,
               speakerRole: "self",
+              // 이 글을 만든 받아쓰기 경로 — 기록에 남겨야 길별 품질을 실사용에서 잰다.
+              sttEngine: sttEngineRef.current,
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
               context: contextForApi(convoContextRef.current),
             }),
@@ -1390,12 +1400,6 @@ export default function ConsultationRoomPage() {
       setIsTranslating(false);
     }
   }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
-
-  // 「이 자막을 어느 받아쓰기가 만들었나」 — 기록에 같이 남긴다(2026-08-06).
-  // 왜 ref 인가: 이 값을 쓰는 translateText 는 useCallback 이라, 상태로 넣으면 경로가 바뀔
-  //   때마다 함수가 새로 만들어져 번역 큐를 잡고 있는 참조들이 어긋난다. 읽는 시점만
-  //   맞으면 되므로 ref 로 둔다. (useServerStt 는 아래에서 계산되지만 ref 라 순서 무관)
-  const sttEngineRef = useRef(STT_ENGINES.BROWSER);
 
   const translateText = useCallback(
     (text, utter) => {
@@ -2560,6 +2564,11 @@ export default function ConsultationRoomPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
+  // 경로가 바뀌면 기록에 남길 표시도 같이 바꾼다 (위 sttEngineRef 참고).
+  useEffect(() => {
+    sttEngineRef.current = useServerStt ? STT_ENGINES.SERVER : STT_ENGINES.BROWSER;
+  }, [useServerStt]);
+
   const translateTextRef = useRef(translateText);
   useEffect(() => {
     translateTextRef.current = translateText;

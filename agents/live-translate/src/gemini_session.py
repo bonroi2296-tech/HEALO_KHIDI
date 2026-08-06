@@ -21,6 +21,9 @@ from livekit import rtc
 
 from config import (
     GEMINI_MODEL,
+    CAPTION_KIND_ATTR,
+    CAPTION_KIND_SOURCE,
+    CAPTION_KIND_TRANSLATION,
     INPUT_SAMPLE_RATE,
     OUTPUT_SAMPLE_RATE,
     AUDIO_CHANNELS,
@@ -120,6 +123,13 @@ class GeminiSession:
             ),
             # 통역 음성의 자막(텍스트)을 함께 받기 → lk.translation 스트림으로 발행.
             output_audio_transcription=genai_types.AudioTranscriptionConfig(),
+            # 말한 사람의 «원문» 자막. 2026-08-06 실측으로 켠 것 —
+            #   이 모델의 원문 받아쓰기는 무음·잡음에서 없는 말 창작 **0/26**,
+            #   지금 쓰는 서버 받아쓰기는 같은 조건에서 **10/12** 를 지어냈다.
+            #   상담 기록에 남는 건 «원문» 이므로 통역보다 이쪽이 요점이다.
+            # ⚠️ 실측상 이 설정을 안 켜도 원문 자막이 나왔지만(기본 동작으로 보임),
+            #    프리뷰 모델이라 기본값이 바뀔 수 있어 명시한다.
+            input_audio_transcription=genai_types.AudioTranscriptionConfig(),
         )
 
     # ── 메인 루프: 화자 오디오 → Gemini → 통역 트랙/자막 ──
@@ -194,6 +204,7 @@ class GeminiSession:
         """Gemini 통역 출력(오디오 24kHz + 텍스트) → LiveKit 트랙/자막."""
         audio_chunks = 0
         captions = 0
+        source_captions = 0
         async for response in session.receive():
             if self._closed:
                 break
@@ -222,7 +233,9 @@ class GeminiSession:
             # 2) 통역 음성의 자막 → lk.translation 스트림. output_audio_transcription
             #    을 켰을 때 server_content.output_transcription 으로 들어온다.
             sc = getattr(response, "server_content", None)
-            ot = getattr(sc, "output_transcription", None) if sc else None
+            if sc is None:
+                continue
+            ot = getattr(sc, "output_transcription", None)
             text = getattr(ot, "text", None) if ot else None
             if text:
                 captions += 1
@@ -234,9 +247,31 @@ class GeminiSession:
                         captions,
                         len(text),
                     )
-                await self._send_caption(text)
+                await self._send_caption(text, CAPTION_KIND_TRANSLATION)
 
-    async def _send_caption(self, text: str) -> None:
+            # 3) 말한 사람의 «원문» 자막 → 같은 스트림에 종류 표시를 달아 발행.
+            #    받는 쪽(LiveTranslateBridge)이 종류로 갈라 처리한다.
+            it = getattr(sc, "input_transcription", None)
+            src = getattr(it, "text", None) if it else None
+            if src:
+                source_captions += 1
+                if source_captions <= 3 or source_captions % 20 == 0:
+                    logger.info(
+                        "source caption <- %s: #%d (%d chars)",
+                        self._speaker.identity,
+                        source_captions,
+                        len(src),
+                    )
+                await self._send_caption(src, CAPTION_KIND_SOURCE)
+
+    async def _send_caption(self, text: str, kind: str) -> None:
+        """자막 한 줄 발행. kind = translation(통역문) | source(원문).
+
+        ⚠️ `target_lang` 은 «받는 사람 언어» 라는 뜻이다 — 원문 자막에는 이 뜻이 안 맞지만
+           그대로 실어 보낸다. 프론트가 「내 언어 자막만 표시」를 이 값으로 거르기 때문에,
+           원문 줄에서 이 값을 바꾸면 그 사람 화면에서 원문이 통째로 사라지거나 엉뚱한
+           사람에게 뜬다. 원문/통역 구분은 `kind` 로만 한다.
+        """
         try:
             await self._room.local_participant.send_text(
                 text,
@@ -244,6 +279,7 @@ class GeminiSession:
                 attributes={
                     "target_lang": self._target_lang,
                     "speaker": self._speaker.identity,
+                    CAPTION_KIND_ATTR: kind,
                 },
             )
         except Exception as exc:

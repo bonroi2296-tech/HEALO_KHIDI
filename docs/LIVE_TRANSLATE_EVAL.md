@@ -127,3 +127,32 @@
 - **압도적으로 `ru → ko`** — 러시아어 발화를 한국어 자막으로 본다.
 - **08-04 에 카자흐어가 처음 대량 등장(196줄 = 그 회의의 47%).** 카자흐어는 브라우저에 인식기가 없어 **반드시 서버 받아쓰기 길**로 간다 = §6·§7 에서 «지어낸다»고 잰 바로 그 길.
 - ⚠️ **`ru>ko` 가 어느 길로 갔는지는 DB 로 증명 못 한다** — 두 길이 같은 테이블에 같은 모양으로 저장하고 구분 칸이 없다(`confidence` 는 양쪽 다 안 채움, 전 구간 0건). 브라우저 길일 «가능성이 높다»까지만 말할 수 있다.
+
+---
+
+## 8. 2026-08-06 — 실행한 것 (PO 지시 1·2번)
+
+### 1번. 통역봇에 «원문 자막» 받기 + 「소리 끄면 싸지나」 실측
+
+- **켰다**: `agents/live-translate/src/gemini_session.py` 에 `input_audio_transcription` 을 명시하고, 원문 자막을 같은 스트림에 **종류 표시(`kind=source`)** 를 달아 발행한다. 통역문은 `kind=translation`.
+  - 프론트(`LiveTranslateBridge.jsx`)는 **원문을 화면에 안 띄운다** — 사용자는 「상대 말 → 내 언어」만 본다는 우리 자막 모델대로. 원문까지 띄우면 같은 발화가 두 줄로 겹친다.
+  - 🔸 **아직 안 한 것: 원문을 상담 기록에 저장하는 경로.** 지금은 받아서 버린다. 통역봇 자체가 기본 꺼짐이라 실사용 영향 0이며, 저장을 붙일 자리는 브릿지의 `kind=source` 분기 한 곳이다.
+- **소리 끄기 = 안 된다(실측).** `response_modalities=["TEXT"]` 로 바꿔도 **통역 음성이 그대로 온다**(AUDIO 492KB · TEXT 504KB — 오히려 같거나 더 많음). 즉 **자막만 받는다고 싸지지 않는다.**
+  - 곁다리: TEXT 로 요청했을 때 원문 자막이 `위암` → **`이암`** 으로 틀렸다(AUDIO 모드에선 2/2 정확). 표본 1회라 단정 못 하지만 **TEXT 모드를 쓸 이유가 없다**는 근거는 된다.
+  - ⚠️ **정확한 청구 토큰은 못 쟀다** — `usage_metadata` 가 메시지 단위로 오고 누적값이 아니라, 세션 총량을 이 방법으론 못 구했다. 「싸지지 않는다」는 **받은 오디오 바이트 수**로 판단한 것이다.
+
+### 2번. 자막 한 줄에 「어느 길로 왔는지」 표시
+
+- **DB**: `consultation_translations.stt_engine` 추가([migrations/20260806_translation_stt_engine.sql](../migrations/20260806_translation_stt_engine.sql), 적용 완료). 옛 3,310줄은 전부 `null` = 미상 — **소급 추정은 안 했다**(추측을 데이터로 만들면 안 된다).
+- **값 정의·검증 단일 SoR**: `src/lib/consultation/sttEngine.ts`. 클라이언트가 보내는 값이라 **서버에서 아는 값만 통과**시킨다(모르면 저장 안 함). 시험 `sttEngine.test.ts` 로 잠금.
+- **채우는 곳 3군데**: `/[id]/stt`(→`server_gemini`, 라우트가 정의상 확정) · `/translate-realtime`(클라이언트가 알려주는 값, 기본 `browser_webspeech`) · `/[id]/translate`(맞장구 사전, 기본 `backchannel_dict`).
+
+**이제 이 한 줄로 실사용 비중을 잰다** (다음 실회의 뒤 실행):
+
+```sql
+select stt_engine, count(*) 줄수, round(100.0*count(*)/sum(count(*)) over (), 1) 비율
+from consultation_translations
+where created_at >= '2026-08-07' group by 1 order by 2 desc;
+```
+
+`server_gemini` 비율이 곧 **「지어내는 길에 노출된 자막의 몫」** 이다. 지금까진 이걸 셀 수가 없어 추정만 했다.

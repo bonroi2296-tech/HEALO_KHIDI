@@ -40,6 +40,17 @@ export const TRANSLATION_TRACK_PREFIX = "tx:";
 // 에이전트가 통역 자막을 흘려보내는 LiveKit 텍스트 스트림 토픽.
 export const TRANSLATION_TEXT_TOPIC = "lk.translation";
 
+// 자막 줄의 «종류» — 같은 토픽으로 두 가지가 흐른다 (2026-08-06 신설).
+//   translation = 통역된 말의 자막(대상 언어). 지금까지 유일했던 것.
+//   source      = 말한 사람의 «원문» 자막(발화 언어 그대로).
+// 왜 원문까지 받나: 2026-08-06 실측에서 이 모델의 원문 받아쓰기가
+//   «없는 말 창작 0/26» 인 반면 지금 쓰는 서버 받아쓰기는 무음·잡음 12회 중 10회를
+//   지어냈다. 상담 기록에 남는 건 원문이므로, 원문을 이 길로 받는 것이 요점이다.
+// ⚠️ 종류 표시가 없는 옛 자막은 translation 으로 본다(에이전트 구버전 호환).
+export const CAPTION_KIND_ATTR = "kind";
+export const CAPTION_KIND_TRANSLATION = "translation";
+export const CAPTION_KIND_SOURCE = "source";
+
 /** 서버측 스위치 (토큰 발급에서 에이전트 디스패치 여부) */
 export function isLiveTranslateEnabledServer() {
   return process.env.LIVE_TRANSLATE_ENABLED === "true";

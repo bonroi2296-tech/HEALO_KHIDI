@@ -26,6 +26,8 @@ import {
   NATIVE_LANG,
   TRANSLATION_TRACK_PREFIX,
   TRANSLATION_TEXT_TOPIC,
+  CAPTION_KIND_ATTR,
+  CAPTION_KIND_SOURCE,
 } from "@/lib/consultation/liveTranslate";
 
 /**
@@ -121,6 +123,16 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
     const handler = async (reader, participantInfo) => {
       try {
         const attrs = reader?.info?.attributes || {};
+        // ── 자막 «종류» 가르기 (2026-08-06) ──
+        // 봇은 이제 한 토픽으로 두 가지를 보낸다: 통역문(translation)과 원문(source).
+        // 화면에는 **통역문만** 띄운다 — 사용자는 항상 「상대 말 → 내 언어」만 본다는 게
+        // 우리 자막 모델이고, 원문까지 띄우면 같은 발화가 두 줄로 겹쳐 보인다.
+        // 🔸 원문은 «상담 기록» 에 남길 값인데 **아직 저장 경로가 없다** — 지금은 받아서
+        //    버린다. 저장을 붙일 때 이 자리에서 분기하면 된다(화면 동작은 안 건드리고).
+        if (attrs[CAPTION_KIND_ATTR] === CAPTION_KIND_SOURCE) {
+          await reader.readAll().catch(() => {});
+          return;
+        }
         // 에이전트가 자막에 붙인 대상 언어. 키 이름은 구현에 따라 다를 수 있어 폭넓게 탐색.
         const targetLang =
           attrs.target_lang || attrs.lang || attrs.targetLang || null;

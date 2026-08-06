@@ -23,6 +23,10 @@ TRANSLATION_TRACK_KIND = "translation"
 TRACK_NAME_PREFIX = "tx:"
 # 통역 자막 텍스트 스트림 토픽
 TRANSLATION_TEXT_TOPIC = "lk.translation"
+# 자막 종류 표시 (프론트 src/lib/consultation/liveTranslate.js 와 반드시 일치)
+CAPTION_KIND_ATTR = "kind"
+CAPTION_KIND_TRANSLATION = "translation"  # 통역된 말의 자막(대상 언어)
+CAPTION_KIND_SOURCE = "source"            # 말한 사람의 원문 자막(발화 언어)
 
 # ── 라우터 동작 ──
 RECONCILE_DEBOUNCE_SEC = 0.25   # 방 상태 변화 디바운스(짧은 음소거 깜빡임으로 세션 난립 방지)
