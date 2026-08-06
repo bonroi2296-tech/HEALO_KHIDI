@@ -39,7 +39,7 @@ function fallbackDict() {
 
 /** 고를 수 있는 언어 코드인가 (쿠키 값 검증용). 예전엔 `DICTIONARY[code]` 로 봤는데
  *  브라우저엔 사전이 없으므로 아래 LANG_OPTIONS 목록으로 판정한다(같은 목록이 SoR). */
-const isKnownLangCode = (code) => LANG_OPTIONS.some((l) => l.code === code);
+export const isKnownLangCode = (code) => LANG_OPTIONS.some((l) => l.code === code);
 
 
 /** UI 언어 목록 (DICTIONARY 키와 일치). 활성 6 + 기타 — 단 km·my는 빈 사전(영어 폴백), ms·uz는 복사본(위 감사 주석 참고) */
@@ -119,6 +119,11 @@ export const setLangCookie = (code) => {
   if (typeof document === "undefined") return;
   if (!isKnownLangCode(code)) return;
   document.cookie = `healo_lang=${code}; path=/; max-age=31536000`;
+  // 「사람이 직접 골랐다」는 표식. healo_lang 만으로는 구분이 안 된다 — proxy.ts 가 토큰 링크
+  // (/claim/ 등) 첫 진입 때 **브라우저 언어로 healo_lang 을 미리 심는다.** 그걸 사람의 선택으로
+  // 오인하면 「문의서에 적힌 환자 언어로 맞추기」가 영영 안 돈다(2026-08-05 실측으로 걸렸다:
+  // 한국어 브라우저로 열었더니 ko 가 박혀 러시아어 환자 화면이 한국어로 떴다).
+  document.cookie = `healo_lang_pick=1; path=/; max-age=31536000`;
   document.cookie = "googtrans=; path=/; max-age=0";
 };
 

@@ -24,6 +24,8 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
+import SharedDocumentsSection from "./SharedDocumentsSection";
+import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
 
@@ -1193,6 +1195,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           {L.ibStaffUploadBadge}
                         </span>
                       )}
+                      {/* 환자가 자기 화면에서 치운 자료 — **여기선 안 사라진다.** 냈다가 지우고
+                          «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO).
+                          파일도 저장소에 그대로라 그대로 열어볼 수 있다. */}
+                      {typeof a === "object" && a?.removed_at && (
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                          {L.ibPatientRemovedBadge} {new Date(a.removed_at).toLocaleDateString()}
+                        </span>
+                      )}
                       {attLoadingPath === path ? (
                         <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
                       ) : (
@@ -1344,6 +1354,16 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection inquiryId={inquiryId} />
+
+      {/* 우리 → 환자 방향 서류함. 소견 바로 아래 둔다 — 소견을 정리해 내보내는 게 다음 동작이라서. */}
+      <SharedDocumentsSection inquiryId={inquiryId} />
+
+      {/* 환자에게 알릴 «중간 소식»(병원 문의·회신 등). 단계를 옮길 일이 아닌 것들이 여기 쌓인다.
+          아래 「진행 단계」의 메모는 한 칸이라 덮어쓰이지만, 이건 한 건씩 남는다. */}
+      <CaseUpdatesSection
+        inquiryId={inquiryId}
+        patientLang={inquiry?.preferred_language || inquiry?.spoken_language || null}
+      />
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>

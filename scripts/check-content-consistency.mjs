@@ -165,6 +165,13 @@ function isLangValidationEnum(line) {
 //      위 주석은 「새 파일이 추가하면 막는다」고 했는데, 실제로 막던 건 «새 파일»뿐이었다.
 //    → «개수 동결». 늘린 사람이 그 줄을 직접 감사하고 아래 숫자를 올려야 통과한다(= 감사 완료 서명).
 const XSS_INNERHTML_BASELINE = {
+  // 0 → 1 (2026-08-05): 환자가 받은 워드(.docx) 서류를 화면에서 보여주는 미리보기.
+  // 감사 결과 안전 — 이 HTML 은 **서버가 허용 목록으로 정제한 것**이다
+  // (src/lib/documents/docxHtml.ts): 남기는 태그는 문단·목록·제목·표뿐이고 **속성은 전부 버린다**
+  // (표 병합 colspan/rowspan 만, 그것도 값이 숫자일 때만). 그래서 onerror·href·style 같은
+  // 실행 경로가 애초에 남지 않는다. script·style·iframe·object·embed 는 내용까지 지운다.
+  // 파일을 올리는 사람도 우리 코디다(직원 전용 창구).
+  "app/claim/[token]/ClaimClient.jsx": 1,
   "app/page.jsx": 1,
   // 5 → 6 (2026-08-03): 늘어난 1건은 head 의 「스토어 앱 웹뷰인가」 표식 스크립트.
   // 감사 결과 안전 — 통짜 문자열 상수 하나이고 변수·요청값·사용자 입력이 **한 글자도 안 섞인다**

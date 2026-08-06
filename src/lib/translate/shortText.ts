@@ -23,10 +23,11 @@ import { logAiUsage } from "@/lib/ai/usageLog";
 import { containsKorean, detectLanguage } from "@/lib/translate";
 
 const MODEL = "gemini-flash-latest";
-const TARGET_LANGS = ["en", "ru", "kz", "zh", "ja"] as const;
+const TARGET_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
 export type NoteTargetLang = (typeof TARGET_LANGS)[number];
 
 const LANG_NAME: Record<NoteTargetLang, string> = {
+  ko: "Korean",
   en: "English",
   ru: "Russian",
   kz: "Kazakh",
@@ -57,12 +58,18 @@ export async function translateNotes(
 ): Promise<Record<string, string>> {
   if (!isNoteTargetLang(lang)) return {};
 
-  // 한글 포함 + 비어있지 않은 고유 원문만
+  // 비어있지 않고 «이미 그 언어가 아닌» 고유 원문만.
+  //
+  // 예전엔 「한글이 든 것」만 골랐다(`containsKorean`). 그때는 코디 한글 메모를 상대에게
+  // 보여주는 한 방향뿐이었기 때문이다. 이제 반대 방향도 필요하다 — **환자가 러시아어로 쓴 글,
+  // 의료진이 러시아어로 낸 소견을 우리가 읽어야 한다**(2026-08-06 PO). 그래서 관문을
+  // 「한국어냐」가 아니라 「읽을 언어와 다르냐」로 바꿨다.
   const uniq = Array.from(
     new Set(
       (texts || [])
-        .filter((t): t is string => typeof t === "string" && t.trim().length > 0 && containsKorean(t))
-        .map((t) => t.trim()),
+        .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+        .map((t) => t.trim())
+        .filter((t) => (lang === "ko" ? !containsKorean(t) : detectLanguage(t) !== lang)),
     ),
   );
   if (uniq.length === 0) return {};
@@ -96,15 +103,60 @@ export async function translateNotes(
   const model = getModel();
   if (!model) return out; // 키 없으면 캐시분만 반환(원문 폴백)
 
-  try {
+  /**
+   * 한 번에 몰아 보내면 **답이 상한에서 잘리고, 잘린 JSON 은 통째로 못 읽어 전부 버려진다.**
+   * 2026-08-06 실측: 2,736자짜리 소견 1건 + 짧은 글 4건을 한 번에 보냈더니
+   * `Unexpected token 'к', "ку напряму"...` — 답이 문장 중간에서 끊겼고 5건 다 날아갔다.
+   * (그 전까지 이 함수는 «짧은 코디 메모»만 다뤄서 안 걸렸다.)
+   *
+   * 그래서 ①상한을 8192 로 올리고 ②글자 수로 나눠 여러 번 부른다. 긴 글 하나면 그것만 한 통.
+   * 나눠 부른 것도 각각 캐시에 남으므로 다음부터는 어차피 0원이다.
+   */
+  const CHUNK_CHARS = 2000;
+  const chunks: string[][] = [];
+  let cur: string[] = [];
+  let curLen = 0;
+  for (const t of misses) {
+    if (cur.length && curLen + t.length > CHUNK_CHARS) {
+      chunks.push(cur);
+      cur = [];
+      curLen = 0;
+    }
+    cur.push(t);
+    curLen += t.length;
+  }
+  if (cur.length) chunks.push(cur);
+
+  // 한 통이 실패해도 나머지는 살린다 — 예전엔 통짜 try 안이라 하나 깨지면 전부 날아갔다.
+  for (const batch of chunks) {
+    try {
+      await translateBatch(batch, lang, model, hashOf, out);
+    } catch (err) {
+      console.error("[translateNotes] failed:", (err as Error)?.message?.slice(0, 160));
+    }
+  }
+
+  return out;
+}
+
+/** 한 통 번역 → `out` 에 채우고 캐시에 적는다. 실패하면 던진다(호출부가 그 통만 버린다). */
+async function translateBatch(
+  misses: string[],
+  lang: NoteTargetLang,
+  model: any,
+  hashOf: Map<string, string>,
+  out: Record<string, string>,
+): Promise<void> {
+  {
     // 각 원문에 인덱스(i)를 붙여 보내고, 응답도 같은 i 로 받는다 → 번역을 "위치"가 아니라
     // "i 값"으로 원문에 묶는다(모델이 순서를 뒤섞어도 엉뚱한 메모에 붙지 않게 — 영구 캐시 오염 방지).
     const items = misses.map((t, i) => ({ i, text: t }));
     const { text: raw, usage } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system:
-        `You translate short operational notes written by a Korean medical coordinator into ${LANG_NAME[lang]}. ` +
-        `These are progress notes, timeline entries, and chat messages for a cancer medical-tourism case. ` +
+        `You translate short notes for a cancer medical-tourism case into ${LANG_NAME[lang]}. ` +
+        `They are written by the coordinator, the patient, or the clinician, in any language. ` +
+        `These are progress notes, symptom reports, timeline entries, and chat messages. ` +
         `Rules: translate naturally and concisely; keep medical terms accurate; ` +
         `KEEP numbers, dates, units, hospital/drug names and Latin abbreviations (HGB, CT, PET-CT…) unchanged; ` +
         `do NOT add, summarize, or explain. ` +
@@ -113,7 +165,8 @@ export async function translateNotes(
         `Each "i" MUST equal the input item's "i" so translations stay bound to their source; do not add, drop, or renumber items.`,
       prompt: `Translate each item's "text" to ${LANG_NAME[lang]}:\n${JSON.stringify(items)}`,
       temperature: 0.1,
-      maxOutputTokens: 2048,
+      // 넉넉히. 답이 잘리면 JSON 이 깨져 그 통이 통째로 날아간다(위 설명).
+      maxOutputTokens: 8192,
     });
 
     const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
@@ -154,10 +207,5 @@ export async function translateNotes(
         /* 캐시 저장 실패는 무시(번역 결과는 이미 반환) */
       }
     }
-  } catch (err) {
-    console.error("[translateNotes] failed:", (err as Error)?.message?.slice(0, 160));
-    // 실패해도 캐시분(out)은 반환
   }
-
-  return out;
 }

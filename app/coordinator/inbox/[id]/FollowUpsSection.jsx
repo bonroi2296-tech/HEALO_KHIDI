@@ -134,9 +134,18 @@ export default function FollowUpsSection({ inquiryId }) {
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{f.text}</p>
+                  <p className={`text-sm whitespace-pre-wrap leading-relaxed ${f.removedAt ? "text-gray-500 line-through" : "text-gray-800"}`}>
+                    {f.text}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[11px] text-gray-500">{fmt(f.at)} · {f.by}</p>
+                    {/* 환자가 자기 화면에서 치운 글 — **여기선 안 사라진다.** 냈다가 지우고
+                        «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO). */}
+                    {f.removedAt && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                        환자가 지움 {fmt(f.removedAt)}
+                      </span>
+                    )}
                     <button onClick={() => { setEditAt(f.at); setEditText(f.text); }} disabled={busy}
                       className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-teal-700 disabled:opacity-40">
                       <Pencil size={11} /> 고치기

@@ -11,10 +11,13 @@ import "server-only";
 
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
-export type FollowUp = { at: string; by: string; text: string };
-type StoredFollowUp = { at?: string; by?: string; text_encrypted?: string | null };
+export type FollowUp = { at: string; by: string; text: string; removedAt: string | null };
+type StoredFollowUp = { at?: string; by?: string; text_encrypted?: string | null; removed_at?: string | null };
 
 export const FOLLOWUP_MAX_LEN = 4000;
+
+/** 환자가 «진행상황 링크에서» 직접 보낸 것의 표시. 이 값으로 코디 글과 환자 글을 가른다. */
+export const BY_PATIENT_LINK = "환자(진행상황 링크)";
 const MAX_ITEMS = 50;
 
 /** 저장된 것 → 읽을 수 있는 글. 복호화가 안 되는 줄은 조용히 빼지 않고 표시를 남긴다. */
@@ -26,6 +29,9 @@ export function readFollowUps(raw: unknown): FollowUp[] {
       at: String(x.at || ""),
       by: String(x.by || ""),
       text: decryptStringNullable(x.text_encrypted ?? null) ?? "(읽지 못한 내용 — 원본 확인 필요)",
+      // 환자가 자기 화면에서 치운 것. **여기선 빼지 않고 표시만 붙인다** — 냈다가 지우고
+      // «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO).
+      removedAt: x.removed_at ?? null,
     }));
 }
 

@@ -230,6 +230,11 @@ export default function ClientShell({ children, initialLang = "en" }) {
   }, []);
 
   useEffect(() => {
+    // 내 컴퓨터(개발 서버)에서는 끈다 — 화면을 띄워 두고 코드를 고치는 동안 10분마다 튕겨
+    // 매번 다시 로그인해야 했다(2026-08-05 PO). **실서비스는 그대로 10분이다** —
+    // NODE_ENV 는 빌드 때 값이 박히므로 실서비스 묶음에는 이 분기 자체가 안 들어간다.
+    // (누구를 끊을지 «정책»은 아래 shouldRunIdleLogout 이 그대로 쥔다 — 여기선 환경만 가른다.)
+    if (process.env.NODE_ENV !== "production") return;
     // ⚠️ isNativeApp() 은 브라우저에서만 참값이 나온다(서버 렌더 중엔 항상 false) → 반드시 이펙트 안에서.
     if (!shouldRunIdleLogout({ isPortalPage, pathname, hasSession: !!session, isNativeApp: isNativeApp() })) return;
 
