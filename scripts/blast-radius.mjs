@@ -469,17 +469,18 @@ const TESTS = testCorpus();
 function coversUrl(url) {
   if (!url) return [];
   const hit = [];
+  // ⚠️ 「그 글자가 들어 있나」로 보면 안 된다 — `/admin` 이 `/admin/chat` 에도 걸려서
+  //    정작 `/admin` 은 안 여는 검사가 그 화면의 「검사 있음」 근거가 된다(실측 3건).
+  //    그러면 «검사 없으니 눈으로 봐라»가 나와야 할 자리에 초록불이 뜬다 = 잘못된 안심.
+  //    지운 주소 검사(③-b)에선 경계를 맞춰놓고 여기선 안 맞춘, 같은 저장소 안의 불일치였다.
+  //    → 따옴표 안에서 그 주소로 «끝나거나» 물음표·우물정으로 이어지는 것만 센다.
+  const esc = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const exact = new RegExp(`["'\`]${esc}(["'\`?#])`);
   for (const t of TESTS) {
-    // "/patient/chat" 같은 문자열이 검사 본문에 있으면 그 화면을 연다고 본다.
-    if (url !== "/" && t.body.includes(url)) hit.push(t);
+    if (url !== "/" && exact.test(t.body)) hit.push(t);
     else if (url === "/" && /goto\(\s*["'`]\/["'`]\s*\)/.test(t.body)) hit.push(t);
   }
   return hit;
-}
-/** 이 파일을 직접 import 하는 단위 검사 */
-function coversFile(file) {
-  const stem = path.posix.basename(file).replace(/\.[tj]sx?$/, "");
-  return TESTS.filter((t) => !t.file.startsWith("e2e/") && new RegExp(`["'\`][^"'\`]*${stem}["'\`]`).test(t.body));
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -521,7 +522,12 @@ for (const f of reached) {
     directlyChanged,
     covered: covering.length > 0,
     coveredBySmoke: covering.some((c) => c.smoke),
-    coveredBy: covering.map((c) => c.file).slice(0, 4),
+    // ⚠️ 여기서 자르지 마라. 이 목록은 화면에 «보여주는» 용도만이 아니라
+    //    blast-verify 가 «실제로 돌릴 검사»를 고르는 원본이다. 처음엔 4개로 잘라놨는데,
+    //    화면 47개 중 13개가 잘려 있었다 — 5번째부터의 검사는 영원히 안 돌면서
+    //    화면엔 「검사 있음」 초록불만 떴다. 정확히 내가 문서에 「제일 해롭다」고 적은
+    //    «조용한 상한»을 내가 심은 것이다. 자르는 건 출력할 때만 한다.
+    coveredBy: covering.map((c) => c.file),
   });
 }
 impactedRoutes.sort((a, b) => a.hops - b.hops || a.url.localeCompare(b.url));

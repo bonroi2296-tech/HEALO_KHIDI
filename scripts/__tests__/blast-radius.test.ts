@@ -127,6 +127,32 @@ describe("영향 반경 지도", () => {
     expect(files).toContain("src/lib/i18n/index.js");
   });
 
+  // ── 3차: 「초록불인데 실은 안 본 것」 부류 ────────────────
+  // PO: "또 더 파라고 하면 또 고칠거 나올거지?" → 파봤더니 셋 다 «잘못된 안심» 부류였다.
+  // 공통점: 화면엔 초록불인데 실제로는 안 돌거나 엉뚱한 걸 세고 있었다. 그게 제일 해롭다.
+
+  it("검사 목록을 «자르지» 않는다 — 이 목록이 실제로 돌릴 검사의 원본이다", () => {
+    const r = run(["--commit", CASE_DB]);
+    const covered = r.impactedRoutes.filter((x: any) => x.covered);
+    expect(covered.length).toBeGreaterThan(0);
+    // 처음엔 표시용으로 4개를 잘라놓고, 그 잘린 목록으로 검사를 골랐다.
+    // 화면 47개 중 13개가 잘려 있었고 → 5번째부터의 검사는 «영원히» 안 돌았다.
+    // 「조용한 상한은 「전부 봤다」로 읽혀서 제일 해롭다」고 문서에 적어놓고 내가 심은 것.
+    const maxLen = Math.max(...covered.map((x: any) => x.coveredBy.length));
+    expect(maxLen).toBeGreaterThan(4);
+  });
+
+  it("「검사 있음」 판정이 하위 주소에 새지 않는다 (/admin 이 /admin/chat 에 걸리면 안 된다)", () => {
+    const r = run(["--files", "src/lib/i18n/index.js"]);
+    const admin = r.impactedRoutes.find((x: any) => x.url === "/admin");
+    if (!admin) return; // 반경에 안 들어오면 볼 것 없음
+    for (const f of admin.coveredBy) {
+      const body = fs.readFileSync(path.join(ROOT, f), "utf8");
+      // 그 검사가 «정말» /admin 을 여는지 — 따옴표 경계까지 맞아야 한다.
+      expect(/["'`]\/admin(["'`?#])/.test(body)).toBe(true);
+    }
+  });
+
   it("«옮긴 것»은 사라진 것으로 세지 않는다", () => {
     // 지운 줄과 더한 줄에 같은 표시자가 있으면 이동이다 — 이걸 못 가르면 리팩터링마다 거짓 경보가 난다.
     const r = run(["--files", "src/lib/i18n/index.js"]);
