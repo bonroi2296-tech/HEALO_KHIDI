@@ -181,7 +181,21 @@ export default function ClaimClient({ token }) {
   const stageLabel = steps.find((s) => s.order === selected)?.label || "";
   const stageOpinions = opinions.filter((o) => inStage(o.at));
   const stageDocuments = documents.filter((d) => inStage(d.at));
-  const stageTimeline = timeline.filter((h) => inStage(h.at));
+  const stageTimelineAll = timeline.filter((h) => inStage(h.at));
+
+  /**
+   * 그 단계의 «가장 새로운 소식»은 맨 위 진행상황 바로 밑으로 올린다 (2026-08-05 PO).
+   *
+   * 코디가 남긴 소식이 제일 새롭고 제일 구체적인데 화면 맨 아래 「지나온 기록」에 묻혀 있었다.
+   * 화면을 열고 알고 싶은 건 «지금 무슨 일이 있나»다 — 그건 위에 있어야 한다.
+   *
+   * 올린 그 한 건은 아래 기록에서 뺀다 — 같은 줄이 두 군데 뜨면 방금 정리한 게 도로 흐트러진다.
+   * 그 앞의 소식들은 기록에 그대로 남는다(사라지지 않는다).
+   */
+  const stageUpdates = stageTimelineAll.filter((h) => h.kind === "update");
+  const latestUpdate = stageUpdates.length ? stageUpdates[stageUpdates.length - 1] : null;
+  const stageTimeline = stageTimelineAll.filter((h) => h !== latestUpdate);
+
   const isFirstStage = reached.length > 0 && selected === reached[0];
   // 「보내주신 것」도 같은 규칙으로 그 단계 것만 추린다.
   // 자료는 시각이 없어 첫 단계에 둔다 — 접수 때 낸 자료가 대부분이고, 없는 시각을 지어내는 것보다 낫다.
@@ -243,10 +257,14 @@ export default function ClaimClient({ token }) {
         <ProgressBar progress={progress} selected={selected} onSelect={setStage} lang={lang} />
       )}
       {progress && (
-        <CurrentStep progress={progress} lang={lang} selected={selected} selectedLabel={stageLabel} />
+        <CurrentStep
+          progress={progress}
+          lang={lang}
+          selected={selected}
+          selectedLabel={stageLabel}
+          latestUpdate={latestUpdate}
+        />
       )}
-      {/* 「문의·의뢰 접수」 단계에서만 — 본인이 낸 내용. 그 단계를 눌렀는데 날짜 한 줄뿐이면
-          «내가 뭘 냈더라»를 확인할 데가 없다(2026-08-05 PO). */}
       {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) → 지나온 기록 */}
       {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
       {stageDocuments.length > 0 && (
@@ -576,7 +594,7 @@ function ProgressBar({ progress, selected, onSelect, lang }) {
  * 고른 단계의 머리말. **지금 단계를 고르면** 「다음은요」 안내까지 같이 보이고,
  * 지나온 단계를 고르면 그 단계 이름만 — 지난 일에 「다음은요」를 붙이면 지금 할 일로 오해한다.
  */
-function CurrentStep({ progress, lang, selected, selectedLabel }) {
+function CurrentStep({ progress, lang, selected, selectedLabel, latestUpdate }) {
   if (!progress.caseStatus) {
     return <p className="mt-8 text-sm text-gray-500 leading-relaxed">{t("claimPage.notStarted", lang)}</p>;
   }
@@ -592,13 +610,34 @@ function CurrentStep({ progress, lang, selected, selectedLabel }) {
       {isNow && progress.caseStatusNote && (
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">{progress.caseStatusNote}</p>
       )}
-      {isNow && progress.nextStep && (
+      {/* 한 칸 안에 «무슨 일이 있었나»(코디 소식) + «앞으로 어떻게 되나»(단계 안내).
+          칸을 둘로 나누면 또 늘어난다 — 붙여서 한 칸으로 둔다. */}
+      {(latestUpdate || (isNow && progress.nextStep)) && (
         <div className="mt-4 bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
-          <p className="text-xs font-bold text-teal-800">{t("claimPage.nextLabel", lang)}</p>
-          <p className="text-sm text-teal-800 mt-1 leading-relaxed flex items-start gap-1.5">
-            <ArrowRight size={13} className="mt-1 shrink-0" aria-hidden="true" />
-            <span>{progress.nextStep}</span>
-          </p>
+          {latestUpdate && (
+            <>
+              <p className="text-xs font-bold text-teal-800">
+                {t("claimPage.latestUpdateLabel", lang)}
+                {latestUpdate.at && (
+                  <span className="ml-2 font-normal text-teal-700">
+                    {new Date(latestUpdate.at).toLocaleDateString()}
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-relaxed text-teal-900">
+                {latestUpdate.note}
+              </p>
+            </>
+          )}
+          {isNow && progress.nextStep && (
+            <div className={latestUpdate ? "mt-3 border-t border-teal-200 pt-3" : ""}>
+              <p className="text-xs font-bold text-teal-800">{t("claimPage.nextLabel", lang)}</p>
+              <p className="text-sm text-teal-800 mt-1 leading-relaxed flex items-start gap-1.5">
+                <ArrowRight size={13} className="mt-1 shrink-0" aria-hidden="true" />
+                <span>{progress.nextStep}</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
