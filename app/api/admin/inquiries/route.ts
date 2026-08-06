@@ -79,7 +79,15 @@ export async function GET(request: NextRequest) {
   const statusFilter = searchParams.get("status");
   const treatmentTypeFilter = searchParams.get("treatment_type");
   const nationalityFilter = searchParams.get("nationality");
-  
+
+  // 시험용 문의는 «기본으로 숨긴다».
+  // 왜: 기계가 매일 「문의 넣기가 진짜 되는지」 눌러보느라 시험 문의가 계속 쌓인다
+  //     (2026-08-06 실측: 시험 57건 / 진짜 16건 — 진짜가 파묻혀 눈으로 골라내야 했다).
+  //     KHIDI 점수판은 이미 is_test 를 빼고 세는데 이 목록만 안 빼고 있었다.
+  // 만드는 것 자체는 막으면 안 된다 — 안 눌러보면 문의 기능이 고장난 걸 아무도 모른다.
+  // ?includeTest=1 을 붙이면 시험 건도 같이 나온다(화면의 「시험 건도 보기」 스위치).
+  const includeTest = searchParams.get("includeTest") === "1";
+
   // 🔒 보안 정책: decrypt 파라미터 완전 봉인 (목록은 항상 마스킹만)
   // decrypt 파라미터가 오더라도 무시하고 항상 false로 고정
   const _shouldDecrypt = false; // 🚫 ALWAYS FALSE - 평문 대량 노출 차단
@@ -99,6 +107,9 @@ export async function GET(request: NextRequest) {
       "contact_method",
       "nationality",
       "status",
+      // 「시험 건도 보기」를 켰을 때 어느 게 시험인지 화면에서 구분하려면 이 값이 필요하다.
+      // (연습용 DB 에도 있는 칸임을 확인하고 넣었다 — 없는 칸을 이 목록에 넣으면 조회가 통째로 죽는다)
+      "is_test",
     ].join(",");
 
     let query = supabaseAdmin
@@ -116,6 +127,11 @@ export async function GET(request: NextRequest) {
     }
     if (nationalityFilter) {
       query = query.eq("nationality", nationalityFilter);
+    }
+    // KHIDI 점수판(conversion-funnel)이 쓰는 방식과 같게 — is_test 는 비워둘 수 없고
+    // 기본값이 false 라(실측: 값 없는 줄 0건) eq(false) 로 충분하다.
+    if (!includeTest) {
+      query = query.eq("is_test", false);
     }
 
     const { data, error, count } = await query;

@@ -167,6 +167,9 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
         <div className="font-bold text-gray-500">
           {item.first_name} {item.last_name}
           <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">마스킹</span>
+          {item.is_test && (
+            <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">시험</span>
+          )}
         </div>
         <div className="text-xs text-gray-500">{item.email}</div>
       </td>
@@ -200,6 +203,9 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
           <div className="font-bold text-gray-600 text-sm">
             {item.first_name} {item.last_name}
             <span className="ml-2 text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">마스킹</span>
+            {item.is_test && (
+              <span className="ml-1.5 text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">시험</span>
+            )}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">{item.email}</div>
         </div>
