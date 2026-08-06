@@ -71,12 +71,14 @@ function isSmoke(f) {
 }
 const maxIdx = argv.indexOf("--max");
 const MAX = maxIdx === -1 ? 0 : Number(argv[maxIdx + 1]) || 0;
+// 단위 검사는 본 검사(ci.yml)에서 이미 «전부» 돈다(1100개+). 거기서 부를 땐 빼야 중복이 안 된다.
+const SKIP_UNIT = argv.includes("--skip-unit");
 
 const e2eAll = [...e2eFiles].filter((f) => !isSmoke(f)).sort();
 // 상한을 두면 «잘랐다»고 반드시 말한다 — 조용한 상한은 「전부 봤다」로 읽혀서 제일 해롭다.
 const e2eExtra = MAX > 0 ? e2eAll.slice(0, MAX) : e2eAll;
 const e2eDropped = e2eAll.length - e2eExtra.length;
-const unitList = [...unitFiles].sort();
+const unitList = SKIP_UNIT ? [] : [...unitFiles].sort();
 
 const derived = routes.filter((r) => r.hops > 0);
 const uncovered = (data.uncovered || []).filter((r) => r.hops > 0);

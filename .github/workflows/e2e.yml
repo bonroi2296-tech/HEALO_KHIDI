@@ -83,8 +83,7 @@ jobs:
     name: Smoke Tests (PR)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    # 반경 안 여정 검사(최대 6개)가 뒤에 붙어서 15 → 25 로 늘림
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -139,47 +138,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
 
-      # 파생 파손을 «합치기 전»에 잡는 유일한 자리.
-      # 왜: 신청서에는 빠른 검사(@smoke) 24개만 돌고, 전체 여정 검사는 본판에 합친 «뒤»에만 돈다.
-      #     그런데 파생 파손은 정의상 «내가 안 열어본 화면»에서 나므로 빠른 검사 목록에 있을 이유가 없다.
-      #     → 이번 변경이 실제로 닿는 화면의 검사만 골라 여기서 돈다(전체 10~15분을 다 도는 게 아니라).
-      # ⚠️ 지금은 «비차단»이다 — 불안정한 검사가 섞여 상시 빨간불이 되면 아무도 안 보게 된다(#132 부류).
-      #     한 주 돌려보고 헛경보가 없으면 차단으로 올린다(로드맵: docs/rules/BUG_ROUTINE.md).
-      - name: 반경 안 여정 검사 (이번 변경이 닿는 화면만 골라서 — 비차단)
-        if: always()
-        continue-on-error: true
-        run: |
-          git fetch --depth=100 origin main 2>/dev/null || true
-          BASE=origin/main
-          git rev-parse --verify --quiet "$BASE" >/dev/null || BASE=HEAD~1
-          node scripts/blast-verify.mjs --base "$BASE" --max 6 2>&1 | tee /tmp/blast-verify.log
-          {
-            echo "## 🧪 반경 안 여정 검사"
-            echo '```'
-            sed 's/\x1b\[[0-9;]*m//g' /tmp/blast-verify.log
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-        env:
-          CI: "1"
-          E2E_SKIP_SERVER: "0"
-          E2E_BASE_URL: "http://localhost:3000"
-          E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
-          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
-          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
-          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
-          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
-          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
-          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
-          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
-          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
-          E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
-          E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
-
       - name: 실패 아티팩트 저장
         if: failure()
         uses: actions/upload-artifact@v4
@@ -219,6 +177,86 @@ jobs:
               \"subject\": \"❌ HEALO E2E Smoke 실패 (PR #${{ github.event.number }})\",
               \"html\": \"<h2>HEALO 자동 검사 실패</h2><p><strong>유형:</strong> PR Smoke Test</p><p><strong>브랜치:</strong> ${{ github.head_ref }}</p><p><strong>PR:</strong> #${{ github.event.number }}</p><p><a href='\\\"$RUN_URL\\\"'>실행 로그 보기 →</a></p>\"
             }"
+
+  # ─────────────────────────────────────────────
+  # JOB 1-b: 반경 안 여정 검사 (파생 파손을 «합치기 전»에 잡는 자리)
+  #
+  # 왜 별도 잡인가 (첫 판의 실수를 여기 남긴다):
+  #   처음엔 이걸 위 smoke 잡 «안»에 붙이고 「비차단」이라고 적었다. 그런데 이 저장소의
+  #   검사 설정은 자동검사 환경에서 서버를 재사용하지 않는다(`reuseExistingServer: !CI`).
+  #   즉 dev 서버를 «한 번 더» 띄운다 — 부팅 상한만 240초다. 빠른 검사(5분+부팅) 뒤에
+  #   부팅 4분 + 검사 6개가 더 붙으면 잡 상한을 넘긴다.
+  #   ⚠️ `continue-on-error` 는 «단계»만 덮지 «잡 시간초과»는 못 덮는다.
+  #      그러면 「비차단」이라고 적어놓고 실제로는 멀쩡한 신청서를 빨간불로 만든다.
+  #   → 별도 잡으로 떼면 ①시간이 서로 안 먹고 ②빠른 검사와 «병렬»로 돌아 총 시간도 안 늘고
+  #     ③잡 레벨 continue-on-error 로 진짜 비차단이 된다.
+  #
+  # 무엇을 도나: 이번 변경이 실제로 닿는 화면의 여정 검사만. 신청서엔 빠른 검사 24개만 돌고
+  #   전체 여정 검사는 본판에 합친 «뒤»에만 돌아서, 파생 파손은 구조적으로 머지 후에야
+  #   발견됐다 — 파생 파손은 정의상 «내가 안 열어본 화면»에서 나므로 빠른 검사 목록에
+  #   있을 이유가 없다. 그 구조적 지연을 앞당기는 자리다.
+  #
+  # 단위 검사는 --skip-unit — 본 검사(ci.yml)가 이미 전부 돈다(중복 낭비).
+  # 한 주 돌려 헛경보 0 이면 continue-on-error 를 떼고 차단으로 승격.
+  # ─────────────────────────────────────────────
+  blast:
+    name: Blast Radius E2E (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 본판과 비교할 기준점이 필요하다(얕게 받으면 반경이 «변경 0개»로 뜬다)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: Playwright 브라우저 설치 (chromium만)
+        run: npx playwright install chromium --with-deps
+
+      - name: 반경 안 여정 검사 (이번 변경이 닿는 화면만 골라서)
+        run: |
+          BASE=origin/main
+          git rev-parse --verify --quiet "$BASE" >/dev/null || BASE=HEAD~1
+          node scripts/blast-verify.mjs --base "$BASE" --max 6 --skip-unit 2>&1 | tee /tmp/blast-verify.log
+        continue-on-error: true
+        env:
+          CI: "1"
+          E2E_SKIP_SERVER: "0"
+          E2E_BASE_URL: "http://localhost:3000"
+          E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
+          E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
+          E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
+      - name: 결과를 실행 화면 요약에 남긴다
+        if: always()
+        run: |
+          {
+            echo "## 🧪 반경 안 여정 검사"
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' /tmp/blast-verify.log 2>/dev/null || echo "(로그 없음 — 반경이 비었거나 앞 단계가 못 돌았다)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ─────────────────────────────────────────────
   # JOB 2: Full E2E (main push)
