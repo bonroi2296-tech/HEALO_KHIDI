@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
+import type { TablesUpdate } from "@/types/database.types";
 
 const EDITABLE_FIELDS = [
   "name",
@@ -24,7 +25,8 @@ const EDITABLE_FIELDS = [
   // ⛔ name_kr·description_kr·tags_kr·specialties_kr 은 실DB `hospitals` 에 없는 컬럼이라
   //    제거했다(#103). 넣으면 병원 프로필 저장이 통째로 실패한다. `location_kr` 만 실재.
   "i18n",
-];
+  // satisfies 가 이름 하나하나를 실제 표의 칸과 대조한다 — 없는 이름을 넣으면 여기서 걸린다.
+] as const satisfies readonly (keyof TablesUpdate<"hospitals">)[];
 
 export async function GET(request: NextRequest) {
   const auth = await checkHospitalAuth(request);
@@ -64,7 +66,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const updates: Record<string, any> = {};
+    const updates: TablesUpdate<"hospitals"> = {};
     for (const field of EDITABLE_FIELDS) {
       if (body[field] !== undefined) {
         updates[field] = body[field];

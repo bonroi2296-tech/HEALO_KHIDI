@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 import { requireVisaAccess } from "@/lib/auth/requireVisaAccess";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
+import type { TablesUpdate } from "@/types/database.types";
 
 const VALID_STATUSES = [
   "draft",
@@ -99,7 +100,8 @@ export async function PATCH(
     const { application, role, userId } = access;
 
     const payload = await request.json();
-    const updates: Record<string, any> = {};
+    // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+    const updates: TablesUpdate<"visa_applications"> = {};
     const isStaff = role === "admin" || role === "coordinator";
 
     // ────────────────────────────────────────

@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
+import type { TablesInsert, TablesUpdate } from "@/types/database.types";
 
 export async function GET(request: NextRequest) {
   const auth = await checkHospitalAuth(request);
@@ -50,7 +51,8 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9가-힣]+/g, "-")
       .replace(/^-|-$/g, "") || `treatment-${Date.now()}`;
 
-    const payload: Record<string, any> = {
+    // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+    const payload: TablesInsert<"treatments"> = {
       hospital_id: auth.hospitalId,
       name: body.name?.trim() || "새 시술",
       slug,
@@ -137,7 +139,8 @@ export async function PATCH(request: NextRequest) {
       "is_published", "display_order",
       "i18n",
     ];
-    const updates: Record<string, any> = {};
+    // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+    const updates: TablesUpdate<"treatments"> = {};
     for (const field of EDITABLE) {
       if (body[field] !== undefined) updates[field] = body[field];
     }

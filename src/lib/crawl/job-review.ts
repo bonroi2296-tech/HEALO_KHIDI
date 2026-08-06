@@ -5,6 +5,7 @@
  */
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
+import type { TablesInsert, TablesUpdate } from "../../types/database.types";
 
 export async function approveItems(itemIds: string[]): Promise<{
   approved: number;
@@ -93,7 +94,8 @@ async function approveNewItem(item: any) {
   const slugTaken = slugErr ? true : (existingRows?.length || 0) > 0;
   const finalSlug = slugTaken ? slug + "-" + Math.random().toString(36).slice(2, 6) : slug;
 
-  const hospitalData: Record<string, any> = {
+  // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+  const hospitalData: TablesInsert<"hospitals"> = {
     name: d.yadmNm || d.name || item.title,
     slug: finalSlug,
     location_kr: d.addr || d.location_kr || null,
@@ -132,7 +134,8 @@ async function approveChangedItem(item: any) {
   if (!item.hospital_id) throw new Error("No hospital_id for changed item");
 
   const d = item.data || {};
-  const updates: Record<string, any> = {
+  // 실DB 표의 모양으로 못박는다 — 없는 칸이 섞이면 여기서 걸린다(Record<string, any> 면 안 걸린다)
+  const updates: TablesUpdate<"hospitals"> = {
     last_crawled_at: new Date().toISOString(),
   };
 

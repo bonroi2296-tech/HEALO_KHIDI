@@ -9,17 +9,20 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import type { TablesUpdate } from "@/types/database.types";
 
 // 실DB `rag_documents` 에 있는 컬럼만. `verified_at`·`verified_by` 는 실재하지 않는데
 // 허용목록에 있어서, 그 필드를 담은 PATCH 가 오면 **update 전체가 실패**해 같이 보낸
 // `trust_tier` 까지 날아갔다(#103 부류, 독립 리뷰 2차 지적 — 실측: information_schema 확인).
-// 허용목록 루프는 계산된 키라 축 D 가드의 사각이다. 목록을 늘릴 땐 실컬럼인지 직접 확인할 것.
+//
+// 「직접 확인할 것」이던 걸 이제 기계가 확인한다 — satisfies 가 목록의 이름 하나하나를
+// 실제 표의 칸과 대조한다. 없는 이름을 넣으면 여기서 바로 빨간불이 뜬다.
 const ALLOWED_FIELDS = [
   "trust_tier",
   "source_label",
   "source_url",
   "expires_at",
-] as const;
+] as const satisfies readonly (keyof TablesUpdate<"rag_documents">)[];
 
 function isValidUrl(s: string): boolean {
   try {
@@ -47,7 +50,9 @@ export async function PATCH(
   try {
     const body = await request.json();
 
-    const update: Record<string, any> = {};
+    // 값은 아래 루프가 계산된 키로 넣지만(형식검사 불가), «칸 이름»은 위 ALLOWED_FIELDS 가
+    // 이미 실제 표와 대조돼 있고, 마지막 .update(update) 는 이 형식으로 검사받는다.
+    const update: TablesUpdate<"rag_documents"> = {};
     const errors: string[] = [];
 
     for (const key of ALLOWED_FIELDS) {
