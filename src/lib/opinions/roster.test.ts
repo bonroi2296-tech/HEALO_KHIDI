@@ -13,7 +13,8 @@ describe("opinion roster", () => {
     expect(rosterName("kang_juan")).toBe("강주안 원장");
     expect(rosterName("ewha_seoul")).toBe("이대서울병원");
     expect(rosterName("ewha_mokdong")).toBe("이대목동병원");
-    expect(OPINION_ROSTER).toHaveLength(6);
+    expect(rosterName("severance_sinchon")).toBe("신촌세브란스병원");
+    expect(OPINION_ROSTER).toHaveLength(8);
   });
 
   it("'other' → 그 외 의료진 라벨", () => {
