@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -124,12 +125,15 @@ export default function PatientDashboardClient() {
       {/* Active/Scheduled Consultation CTA */}
       {consultations.some(c => c.status === 'active' || c.status === 'scheduled') && (
         <div className="mb-6 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+          {/* 폰에서 한 줄에 다 못 넣는다 — 러시아어처럼 단추 글자가 길면 잘렸다(실측: 단추 157px에
+              글자 182px, 25px 잘림. 한국어 「대기실 입장」은 짧아 안 걸렸다 / 2026-08-06).
+              좁으면 세로로 쌓고, 밀리는 건 «글이 아니라 설명 칸»이 되도록 min-w-0·shrink-0 로 정한다. */}
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="w-12 h-12 shrink-0 bg-white/20 rounded-xl flex items-center justify-center">
                 <Video size={24} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold">{t('patientDash.consultationCta', lang)}</p>
                 <p className="text-teal-100 text-sm">
                   {(() => {
@@ -148,7 +152,7 @@ export default function PatientDashboardClient() {
                 const c = active || scheduled;
                 if (c) router.push(`/consultation/${c.id}`);
               }}
-              className="flex items-center gap-2 bg-white text-teal-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-teal-50 transition text-sm whitespace-nowrap"
+              className="flex shrink-0 items-center justify-center gap-2 bg-white text-teal-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-teal-50 transition text-sm"
             >
               <Phone size={16} />
               {consultations.some(c => c.status === 'active') ? t('patientDash.joinNow', lang) : t('patientDash.enterWaiting', lang)}
@@ -201,8 +205,10 @@ export default function PatientDashboardClient() {
               }[q.status] || 'bg-yellow-100 text-yellow-700';
               const stText = INQUIRY_STATUSES.includes(q.status) ? t(`patientDash.inquiryStatus.${q.status}`, lang) : (q.status || t('patientDash.inquiryStatus.received', lang));
               const cancer = CANCER_TYPES.includes(q.cancer_type) ? t(`patientDash.cancer.${q.cancer_type}`, lang) : (q.cancer_type || t('patientDash.inquiryFallbackTitle', lang));
-              return (
-                <div key={q.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
+              // 진행 상황 화면으로 건너뛴다 — 원장님 소견·받은 서류·소식이 거기 다 있다.
+              // 없으면 이 칸은 «날짜와 상태 뱃지»만 있는 막다른 골목이 된다(2026-08-06).
+              const inner = (
+                <>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-teal-50 text-teal-700">
                       <FileText size={20} />
@@ -214,8 +220,19 @@ export default function PatientDashboardClient() {
                       </div>
                     </div>
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${stCls}`}>{stText}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${stCls}`}>{stText}</span>
+                    {q.public_token && <ChevronRight size={16} className="text-gray-500" aria-hidden="true" />}
+                  </div>
+                </>
+              );
+              const cls = 'flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100';
+              return q.public_token ? (
+                <Link key={q.id} href={`/claim/${q.public_token}`} className={`${cls} transition hover:border-teal-300 hover:bg-teal-50/40`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={q.id} className={cls}>{inner}</div>
               );
             })}
           </div>

@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { MessageSquarePlus, Loader2, Pencil, Trash2, Check, X } from "lucide-react";
+import { MessageSquarePlus, Loader2, Pencil, Trash2, Check, X, Languages } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useDateLocale } from "@/lib/i18n/coordinator";
 
@@ -43,6 +43,32 @@ export default function FollowUpsSection({ inquiryId }) {
     } catch { /* 조용히 — 없으면 빈 목록 */ }
   }, [inquiryId]);
   useEffect(() => { load(); }, [load]);
+
+  // ── 한국어로 보기 ──
+  // 환자가 러시아어로 보낸 글이 여기 그대로 뜬다. **저절로 안 바꾼다** — 누를 때만.
+  // 한글이 하나도 없는 줄만 대상으로 본다(이미 한국어인 줄을 보내면 값만 나간다).
+  const [showTr, setShowTr] = useState(false);
+  const [tmap, setTmap] = useState({});
+  const [tBusy, setTBusy] = useState(false);
+  const foreign = items.map((f) => f.text).filter((s) => s && !/[가-힣]/.test(s));
+  const shown = (s) => (showTr && tmap[String(s || "").trim()]) || s;
+
+  async function toggleTranslate() {
+    if (showTr) return setShowTr(false);
+    if (Object.keys(tmap).length) return setShowTr(true);
+    setTBusy(true);
+    try {
+      const res = await authFetch("/api/coordinator/notes/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: "ko", texts: foreign }),
+      });
+      const d = await res.json();
+      if (d.ok && d.map && Object.keys(d.map).length) { setTmap(d.map); setShowTr(true); }
+    } catch { /* 실패하면 원문 그대로 — 화면은 안 끊긴다 */ } finally {
+      setTBusy(false);
+    }
+  }
 
   async function add() {
     const t = text.trim();
@@ -104,7 +130,23 @@ export default function FollowUpsSection({ inquiryId }) {
         <MessageSquarePlus size={15} className="text-teal-700" />
         <h3 className="text-sm font-semibold text-gray-800">접수 후 추가 정보</h3>
         {items.length > 0 && <span className="text-xs text-gray-500">({items.length})</span>}
+        {/* 환자가 러시아어로 보낸 글을 한국어로 — 누를 때만, 두 번째부터는 부르지 않는다.
+            환자 화면과 같은 저장표를 보므로 거기서 이미 옮긴 글이면 즉시 뜬다(2026-08-06 PO). */}
+        {foreign.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleTranslate}
+            disabled={tBusy}
+            className="ml-auto inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+          >
+            {tBusy ? <Loader2 size={11} className="animate-spin" /> : <Languages size={11} />}
+            {showTr ? "원문 보기" : "한국어로 보기"}
+          </button>
+        )}
       </div>
+      {showTr && (
+        <p className="mb-1 text-[11px] text-gray-500">기계가 옮긴 글입니다 — 판단은 원문으로 하세요.</p>
+      )}
       <p className="text-xs text-gray-500 mb-2.5">
         메신저·전화로 뒤늦게 들어온 환자 상태를 여기에 적으면 <b>소견 요청 화면에도 그대로 보입니다.</b>
       </p>
@@ -135,7 +177,7 @@ export default function FollowUpsSection({ inquiryId }) {
               ) : (
                 <>
                   <p className={`text-sm whitespace-pre-wrap leading-relaxed ${f.removedAt ? "text-gray-500 line-through" : "text-gray-800"}`}>
-                    {f.text}
+                    {shown(f.text)}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[11px] text-gray-500">{fmt(f.at)} · {f.by}</p>
