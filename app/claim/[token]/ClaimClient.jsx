@@ -527,7 +527,8 @@ function TranslateBar({ token, lang, texts, on, map, onChange, onLoaded }) {
       (texts || [])
         .map((s) => String(s || "").trim())
         .filter(Boolean)
-        .filter((s) => (mine ? !mine.test(s) : /[^ -]/.test(s))),
+        // 글자 표를 모르는 언어(영어 등)면 거르지 않는다 — 판단은 서버가 한다.
+        .filter((s) => !mine || !mine.test(s)),
     ),
   );
   if (!uniq.length) return null;
