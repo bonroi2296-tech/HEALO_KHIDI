@@ -201,6 +201,19 @@ export default function ClaimClient({ token }) {
     .reverse();
   const stageStartedAt = stageTimelineAll.find((h) => h.kind === "stage")?.at || null;
 
+  /**
+   * 「번역해서 보기」 — **저절로 안 바꾼다.** 눌렀을 때만 바뀐다 (2026-08-06 PO:
+   * *"선택한 언어에 맞춰서 자동 번역해버리면 이건 또 곤란하고"*).
+   *
+   * 소견은 의료진이 그 언어로 «확정한» 문서다. 기계가 옮긴 걸 기본으로 깔면 오역이 진료
+   * 판단에 섞이고 무엇이 원본인지 흐려진다. 그래서 화면은 늘 원문이고, 번역은 **한 번 눌러**
+   * 켜고 끄는 겹이다. 단추도 글마다 달지 않고 **화면에 하나** — 한 번에 묶어 부르는 게
+   * 값도 싸고 화면도 안 늘어난다.
+   */
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [tmap, setTmap] = useState({});
+  const tr = (s) => (showTranslated && tmap[String(s || "").trim()]) || s;
+
   const isFirstStage = reached.length > 0 && selected === reached[0];
   // 「보내주신 것」도 같은 규칙으로 그 단계 것만 추린다.
   // 자료는 시각이 없어 첫 단계에 둔다 — 접수 때 낸 자료가 대부분이고, 없는 시각을 지어내는 것보다 낫다.
@@ -263,22 +276,43 @@ export default function ClaimClient({ token }) {
       {progress && (
         <ProgressBar progress={progress} selected={selected} onSelect={setStage} lang={lang} />
       )}
+      <TranslateBar
+        token={token}
+        lang={lang}
+        texts={[
+          ...stageEvents.map((e) => e.text),
+          ...stageOpinions.map((o) => o.text),
+          ...stageSent.filter((s) => s.kind === "note").map((s) => s.label),
+        ]}
+        on={showTranslated}
+        map={tmap}
+        onChange={setShowTranslated}
+        onLoaded={setTmap}
+      />
       {progress && (
         <CurrentStep
           progress={progress}
           lang={lang}
           selected={selected}
           selectedLabel={stageLabel}
-          events={stageEvents}
+          events={stageEvents.map((e) => ({ ...e, text: tr(e.text) }))}
           startedAt={stageStartedAt}
         />
       )}
       {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) */}
-      {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
+      {stageOpinions.length > 0 && (
+        <Opinions opinions={stageOpinions.map((o) => ({ ...o, text: tr(o.text) }))} lang={lang} />
+      )}
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
-      {stageSent.length > 0 && <SentItems items={stageSent} lang={lang} token={token} />}
+      {stageSent.length > 0 && (
+        <SentItems
+          items={stageSent.map((s) => (s.kind === "note" ? { ...s, label: tr(s.label) } : s))}
+          lang={lang}
+          token={token}
+        />
+      )}
       {/* 지나온 단계인데 그때 오간 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
       {stageOpinions.length === 0 && stageDocuments.length === 0 && stageEvents.length === 0 &&
         stageSent.length === 0 && (
@@ -468,6 +502,66 @@ function SendMore({ token, lang }) {
  * 「보내주신 것」 두 칸으로 나뉘어 있었는데, **환자에겐 둘 다 「내가 보낸 것」**이다.
  * 이제 화면은 두 축으로만 읽힌다 — «우리가 준 것»(소견·서류) / «환자가 준 것»(이 칸).
  */
+/**
+ * 「번역해서 보기 / 원문 보기」 띠 — 화면에 **하나만**.
+ *
+ * 한 번 누르면 화면에 뜬 글 전부를 한 번에 묶어 부른다(호출 1회). 그 결과는 서버가
+ * (원문, 언어)로 적어두므로 **두 번째부터는 돈이 안 든다** — 다른 사람이 눌러도 마찬가지
+ * (2026-08-06 PO 질문: *"누를때마다 돈 나가는거야? 한번 딱하면 기록되게 하면 낭비 없지 않나?"*).
+ *
+ * 읽을 언어와 다른 글이 하나도 없으면 띠 자체를 안 그린다 — 눌러도 바뀌는 게 없는 단추는 군더더기다.
+ */
+function TranslateBar({ token, lang, texts, on, map, onChange, onLoaded }) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const uniq = Array.from(new Set((texts || []).map((s) => String(s || "").trim()).filter(Boolean)));
+  if (!uniq.length) return null;
+
+  const toggle = async () => {
+    if (on) return onChange(false);
+    // 이미 받아둔 게 있으면 다시 안 부른다(화면 안에서도 한 번만).
+    if (Object.keys(map).length) return onChange(true);
+    setBusy(true);
+    setFailed(false);
+    try {
+      const res = await fetch("/api/inquiries/claim/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, lang, texts: uniq }),
+      });
+      const data = await res.json();
+      if (data.ok && data.map && Object.keys(data.map).length) {
+        onLoaded(data.map);
+        onChange(true);
+      } else {
+        setFailed(true);
+      }
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Globe size={13} />}
+        {on ? t("claimPage.showOriginal", lang) : t("claimPage.showTranslated", lang)}
+      </button>
+      {/* 기계가 옮긴 글이라는 걸 «보이는 자리»에 적는다 — 원문과 구별이 안 되면 안 된다. */}
+      {on && <span className="text-[11px] text-gray-500">{t("claimPage.machineTranslated", lang)}</span>}
+      {failed && <span className="text-[11px] text-gray-500">{t("claimPage.translateFailed", lang)}</span>}
+    </div>
+  );
+}
+
 function SentItems({ items, lang, token }) {
   const [busy, setBusy] = useState("");
 
