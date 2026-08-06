@@ -515,7 +515,21 @@ function TranslateBar({ token, lang, texts, on, map, onChange, onLoaded }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const uniq = Array.from(new Set((texts || []).map((s) => String(s || "").trim()).filter(Boolean)));
+  // **이미 내 언어인 글만 있으면 띠를 아예 안 그린다.** 예전엔 글이 있기만 하면 단추를 띄웠고,
+  // 누르면 서버가 「번역할 게 없다」로 0건을 돌려줘 「지금은 번역하지 못했어요」가 떴다
+  // — 고장난 것처럼 보인다(2026-08-06 실서비스 실측, 시험용 문의 #84).
+  // 서버와 같은 규칙을 여기서도 본다: 한국어로 읽는 중이면 «한글이 없는 글», 다른 언어로 읽는
+  // 중이면 «그 언어 글자가 없는 글»만 번역 대상이다.
+  const SCRIPT = { ko: /[가-힣]/, ru: /[А-Яа-яЁё]/, kz: /[А-Яа-яЁёӘҒҚҢӨҰҮҺІ]/, ja: /[ぁ-んァ-ン]/, zh: /[一-鿿]/ };
+  const mine = SCRIPT[lang];
+  const uniq = Array.from(
+    new Set(
+      (texts || [])
+        .map((s) => String(s || "").trim())
+        .filter(Boolean)
+        .filter((s) => (mine ? !mine.test(s) : /[^ -]/.test(s))),
+    ),
+  );
   if (!uniq.length) return null;
 
   const toggle = async () => {
