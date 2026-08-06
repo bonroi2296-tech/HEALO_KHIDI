@@ -22,6 +22,9 @@ export const CANCER_TYPES = [
   { value: "thyroid", labelKey: "intakeLabels.cancer.thyroid", organ: "thyroid" },
   { value: "colorectal", labelKey: "intakeLabels.cancer.colorectal", organ: "colon" },
   { value: "pancreatic", labelKey: "intakeLabels.cancer.pancreatic", organ: "pancreas" },
+  // 2026-08-06 추가: 신장암 선택지가 없어 실제 신장암(C64) 접수가 'liver'(전이 부위)로 찍혀
+  // 의료진 화면에 「간암」으로 보이던 것을 막는다. organ 은 OrganIcon 에 kidney 가 아직 없어 null.
+  { value: "kidney", labelKey: "intakeLabels.cancer.kidney", organ: null },
   { value: "other", labelKey: "intakeLabels.cancer.other", organ: null },
 ];
 
