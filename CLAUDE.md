@@ -14,7 +14,7 @@
 | 합치기 신청서(PR)·머지·자동머지·리뷰 게이트·완성도 감사·보고 주기 | `docs/rules/AUTOMERGE.md` |
 | 배포·실서비스 반영·프리뷰·빌드 창구·production 브랜치·긴급 배포 | `docs/rules/DEPLOY.md` |
 | 출시·QA·검증·DB/RLS·데이터 흐름·인증 권한·소프트 삭제·돈 숫자 단정 | `docs/rules/SELF_QA.md` |
-| 버그·누락·오류·반성문·재발·가드 룰·문서 건강검진·사용자 제보 | `docs/rules/BUG_ROUTINE.md` |
+| 버그·누락·오류·반성문·재발·가드 룰·문서 건강검진·사용자 제보·**파생 파손(A 고쳤는데 B 고장)** | `docs/rules/BUG_ROUTINE.md` |
 | AI 품질·환각·안전 위반·응답시간 P95·flag·품질 지표 | `docs/rules/AI_QUALITY.md` |
 | 백오피스·사용설명서·매뉴얼·새 계층(role) 추가 | `docs/rules/MANUALS.md` |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
