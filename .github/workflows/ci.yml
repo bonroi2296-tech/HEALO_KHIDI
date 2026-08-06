@@ -105,3 +105,23 @@ jobs:
         run: npm run audit:images
       - run: npm run build
       - run: npm run verify:rag
+      # 영향 반경 — 「A 를 고쳤는데 파생된 B 가 고장난다」를 «합치기 전»에 눈에 보이게.
+      # ⚠️ 일부러 «비차단»이다. 나머지 검사는 전부 «알려진 규칙 목록»(금지 토큰·번역 누락·유령 컬럼)이라
+      #    목록에 없는 새 파손은 못 본다. 이건 목록이 아니라 «관계»를 본다 — 무엇이 깨질지는 몰라도
+      #    «어디까지 닿는지»는 안다. 그래서 판정이 아니라 지도이고, 차단하면 회피만 부른다.
+      #    결과는 실행 화면 요약(Summary)에 표로 남아 나중에 «그때 이 화면이 반경에 있었네»를 되짚을 수 있다.
+      - name: 영향 반경 지도 (파생 파손이 닿는 화면·같이 사라진 기능 — 비차단, 기록용)
+        if: always()
+        run: |
+          # 체크아웃이 얕게(depth 1) 받아오면 본판과 비교할 기준점이 없다 → 먼저 본판을 조금 더 끌어온다.
+          git fetch --depth=100 origin main 2>/dev/null || true
+          BASE=origin/main
+          git rev-parse --verify --quiet "$BASE" >/dev/null || BASE=HEAD~1
+          {
+            echo "## 🎯 영향 반경 (파생 파손 지도)"
+            echo "기준: \`$BASE\`"
+            echo '```'
+            node scripts/blast-radius.mjs --base "$BASE" 2>&1 | sed 's/\x1b\[[0-9;]*m//g'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
