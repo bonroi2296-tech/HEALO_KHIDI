@@ -13,7 +13,7 @@
  *
  * 사용법:  node scripts/dev-login-as.mjs agency@test.com
  */
-import fs from "node:fs";
+import { loadEnvLocal } from "./_env.mjs";
 
 // 내부·테스트 계정만. 여기 없는 주소는 거부(실고객 계정 오사용 방지).
 const ALLOWED = /^[a-z0-9._-]+@(test\.com|healo-test\.invalid)$/i;
@@ -24,10 +24,9 @@ if (!ALLOWED.test(email)) {
   process.exit(1);
 }
 
-for (const line of fs.readFileSync(".env.local", "utf8").split(/\r?\n/)) {
-  const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-  if (m) process.env[m[1]] ??= m[2].replace(/^["']|["']$/g, "");
-}
+// 값 끝의 리터럴 \n 까지 벗겨야 한다 — 안 그러면 service_role 열쇠가 401 이 나서
+// 이 스크립트가 «항상» 실패한다(2026-08-06 발견). 읽는 방법은 scripts/_env.mjs 한 곳에만 둔다.
+loadEnvLocal({ applyToProcess: true });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

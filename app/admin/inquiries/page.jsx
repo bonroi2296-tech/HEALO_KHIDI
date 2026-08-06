@@ -14,9 +14,12 @@ export default function InquiriesPage() {
   const [inquiries, setInquiries] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewError, setPreviewError] = useState(false);
+  // 시험용 문의는 기본으로 숨긴다 — 기계가 매일 「문의 넣기」를 눌러보느라 계속 쌓여서
+  // 진짜 문의가 파묻힌다(2026-08-06 실측: 시험 57 / 진짜 16).
+  const [showTest, setShowTest] = useState(false);
 
   // 문의 목록 조회 (마스킹됨)
-  const fetchInquiries = async () => {
+  const fetchInquiries = async (includeTest = showTest) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -26,7 +29,7 @@ export default function InquiriesPage() {
         return;
       }
 
-      const response = await fetch('/api/admin/inquiries?limit=200&decrypt=false', {
+      const response = await fetch(`/api/admin/inquiries?limit=200&decrypt=false${includeTest ? '&includeTest=1' : ''}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -134,7 +137,19 @@ export default function InquiriesPage() {
           </section>
         </AdminGuideModal>
       )}
-      <div className="flex justify-end mb-3">
+      <div className="flex justify-end items-center gap-2 mb-3">
+        <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition">
+          <input
+            type="checkbox"
+            checked={showTest}
+            onChange={(e) => {
+              setShowTest(e.target.checked);
+              fetchInquiries(e.target.checked);
+            }}
+            className="accent-teal-600"
+          />
+          시험 건도 보기
+        </label>
         <button
           type="button"
           onClick={() => setShowGuide(true)}
