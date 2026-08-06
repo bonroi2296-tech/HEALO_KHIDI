@@ -1391,6 +1391,12 @@ export default function ConsultationRoomPage() {
     }
   }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
 
+  // 「이 자막을 어느 받아쓰기가 만들었나」 — 기록에 같이 남긴다(2026-08-06).
+  // 왜 ref 인가: 이 값을 쓰는 translateText 는 useCallback 이라, 상태로 넣으면 경로가 바뀔
+  //   때마다 함수가 새로 만들어져 번역 큐를 잡고 있는 참조들이 어긋난다. 읽는 시점만
+  //   맞으면 되므로 ref 로 둔다. (useServerStt 는 아래에서 계산되지만 ref 라 순서 무관)
+  const sttEngineRef = useRef(STT_ENGINES.BROWSER);
+
   const translateText = useCallback(
     (text, utter) => {
       if (!text || !text.trim()) return;
