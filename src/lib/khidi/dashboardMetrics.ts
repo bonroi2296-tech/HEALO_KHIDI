@@ -43,12 +43,17 @@ export function projectProgressPct(now: Date, start: Date, end: Date): number {
 
 /**
  * 사전상담 + 사후관리 합산 (공식 K-02+K-04, 목표 120). null 은 0 취급.
+ *
+ * writtenOpinion = 「글로 전달한 사전상담」(의료진 소견 검토 후 환자에게 전달).
+ * 진흥원 제출 정의의 증빙은 「HEALO 상담로그·AI/Human 기록」이지 영상통화가 아니다
+ * (2026-08-06 PO 지시). 옛 호출부 호환을 위해 세 번째 인자는 선택.
  */
 export function consultCareTotal(
   preConsultation: number | null | undefined,
-  followUp: number | null | undefined
+  followUp: number | null | undefined,
+  writtenOpinion?: number | null
 ): number {
-  return (preConsultation ?? 0) + (followUp ?? 0);
+  return (preConsultation ?? 0) + (followUp ?? 0) + (writtenOpinion ?? 0);
 }
 
 /**

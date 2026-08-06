@@ -1,7 +1,7 @@
 /**
  * healwith: 환자 만족도 설문 토큰 생성 및 발송
  *
- * KHIDI KPI K-03 — 환자 만족도 80점 이상 측정 핵심 수단
+ * KHIDI KPI K-03 — 환자 만족도 90점 측정 핵심 수단 (목표 단일 소스 = src/lib/khidi/targets.ts)
  *
  * - generateSurveyToken: crypto.randomBytes 32자 토큰 → surveys 테이블 insert
  * - sendSurveyEmail:     Resend + HTML 이메일 (6개 언어)
