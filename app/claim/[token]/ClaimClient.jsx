@@ -68,7 +68,6 @@ export default function ClaimClient({ token }) {
   const [progress, setProgress] = useState(null);
   const [opinions, setOpinions] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [intake, setIntake] = useState(null);
   const [sent, setSent] = useState(null);
 
   const [session, setSession] = useState(undefined); // undefined=확인중, null=비로그인
@@ -93,7 +92,6 @@ export default function ClaimClient({ token }) {
           setProgress(data.progress || null);
           setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
-          setIntake(data.intake || null);
           setSent(data.sent || null);
           applyPatientLang(data.patientLang, lang);
         }
@@ -184,8 +182,17 @@ export default function ClaimClient({ token }) {
   const stageOpinions = opinions.filter((o) => inStage(o.at));
   const stageDocuments = documents.filter((d) => inStage(d.at));
   const stageTimeline = timeline.filter((h) => inStage(h.at));
-  // 첫 단계(=접수)를 고른 상태인가. 「본인이 낸 내용」은 거기에만 붙인다.
   const isFirstStage = reached.length > 0 && selected === reached[0];
+  // 「보내주신 것」도 같은 규칙으로 그 단계 것만 추린다.
+  // 자료는 시각이 없어 첫 단계에 둔다 — 접수 때 낸 자료가 대부분이고, 없는 시각을 지어내는 것보다 낫다.
+  const stageSent = [
+    ...(sent?.notes || [])
+      .filter((n) => inStage(n.at))
+      .map((n) => ({ kind: "note", at: n.at, label: n.text })),
+    ...(isFirstStage
+      ? (sent?.files || []).map((f) => ({ kind: "file", at: null, label: f.name, url: f.url }))
+      : []),
+  ];
 
   if (loading) {
     return (
@@ -240,20 +247,21 @@ export default function ClaimClient({ token }) {
       )}
       {/* 「문의·의뢰 접수」 단계에서만 — 본인이 낸 내용. 그 단계를 눌렀는데 날짜 한 줄뿐이면
           «내가 뭘 냈더라»를 확인할 데가 없다(2026-08-05 PO). */}
-      {isFirstStage && intake && <IntakeCard intake={intake} lang={lang} />}
+      {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) → 지나온 기록 */}
       {stageOpinions.length > 0 && <Opinions opinions={stageOpinions} lang={lang} />}
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
+      {stageSent.length > 0 && <SentItems items={stageSent} lang={lang} />}
       {stageTimeline.length > 0 && <History timeline={stageTimeline} lang={lang} />}
-      {/* 지나온 단계인데 그때 받은 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
+      {/* 지나온 단계인데 그때 오간 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
       {stageOpinions.length === 0 && stageDocuments.length === 0 && stageTimeline.length === 0 &&
-        !(isFirstStage && intake) && (
+        stageSent.length === 0 && (
         <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
       )}
 
       {/* 언제든 보인다 — 단계와 상관없이 «지금 더 알릴 게 생겼다»는 아무 때나 생긴다. */}
-      <SendMore token={token} lang={lang} sent={sent} />
+      <SendMore token={token} lang={lang} />
 
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
@@ -324,14 +332,7 @@ function LangPicker({ lang }) {
  * 곧바로 화면에 박히면 «이게 의료진에게 갔다»로 읽히는데, 실제로는 코디가 보고 판단한 뒤
  * 넘어간다. 그 사이를 사실대로 적는다.
  */
-function SendMore({ token, lang, sent }) {
-  // 서버가 내려준 «지금까지 보낸 것» + 이번에 방금 보낸 것. 새로고침해도 남는 건 앞의 것이다.
-  const [added, setAdded] = useState([]);
-  const history = [
-    ...(sent?.notes || []).map((n) => ({ kind: "note", at: n.at, label: n.text })),
-    ...(sent?.files || []).map((f) => ({ kind: "file", at: null, label: f.name, url: f.url })),
-    ...added,
-  ];
+function SendMore({ token, lang }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -354,10 +355,11 @@ function SendMore({ token, lang, sent }) {
     try {
       const res = await post({ text: v });
       const data = await res.json();
+      // 보낸 것은 위 「보내주신 것」 칸에 뜬다 — 잠깐 「전해드렸어요」를 보여준 뒤 다시 불러 갱신한다.
       if (data.ok) {
-        setAdded((prev) => [...prev, { kind: "note", at: new Date().toISOString(), label: v }]);
         setText("");
         setDone(t("claimPage.sendMoreDone", lang));
+        setTimeout(() => window.location.reload(), 900);
       }
       else setError(t("claimPage.sendMoreFail", lang));
     } catch {
@@ -388,9 +390,11 @@ function SendMore({ token, lang, sent }) {
     setUploading(false);
     setProgress(0);
     // 보낸 것의 «이름»을 남긴다. 「전해드렸어요」만 뜨면 뭐가 갔는지 몰라 또 보내게 된다.
-    if (ok.length) setAdded((prev) => [...prev, ...ok.map((n) => ({ kind: "file", at: null, label: n }))]);
     if (ok.length < files.length) setError(t("claimPage.sendMoreFail", lang));
-    else setDone(t("claimPage.sendMoreDone", lang));
+    else {
+      setDone(t("claimPage.sendMoreDone", lang));
+      setTimeout(() => window.location.reload(), 900);
+    }
   };
 
   return (
@@ -427,96 +431,54 @@ function SendMore({ token, lang, sent }) {
 
       {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-
-      {/* 「보내주신 것」 — 글과 자료를 한 목록으로. **새로고침해도 남는다**(서버가 내려준다).
-          이게 없으면 보낸 사람이 «갔나?»를 몰라 같은 걸 또 보낸다(2026-08-05 PO 지적). */}
-      {history.length > 0 && (
-        <div className="mt-4 border-t border-teal-200 pt-3">
-          <p className="text-xs font-bold text-gray-500">{t("claimPage.sendMoreSentTitle", lang)}</p>
-          <ul className="mt-2 space-y-2">
-            {history.map((h, i) => (
-              <li key={`${h.label}-${i}`} className="flex items-start gap-1.5">
-                <CheckCircle2 size={12} className="mt-[4px] shrink-0 text-teal-700" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  {h.kind === "file" && h.url ? (
-                    <a href={h.url} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-teal-700 hover:underline">
-                      {h.label}
-                    </a>
-                  ) : (
-                    <p className="whitespace-pre-wrap break-words text-xs text-gray-700">{h.label}</p>
-                  )}
-                  {h.at && (
-                    <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString()}</p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
 
 /**
- * 「접수 내용」 — 본인이 낸 문의글·보낸 자료 개수·희망 시기.
+ * 「보내주신 것」 — **환자가 우리에게 준 것 하나로**. 처음 문의글·처음 낸 자료·그 뒤에 보낸
+ * 글·자료가 전부 여기 시간순으로 모인다.
  *
- * ⚠️ 자료 «파일»은 안 준다(서버가 개수만 내린다). 그건 환자가 «우리에게» 낸 원본이라
- * 링크가 새면 피해가 크다 — 우리가 «환자에게 주는» 서류(아래 「받은 서류」)와 방향이 다르다.
+ * 왜 하나로 (2026-08-05 PO: *"이것저것 추가하다보니 최적화가 안된거 같아"*): 「접수 내용」과
+ * 「보내주신 것」 두 칸으로 나뉘어 있었는데, **환자에겐 둘 다 「내가 보낸 것」**이다.
+ * 이제 화면은 두 축으로만 읽힌다 — «우리가 준 것»(소견·서류) / «환자가 준 것»(이 칸).
  */
-function IntakeCard({ intake, lang }) {
-  const files = intake.files || [];
-  const rows = [];
-  if (intake.message) rows.push([t("claimPage.intakeMessage", lang), intake.message]);
-  if (intake.preferredDate) {
-    rows.push([t("claimPage.intakeWhen", lang), new Date(intake.preferredDate).toLocaleDateString()]);
-  } else if (intake.preferredDateFlex) {
-    rows.push([t("claimPage.intakeWhen", lang), t("claimPage.intakeWhenFlex", lang)]);
-  }
-  if (!rows.length && !files.length) return null;
-
+function SentItems({ items, lang }) {
   return (
     <div className="mt-8">
-      <p className="text-xs font-bold text-gray-400">{t("claimPage.intakeTitle", lang)}</p>
-      <dl className="mt-3 space-y-2.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-xs text-gray-500">{label}</dt>
-            <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-gray-800">{value}</dd>
-          </div>
+      <p className="text-xs font-bold text-gray-400">{t("claimPage.sendMoreSentTitle", lang)}</p>
+      <ul className="mt-3 space-y-2.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5">
+        {items.map((h, i) => (
+          <li key={`${h.label}-${i}`} className="flex items-start gap-2">
+            {h.kind === "file" ? (
+              <FileText size={13} className="mt-[3px] shrink-0 text-gray-500" aria-hidden="true" />
+            ) : (
+              <CheckCircle2 size={13} className="mt-[3px] shrink-0 text-teal-700" aria-hidden="true" />
+            )}
+            <div className="min-w-0 flex-1">
+              {h.kind === "file" && h.url ? (
+                <a
+                  href={h.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all text-sm text-teal-700 hover:underline"
+                >
+                  {h.label}
+                </a>
+              ) : (
+                <p className="whitespace-pre-wrap break-words text-sm text-gray-800">{h.label}</p>
+              )}
+              {h.at && (
+                <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString()}</p>
+              )}
+            </div>
+          </li>
         ))}
-        {files.length > 0 && (
-          <div>
-            <dt className="text-xs text-gray-500">{t("claimPage.intakeFiles", lang)}</dt>
-            <dd className="mt-1">
-              {/* 이름만 보여주지 않고 열 수 있게 준다 — 이 링크로 이미 소견 전문·소견서가 나가는데
-                  «자기가 보낸 자료»만 막으면 앞뒤가 안 맞는다(2026-08-05 PO). 주소는 10분짜리. */}
-              <ul className="space-y-1">
-                {files.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="flex items-start gap-1.5">
-                    <FileText size={13} className="mt-[3px] shrink-0 text-gray-500" aria-hidden="true" />
-                    {f.url ? (
-                      <a
-                        href={f.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-sm text-teal-700 hover:underline"
-                      >
-                        {f.name}
-                      </a>
-                    ) : (
-                      <span className="break-all text-sm text-gray-800">{f.name}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </dd>
-          </div>
-        )}
-      </dl>
+      </ul>
     </div>
   );
 }
+
 
 /** 누구 건인지만 짧게. 연락처·생년월일·서류는 서버가 아예 안 내려준다. */
 function SummaryCard({ preview, lang }) {
@@ -527,6 +489,15 @@ function SummaryCard({ preview, lang }) {
     [
       t("claimPage.receivedAtLabel", lang),
       preview.createdAt ? new Date(preview.createdAt).toLocaleDateString() : null,
+    ],
+    // 희망 시기는 «내가 보낸 것»이 아니라 케이스의 성질이라 맨 위 요약에 둔다.
+    [
+      t("claimPage.intakeWhen", lang),
+      preview.preferredDate
+        ? new Date(preview.preferredDate).toLocaleDateString()
+        : preview.preferredDateFlex
+          ? t("claimPage.intakeWhenFlex", lang)
+          : null,
     ],
   ].filter(([, v]) => v);
 

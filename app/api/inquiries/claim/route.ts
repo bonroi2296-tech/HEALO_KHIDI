@@ -118,25 +118,33 @@ async function fetchCaseUpdates(inquiryId: number) {
 }
 
 /**
- * 「문의·의뢰 접수」 단계에서 보여줄 **본인이 낸 내용** (2026-08-05 PO:
- * *"여기에선 본인이 의뢰한 내용 확인할 수 있게 해야 하는 거 아닌가?"*).
- * 첫 단계를 눌렀는데 날짜 한 줄뿐이면 «내가 뭘 냈더라»를 확인할 데가 없다.
+ * **환자가 우리에게 준 것 전부** — 처음 문의글·처음 보낸 자료 + 그 뒤에 보낸 글·자료. 시간순 한 줄기.
  *
- * 내리는 것: **본인이 쓴 문의글**, 보낸 **자료 목록(이름 + 열기 주소)**, 희망 시기.
+ * 왜 하나로 (2026-08-05 PO: *"이것저것 추가하다보니 최적화가 안된거 같아"*): 처음엔 「접수 내용」과
+ * 「보내주신 것」 **두 칸**으로 나뉘어 있었다. 만든 쪽에선 «접수 때 낸 것»과 «나중에 보낸 것»이지만
+ * **환자에겐 둘 다 「내가 보낸 것」**이다. 두 칸을 오가며 찾게 만들 이유가 없다.
  *
- * ⚠️ 처음엔 자료를 개수만 내렸다가 바꿨다(2026-08-05 PO: *"본인이 보낸 자료가 뭔지도 확인할 수
- *    있게 해야 하지 않을까?"*). **앞뒤가 안 맞아서다** — 이 링크로 이미 원장님 소견 전문과
- *    소견서 PDF 가 나간다. 그보다 덜 민감할 것 없는 것들이다. 자기가 보낸 자료만 막을 이유가 없다.
- *    주소는 다른 서류와 같은 **10분짜리 임시 주소**이고, 이름·연락처·생년월일은 그대로 제외한다.
+ * ⚠️ 코디가 적은 「추가 정보」는 안 내린다 — 의료진에게 가는 내부 기록이지 환자에게 보여주려고
+ *    쓴 글이 아니다. 가르는 기준은 `BY_PATIENT_LINK` 표시 하나.
+ *    파일 주소는 다른 서류와 같은 10분짜리 임시 주소, 저장 이름은 원본 파일명.
  */
-async function buildIntakeSummary(inq: any) {
-  let message = "";
-  try {
-    message = (decryptMaybe(inq.message) || "").trim();
-  } catch {
-    /* 복호화 실패해도 화면 전체가 죽으면 안 된다 — 문의글만 빠진다 */
-  }
+async function buildPatientSent(inq: any) {
+  const notes: { at: string; text: string }[] = [];
 
+  // ① 처음 문의글 — 접수 시각을 그 글의 시각으로 본다(단계 가르기가 날짜로 도니까).
+  try {
+    const first = (decryptMaybe(inq.message) || "").trim();
+    if (first) notes.push({ at: inq.created_at, text: first });
+  } catch {
+    /* 복호화 실패해도 화면 전체가 죽으면 안 된다 */
+  }
+  // ② 그 뒤에 «이 화면에서» 보낸 글
+  for (const f of readFollowUps(inq.follow_ups)) {
+    if (f.by === BY_PATIENT_LINK) notes.push({ at: f.at, text: f.text });
+  }
+  notes.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+  // ③ 자료 — 접수 때 낸 것과 나중에 보낸 것을 가리지 않는다(환자에겐 둘 다 «내가 보낸 자료»).
   const raw = Array.isArray(inq.attachments) ? inq.attachments : [];
   let files: { name: string; url: string | null }[] = [];
   if (raw.length) {
@@ -151,59 +159,15 @@ async function buildIntakeSummary(inq: any) {
         return { name, url: withDownloadName(urlByPath.get(String(a?.path || "")), name) };
       });
     } catch (err: any) {
-      // 주소를 못 만들어도 «무엇을 보냈는지»는 알려 준다 — 이름만이라도 남긴다.
-      console.error("[inquiries/claim] intake files:", err?.message);
+      // 주소를 못 만들어도 «무엇을 보냈는지»는 알려 준다.
+      console.error("[inquiries/claim] sent files:", err?.message);
       files = raw.map((a: any) => ({ name: String(a?.name || "file"), url: null }));
-    }
-  }
-
-  if (!message && !files.length && !inq.preferred_date && !inq.preferred_date_flex) return null;
-  return {
-    message: message || null,
-    files,
-    preferredDate: inq.preferred_date || null,
-    preferredDateFlex: Boolean(inq.preferred_date_flex),
-  };
-}
-
-/**
- * 환자가 **이 화면에서 직접 보낸 것** — 글과 자료.
- *
- * 왜 (2026-08-05 PO: *"텍스트 입력한건 출력이 안되는데?"*): 보내면 저장은 되는데 화면에
- * 안 남아서 «내가 보냈나?»를 알 수 없었다. 새로고침하면 「전해드렸어요」도 사라진다.
- * 자료는 이름이 남는데 글은 안 남는 것도 앞뒤가 안 맞았다.
- *
- * ⚠️ **환자가 보낸 것만** 내린다 — 코디가 적은 「추가 정보」는 내부 기록이라 안 내린다
- *    (그건 의료진에게 가는 글이지 환자에게 보여주려고 쓴 글이 아니다). 가르는 기준은
- *    `BY_PATIENT_LINK` 표시 하나뿐이라 헷갈릴 여지가 없다.
- */
-async function buildPatientSent(inq: any) {
-  const notes = readFollowUps(inq.follow_ups)
-    .filter((f) => f.by === BY_PATIENT_LINK)
-    .map((f) => ({ at: f.at, text: f.text }));
-
-  const rawFiles = (Array.isArray(inq.attachments) ? inq.attachments : []).filter(
-    (a: any) => a?.uploaded_by_patient
-  );
-  let files: { name: string; url: string | null }[] = [];
-  if (rawFiles.length) {
-    try {
-      const paths = rawFiles.map((a: any) => String(a?.path || "")).filter(Boolean);
-      const { data: signed } = await supabaseAdmin.storage
-        .from("attachments")
-        .createSignedUrls(paths, 600);
-      const urlByPath = new Map((signed ?? []).map((s: any) => [s.path, s.signedUrl]));
-      files = rawFiles.map((a: any) => {
-        const name = String(a?.name || "file");
-        return { name, url: withDownloadName(urlByPath.get(String(a?.path || "")), name) };
-      });
-    } catch {
-      files = rawFiles.map((a: any) => ({ name: String(a?.name || "file"), url: null }));
     }
   }
 
   return notes.length || files.length ? { notes, files } : null;
 }
+
 
 /**
  * 「지나온 기록」에서 **연달아 같은 단계인 줄**을 하나로 접는다.
@@ -447,10 +411,12 @@ export async function GET(request: NextRequest) {
         // 이 주소는 메신저로 전달되므로 «안 쓰는 값은 안 내린다» — 옛 코드는 "KZ" 를 그냥 실어 보냈다.
         agencyName: (inq as any).agencies?.name || null,
         createdAt: inq.created_at || null,
+        // 희망 시기는 «내가 보낸 것»이 아니라 케이스의 성질이라 맨 위 요약에 둔다.
+        preferredDate: inq.preferred_date || null,
+        preferredDateFlex: Boolean(inq.preferred_date_flex),
       },
       // 「이 사람 언어」 — 접수 때 받은 값이다(추측 아님). 화면이 처음 열릴 때 이걸로 맞춘다.
       patientLang: inq.preferred_language || null,
-      intake: await buildIntakeSummary(inq),
       sent: await buildPatientSent(inq),
       progress: await buildProgress(inq, lang),
       opinions: await buildReleasedOpinions(inq.id),
