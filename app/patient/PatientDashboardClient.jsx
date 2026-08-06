@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -201,8 +202,10 @@ export default function PatientDashboardClient() {
               }[q.status] || 'bg-yellow-100 text-yellow-700';
               const stText = INQUIRY_STATUSES.includes(q.status) ? t(`patientDash.inquiryStatus.${q.status}`, lang) : (q.status || t('patientDash.inquiryStatus.received', lang));
               const cancer = CANCER_TYPES.includes(q.cancer_type) ? t(`patientDash.cancer.${q.cancer_type}`, lang) : (q.cancer_type || t('patientDash.inquiryFallbackTitle', lang));
-              return (
-                <div key={q.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
+              // 진행 상황 화면으로 건너뛴다 — 원장님 소견·받은 서류·소식이 거기 다 있다.
+              // 없으면 이 칸은 «날짜와 상태 뱃지»만 있는 막다른 골목이 된다(2026-08-06).
+              const inner = (
+                <>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-teal-50 text-teal-700">
                       <FileText size={20} />
@@ -214,8 +217,19 @@ export default function PatientDashboardClient() {
                       </div>
                     </div>
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${stCls}`}>{stText}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${stCls}`}>{stText}</span>
+                    {q.public_token && <ChevronRight size={16} className="text-gray-500" aria-hidden="true" />}
+                  </div>
+                </>
+              );
+              const cls = 'flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100';
+              return q.public_token ? (
+                <Link key={q.id} href={`/claim/${q.public_token}`} className={`${cls} transition hover:border-teal-300 hover:bg-teal-50/40`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={q.id} className={cls}>{inner}</div>
               );
             })}
           </div>

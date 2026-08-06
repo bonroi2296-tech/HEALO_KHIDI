@@ -17,8 +17,15 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
+// public_token 도 같이 내린다 — 가입한 사람이 마이페이지에서 «자기 케이스의 진행 상황»으로
+// 건너갈 수 있어야 한다. 원장님 소견·받은 서류·소식은 전부 그 화면(/claim/<토큰>)이 이미
+// 그리고 있는데 마이페이지엔 그리로 가는 길이 없어서, **가입하면 오히려 덜 보였다**(2026-08-06).
+// 새 화면을 또 만들지 않고 있는 화면으로 잇는다 — 같은 걸 두 벌 그리면 반드시 어긋난다.
+//
+// 새는 것 아닌가: 이 주소는 로그인한 «본인 것»만 내린다(user_id 일치 또는 문의서 이메일 일치).
+// 그 사람은 애초에 그 링크를 받은 사람이다.
 const SELECT_FIELDS =
-  "id, nationality, cancer_type, preferred_language, match_accuracy, status, step1_completed_at, step2_completed_at, created_at";
+  "id, nationality, cancer_type, preferred_language, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, public_token";
 
 function safeDecrypt(enc: any): string {
   try {
