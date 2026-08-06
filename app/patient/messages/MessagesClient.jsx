@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
-import { t } from "@/lib/i18n";
+import { t, dateLocale } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -314,7 +314,7 @@ function ThreadRow({ thread, active, onClick, lang }) {
         {subject}
       </div>
       <div className="text-xs text-gray-500 tabular-nums mt-0.5">
-        {new Date(thread.updated_at).toLocaleDateString()}
+        {new Date(thread.updated_at).toLocaleDateString(dateLocale(lang))}
       </div>
     </button>
   );
@@ -328,7 +328,7 @@ function MessageBubble({ message, user, lang }) {
     <div className={`flex mb-4 ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] md:max-w-[70%] ${isMine ? "text-right" : "text-left"}`}>
         <div className="text-xs text-gray-500 mb-1.5">
-          {who} · <span className="tabular-nums">{new Date(message.created_at).toLocaleString()}</span>
+          {who} · <span className="tabular-nums">{new Date(message.created_at).toLocaleString(dateLocale(lang))}</span>
         </div>
         <div
           className={`inline-block px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words text-left ${
