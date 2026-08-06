@@ -20,6 +20,7 @@ export default [
       'dist/**',
       'design-system-export/**',
       'build/**',
+      '**/build/**', // 안드로이드/iOS 앱 빌드가 자동 생성한 파일 (android/app/build/... native-bridge.js 등)
       'out/**',
       'output/**',
       'coverage/**',
