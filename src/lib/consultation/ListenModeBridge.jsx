@@ -190,6 +190,12 @@ export function ListenModeBridge({
   const liveRef = useRef({});
   liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle };
 
+  // ⚠️ 마이크 끈 사람의 트랙은 듣지 않는다 (2026-08-07 PO 제보: "마이크를 다 꺼놔도 자막이 올라온다").
+  //   LiveKit 은 마이크를 꺼도 트랙을 «음소거»만 하고 살려 둔다 — 받는 쪽엔 그대로 남는다.
+  //   여기엔 그 확인이 아예 없어서, 상대가 마이크를 꺼도 그 트랙에 녹음기를 계속 물리고 있었다.
+  //   저장소의 다른 곳(SameRoomGuard·화면 타일)은 이미 isMuted 를 보고 거른다 — 여기만 빠져 있었다.
+  //   실익: ①꺼 놓은 마이크에서 자막이 날 여지를 없앤다 ②안 쓰는 녹음기·AI 호출을 안 돈다.
+  //
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
   const remoteKeys = trackRefs
@@ -212,7 +218,11 @@ export function ListenModeBridge({
     }
 
     const active = trackRefs.filter(
-      (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t)
+      (t) =>
+        !t.participant?.isLocal &&
+        !t.publication?.isMuted && // 마이크 끈 사람 — 아래 참조
+        t.publication?.track?.mediaStreamTrack &&
+        isHumanAudioTrack(t)
     );
     const activeKeys = new Set(
       active.map(
