@@ -1782,20 +1782,18 @@ export default function ConsultationRoomPage() {
     }
   }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
 
-  // ── 방에 들어오면 자막을 한 번 자동으로 켠다 (2026-08-03) ──
-  // 예전엔 기본 꺼짐이라 «사람이 버튼을 눌러야» 켜졌다. 8/3 실회의 2건 실측:
-  //   첫 입장 → 첫 자막까지 회의A 13분 26초, 회의B 11분 32초.
-  //   회의B 는 첫 자막 줄이 **문장 중간**에서 시작한다 = 대화가 이미 돌던 중에 켜졌다는 뜻.
-  // 그 시간 동안 통역도 기록도 통째로 없었고, 결국 손님이 먼저 «러시아어 자막이 안 보인다»고
-  // 말했다(16:12:43). 우리가 파는 기능을 손님이 켜 달라고 말하게 두면 안 된다.
-  // 딱 한 번만 켠다 — 끈 사람에게 도로 켜지면 버튼이 먹통으로 느껴진다.
-  const autoCaptionsOnRef = useRef(false);
-  useEffect(() => {
-    if (autoCaptionsOnRef.current || !myIdentity || translationEnabled) return;
-    autoCaptionsOnRef.current = true;
-    toggleTranslation();
-  }, [myIdentity, translationEnabled, toggleTranslation]);
-
+  // ── 자막은 «사람이 누를 때만» 켜진다 (PO 결정 2026-08-07) ──
+  //
+  // 2026-08-03 에 «방에 들어오면 한 번 자동으로 켜기»를 넣었었다. 그때 근거는 실회의 2건에서
+  //   첫 입장 → 첫 자막까지 13분 26초 / 11분 32초가 걸렸고 손님이 먼저 «러시아어 자막이
+  //   안 보인다»고 말한 것이었다.
+  // 그런데 자동으로 켜지면 «내가 안 켰는데 자막이 지 멋대로 올라온다»가 된다. 2026-08-07
+  //   홍보 영상 촬영 중 PO 가 정확히 그 상황을 겪었다 — 노트북·PC 두 대를 켜 놨는데 버튼을
+  //   누르지 않은 PC 화면에 자막이 계속 올라왔다. 게다가 그 자막에는 아무도 안 한 말이 섞인다.
+  //   → PO 결정: **자동으로 켜지 않는다. 누르면 켜진다.**
+  //
+  // ⚠️ 되살리지 마라. 8/03 의 «늦게 켜진다» 문제는 여전히 유효하지만, 답은 «몰래 켜기»가
+  //    아니라 «켜라고 눈에 띄게 알려 주기»다(그건 별건).
   // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
   // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
   useEffect(() => {
