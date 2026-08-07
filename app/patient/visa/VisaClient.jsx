@@ -260,6 +260,12 @@ export default function VisaClient() {
             ))}
           </select>
         </div>
+        {/* 왜 「단기/장기」 두 단추뿐인가 (2026-08-07 PO 재확인 — 뜯지 마라)
+            치료 기간을 «숫자로» 입력받자는 안이 두 번 나왔는데 둘 다 접었다. 이유:
+            암 환자는 진단·치료계획이 나오기 «전»에 이 화면을 본다 — 며칠 걸릴지 본인도 모른다.
+            모르는 값을 물으면 아무 숫자나 넣게 되고, 그 숫자로 비자를 판정하면 «틀린 안내»가 된다.
+            → 기간은 묻지 않는다. 대신 무비자 한도의 함정을 COUNTRY_ENTRY.note 로 «먼저» 알려준다
+              (visaGuide.ts — "무비자 30일은 검진·2차 소견까지"). */}
         <div className="flex-1 min-w-[200px]">
           <span className="text-sm font-semibold block mb-1.5">{t('patientVisa.duration', lang)}</span>
           <div className="flex gap-2" role="group" aria-label={t('patientVisa.duration', lang)}>
