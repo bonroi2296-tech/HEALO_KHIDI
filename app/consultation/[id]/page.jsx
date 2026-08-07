@@ -980,6 +980,8 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
+  // 「자막」 스위치 최신값 — DC 수신 자막을 내 화면에 띄울지 판정한다(2026-08-07 PO 제보).
+  const translationEnabledRef = useRef(false);
   // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
   // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
   // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
@@ -991,6 +993,9 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     voiceOnRef.current = voiceOn;
   }, [voiceOn]);
+  useEffect(() => {
+    translationEnabledRef.current = translationEnabled;
+  }, [translationEnabled]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
     if (agentPresent) {
@@ -1489,6 +1494,11 @@ export default function ConsultationRoomPage() {
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role, name, participantIdentity, interim, utter }) => {
+      // ── 내가 「자막」을 안 켰으면 안 띄운다 (2026-08-07 PO 제보) ──
+      // 자막은 **방 전체에** 뿌려지므로, 상대 한 명만 켜도 안 켠 사람 화면에 자막이 올라왔다.
+      // PO 실사용: 노트북에서만 자막을 켰는데 PC 화면에 «지 멋대로» 자막이 뜸.
+      // 자막 스위치는 「내 화면에 자막을 볼지」를 정하는 내 스위치다 — 상대가 못 끄게 한다.
+      if (!translationEnabledRef.current) return;
       // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
       // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
       if (voiceOnRef.current && agentPresentRef.current) return;
@@ -1556,6 +1566,9 @@ export default function ConsultationRoomPage() {
   // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
   const handleBotSubtitle = useCallback(
     ({ text, lang, role, speakerId, name }) => {
+      // 통역봇은 방에 하나뿐이라 «상대가 통역을 켜면» 내 화면에도 자막이 흘러든다.
+      // DC 자막과 같은 이유로 내 스위치를 따른다 (2026-08-07).
+      if (!translationEnabledRef.current) return;
       // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
       // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
       showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
@@ -2612,8 +2625,19 @@ export default function ConsultationRoomPage() {
   const useServerStt =
     translationEnabled &&
     myMicOn && // 마이크 꺼짐 = 송신 STT 중지 (수신 자막은 ListenModeBridge 가 별도 동작)
+    !isAloneInRoom && // 혼자 = 자막을 볼 상대가 없다. 아래 참조.
     (stt.failed || !stt.isSupported || forceServerStt) &&
     mediaRecOk;
+
+  // ⚠️ 혼자 있을 때 서버 STT 를 왜 막나 (2026-08-07 PO 제보):
+  //   테스트 방에 혼자 들어가 있는데 자막이 스스로 진료 문장을 만들어냈다
+  //   ("약에 대해서 다시 좀 부작용이라든가 설명해 주실 수는 없을까요?" — 아무도 안 한 말).
+  //   원인: 아래 VAD 문턱(rms>0.014)은 숨소리·사무실 잡음을 통과시키고(실측 잡음 0.021),
+  //   그 «말이 아닌» 조각을 받으면 모델이 도메인에 어울리는 문장을 창작한다.
+  //   2026-08-06 A/B 실측: 조용한 구간에서 창작 10/12(83%). 프롬프트 금지문은 안 지켜진다
+  //   (8/03 에 두 번 강화했으나 15~17% 에서 안 줄었음).
+  //   → 근본 수리(언어별 모델 분기)는 별건이고, 혼자인 방은 애초에 자막이 갈 곳이 없으므로
+  //     여기서 아예 안 돌린다. 비용도 같이 준다.
 
   // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
   // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
@@ -2638,6 +2662,7 @@ export default function ConsultationRoomPage() {
   //    판정 규칙과 시험은 sttWatchdog.ts.
   useEffect(() => {
     if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
+    if (isAloneInRoom) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
     spokenClockRef.current.reset();
@@ -4121,12 +4146,17 @@ export default function ConsultationRoomPage() {
                                 </p>
                                 <p className="text-sm text-gray-200">{trans.original_text}</p>
                               </div>
-                              <div className="pt-2 border-t border-gray-700">
-                                <p className="text-xs text-teal-700 mb-0.5">
-                                  {LANG_LABELS[trans.target_language] || trans.target_language}
-                                </p>
-                                <p className="text-sm text-teal-300">{trans.translated_text}</p>
-                              </div>
+                              {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
+                                  (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
+                                  같은 언어끼리 회의는 흔하므로 그때는 번역 줄을 숨긴다. */}
+                              {trans.source_language !== trans.target_language && (
+                                <div className="pt-2 border-t border-gray-700">
+                                  <p className="text-xs text-teal-700 mb-0.5">
+                                    {LANG_LABELS[trans.target_language] || trans.target_language}
+                                  </p>
+                                  <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
