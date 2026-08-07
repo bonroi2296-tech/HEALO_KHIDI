@@ -1411,6 +1411,8 @@ export default function ConsultationRoomPage() {
                 sourceLanguage: myLang,
                 targetLanguage: targetLang,
                 sttEngine: STT_ENGINES.BACKCHANNEL,
+                // 회의록에 「누가 말했나」를 남긴다 — 이 경로에만 빠져 있었다(2026-08-07).
+                speakerName: myNameRef.current || undefined,
               }),
             }).catch(() => {});
           }
@@ -1432,6 +1434,7 @@ export default function ConsultationRoomPage() {
               speakerRole: "self",
               // 이 글을 만든 받아쓰기 경로 — 기록에 남겨야 길별 품질을 실사용에서 잰다.
               sttEngine: sttEngineRef.current,
+          speakerName: myNameRef.current || undefined,
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
               context: contextForApi(convoContextRef.current),
             }),
@@ -1708,6 +1711,7 @@ export default function ConsultationRoomPage() {
           targetLang,
           consultationId, // 인증용 — partial 이라 서버는 기록하지 않는다
           speakerRole: "self",
+          speakerName: myNameRef.current || undefined,
           partial: true,
           context: contextForApi(convoContextRef.current),
         }),

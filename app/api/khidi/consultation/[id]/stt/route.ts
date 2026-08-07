@@ -197,13 +197,29 @@ export async function POST(
     // 부분 조각(말하는 중)은 1회만 부른다 — 어차피 곧 확정본이 덮고, 화면에만 잠깐 뜨며
     //   기록에는 안 남는다. 여기까지 두 배로 부르면 비용·지연만 늘고 얻는 게 적다.
     //   ⚠️ 그래서 «말하는 중» 자막엔 지어낸 문장이 잠깐 스칠 수 있다.
+    // ⚠️ 한 쪽이 실패해도 자막을 통째로 죽이지 않는다.
+    //   Promise.all 로 두면 «둘 중 하나만 삐끗해도 요청 전체가 실패»한다 = 호출을 두 배로
+    //   늘린 만큼 자막이 끊길 확률도 두 배가 된다. 지어냄을 막으려다 자막을 끊으면 손해다.
+    //   한 쪽만 살아 오면 그 답을 쓴다 — 그건 오늘까지의 동작(1회 호출)과 같아서 나빠지진 않는다.
+    //   대신 그 조각엔 대조가 안 걸렸다는 뜻이므로 기록에 남긴다.
     const askModel = async (
       modelId: string,
       genArgs: { messages: any; temperature: number; maxOutputTokens: number }
-    ): Promise<string[]> =>
-      isPartial
-        ? [await genWithFallback(modelId, genArgs)]
-        : Promise.all([genWithFallback(modelId, genArgs), genWithFallback(modelId, genArgs)]);
+    ): Promise<string[]> => {
+      if (isPartial) return [await genWithFallback(modelId, genArgs)];
+      const settled = await Promise.allSettled([
+        genWithFallback(modelId, genArgs),
+        genWithFallback(modelId, genArgs),
+      ]);
+      const ok = settled
+        .filter((s): s is PromiseFulfilledResult<string> => s.status === "fulfilled")
+        .map((s) => s.value);
+      if (ok.length === 0) throw (settled[0] as PromiseRejectedResult).reason;
+      if (ok.length === 1) {
+        console.info("[consultation/stt] 두 번 중 한 번만 응답 — 대조 없이 통과시킴");
+      }
+      return ok;
+    };
 
     /** 두 번째 답과 닮지 않으면 «지어냄»으로 보고 버린다. 1회 호출(부분)이면 그대로 통과. */
     const agreedOrEmpty = (runs: { transcript: string }[]): boolean => {
