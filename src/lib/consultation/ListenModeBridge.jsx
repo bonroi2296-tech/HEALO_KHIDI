@@ -191,10 +191,21 @@ export function ListenModeBridge({
   liveRef.current = { langHint, targetLang, consultationId, getAuthHeaders, contextRef, dcActivityRef, onSubtitle };
 
   // ⚠️ 마이크 끈 사람의 트랙은 듣지 않는다 (2026-08-07 PO 제보: "마이크를 다 꺼놔도 자막이 올라온다").
-  //   LiveKit 은 마이크를 꺼도 트랙을 «음소거»만 하고 살려 둔다 — 받는 쪽엔 그대로 남는다.
-  //   여기엔 그 확인이 아예 없어서, 상대가 마이크를 꺼도 그 트랙에 녹음기를 계속 물리고 있었다.
+  //
+  //   왜 꺼도 소리가 오나 — livekit-client 기본값을 직접 읽어 확인했다
+  //   (node_modules/livekit-client/dist/livekit-client.esm.mjs 의 publishDefaults):
+  //     · `stopMicTrackOnMute: false` → 마이크를 꺼도 **통로를 안 닫는다.** 음소거 표시만 붙는다.
+  //     · `dtx: true` → 조용할 때 소리를 안 보내는 대신, **받는 쪽 디코더가 「편안한 잡음」을
+  //       만들어 낸다.** 즉 받는 쪽 트랙에서 나오는 건 «완전한 무음»이 아니다.
+  //   그리고 이 파일엔 음소거 확인이 아예 없어서, 상대가 마이크를 꺼도 그 트랙에 녹음기를
+  //   계속 물려 두고 있었다. 그 잡음이 아래 소리 문턱(rms>0.02)을 넘으면 서버로 가고,
+  //   서버 받아쓰기는 말 없는 조각에서 100% 문장을 만들어낸다(2026-08-07 실측 15/15).
+  //   = 「아무도 말 안 했는데 자막이 올라온다」의 완성된 사슬.
+  //
   //   저장소의 다른 곳(SameRoomGuard·화면 타일)은 이미 isMuted 를 보고 거른다 — 여기만 빠져 있었다.
-  //   실익: ①꺼 놓은 마이크에서 자막이 날 여지를 없앤다 ②안 쓰는 녹음기·AI 호출을 안 돈다.
+  //   ※ 더 근본은 `stopMicTrackOnMute: true`(끄면 마이크를 진짜 닫기)지만, 그건 다시 켤 때
+  //     마이크를 새로 잡아야 하고 iOS 2차 마이크 문제와 얽힌다 — 받는 쪽에서 거르는 이 수리가
+  //     같은 증상을 더 싸고 안전하게 닫는다.
   //
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함

@@ -27,7 +27,9 @@
  *   Gemini 만 직접 부른다(조각당 1회, 소액 과금).
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { generateText } from "ai";
@@ -181,11 +183,83 @@ function buildClips(wav) {
   // ④⑤ 말 — 대본을 아는 두 문장
   clips.push({ name: "말1(위암 수술)", kind: "speech", samples: cut(...spans[0]), expect: ["위암", "두 달"] });
   clips.push({ name: "말2(회복 기간)", kind: "speech", samples: cut(...spans[1]), expect: ["회복", "기간"] });
-  // ⑥ 잘린 말 — 앞 문장의 절반. 뒤를 «완성»하면 창작이다.
+  // ⑥ 잡음에 묻힌 말 — 실회의를 흉내낸다.
+  //   왜 필요했나 (2026-08-07): 깨끗한 소리에선 「위암」이 5/5 정확한데, 실제 통화 기록에선
+  //   같은 문장이 「**이식** 수술」로 바뀌어 저장됐다. 즉 깨끗한 조각만 재면 이 사고를 못 잡는다.
+  //   병명이 바뀌는 건 의료 기록에서 창작보다 위험할 수 있다 — 그래서 재현 조건을 만든다.
+  const mixNoise = (src, amp) => {
+    const out = new Int16Array(src.length);
+    let s = 777; // 고정 씨앗 — 돌릴 때마다 같은 잡음이라야 비교가 된다
+    for (let i = 0; i < src.length; i++) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const n = ((s / 0x7fffffff) * 2 - 1) * amp * 32768;
+      out[i] = Math.max(-32768, Math.min(32767, Math.round(src[i] + n)));
+    }
+    return out;
+  };
+  const speech1 = cut(...spans[0]);
+  clips.push({ name: "말1+잡음(약)", kind: "speech", samples: mixNoise(speech1, 0.02), expect: ["위암"] });
+  clips.push({ name: "말1+잡음(강)", kind: "speech", samples: mixNoise(speech1, 0.06), expect: ["위암"] });
+
+  // ⑦ 잘린 말 — 앞 문장의 절반. 뒤를 «완성»하면 창작이다.
   const [s0, e0] = spans[0];
   clips.push({ name: "잘린 말1(앞 절반)", kind: "fragment", samples: cut(s0, s0 + Math.floor((e0 - s0) / 2)), forbid: ["되었습니다", "됐습니다"] });
 
-  return clips.map((c) => ({ ...c, rms: peakRms(c.samples, rate), wav: writeWav(c.samples, rate) }));
+  // ⑧ 실제 통화가 거치는 «두 번 압축» — 여기가 깨끗한 시험과 실회의의 진짜 차이다.
+  //   실제 경로: 내 마이크 → LiveKit 이 opus 로 압축 → 상대가 풀기 → 상대 브라우저가
+  //   MediaRecorder 로 webm/opus 로 «다시» 압축 → 서버. 압축을 두 번 거친 소리가 모델에 간다.
+  //   이 측정기는 그동안 무압축 WAV 를 보내고 있었다 = 실회의보다 훨씬 좋은 조건이었다.
+  //   ffmpeg 이 없으면 이 조각들만 조용히 건너뛴다(나머지 측정은 그대로 된다).
+  if (hasFfmpeg()) {
+    for (const kbps of [32, 16]) {
+      const webm = toOpusWebm(writeWav(speech1, rate), kbps);
+      if (webm) {
+        clips.push({
+          name: `말1·2번압축 ${kbps}kbps`,
+          kind: "speech",
+          samples: speech1,
+          expect: ["위암"],
+          blob: webm,
+          mediaType: "audio/webm",
+        });
+      }
+    }
+  } else {
+    console.log("※ ffmpeg 이 없어 「두 번 압축」 조각은 건너뛴다 (나머지는 그대로 잰다)\n");
+  }
+
+  return clips.map((c) => ({
+    ...c,
+    rms: peakRms(c.samples, rate),
+    wav: c.blob ?? writeWav(c.samples, rate),
+    mediaType: c.mediaType ?? "audio/wav",
+  }));
+}
+
+function hasFfmpeg() {
+  return spawnSync("ffmpeg", ["-version"], { stdio: "ignore" }).status === 0;
+}
+
+/** WAV → opus(webm) 2회 왕복. 실패하면 null (측정 전체를 죽이지 않는다). */
+function toOpusWebm(wavBuf, kbps) {
+  const dir = mkdtempSync(path.join(tmpdir(), "stt-"));
+  try {
+    let input = path.join(dir, "in.wav");
+    writeFileSync(input, wavBuf);
+    // 1차: LiveKit 이 실어 보내는 압축
+    const pass1 = path.join(dir, "p1.webm");
+    if (spawnSync("ffmpeg", ["-y", "-i", input, "-c:a", "libopus", "-b:a", `${kbps}k`, "-ac", "1", pass1], { stdio: "ignore" }).status !== 0)
+      return null;
+    // 2차: 받는 쪽 브라우저가 다시 녹음하며 거는 압축
+    const pass2 = path.join(dir, "p2.webm");
+    if (spawnSync("ffmpeg", ["-y", "-i", pass1, "-c:a", "libopus", "-b:a", `${kbps}k`, "-ac", "1", pass2], { stdio: "ignore" }).status !== 0)
+      return null;
+    return readFileSync(pass2);
+  } catch {
+    return null;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // ── 실행 ─────────────────────────────────────────────────────────────────────
@@ -219,7 +293,7 @@ async function callOnce(clip) {
         {
           role: "user",
           content: [
-            { type: "file", data: clip.wav, mediaType: "audio/wav" },
+            { type: "file", data: clip.wav, mediaType: clip.mediaType },
             { type: "text", text: mode === "json" ? jsonPrompt() : transcribeOnlyPrompt() },
           ],
         },
@@ -287,7 +361,7 @@ for (const clip of clips) {
           {
             role: "user",
             content: [
-              { type: "file", data: clip.wav, mediaType: "audio/wav" },
+              { type: "file", data: clip.wav, mediaType: clip.mediaType },
               { type: "text", text: mode === "json" ? jsonPrompt() : transcribeOnlyPrompt() },
             ],
           },
