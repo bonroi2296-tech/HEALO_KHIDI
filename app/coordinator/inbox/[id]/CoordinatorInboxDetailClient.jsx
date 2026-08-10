@@ -28,6 +28,7 @@ import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -168,7 +169,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   const topRef = useRef(null);
   const goPage = (n) => {
     setPageSel(n);
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   };
   const pageStep = (d) => {
     const at = pageList.indexOf(curPage);
