@@ -169,7 +169,11 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   const topRef = useRef(null);
   const goPage = (n) => {
     setPageSel(n);
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
+    requestAnimationFrame(() => {
+      // 파일 이름 줄까지 보이게 «첨부 카드 통째»로 올린다(PO 2026-08-10). 못 찾으면 번역 카드 머리로.
+      const card = topRef.current?.closest("[data-attachment-card]") || topRef.current;
+      card?.scrollIntoView({ block: "start", behavior: scrollBehavior() });
+    });
   };
   const pageStep = (d) => {
     const at = pageList.indexOf(curPage);
@@ -1188,7 +1192,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               return (
                 <div
                   key={path || i}
-                  className="rounded-lg border border-gray-200 overflow-hidden"
+                  data-attachment-card
+                  className="rounded-lg border border-gray-200 overflow-hidden scroll-mt-24"
                 >
                   <div className="flex items-center gap-2 px-3 py-2.5">
                     {/* 미리보기(새 탭) */}
