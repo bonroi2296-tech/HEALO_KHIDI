@@ -40,8 +40,11 @@ function normalizeLang(v: unknown): DocLang {
   return v === "en" || v === "ru" ? v : "ko";
 }
 
-// Gemini inlineData 로 직접 판독 가능한 타입만(이미지 + PDF). doc/docx 는 모델이 못 읽음.
+// Gemini inlineData 로 직접 «그림처럼» 판독 가능한 타입(이미지 + PDF).
 const MODEL_READABLE = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]);
+// Word(.docx) 는 모델이 파일 자체를 못 읽는다 → 우리가 글자·표를 뽑아 «글»로 넘긴다(mammoth).
+// 옛 .doc(바이너리)은 못 뽑는다 — 그건 그대로 미지원.
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const MAX_BYTES = 18 * 1024 * 1024; // 원본 상한(~18MB)
 
 /** 파일명/경로 확장자로 MIME 추정 (첨부 메타에 type 이 없을 때 폴백). */
@@ -54,8 +57,14 @@ export function inferMimeFromName(name: string): string | null {
     case "png": return "image/png";
     case "webp": return "image/webp";
     case "gif": return "image/gif";
+    case "docx": return DOCX_MIME;
     default: return null;
   }
+}
+
+/** 이 형식을 번역할 수 있나 (그림으로 읽든, 글자를 뽑든). */
+function canTranslate(mime: string): boolean {
+  return MODEL_READABLE.has(mime) || mime === DOCX_MIME;
 }
 
 export type TranslatedSection = {
@@ -175,13 +184,42 @@ const PAGE_BATCH = 5;
 // 쪽 그림의 긴 변 화소. A4 기준 ≈260dpi — 잔글씨도 읽힌다.
 const PAGE_MAX_SIDE = 2200;
 
-type PagePart = { mimeType: string; base64: string };
+// Word 는 «쪽»이 없다(화면에서 흘러간다) → 이만큼씩 잘라 쪽처럼 다룬다. 통째로 주면 모델이 줄인다.
+const DOCX_CHUNK_CHARS = 6000;
+
+type PagePart = { mimeType: string; base64: string } | { text: string };
+
+/**
+ * Word(.docx) → HTML. 표를 <table> 로 살려서 넘긴다(맨 글자로 뽑으면 검사표의 칸 짝이 무너진다).
+ * 이미 깔려 있는 mammoth 사용 — 새로 붙이는 것 없음.
+ */
+export async function docxToHtml(buf: Buffer): Promise<string> {
+  const mammoth: any = await import("mammoth");
+  const { value } = await mammoth.convertToHtml({ buffer: buf });
+  return String(value || "").trim();
+}
+
+/** HTML 을 «블록 경계에서만» 잘라 쪽처럼 만든다(표 중간에서 끊으면 머리글이 떨어져 나간다). */
+export function chunkHtmlBlocks(html: string, limit = DOCX_CHUNK_CHARS): string[] {
+  const blocks = html.split(/(?<=<\/table>|<\/p>|<\/h[1-6]>|<\/ul>|<\/ol>)/).filter((b) => b.trim());
+  const out: string[] = [];
+  let cur = "";
+  for (const b of blocks) {
+    if (cur && cur.length + b.length > limit) { out.push(cur); cur = ""; }
+    cur += b;
+  }
+  if (cur.trim()) out.push(cur);
+  return out;
+}
 
 /**
  * 문서를 «쪽 단위»로 쪼갠다. PDF 는 각 쪽을 그림으로 뽑고, 원래 이미지 한 장이면 그대로 한 쪽.
  * 왜 쪼개나: 통째로 주면 모델이 스스로 줄인다(실측 8분의 1). 쪽을 우리가 세면 빠뜨릴 수 없다.
  */
 async function splitPages(buf: Buffer, mime: string): Promise<PagePart[]> {
+  if (mime === DOCX_MIME) {
+    return chunkHtmlBlocks(await docxToHtml(buf)).map((text) => ({ text }));
+  }
   if (mime !== "application/pdf") {
     return [{ mimeType: mime, base64: buf.toString("base64") }];
   }
@@ -214,10 +252,12 @@ async function translateOnePage(
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
     const res = await fetchGeminiWithCompat(url, {
       systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
-      contents: [{ role: "user", parts: [
-        { text: `This is page ${pageNo} of ${pageTotal}. Transcribe EVERY line on THIS page into ${LANG_NAME[lang]}. Return only JSON.` },
-        { inlineData: { mimeType: page.mimeType, data: page.base64 } },
-      ] }],
+      contents: [{ role: "user", parts: "text" in page
+        ? [{ text: `This is part ${pageNo} of ${pageTotal} of a Word document, extracted as HTML (tables are <table>). Transcribe EVERY line and EVERY table row of THIS part into ${LANG_NAME[lang]}. Ignore the HTML markup itself — it is only structure. Return only JSON.\n\n${page.text}` }]
+        : [
+            { text: `This is page ${pageNo} of ${pageTotal}. Transcribe EVERY line on THIS page into ${LANG_NAME[lang]}. Return only JSON.` },
+            { inlineData: { mimeType: page.mimeType, data: page.base64 } },
+          ] }],
       // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -367,8 +407,8 @@ export async function translateMedicalDoc(opts: {
   }
 
   const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
-  if (!MODEL_READABLE.has(mime)) {
-    // doc/docx 등 모델이 못 읽는 형식 → 코디에게 원본 직접 검토 안내.
+  if (!canTranslate(mime)) {
+    // 옛 .doc·zip 등 글자를 뽑을 수도 그림으로 읽을 수도 없는 형식 → 코디에게 원본 직접 검토 안내.
     return { ok: false, error: "unsupported_type" };
   }
 
@@ -487,17 +527,18 @@ export async function verifyTranslationNumbers(opts: {
   if (!opts.doc || !Array.isArray(opts.doc.sections)) return { ok: false, error: "invalid_doc" };
 
   const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
-  if (!MODEL_READABLE.has(mime)) return { ok: false, error: "unsupported_type" };
+  if (!canTranslate(mime)) return { ok: false, error: "unsupported_type" };
 
   // 큰 스캔 PDF 는 그대로 넣으면 모델이 요청 자체를 반려한다(실측 137MB → INVALID_ARGUMENT).
   // getAiReadable 이 필요하면 줄여서 준다(130.9MB → 9.0MB, 눈으로 차이 없음). 원본은 안 건드린다.
-  let base64: string;
-  let sendMime = mime;
+  // Word 는 그림이 아니라 뽑아낸 글자를 원본 자리에 넣는다.
+  let sourcePart: { text: string } | { inlineData: { mimeType: string; data: string } };
   {
     const doc = await getAiReadable("attachments", opts.path, mime);
     if (!doc.ok) return { ok: false, error: doc.reason === "download_failed" ? "download_failed" : "file_too_large" };
-    base64 = doc.buffer.toString("base64");
-    sendMime = doc.mimeType;
+    sourcePart = mime === DOCX_MIME
+      ? { text: `ORIGINAL (Word document, extracted as HTML):\n${(await docxToHtml(doc.buffer)).slice(0, 60000)}` }
+      : { inlineData: { mimeType: doc.mimeType, data: doc.buffer.toString("base64") } };
   }
 
   try {
@@ -505,15 +546,15 @@ export async function verifyTranslationNumbers(opts: {
     // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
     const res = await fetchGeminiWithCompat(url, {
       systemInstruction: { parts: [{ text: [
-        "You are a medical number auditor. You are given a TRANSLATION of a document (text) and the ORIGINAL document (image).",
-        "For EVERY number in the translation (lab values, reference ranges, counts, dates, IDs), check whether it matches the number printed in the ORIGINAL image.",
+        "You are a medical number auditor. You are given a TRANSLATION of a document (text) and the ORIGINAL document (an image, or the text extracted from a Word file).",
+        "For EVERY number in the translation (lab values, reference ranges, counts, dates, IDs), check whether it matches the number in the ORIGINAL.",
         "Report ONLY disagreements. For each, return: item = the field/parameter name (as in the original, so a human can locate it), translated = the number as written in the translation, source = the number you read in the original image.",
         "Ignore pure formatting differences (1.0 vs 1; comma vs dot decimal; spacing). Do NOT translate — only compare digits.",
         "If everything matches, return an empty mismatches array. Return ONLY JSON {mismatches:[...]}.",
       ].join("\n") }] },
       contents: [{ role: "user", parts: [
-        { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the attached ORIGINAL image. Return only JSON.` },
-        { inlineData: { mimeType: sendMime, data: base64 } },
+        { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the ORIGINAL below/attached. Return only JSON.` },
+        sourcePart,
       ] }],
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
