@@ -6,7 +6,7 @@
  * /api/portal/inbox/[id] (staff 전용·서버 복호화)로 불러와 표시.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
@@ -28,6 +28,7 @@ import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
 import ImagingPanel from "@/components/ImagingPanel";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -163,10 +164,17 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
   const shown = allSections
     .map((s, i) => [s, i])
     .filter(([s]) => curPage === 0 || s?.page === curPage);
+  // 쪽을 넘기면 «그 쪽의 처음»부터 보이게 맨 위로 올린다. 안 그러면 긴 쪽을 읽고 넘겼을 때
+  // 화면이 그 자리에 남아 새 쪽의 중간부터 보인다(PO 지적 2026-08-10).
+  const topRef = useRef(null);
+  const goPage = (n) => {
+    setPageSel(n);
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
+  };
   const pageStep = (d) => {
     const at = pageList.indexOf(curPage);
     const next = pageList[Math.max(0, Math.min(pageList.length - 1, at + d))];
-    if (next) setPageSel(next);
+    if (next) goPage(next);
   };
 
   function startEdit() { setDraft(JSON.parse(JSON.stringify(doc))); setEditing(true); }
@@ -189,6 +197,11 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
 
   return (
     <div>
+      {/* 쪽을 넘겼을 때 돌아올 자리.
+          여유를 크게(6rem) 둔다 — 화면 맨 위에 붙박이 머리띠(약 65px)가 떠 있어서, 여유가 작으면
+          카드 머리와 안내문이 그 밑에 깔려 «중간부터» 보인다(실측 2026-08-10: 여유 1rem 이면 19px 에
+          멈춰 머리띠에 가려짐). */}
+      <div ref={topRef} className="scroll-mt-24" />
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 shrink-0">
@@ -310,7 +323,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
           </button>
           <div className="flex items-center gap-1 flex-wrap">
             {pageList.map((p) => (
-              <button key={p} onClick={() => setPageSel(p)}
+              <button key={p} onClick={() => goPage(p)}
                 className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
                   curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
                                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
@@ -322,7 +335,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
             className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
             <ChevronRight size={14} />
           </button>
-          <button onClick={() => setPageSel(curPage === 0 ? pageList[0] : 0)}
+          <button onClick={() => goPage(curPage === 0 ? pageList[0] : 0)}
             className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
               curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
                             : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
