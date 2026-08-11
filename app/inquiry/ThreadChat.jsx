@@ -123,7 +123,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
           />
           <span className="text-[12px] leading-snug text-gray-600">
             {t("chat.identify.consent", langCode) ||
-              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+              "[Required] I agree to the collection of my personal & sensitive health data for consultation, its cross-border transfer to Korea, and its processing by Google's Gemini AI service."}
           </span>
         </label>
 
@@ -383,7 +383,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
           />
           <span className="text-[12px] leading-snug text-gray-700">
             {t("chat.identify.consent", langCode) ||
-              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+              "[Required] I agree to the collection of my personal & sensitive health data for consultation, its cross-border transfer to Korea, and its processing by Google's Gemini AI service."}
           </span>
         </label>
 
