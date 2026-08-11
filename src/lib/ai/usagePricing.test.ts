@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { estimateCostUsd, normalizeUsage, priceForModel } from "./usagePricing";
+import { CACHED_INPUT_RATE, estimateCostUsd, normalizeUsage, priceForModel } from "./usagePricing";
 
 describe("priceForModel", () => {
   it("임베딩 모델은 출력 단가 0", () => {
@@ -17,7 +17,7 @@ describe("priceForModel", () => {
 describe("normalizeUsage", () => {
   it("promptTokens/completionTokens 형태 흡수", () => {
     const n = normalizeUsage({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
-    expect(n).toEqual({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
+    expect(n).toEqual({ promptTokens: 100, completionTokens: 50, totalTokens: 150, cachedTokens: null });
   });
   it("inputTokens/outputTokens(신버전) 형태 흡수 + total 계산", () => {
     const n = normalizeUsage({ inputTokens: 10, outputTokens: 20 });
@@ -26,8 +26,8 @@ describe("normalizeUsage", () => {
     expect(n.totalTokens).toBe(30);
   });
   it("null/비객체는 전부 null", () => {
-    expect(normalizeUsage(null)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null });
-    expect(normalizeUsage(undefined)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null });
+    expect(normalizeUsage(null)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null, cachedTokens: null });
+    expect(normalizeUsage(undefined)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null, cachedTokens: null });
   });
 });
 
@@ -43,5 +43,34 @@ describe("estimateCostUsd", () => {
   it("소액도 6자리까지 보존", () => {
     // 1000 입력 토큰 = 1000/1e6 * 1.5 = 0.0015
     expect(estimateCostUsd("gemini-flash-latest", 1000, 0)).toBeCloseTo(0.0015, 6);
+  });
+});
+
+// ── 캐시 적중 토큰 (2026-08-11) ────────────────────────────────
+// 왜: 제미나이 자동 캐시가 걸리면 그 입력 토큰은 정가의 약 10% 로 매겨진다. 이걸 안 반영하면
+//     캐시가 걸려도 «비용이 그대로»로 보여서 개선이 됐는지 안 됐는지 판단이 안 된다.
+describe("캐시 적중 토큰", () => {
+  it("이름이 다른 세 형태(SDK/제미나이 원본/래퍼)를 모두 흡수", () => {
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedInputTokens: 80 }).cachedTokens).toBe(80);
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedContentTokenCount: 70 }).cachedTokens).toBe(70);
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cacheReadInputTokens: 60 }).cachedTokens).toBe(60);
+  });
+
+  it("캐시로 재사용된 입력은 정가의 10% 로 매긴다", () => {
+    const full = estimateCostUsd("gemini-flash-latest", 1_000_000, 0);
+    const allCached = estimateCostUsd("gemini-flash-latest", 1_000_000, 0, 1_000_000);
+    expect(allCached).toBeCloseTo(full * CACHED_INPUT_RATE, 6);
+  });
+
+  it("안 넘기면 예전 계산과 완전히 같다(기존 기록에 소급 영향 없음)", () => {
+    expect(estimateCostUsd("gemini-flash-latest", 5000, 140)).toBe(
+      estimateCostUsd("gemini-flash-latest", 5000, 140, null)
+    );
+  });
+
+  it("캐시 토큰이 입력보다 크게 와도 음수 단가가 안 나온다", () => {
+    const c = estimateCostUsd("gemini-flash-latest", 1000, 0, 999_999);
+    expect(c).toBeGreaterThan(0);
+    expect(c).toBeCloseTo(estimateCostUsd("gemini-flash-latest", 1000, 0, 1000), 6);
   });
 });
