@@ -50,10 +50,36 @@ describe("estimateCostUsd", () => {
 // 왜: 제미나이 자동 캐시가 걸리면 그 입력 토큰은 정가의 약 10% 로 매겨진다. 이걸 안 반영하면
 //     캐시가 걸려도 «비용이 그대로»로 보여서 개선이 됐는지 안 됐는지 판단이 안 된다.
 describe("캐시 적중 토큰", () => {
-  it("이름이 다른 세 형태(SDK/제미나이 원본/래퍼)를 모두 흡수", () => {
+  // ⚠️ 이 시험이 있는 이유: 처음에 `cachedInputTokens` 라는 «없는 이름»을 봤다가
+  //    조용히 0건 기록될 뻔했다. 아래 첫 케이스가 **설치된 판(ai 6.0.168)의 실제 모양**이다.
+  //    (구글 제공자가 promptTokenCount/cachedContentTokenCount 를
+  //     inputTokens.total / inputTokens.cacheRead 로 옮기고, ai 코어가
+  //     usage.inputTokenDetails.cacheReadTokens 로 넘겨준다.)
+  it("설치된 판의 실제 자리(inputTokenDetails.cacheReadTokens)를 읽는다", () => {
+    const usage = {
+      inputTokens: 5000,
+      inputTokenDetails: { noCacheTokens: 1990, cacheReadTokens: 3010, cacheWriteTokens: undefined },
+      outputTokens: 141,
+    };
+    expect(normalizeUsage(usage).cachedTokens).toBe(3010);
+    // inputTokens 는 캐시분을 «포함한» 총량이다 — 그래서 비용에서 빼는 계산이 맞다.
+    expect(normalizeUsage(usage).promptTokens).toBe(5000);
+  });
+
+  it("자리가 바뀌어도 계측이 죽지 않게 옛/대체 이름도 받는다", () => {
     expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedInputTokens: 80 }).cachedTokens).toBe(80);
     expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedContentTokenCount: 70 }).cachedTokens).toBe(70);
     expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cacheReadInputTokens: 60 }).cachedTokens).toBe(60);
+  });
+
+  it("캐시가 안 걸린 응답은 0 으로 기록된다(«못 잼»인 null 과 구별)", () => {
+    const miss = normalizeUsage({
+      inputTokens: 5000,
+      inputTokenDetails: { noCacheTokens: 5000, cacheReadTokens: 0 },
+      outputTokens: 141,
+    });
+    expect(miss.cachedTokens).toBe(0);
+    expect(normalizeUsage({ inputTokens: 5000, outputTokens: 141 }).cachedTokens).toBeNull();
   });
 
   it("캐시로 재사용된 입력은 정가의 10% 로 매긴다", () => {

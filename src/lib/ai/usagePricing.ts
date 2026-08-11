@@ -96,9 +96,15 @@ export function normalizeUsage(usage: unknown): {
   const total =
     (u.totalTokens as number | undefined) ??
     (prompt != null && completion != null ? prompt + completion : null);
-  // 캐시 적중 토큰의 이름이 층마다 다르다 — AI SDK(cachedInputTokens) / 제미나이 원본
-  // (cachedContentTokenCount) / 일부 래퍼(cacheReadInputTokens). 셋 다 흡수한다.
-  const cached = (u.cachedInputTokens ??
+  // 캐시 적중 토큰의 «실제 위치»를 설치된 판으로 확인해 둔 것 (2026-08-11, ai 6.0.168):
+  //   usage.inputTokenDetails.cacheReadTokens  ← 지금 우리가 받는 자리(정답)
+  //   usage.inputTokens                        ← 캐시분을 «포함한» 총 입력 (그래서 아래서 빼야 한다)
+  // ⚠️ 처음엔 `cachedInputTokens` 를 봤는데 **그 이름은 이 판에 없다** → 조용히 0건 기록될 뻔했다.
+  //    (같은 부류의 사고 전례: `useSearchGrounding` 이 없는 키라 웹검색이 한 번도 안 돌았음.)
+  //    옛/새 판 이름도 같이 받아둔다 — 판이 올라가며 자리가 또 바뀌어도 계측이 죽지 않게.
+  const details = (u.inputTokenDetails ?? {}) as Record<string, unknown>;
+  const cached = (details.cacheReadTokens ??
+    u.cachedInputTokens ??
     u.cachedContentTokenCount ??
     u.cacheReadInputTokens ??
     null) as number | null;

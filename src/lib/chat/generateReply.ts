@@ -380,9 +380,6 @@ const STATIC_RULES = [
   "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
 ].join("\n");
 
-/** 캐시 접두사가 최소한 이만큼은 돼야 한다(글자 수). 제미나이 자동 캐시 최소치 약 1,024 토큰의 안전선. */
-export const MIN_CACHE_PREFIX_CHARS = 4000;
-
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
