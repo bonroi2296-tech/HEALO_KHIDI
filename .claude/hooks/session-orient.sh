@@ -65,11 +65,33 @@ fi
 #     **다음 날까지 아무도 모른다**(하루 1회라 실패가 눈에 안 띈다 — 반성문 #142).
 #     그래서 세션이 열릴 때마다 「본판에는 있는데 실서비스엔 아직 없는 커밋」 수를 띄운다.
 #     정상값은 0~그날 머지분이고, 이틀치가 쌓여 있으면 창구가 죽은 것이다.
+#
+# 🛑 2026-08-12 수리: 기준을 production 가지 → **실서비스가 실제로 돌고 있는 커밋**으로 바꿨다.
+#     정시 창구(Vercel 예약, app/api/cron/daily-deploy/route.ts)는 열쇠가 없어 production
+#     가지를 «갱신하지 않고» main 커밋으로 배포를 직접 만든다. 그래서 가지를 기준으로 재면
+#     정상 배포된 것까지 「안 나갔다」로 세어 매 세션 거짓 경보가 떴다
+#     (실측 2026-08-12: 「16개 안 나감」이라 떴지만 실제 미배포는 문서 2건뿐).
+#     → daily-deploy.yml 의 건너뛰기 판정과 «같은 신호»(공개 헬스체크의 commit)를 본다.
 git fetch -q --depth=50 origin main production >/dev/null 2>&1 || true
-lag=$(git rev-list --count origin/production..origin/main 2>/dev/null || echo "")
+health_url="${HEALTH_URL:-https://healwith.co.kr/api/health}"
+live=$(curl -fsS --max-time 8 "$health_url" 2>/dev/null \
+       | sed -n 's/.*"commit":"\([0-9a-f]\{7,40\}\)".*/\1/p' || true)
+if [ -n "$live" ] && git cat-file -e "$live^{commit}" 2>/dev/null; then
+  base="$live"; base_label="실서비스 커밋"
+else
+  # 헬스체크가 안 열리거나 그 커밋을 아직 못 받았으면 옛 기준(production 가지)으로 물러선다.
+  # 이땐 숫자가 부풀 수 있으므로 「참고값」이라고 밝힌다.
+  base="origin/production"; base_label="production 가지(참고값 — 헬스체크 못 읽음)"
+fi
+lag=$(git rev-list --count "$base..origin/main" 2>/dev/null || echo "")
 if [ -n "$lag" ] && [ "$lag" -gt 0 ] 2>/dev/null; then
-  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' origin/production 2>/dev/null)
-  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (마지막 배포: ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
+  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' "$base" 2>/dev/null)
+  code_lag=$(git rev-list "$base..origin/main" 2>/dev/null \
+             | while read -r c; do
+                 git show --name-only --format= "$c" 2>/dev/null \
+                   | grep -qvE '^(docs/|\.claude/|[^/]*\.md$)' && echo x
+               done | wc -l | tr -d ' ')
+  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (그중 코드 변경 ${code_lag}개 / 기준: ${base_label}, ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
   echo "    ⚠️ 이 숫자가 어제치까지 쌓여 있으면 창구가 죽은 것 → Actions 의 \"Daily Deploy (배포 창구)\" 실행 이력 확인."
 fi
 
