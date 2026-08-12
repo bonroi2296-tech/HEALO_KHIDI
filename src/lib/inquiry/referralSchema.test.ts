@@ -1,0 +1,69 @@
+import { describe, it, expect } from "vitest";
+// @ts-expect-error — 스키마는 JS 파일
+import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq } from "./referralSchema";
+
+describe("환자 의뢰서 칸 정의", () => {
+  it("빈 폼이면 접수 칸이 전부 「비었다」로 잡힌다", () => {
+    const req = fieldsByReq("intake").map((f: any) => f.name);
+    expect(missingIntake({})).toEqual(req);
+    expect(req.length).toBeGreaterThan(0);
+  });
+
+  it("공백만 친 칸은 채운 걸로 안 쳐준다", () => {
+    expect(missingIntake({ lastName: "   " })).toContain("lastName");
+    expect(missingIntake({ lastName: "TATEPBAYEVA" })).not.toContain("lastName");
+  });
+
+  it("여러 개 고르는 칸은 빈 배열이면 안 채운 것", () => {
+    expect(missingForReferral({ pastHistory: [] })).toContain("pastHistory");
+    expect(missingForReferral({ pastHistory: ["none"] })).not.toContain("pastHistory");
+  });
+
+  // ⚠️ 이 검사가 이 설계의 핵심을 지킨다. 접수 문턱이 늘어나면 여기서 걸린다.
+  it("보내기를 막는 칸은 「연락에 필요한 것」뿐이다", () => {
+    const intake = fieldsByReq("intake").map((f: any) => f.name).sort();
+    expect(intake).toEqual(["cancerType", "email", "firstName", "lastName", "patientLang"]);
+  });
+
+  it("서류·의료정보는 보내기를 막지 않는다", () => {
+    const ref = fieldsByReq("referral").map((f: any) => f.name);
+    const intake = fieldsByReq("intake").map((f: any) => f.name);
+    expect(intake.filter((n: string) => ref.includes(n))).toEqual([]);
+    for (const n of ["passportNo", "passportCopy", "dischargeSummary", "testResults", "imaging",
+                     "localDoctorOpinion", "preferredDate"]) {
+      expect(ref, n).toContain(n);
+      expect(intake, n).not.toContain(n);
+    }
+  });
+
+  it("의뢰 준비도는 채운 만큼 올라간다", () => {
+    expect(referralReadiness({})).toBe(0);
+    const all = Object.fromEntries(fieldsByReq("referral").map((f: any) => [f.name, "x"]));
+    expect(referralReadiness(all)).toBe(100);
+    expect(referralReadiness({ passportNo: "N1" })).toBeGreaterThan(0);
+    expect(referralReadiness({ passportNo: "N1" })).toBeLessThan(100);
+  });
+
+  it("질병 코드는 필수가 아니다 — 서류에 진단명이 없는 게 정상이다", () => {
+    const icd = SECTIONS.flatMap((s: any) => s.fields).find((f: any) => f.name === "icdCode");
+    expect(icd.req).toBe("optional");
+  });
+
+  it("칸 이름이 겹치지 않는다", () => {
+    const names = SECTIONS.flatMap((s: any) => s.fields).map((f: any) => f.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("모든 칸에 한국어·영어·러시아어 라벨이 있다", () => {
+    const labeled = SECTIONS.flatMap((s: any) => s.fields).filter((f: any) => f.label);
+    for (const f of [...labeled, ...CONSENTS]) {
+      for (const l of ["ko", "en", "ru"]) {
+        expect(lab(f.label, l), `${f.name || "consent"} / ${l}`).not.toBe("");
+      }
+    }
+  });
+
+  it("없는 언어는 영어로 떨어진다", () => {
+    expect(lab({ ko: "가", en: "A" }, "zh")).toBe("A");
+  });
+});
