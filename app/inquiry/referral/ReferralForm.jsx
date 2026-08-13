@@ -9,7 +9,7 @@
  * 지금 상태: 화면과 검증만. 보내기(서버 저장)는 아직 안 붙였다.
  */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide-react";
 import { DOC_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -261,18 +261,21 @@ export default function ReferralForm() {
                     {sec.id === "documents" ? (
                       <DocSection lang={lang} sec={sec} values={values} set={set} />
                     ) : (
-                      <>
-                        <div className="flex flex-wrap gap-x-4">
-                          {sec.fields.map((f) => (
-                            <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set}
+                      <div className="flex flex-wrap gap-x-4">
+                        {sec.fields.map((f) => (
+                          <Fragment key={f.name}>
+                            <Field f={f} lang={lang} value={values[f.name]} onChange={set}
                                    lit={highlight === f.name} />
-                          ))}
-                        </div>
-                        {/* 4기를 고른 «그 자리»에서 알려준다 — 몇 주 기다린 끝에 알게 하지 않는다. */}
-                        {sec.id === "diagnosis" && LATE_STAGES.includes(values.stage) && (
-                          <LateStageNotice lang={lang} values={values} set={set} />
-                        )}
-                      </>
+                            {/* 안내는 «고른 칸 바로 밑»에 붙는다. 묶음 끝에 두면 758px 아래라
+                                화면 밖이고, 골라도 아무 일 없는 것처럼 보인다(2026-08-13 PO 실사용). */}
+                            {f.name === "stage" && LATE_STAGES.includes(values.stage) && (
+                              <div className="w-full">
+                                <LateStageNotice lang={lang} values={values} set={set} />
+                              </div>
+                            )}
+                          </Fragment>
+                        ))}
+                      </div>
                     )}
                     {/* 동의는 접수 문턱이므로 「먼저, 이것만」 안에 둔다 — 문턱 칸을 흩어놓지 않는다. */}
                     {sec.id === "essentials" && (
