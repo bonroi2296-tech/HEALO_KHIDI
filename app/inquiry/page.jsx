@@ -1,7 +1,11 @@
 import { Suspense } from "react";
-import UnifiedInquiryFunnel from "./_components/UnifiedInquiryFunnel";
+import ReferralForm from "./referral/ReferralForm";
 import { localizedMeta } from "@/lib/i18n/metadata";
 
+// ⚠️ 이 작업방(worktree)에서만 새 의뢰서로 바꿔 끼웠다 — 개편 화면을 보려고 매번 주소를
+//    따로 치는 게 오히려 사고를 냈다(PO 가 /inquiry 로 들어와 옛 폼을 보고 «아직 그대로인데?»).
+//    옛 폼은 지우지 않고 /inquiry/old 에 그대로 살려뒀다(대조용).
+//    실서비스 반영은 PO 확정 뒤에.
 export async function generateMetadata() {
   return localizedMeta(baseMeta, "seo.inquiry.title", "seo.inquiry.desc");
 }
@@ -14,10 +18,8 @@ const baseMeta = {
 
 export default function InquiryPage() {
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 py-3 md:py-8">
-      <Suspense fallback={<div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>}>
-        <UnifiedInquiryFunnel />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+      <ReferralForm />
+    </Suspense>
   );
 }

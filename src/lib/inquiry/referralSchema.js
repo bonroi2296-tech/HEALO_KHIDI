@@ -52,50 +52,18 @@ const FLIGHT_FITNESS = [
   { value: "unknown", label: L("주치의에게 확인 안 됨", "Not confirmed by doctor", "Не подтверждено врачом") },
 ];
 
-/**
- * 서류 체크리스트.
- *
- * ⚠️ 이 목록의 출처는 «대장암 케이스 한 건»에 대한 대학병원 회신이다. 즉 고형암 일반에는
- *    통하지만 «암종별로 결정적인 자료»는 빠져 있을 수 있다(유방암 ER/PR/HER2, 폐암 EGFR/ALK,
- *    간암 AFP·간기능 등). 암종별 목록을 여기 지어 넣지 마라 — 의료 판단이다.
- *    협력 병원에 확인받은 뒤에만 추가한다. 경위: docs/design/INQUIRY_FORM_REDESIGN.md 「9. 자료 목록의 한계」
- *
- * ⚠️ 첫 줄이 진단서인 이유: 실서비스 문의 18건 중 진단명이 들어 있는 서류를 낸 건
- *    1건뿐이었다(2026-08-11 실측). 진단명이 적힌 유일한 서류라 맨 위에 둔다.
- */
-export const DOC_CHECKLIST = [
-  { value: "discharge", label: L(
-      "진단서 · 퇴원요약 (выписка / эпикриз)",
-      "Discharge summary / medical certificate",
-      "Выписка / эпикриз") },
-  { value: "endoscopy", label: L(
-      "진단 시점의 내시경 결과지 · 사진 · 조직검사 결과",
-      "Endoscopy report / images / biopsy result",
-      "Заключение эндоскопии / снимки / биопсия") },
-  { value: "surgery_record", label: L("수술기록지", "Surgery record", "Протокол операции") },
-  { value: "imaging_report", label: L(
-      "수술 전·후 영상 파일(DICOM)과 판독지",
-      "Pre/post-op imaging (DICOM) and reports",
-      "Снимки до/после операции (DICOM) и заключения") },
-  { value: "chemo_record", label: L(
-      "항암 치료 기록 (날짜 · 기간 · 약명 · 용량 · 횟수)",
-      "Chemotherapy record (dates, drugs, dose, cycles)",
-      "Записи химиотерапии (даты, препараты, доза, циклы)") },
-  { value: "radio_record", label: L(
-      "방사선 치료 기록 (총 Gy 포함)",
-      "Radiotherapy record (total Gy)",
-      "Записи лучевой терапии (общая доза Gy)") },
-  { value: "blood_recent", label: L(
-      "최근 6개월 이내 혈액검사 결과",
-      "Blood test within the last 6 months",
-      "Анализ крови за последние 6 месяцев") },
-];
-
 export const SECTIONS = [
-  // ── ① 환자 신원 ────────────────────────────────────────────────
+  // ── ① 먼저, 이것만 ─────────────────────────────────────────────
+  // 🛑 접수 문턱(req:"intake") 칸은 «전부 여기» 있어야 한다. 흩어놓으면 안 된다.
+  //    2026-08-12 PO 실사용: 접수 6칸이 세 묶음에 흩어져 있어서 마지막 한 칸을
+  //    «어디 있는지 찾기도 힘들다»고 했다. 「6칸 남음」이라고 세어주면서 어디인지는
+  //    안 알려주는 화면은 사람을 헤매게 한다. 문턱은 한 자리에 모은다.
   {
-    id: "identity",
-    title: L("환자 신원", "Patient", "Пациент"),
+    id: "essentials",
+    title: L("먼저, 이것만", "First — just these", "Сначала только это"),
+    lead: L("연락드리는 데 필요한 것만입니다. 여기까지만 채우셔도 보내실 수 있습니다.",
+            "Only what we need to reach you. You can send it with just this filled in.",
+            "Только то, что нужно, чтобы связаться с вами. Этого уже достаточно для отправки."),
     fields: [
       { name: "lastName", type: "text", req: "intake", half: true,
         label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (как в паспорте)") },
@@ -106,33 +74,41 @@ export const SECTIONS = [
           "여권에 적힌 라틴 문자 그대로 적어주세요. 영상 자료 속 이름과 다르면 병원이 등록을 거부합니다.",
           "Use the Latin spelling from the passport. If it differs from the name inside your imaging files, the hospital cannot register the case.",
           "Укажите латиницей как в паспорте. Если имя в файлах снимков отличается, больница не сможет зарегистрировать обращение.") },
+      { name: "email", type: "email", req: "intake", half: true,
+        label: L("이메일", "Email", "Электронная почта") },
+      { name: "patientLang", type: "lang", req: "intake", half: true,
+        label: L("환자가 쓰는 언어", "Patient's language", "Язык пациента"),
+        hint: L("코디네이터가 이 언어로 연락합니다.",
+                "Your coordinator will contact you in this language.",
+                "Координатор свяжется с вами на этом языке.") },
+      { name: "cancerType", type: "cancerType", req: "intake", half: true,
+        label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
+      { name: "phone", type: "phone", req: "optional", half: true,
+        label: L("휴대전화", "Mobile", "Мобильный телефон") },
+    ],
+  },
+
+  // ── ② 환자 신원 ────────────────────────────────────────────────
+  {
+    id: "identity",
+    title: L("환자 신원", "Patient details", "Данные пациента"),
+    fields: [
       { name: "birthDate", type: "date", req: "referral", half: true,
         label: L("생년월일", "Date of birth", "Дата рождения") },
       { name: "sex", type: "chips", req: "referral", half: true, options: SEX,
         label: L("성별", "Gender", "Пол") },
       { name: "nationality", type: "nationality", req: "referral", half: true,
         label: L("국적", "Nationality", "Гражданство") },
-      // 여권번호는 ⑤자료 묶음으로 내렸다. 「찾아와야 하는」 정보를 첫 묶음에 두면
+      // 여권번호는 ⑥자료 묶음으로 내렸다. 「찾아와야 하는」 정보를 앞쪽에 두면
       // 그 자리에서 창을 닫는다. 내원이 확정될 때까지 없어도 의뢰는 진행된다.
-      { name: "email", type: "email", req: "intake", half: true,
-        label: L("이메일", "Email", "Электронная почта") },
-      { name: "phone", type: "phone", req: "optional", half: true,
-        label: L("휴대전화", "Mobile", "Мобильный телефон") },
-      { name: "patientLang", type: "lang", req: "intake", half: true,
-        label: L("환자가 쓰는 언어", "Patient's language", "Язык пациента"),
-        hint: L("코디네이터가 이 언어로 연락합니다.",
-                "Your coordinator will contact you in this language.",
-                "Координатор свяжется с вами на этом языке.") },
     ],
   },
 
-  // ── ② 진단·현재 상태 ───────────────────────────────────────────
+  // ── ③ 진단·현재 상태 ───────────────────────────────────────────
   {
     id: "diagnosis",
     title: L("진단 · 현재 상태", "Diagnosis & current condition", "Диагноз и состояние"),
     fields: [
-      { name: "cancerType", type: "cancerType", req: "intake", half: true,
-        label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
       { name: "stage", type: "stage", req: "optional", half: true,
         label: L("병기", "Stage", "Стадия"),
         hint: L("모르면 비워두세요.", "Leave blank if unknown.", "Оставьте пустым, если не знаете.") },
@@ -224,46 +200,33 @@ export const SECTIONS = [
     id: "documents",
     title: L("자료 첨부", "Documents", "Документы"),
     fields: [
-      // group: "primary" = 의뢰 회신을 받으려면 지금 필요한 것
-      //        "onsite"  = 내원이 확정된 뒤에 주시면 되는 것
-      // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
-      //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」 그리고 「이메일 의뢰의 목적은 진료·
-      //       평가 검사가 가능한지와 예상 치료 내용」이지 치료계획 확정이 아니다.
-      { name: "dischargeSummary", type: "file", req: "referral", kind: "medicalDoc", group: "primary",
-        label: L("진단서 · 퇴원요약 (выписка / эпикриз)",
-                 "Discharge summary / medical certificate",
-                 "Выписка / эпикриз"),
-        hint: L("진단명이 적혀 있는 서류입니다. 담당 병원에서 받으실 수 있습니다.",
-                "This is the document that carries the diagnosis. Your hospital can issue it.",
-                "Это документ с диагнозом. Его можно получить в вашей больнице.") },
-      { name: "testResults", type: "file", req: "referral", kind: "medicalDoc", group: "primary",
-        label: L("검사 결과지 — 조직검사 · 내시경 · 혈액검사",
-                 "Test results — biopsy, endoscopy, blood",
-                 "Результаты обследований — биопсия, эндоскопия, анализы крови") },
-      { name: "imaging", type: "file", req: "referral", kind: "imaging", group: "primary",
-        label: L("영상 자료 (CT · MRI · DICOM)", "Imaging (CT / MRI / DICOM)", "Снимки (КТ / МРТ / DICOM)"),
-        hint: L("병원에서 받은 CD 안의 파일을 통째로 압축해서 올려주세요.",
-                "Zip the whole contents of the CD you received from the hospital.",
-                "Заархивируйте всё содержимое диска, полученного в больнице.") },
-      { name: "imagingLink", type: "url", req: "optional", group: "primary",
-        label: L("또는 영상 자료 링크", "Or a link to the imaging files", "Или ссылка на снимки"),
+      // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
+      //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
+      //    실서비스에 실제로 올라온 파일 이름: `папка 2.rar` · `мед доки.pdf` · `image01.png`.
+      //    분류는 우리가 한다 → /api/inquiry/classify-doc 가 올리는 즉시 열어보고 종류를 추정한다.
+      { name: "envelope", type: "envelope", req: "referral", kind: "medicalDoc",
+        label: L("가지고 계신 서류를 그대로 올려주세요",
+                 "Upload whatever documents you have, as they are",
+                 "Загрузите документы, которые у вас есть, как есть"),
+        hint: L("무슨 서류인지 고르실 필요 없습니다. 올려주시면 저희가 읽고 무엇이 더 필요한지 알려드립니다.",
+                "You don't have to sort them. We read them and tell you what is still missing.",
+                "Сортировать не нужно. Мы прочитаем и скажем, чего ещё не хватает.") },
+      { name: "imagingLink", type: "url", req: "optional",
+        label: L("영상 자료가 너무 크면 링크로", "If the imaging files are too large, paste a link",
+                 "Если снимки слишком большие — вставьте ссылку"),
         placeholder: L("구글 드라이브 · 드롭박스 링크", "Google Drive / Dropbox link", "Ссылка Google Drive / Dropbox"),
         hint: L("영상 CD는 200MB를 넘는 일이 많습니다. 그럴 땐 링크가 더 빠릅니다.",
                 "Imaging CDs are often larger than 200MB — a link is faster in that case.",
                 "Диски со снимками часто больше 200 МБ — в этом случае ссылка удобнее.") },
-      { name: "otherDocs", type: "file", req: "optional", kind: "medicalDoc", group: "primary",
-        label: L("그 밖의 서류 — 판독지 · 수술기록지 · 항암/방사선 기록",
-                 "Other documents — reports, surgery record, chemo/radio records",
-                 "Другие документы — заключения, протокол операции, записи химио/лучевой терапии") },
 
       // ── 내원이 확정된 뒤에 주시면 되는 것 ──
+      // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
+      //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」
       { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true, group: "onsite",
         label: L("여권번호", "Passport number", "Номер паспорта"),
         hint: L("암호화해서 보관하며 의뢰서에만 쓰입니다.",
                 "Stored encrypted; used only on the referral form.",
                 "Хранится в зашифрованном виде, используется только в направлении.") },
-      { name: "passportCopy", type: "file", req: "referral", kind: "medicalDoc", group: "onsite",
-        label: L("여권 사본", "Passport copy", "Копия паспорта") },
     ],
   },
 ];

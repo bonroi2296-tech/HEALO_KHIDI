@@ -25,15 +25,33 @@ describe("환자 의뢰서 칸 정의", () => {
     expect(intake).toEqual(["cancerType", "email", "firstName", "lastName", "patientLang"]);
   });
 
+  // 🛑 이 검사가 「마지막 한 칸을 못 찾겠다」의 재발을 막는다(2026-08-12 PO 실사용).
+  it("보내기를 막는 칸은 «전부 첫 묶음 한 곳»에 모여 있다", () => {
+    const first = SECTIONS[0];
+    expect(first.id).toBe("essentials");
+    const elsewhere = SECTIONS.slice(1)
+      .flatMap((s: any) => s.fields)
+      .filter((f: any) => f.req === "intake")
+      .map((f: any) => f.name);
+    expect(elsewhere, "문턱 칸이 다른 묶음에 흩어져 있다").toEqual([]);
+  });
+
   it("서류·의료정보는 보내기를 막지 않는다", () => {
     const ref = fieldsByReq("referral").map((f: any) => f.name);
     const intake = fieldsByReq("intake").map((f: any) => f.name);
     expect(intake.filter((n: string) => ref.includes(n))).toEqual([]);
-    for (const n of ["passportNo", "passportCopy", "dischargeSummary", "testResults", "imaging",
-                     "localDoctorOpinion", "preferredDate"]) {
+    for (const n of ["passportNo", "envelope", "localDoctorOpinion", "preferredDate"]) {
       expect(ref, n).toContain(n);
       expect(intake, n).not.toContain(n);
     }
+  });
+
+  // 🛑 서류 칸을 종류별로 다시 쪼개면 여기서 걸린다. 쪼개도 이상한 게 오는 건 똑같고
+  //    환자에게 «판단»을 시켜서 안 내게 만들 뿐이다(2026-08-12 PO 상의).
+  it("서류는 종류별로 안 나누고 봉투 한 칸으로 받는다", () => {
+    const docs: any = SECTIONS.find((s: any) => s.id === "documents");
+    const fileFields = docs.fields.filter((f: any) => f.type === "envelope" || f.type === "file");
+    expect(fileFields.map((f: any) => f.name)).toEqual(["envelope"]);
   });
 
   it("의뢰 준비도는 채운 만큼 올라간다", () => {
