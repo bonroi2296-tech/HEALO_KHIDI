@@ -45,6 +45,50 @@ const PAST_HISTORY = [
   { value: "none", label: L("해당 없음", "None", "Нет") },
 ];
 
+/**
+ * 병기 4기를 고르면 그 자리에서 뜨는 안내.
+ *
+ * 왜: 세브란스는 「4기는 이메일 의뢰를 진행하지 않는다」고 명시했고, 이대서울병원은
+ *     2026-08-13 방문에서 「말기라 교수님들이 답변 주기 어려웠다」고 확인해줬다.
+ *     아무 말 없이 접수받으면 환자는 몇 주를 기다린 끝에 「현지에서 치료하시라」를 받는다.
+ *
+ * 🛑 숫자를 넣지 마라 (PO 결정 2026-08-13). 검사 비용·기간은 케이스마다 다르다고
+ *    병원이 확인해줬다. 「애매한 건 알려주지 말자」 — 틀린 숫자는 안 준 것보다 나쁘다.
+ * 🛑 「완치」·「보장」류 단어 금지(의료광고법). 문을 닫지도 마라 — 결정은 환자 몫이다.
+ */
+export const LATE_STAGE_NOTICE = {
+  title: {
+    ko: "먼저 알려드립니다.",
+    en: "Before you continue.",
+    ru: "Сразу предупредим.",
+  },
+  body: {
+    ko: "진행된 병기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 직접 보지 않고는 책임 있는 답을 드릴 수 없기 때문입니다.",
+    en: "At an advanced stage the hospital cannot give a treatment plan or cost from documents alone — a responsible answer needs an examination.",
+    ru: "При запущенной стадии клиника не может дать план лечения и стоимость только по документам — без осмотра ответственный ответ невозможен.",
+  },
+  points: [
+    {
+      ko: "회신이 늦어지거나 「현지에서 치료를 이어가시라」는 답을 받으실 수 있습니다",
+      en: "The reply may be delayed, or may say it is better to continue treatment at home",
+      ru: "Ответ может задержаться или прийти в виде «лучше продолжить лечение дома»",
+    },
+    {
+      ko: "대신 한국에 오셔서 검사만 받는 길도 있습니다. 비용과 기간은 케이스마다 달라 확인 후 안내드립니다.",
+      en: "Alternatively you can come to Korea for the examination only. Cost and duration vary by case — we will confirm and let you know.",
+      ru: "Есть другой путь — приехать и пройти только обследование. Стоимость и сроки зависят от случая, мы уточним и сообщим.",
+    },
+  ],
+  talkFirst: {
+    ko: "코디네이터와 먼저 상의하고 싶습니다",
+    en: "I would like to talk to a coordinator first",
+    ru: "Хочу сначала поговорить с координатором",
+  },
+};
+
+/** 이 병기를 고르면 위 안내가 뜬다. */
+export const LATE_STAGES = ["IV"];
+
 /** 장시간 비행 가능 여부 — 세브란스 메일이 「주치의 확인」을 명시한 항목 */
 const FLIGHT_FITNESS = [
   { value: "yes", label: L("가능", "Fit to fly", "Может лететь") },
@@ -219,13 +263,15 @@ export const SECTIONS = [
         hint: L("무슨 서류인지 고르실 필요 없습니다. 올려주시면 저희가 읽고 무엇이 더 필요한지 알려드립니다.",
                 "You don't have to sort them. We read them and tell you what is still missing.",
                 "Сортировать не нужно. Мы прочитаем и скажем, чего ещё не хватает.") },
-      { name: "imagingLink", type: "url", req: "optional",
-        label: L("영상 자료가 너무 크면 링크로", "If the imaging files are too large, paste a link",
-                 "Если снимки слишком большие — вставьте ссылку"),
-        placeholder: L("구글 드라이브 · 드롭박스 링크", "Google Drive / Dropbox link", "Ссылка Google Drive / Dropbox"),
-        hint: L("영상 CD는 200MB를 넘는 일이 많습니다. 그럴 땐 링크가 더 빠릅니다.",
-                "Imaging CDs are often larger than 200MB — a link is faster in that case.",
-                "Диски со снимками часто больше 200 МБ — в этом случае ссылка удобнее.") },
+      // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
+      // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
+      //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
+      //    통제 밖으로 나가고, 링크는 죽는다. 200MB 를 넘으면 왓츠앱으로 코디가 받는다.
+      { name: "cdFolder", type: "cdFolder", req: "optional",
+        label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
+        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
+                "Insert the CD and pick the whole folder. Even with hundreds of files inside you don't have to select them one by one — we bundle it for you.",
+                "Вставьте диск и выберите папку целиком. Даже если внутри сотни файлов, выбирать по одному не нужно — мы соберём их сами.") },
 
       // ── 내원이 확정된 뒤에 주시면 되는 것 ──
       // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.

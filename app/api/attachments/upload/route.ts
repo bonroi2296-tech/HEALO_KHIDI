@@ -22,6 +22,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
+import { UPLOAD_POLICY } from "@/lib/uploadPolicy";
 
 // Supabase 프로젝트 전역 업로드 상한과 동일(실측 2026-08-03: 200MB 성공 / 201MB 거부).
 // 이 값을 더 키우려면 Supabase 대시보드 Storage → Settings → Global file size limit 를 먼저 올린다.
@@ -30,6 +31,9 @@ const MAX_FILE_SIZE = 200 * 1024 * 1024;
 const BUCKET = "attachments";
 const DIR = "inquiry";
 
+// 영상(병원 CD) 형식은 uploadPolicy 의 imaging 규칙을 그대로 끌어다 쓴다.
+// 화면과 서버가 «다른 목록»을 들고 있으면 「화면에선 골라지는데 서버가 막는」 반쪽이 된다.
+// ⚠️ 위장 검사(verifyUploaded)는 그대로 둔다 — 공개 창구라 확장자·MIME 만 믿으면 안 된다.
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -38,6 +42,7 @@ const ALLOWED_TYPES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ...UPLOAD_POLICY.imaging.mimes,
 ]);
 
 // 파일 1개당 sign + commit 2회. 첨부 5개 + 재시도까지 감안해 분당 20회.

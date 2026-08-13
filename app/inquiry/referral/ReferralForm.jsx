@@ -14,9 +14,11 @@ import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide
 import { DOC_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
+import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB } from "@/lib/inquiry/cdBundle";
+import { SITE_INFO } from "@/lib/siteSettings";
 import {
-  SECTIONS, CONSENTS,
+  SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
   lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness,
 } from "@/lib/inquiry/referralSchema";
 
@@ -102,6 +104,21 @@ const TR = {
   icdUnknown: { ko: "모르겠습니다 — 서류 보고 정해주세요", en: "I don't know — please determine it from my documents", ru: "Не знаю — определите по моим документам" },
   pick:       { ko: "선택", en: "Select", ru: "Выберите" },
   addFile:    { ko: "파일 고르기", en: "Choose file", ru: "Выбрать файл" },
+  cdPick:     { ko: "CD 폴더 고르기", en: "Pick the CD folder", ru: "Выбрать папку с диска" },
+  cdPickSub:  { ko: "안에 든 파일을 하나씩 고르실 필요 없습니다", en: "No need to pick files one by one", ru: "Выбирать файлы по одному не нужно" },
+  cdZipping:  { ko: "파일 {n}개 ({mb}) 를 하나로 묶고 있습니다", en: "Bundling {n} files ({mb})", ru: "Собираем {n} файлов ({mb})" },
+  cdZipWait:  { ko: "창을 닫지 말고 잠시만 기다려 주세요. 보통 10~40초 걸립니다.",
+                en: "Please keep this window open — it usually takes 10–40 seconds.",
+                ru: "Не закрывайте окно — обычно это занимает 10–40 секунд." },
+  cdDone:     { ko: "파일 {n}개 준비 완료 ({from} → {to})", en: "{n} files ready ({from} → {to})", ru: "Готово: {n} файлов ({from} → {to})" },
+  cdRedo:     { ko: "다시 고르기", en: "Pick again", ru: "Выбрать заново" },
+  cdTooBig:   { ko: "파일이 커서 바로 올리기 어렵습니다. 담당자가 대신 받아드릴게요.",
+                en: "The files are too large to upload here. A coordinator will take them for you.",
+                ru: "Файлы слишком большие для загрузки здесь. Координатор примет их за вас." },
+  cdHelp:     { ko: "담당자에게 연락하기", en: "Contact a coordinator", ru: "Связаться с координатором" },
+  cdPhone:    { ko: "휴대폰에서는 CD 폴더를 고를 수 없습니다. 지금은 문의만 보내주시면, 영상 올리는 링크를 따로 보내드립니다.",
+                en: "Phones cannot pick a CD folder. Just send the inquiry for now — we will email you a separate link for the images.",
+                ru: "С телефона нельзя выбрать папку с диска. Отправьте обращение сейчас — ссылку для загрузки снимков мы пришлём отдельно." },
 };
 const tr = (k, lang, vars) => {
   let s = TR[k]?.[lang] || TR[k]?.en || TR[k]?.ko || "";
@@ -244,12 +261,18 @@ export default function ReferralForm() {
                     {sec.id === "documents" ? (
                       <DocSection lang={lang} sec={sec} values={values} set={set} />
                     ) : (
-                      <div className="flex flex-wrap gap-x-4">
-                        {sec.fields.map((f) => (
-                          <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set}
-                                 lit={highlight === f.name} />
-                        ))}
-                      </div>
+                      <>
+                        <div className="flex flex-wrap gap-x-4">
+                          {sec.fields.map((f) => (
+                            <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set}
+                                   lit={highlight === f.name} />
+                          ))}
+                        </div>
+                        {/* 4기를 고른 «그 자리»에서 알려준다 — 몇 주 기다린 끝에 알게 하지 않는다. */}
+                        {sec.id === "diagnosis" && LATE_STAGES.includes(values.stage) && (
+                          <LateStageNotice lang={lang} values={values} set={set} />
+                        )}
+                      </>
                     )}
                     {/* 동의는 접수 문턱이므로 「먼저, 이것만」 안에 둔다 — 문턱 칸을 흩어놓지 않는다. */}
                     {sec.id === "essentials" && (
@@ -372,9 +395,8 @@ function Field({ f, lang, value, onChange, lit }) {
         </>
       );
       break;
-    case "file":
-      control = <FileBox f={f} lang={lang} value={value} onChange={onChange} />;
-      break;
+    case "cdFolder":
+      return <CdFolder f={f} lang={lang} value={value} onChange={onChange} />;
     default:
       control = <input className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
   }
@@ -401,6 +423,32 @@ function Field({ f, lang, value, onChange, lit }) {
       )}
       {control}
       {f.hint && <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>}
+    </div>
+  );
+}
+
+/**
+ * 진행된 병기 안내 — 막지 않는다. 알리고, 다른 길을 열어두고, 결정은 환자가 한다.
+ * 숫자(비용·기간)는 넣지 않는다 — 케이스마다 다르다는 게 병원 확인 사항이다.
+ */
+function LateStageNotice({ lang, values, set }) {
+  const N = LATE_STAGE_NOTICE;
+  return (
+    <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="flex items-start gap-2.5">
+        <AlertTriangle size={16} className="mt-0.5 flex-none text-amber-700" />
+        <div>
+          <p className="text-sm font-bold text-amber-700">{lab(N.title, lang)}</p>
+          <p className="mt-1 text-sm leading-relaxed text-amber-700">{lab(N.body, lang)}</p>
+          <ul className="mt-2.5 space-y-1.5">
+            {N.points.map((p, i) => (
+              <li key={i} className="text-sm leading-relaxed text-amber-700">· {lab(p, lang)}</li>
+            ))}
+          </ul>
+          <Toggle checked={!!values.talkFirst} onClick={() => set("talkFirst", !values.talkFirst)}
+                  label={lab(N.talkFirst, lang)} className="mt-3" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -439,6 +487,107 @@ function Toggle({ checked, onClick, label, className = "" }) {
       </span>
       <span className="text-sm text-gray-700">{label}</span>
     </button>
+  );
+}
+
+/**
+ * 병원 CD 받기 — 폴더째 고르기 → 브라우저에서 묶기 → 그 결과를 봉투에 넣는다.
+ *
+ * 지켜야 할 것:
+ *   · 고른 «즉시» 총 용량을 보여준다 (10분 기다린 뒤 실패 금지)
+ *   · 묶는 동안 진행 표시 (멈춘 줄 알고 창을 닫는다)
+ *   · 상한을 넘으면 막다른 골목 대신 왓츠앱으로 사람에게 연결
+ *   · 폰이면 아예 요구하지 않는다 (폴더 고르기가 안 된다)
+ */
+function CdFolder({ f, lang, value, onChange }) {
+  const ref = useRef(null);
+  const [state, setState] = useState({ phase: "idle" }); // idle | picked | zipping | done | toobig
+  const [canPick, setCanPick] = useState(true);
+
+  useEffect(() => { setCanPick(canPickFolder()); }, []);
+
+  async function onPick(fileList) {
+    const files = pickImagingFiles(fileList);
+    if (!files.length) return;
+    const raw = sumBytes(files);
+    setState({ phase: "zipping", count: files.length, raw, percent: 0 });
+    try {
+      const zip = await bundleToZip(files, {
+        onProgress: ({ percent }) => setState((s) => ({ ...s, percent })),
+      });
+      if (zip.size > MAX_UPLOAD_BYTES) {
+        setState({ phase: "toobig", count: files.length, raw, zipped: zip.size });
+        return;
+      }
+      setState({ phase: "done", count: files.length, raw, zipped: zip.size });
+      onChange(f.name, { name: zip.name, size: zip.size, count: files.length, rawSize: raw });
+    } catch {
+      // 묶다 실패해도 막다른 골목으로 두지 않는다 — 사람에게 연결한다.
+      setState({ phase: "toobig", count: files.length, raw });
+    }
+  }
+
+  if (!canPick) {
+    // 폰에서는 폴더를 못 고른다. 요구하지 말고 나중에 올릴 길만 알려준다.
+    return (
+      <div id={`f-${f.name}`} className="mt-4 w-full">
+        <label className="mb-1.5 block text-sm font-semibold text-gray-700">{lab(f.label, lang)}</label>
+        <p className="rounded-xl bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">{tr("cdPhone", lang)}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div id={`f-${f.name}`} className="mt-4 w-full">
+      <label className="mb-1.5 block text-sm font-semibold text-gray-700">{lab(f.label, lang)}</label>
+
+      {state.phase !== "done" && state.phase !== "toobig" && (
+        <button type="button" disabled={state.phase === "zipping"} onClick={() => ref.current?.click()}
+                className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
+                  state.phase === "zipping" ? "border-gray-200" : "border-gray-300 hover:border-gray-400"}`}>
+          <span className="block text-sm font-semibold text-gray-700">{tr("cdPick", lang)}</span>
+          <span className="mt-1 block text-xs text-gray-600">{tr("cdPickSub", lang)}</span>
+        </button>
+      )}
+      {/* webkitdirectory: 폴더 안 파일 전부를 한 번에 넘겨준다 */}
+      <input ref={ref} type="file" className="hidden" webkitdirectory="" directory=""
+             onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
+
+      {state.phase === "zipping" && (
+        <div className="mt-3 rounded-xl border border-gray-200 p-3">
+          <p className="flex items-center gap-2 text-sm text-gray-700">
+            <Loader2 size={14} className="animate-spin" />
+            {tr("cdZipping", lang, { n: state.count, mb: formatMB(state.raw) })}
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+            <div className="h-full rounded-full bg-teal-700 transition-all duration-200"
+                 style={{ width: `${state.percent || 0}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-gray-600">{tr("cdZipWait", lang)}</p>
+        </div>
+      )}
+
+      {state.phase === "done" && (
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <p className="text-sm font-semibold text-emerald-700">
+            {tr("cdDone", lang, { n: state.count, from: formatMB(state.raw), to: formatMB(state.zipped) })}
+          </p>
+          <button type="button" onClick={() => { setState({ phase: "idle" }); onChange(f.name, null); }}
+                  className="mt-1.5 text-xs text-gray-600 underline">{tr("cdRedo", lang)}</button>
+        </div>
+      )}
+
+      {state.phase === "toobig" && (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm leading-relaxed text-amber-700">{tr("cdTooBig", lang)}</p>
+          <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
+             className="mt-2 inline-block rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">
+            {tr("cdHelp", lang)}
+          </a>
+        </div>
+      )}
+      <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>
+    </div>
   );
 }
 
