@@ -64,16 +64,19 @@ export const LATE_STAGE_NOTICE = {
   },
   // 「진행된 병기」처럼 돌려 말하지 마라(PO 2026-08-13). 환자는 방금 «4기»를 직접 골랐다.
   // 에둘러 말하면 얼버무리는 것으로 읽히고, 무슨 얘긴지도 흐려진다. 고른 그대로 부른다.
+  // 「직접 보지 않고는」이라고 쓰지 마라(PO 2026-08-13) — 얼굴을 본다는 뜻으로 읽힌다.
+  // 실제로 필요한 건 «검사»다. 그대로 적는다.
   body: {
-    ko: "4기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 직접 보지 않고는 책임 있는 답을 드릴 수 없기 때문입니다.",
-    en: "At stage IV the hospital cannot give a treatment plan or cost from documents alone — a responsible answer needs an examination.",
-    ru: "При 4 стадии клиника не может дать план лечения и стоимость только по документам — без осмотра ответственный ответ невозможен.",
+    ko: "4기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 환자분의 상태를 검사하기 전에는 책임 있는 답을 드릴 수 없기 때문입니다.",
+    en: "At stage IV the hospital cannot give a treatment plan or cost from documents alone — a responsible answer is only possible after the patient is examined.",
+    ru: "При 4 стадии клиника не может дать план лечения и стоимость только по документам — ответственный ответ возможен только после обследования пациента.",
   },
   points: [
+    // 「회신」의 주인을 밝힌다(PO 2026-08-13) — 안 밝히면 «우리» 회신으로 읽힌다.
     {
-      ko: "회신이 늦어지거나 「현지에서 치료를 이어가시라」는 답을 받으실 수 있습니다",
-      en: "The reply may be delayed, or may say it is better to continue treatment at home",
-      ru: "Ответ может задержаться или прийти в виде «лучше продолжить лечение дома»",
+      ko: "대학병원으로부터 회신이 늦어지거나, 「현지에서 치료를 이어가시라」는 답을 받으실 수 있습니다",
+      en: "The reply from the university hospital may be delayed, or may say it is better to continue treatment at home",
+      ru: "Ответ из университетской клиники может задержаться или прийти в виде «лучше продолжить лечение дома»",
     },
     // 「검사만 받는 길」이라고 쓰지 마라 — 거기서 끝난다는 뜻으로 읽혀 문을 닫는다(PO 2026-08-13).
     // 실제로는 «검사부터» 시작하고 결과에 따라 치료로 이어진다. 다만 치료를 약속하는 문장이
