@@ -62,10 +62,12 @@ export const LATE_STAGE_NOTICE = {
     en: "Before you continue.",
     ru: "Сразу предупредим.",
   },
+  // 「진행된 병기」처럼 돌려 말하지 마라(PO 2026-08-13). 환자는 방금 «4기»를 직접 골랐다.
+  // 에둘러 말하면 얼버무리는 것으로 읽히고, 무슨 얘긴지도 흐려진다. 고른 그대로 부른다.
   body: {
-    ko: "진행된 병기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 직접 보지 않고는 책임 있는 답을 드릴 수 없기 때문입니다.",
-    en: "At an advanced stage the hospital cannot give a treatment plan or cost from documents alone — a responsible answer needs an examination.",
-    ru: "При запущенной стадии клиника не может дать план лечения и стоимость только по документам — без осмотра ответственный ответ невозможен.",
+    ko: "4기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 직접 보지 않고는 책임 있는 답을 드릴 수 없기 때문입니다.",
+    en: "At stage IV the hospital cannot give a treatment plan or cost from documents alone — a responsible answer needs an examination.",
+    ru: "При 4 стадии клиника не может дать план лечения и стоимость только по документам — без осмотра ответственный ответ невозможен.",
   },
   points: [
     {
