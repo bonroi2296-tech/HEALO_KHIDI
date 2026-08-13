@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
 
 // 아이디(이메일) 찾기 — 이름 + 생년월일이 정확히 일치하는 계정이 "딱 1명"일 때만
 // 가린 이메일을 돌려준다. 의료 플랫폼이라 동명이인·열거 공격에 특히 민감 → 보수적으로:
@@ -22,7 +22,9 @@ const norm = (s: string) => s.trim().toLowerCase();
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, { windowMs: 60_000, maxRequests: 10, apiName: "find-id" });
+  // DB 기반(cross-isolate). 인메모리는 서버 인스턴스마다 카운터가 따로라
+  // 인스턴스가 늘어나면 그 배수만큼 뚫린다 → 생년월일 무차별 대입 방어가 헐거워짐.
+  const rl = await checkRateLimitPersistent(ip, { windowMs: 60_000, maxRequests: 10, apiName: "find-id" });
   if (!rl.allowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   let body: { firstName?: string; lastName?: string; birthdate?: string };

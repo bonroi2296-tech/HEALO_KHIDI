@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
 import { timingSafeEqual, randomUUID as nodeRandomUUID } from "node:crypto";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const ROTATE_RATE = {
   windowMs: 60 * 1000,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   // ✅ Rate limit
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, ROTATE_RATE);
+  const rl = await checkRateLimitPersistent(clientIp, ROTATE_RATE);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },
