@@ -434,7 +434,7 @@ function Field({ f, lang, value, onChange, lit }) {
  * 진행된 병기 안내 — 막지 않는다. 알리고, 다른 길을 열어두고, 결정은 환자가 한다.
  * 숫자(비용·기간)는 넣지 않는다 — 케이스마다 다르다는 게 병원 확인 사항이다.
  */
-function LateStageNotice({ lang, values, set }) {
+function LateStageNotice({ lang }) {
   const N = LATE_STAGE_NOTICE;
   return (
     <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
@@ -448,8 +448,6 @@ function LateStageNotice({ lang, values, set }) {
               <li key={i} className="text-sm leading-relaxed text-amber-700">· {lab(p, lang)}</li>
             ))}
           </ul>
-          <Toggle checked={!!values.talkFirst} onClick={() => set("talkFirst", !values.talkFirst)}
-                  label={lab(N.talkFirst, lang)} className="mt-3" />
         </div>
       </div>
     </div>

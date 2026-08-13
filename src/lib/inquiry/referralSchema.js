@@ -73,17 +73,15 @@ export const LATE_STAGE_NOTICE = {
       en: "The reply may be delayed, or may say it is better to continue treatment at home",
       ru: "Ответ может задержаться или прийти в виде «лучше продолжить лечение дома»",
     },
+    // 「검사만 받는 길」이라고 쓰지 마라 — 거기서 끝난다는 뜻으로 읽혀 문을 닫는다(PO 2026-08-13).
+    // 실제로는 «검사부터» 시작하고 결과에 따라 치료로 이어진다. 다만 치료를 약속하는 문장이
+    // 되면 안 되므로 「결과에 따라」를 반드시 남긴다(의료광고법).
     {
-      ko: "대신 한국에 오셔서 검사만 받는 길도 있습니다. 비용과 기간은 케이스마다 달라 확인 후 안내드립니다.",
-      en: "Alternatively you can come to Korea for the examination only. Cost and duration vary by case — we will confirm and let you know.",
-      ru: "Есть другой путь — приехать и пройти только обследование. Стоимость и сроки зависят от случая, мы уточним и сообщим.",
+      ko: "대신 한국에 오셔서 검사부터 받아보는 길도 있습니다. 결과에 따라 치료 방향이 정해지며, 비용과 기간은 케이스마다 달라 확인 후 안내드립니다.",
+      en: "Alternatively you can come to Korea and start with an examination. The results determine what treatment is possible; cost and duration vary by case, and we will confirm and let you know.",
+      ru: "Есть другой путь — приехать в Корею и начать с обследования. По его результатам определяется тактика лечения; стоимость и сроки зависят от случая, мы уточним и сообщим.",
     },
   ],
-  talkFirst: {
-    ko: "코디네이터와 먼저 상의하고 싶습니다",
-    en: "I would like to talk to a coordinator first",
-    ru: "Хочу сначала поговорить с координатором",
-  },
 };
 
 /** 이 병기를 고르면 위 안내가 뜬다. */
