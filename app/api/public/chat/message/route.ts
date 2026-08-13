@@ -29,6 +29,7 @@ import {
   createDraftIntake,
   hasReachableContact,
   pickHandoffConfirm,
+  stripFalseIntakeConfirm,
 } from "@/lib/chat/publicChatHelpers";
 
 // 공개 라우트지만 same-origin fetch 라 Supabase 인증 쿠키가 함께 옴 → 로그인 사용자면 식별 가능.
@@ -238,6 +239,9 @@ export async function POST(request: NextRequest) {
       finalReply = finalReply ? `${finalReply}\n\n${ack}` : ack;
     }
     if (handOff.requested) {
+      // 연락처가 없으면 모델이 제 입으로 "접수됐다"고 한 문장을 먼저 지운다(거짓 확정 방지).
+      // 바로 아래에 붙는 안내문은 "연락처 하나만 주세요"인데, 본문이 "접수 완료"면 서로 어긋난다.
+      if (!reachable) finalReply = stripFalseIntakeConfirm(finalReply);
       finalReply += "\n\n" + pickHandoffConfirm(lang, reachable);
     }
 
