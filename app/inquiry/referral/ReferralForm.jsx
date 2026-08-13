@@ -60,6 +60,12 @@ const TR = {
   laterNote:  { ko: "지금 다 못 채워도 됩니다. 보내신 뒤에도 같은 링크에서 이어서 채울 수 있고, 준비가 되면 저희가 대학병원에 전달합니다.",
                 en: "You don't have to finish now. You can keep filling it in from the same link after sending — we forward it once it's ready.",
                 ru: "Не обязательно заполнять всё сразу. После отправки можно продолжить по той же ссылке — мы передадим, когда всё будет готово." },
+  // 2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
+  // 환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
+  // → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
+  insuranceNote: { ko: "치료비는 병원에 직접 결제하시게 됩니다. 보험을 이용하시는 경우, 결제 후 보험사에 청구하시거나 저희가 도와드릴 수 있습니다 — 병원이 보험사와 직접 정산하지는 않습니다.",
+                en: "Treatment costs are paid directly to the hospital. If you use insurance, you claim it from your insurer after payment — the hospital does not settle with insurers directly. We can help with the claim.",
+                ru: "Лечение оплачивается напрямую клинике. При использовании страховки возмещение запрашивается у страховой после оплаты — клиника не рассчитывается со страховой напрямую. Мы можем помочь с оформлением." },
   extraDocs:  { ko: "대학병원마다 요구하는 자료가 조금씩 다릅니다. 병원이 케이스를 본 뒤 추가 자료를 요청하는 경우가 있는데, 그때는 저희가 무엇이 필요한지 정리해서 따로 알려드립니다.",
                 en: "Each university hospital asks for slightly different documents. If the hospital requests more after reviewing the case, we will tell you exactly what is needed.",
                 ru: "Каждая клиника запрашивает немного разные документы. Если после изучения случая клиника попросит дополнительные материалы, мы сообщим, что именно нужно." },
@@ -207,6 +213,7 @@ export default function ReferralForm() {
           <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-xs leading-relaxed text-teal-800 md:text-sm">
             {tr("laterNote", lang)}
           </p>
+          <p className="mt-2 px-1 text-xs leading-relaxed text-gray-600">{tr("insuranceNote", lang)}</p>
         </div>
 
         {/* 묶음 */}

@@ -109,9 +109,17 @@ export const SECTIONS = [
     id: "diagnosis",
     title: L("진단 · 현재 상태", "Diagnosis & current condition", "Диагноз и состояние"),
     fields: [
+      // ⚠️ 병기는 「있으면 좋은 값」이 아니라 «회신 속도를 가르는 값»이다.
+      //    2026-08-13 이대서울병원: 지금까지 회신이 느렸던 건 우리가 보낸 케이스가 전부
+      //    말기였기 때문이고, 비교적 쉬운 케이스는 병원 코디가 바로 답하거나 교수님도 빨리 답한다.
+      //    세브란스는 아예 「4기는 이메일 의뢰를 진행하지 않는다」고 명시했다.
+      //    그런데 실측상 실서비스 18건 중 병기가 채워진 건 1건뿐이다 → 안내 문구로 유도하고,
+      //    올린 서류에서도 뽑는다(실측: 종합소견서에서 stage 3 fibrosis 추출됨).
       { name: "stage", type: "stage", req: "optional", half: true,
         label: L("병기", "Stage", "Стадия"),
-        hint: L("모르면 비워두세요.", "Leave blank if unknown.", "Оставьте пустым, если не знаете.") },
+        hint: L("아시면 꼭 골라주세요 — 병기에 따라 병원 회신이 훨씬 빨라집니다. 모르시면 서류에서 저희가 확인합니다.",
+                "Please select it if you know — the hospital replies much faster when the stage is known. If not, we read it from your documents.",
+                "Укажите, если знаете — при известной стадии клиника отвечает намного быстрее. Если нет, мы определим по документам.") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",
         label: L("진단서에 적힌 병명", "Diagnosis as written on your medical document", "Диагноз, как указано в документе"),
         hint: L(
@@ -161,9 +169,9 @@ export const SECTIONS = [
       { name: "familyHistory", type: "textarea", req: "optional", half: true,
         label: L("가족력", "Family medical history", "Семейный анамнез"),
         placeholder: L("부모·형제의 암 병력 등", "Cancer in parents or siblings, etc.", "Онкология у родителей, братьев, сестёр") },
-      { name: "covidVaccine", type: "text", req: "optional", half: true,
-        label: L("코로나 백신", "COVID-19 vaccination", "Вакцинация от COVID-19"),
-        placeholder: L("백신명 / 접종 차수", "Vaccine name / doses", "Название вакцины / число доз") },
+      // 코로나 백신 칸은 뺐다. 이대 양식엔 아직 있지만 2026-08-13 이대서울병원 방문에서
+      // 「코로나 여부는 중요하지 않다, 옛날에 코로나 심할 때 필요했던 것」이라고 확인받았다.
+      // 🛑 이대 양식에 칸이 있다고 되살리지 마라 — 양식이 실제 요구보다 뒤처져 있는 것이다.
     ],
   },
 
