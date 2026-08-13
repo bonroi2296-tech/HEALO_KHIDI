@@ -16,7 +16,7 @@ import { NextRequest } from "next/server";
 import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const GUEST_ADMISSIONS_RATE = {
   windowMs: 60 * 1000,
@@ -37,7 +37,7 @@ async function checkGuestStaffToken(
   consultationId: string
 ): Promise<Response | null> {
   const ip = getClientIp(request) || "unknown";
-  const rl = checkRateLimit(ip, GUEST_ADMISSIONS_RATE);
+  const rl = await checkRateLimitPersistent(ip, GUEST_ADMISSIONS_RATE);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },

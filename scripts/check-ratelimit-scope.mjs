@@ -7,11 +7,13 @@
 //     2026-08-13 점검에서 비밀번호 찾기·아이디 찾기·비밀번호 변경 + 토큰 링크 관문 8곳이
 //     이 상태였다. src/lib/rateLimit.ts 안에 DB 판이 이미 있었는데 절반만 옮겨져 있었다.
 //
-// 무엇을 잡나: 아래 「비밀을 지키는 경로」에서 in-memory 판을 직접 호출하는 줄.
-//   - app/api/auth/**            비밀번호·계정 관문
-//   - 경로에 [token] / [code] 가 든 라우트   (토큰·코드를 맞혀서 남의 자료를 여는 걸 막는 관문)
-//   - **/guest-join, **/rotate-token, **/claim/**  같은 부류
-// 그 외 라우트(채팅·업로드 등 도배 방지용)는 대상 아님 — 뚫려도 「비밀 노출」이 아니라 소음이라
+// 무엇을 잡나: 「비밀을 지키는 관문」에서 in-memory 판을 직접 호출하는 줄.
+// 관문 판정은 «두 갈래»다 — 경로 이름만 보면 절반을 놓친다(2026-08-13 실측: 경로판만 만들었더니
+// 토큰을 주소가 아니라 몸통·질의문자열로 받는 라우트 9곳이 통째로 빠졌다):
+//   (가) 경로:  app/api/auth/**, 경로에 [token]/[code], **/guest-join, **/rotate-token, **/claim/**
+//   (나) 내용:  파일 안에서 public_token · x-guest-token · verifyGuestToken 을 «검증»하는 라우트
+//              (토큰을 맞혀서 남의 대화·개인정보를 여는 걸 막는 관문 — 주소에 안 드러난다)
+// 그 외 라우트(업로드·번역 등 도배 방지용)는 대상 아님 — 뚫려도 「비밀 노출」이 아니라 소음이라
 // DB 왕복 비용을 물릴 이유가 없다.
 //
 // 예외 허용: 정말 in-memory 로 충분하면 그 줄 끝에 `// allow-memory-ratelimit` 주석.
@@ -24,7 +26,7 @@ import { join, extname } from "node:path";
 const ROOT = "app";
 const EXTS = new Set([".ts", ".js"]);
 
-// 비밀을 지키는 관문으로 볼 경로(슬래시 정규화 기준)
+// (가) 비밀을 지키는 관문으로 볼 «경로»(슬래시 정규화 기준)
 const SECRET_GATE = [
   /(^|\/)app\/api\/auth\//,
   /\[token\]/,
@@ -33,6 +35,11 @@ const SECRET_GATE = [
   /(^|\/)rotate-token\//,
   /(^|\/)claim\//,
 ];
+
+// (나) 주소엔 안 드러나지만 «내용»상 토큰 관문인 라우트.
+// public_token / x-guest-token 을 받아 소유권을 확인하는 곳 = 맞히기 공격 대상.
+// (기기 알림 등록의 token 처럼 「등록만 하는」 값은 여기 안 걸리게 이름을 좁게 잡았다.)
+const SECRET_BODY = /\bpublic_token\b|x-guest-token|verifyGuestToken/;
 
 const SKIP = [/\.test\./, /\.contract\./, /(^|\/)node_modules\//];
 
@@ -75,11 +82,21 @@ if (process.argv.includes("--selftest")) {
     ["app/api/auth/find-id/route.ts", true],
     ["app/api/opinions/[token]/page/route.ts", true],
     ["app/c/[code]/route.ts", true],
-    ["app/api/public/chat/start/route.ts", false],
+    ["app/api/attachments/upload/route.ts", false],
   ];
   for (const [p, want] of pathCases) {
     const got = SECRET_GATE.some((re) => re.test(p));
     if (got !== want) { bad++; console.error(`  자체시험 실패(경로): ${p} → ${got}, 기대 ${want}`); }
+  }
+  // (나) 내용 판정 — 주소엔 안 드러나는 토큰 관문
+  const bodyCases = [
+    ['const { thread_id, public_token } = body;', true],
+    ['request.headers.get("x-guest-token")', true],
+    ['const token = body?.token; // 기기 알림 등록용', false],
+  ];
+  for (const [src, want] of bodyCases) {
+    const got = SECRET_BODY.test(src);
+    if (got !== want) { bad++; console.error(`  자체시험 실패(내용): ${JSON.stringify(src)} → ${got}, 기대 ${want}`); }
   }
   if (bad) { console.error(`❌ 자체시험 ${bad}건 실패 — 가드가 고장난 상태다.`); process.exit(1); }
   console.log("✓ 자체시험 통과");
@@ -88,7 +105,9 @@ if (process.argv.includes("--selftest")) {
 
 const files = walk(ROOT, []).filter((p) => {
   const s = p.replace(/\\/g, "/");
-  return !SKIP.some((re) => re.test(s)) && SECRET_GATE.some((re) => re.test(s));
+  if (SKIP.some((re) => re.test(s))) return false;
+  if (SECRET_GATE.some((re) => re.test(s))) return true;
+  try { return SECRET_BODY.test(readFileSync(p, "utf8")); } catch { return false; }
 });
 
 const hits = [];
