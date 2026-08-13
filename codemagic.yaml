@@ -253,23 +253,12 @@ workflows:
             # 한 대가 실패해도 나머지 한 대는 찍고 넘어가게 한다(끝에서 0장이면 어차피 끊긴다).
             xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-01-first.png" || echo "⚠️ $DEV 1번 사진 실패"
 
-            # 🔔 알림 권한 팝업 닫기 — simctl 에는 «탭» 명령이 없다.
-            #    시뮬레이터는 맥의 «하드웨어 키보드»를 앱에 그대로 넘기므로,
-            #    Return 키 한 번이면 기본 버튼(Allow)이 눌려 팝업이 사라진다.
-            #    (Accessibility 권한이 없는 맥에서는 osascript 가 실패할 수 있어 || true 로 흘린다.)
-            osascript -e 'tell application "Simulator" to activate' || true
-            sleep 2
-            osascript -e 'tell application "System Events" to key code 36' || true   # 36 = Return
-            sleep 3
-            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-02-popup-closed.png" || echo "⚠️ $DEV 2번 사진 실패"
-
-            # ⬇️ 아래로 밀어 소셜 로그인(Google·Apple) 줄까지 보이게 한다.
-            #    아래 화살표 키를 여러 번 보낸다(웹뷰가 하드웨어 키보드 스크롤을 받는다).
-            for _ in 1 2 3 4 5 6 7 8; do
-              osascript -e 'tell application "System Events" to key code 125' || true  # 125 = ↓
-            done
-            sleep 3
-            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-03-scrolled.png" || echo "⚠️ $DEV 3번 사진 실패"
+            # 🚫 osascript(맥 자판 흉내내기)로 팝업을 닫으려 하지 마라 — 2026-08-13 실측:
+            #    클라우드 맥엔 화면 조작 권한(Accessibility)이 없어 «||true 로도 안 흘러가고 통째로 멈춘다»
+            #    (12분 넘게 매달려 빌드를 끊어야 했다). simctl 에는 탭 명령이 없다 = 팝업은 못 닫는다.
+            #    대신 키보드를 안 띄워서(첫 화면 주소에 focus 안 붙임) 화면 아래쪽을 비워둔다.
+            sleep 8
+            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-02-settled.png" || echo "⚠️ $DEV 2번 사진 실패"
             xcrun simctl shutdown "$UDID" || true
           done
           ls -la screenshots
