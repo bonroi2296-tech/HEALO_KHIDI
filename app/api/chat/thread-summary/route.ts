@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   // 게스트 PII(이름·이메일) 반환 → UUID 만으로는 불충분. public_token 소유까지 확인.
   // (과거엔 thread UUID 만 알면 인증 없이 이름·이메일을 가져갈 수 있었음)
   const ip = getClientIp(request);
-  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.CHAT_READ);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },

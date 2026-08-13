@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   assertSupabaseEnv();
 
   const ip = getClientIp(request);
-  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.CHAT_READ);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },

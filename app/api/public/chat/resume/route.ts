@@ -93,7 +93,7 @@ async function resume(token: string | null) {
 // thread-summary 와 동일하게 IP 기반 속도제한을 둔다(무제한 PII/쓰기 오라클 방지).
 async function rateLimited(request: NextRequest): Promise<Response | null> {
   const ip = getClientIp(request);
-  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.CHAT_READ);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },
