@@ -14,14 +14,14 @@ export const maxDuration = 60;
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { renderPdfPage } from "@/lib/documents/pdfPage";
 
 const RATE = { windowMs: 60_000, maxRequests: 120, apiName: "opinion_page" };
 
 export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE);
+  const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

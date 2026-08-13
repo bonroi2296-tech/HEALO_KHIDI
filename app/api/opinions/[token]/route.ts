@@ -17,7 +17,6 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import {
-  checkRateLimit,
   checkRateLimitPersistent,
   getClientIp,
   getRateLimitHeaders,
@@ -220,7 +219,7 @@ export async function GET(
   context: { params: Promise<{ token: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, VIEW_RATE);
+  const rl = await checkRateLimitPersistent(ip, VIEW_RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

@@ -15,7 +15,7 @@ export const maxDuration = 300;
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 
 // 번역은 한 번 하면 저장돼 다음엔 공짜다. 그래도 연타로 돈이 새지 않게 분당 6회.
@@ -23,7 +23,7 @@ const RATE = { windowMs: 60_000, maxRequests: 6, apiName: "opinion_translate" };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE);
+  const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

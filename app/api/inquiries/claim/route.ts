@@ -34,7 +34,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { resolveTier } from "@/lib/auth/accountTiers";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { decryptAuto, decryptMaybe } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusOrder } from "@/lib/khidi/caseStatus";
 import { nextStepGuide } from "@/lib/khidi/nextStepGuide";
@@ -379,7 +379,7 @@ async function isNonPatientAccount(
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, VIEW_RATE);
+  const rl = await checkRateLimitPersistent(ip, VIEW_RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }
@@ -439,7 +439,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, CLAIM_RATE);
+  const rl = await checkRateLimitPersistent(ip, CLAIM_RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }
