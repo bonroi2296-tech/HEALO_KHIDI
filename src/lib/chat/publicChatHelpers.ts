@@ -52,6 +52,7 @@ export {
   HANDOFF_RECEIVED_ACK,
   hasReachableContact,
   pickHandoffConfirm,
+  stripFalseIntakeConfirm,
 } from "./contactGate";
 
 // 클라이언트가 보낸 첨부 목록 검증·정제. 업로드 라우트가 항상 inquiry/ 접두사로
