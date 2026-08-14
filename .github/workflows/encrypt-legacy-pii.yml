@@ -1,0 +1,40 @@
+# 평문으로 남은 환자 개인정보 잠그기 — «손으로만» 돌아가는 일회성 창구.
+#
+# 왜 여기서 도나: 암호 열쇠(ENCRYPTION_KEY_V1)는 저장소 비밀값과 실서비스에만 있다.
+#   작업 상자에는 없어서 어시가 자기 손으로 못 돌린다 → 열쇠가 있는 이 창구에서 돈다.
+#
+# 기본은 «맛보기»(아무것도 안 바꾸고 몇 칸이 평문인지만 세어 보여준다).
+# 실제로 잠그려면 실행할 때 apply 를 true 로 바꾼다.
+#
+# 실행 주소: https://github.com/bonroi2296-tech/HEALO_KHIDI/actions/workflows/encrypt-legacy-pii.yml
+name: 평문 개인정보 잠그기 (수동)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "실제로 잠글까? (false = 맛보기, 아무것도 안 바꿈)"
+        type: boolean
+        default: false
+
+jobs:
+  encrypt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: 평문 칸 세기 / 잠그기
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            node scripts/encrypt-legacy-plaintext-pii.mjs --live
+          else
+            node scripts/encrypt-legacy-plaintext-pii.mjs
+          fi
