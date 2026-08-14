@@ -20,7 +20,7 @@ import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
-  lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness,
+  lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection,
 } from "@/lib/inquiry/referralSchema";
 
 const DRAFT_KEY = "healo_referral_draft_v1";
@@ -100,9 +100,14 @@ const TR = {
   barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
   barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
   barReferral:{ ko: "진단에 필요한 내용", en: "What the doctors need", ru: "Что нужно врачам" },
-  barRefMeta: { ko: "{pct}% — {n}가지가 아직 비어 있습니다",
-                en: "{pct}% — {n} item(s) still empty",
-                ru: "{pct}% — не заполнено {n} пунктов" },
+  // 「0%」는 숫자가 아니라 «실패했다»로 읽힌다. 채운 개수로 보여주고, 다음 한 칸을 지목해 준다.
+  barRefMeta: { ko: "{done}/{total} 채우셨습니다 — 채우실수록 병원 회신이 빨라집니다",
+                en: "{done} of {total} filled — the more you fill in, the faster the hospital replies",
+                ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит больница" },
+  barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
+  barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
+                en: "The more you fill in, the faster the hospital replies",
+                ru: "Чем больше заполните, тем быстрее ответит больница" },
   barRefDone: { ko: "100% — 의료진이 판단하는 데 필요한 내용이 모두 모였습니다", en: "100% — the doctors have everything they need", ru: "100% — у врачей есть всё необходимое" },
   laterNote:  { ko: "지금 다 못 채워도 됩니다. 보내신 뒤에도 같은 링크에서 이어서 채울 수 있고, 준비가 되면 저희가 대학병원에 전달합니다.",
                 en: "You don't have to finish now. You can keep filling it in from the same link after sending — we forward it once it's ready.",
@@ -297,6 +302,7 @@ export default function ReferralForm() {
 
   // 문턱 ② 의뢰 준비 — 아무것도 막지 않는다. 얼마나 왔는지만 보여준다.
   const missRef = useMemo(() => missingForReferral(values), [values]);
+  const refTotal = useMemo(() => fieldsByReq("referral").length, []);
   const readiness = useMemo(() => referralReadiness(values), [values]);
 
   // 묶음 머리의 「n칸 남음」은 «의뢰용으로 아직 빈 칸» 수. 접수 문턱과 헷갈리지 않게
@@ -310,16 +316,21 @@ export default function ReferralForm() {
 
   // 아직 안 채운 접수 칸으로 데려간다. 「6칸 남음」이라고 세어주면서 어디인지 안 알려주면
   // 사람이 화면을 뒤진다(2026-08-12 PO: «마지막 한 칸은 어디 있는지 찾기도 힘들다»).
-  const jumpToNext = () => {
-    setOpen((p) => ({ ...p, essentials: true }));
-    const name = missIntake[0] || (consentOk ? null : "consent");
+  const jumpTo = (name, secId) => {
     if (!name) return;
+    setOpen((p) => ({ ...p, [secId]: true }));
     setHighlight(name);
     requestAnimationFrame(() => {
       document.getElementById(name === "consent" ? "consent-block" : `f-${name}`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
+  const jumpToNext = () => jumpTo(missIntake[0] || (consentOk ? null : "consent"), "essentials");
+
+  const nextRef = useMemo(() => {
+    const s = nextReferralSection(values);
+    return s && { ...s, label: lab(s.title, lang) };
+  }, [values, lang]);
 
   async function send() {
     if (!canSend || sending) return;
@@ -449,7 +460,9 @@ export default function ReferralForm() {
                    pct={readiness} tone="soft"
                    meta={readiness === 100
                      ? tr("barRefDone", lang)
-                     : tr("barRefMeta", lang, { pct: readiness, n: missRef.length })} />
+                     : tr("barRefMeta", lang, { done: refTotal - missRef.length, total: refTotal })}
+                   action={nextRef ? { label: tr("barNext", lang, { f: nextRef.label, n: nextRef.n }),
+                                       onClick: () => jumpTo(nextRef.name, nextRef.secId) } : null} />
             )}
           </div>
           {!quick && (
@@ -571,14 +584,27 @@ export default function ReferralForm() {
       {headOut && footOut && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur">
           <div className="mx-auto max-w-3xl px-4 py-3">
+            {/* 접수가 끝나면 막대가 100% 로 굳어 죽는다 — 그때부터는 «의뢰 준비도»를 계속 움직인다. */}
             <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
-              <div className={`h-full rounded-full transition-all duration-200 ${canSend ? "bg-emerald-700" : "bg-gray-400"}`}
-                   style={{ width: `${Math.max(0, ((intakeTotal - intakeLeft) / intakeTotal) * 100)}%` }} />
+              <div className={`h-full rounded-full transition-all duration-200 ${canSend ? "bg-teal-700" : "bg-gray-400"}`}
+                   style={{ width: `${canSend && !quick ? Math.max(readiness, 4)
+                                                        : Math.max(0, ((intakeTotal - intakeLeft) / intakeTotal) * 100)}%` }} />
             </div>
             <div className="mt-2 flex items-center gap-3">
-              <span className="min-w-0 flex-1 truncate text-xs text-gray-600 md:text-sm">
-                {canSend ? tr("barIntakeOk", lang) : tr("barIntakeNo", lang, { n: intakeLeft })}
-                {!quick && readiness < 100 && ` · ${tr("barReferral", lang)} ${readiness}%`}
+              <span className="min-w-0 flex-1 text-xs leading-snug text-gray-600 md:text-sm">
+                <span className="block truncate">
+                  {canSend ? tr("barIntakeOk", lang) : tr("barIntakeNo", lang, { n: intakeLeft })}
+                </span>
+                {/* 「진단에 필요한 내용 0%」는 «실패»로 읽힌다 — 다음 한 칸을 이름으로 지목하고 이유를 붙인다. */}
+                {!quick && nextRef && (
+                  <span className="mt-0.5 block truncate text-xs text-gray-500">
+                    <button type="button" onClick={() => jumpTo(nextRef.name, nextRef.secId)}
+                            className="font-semibold text-teal-700 underline underline-offset-2 hover:text-teal-800">
+                      {tr("barNext", lang, { f: nextRef.label, n: nextRef.n })}
+                    </button>
+                    <span className="hidden sm:inline"> · {tr("barWhy", lang)}</span>
+                  </span>
+                )}
               </span>
               {canSend ? (
                 <button type="button" disabled={sending} onClick={send}

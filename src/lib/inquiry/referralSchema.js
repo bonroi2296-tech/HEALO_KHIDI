@@ -345,3 +345,18 @@ export function referralReadiness(values) {
   const filled = all.length - missingForReferral(values).length;
   return Math.round((filled / all.length) * 100);
 }
+
+/**
+ * 다음에 갈 «묶음» — 아직 안 채운 「의뢰에 필요한」 칸이 남은 첫 묶음.
+ * 「15가지 남음」은 막막해서 사람이 손을 놓는다. 「다음: 진단 · 현재 상태 5칸」은 누를 수 있다.
+ * ⚠️ 칸 «이름»으로 지목하지 마라 — 라벨이 「가지고 계신 서류를 그대로 올려주세요」처럼 문장이라
+ *    “다음: 가지고 계신 서류를 그대로 올려주세요” 가 된다(2026-08-14 실측).
+ */
+export function nextReferralSection(values) {
+  const miss = missingForReferral(values);
+  for (const sec of SECTIONS) {
+    const mine = sec.fields.filter((f) => miss.includes(f.name));
+    if (mine.length) return { secId: sec.id, title: sec.title, name: mine[0].name, n: mine.length };
+  }
+  return null;
+}

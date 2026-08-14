@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq } from "./referralSchema";
+import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq, nextReferralSection } from "./referralSchema";
 
 describe("환자 의뢰서 칸 정의", () => {
   it("빈 폼이면 접수 칸이 전부 「비었다」로 잡힌다", () => {
@@ -82,5 +82,36 @@ describe("환자 의뢰서 칸 정의", () => {
 
   it("없는 언어는 영어로 떨어진다", () => {
     expect(lab({ ko: "가", en: "A" }, "zh")).toBe("A");
+  });
+});
+
+describe("nextReferralSection — 「다음에 갈 묶음」", () => {
+  it("아무것도 안 채우면 첫 묶음(자료)을 가리킨다", () => {
+    const s = nextReferralSection({});
+    expect(s).not.toBeNull();
+    expect(s!.secId).toBe("documents");
+    expect(s!.n).toBeGreaterThan(0);
+  });
+
+  it("한 묶음을 다 채우면 다음 묶음으로 넘어간다", () => {
+    const first = nextReferralSection({})!;
+    const sec = SECTIONS.find((x) => x.id === first.secId)!;
+    const filled: Record<string, string> = {};
+    for (const f of sec.fields) filled[f.name] = "x";
+    const next = nextReferralSection(filled);
+    expect(next).not.toBeNull();
+    expect(next!.secId).not.toBe(first.secId);
+  });
+
+  it("다 채우면 null — 「다음」 안내가 사라진다", () => {
+    const filled: Record<string, string> = {};
+    for (const f of fieldsByReq("referral")) filled[f.name] = "x";
+    expect(nextReferralSection(filled)).toBeNull();
+  });
+
+  it("가리키는 칸은 그 묶음 안에 «실제로» 있다 (엉뚱한 곳으로 데려가지 않는다)", () => {
+    const s = nextReferralSection({})!;
+    const sec = SECTIONS.find((x) => x.id === s.secId)!;
+    expect(sec.fields.some((f) => f.name === s.name)).toBe(true);
   });
 });
