@@ -125,9 +125,11 @@ const TR = {
   extraDocs:  { ko: "환자분의 상태에 따라 의료진이 자료를 더 보자고 하는 경우가 있습니다. 그때는 저희가 무엇이 왜 필요한지 정리해서 알려드립니다.",
                 en: "Depending on your condition the doctors may ask to see more. If that happens, we will tell you exactly what is needed and why.",
                 ru: "В зависимости от состояния врачи могут запросить дополнительные материалы. В этом случае мы объясним, что именно нужно и зачем." },
-  grpOnsite:  { ko: "내원이 확정된 뒤에 주시면 되는 것 — 지금 없어도 의뢰는 진행됩니다",
-                en: "Only once the visit is confirmed — the referral proceeds without these",
-                ru: "Только после подтверждения визита — направление можно отправить и без этого" },
+  // 틀렸던 안내: «내원이 확정된 뒤» 이 아니다 — 이대서울병원은 예약 «전»에도 여권을 요구한다
+  // (2026-08-14 PO 확인). 「나중에 주셔도 된다」고 안내하면 다들 안 내고, 예약 단계에서 막힌다.
+  grpOnsite:  { ko: "여권 — 병원 예약을 잡으려면 필요합니다",
+                en: "Passport — needed to book the hospital appointment",
+                ru: "Паспорт — нужен, чтобы записать вас в больницу" },
   done:       { ko: "완료", en: "done", ru: "готово" },
   left:       { ko: "{n}칸 남음", en: "{n} left", ru: "осталось {n}" },
   optional:   { ko: "(선택)", en: "(optional)", ru: "(необязательно)" },
@@ -151,9 +153,15 @@ const TR = {
                 en: "They're marked in green in the sections below. If we read something wrong, just correct it — what you type always wins.",
                 ru: "Они отмечены зелёным в разделах ниже. Если мы прочитали неверно — просто исправьте: ваш ввод всегда важнее." },
   readingN:   { ko: "{n}개를 읽고 있습니다. 잠시만요.", en: "Reading {n} file(s)…", ru: "Читаем {n} файл(ов)…" },
-  readAs:     { ko: "이렇게 읽었습니다. 다르면 직접 고쳐주세요.",
-                en: "This is what we read. Please correct it if we got it wrong.",
-                ru: "Мы прочитали это так. Если неверно — исправьте." },
+  // 「이렇게 읽었습니다」는 «무엇을» 고치라는 건지 안 알려준다(2026-08-14 PO).
+  // 바로 아래가 «서류 종류 고르는 칸»이니 그걸 가리켜야 한다.
+  readAs:     { ko: "이런 서류로 판단했습니다. 틀리면 다시 골라주세요.",
+                en: "We think this is what the document is. If not, pick the right one below.",
+                ru: "Мы определили документ так. Если неверно — выберите нужное ниже." },
+  // 우리가 못 알아본 경우. 「판별 못 함」만 띄우면 사람이 «내가 뭐하라는 거지» 를 모른다(PO 지적).
+  pickKind:   { ko: "무슨 서류인지 저희가 못 알아봤습니다. 아래에서 골라주세요 — 모르시면 그대로 두셔도 코디네이터가 확인합니다.",
+                en: "We could not tell what this document is. Please pick it below — or leave it and a coordinator will check.",
+                ru: "Мы не смогли определить документ. Выберите ниже — или оставьте как есть, координатор проверит." },
   // 「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
   partialRead:{ ko: "큰 서류라 앞 {n}쪽만 읽었습니다(전체 {t}쪽). 나머지는 코디네이터가 직접 봅니다.",
                 en: "Large document — we read the first {n} of {t} pages. Your coordinator reviews the rest.",
@@ -183,7 +191,9 @@ const TR = {
   cdZipWait:  { ko: "창을 닫지 말고 잠시만 기다려 주세요. 보통 10~40초 걸립니다.",
                 en: "Please keep this window open — it usually takes 10–40 seconds.",
                 ru: "Не закрывайте окно — обычно это занимает 10–40 секунд." },
-  cdDone:     { ko: "파일 {n}개 준비 완료 ({from} → {to})", en: "{n} files ready ({from} → {to})", ru: "Готово: {n} файлов ({from} → {to})" },
+  // 「134MB → 134MB」는 아무것도 안 알려준다(2026-08-14 PO). 이미 압축된 영상은 더 안 줄어든다.
+  // 사람이 알아야 할 건 «몇 개가 올라갔나» 하나다.
+  cdDone:     { ko: "파일 {n}개 올리기 완료 · {to}", en: "{n} files uploaded · {to}", ru: "Загружено файлов: {n} · {to}" },
   cdRedo:     { ko: "다시 고르기", en: "Pick again", ru: "Выбрать заново" },
   // 「너무 큽니다」만 하면 코디에게 연락할 때 뭐라고 말해야 할지 모른다. 숫자를 같이 준다.
   cdTooBig:   { ko: "자료가 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 연락하실 때 「{mb} 자료」라고 말씀해 주시면 바로 도와드립니다.",
@@ -990,7 +1000,7 @@ function CdFolder({ f, lang, value, onChange }) {
       {state.phase === "done" && (
         <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
           <p className="text-sm font-semibold text-emerald-700">
-            {tr("cdDone", lang, { n: state.count, from: formatMB(state.raw), to: formatMB(state.zipped) })}
+            {tr("cdDone", lang, { n: state.count, to: formatMB(state.zipped) })}
           </p>
           <button type="button" onClick={() => { setState({ phase: "idle" }); onChange(f.name, null); }}
                   className="mt-1.5 text-xs text-gray-600 underline">{tr("cdRedo", lang)}</button>
@@ -1269,6 +1279,7 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
               <p className="text-xs text-gray-600">
                 {!d.skipped && d.readPages && d.totalPages > d.readPages
                     ? tr("partialRead", lang, { n: d.readPages, t: d.totalPages })
+                  : !d.skipped && d.kind === "unknown" ? tr("pickKind", lang)
                   : !d.skipped ? tr("readAs", lang)
                   : d.skipped === "too_large" ? tr("cantReadBig", lang)
                   : d.skipped === "unsupported_type" ? tr("cantReadType", lang)

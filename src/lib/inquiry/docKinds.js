@@ -40,9 +40,13 @@ export const DOC_KINDS = [
     L("영상 파일 (DICOM)", "Imaging files (DICOM)", "Файлы снимков (DICOM)") },
   { value: "other", needed: false, label:
     L("그 밖의 서류", "Other document", "Другой документ") },
+  // 「판별 못 함」은 «누가» 못 했단 건지·«내가 뭐해야 하는지»를 안 알려준다(2026-08-14 PO:
+  // 「사용자가 판별을 못했다는거야 아님 뭐 어쩌라는건데?」).
+  // 고르는 칸의 한 줄은 «사람이 고를 수 있는 답» 이어야 한다 — 상태 보고가 아니라.
   { value: "unknown", needed: false, label:
-    L("판별 못 함 — 코디네이터가 확인합니다", "Could not identify — a coordinator will check",
-      "Не удалось определить — проверит координатор") },
+    L("저도 잘 모르겠습니다 — 코디네이터가 확인해 주세요",
+      "I'm not sure either — please have a coordinator check",
+      "Я тоже не знаю — пусть проверит координатор") },
 ];
 
 /** 대학병원이 요구하는 종류만. 「아직 없는 것」 목록의 기준. */

@@ -62,6 +62,8 @@ export async function bundleToZip(files, { name = "medical-images.zip", onProgre
 
 export function formatMB(bytes) {
   const mb = bytes / 1024 / 1024;
+  // 「0MB」는 «고장난 것»으로 읽힌다(2026-08-14 화면 실측). 작은 건 KB 로 말한다.
+  if (mb < 0.1) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
   return mb >= 100 ? `${Math.round(mb)}MB` : `${Math.round(mb * 10) / 10}MB`;
 }
 

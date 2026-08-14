@@ -132,7 +132,9 @@ export const SECTIONS = [
                 "Insert the CD and pick the whole folder. Even with hundreds of files inside you don't have to select them one by one — we bundle it for you.",
                 "Вставьте диск и выберите папку целиком. Даже если внутри сотни файлов, выбирать по одному не нужно — мы соберём их сами.") },
 
-      // ── 내원이 확정된 뒤에 주시면 되는 것 ──
+      // ── 여권 ──
+      // 틀렸던 전제 교정(2026-08-14 PO): 이대서울병원은 «예약 전»에도 여권을 요구한다.
+      // 「내원이 확정된 뒤에 주셔도 된다」고 안내하면 다들 안 내고, 그럼 예약 단계에서 막힌다.
       // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
       //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」
       { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true, group: "onsite",
