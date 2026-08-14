@@ -13,6 +13,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { getConfirmedEmail } from "@/lib/auth/verifiedEmail";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
@@ -53,7 +54,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 이메일 복호화-매칭 폴백 (IV 랜덤이라 eq 쿼리 불가 → 최근분 끌어와 서버에서 대조, 파일럿 규모)
-    const target = (auth.email || "").trim().toLowerCase();
+    // ⚠️ 「이메일이 같으면 본인 것」이라 «인증된» 이메일만 쓴다 — 남의 주소로 가입만 해서
+    //    그 사람 문의를 열람하는 길을 막는다(2026-08-13: followup 만 막고 여기는 안 막혀 있었다).
+    const target = await getConfirmedEmail(auth.userId, auth.email);
     let byEmail: any[] = [];
     if (target) {
       const { data: recent } = await supabaseAdmin

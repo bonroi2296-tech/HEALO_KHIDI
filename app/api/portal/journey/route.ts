@@ -18,6 +18,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { getConfirmedEmail } from "@/lib/auth/verifiedEmail";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
@@ -59,7 +60,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const userId = auth.userId;
-    const userEmail = auth.email || "";
+    // 「이메일이 같으면 본인 것」 판정에는 «인증된» 주소만 쓴다 — 남의 주소로 가입만 해서
+    // 그 사람 여정을 열람하는 길을 막는다(2026-08-13 점검: 4곳 중 여기만 안 막혀 있었다).
+    const userEmail = (await getConfirmedEmail(userId, auth.email)) || "";
 
     const inquiry = await findOwnInquiry(userId, userEmail);
     const inquiryId = inquiry?.id;
