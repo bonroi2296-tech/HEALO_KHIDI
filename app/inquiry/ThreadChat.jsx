@@ -5,6 +5,7 @@ import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Papercl
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
+import { isNativeApp } from "@/lib/isNativeApp";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
 import { describeUpload } from "@/lib/uploadPolicy";
@@ -215,6 +216,10 @@ function ChatInstallHint({ lang }) {
 
   useEffect(() => {
     try {
+      // 🍎 스토어 앱 안이면 뜨면 안 된다 — InstallPrompt 와 «같은 구멍»이 여기에도 있었다(2026-08-14).
+      //    Capacitor WKWebView 는 아래 standalone 이 false 인데 이름표엔 iPhone·Safari 가 남아 있어
+      //    «아이폰 사파리 방문자»로 오인된다. 자세한 경위는 app/InstallPrompt.jsx 주석 참조.
+      if (isNativeApp()) { setHidden(true); return; }
       if (localStorage.getItem("a2hs-dismissed") === "1") { setHidden(true); return; }
       const standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
       if (standalone) { setHidden(true); return; } // 이미 설치됨
