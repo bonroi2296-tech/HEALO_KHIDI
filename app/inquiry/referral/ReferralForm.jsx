@@ -227,9 +227,11 @@ export default function ReferralForm() {
   const lang = useLang();
   const [values, setValues] = useState({});
   const [consents, setConsents] = useState({});
-  // 처음엔 「먼저, 이것만」 하나만 펼친다. 나머지는 접힌 줄로만 보인다 —
+  // 처음엔 «자료»와 «연락처» 둘만 펼친다. 나머지는 접힌 줄로만 보인다 —
   // 18칸을 한꺼번에 펼쳐 보여주니 PO 가 «아직도 뭔가 너무 많다»고 했다(2026-08-12).
-  const [open, setOpen] = useState({ essentials: true });
+  // 🛑 자료 묶음은 접지 마라(2026-08-14 PO). 접어두면 올릴 자리가 안 보여 그냥 지나치는데,
+  //    자료가 바로 「우리가 아래 칸을 대신 채워드리는」 출발점이다.
+  const [open, setOpen] = useState({ documents: true, essentials: true });
   const [savedAt, setSavedAt] = useState(null);
   const [highlight, setHighlight] = useState(null); // 「남은 칸으로」로 데려간 칸
   // null = 아직 안 고름(갈림길 화면) · "quick" = 연락처만 · "full" = 병원 제출까지

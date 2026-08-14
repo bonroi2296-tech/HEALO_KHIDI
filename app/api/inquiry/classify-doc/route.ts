@@ -79,6 +79,11 @@ Rules:
 - These uploads often bundle several documents from DIFFERENT hospitals and DIFFERENT dates, and they
   can disagree (measured 2026-08-14: the same file said cT4N1M1 on 15.07 and cT3NxM1 on 28.07).
   When they disagree, take the value from the MOST RECENT document. Never merge or average them.
+- NAMES: passports and CIS documents print the name TWICE - in Cyrillic and in Latin. For lastName and
+  firstName always return the LATIN spelling exactly as printed (the one in the machine-readable zone
+  at the bottom of a passport). Never return the Cyrillic form, never return both, never join them with
+  a slash. Measured 2026-08-14: 1 run in 3 returned "ТАТЕПБАЕВА / TATEPBAYEVA" - that value on a referral
+  form does not match the passport and the hospital rejects the registration.
 - If unsure of the kind, use "unknown".
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
