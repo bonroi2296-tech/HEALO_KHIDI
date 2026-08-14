@@ -1802,6 +1802,7 @@ export type Database = {
           source_text: string | null
           source_text_encrypted: string | null
           speaker_name: string | null
+          stt_engine: string | null
           target_lang: string
           translated_text: string | null
           translated_text_encrypted: string | null
@@ -1815,6 +1816,7 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          stt_engine?: string | null
           target_lang: string
           translated_text?: string | null
           translated_text_encrypted?: string | null
@@ -1828,6 +1830,7 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          stt_engine?: string | null
           target_lang?: string
           translated_text?: string | null
           translated_text_encrypted?: string | null

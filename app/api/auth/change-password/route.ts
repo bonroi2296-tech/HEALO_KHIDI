@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 // 비번 규칙 — 가입폼/재설정 클라와 동일 (8자 + 영문자 + 특수문자). 서버에서도 재검증.
@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
     if (!auth.success) return auth.response;
 
     const ip = getClientIp(request) || "unknown";
-    const rl = checkRateLimit(ip, CHANGE_PW_RATE);
+    // DB 기반(cross-isolate) — 인메모리는 인스턴스마다 카운터가 따로라
+    // 현재비번 무차별 대입 상한이 인스턴스 수만큼 곱해졌다.
+    const rl = await checkRateLimitPersistent(ip, CHANGE_PW_RATE);
     if (!rl.allowed) {
       return Response.json(
         { ok: false, error: "rate_limited" },

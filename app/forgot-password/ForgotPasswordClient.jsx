@@ -82,7 +82,10 @@ export default function ForgotPasswordClient() {
                   <Mail className="absolute left-4 top-3.5 text-gray-400" size={20} />
                   <input
                     id="forgot-email"
+                    name="email"
                     type="email"
+                    autoComplete="username"
+                    inputMode="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

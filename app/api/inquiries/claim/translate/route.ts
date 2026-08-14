@@ -24,7 +24,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { translateNotes, isNoteTargetLang } from "@/lib/translate/shortText";
 import { readFollowUps } from "@/lib/inquiry/followUps";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
@@ -62,7 +62,7 @@ async function allowedTexts(inq: any): Promise<Set<string>> {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE);
+  const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

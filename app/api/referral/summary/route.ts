@@ -18,7 +18,7 @@ import {
   buildReferralSummaryJson,
   buildReferralSummaryMarkdown,
 } from "@/lib/referral/buildReferralSummary";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const REFERRAL_RATE = {
   windowMs: 60 * 1000,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   // Rate limit (publicToken enum 방지)
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, REFERRAL_RATE);
+  const rl = await checkRateLimitPersistent(ip, REFERRAL_RATE);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },

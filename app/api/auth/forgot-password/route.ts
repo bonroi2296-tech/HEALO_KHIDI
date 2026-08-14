@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { siteUrl } from "@/lib/siteUrl";
 
@@ -47,8 +47,9 @@ function socialHintText(loginUrl: string) {
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
-  // 같은 IP 1분당 5회
-  const ipRl = checkRateLimit(ip, { windowMs: 60_000, maxRequests: 5, apiName: "forgot-password-ip" });
+  // 같은 IP 1분당 5회 — DB 기반(cross-isolate). 인메모리는 서버 인스턴스마다
+  // 카운터가 따로 돌아 인스턴스가 늘어난 만큼 상한이 곱해진다.
+  const ipRl = await checkRateLimitPersistent(ip, { windowMs: 60_000, maxRequests: 5, apiName: "forgot-password-ip" });
   if (!ipRl.allowed) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
@@ -65,8 +66,9 @@ export async function POST(request: Request) {
 
   // 같은 이메일 주소로의 폭탄 차단: 1분당 1회.
   // 누가 victim@x.com 으로 막 보내려 해도 1분에 1통만 나감 → 받은편지함 폭탄 불가.
-  // ponytail: 인메모리(서버 인스턴스별). 분산환경 정밀제한은 Supabase recover 제한이 담당.
-  const emailRl = checkRateLimit(email, { windowMs: 60_000, maxRequests: 1, apiName: "forgot-password-email" });
+  // 2026-08-13: 인메모리(인스턴스별) → DB 기반으로 교체. 인스턴스가 N대면 1분에 N통까지
+  // 나갈 수 있었다(상한 1회가 사실상 N회). 이제 몇 대가 뜨든 정확히 1분 1통.
+  const emailRl = await checkRateLimitPersistent(email, { windowMs: 60_000, maxRequests: 1, apiName: "forgot-password-email" });
   if (!emailRl.allowed) {
     // 폭탄 시도여도 사용자에겐 동일 성공 응답(존재/빈도 노출 방지) — 단 메일은 안 보냄
     return NextResponse.json({ ok: true });

@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { safeHash } from "@/lib/security/encryptionV2";
 
 const MAX_INACTIVE_DAYS = 30;
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, RATE_LIMITS.CHAT);
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
