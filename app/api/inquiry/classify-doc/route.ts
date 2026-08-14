@@ -25,6 +25,7 @@ import {
 } from "@/lib/rateLimit";
 import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { renderForAi } from "@/lib/documents/pdfPage";
 
 // 상한이 «둘»이고 서로 다른 것을 재는다 — 섮이지 마라(2026-08-14 PO 혼동):
 //   · 보관 200MB : 브라우저 → 저장소 직행(우리 서버를 안 거친다)
@@ -43,6 +44,8 @@ const PATH_OK = /^inquiry\/[a-f0-9-]{36}_[A-Za-z0-9._-]{1,200}$/;
 const ACCEPT = new Set([
   "application/pdf", "image/jpeg", "image/png", "image/webp",
 ]);
+
+export const maxDuration = 300; // 큰 서류는 다시 그리기 4초 + AI 8초 (실측 130.9MB 기준)
 
 const KIND_LIST = DOC_KINDS.map((k) => k.value).join("|");
 
@@ -131,29 +134,39 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true, skipped: "unsupported_type", kind: "unknown" });
   }
 
-  let bytes: ArrayBuffer;
+  // 보낼 조각들. 작은 서류는 원본 그대로(글자 데이터가 살아 있어 정확하다),
+  // 큰 서류는 «가벼운 쪽 그림»으로 다시 그려서 보낸다.
+  let parts: Array<{ inline_data: { mime_type: string; data: string } }> = [];
+  let readPages: number | null = null;
+  let totalPages: number | null = null;
   try {
     const dl = await supabaseAdmin.storage.from(BUCKET).download(path);
     if (dl.error || !dl.data) {
       return Response.json({ ok: true, skipped: "internal_error", kind: "unknown" });
     }
-    if (dl.data.size > MAX_BYTES) {
-      return Response.json({ ok: true, skipped: "too_large", kind: "unknown" });
+    const buf = Buffer.from(await dl.data.arrayBuffer());
+    if (buf.length <= MAX_BYTES) {
+      parts = [{ inline_data: { mime_type: type, data: buf.toString("base64") } }];
+    } else {
+      // 130.9MB 짜리 순수 스캔이 여기서 살아난다(실측 → 6.4MB).
+      const shrunk = await renderForAi(buf, type);
+      if (!shrunk) return Response.json({ ok: true, skipped: "too_large", kind: "unknown" });
+      parts = shrunk.pages.map((p) => ({ inline_data: { mime_type: p.mime, data: p.b64 } }));
+      readPages = shrunk.read;
+      totalPages = shrunk.total;
     }
-    bytes = await dl.data.arrayBuffer();
   } catch {
     return Response.json({ ok: true, skipped: "internal_error", kind: "unknown" });
   }
 
   try {
-    const b64 = Buffer.from(bytes).toString("base64");
     const res = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
       {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: type, data: b64 } }] }],
+          contents: [{ parts: [{ text: PROMPT }, ...parts] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
         // 종류만 판별할 땐 5~8초면 됐는데, 칸까지 뽑게 하니 응답이 길어져 45초를 넘기는
@@ -178,6 +191,8 @@ export async function POST(request: NextRequest) {
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
       patientName: parsed?.patient_name ?? null,
       docDate: parsed?.doc_date ?? null,
+      // 쪽이 많아 앞만 읽었으면 숨기지 않는다 — 화면이 「앞 N쪽만 읽었습니다」를 표시한다.
+      readPages, totalPages,
       diagnosisText: fields.diagnosisNameRaw ?? null,
       // ⚠️ «추정»이다. 화면은 이 값을 「저희가 읽었습니다 — 다르면 고쳐주세요」로 보여줘야 하고,
       //    사용자가 이미 쓴 칸은 덮어쓰면 안 된다.

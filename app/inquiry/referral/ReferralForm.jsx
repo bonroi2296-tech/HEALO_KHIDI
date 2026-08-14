@@ -155,6 +155,9 @@ const TR = {
                 en: "This is what we read. Please correct it if we got it wrong.",
                 ru: "Мы прочитали это так. Если неверно — исправьте." },
   // 「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
+  partialRead:{ ko: "큰 서류라 앞 {n}쪽만 읽었습니다(전체 {t}쪽). 나머지는 코디네이터가 직접 봅니다.",
+                en: "Large document — we read the first {n} of {t} pages. Your coordinator reviews the rest.",
+                ru: "Большой документ — прочитаны первые {n} из {t} стр. Остальное посмотрит координатор." },
   cantReadBig:{ ko: "파일이 커서 자동으로는 못 읽었습니다(12MB 넘음). 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
                 en: "Too large to read automatically (over 12MB). It did upload — your coordinator will open it. Pick the type if you know it.",
                 ru: "Файл слишком большой для автоматического чтения (более 12 МБ). Файл загружен — координатор откроет его. Если знаете тип — выберите." },
@@ -1183,6 +1186,8 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
         docDate: r.docDate ?? null,
         diagnosisText: r.diagnosisText ?? null,
         skipped: r.skipped ?? null,
+        readPages: r.readPages ?? null,
+        totalPages: r.totalPages ?? null,
       });
       // 읽어낸 값으로 «빈 칸만» 채운다. 사용자가 이미 쓴 건 절대 안 건드린다.
       if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields);
@@ -1260,7 +1265,9 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
           ) : (
             <div className="mt-2">
               <p className="text-xs text-gray-600">
-                {!d.skipped ? tr("readAs", lang)
+                {!d.skipped && d.readPages && d.totalPages > d.readPages
+                    ? tr("partialRead", lang, { n: d.readPages, t: d.totalPages })
+                  : !d.skipped ? tr("readAs", lang)
                   : d.skipped === "too_large" ? tr("cantReadBig", lang)
                   : d.skipped === "unsupported_type" ? tr("cantReadType", lang)
                   : tr("cantRead", lang)}
