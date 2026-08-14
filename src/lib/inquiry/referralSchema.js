@@ -135,7 +135,43 @@ export const SECTIONS = [
     ],
   },
 
-  // ── ② 환자 신원 ────────────────────────────────────────────────
+  // ── ② 자료 — «먼저» 받는다. 우리가 읽어서 아래 칸을 대신 채운다 ────────────────────────────────────────────────
+  {
+    id: "documents",
+    title: L("자료 첨부", "Documents", "Документы"),
+    fields: [
+      // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
+      //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
+      //    실서비스에 실제로 올라온 파일 이름: `папка 2.rar` · `мед доки.pdf` · `image01.png`.
+      //    분류는 우리가 한다 → /api/inquiry/classify-doc 가 올리는 즉시 열어보고 종류를 추정한다.
+      { name: "envelope", type: "envelope", req: "referral", kind: "medicalDoc",
+        label: L("가지고 계신 서류를 그대로 올려주세요",
+                 "Upload whatever documents you have, as they are",
+                 "Загрузите документы, которые у вас есть, как есть"),
+        hint: L("무슨 서류인지 고르실 필요 없습니다. 올려주시면 저희가 읽고 무엇이 더 필요한지 알려드립니다.",
+                "You don't have to sort them. We read them and tell you what is still missing.",
+                "Сортировать не нужно. Мы прочитаем и скажем, чего ещё не хватает.") },
+      // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
+      // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
+      //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
+      //    통제 밖으로 나가고, 링크는 죽는다. 200MB 를 넘으면 왓츠앱으로 코디가 받는다.
+      { name: "cdFolder", type: "cdFolder", req: "optional",
+        label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
+        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
+                "Insert the CD and pick the whole folder. Even with hundreds of files inside you don't have to select them one by one — we bundle it for you.",
+                "Вставьте диск и выберите папку целиком. Даже если внутри сотни файлов, выбирать по одному не нужно — мы соберём их сами.") },
+
+      // ── 내원이 확정된 뒤에 주시면 되는 것 ──
+      // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
+      //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」
+      { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true, group: "onsite",
+        label: L("여권번호", "Passport number", "Номер паспорта"),
+        hint: L("암호화해서 보관하며 의뢰서에만 쓰입니다.",
+                "Stored encrypted; used only on the referral form.",
+                "Хранится в зашифрованном виде, используется только в направлении.") },
+    ],
+  },
+  // ── ③ 환자 신원 ────────────────────────────────────────────────
   {
     id: "identity",
     title: L("환자 신원", "Patient details", "Данные пациента"),
@@ -151,7 +187,7 @@ export const SECTIONS = [
     ],
   },
 
-  // ── ③ 진단·현재 상태 ───────────────────────────────────────────
+  // ── ④ 진단·현재 상태 ───────────────────────────────────────────
   {
     id: "diagnosis",
     title: L("진단 · 현재 상태", "Diagnosis & current condition", "Диагноз и состояние"),
@@ -200,7 +236,7 @@ export const SECTIONS = [
     ],
   },
 
-  // ── ③ 병력·약물 ────────────────────────────────────────────────
+  // ── ⑤ 병력·약물 ────────────────────────────────────────────────
   {
     id: "history",
     title: L("병력 · 약물", "Medical history & medications", "Анамнез и препараты"),
@@ -222,7 +258,7 @@ export const SECTIONS = [
     ],
   },
 
-  // ── ④ 의뢰 목적·일정 ───────────────────────────────────────────
+  // ── ⑥ 의뢰 목적·일정 ───────────────────────────────────────────
   {
     id: "purpose",
     title: L("의뢰 목적 · 일정", "Purpose & schedule", "Цель обращения и сроки"),
@@ -250,42 +286,6 @@ export const SECTIONS = [
     ],
   },
 
-  // ── ⑤ 자료 첨부 ────────────────────────────────────────────────
-  {
-    id: "documents",
-    title: L("자료 첨부", "Documents", "Документы"),
-    fields: [
-      // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
-      //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
-      //    실서비스에 실제로 올라온 파일 이름: `папка 2.rar` · `мед доки.pdf` · `image01.png`.
-      //    분류는 우리가 한다 → /api/inquiry/classify-doc 가 올리는 즉시 열어보고 종류를 추정한다.
-      { name: "envelope", type: "envelope", req: "referral", kind: "medicalDoc",
-        label: L("가지고 계신 서류를 그대로 올려주세요",
-                 "Upload whatever documents you have, as they are",
-                 "Загрузите документы, которые у вас есть, как есть"),
-        hint: L("무슨 서류인지 고르실 필요 없습니다. 올려주시면 저희가 읽고 무엇이 더 필요한지 알려드립니다.",
-                "You don't have to sort them. We read them and tell you what is still missing.",
-                "Сортировать не нужно. Мы прочитаем и скажем, чего ещё не хватает.") },
-      // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
-      // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
-      //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
-      //    통제 밖으로 나가고, 링크는 죽는다. 200MB 를 넘으면 왓츠앱으로 코디가 받는다.
-      { name: "cdFolder", type: "cdFolder", req: "optional",
-        label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
-        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
-                "Insert the CD and pick the whole folder. Even with hundreds of files inside you don't have to select them one by one — we bundle it for you.",
-                "Вставьте диск и выберите папку целиком. Даже если внутри сотни файлов, выбирать по одному не нужно — мы соберём их сами.") },
-
-      // ── 내원이 확정된 뒤에 주시면 되는 것 ──
-      // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
-      //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」
-      { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true, group: "onsite",
-        label: L("여권번호", "Passport number", "Номер паспорта"),
-        hint: L("암호화해서 보관하며 의뢰서에만 쓰입니다.",
-                "Stored encrypted; used only on the referral form.",
-                "Хранится в зашифрованном виде, используется только в направлении.") },
-    ],
-  },
 ];
 
 /** 동의 — 법(PIPA) 필수 4 + 선택 1. 지금 폼과 같은 값을 그대로 쓴다. */

@@ -128,6 +128,15 @@ const TR = {
   consentTitle:{ ko: "개인정보 수집 · 이용 동의", en: "Consent", ru: "Согласие на обработку данных" },
   consentAll: { ko: "모두 동의 (선택 포함)", en: "Agree to all (including optional)", ru: "Согласен со всем (включая необязательное)" },
   reading:    { ko: "읽는 중입니다…", en: "Reading it…", ru: "Читаем документ…" },
+  fromDoc:    { ko: "올려주신 서류에서 저희가 읽은 값입니다 — 다르면 고쳐주세요",
+                en: "We read this from the document you uploaded — please correct it if it's wrong",
+                ru: "Это значение мы прочитали из вашего документа — исправьте, если оно неверно" },
+  autoFilledTitle: { ko: "서류를 읽고 {n}칸을 대신 채웠습니다",
+                en: "We read your documents and filled in {n} field(s) for you",
+                ru: "Мы прочитали ваши документы и заполнили за вас {n} полей" },
+  autoFilledBody: { ko: "아래 묶음에서 초록색 표시가 붙은 칸이 그것입니다. 저희가 잘못 읽었으면 직접 고쳐주세요 — 사람이 쓰신 값이 항상 우선입니다.",
+                en: "They're marked in green in the sections below. If we read something wrong, just correct it — what you type always wins.",
+                ru: "Они отмечены зелёным в разделах ниже. Если мы прочитали неверно — просто исправьте: ваш ввод всегда важнее." },
   readingN:   { ko: "{n}개를 읽고 있습니다. 잠시만요.", en: "Reading {n} file(s)…", ru: "Читаем {n} файл(ов)…" },
   readAs:     { ko: "이렇게 읽었습니다. 다르면 직접 고쳐주세요.",
                 en: "This is what we read. Please correct it if we got it wrong.",
@@ -202,6 +211,11 @@ export default function ReferralForm() {
   const [highlight, setHighlight] = useState(null); // 「남은 칸으로」로 데려간 칸
   // null = 아직 안 고름(갈림길 화면) · "quick" = 연락처만 · "full" = 병원 제출까지
   const [mode, setMode] = useState(null);
+  // 서류에서 읽어 «우리가 채운» 칸. 값이 아니라 «출처 표시»다 — 사용자가 고치면 목록에서 빠진다.
+  const [autoFilled, setAutoFilled] = useState({});
+  // applyAutoFill 안에서 «최신» 표시 상태를 봐야 한다 — state 는 그 시점 값이라 늦다.
+  const autoFilledRef = useRef({});
+  const valuesRef = useRef({});
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sent, setSent] = useState(null); // { inquiryId, publicToken }
@@ -232,8 +246,36 @@ export default function ReferralForm() {
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).
-  const set = (name, v) =>
+  const set = (name, v) => {
     setValues((p) => ({ ...p, [name]: typeof v === "function" ? v(p[name]) : v }));
+    // 사람이 직접 고친 칸은 「저희가 읽은 값」 표시를 뗀다 — 안 그러면 표시가 거짓말이 된다.
+    setAutoFilled((p) => {
+      if (!p[name]) return p;
+      const { [name]: _, ...rest } = p;
+      return rest;
+    });
+  };
+
+  /**
+   * 서류에서 읽어낸 값으로 «빈 칸만» 채운다.
+   * 🛑 사람이 이미 쓴 칸은 절대 덮어쓰지 않는다. 우리가 채운 칸끼리는 나중 서류가 이긴다.
+   */
+  const applyAutoFill = (fields) => {
+    // ⚠️ setValues 의 updater 안에서 계산한 결과를 «밖에서» 읽으면 안 된다 — updater 는
+    //    나중에 돌아서 바깥 변수가 비어 있다(2026-08-14 실측: 칸은 채워지는데 표시가 안 붙었다).
+    //    그래서 «지금 값»을 ref 로 보고 여기서 동기적으로 판단한다.
+    const cur = valuesRef.current;
+    const patch = {};
+    const marked = {};
+    for (const [k, v] of Object.entries(fields)) {
+      const now = cur[k];
+      const empty = now === undefined || now === null || String(now).trim() === "";
+      if (empty || autoFilledRef.current[k]) { patch[k] = v; marked[k] = true; }
+    }
+    if (!Object.keys(patch).length) return;
+    setValues((p) => ({ ...p, ...patch }));
+    setAutoFilled((p) => ({ ...p, ...marked }));
+  };
 
   // 문턱 ① 접수 — 보내기 버튼을 막는 유일한 것. 5칸 + 동의.
   const missIntake = useMemo(() => missingIntake(values), [values]);
@@ -301,6 +343,9 @@ export default function ReferralForm() {
       setSending(false);
     }
   }
+
+  useEffect(() => { autoFilledRef.current = autoFilled; }, [autoFilled]);
+  useEffect(() => { valuesRef.current = values; }, [values]);
 
   // 데려간 칸에 테두리를 잠깐 켜 둔다. 포커스만으론 어느 칸인지 눈에 안 들어온다
   // (실측: 스크롤은 됐는데 focus 가 다시 풀려 아무 표시도 안 남았다).
@@ -413,13 +458,14 @@ export default function ReferralForm() {
                       <p className="mt-4 text-xs leading-relaxed text-gray-600 md:text-sm">{lab(sec.lead, lang)}</p>
                     )}
                     {sec.id === "documents" ? (
-                      <DocSection lang={lang} sec={sec} values={values} set={set} />
+                      <DocSection lang={lang} sec={sec} values={values} set={set}
+                                  onAutoFill={applyAutoFill} autoFilled={autoFilled} />
                     ) : (
                       <div className="flex flex-wrap gap-x-4">
                         {sec.fields.map((f) => (
                           <Fragment key={f.name}>
                             <Field f={f} lang={lang} value={values[f.name]} onChange={set}
-                                   lit={highlight === f.name} />
+                                   lit={highlight === f.name} fromDoc={!!autoFilled[f.name]} />
                             {/* 안내는 «고른 칸 바로 밑»에 붙는다. 묶음 끝에 두면 758px 아래라
                                 화면 밖이고, 골라도 아무 일 없는 것처럼 보인다(2026-08-13 PO 실사용). */}
                             {f.name === "stage" && LATE_STAGES.includes(values.stage) && (
@@ -489,7 +535,7 @@ export default function ReferralForm() {
 }
 
 /* ── 칸 하나 ─────────────────────────────────────────────── */
-function Field({ f, lang, value, onChange, lit }) {
+function Field({ f, lang, value, onChange, lit, fromDoc }) {
   if (f.type === "note") {
     return <p className="mt-2 w-full text-xs leading-relaxed text-gray-600">{lab(f.label, lang)}</p>;
   }
@@ -595,6 +641,12 @@ function Field({ f, lang, value, onChange, lit }) {
         </label>
       )}
       {control}
+      {/* 우리가 서류에서 읽어 채운 칸이라는 «출처 표시». 사람이 고치면 사라진다. */}
+      {fromDoc && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+          <Check size={12} strokeWidth={3} />{tr("fromDoc", lang)}
+        </p>
+      )}
       {f.hint && <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>}
     </div>
   );
@@ -872,16 +924,27 @@ function FileBox({ f, lang, value, onChange }) {
  *   ② 아직 없는 것 — 대학병원이 요구하는 종류 중 안 온 것
  *   ③ 내원 확정 후 · 병원별 추가 요청 안내
  */
-function DocSection({ lang, sec, values, set }) {
+function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
   const docs = values.envelope || [];
   const missing = missingKinds(docs);
   const envelopeField = sec.fields.find((f) => f.name === "envelope");
   const rest = sec.fields.filter((f) => f.name !== "envelope" && f.group !== "onsite");
   const onsite = sec.fields.filter((f) => f.group === "onsite");
+  const filledCount = Object.keys(autoFilled || {}).length;
 
   return (
     <>
-      <Envelope f={envelopeField} lang={lang} docs={docs} onChange={set} />
+      <Envelope f={envelopeField} lang={lang} docs={docs} onChange={set} onAutoFill={onAutoFill} />
+
+      {/* 읽어서 «채운» 칸이 있으면 그 자리에서 알려준다 — 아래 묶음에 가서야 알면 늦다. */}
+      {filledCount > 0 && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm font-bold text-emerald-700">
+            {tr("autoFilledTitle", lang, { n: filledCount })}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-emerald-700">{tr("autoFilledBody", lang)}</p>
+        </div>
+      )}
 
       {docs.length > 0 && (
         missing.length === 0 ? (
@@ -925,7 +988,7 @@ function DocSection({ lang, sec, values, set }) {
 }
 
 /** 봉투 — 고르는 즉시 서버로 보내 「무슨 서류인지」를 물어보고 그 자리에서 보여준다. */
-function Envelope({ f, lang, docs, onChange }) {
+function Envelope({ f, lang, docs, onChange, onAutoFill }) {
   const ref = useRef(null);
   const [busy, setBusy] = useState(0);
 
@@ -981,6 +1044,8 @@ function Envelope({ f, lang, docs, onChange }) {
         diagnosisText: r.diagnosisText ?? null,
         skipped: r.skipped ?? null,
       });
+      // 읽어낸 값으로 «빈 칸만» 채운다. 사용자가 이미 쓴 건 절대 안 건드린다.
+      if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields);
       setBusy((n) => n - 1);
     }
   }

@@ -35,14 +35,61 @@ const ACCEPT = new Set([
 
 const KIND_LIST = DOC_KINDS.map((k) => k.value).join("|");
 
-const PROMPT = `You are looking at a medical document a patient uploaded. Identify what it is.
+// 종류 판별과 «칸 채우기»를 한 번에 한다. 두 번 부르면 비용도 두 배고 기다림도 두 배다.
+// 실측(2026-08-12, 실제 환자 서류): 종합소견서+수술기록+MRI 판독지 3장으로 21칸 중 14칸이 찼다.
+// 🛑 «문서에 적혀 있는 것만» 채운다. 추론·번역 금지 — 지어낸 값이 의뢰서에 실리면 안 된다.
+const PROMPT = `You are looking at medical document(s) a patient uploaded.
+
+1) Identify what the document is.
+2) Fill in ONLY the fields that are literally written in it.
+
 Return ONLY JSON:
 {"kind":"${KIND_LIST}",
  "confidence":0..1,
- "patient_name": name written on the document or null,
+ "patient_name": null,
  "doc_date": "YYYY-MM-DD" or null,
- "diagnosis_text": diagnosis exactly as written in the original language, or null}
-Rules: never translate diagnosis_text. If unsure of the kind, use "unknown" — do not guess.`;
+ "fields": {
+   "lastName": null, "firstName": null, "birthDate": "YYYY-MM-DD" or null,
+   "sex": "female"|"male"|null, "passportNo": null,
+   "diagnosisNameRaw": null, "icdCode": null,
+   "diagnosisDate": "YYYY-MM" or null, "onsetDate": null, "stage": "I"|"II"|"III"|"IV"|null,
+   "chiefComplaint": null, "testsAndTreatments": null, "localDoctorOpinion": null,
+   "pastHistoryNote": null, "medications": null, "familyHistory": null
+ }}
+
+Rules:
+- Use null for anything not stated in the document. Do NOT infer, do NOT guess, do NOT translate.
+- Copy source wording exactly, in the original language.
+- If unsure of the kind, use "unknown".
+
+DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
+where dates are written DAY.MONTH.YEAR. So "07.08.1992" means 7 August 1992 -> "1992-08-07",
+NOT 8 July. If the day/month order is genuinely ambiguous and unmarked, return null for that
+date rather than guessing. A wrong date of birth gets the patient rejected at hospital registration.`;
+
+// AI 가 채울 수 있는 칸 목록. 여기 없는 이름을 지어내도 받지 않는다.
+const FILLABLE = new Set([
+  "lastName", "firstName", "birthDate", "sex", "passportNo",
+  "diagnosisNameRaw", "icdCode", "diagnosisDate", "onsetDate", "stage",
+  "chiefComplaint", "testsAndTreatments", "localDoctorOpinion",
+  "pastHistoryNote", "medications", "familyHistory",
+]);
+const STAGES = new Set(["I", "II", "III", "IV"]);
+
+/** AI 가 준 칸 값을 «우리가 아는 모양»으로만 통과시킨다. */
+function cleanFields(raw: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [k, v] of Object.entries(raw)) {
+    if (!FILLABLE.has(k)) continue;                       // 지어낸 칸 이름 차단
+    if (typeof v !== "string" || !v.trim()) continue;
+    const val = v.trim().slice(0, 3000);
+    if (k === "sex" && val !== "female" && val !== "male") continue;
+    if (k === "stage" && !STAGES.has(val)) continue;
+    out[k] = val;
+  }
+  return out;
+}
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
@@ -87,7 +134,10 @@ export async function POST(request: NextRequest) {
           contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: file.type, data: b64 } }] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
-        signal: AbortSignal.timeout(45_000),
+        // 종류만 판별할 땐 5~8초면 됐는데, 칸까지 뽑게 하니 응답이 길어져 45초를 넘기는
+        // 경우가 생겼다(실측 2026-08-14: 2회 중 1회 시간초과 → 「못 읽었습니다」로 떨어짐).
+        // 여기서 끊기면 «읽을 수 있었던 서류»를 못 읽은 걸로 버린다. 넉넉히 준다.
+        signal: AbortSignal.timeout(120_000),
       }
     );
     if (!res.ok) return Response.json({ ok: true, skipped: "upstream_error", kind: "unknown" });
@@ -99,13 +149,17 @@ export async function POST(request: NextRequest) {
 
     // AI 가 목록에 없는 종류를 지어내면 받지 않는다.
     const kind = isKnownKind(parsed?.kind) ? parsed.kind : "unknown";
+    const fields = cleanFields(parsed?.fields);
     return Response.json({
       ok: true,
       kind,
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
       patientName: parsed?.patient_name ?? null,
       docDate: parsed?.doc_date ?? null,
-      diagnosisText: parsed?.diagnosis_text ?? null,
+      diagnosisText: fields.diagnosisNameRaw ?? null,
+      // ⚠️ «추정»이다. 화면은 이 값을 「저희가 읽었습니다 — 다르면 고쳐주세요」로 보여줘야 하고,
+      //    사용자가 이미 쓴 칸은 덮어쓰면 안 된다.
+      fields,
     });
   } catch {
     // 서버 오류 문구를 그대로 내보내지 않는다(보안 규칙). 화면은 코디 확인으로 넘긴다.
