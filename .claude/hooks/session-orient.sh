@@ -37,6 +37,31 @@ echo "- 미커밋 변경: ${dirty}개 파일"
 echo "- 최근 커밋:"
 git log --oneline -3 2>/dev/null | sed 's/^/    - /'
 
+# ── 「이 폴더가 본판보다 얼마나 낡았나」 (2026-08-14 신설) ────────────
+# 왜: 이 폴더가 8/03 에 갈라진 작업본에 **11일간** 올라타 있었는데 아무 경보도 없었다.
+#   아래 「서랍에 갇힌 작업」 경보는 «마지막 커밋 날짜»로 방치를 재는데, 자동 저장 훅이
+#   2분마다 커밋하므로 어떤 작업본이든 늘 「방금 만진 것」으로 보인다 → **영원히 안 걸린다.**
+#   그래서 방치를 «갈라진 날짜»로 다시 잰다(자동 저장이 못 지우는 값).
+# 무엇이 걸려 있나: 낡은 사본 위에서 파일을 고쳐 합치면 그 사이 남이 고친 것이 **되돌아간다.**
+#   2026-08-14 실제로 걸릴 뻔했다(본판 8/04 법 조문 교정이 이 폴더에 없어 삭제로 잡혔다).
+if [ "$branch" != "main" ] && [ "$branch" != "production" ]; then
+  behind=$(git rev-list --count "HEAD..origin/main" 2>/dev/null || echo 0)
+  fork=$(git merge-base HEAD origin/main 2>/dev/null || echo "")
+  fdate=""; fdays=""
+  if [ -n "$fork" ]; then
+    fdate=$(git log -1 --format=%cd --date=short "$fork" 2>/dev/null)
+    if [ -n "$fdate" ]; then
+      ts_now=$(date +%s 2>/dev/null); ts_f=$(date -d "$fdate" +%s 2>/dev/null || echo "")
+      [ -n "$ts_f" ] && [ -n "$ts_now" ] && fdays=$(( (ts_now - ts_f) / 86400 ))
+    fi
+  fi
+  if [ "${behind:-0}" -ge 20 ] 2>/dev/null || { [ -n "$fdays" ] && [ "$fdays" -ge 3 ]; } 2>/dev/null; then
+    echo "- 🔶 **이 폴더는 본판(main)보다 커밋 ${behind}개 뒤처졌다** — 갈라진 날 ${fdate:-?} (${fdays:-?}일 전)"
+    echo "    → 코드를 고치기 전에 둘 중 하나: ①본판 최신을 이 작업본에 흡수 ②\`git worktree add <경로> -b <새작업본> origin/main\` 으로 **본판에서 새로 따서** 거기서 작업."
+    echo "    → 이미 이 폴더에서 고쳤다면, 옮길 때 **삭제된 줄을 전수 확인**하라(남의 최신 수정이 삭제로 잡힌다)."
+  fi
+fi
+
 # ── 핸드오프 뒤처짐 경보 (C) ──────────────────────────────────
 # ⚠️ 한글 「핸드오프」만 찾으면 안 된다 (2026-07-31 실측: 인수인계 커밋 9개 중 1개만 걸렸다).
 #    이 저장소의 인수인계 커밋 제목은 대부분 `docs(handoff):` 로 «영문»이고 본문에 「인수인계」를 쓴다.
