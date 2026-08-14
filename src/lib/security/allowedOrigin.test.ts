@@ -10,9 +10,19 @@ describe("isAllowedOrigin", () => {
       "https://healwith.co.kr",
       "https://www.healwith.co.kr",
       "https://khidi.healo.kr",
-      "https://healo-abc.vercel.app",
     ]) {
       expect(isAllowedOrigin(o, prod), o).toBe(true);
+    }
+  });
+
+  it("남의(또는 우리) vercel.app 은 실서비스에서 막는다 — CSRF 방지 (2026-08-14)", () => {
+    // vercel.app 서브도메인은 누구나 선점 가능 → 접미사 허용은 CSRF 문을 연다.
+    for (const o of [
+      "https://evil.vercel.app",
+      "https://healo-abc.vercel.app",
+      "https://healo-khidi-xyz.vercel.app",
+    ]) {
+      expect(isAllowedOrigin(o, prod), o).toBe(false);
     }
   });
 

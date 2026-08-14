@@ -16,6 +16,10 @@ import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
+import { isAllowedOrigin } from "@/lib/security/allowedOrigin";
+import { logAiUsage } from "@/lib/ai/usageLog";
+
+const MODEL_ID = "gemini-flash-latest";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English", zh: "Simplified Chinese", ja: "Japanese", ko: "Korean", ru: "Russian", kz: "Kazakh",
@@ -30,27 +34,11 @@ const TRANSLATE_RATE = {
 const MAX_TEXTS = 10;
 const MAX_TEXT_LENGTH = 2000;
 
-// 허용 Origin: 배포 도메인 + localhost 개발
-function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    const host = url.hostname;
-    if (host === "localhost" || host === "127.0.0.1") return true;
-    if (host.endsWith(".vercel.app")) return true;
-    if (host === "khidi.healo.kr" || host.endsWith(".healo.kr")) return true;
-    if (host === "healwith.co.kr" || host.endsWith(".healwith.co.kr")) return true;
-    // ALLOWED_ORIGIN 환경변수로 추가 허용
-    const extra = process.env.ALLOWED_TRANSLATE_ORIGINS;
-    if (extra) {
-      const list = extra.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-      if (list.includes(host.toLowerCase())) return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
+// Origin 검사는 공용 헬퍼(@/lib/security/allowedOrigin)로 통일.
+// 예전 자체 사본은 ①환경 구분 없이 localhost 를 허용하고 ②`.vercel.app` 접미사를 통째로
+// 허용해 공용 함수보다 느슨했다(2026-08-14 보안감사). 공용 함수는 실서비스에서 우리 도메인만
+// 통과시켜 남의 사이트발 브라우저 CSRF 를 확실히 막는다. (헤더를 위조하는 비브라우저 남용은
+// 어떤 origin 검사로도 못 막으므로, 실질 천장은 아래 rate limit + checkAiGuards 다.)
 
 export async function POST(request: NextRequest) {
   // ✅ Origin 화이트리스트 검사 (외부 도메인 차단)
@@ -90,12 +78,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { text: result } = await generateText({
-      model: google("gemini-flash-latest"),
+    const { text: result, usage } = await generateText({
+      model: google(MODEL_ID),
       // 출력 토큰 상한 — 입력은 캡(10×2000자)이지만 출력은 무제한이면 비용/지연 폭주 가능(다른 AI 라우트와 동일 가드)
       maxOutputTokens: 4096,
       prompt: `Translate these ${texts.length} texts to ${LANG_NAMES[targetLang]}. Return ONLY a JSON array of translated strings in the same order. No explanation.\n\n${JSON.stringify(texts)}`,
     });
+    // 계측 — 이 경로가 logAiUsage 를 안 불러 어드민 AI 비용 화면에 「0」으로 보였다(2026-08-14 감사).
+    void logAiUsage({ surface: "text_translate", model: MODEL_ID, usage, meta: { count: texts.length, lang: targetLang } });
 
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
