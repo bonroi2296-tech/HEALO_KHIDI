@@ -203,12 +203,51 @@ async function 검사_미배포() {
   );
 }
 
+// ── 6. 예약 작업이 «돌고 있나»
+//    반복 사고 부류 1위다 — 과거 반성문 180건 중 «조용히 0건/안 나감/가짜 성공»이 22건으로 최다인데
+//    그때까지 이걸 상시로 보는 검사가 하나도 없었다(2026-08-14 실측).
+//
+//    🛑 함정: 「결과물 표」가 아니라 「실행 기록 표」를 봐라.
+//    2026-08-14 에 `auto_job_events` 가 14일간 0건이길래 「자동작업이 죽었다」고 쓸 뻔했다.
+//    그 표는 «고칠 게 있었을 때만» 쌓인다. 실제 실행 기록은 `auto_jobs` 에 있었고 14일 14회 정상이었다.
+//    → 새 항목을 추가할 땐 «작업이 돌면 «무조건» 한 줄 남는 표»를 골라라.
+const 예약작업 = [
+  { 이름: "일별 점수판", 표: "kpi_snapshots", 날짜칸: "snapshot_date", 주기일: 1 },
+  { 이름: "AI 자가시험", 표: "ai_regression_runs", 날짜칸: "run_date", 주기일: 1 },
+  { 이름: "자동 개선작업", 표: "auto_jobs", 날짜칸: "started_at", 주기일: 1 },
+];
+
+async function 검사_예약작업() {
+  const client = sb();
+  if (!client) return add("cron", "예약 작업이 돌고 있나", "못 잼", "SUPABASE_SERVICE_ROLE_KEY 없음");
+  const 멈춤 = [];
+  const 정상 = [];
+  for (const j of 예약작업) {
+    const { data, error } = await client.from(j.표).select(j.날짜칸).order(j.날짜칸, { ascending: false }).limit(1);
+    if (error) {
+      멈춤.push(`${j.이름}(읽기실패)`);
+      continue;
+    }
+    const 마지막 = data?.[0]?.[j.날짜칸];
+    if (!마지막) {
+      멈춤.push(`${j.이름}(기록 0건)`);
+      continue;
+    }
+    const 지난일 = Math.floor((Date.now() - new Date(마지막).getTime()) / 86400000);
+    // 주기 + 1일까지는 정상(오늘 것이 아직 안 돌았을 수 있다)
+    if (지난일 > j.주기일 + 1) 멈춤.push(`${j.이름}=${지난일}일째 없음`);
+    else 정상.push(`${j.이름} ${지난일}일 전`);
+  }
+  add("cron", "예약 작업이 돌고 있나", 멈춤.length ? "볼 것" : "통과", 멈춤.length ? 멈춤.join(" · ") : 정상.join(" · "));
+}
+
 const 검사들 = [
   ["pii", 검사_평문개인정보],
   ["rls", 검사_익명읽기],
   ["keys", 검사_화면에박힌열쇠],
   ["env", 검사_환경변수이름],
   ["deploy", 검사_미배포],
+  ["cron", 검사_예약작업],
 ];
 
 for (const [id, fn] of 검사들) {
