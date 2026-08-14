@@ -17,8 +17,11 @@ import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import {
   encryptSessionNotes,
   readSessionNotes,
+  readClinicalSummary,
+  readRecommendations,
   backfillSessionNotesEncryption,
 } from "@/lib/khidi/consultationNotes";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 export async function GET(
   request: NextRequest,
@@ -53,7 +56,9 @@ export async function GET(
         notes,
         notes_encrypted,
         clinical_summary,
+        clinical_summary_encrypted,
         recommendations,
+        recommendations_encrypted,
         recording_url,
         ai_summary,
         created_at,
@@ -87,11 +92,18 @@ export async function GET(
       await backfillSessionNotesEncryption(supabaseAdmin, [data as any]);
     } catch {}
 
-    // 응답: 암호문은 감추고 복호화된 notes 만 (필드명 유지)
-    const { notes, notes_encrypted, ...rest } = data as any;
+    // 응답: 암호문은 감추고 복호화된 값만 (필드명 유지 — 화면 코드 변경 불필요)
+    const {
+      notes, notes_encrypted,
+      clinical_summary, clinical_summary_encrypted,
+      recommendations, recommendations_encrypted,
+      ...rest
+    } = data as any;
     const responseData = {
       ...rest,
       notes: readSessionNotes({ id: rest.id, notes, notes_encrypted }),
+      clinical_summary: readClinicalSummary({ id: rest.id, clinical_summary, clinical_summary_encrypted }),
+      recommendations: readRecommendations({ id: rest.id, recommendations, recommendations_encrypted }),
     };
 
     return Response.json({ ok: true, data: responseData, viewerRole: access.role });
@@ -163,10 +175,16 @@ export async function PATCH(
       updateData.notes_encrypted = encryptSessionNotes(payload.notes);
       updateData.notes = null;
     }
-    if (clinicalSummary !== undefined)
-      updateData.clinical_summary = clinicalSummary;
-    if (payload.recommendations !== undefined)
-      updateData.recommendations = payload.recommendations;
+    // 임상요약·권고도 진단명·병기·치료계획이 담기는 PII — notes 와 같이 암호문으로만 저장하고
+    // 평문 칸은 비운다(2026-08-14 보안감사: 예전엔 여기만 평문으로 쌓였다).
+    if (clinicalSummary !== undefined) {
+      updateData.clinical_summary_encrypted = encryptStringNullable(clinicalSummary || null);
+      updateData.clinical_summary = null;
+    }
+    if (payload.recommendations !== undefined) {
+      updateData.recommendations_encrypted = encryptStringNullable(payload.recommendations || null);
+      updateData.recommendations = null;
+    }
 
     // doctor_user_id / translator_id 등 참가자 변경은 admin/coordinator 만
     if (access.role === "admin" || access.role === "coordinator") {

@@ -1751,3 +1751,28 @@ app/api/survey/[token]/route.ts:48
 - **PO 결정(2026-06-22): 데모용으로 그대로 유지.** 8/27 PT에서 "깔때기가 채워진 화면"을 보여주기 위함.
 - **⚠️ 리스크/숙제: KHIDI 중간평가(8/27) 점수판 숫자는 실적이 아니라 가짜다.** 평가 전까지 **실제 유치로 대체**하거나, 시연 시 데모데이터임을 명확히 구분할 것. 잔금(30%)이 걸린 공식 성과지표(목표 12건)라 정직성 중요.
 - 참고: "병원 치료확정 → 유치 자동집계(#207)" 엣지 자체는 2026-06-22 라이브 prod DB로 **실증 완료**(병원 포털 실버튼 클릭 → outcome 자동 admitted → K-01 +1). 검증용 테스트분(id 13)은 원복함.
+
+---
+
+## 🧹 2026-08-14 정리한 작업본 (원격 브랜치 삭제)
+
+PO 확인(본판에 이미 반영됨)으로 원격 작업본 9개를 삭제했다. 되살릴 일이 생기면 아래 커밋 주소로 복구된다(삭제 직전 기록).
+
+**CT 옛 방식 4개** — 본판은 이미 서버 방식으로 교체됨:
+| 브랜치 | 복구 커밋 |
+|---|---|
+| `work/ct-inline-viewer` | `7b84a1947ce8633831a5fd948ca16d6a7019bc77` |
+| `work/ct-viewer-ai-readable` | `a58890cb442611b44992d6b217c3c0d8ff662acb` |
+| `work/ct-viewer-inline-v2` | `11aa41e60455aff204b6e888cc93292f3e8aeb9e` |
+| `work/imaging-and-ai-readable` | `4ca0f016b051effa9654160936cbc37a0a5b807f` |
+
+**배포 창구 시행착오 5개 (2026-07-28)** — 창구 정상 작동 중:
+| 브랜치 | 복구 커밋 |
+|---|---|
+| `fix/deploy-side-door` | `62b059752db863f713a8e0d9e48c8d5cd93cbb87` |
+| `fix/deploy-side-door2` | `910ffb2f219d4bb87bddad26b4767f4b5987c89e` |
+| `fix/deploy-window-not-merge-window` | `8b2a4c1e32ae76d4d15e996c8285b76bfbaf2f7a` |
+| `fix/deploy-window-skipcheck` | `21b9e0f6823736cc0f58a85bc145ad97b69b696e` |
+| `work/fix-deploy-window` | `7c14c8dc936098a8d431855dbacf619e9c475c46` |
+
+복구: `git branch <이름> <커밋>` 후 push. (커밋은 참조가 사라져도 gc 전까지 남는다 — 오래되면 못 살릴 수 있으니 급하면 바로.)

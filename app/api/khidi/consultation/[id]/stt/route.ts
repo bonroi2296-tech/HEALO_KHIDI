@@ -310,12 +310,13 @@ async function saveTranslationLog(
       session_id: consultationId,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
-      speaker_name: data.speakerName ?? null,
       // 이 라우트로 들어온 줄은 정의상 «서버 받아쓰기» 다 — 클라이언트 값을 믿지 않는다.
       stt_engine: STT_ENGINES.SERVER,
+      // 화자 이름(환자 실명)도 암호문 칸에 — 예전엔 speaker_name 평문으로 줄마다 쌓였다(2026-08-14 감사).
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,
+        speakerName: data.speakerName ?? null,
       }),
     },
   ]);

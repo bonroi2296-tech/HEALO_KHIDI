@@ -98,7 +98,7 @@ export async function POST(
     const { data: rawRows, error: trErr } = await supabaseAdmin
       .from("consultation_translations")
       .select(
-        "source_lang, speaker_name, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
+        "source_lang, speaker_name, speaker_name_encrypted, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
       )
       .eq("session_id", consultationId)
       .order("created_at", { ascending: true });
