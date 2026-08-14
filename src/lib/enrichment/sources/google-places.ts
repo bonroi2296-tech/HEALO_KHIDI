@@ -126,7 +126,7 @@ export const googlePlacesSource: EnrichmentSource = {
   name: "Google Places",
   description: "사진, 평점, 리뷰, 운영시간, 전화번호, 웹사이트",
   icon: "MapPin",
-  requiredEnvKeys: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"],
+  requiredEnvKeys: ["GOOGLE_PLACES_API_KEY"],
 
   isAvailable() {
     return !!GOOGLE_API_KEY;
