@@ -16,6 +16,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB } from "@/lib/inquiry/cdBundle";
+import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
@@ -156,7 +157,25 @@ const TR = {
   cdPhone:    { ko: "휴대폰에서는 CD 폴더를 고를 수 없습니다. 지금은 문의만 보내주시면, 영상 올리는 링크를 따로 보내드립니다.",
                 en: "Phones cannot pick a CD folder. Just send the inquiry for now — we will email you a separate link for the images.",
                 ru: "С телефона нельзя выбрать папку с диска. Отправьте обращение сейчас — ссылку для загрузки снимков мы пришлём отдельно." },
+  uploading:  { ko: "올리는 중 {pct}%", en: "Uploading {pct}%", ru: "Загрузка {pct}%" },
+  upWait:     { ko: "창을 닫지 말아 주세요.", en: "Please keep this window open.", ru: "Не закрывайте окно." },
+  // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 화면 몫이다.
+  upTooBig:   { ko: "파일이 너무 큽니다(최대 200MB). 코디네이터가 대신 받아드릴게요.",
+                en: "This file is too large (200MB max). A coordinator will take it for you.",
+                ru: "Файл слишком большой (макс. 200 МБ). Координатор примет его за вас." },
+  upBadType:  { ko: "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
+                en: "This file type can't be uploaded. Please use PDF, images, or Word.",
+                ru: "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word." },
+  upFailed:   { ko: "올리지 못했습니다. 다시 시도해 주세요.", en: "Upload failed. Please try again.", ru: "Не удалось загрузить. Попробуйте ещё раз." },
+  retry:      { ko: "다시 올리기", en: "Try again", ru: "Загрузить снова" },
 };
+
+/** 서버가 준 오류 코드를 사람 말로. 코드가 그대로 화면에 나가면 안 된다. */
+function uploadErrorText(code, lang) {
+  if (code === "file_too_large") return tr("upTooBig", lang);
+  if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
+  return tr("upFailed", lang);
+}
 const tr = (k, lang, vars) => {
   let s = TR[k]?.[lang] || TR[k]?.en || TR[k]?.ko || "";
   if (vars) for (const [n, v] of Object.entries(vars)) s = s.replaceAll(`{${n}}`, v);
@@ -697,8 +716,19 @@ function CdFolder({ f, lang, value, onChange }) {
         setState({ phase: "toobig", count: files.length, raw, zipped: zip.size });
         return;
       }
+      // 묶기만 하고 안 올리면 코디는 「영상 있다는데 없는」 상태를 보게 된다.
+      setState({ phase: "uploading", count: files.length, raw, zipped: zip.size, pct: 0 });
+      const up = await uploadAttachment(zip, {
+        onProgress: (r) => setState((s) => ({ ...s, pct: Math.round(r * 100) })),
+      });
+      if (up?.ok === false) {
+        setState({ phase: "toobig", count: files.length, raw, zipped: zip.size, error: up.error });
+        return;
+      }
       setState({ phase: "done", count: files.length, raw, zipped: zip.size });
-      onChange(f.name, { name: zip.name, size: zip.size, count: files.length, rawSize: raw });
+      onChange(f.name, {
+        name: zip.name, size: zip.size, count: files.length, rawSize: raw, path: up.path,
+      });
     } catch {
       // 묶다 실패해도 막다른 골목으로 두지 않는다 — 사람에게 연결한다.
       setState({ phase: "toobig", count: files.length, raw });
@@ -719,7 +749,7 @@ function CdFolder({ f, lang, value, onChange }) {
     <div id={`f-${f.name}`} className="mt-4 w-full">
       <label className="mb-1.5 block text-sm font-semibold text-gray-700">{lab(f.label, lang)}</label>
 
-      {state.phase !== "done" && state.phase !== "toobig" && (
+      {state.phase !== "done" && state.phase !== "toobig" && state.phase !== "uploading" && (
         <button type="button" disabled={state.phase === "zipping"} onClick={() => ref.current?.click()}
                 className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
                   state.phase === "zipping" ? "border-gray-200" : "border-gray-300 hover:border-gray-400"}`}>
@@ -745,6 +775,20 @@ function CdFolder({ f, lang, value, onChange }) {
         </div>
       )}
 
+      {state.phase === "uploading" && (
+        <div className="mt-3 rounded-xl border border-gray-200 p-3">
+          <p className="flex items-center gap-2 text-sm text-gray-700">
+            <Loader2 size={14} className="animate-spin" />
+            {tr("uploading", lang, { pct: state.pct || 0 })} · {formatMB(state.zipped)}
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+            <div className="h-full rounded-full bg-teal-700 transition-all duration-200"
+                 style={{ width: `${state.pct || 0}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-gray-600">{tr("upWait", lang)}</p>
+        </div>
+      )}
+
       {state.phase === "done" && (
         <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
           <p className="text-sm font-semibold text-emerald-700">
@@ -757,7 +801,9 @@ function CdFolder({ f, lang, value, onChange }) {
 
       {state.phase === "toobig" && (
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <p className="text-sm leading-relaxed text-amber-700">{tr("cdTooBig", lang)}</p>
+          <p className="text-sm leading-relaxed text-amber-700">
+            {state.error ? uploadErrorText(state.error, lang) : tr("cdTooBig", lang)}
+          </p>
           <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
              className="mt-2 inline-block rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">
             {tr("cdHelp", lang)}
@@ -862,17 +908,35 @@ function Envelope({ f, lang, docs, onChange }) {
   const ref = useRef(null);
   const [busy, setBusy] = useState(0);
 
+  // 순서: ①저장소로 올린다(느릴 수 있다 → 진행률) ②올라간 뒤에 판별한다.
+  // 판별만 되고 파일이 안 올라가면 코디는 「있다고 하는데 없는 서류」를 보게 된다.
   async function add(files) {
     const picked = Array.from(files || []);
     if (!picked.length) return;
-    // 먼저 목록에 「읽는 중」으로 올린다 — 7초쯤 걸리므로 화면이 멈춘 것처럼 보이면 안 된다.
     const base = docs.length;
     onChange(f.name, [...docs, ...picked.map((x) => ({
-      name: x.name, size: x.size, kind: null, reading: true,
+      name: x.name, size: x.size, kind: null, uploading: true, pct: 0,
     }))]);
     setBusy((n) => n + picked.length);
 
     for (let i = 0; i < picked.length; i++) {
+      const idx = base + i;
+      const patch = (p) => onChange(f.name, (prev) => {
+        const next = [...(prev || [])];
+        next[idx] = { ...next[idx], ...p };
+        return next;
+      });
+
+      const up = await uploadAttachment(picked[i], {
+        onProgress: (r) => patch({ pct: Math.round(r * 100) }),
+      });
+      if (up?.ok === false) {
+        patch({ uploading: false, reading: false, error: up.error || "upload_failed" });
+        setBusy((n) => n - 1);
+        continue;
+      }
+      patch({ uploading: false, reading: true, path: up.path, type: up.type, error: null });
+
       let r = { kind: "unknown" };
       try {
         const fd = new FormData();
@@ -880,19 +944,14 @@ function Envelope({ f, lang, docs, onChange }) {
         const res = await fetch("/api/inquiry/classify-doc", { method: "POST", body: fd });
         const j = await res.json();
         if (j?.ok) r = j;
-      } catch { /* 판별 실패해도 파일은 그대로 남는다 — 코디가 확인한다 */ }
-      // eslint-disable-next-line no-loop-func
-      onChange(f.name, (prev) => {
-        const next = [...(prev || [])];
-        next[base + i] = {
-          ...next[base + i], reading: false,
-          kind: r.kind || "unknown",
-          confidence: r.confidence ?? null,
-          docDate: r.docDate ?? null,
-          diagnosisText: r.diagnosisText ?? null,
-          skipped: r.skipped ?? null,
-        };
-        return next;
+      } catch { /* 판별 실패해도 파일은 이미 올라가 있다 — 코디가 확인한다 */ }
+      patch({
+        reading: false,
+        kind: r.kind || "unknown",
+        confidence: r.confidence ?? null,
+        docDate: r.docDate ?? null,
+        diagnosisText: r.diagnosisText ?? null,
+        skipped: r.skipped ?? null,
       });
       setBusy((n) => n - 1);
     }
@@ -930,7 +989,20 @@ function Envelope({ f, lang, docs, onChange }) {
                     className="flex-none text-gray-500 hover:text-gray-700"><X size={14} /></button>
           </div>
 
-          {d.reading ? (
+          {d.uploading ? (
+            <div className="mt-2">
+              <p className="flex items-center gap-2 text-xs text-gray-600">
+                <Loader2 size={13} className="animate-spin" />
+                {tr("uploading", lang, { pct: d.pct || 0 })} · {tr("upWait", lang)}
+              </p>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                <div className="h-full rounded-full bg-teal-700 transition-all duration-200"
+                     style={{ width: `${d.pct || 0}%` }} />
+              </div>
+            </div>
+          ) : d.error ? (
+            <p className="mt-2 text-xs leading-relaxed text-red-600">{uploadErrorText(d.error, lang)}</p>
+          ) : d.reading ? (
             <p className="mt-2 flex items-center gap-2 text-xs text-gray-600">
               <Loader2 size={13} className="animate-spin" />{tr("reading", lang)}
             </p>
