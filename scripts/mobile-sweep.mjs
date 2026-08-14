@@ -14,15 +14,22 @@
  *
  * 쓰는 법: node scripts/mobile-sweep.mjs [기준주소]   (기본 http://localhost:3000)
  */
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 
 const BASE = process.argv[2] || "http://localhost:3000";
 const OUT = process.argv[3] || "mobile-sweep";
 
-// 폰 실측 크기(안드로이드 중형). 앱도 이 폭으로 그린다.
-const VIEWPORT = { width: 412, height: 915 };
+// 🍎 아이폰 화면을 재려면 ENGINE=webkit (2026-08-14 추가).
+// 아이폰 앱 안을 그리는 건 «사파리 엔진(WebKit)»이고, 안드로이드는 «크롬 엔진(Blink)»이다.
+// 두 엔진은 렌더링이 달라서 «아이폰에서만 깨지는» 화면이 실제로 있다.
+// 진짜 아이폰 앱(흉내기)은 맥이 있어야 띄울 수 있지만, «화면이 어떻게 그려지는가»는 이걸로 잰다.
+const ENGINE = process.env.ENGINE === "webkit" ? "webkit" : "chromium";
+const IS_IOS = ENGINE === "webkit";
+
+// 폰 실측 크기. 아이폰은 15/16 Pro 기준(393x852), 안드로이드는 중형(412x915).
+const VIEWPORT = IS_IOS ? { width: 393, height: 852 } : { width: 412, height: 915 };
 
 const ROUTES = (process.env.ROUTES || [
   "/", "/treatments", "/hospitals", "/telemedicine", "/visa", "/insurance",
@@ -49,7 +56,10 @@ function measure() {
     const r = el.getBoundingClientRect();
     if (r.height > vh * 0.4) return false; // ⚠️ 화면을 통째로 덮는 겹은 「하단 막대」가 아니다 —
     //  이 상한이 없어서 코디네이터 화면 12개가 전부 「하단가림(막대 0px)」으로 «오탐»났다(2026-08-14).
-    return r.height > 24 && r.width > vw * 0.6 && Math.abs(r.bottom - vh) < 8;
+    // ⚠️ 바닥에 «딱 붙은 것»만 세면 놓친다 — 화면 아래쪽에 «떠 있는» 안내 카드가 실제로 있다
+    //    (설치 안내 배너는 bottom 이 탭바 높이+안전영역만큼 띄워져 있어 예전 조건 <8px 에 안 걸렸다.
+    //     2026-08-14 아이폰 화면에서 이 배너가 본문을 덮고 있었는데 도구는 「이상 없음」이라 했다).
+    return r.height > 24 && r.width > vw * 0.6 && vh - r.bottom < 160;
   });
   const barTop = bars.length ? Math.min(...bars.map((b) => b.getBoundingClientRect().top)) : Infinity;
   // 잡힌 막대의 «정체»를 같이 남긴다. 이름 없이 「a「」가 걸림」만 보고하면 진짜인지 오탐인지 못 가린다.
@@ -88,15 +98,20 @@ const AS_APP = process.env.APP !== "0";
 const ANDROID_UA =
   "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/127.0.0.0 Mobile Safari/537.36";
+// 아이폰 앱은 WKWebView + Capacitor 가 이름표 끝에 표식을 붙인다(안드로이드와 같은 방식).
+const IOS_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) " +
+  "Version/18.5 Mobile/15E148 Safari/604.1";
+const BASE_UA = IS_IOS ? IOS_UA : ANDROID_UA;
 
-const browser = await chromium.launch();
+const browser = await (IS_IOS ? webkit : chromium).launch();
 const context = await browser.newContext({
-  viewport: VIEWPORT, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+  viewport: VIEWPORT, deviceScaleFactor: IS_IOS ? 3 : 2, isMobile: true, hasTouch: true,
   locale: process.env.LOCALE || "ko-KR",
   colorScheme: process.env.SCHEME === "dark" ? "dark" : "light",
-  ...(AS_APP ? { userAgent: `${ANDROID_UA} healwith-app` } : {}),
+  ...(AS_APP ? { userAgent: `${BASE_UA} healwith-app` } : {}),
 });
-console.log(`[모드] ${AS_APP ? "앱(스토어 앱 안에서 보는 화면)" : "웹(브라우저 방문자)"} · ${VIEWPORT.width}x${VIEWPORT.height} · ${BASE}`);
+console.log(`[모드] ${IS_IOS ? "🍎 아이폰(사파리 엔진)" : "🤖 안드로이드(크롬 엔진)"} · ${AS_APP ? "앱 화면" : "웹 방문자"} · ${VIEWPORT.width}x${VIEWPORT.height} · ${BASE}`);
 // 앱에서는 쿠키 배너가 아예 안 뜬다(isNativeApp 분기) → 배너 때문에 생기는 가짜 「하단가림」을 없앤다.
 // COOKIE=show 로 실행하면 «첫 방문자(배너 뜬 상태)»를 그대로 잰다 — 웹 방문자 기준 점검용.
 if (process.env.COOKIE !== "show") {
