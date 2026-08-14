@@ -83,22 +83,41 @@ const PII_TABLES = {
 async function 검사_평문개인정보() {
   const client = sb();
   if (!client) return add("pii", "평문으로 남은 개인정보", "못 잼", "SUPABASE_SERVICE_ROLE_KEY 없음");
-  const 남은 = [];
+  // 이미 알고 있고 「지금은 안 고치기로」 한 몫은 조용히 넘긴다. 안 그러면 매일 같은 경보가 울려
+  // 사람이 검사 전체를 무시하게 된다. 대신 «늘어나면» 알리고, «재검토일이 지나면» 그것도 알린다.
+  let 기준 = { 평문개인정보: { 허용: {}, 재검토일: null } };
+  try { 기준 = JSON.parse(fs.readFileSync(path.join("docs", "sweep-baseline.json"), "utf8")); } catch { /* 없으면 전부 알린다 */ }
+  const 허용 = 기준.평문개인정보?.허용 || {};
+  const 재검토일 = 기준.평문개인정보?.재검토일;
+
+  const 새로늘어난 = [];
+  const 알던것 = [];
   for (const [t, cols] of Object.entries(PII_TABLES)) {
     let r;
     try {
       r = await scanTable(client, t, cols);
     } catch (e) {
-      남은.push(`${t}(읽기실패: ${String(e.message).slice(0, 40)})`);
+      새로늘어난.push(`${t}(읽기실패: ${String(e.message).slice(0, 40)})`);
       continue;
     }
-    for (const [c, n] of Object.entries(r)) if (n.평문 > 0) 남은.push(`${t}.${c}=${n.평문}건`);
+    for (const [c, n] of Object.entries(r)) {
+      if (n.평문 === 0) continue;
+      const 키 = `${t}.${c}`;
+      if (n.평문 > (허용[키] || 0)) 새로늘어난.push(`${키}=${n.평문}건(알던 것 ${허용[키] || 0})`);
+      else 알던것.push(`${키}=${n.평문}`);
+    }
   }
+  const 기한지남 = 재검토일 && new Date().toISOString().slice(0, 10) > 재검토일;
+  if (기한지남) 새로늘어난.push(`재검토일(${재검토일}) 지남 — 이제 고칠 때`);
+
   add(
     "pii",
     "평문으로 남은 개인정보",
-    남은.length ? "볼 것" : "통과",
-    남은.length ? 남은.join(" · ") : `훑은 칸 ${Object.values(PII_TABLES).flat().length}개, 평문 0건`
+    새로늘어난.length ? "볼 것" : "통과",
+    새로늘어난.length
+      ? 새로늘어난.join(" · ")
+      : `훑은 칸 ${Object.values(PII_TABLES).flat().length}개 — 새로 늘어난 것 0건` +
+        (알던것.length ? ` (이미 아는 것 ${알던것.length}칸: ${알던것.join(", ")} · 재검토 ${재검토일})` : "")
   );
 }
 
@@ -195,11 +214,25 @@ async function 검사_미배포() {
   } catch {
     return add("deploy", "본판 ↔ 실서비스 차이", "못 잼", `실서비스 커밋 ${String(live).slice(0, 8)} 을 이 저장소에서 못 찾음`);
   }
+  // 「안 나간 게 있다」는 «정상»이다 — 배포는 하루 한 번이라 합친 직후엔 늘 차이가 난다.
+  // 이걸 경보로 삼으면 매일 울려서 사람이 곧 무시하게 된다.
+  // 진짜 이상은 «창구가 멈춘 것» → 제일 오래된 미배포 커밋이 이틀을 넘었나로 판정한다.
+  let 오래된일수 = 0;
+  if (목록.length) {
+    try {
+      const 가장오래된 = execSync(`git log -1 --format=%ct ${live}..origin/main --reverse`, { encoding: "utf8" }).trim();
+      const t = Number(execSync(`git log --format=%ct ${live}..origin/main`, { encoding: "utf8" }).trim().split("\n").pop());
+      오래된일수 = Math.floor((Date.now() / 1000 - (t || Number(가장오래된))) / 86400);
+    } catch { /* 못 재면 0 으로 둔다 — 아래에서 「볼 것」이 안 된다 */ }
+  }
   add(
     "deploy",
     "본판 ↔ 실서비스 차이",
-    목록.length ? "볼 것" : "통과",
-    목록.length ? `아직 안 나간 것 ${목록.length}건 (창구 = 매일 15:00 KST)` : "차이 없음"
+    오래된일수 > 2 ? "볼 것" : "통과",
+    목록.length
+      ? `아직 안 나간 것 ${목록.length}건, 가장 오래된 것 ${오래된일수}일째` +
+        (오래된일수 > 2 ? " ← 창구가 멈춘 것 아닌지 확인" : " (창구 = 매일 15:00 KST, 정상)")
+      : "차이 없음"
   );
 }
 
@@ -271,8 +304,20 @@ console.log(`
  · 「알림이 진짜 갔나」 → 받은편지함 확인 몫
 `);
 
-const 볼것 = rows.filter((r) => r.판정 === "볼 것").length;
-const 못잼 = rows.filter((r) => r.판정 === "못 잼").length;
-console.log(`볼 것 ${볼것}건 / 못 잼 ${못잼}건 / 통과 ${rows.length - 볼것 - 못잼}건\n`);
-// 「볼 것」이 있어도 실패로 끝내지 않는다 — 자동 검사를 막는 문지기가 아니라 «훑는 자»다.
+const 볼것 = rows.filter((r) => r.판정 === "볼 것");
+const 못잼 = rows.filter((r) => r.판정 === "못 잼");
+console.log(`볼 것 ${볼것.length}건 / 못 잼 ${못잼.length}건 / 통과 ${rows.length - 볼것.length - 못잼.length}건\n`);
+
+// 사람이 부를 때(기본)는 «막지 않는다» — 문지기가 아니라 훑는 자다.
+// 매일 도는 창구(--alert)일 때만 실패로 끝내 메일이 나가게 한다.
+//   ⚠️ 「못 잼」도 실패로 친다. 비밀값이 없어 검사가 빠졌는데 초록으로 보이는 것이
+//      2026-08 야간검사 사고(8일간 조용히 실패)의 정확한 형태였다.
+if (process.argv.includes("--alert")) {
+  const 알릴것 = [...볼것, ...못잼];
+  if (알릴것.length) {
+    console.log("── 이 창구는 «볼 것 또는 못 잼»이 있으면 일부러 실패로 끝난다(메일이 나가게) ──");
+    for (const r of 알릴것) console.log(`  ${r.판정}: ${r.이름} — ${r.근거}`);
+    process.exit(1);
+  }
+}
 process.exit(0);
