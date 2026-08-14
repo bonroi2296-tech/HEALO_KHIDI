@@ -155,9 +155,9 @@ const TR = {
                 en: "This is what we read. Please correct it if we got it wrong.",
                 ru: "Мы прочитали это так. Если неверно — исправьте." },
   // 「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
-  cantReadBig:{ ko: "파일이 커서 자동으로는 못 읽었습니다(4MB 넘음). 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
-                en: "Too large to read automatically (over 4MB). It did upload — your coordinator will open it. Pick the type if you know it.",
-                ru: "Файл слишком большой для автоматического чтения (более 4 МБ). Файл загружен — координатор откроет его. Если знаете тип — выберите." },
+  cantReadBig:{ ko: "파일이 커서 자동으로는 못 읽었습니다(12MB 넘음). 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
+                en: "Too large to read automatically (over 12MB). It did upload — your coordinator will open it. Pick the type if you know it.",
+                ru: "Файл слишком большой для автоматического чтения (более 12 МБ). Файл загружен — координатор откроет его. Если знаете тип — выберите." },
   cantReadType:{ko: "이 형식은 자동으로 못 읽습니다. 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
                 en: "This file type can't be read automatically. It did upload — your coordinator will open it. Pick the type if you know it.",
                 ru: "Этот тип файла нельзя прочитать автоматически. Файл загружен — координатор откроет его. Если знаете тип — выберите." },
@@ -1163,11 +1163,16 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
       }
       patch({ uploading: false, reading: true, path: up.path, type: up.type, error: null });
 
+      // 🛑 파일을 다시 «보내지» 마라. 그러면 서버 요청 4.5MB 벽에 걸려 4MB 넘는 서류가
+      //    전부 「못 읽음」이 된다(2026-08-14 실측: 130.9MB 서류가 그렇게 버려졌다).
+      //    이미 저장소에 올라가 있으니 «주소만» 준다 — 서버가 거기서 직접 집어온다.
       let r = { kind: "unknown" };
       try {
-        const fd = new FormData();
-        fd.append("file", picked[i]);
-        const res = await fetch("/api/inquiry/classify-doc", { method: "POST", body: fd });
+        const res = await fetch("/api/inquiry/classify-doc", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ path: up.path, type: up.type }),
+        });
         const j = await res.json();
         if (j?.ok) r = j;
       } catch { /* 판별 실패해도 파일은 이미 올라가 있다 — 코디가 확인한다 */ }

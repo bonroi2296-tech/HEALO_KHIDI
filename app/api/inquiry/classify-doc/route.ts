@@ -24,10 +24,21 @@ import {
   getRateLimitHeaders,
 } from "@/lib/rateLimit";
 import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
-// Vercel 은 요청 본문 4.5MB 벽이 있다. 그보다 큰 서류·영상은 여기로 안 보내고
-// 「코디네이터가 확인합니다」로 넘긴다(화면이 그렇게 표시한다).
-const MAX_BYTES = 4 * 1024 * 1024;
+// 상한이 «둘»이고 서로 다른 것을 재는다 — 섮이지 마라(2026-08-14 PO 혼동):
+//   · 보관 200MB : 브라우저 → 저장소 직행(우리 서버를 안 거친다)
+//   · 자동 판독      : 이 주소. 예전엔 파일을 서버로 다시 보내서 Vercel 4.5MB 벽에
+//                    걸려 4MB 가 상한이었다. 이젠 «저장소에서 서버가 직접 집어온다» →
+//                    벽이 사라지고 상한은 Gemini 요청 크기(20MB)가 된다.
+//                    base64 로 부풀면 3분의 4 배가 되므로 원본 12MB 까지만 받는다.
+const MAX_BYTES = 12 * 1024 * 1024;
+
+// 이 주소는 «서류 안의 진단명·이름·여권번호»를 돌려준다. 아무 주소나 받으면
+// 남의 서류를 읽힐 수 있다 → 문의 첨부 폴더만 허용한다.
+// (경로 자체는 난수 UUID 가 박혀 있어 찍어맞힐 수 없다 — src/lib/storage/directUpload.ts)
+const BUCKET = "attachments";
+const PATH_OK = /^inquiry\/[a-f0-9-]{36}_[A-Za-z0-9._-]{1,200}$/;
 
 const ACCEPT = new Set([
   "application/pdf", "image/jpeg", "image/png", "image/webp",
@@ -104,34 +115,45 @@ export async function POST(request: NextRequest) {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!key) return Response.json({ ok: false, error: "not_configured" }, { status: 503 });
 
-  let file: File | null = null;
+  let path = "";
+  let type = "";
   try {
-    const form = await request.formData();
-    const f = form.get("file");
-    if (f instanceof File) file = f;
+    const body = await request.json();
+    path = typeof body?.path === "string" ? body.path : "";
+    type = typeof body?.type === "string" ? body.type : "";
   } catch {
     return Response.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
-  if (!file) return Response.json({ ok: false, error: "file_required" }, { status: 400 });
+  if (!PATH_OK.test(path)) return Response.json({ ok: false, error: "file_required" }, { status: 400 });
 
-  // 큰 파일·영상은 판별 대상이 아니다. 오류가 아니라 «못 봤다»로 돌려준다 —
-  // 화면은 그걸 「코디네이터가 확인합니다」로 그린다.
-  if (file.size > MAX_BYTES) {
-    return Response.json({ ok: true, skipped: "too_large", kind: "unknown" });
-  }
-  if (!ACCEPT.has(file.type)) {
+  // 판별 안 되는 건 오류가 아니라 «못 봤다»로 돌려준다 — 화면이 이유를 그린다.
+  if (!ACCEPT.has(type)) {
     return Response.json({ ok: true, skipped: "unsupported_type", kind: "unknown" });
   }
 
+  let bytes: ArrayBuffer;
   try {
-    const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+    const dl = await supabaseAdmin.storage.from(BUCKET).download(path);
+    if (dl.error || !dl.data) {
+      return Response.json({ ok: true, skipped: "internal_error", kind: "unknown" });
+    }
+    if (dl.data.size > MAX_BYTES) {
+      return Response.json({ ok: true, skipped: "too_large", kind: "unknown" });
+    }
+    bytes = await dl.data.arrayBuffer();
+  } catch {
+    return Response.json({ ok: true, skipped: "internal_error", kind: "unknown" });
+  }
+
+  try {
+    const b64 = Buffer.from(bytes).toString("base64");
     const res = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
       {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: file.type, data: b64 } }] }],
+          contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: type, data: b64 } }] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
         // 종류만 판별할 땐 5~8초면 됐는데, 칸까지 뽑게 하니 응답이 길어져 45초를 넘기는
