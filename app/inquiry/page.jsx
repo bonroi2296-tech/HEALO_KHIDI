@@ -1,11 +1,13 @@
 import { Suspense } from "react";
-import ReferralForm from "./referral/ReferralForm";
+import UnifiedInquiryFunnel from "./_components/UnifiedInquiryFunnel";
 import { localizedMeta } from "@/lib/i18n/metadata";
 
-// ⚠️ 이 작업방(worktree)에서만 새 의뢰서로 바꿔 끼웠다 — 개편 화면을 보려고 매번 주소를
-//    따로 치는 게 오히려 사고를 냈다(PO 가 /inquiry 로 들어와 옛 폼을 보고 «아직 그대로인데?»).
-//    옛 폼은 지우지 않고 /inquiry/old 에 그대로 살려뒀다(대조용).
-//    실서비스 반영은 PO 확정 뒤에.
+// 「무료 사전 상담 신청」을 누르면 여기로 온다.
+// 이 화면은 «채널 선택»이다 — AI 상담사 / 사람 상담사 / 문의서 세 갈래.
+// 그중 「문의서」를 고르면 새 의뢰서(/inquiry/referral)로 넘어간다.
+//
+// 🛑 이 자리를 새 폼으로 «갈아끼우지» 마라. 2026-08-14 에 그렇게 했다가 세 갈래 화면이
+//    통째로 사라졌다(PO 지적). AI 챗·메신저 갈래는 여기서만 들어갈 수 있다.
 export async function generateMetadata() {
   return localizedMeta(baseMeta, "seo.inquiry.title", "seo.inquiry.desc");
 }
@@ -18,8 +20,10 @@ const baseMeta = {
 
 export default function InquiryPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
-      <ReferralForm />
-    </Suspense>
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50 py-3 md:py-8">
+      <Suspense fallback={<div className="flex items-center justify-center py-24"><div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" /></div>}>
+        <UnifiedInquiryFunnel />
+      </Suspense>
+    </div>
   );
 }

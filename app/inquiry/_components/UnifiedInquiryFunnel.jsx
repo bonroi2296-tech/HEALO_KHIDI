@@ -866,7 +866,9 @@ export default function UnifiedInquiryFunnel() {
         hoverBorder: "hover:border-blue-500",
         onClick: () => {
           safeEvent(GA_EVENTS.CHOOSE_CHANNEL, { channel: "form" });
-          setPhase("step1");
+          // 폼은 새 의뢰서(/inquiry/referral)로 넘긴다. 이 파일의 step1/step2 는 옛 폼이라
+          // 더 이상 안 쓴다 — 새 폼이 확정되면 그 코드는 지운다.
+          router.push("/inquiry/referral");
         },
       },
     ];
@@ -1016,7 +1018,7 @@ export default function UnifiedInquiryFunnel() {
           <p className="text-sm text-gray-500 mb-3">{tl("humanFallbackText", lang)}</p>
           <button
             type="button"
-            onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); setPhase("step1"); }}
+            onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); router.push("/inquiry/referral"); }}
             className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold text-sm hover:bg-teal-800 transition"
           >
             <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
