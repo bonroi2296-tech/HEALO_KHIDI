@@ -21,7 +21,11 @@ const REQUIRED_VARS = {
 
 const OPTIONAL_VARS = {
   NEXT_PUBLIC_SITE_URL: 'Public base URL for emails/sitemap/canonical/survey links (should be https://healwith.co.kr in prod)',
-  GOOGLE_MAPS_API_KEY: 'Google Maps API key',
+  // ⚠️ 이름 주의: 코드가 실제로 읽는 건 «NEXT_PUBLIC_» 이 붙은 쪽이다
+  //    (src/components/GoogleMap.jsx). 2026-08-14 까지 이 검사기는 앞머리 없는
+  //    GOOGLE_MAPS_API_KEY 를 보고 있어서, 진짜 열쇠가 빠져도 아무 말을 안 했다.
+  //    그 결과 실서비스에서 병원 지도가 «조용히» 안 뜨고 회색 위치 상자만 나왔다.
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: 'Google Maps 열쇠 — 없으면 병원 상세의 지도가 회색 위치 상자로 대체됨(의도된 대체 화면)',
   // ⚠️ GA4 측정ID는 env 가 아니라 «코드 상수»(src/lib/ga.ts 의 GA_ID)가 단일 진실원천이다.
   //    예전 Vercel env 가 옛 실험 속성으로 오염돼 있어 일부러 코드로 고정했다. 이 env 는
   //    설정해도 쓰이지 않으니 «미설정»이 정상 — 속성을 바꾸려면 src/lib/ga.ts 를 고칠 것.
