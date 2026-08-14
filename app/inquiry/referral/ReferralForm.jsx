@@ -153,9 +153,10 @@ const TR = {
                 ru: "Не закрывайте окно — обычно это занимает 10–40 секунд." },
   cdDone:     { ko: "파일 {n}개 준비 완료 ({from} → {to})", en: "{n} files ready ({from} → {to})", ru: "Готово: {n} файлов ({from} → {to})" },
   cdRedo:     { ko: "다시 고르기", en: "Pick again", ru: "Выбрать заново" },
-  cdTooBig:   { ko: "파일이 커서 바로 올리기 어렵습니다. 코디네이터가 대신 받아드릴게요.",
-                en: "The files are too large to upload here. A coordinator will take them for you.",
-                ru: "Файлы слишком большие для загрузки здесь. Координатор примет их за вас." },
+  // 「너무 큽니다」만 하면 코디에게 연락할 때 뭐라고 말해야 할지 모른다. 숫자를 같이 준다.
+  cdTooBig:   { ko: "자료가 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 연락하실 때 「{mb} 자료」라고 말씀해 주시면 바로 도와드립니다.",
+                en: "These files are {mb}, over the 200MB limit here. A coordinator will take them for you — just mention “{mb} of files” when you contact us.",
+                ru: "Объём файлов — {mb}, это больше лимита в 200 МБ. Координатор примет их за вас — при обращении просто скажите «{mb} материалов»." },
   cdHelp:     { ko: "코디네이터에게 연락하기", en: "Contact a coordinator", ru: "Связаться с координатором" },
   cdPhone:    { ko: "휴대폰에서는 CD 폴더를 고를 수 없습니다. 지금은 문의만 보내주시면, 영상 올리는 링크를 따로 보내드립니다.",
                 en: "Phones cannot pick a CD folder. Just send the inquiry for now — we will email you a separate link for the images.",
@@ -163,9 +164,9 @@ const TR = {
   uploading:  { ko: "올리는 중 {pct}%", en: "Uploading {pct}%", ru: "Загрузка {pct}%" },
   upWait:     { ko: "창을 닫지 말아 주세요.", en: "Please keep this window open.", ru: "Не закрывайте окно." },
   // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 화면 몫이다.
-  upTooBig:   { ko: "이 파일은 200MB가 넘어 여기서는 못 올립니다. 코디네이터가 대신 받아드릴게요 — 올리는 시간을 버리지 않으시도록 미리 알려드립니다.",
-                en: "This file is over 200MB, so it can't be uploaded here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
-                ru: "Этот файл больше 200 МБ — здесь его загрузить нельзя. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
+  upTooBig:   { ko: "이 파일은 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 올리는 시간을 버리지 않으시도록 미리 알려드립니다.",
+                en: "This file is {mb}, over the 200MB limit here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
+                ru: "Этот файл — {mb}, это больше лимита в 200 МБ. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
   // 고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
   sizeHint:   { ko: "한 파일이 200MB를 넘으면 여기서는 못 올립니다. 그럴 땐 코디네이터가 대신 받아드리니 그냥 알려만 주세요.",
                 en: "Files over 200MB can't be uploaded here. If that happens, just tell us — a coordinator will take them for you.",
@@ -178,8 +179,8 @@ const TR = {
 };
 
 /** 서버가 준 오류 코드를 사람 말로. 코드가 그대로 화면에 나가면 안 된다. */
-function uploadErrorText(code, lang) {
-  if (code === "file_too_large") return tr("upTooBig", lang);
+function uploadErrorText(code, lang, bytes) {
+  if (code === "file_too_large") return tr("upTooBig", lang, { mb: bytes ? formatMB(bytes) : "200MB+" });
   if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
   return tr("upFailed", lang);
 }
@@ -820,7 +821,9 @@ function CdFolder({ f, lang, value, onChange }) {
       {state.phase === "toobig" && (
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm leading-relaxed text-amber-700">
-            {state.error ? uploadErrorText(state.error, lang) : tr("cdTooBig", lang)}
+            {state.error
+              ? uploadErrorText(state.error, lang)
+              : tr("cdTooBig", lang, { mb: formatMB(state.zipped ?? state.raw) })}
           </p>
           <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
              className="mt-2 inline-block rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">
@@ -1028,7 +1031,7 @@ function Envelope({ f, lang, docs, onChange }) {
             </div>
           ) : d.error ? (
             <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs leading-relaxed text-amber-700">{uploadErrorText(d.error, lang)}</p>
+              <p className="text-xs leading-relaxed text-amber-700">{uploadErrorText(d.error, lang, d.size)}</p>
               {d.error === "file_too_large" && (
                 <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
                    className="mt-2 inline-block rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white">
