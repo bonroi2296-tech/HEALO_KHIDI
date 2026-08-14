@@ -102,7 +102,8 @@ export async function GET(
 
   // 응답: 암호문은 감추고 복호화된 이름만 (필드명 유지 — 화면 코드 변경 불필요)
   const rows = (raw as any[]).map((r) => {
-    const { display_name_encrypted, ...rest } = r;
+    const rest = { ...r };
+    delete rest.display_name_encrypted;
     return { ...rest, display_name: readTranscriptField(r.display_name_encrypted, r.display_name) };
   });
   return Response.json({
