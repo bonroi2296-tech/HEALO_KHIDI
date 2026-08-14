@@ -64,3 +64,44 @@ export function formatMB(bytes) {
   const mb = bytes / 1024 / 1024;
   return mb >= 100 ? `${Math.round(mb)}MB` : `${Math.round(mb * 10) / 10}MB`;
 }
+
+/**
+ * 끌어다 놓은 것에서 파일을 «폴더 안까지» 전부 꺼낸다.
+ *
+ * 왜 필요한가: CD 폴더를 통째로 끌어다 놓으면 `dataTransfer.files` 에는 아무것도 안 들어온다
+ * (폴더는 파일이 아니다). 안을 보려면 `webkitGetAsEntry()` 로 한 겹씩 내려가야 한다.
+ *
+ * ⚠️ `readEntries` 는 한 번에 «최대 100개»만 준다 — 한 번만 부르면 파일이 조용히 잘린다.
+ *    빈 배열이 올 때까지 반복해야 한다. CD 한 장이 수백~수천 장이라 이건 반드시 걸린다.
+ */
+export async function filesFromDrop(dataTransfer, { maxFiles = 20000 } = {}) {
+  const entries = Array.from(dataTransfer?.items || [])
+    .map((it) => (typeof it.webkitGetAsEntry === "function" ? it.webkitGetAsEntry() : null))
+    .filter(Boolean);
+  // 폴더를 못 읽는 브라우저면 평범한 파일 목록으로 물러선다.
+  if (!entries.length) return Array.from(dataTransfer?.files || []);
+
+  const out = [];
+  const walk = async (entry, prefix) => {
+    if (out.length >= maxFiles) return;
+    if (entry.isFile) {
+      const file = await new Promise((res) => entry.file(res, () => res(null)));
+      if (!file) return;
+      // 폴더 경로를 살려둔다 — 걸러내기(pickImagingFiles)가 이 값을 본다.
+      try {
+        Object.defineProperty(file, "webkitRelativePath", { value: prefix + file.name });
+      } catch { /* 못 붙여도 파일 자체는 쓸 수 있다 */ }
+      out.push(file);
+      return;
+    }
+    if (!entry.isDirectory) return;
+    const reader = entry.createReader();
+    for (;;) {
+      const batch = await new Promise((res) => reader.readEntries(res, () => res([])));
+      if (!batch.length) break;                      // ← 여기서 끝. 한 번만 부르면 100개에서 잘린다
+      for (const e of batch) await walk(e, prefix + entry.name + "/");
+    }
+  };
+  for (const e of entries) await walk(e, "");
+  return out;
+}

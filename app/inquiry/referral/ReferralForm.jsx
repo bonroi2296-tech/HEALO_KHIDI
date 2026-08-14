@@ -15,7 +15,7 @@ import { DOC_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
-import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB } from "@/lib/inquiry/cdBundle";
+import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
@@ -106,6 +106,8 @@ const TR = {
                 ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит больница" },
   barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
+  orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
+  dropFolder: { ko: "폴더를 여기에 놓으세요", en: "Drop the folder here", ru: "Отпустите папку здесь" },
   dropNow:    { ko: "여기에 놓으세요", en: "Drop here", ru: "Отпустите здесь" },
   barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
                 en: "The more you fill in, the faster the hospital replies",
@@ -152,7 +154,14 @@ const TR = {
   readAs:     { ko: "이렇게 읽었습니다. 다르면 직접 고쳐주세요.",
                 en: "This is what we read. Please correct it if we got it wrong.",
                 ru: "Мы прочитали это так. Если неверно — исправьте." },
-  cantRead:   { ko: "이 파일은 저희가 못 읽었습니다. 코디네이터가 직접 확인합니다 — 아시면 골라주세요.",
+  // 「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
+  cantReadBig:{ ko: "파일이 커서 자동으로는 못 읽었습니다(4MB 넘음). 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
+                en: "Too large to read automatically (over 4MB). It did upload — your coordinator will open it. Pick the type if you know it.",
+                ru: "Файл слишком большой для автоматического чтения (более 4 МБ). Файл загружен — координатор откроет его. Если знаете тип — выберите." },
+  cantReadType:{ko: "이 형식은 자동으로 못 읽습니다. 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
+                en: "This file type can't be read automatically. It did upload — your coordinator will open it. Pick the type if you know it.",
+                ru: "Этот тип файла нельзя прочитать автоматически. Файл загружен — координатор откроет его. Если знаете тип — выберите." },
+  cantRead:   { ko: "이 파일은 저희가 못 읽었습니다. 올라가긴 했으니 코디네이터가 직접 확인합니다 — 아시면 골라주세요.",
                 en: "We couldn't read this one. A coordinator will check it — pick the type if you know it.",
                 ru: "Этот файл прочитать не удалось. Проверит координатор — выберите тип, если знаете." },
   stillNeed:  { ko: "이런 서류가 아직 없습니다", en: "These are still missing", ru: "Ещё не хватает" },
@@ -861,6 +870,7 @@ function Toggle({ checked, onClick, label, className = "" }) {
 function CdFolder({ f, lang, value, onChange }) {
   const ref = useRef(null);
   const [state, setState] = useState({ phase: "idle" }); // idle | picked | zipping | done | toobig
+  const [over, setOver] = useState(false);
   const [canPick, setCanPick] = useState(true);
 
   useEffect(() => { setCanPick(canPickFolder()); }, []);
@@ -920,10 +930,24 @@ function CdFolder({ f, lang, value, onChange }) {
 
       {state.phase !== "done" && state.phase !== "toobig" && state.phase !== "uploading" && (
         <button type="button" disabled={state.phase === "zipping"} onClick={() => ref.current?.click()}
+                onDragEnter={(e) => { e.preventDefault(); setOver(true); }}
+                onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+                onDragLeave={() => setOver(false)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setOver(false);
+                  // 폴더째 놓으면 dataTransfer.files 는 «비어 있다» — 안을 직접 훑어야 한다.
+                  onPick(await filesFromDrop(e.dataTransfer));
+                }}
                 className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
-                  state.phase === "zipping" ? "border-gray-200" : "border-gray-300 hover:border-gray-400"}`}>
-          <span className="block text-sm font-semibold text-gray-700">{tr("cdPick", lang)}</span>
-          <span className="mt-1 block text-xs text-gray-600">{tr("cdPickSub", lang)}</span>
+                  state.phase === "zipping" ? "border-gray-200"
+                    : over ? "border-teal-700 bg-teal-50" : "border-gray-300 hover:border-gray-400"}`}>
+          <span className="block text-sm font-semibold text-gray-700">
+            {over ? tr("dropFolder", lang) : tr("cdPick", lang)}
+          </span>
+          <span className="mt-1 block text-xs text-gray-600">
+            {over ? " " : `${tr("cdPickSub", lang)} · ${tr("orDropFolder", lang)}`}
+          </span>
         </button>
       )}
       {/* webkitdirectory: 폴더 안 파일 전부를 한 번에 넘겨준다 */}
@@ -1231,7 +1255,10 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
           ) : (
             <div className="mt-2">
               <p className="text-xs text-gray-600">
-                {d.skipped ? tr("cantRead", lang) : tr("readAs", lang)}
+                {!d.skipped ? tr("readAs", lang)
+                  : d.skipped === "too_large" ? tr("cantReadBig", lang)
+                  : d.skipped === "unsupported_type" ? tr("cantReadType", lang)
+                  : tr("cantRead", lang)}
               </p>
               {/* ⚠️ AI 판독은 «추정»이다. 고르는 칸으로 두어 사용자가 언제든 고칠 수 있게 한다
                   (PO 결정 2026-08-12). 의료 서류라 우리 추정을 사실로 박으면 안 된다. */}

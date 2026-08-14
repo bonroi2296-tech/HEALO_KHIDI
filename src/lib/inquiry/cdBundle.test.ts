@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickImagingFiles, sumBytes, formatMB, isProbablyPhone } from "./cdBundle";
+import { pickImagingFiles, sumBytes, formatMB, isProbablyPhone , filesFromDrop } from "./cdBundle";
 
 const f = (name: string, size = 1000) => ({ name, size });
 
@@ -33,5 +33,44 @@ describe("병원 CD 고르기", () => {
   it("폰 판별", () => {
     // navigator 가 없는 곳(서버)에서도 터지지 않아야 한다
     expect(typeof isProbablyPhone()).toBe("boolean");
+  });
+});
+
+// ── 끌어다 놓은 폴더 훑기 ────────────────────────────────────────────────
+/** 진짜 브라우저의 FileSystemEntry 흉내. readEntries 는 100개씩 끊어 준다. */
+function fakeDir(name: string, fileNames: string[]): any {
+  let sent = 0;
+  return {
+    isFile: false, isDirectory: true, name,
+    createReader: () => ({
+      readEntries(cb: (e: any[]) => void) {
+        const batch = fileNames.slice(sent, sent + 100).map((n) => ({
+          isFile: true, isDirectory: false, name: n,
+          file: (ok: (f: any) => void) => ok(new File(["x"], n)),
+        }));
+        sent += batch.length;
+        cb(batch);
+      },
+    }),
+  };
+}
+const drop = (entry: any) => ({ items: [{ webkitGetAsEntry: () => entry }], files: [] });
+
+describe("filesFromDrop — 폴더째 끌어다 놓기", () => {
+  it("🛑 100개가 넘어도 «전부» 꺼낸다 (readEntries 는 한 번에 100개까지만 준다)", async () => {
+    const names = Array.from({ length: 250 }, (_, i) => `IM${i}.dcm`);
+    const got = await filesFromDrop(drop(fakeDir("DICOM", names)) as any);
+    expect(got.length).toBe(250);
+  });
+
+  it("폴더 안 경로를 살려둔다 — 걸러내기가 이 값을 본다", async () => {
+    const got = await filesFromDrop(drop(fakeDir("DICOM", ["IM1.dcm"])) as any);
+    expect((got[0] as any).webkitRelativePath).toBe("DICOM/IM1.dcm");
+  });
+
+  it("폴더를 못 읽는 브라우저면 평범한 파일 목록으로 물러선다", async () => {
+    const f = new File(["x"], "a.pdf");
+    const got = await filesFromDrop({ items: [{}], files: [f] } as any);
+    expect(got.length).toBe(1);
   });
 });
