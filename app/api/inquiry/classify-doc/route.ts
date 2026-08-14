@@ -74,6 +74,11 @@ Return ONLY JSON:
 Rules:
 - Use null for anything not stated in the document. Do NOT infer, do NOT guess, do NOT translate.
 - Copy source wording exactly, in the original language.
+- Codes and staging (ICD, TNM such as cT4N1M1) must be copied CHARACTER BY CHARACTER. Never normalise
+  them to a more familiar-looking pattern. A changed letter changes the diagnosis.
+- These uploads often bundle several documents from DIFFERENT hospitals and DIFFERENT dates, and they
+  can disagree (measured 2026-08-14: the same file said cT4N1M1 on 15.07 and cT3NxM1 on 28.07).
+  When they disagree, take the value from the MOST RECENT document. Never merge or average them.
 - If unsure of the kind, use "unknown".
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
