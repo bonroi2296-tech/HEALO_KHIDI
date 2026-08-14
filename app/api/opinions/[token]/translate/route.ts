@@ -16,6 +16,7 @@ export const maxDuration = 300;
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 
 // 번역은 한 번 하면 저장돼 다음엔 공짜다. 그래도 연타로 돈이 새지 않게 분당 6회.
@@ -26,6 +27,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
+  }
+  // 계정이 없는 링크(토큰)로 여는 경로라 일일 전역 상한이 없으면 천장이 없다.
+  // 게다가 문서 1건이 PDF 쪽마다 제미나이를 부르므로(최대 300쪽), 분당 6회 rate limit 은
+  // 「요청 수」만 막고 「쪽 팬아웃」은 안 막는다. 다른 AI 라우트와 같은 일일 상한을 채운다. (2026-08-14 감사)
+  const aiGuard = await checkAiGuards(ip, "/api/opinions/translate");
+  if (!aiGuard.allowed) {
+    return Response.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
   }
 
   try {

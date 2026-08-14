@@ -94,12 +94,16 @@ export default function SymptomsClient() {
       });
 
       const data = await res.json();
-      if (data.ok || data.analysis) {
+      // ⚠️ 서버는 분석은 됐지만 DB 저장이 실패하면 { ok:true, analysis, saved:false } 를 준다.
+      //    이때도 「완료」로 처리하면 환자는 보고된 줄 알지만 코디·의사에게 안 가고 본인 이력에도
+      //    안 남는다(응급 권고가 나온 케이스면 특히 위험). 저장이 실제로 됐을 때만 성공 UI. (2026-08-14 감사)
+      if ((data.ok || data.analysis) && data.saved !== false) {
         setResult(data.analysis || data);
         setSymptoms([{ name: '', severity: 5, duration: '' }]);
-        if (data.saved && user?.access_token) await loadReports(user.access_token);
+        if (user?.access_token) await loadReports(user.access_token);
       } else {
-        // 실패가 무증상(스피너만 멈춤)으로 끝나던 구멍 — 깨진 문자 거부(#92)는 원인까지 안내
+        // 실패가 무증상(스피너만 멈춤)으로 끝나던 구멍 — 깨진 문자 거부(#92)는 원인까지 안내.
+        // 저장 실패(saved:false)면 폼을 지우지 않고 남겨 재제출할 수 있게 한다.
         setSubmitError(t(data.error === 'broken_encoding' ? 'patientSymptoms.brokenEncoding' : 'patientSymptoms.submitFailed', lang));
       }
     } catch (e) {

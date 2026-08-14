@@ -20,9 +20,13 @@ function isOwnDomain(hostname: string): boolean {
     hostname === "healwith.co.kr" ||
     hostname.endsWith(".healwith.co.kr") ||
     hostname === "khidi.healo.kr" ||
-    hostname.endsWith(".healo.kr") ||
-    hostname.endsWith(".vercel.app") // 프리뷰 배포
+    hostname.endsWith(".healo.kr")
   );
+  // ⚠️ `.vercel.app` 은 일부러 뺐다(2026-08-14 보안감사). vercel.app 서브도메인은
+  //    «누구나» 원하는 이름으로 선점할 수 있어(전역 유니크), `.vercel.app` 접미사 허용은
+  //    남의 `evil.vercel.app` 이 우리 API 를 대신 호출(CSRF)하는 문을 열어준다.
+  //    프리뷰는 2026-07-31 PO 지시로 어차피 차단 중이라 지금 손해 0. 프리뷰에서 API 를
+  //    실제로 호출해야 하면 그때 정확한 호스트를 env 허용목록으로 넣어라.
 }
 
 export function isAllowedOrigin(
