@@ -108,13 +108,13 @@ export default function FindIdClient() {
                   <label htmlFor="find-first" className="block text-xs font-bold text-gray-700 mb-1 ml-1">{pick(L.firstName, langCode)}</label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input id="find-first" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="John"
+                    <input id="find-first" name="given-name" autoComplete="given-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="John"
                       className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition bg-gray-50 text-sm" />
                   </div>
                 </div>
                 <div>
                   <label htmlFor="find-last" className="block text-xs font-bold text-gray-700 mb-1 ml-1">{pick(L.lastName, langCode)}</label>
-                  <input id="find-last" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe"
+                  <input id="find-last" name="family-name" autoComplete="family-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe"
                     className="w-full px-3 py-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition bg-gray-50 text-sm" />
                 </div>
               </div>

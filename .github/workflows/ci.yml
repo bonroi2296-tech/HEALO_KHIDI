@@ -86,6 +86,8 @@ jobs:
         run: npm run check:ratelimit-scope
       - name: 「이메일 같으면 본인 것」 판정이 인증 안 된 주소를 쓰는 것 차단 (보안 — 남의 자료 열람)
         run: npm run check:email-ownership
+      - name: 로그인·가입 칸에 「이 칸이 뭔지」 표시 (폰 비밀번호 관리자가 엉뚱한 칸에 채우는 것 차단)
+        run: npm run check:autocomplete
       - name: 암종 콘텐츠 6개 언어 완성 (합병증·FAQ·통계 번역 누락 차단)
         run: npm run check:cancer-i18n
       - name: 세션훅 데이터 소스 (관문 보채기·PO 취향 주입이 조용히 죽는 것 차단)
