@@ -57,10 +57,14 @@ const TR = {
                 ru: "Оставьте контакты — координатор свяжется с вами и поможет со всем остальным." },
   quickMeta:  { ko: "{n}칸 · 1분", en: "{n} fields · 1 minute", ru: "{n} полей · 1 минута" },
   fullTitle:  { ko: "진단과 치료 방향을 빨리 알고 싶어요", en: "I want to know the diagnosis and treatment options sooner", ru: "Хочу быстрее узнать диагноз и варианты лечения" },
-  fullBody:   { ko: "번거로우시겠지만, 의료진이 환자분의 상태를 정확히 보려면 이 내용이 필요합니다. 가지고 계신 검사 자료를 올려주시면 훨씬 빨라집니다.",
-                en: "It takes a bit more effort, but the doctors need this to see your condition accurately. Uploading the test results you already have makes it much faster.",
-                ru: "Это займёт немного больше времени, но врачам это нужно, чтобы точно оценить состояние. Если приложите имеющиеся результаты, всё пойдёт заметно быстрее." },
-  fullMeta:   { ko: "{n}칸 · 자료 첨부", en: "{n} fields · with documents", ru: "{n} полей · с документами" },
+  // 한 덩어리로 붙여놓으면 안 읽힌다 — «왜 필요한가»와 «어떻게 빨라지나»를 문단으로 나눈다.
+  fullBody:   { ko: "번거로우시겠지만, 의료진이 환자분의 상태를 정확히 보려면 환자 정보가 필요합니다.",
+                en: "It takes a bit more effort, but the doctors need the patient's information to assess the condition accurately.",
+                ru: "Это займёт немного больше времени, но врачам нужна информация о пациенте, чтобы точно оценить состояние." },
+  fullBody2:  { ko: "가지고 계신 의무 기록을 올려주시면 저희가 읽고 대신 채워드립니다. 훨씬 빨라집니다.",
+                en: "Upload the medical records you already have — we read them and fill the form in for you. It goes much faster.",
+                ru: "Загрузите имеющиеся медицинские документы — мы прочитаем их и заполним форму за вас. Так намного быстрее." },
+  fullMeta:   { ko: "{n}칸 · 자료 첨부 필요", en: "{n} fields · documents needed", ru: "{n} полей · нужны документы" },
   switchToFull:{ ko: "대학병원 소견도 받고 싶으신가요? 이어서 채우기",
                 en: "Also want the hospital's opinion? Continue filling it in",
                 ru: "Хотите ещё и заключение клиники? Продолжить заполнение" },
@@ -666,7 +670,9 @@ function ModePicker({ lang, onPick, quickN, fullN }) {
               primary ? "border-teal-700 bg-white shadow-sm hover:bg-teal-50"
                       : "border-gray-200 bg-white shadow-sm hover:border-gray-300"}`}>
       <p className="text-base font-bold text-gray-900 md:text-lg">{title}</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{body}</p>
+      {(Array.isArray(body) ? body : [body]).map((line, i) => (
+        <p key={i} className={`text-sm leading-relaxed text-gray-600 ${i === 0 ? "mt-1.5" : "mt-2"}`}>{line}</p>
+      ))}
       <p className="mt-3 inline-block rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 tabular-nums">
         {meta}
       </p>
@@ -682,7 +688,7 @@ function ModePicker({ lang, onPick, quickN, fullN }) {
                 title={tr("quickTitle", lang)} body={tr("quickBody", lang)}
                 meta={tr("quickMeta", lang, { n: quickN })} />
           <Card onClick={() => onPick("full")}
-                title={tr("fullTitle", lang)} body={tr("fullBody", lang)}
+                title={tr("fullTitle", lang)} body={[tr("fullBody", lang), tr("fullBody2", lang)]}
                 meta={tr("fullMeta", lang, { n: fullN })} />
         </div>
       </div>
