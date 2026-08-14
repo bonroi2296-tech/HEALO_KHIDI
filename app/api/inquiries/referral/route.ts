@@ -31,6 +31,10 @@ import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { resolveAgencyIdForUser } from "@/lib/auth/resolveAgencyIdForUser";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceived";
+import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
+import { siteUrl } from "@/lib/siteUrl";
 
 const s = (max: number) => z.string().max(max).nullable().optional();
 
@@ -208,7 +212,27 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     }).catch(() => {}));
 
-    return Response.json({ ok: true, inquiryId: row.id, publicToken: row.public_token });
+    // 접수 확인 + 진행상황 주소 — 「접수되면 들어온 그 채널로 주소를 돌려준다」(PO 2026-08-03).
+    // after(): 응답 뒤에도 함수를 살려 발송이 잘리지 않게 한다(서버리스 freeze 방지).
+    // 메일이 실패해도 접수는 성공이다 — 그래서 삼킨다.
+    const track = trackingUrl(siteUrl(), row.public_token);
+    after(async () => {
+      try {
+        const { subject, html, text } = renderInquiryReceivedEmail({
+          recipientName: d.firstName || undefined,
+          trackUrl: track,
+          lang: toTrackingLang(d.patientLang),
+        });
+        await sendEmail({
+          to: d.email, subject, html, text,
+          tags: { kind: "inquiry_received", inquiry: String(row.id) },
+        });
+      } catch { /* 메일은 부가다 — 접수 자체는 이미 끝났다 */ }
+    });
+
+    return Response.json({
+      ok: true, inquiryId: row.id, publicToken: row.public_token, trackUrl: track,
+    });
   } catch (e) {
     console.error("[/api/inquiries/referral]", e instanceof Error ? e.message : e);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });

@@ -77,6 +77,9 @@ const TR = {
                 en: "A coordinator will review it and contact you shortly. Save the link below to track progress or add more documents.",
                 ru: "Координатор рассмотрит заявку и свяжется с вами. Сохраните ссылку ниже, чтобы следить за ходом и добавить документы." },
   doneNo:     { ko: "접수번호", en: "Reference no.", ru: "Номер обращения" },
+  doneMail:   { ko: "같은 주소를 이메일로도 보내드렸습니다. 메일이 안 보이면 스팸함도 확인해 주세요.",
+                en: "We've emailed you the same link. If you don't see it, please check your spam folder.",
+                ru: "Мы отправили эту же ссылку на вашу почту. Если письма нет, проверьте папку «Спам»." },
   title:      { ko: "환자 의뢰서", en: "Patient referral form", ru: "Направление пациента" },
   titleQuick: { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   subQuick:   { ko: "연락드리는 데 필요한 것만 여쭙니다. 나머지는 코디네이터가 도와드립니다.",
@@ -160,9 +163,13 @@ const TR = {
   uploading:  { ko: "올리는 중 {pct}%", en: "Uploading {pct}%", ru: "Загрузка {pct}%" },
   upWait:     { ko: "창을 닫지 말아 주세요.", en: "Please keep this window open.", ru: "Не закрывайте окно." },
   // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 화면 몫이다.
-  upTooBig:   { ko: "파일이 너무 큽니다(최대 200MB). 코디네이터가 대신 받아드릴게요.",
-                en: "This file is too large (200MB max). A coordinator will take it for you.",
-                ru: "Файл слишком большой (макс. 200 МБ). Координатор примет его за вас." },
+  upTooBig:   { ko: "이 파일은 200MB가 넘어 여기서는 못 올립니다. 코디네이터가 대신 받아드릴게요 — 올리는 시간을 버리지 않으시도록 미리 알려드립니다.",
+                en: "This file is over 200MB, so it can't be uploaded here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
+                ru: "Этот файл больше 200 МБ — здесь его загрузить нельзя. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
+  // 고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
+  sizeHint:   { ko: "한 파일이 200MB를 넘으면 여기서는 못 올립니다. 그럴 땐 코디네이터가 대신 받아드리니 그냥 알려만 주세요.",
+                en: "Files over 200MB can't be uploaded here. If that happens, just tell us — a coordinator will take them for you.",
+                ru: "Файлы больше 200 МБ здесь загрузить нельзя. В этом случае просто сообщите нам — координатор примет их за вас." },
   upBadType:  { ko: "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
                 en: "This file type can't be uploaded. Please use PDF, images, or Word.",
                 ru: "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word." },
@@ -315,11 +322,15 @@ export default function ReferralForm() {
             <p className="mt-5 text-sm text-gray-600">
               {tr("doneNo", lang)} <span className="font-bold text-gray-900 tabular-nums">#{sent.inquiryId}</span>
             </p>
-            {sent.publicToken && (
-              <p className="mt-2 break-all rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
-                {typeof location !== "undefined" ? location.origin : ""}/t/{sent.publicToken}
-              </p>
+            {/* 주소는 서버가 만든 걸 그대로 쓴다 — 화면에서 조립하면 실제 경로와 어긋난다
+                (2026-08-14: 「/t/」로 지어냈는데 진짜는 「/claim/」이었다). */}
+            {sent.trackUrl && (
+              <a href={sent.trackUrl}
+                 className="mt-2 block break-all rounded-xl bg-gray-50 px-4 py-3 text-xs text-teal-800 underline">
+                {sent.trackUrl}
+              </a>
             )}
+            <p className="mt-3 text-xs leading-relaxed text-gray-600">{tr("doneMail", lang)}</p>
           </div>
         </div>
       </div>
@@ -707,6 +718,13 @@ function CdFolder({ f, lang, value, onChange }) {
     const files = pickImagingFiles(fileList);
     if (!files.length) return;
     const raw = sumBytes(files);
+    // 🛑 묶기 «전»에 판단한다. 40초 묶고 나서 「너무 큽니다」는 시간을 뺏고 거절하는 것이다.
+    //    압축이 크기를 약 3분의 1로 줄이므로(실측 301MB → 100MB) 그 여유를 감안해서 잰다.
+    //    넉넉히 잡아 «원본이 상한의 4배를 넘으면» 묶어봐도 안 된다고 본다.
+    if (raw > MAX_UPLOAD_BYTES * 4) {
+      setState({ phase: "toobig", count: files.length, raw, beforeZip: true });
+      return;
+    }
     setState({ phase: "zipping", count: files.length, raw, percent: 0 });
     try {
       const zip = await bundleToZip(files, {
@@ -914,12 +932,19 @@ function Envelope({ f, lang, docs, onChange }) {
     const picked = Array.from(files || []);
     if (!picked.length) return;
     const base = docs.length;
+    // 🛑 크기는 «고른 즉시» 잰다. 다 올린 뒤에 「너무 큽니다」라고 하면 그건 시간을 뺏고
+    //    나서 거절하는 것이다(PO 2026-08-14). 100MB 를 10분 올린 뒤 안 된다고 하면 떠난다.
     onChange(f.name, [...docs, ...picked.map((x) => ({
-      name: x.name, size: x.size, kind: null, uploading: true, pct: 0,
+      name: x.name, size: x.size, kind: null,
+      ...(x.size > MAX_UPLOAD_BYTES
+        ? { uploading: false, error: "file_too_large" }
+        : { uploading: true, pct: 0 }),
     }))]);
-    setBusy((n) => n + picked.length);
+    const toUpload = picked.filter((x) => x.size <= MAX_UPLOAD_BYTES).length;
+    setBusy((n) => n + toUpload);
 
     for (let i = 0; i < picked.length; i++) {
+      if (picked[i].size > MAX_UPLOAD_BYTES) continue; // 이미 안내했다
       const idx = base + i;
       const patch = (p) => onChange(f.name, (prev) => {
         const next = [...(prev || [])];
@@ -976,6 +1001,7 @@ function Envelope({ f, lang, docs, onChange }) {
       <input ref={ref} type="file" multiple className="hidden"
              onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
       <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>
+      <p className="mt-1 text-xs leading-relaxed text-gray-600">{tr("sizeHint", lang)}</p>
 
       {docs.map((d, i) => (
         <div key={i} className="mt-2 rounded-xl border border-gray-200 p-3">
@@ -1001,7 +1027,15 @@ function Envelope({ f, lang, docs, onChange }) {
               </div>
             </div>
           ) : d.error ? (
-            <p className="mt-2 text-xs leading-relaxed text-red-600">{uploadErrorText(d.error, lang)}</p>
+            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs leading-relaxed text-amber-700">{uploadErrorText(d.error, lang)}</p>
+              {d.error === "file_too_large" && (
+                <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
+                   className="mt-2 inline-block rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white">
+                  {tr("cdHelp", lang)}
+                </a>
+              )}
+            </div>
           ) : d.reading ? (
             <p className="mt-2 flex items-center gap-2 text-xs text-gray-600">
               <Loader2 size={13} className="animate-spin" />{tr("reading", lang)}
