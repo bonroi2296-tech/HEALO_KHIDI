@@ -100,45 +100,16 @@ const FLIGHT_FITNESS = [
 ];
 
 export const SECTIONS = [
-  // ── ① 먼저, 이것만 ─────────────────────────────────────────────
-  // 🛑 접수 문턱(req:"intake") 칸은 «전부 여기» 있어야 한다. 흩어놓으면 안 된다.
-  //    2026-08-12 PO 실사용: 접수 6칸이 세 묶음에 흩어져 있어서 마지막 한 칸을
-  //    «어디 있는지 찾기도 힘들다»고 했다. 「6칸 남음」이라고 세어주면서 어디인지는
-  //    안 알려주는 화면은 사람을 헤매게 한다. 문턱은 한 자리에 모은다.
-  {
-    id: "essentials",
-    title: L("먼저, 이것만", "First — just these", "Сначала только это"),
-    lead: L("연락드리는 데 필요한 것만입니다. 여기까지만 채우셔도 보내실 수 있습니다.",
-            "Only what we need to reach you. You can send it with just this filled in.",
-            "Только то, что нужно, чтобы связаться с вами. Этого уже достаточно для отправки."),
-    fields: [
-      { name: "lastName", type: "text", req: "intake", half: true,
-        label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (как в паспорте)") },
-      { name: "firstName", type: "text", req: "intake", half: true,
-        label: L("이름 (여권 영문 표기)", "Given name (as in passport)", "Имя (как в паспорте)") },
-      { name: "_nameHint", type: "note",
-        label: L(
-          "여권에 적힌 라틴 문자 그대로 적어주세요. 영상 자료 속 이름과 다르면 병원이 등록을 거부합니다.",
-          "Use the Latin spelling from the passport. If it differs from the name inside your imaging files, the hospital cannot register the case.",
-          "Укажите латиницей как в паспорте. Если имя в файлах снимков отличается, больница не сможет зарегистрировать обращение.") },
-      { name: "email", type: "email", req: "intake", half: true,
-        label: L("이메일", "Email", "Электронная почта") },
-      { name: "patientLang", type: "lang", req: "intake", half: true,
-        label: L("연락받으실 언어", "Language for us to contact you in", "Язык для связи с вами"),
-        hint: L("코디네이터가 이 언어로 연락합니다.",
-                "Your coordinator will contact you in this language.",
-                "Координатор свяжется с вами на этом языке.") },
-      { name: "cancerType", type: "cancerType", req: "intake", half: true,
-        label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
-      { name: "phone", type: "phone", req: "optional", half: true,
-        label: L("휴대전화", "Mobile", "Мобильный телефон") },
-    ],
-  },
-
-  // ── ② 자료 — «먼저» 받는다. 우리가 읽어서 아래 칸을 대신 채운다 ────────────────────────────────────────────────
+  // ── ① 자료 «먼저» ───────────────────
+  // 왜 맨 앞이냐: 여권 한 장이면 성·이름·생년월일·성별·여권번호가 한꺼번에 채워진다.
+  // 「기본 정보부터 손으로 치고 그다음 자료」로 두면 우리가 대신 채워줄 수 있는 걸
+  // 사람에게 먼저 치게 시키는 셋이다(2026-08-14 PO 지적).
   {
     id: "documents",
-    title: L("자료 첨부 필요", "Documents needed", "Нужны документы"),
+    title: L("먼저, 자료부터", "Documents first", "Сначала документы"),
+    lead: L("가지고 계신 서류를 올려주시면 저희가 읽고 아래 칸을 대신 채워드립니다. 지금 없으시면 건너뛰고 아래부터 채우셔도 됩니다.",
+            "Upload the documents you have and we read them and fill the fields below for you. If you don't have them now, skip ahead and fill the rest in yourself.",
+            "Загрузите имеющиеся документы — мы прочитаем их и заполним поля ниже за вас. Если сейчас их нет, пропустите и заполните остальное сами."),
     fields: [
       // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
       //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
@@ -171,6 +142,41 @@ export const SECTIONS = [
                 "Хранится в зашифрованном виде, используется только в направлении.") },
     ],
   },
+  // ── ② 연락처 · 기본 정보 ─────────────────── ─────────────────────────────────────────────
+  // 🛑 접수 문턱(req:"intake") 칸은 «전부 여기» 있어야 한다. 흩어놓으면 안 된다.
+  //    2026-08-12 PO 실사용: 접수 6칸이 세 묶음에 흩어져 있어서 마지막 한 칸을
+  //    «어디 있는지 찾기도 힘들다»고 했다. 「6칸 남음」이라고 세어주면서 어디인지는
+  //    안 알려주는 화면은 사람을 헤매게 한다. 문턱은 한 자리에 모은다.
+  {
+    id: "essentials",
+    title: L("연락처 · 기본 정보", "Contact · basics", "Контакты и основное"),
+    lead: L("연락드리는 데 필요한 것만입니다. 여기까지만 채우셔도 보내실 수 있습니다.",
+            "Only what we need to reach you. You can send it with just this filled in.",
+            "Только то, что нужно, чтобы связаться с вами. Этого уже достаточно для отправки."),
+    fields: [
+      { name: "lastName", type: "text", req: "intake", half: true,
+        label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (как в паспорте)") },
+      { name: "firstName", type: "text", req: "intake", half: true,
+        label: L("이름 (여권 영문 표기)", "Given name (as in passport)", "Имя (как в паспорте)") },
+      { name: "_nameHint", type: "note",
+        label: L(
+          "여권에 적힌 라틴 문자 그대로 적어주세요. 영상 자료 속 이름과 다르면 병원이 등록을 거부합니다.",
+          "Use the Latin spelling from the passport. If it differs from the name inside your imaging files, the hospital cannot register the case.",
+          "Укажите латиницей как в паспорте. Если имя в файлах снимков отличается, больница не сможет зарегистрировать обращение.") },
+      { name: "email", type: "email", req: "intake", half: true,
+        label: L("이메일", "Email", "Электронная почта") },
+      { name: "patientLang", type: "lang", req: "intake", half: true,
+        label: L("연락받으실 언어", "Language for us to contact you in", "Язык для связи с вами"),
+        hint: L("코디네이터가 이 언어로 연락합니다.",
+                "Your coordinator will contact you in this language.",
+                "Координатор свяжется с вами на этом языке.") },
+      { name: "cancerType", type: "cancerType", req: "intake", half: true,
+        label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
+      { name: "phone", type: "phone", req: "optional", half: true,
+        label: L("휴대전화", "Mobile", "Мобильный телефон") },
+    ],
+  },
+
   // ── ③ 환자 신원 ────────────────────────────────────────────────
   {
     id: "identity",

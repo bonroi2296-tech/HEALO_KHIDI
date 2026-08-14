@@ -25,10 +25,10 @@ describe("환자 의뢰서 칸 정의", () => {
   });
 
   // 🛑 이 검사가 「마지막 한 칸을 못 찾겠다」의 재발을 막는다(2026-08-12 PO 실사용).
-  it("보내기를 막는 칸은 «전부 첫 묶음 한 곳»에 모여 있다", () => {
-    const first = SECTIONS[0];
-    expect(first.id).toBe("essentials");
-    const elsewhere = SECTIONS.slice(1)
+  it("보내기를 막는 칸은 «전부 한 묶음»에 모여 있다", () => {
+    const first = SECTIONS.find((s: any) => s.id === "essentials")!;
+    expect(first).toBeTruthy();
+    const elsewhere = SECTIONS.filter((s: any) => s.id !== "essentials")
       .flatMap((s: any) => s.fields)
       .filter((f: any) => f.req === "intake")
       .map((f: any) => f.name);
@@ -113,5 +113,12 @@ describe("nextReferralSection — 「다음에 갈 묶음」", () => {
     const s = nextReferralSection({})!;
     const sec = SECTIONS.find((x) => x.id === s.secId)!;
     expect(sec.fields.some((f) => f.name === s.name)).toBe(true);
+  });
+});
+
+describe("묶음 순서", () => {
+  it("자료 묶음이 맨 앞이다 — 여권 한 장이면 아래 칸이 대신 채워진다", () => {
+    expect(SECTIONS[0].id).toBe("documents");
+    expect(SECTIONS[1].id).toBe("essentials");
   });
 });

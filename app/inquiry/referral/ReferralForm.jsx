@@ -105,6 +105,8 @@ const TR = {
                 en: "{done} of {total} filled — the more you fill in, the faster the hospital replies",
                 ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит больница" },
   barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
+  orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
+  dropNow:    { ko: "여기에 놓으세요", en: "Drop here", ru: "Отпустите здесь" },
   barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
                 en: "The more you fill in, the faster the hospital replies",
                 ru: "Чем больше заполните, тем быстрее ответит больница" },
@@ -433,7 +435,9 @@ export default function ReferralForm() {
   const quick = mode === "quick";
   // 「연락처만」이면 첫 묶음만 그린다. 나머지는 아예 «안 보여준다» — 접어두기만 해도
   // 묶음 줄 5개가 보여서 「아직 이만큼 남았구나」로 읽힌다(PO 2026-08-13).
-  const shownSections = quick ? SECTIONS.slice(0, 1) : SECTIONS;
+  // 「연락처만」은 접수 묶음 하나만 보여준다.
+  // ⚠️ slice(0,1) 로 쓰지 마라 — 자료 묶음이 맨 앞으로 오면서 엉뚱한 묶음이 나온다(2026-08-14).
+  const shownSections = quick ? SECTIONS.filter((s) => s.id === "essentials") : SECTIONS;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1085,6 +1089,19 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
 function Envelope({ f, lang, docs, onChange, onAutoFill }) {
   const ref = useRef(null);
   const [busy, setBusy] = useState(0);
+  const [over, setOver] = useState(false);
+
+  // 상자 «밖»에 떨어뜨리면 브라우저가 그 파일을 열어버려 폼이 통째로 날아간 것처럼 보인다.
+  // 창 전체에서 기본 동작만 막는다 — 상자 안에 떨어뜨리는 건 아래 onDrop 이 받는다.
+  useEffect(() => {
+    const stop = (e) => e.preventDefault();
+    window.addEventListener("dragover", stop);
+    window.addEventListener("drop", stop);
+    return () => {
+      window.removeEventListener("dragover", stop);
+      window.removeEventListener("drop", stop);
+    };
+  }, []);
 
   // 순서: ①저장소로 올린다(느릴 수 있다 → 진행률) ②올라간 뒤에 판별한다.
   // 판별만 되고 파일이 안 올라가면 코디는 「있다고 하는데 없는 서류」를 보게 된다.
@@ -1156,9 +1173,18 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
         </span>
       </label>
       <button type="button" onClick={() => ref.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center transition-all duration-200 hover:border-gray-400">
-        <span className="block text-sm font-semibold text-gray-700">{tr("addFile", lang)}</span>
-        <span className="mt-1 block text-xs text-gray-600">{describeUpload("medicalDoc", lang)}</span>
+              onDragEnter={(e) => { e.preventDefault(); setOver(true); }}
+              onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e) => { e.preventDefault(); setOver(false); add(e.dataTransfer?.files); }}
+              className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
+                over ? "border-teal-700 bg-teal-50" : "border-gray-300 hover:border-gray-400"}`}>
+        <span className="block text-sm font-semibold text-gray-700">
+          {over ? tr("dropNow", lang) : tr("addFile", lang)}
+        </span>
+        <span className="mt-1 block text-xs text-gray-600">
+          {over ? " " : `${describeUpload("medicalDoc", lang)} · ${tr("orDrop", lang)}`}
+        </span>
       </button>
       <input ref={ref} type="file" multiple className="hidden"
              onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
