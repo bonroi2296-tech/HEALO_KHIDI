@@ -9,7 +9,7 @@
  * ⚠️ 변호사 최종 검토 필요 — 특히 관할, 소비자 권리, 환자 권익 보호 조항
  */
 
-export const TERMS_EFFECTIVE_DATE = "2026-08-21";
+export const TERMS_EFFECTIVE_DATE = "2026-08-14";
 export const TERMS_VERSION = "2.1.0";
 
 const KO = {
