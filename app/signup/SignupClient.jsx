@@ -340,7 +340,10 @@ export const SignUpPage = ({ setView }) => {
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
                             <input
                                 aria-label="Email"
+                                name="email"
                                 type="email"
+                                autoComplete="username"
+                                inputMode="email"
                                 placeholder={t("signup.emailPlaceholder", langCode)}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -353,7 +356,9 @@ export const SignUpPage = ({ setView }) => {
                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
                         <input
                             aria-label="Password"
+                            name="new-password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder={t("signup.passwordPlaceholder", langCode)}

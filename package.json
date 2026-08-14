@@ -29,6 +29,7 @@
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:ratelimit-scope": "node scripts/check-ratelimit-scope.mjs --selftest && node scripts/check-ratelimit-scope.mjs",
     "check:email-ownership": "node scripts/check-email-ownership.mjs --selftest && node scripts/check-email-ownership.mjs",
+    "check:autocomplete": "node scripts/check-autocomplete.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:rules": "node scripts/check-rules.mjs",
     "check:parked": "node scripts/check-parked-decisions.mjs",
