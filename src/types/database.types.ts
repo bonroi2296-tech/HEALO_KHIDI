@@ -1375,6 +1375,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           display_name: string | null
+          display_name_encrypted: string | null
           guest_token_id: string | null
           id: string
           left_at: string | null
@@ -1391,6 +1392,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           display_name?: string | null
+          display_name_encrypted?: string | null
           guest_token_id?: string | null
           id?: string
           left_at?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           display_name?: string | null
+          display_name_encrypted?: string | null
           guest_token_id?: string | null
           id?: string
           left_at?: string | null
@@ -1802,6 +1805,7 @@ export type Database = {
           source_text: string | null
           source_text_encrypted: string | null
           speaker_name: string | null
+          speaker_name_encrypted: string | null
           stt_engine: string | null
           target_lang: string
           translated_text: string | null
@@ -1816,6 +1820,7 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          speaker_name_encrypted?: string | null
           stt_engine?: string | null
           target_lang: string
           translated_text?: string | null
@@ -1830,6 +1835,7 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          speaker_name_encrypted?: string | null
           stt_engine?: string | null
           target_lang?: string
           translated_text?: string | null
