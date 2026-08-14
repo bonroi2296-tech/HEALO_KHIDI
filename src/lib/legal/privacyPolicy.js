@@ -3,8 +3,11 @@
  *
  * 법적 근거 (Legal Basis):
  * - 대한민국 개인정보보호법 (PIPA) §15, §17, §22, §23, §26, §28-8, §31
- * - 의료법 §21 (환자 개인정보 보호)
- * - 의료 해외진출 및 외국인환자 유치 지원에 관한 법률 §16, §17
+ * - 의료법 §21 (기록 열람 등) · §22 (진료기록부 등 — 보관 10년)
+ * - 의료 해외진출 및 외국인환자 유치 지원에 관한 법률 §8 (외국인환자의 권익 보호) ·
+ *   §11 (보고의무 — 유치사업자도 매년 2월 말까지 전년도 사업실적을 시·도지사에게 보고) ·
+ *   §16 (외국인환자 사전ㆍ사후관리)
+ *   ※ 2026-08-04 법령 원문 대조로 §17 삭제 — §17 은 "금융 및 세제 지원"이라 개인정보 처리 근거가 아니다.
  * - 카자흐스탄 개인정보 및 보호에 관한 법률 (94-V ЗРК, 2013)
  * - EU General Data Protection Regulation (GDPR) Article 9, 44-49
  *
@@ -228,6 +231,7 @@ const KO = {
       "【이전 받는 자 및 국가】",
       "· 대한민국 내 협력 의료기관 (진료 목적)",
       "· 클라우드 서비스 제공자: Vercel Inc. (미국), Supabase Inc. (미국 법인 — 데이터는 서울(ap-northeast-2) 리전에 저장)",
+      "· 소셜 로그인 인증: Google LLC (미국) · Apple Inc. (미국) — 해당 로그인 이용 시",
       "· 분석 서비스: Google Ireland Ltd. (GA4, 아일랜드)",
       "· 이메일 발송: Resend Inc. (미국)",
       "· 원격협진 영상통화: LiveKit Inc. (미국)",
@@ -258,6 +262,7 @@ const KO = {
       "· Supabase Inc. — 데이터베이스 호스팅 (미국 법인, 데이터는 서울(ap-northeast-2) 리전에 저장)",
       "· Vercel Inc. — 웹 애플리케이션 호스팅 (미국)",
       "· Google LLC — 인증(OAuth), 분석, 지도 (미국/아일랜드)",
+      "· Apple Inc. — 「애플로 로그인」 인증 (미국)",
       "· Resend Inc. — 알림·안내 이메일 송신 (미국)",
       "· LiveKit Inc. — 원격협진 영상통화 (미국)",
       "· Google LLC (Gemini API) — AI 챗봇 응답, 번역, 원격협진 자막 받아쓰기 (해당 기능 이용 시, 미국)",
@@ -569,6 +574,7 @@ const EN = {
       "【Recipients & Jurisdictions】",
       "· Korean partner hospitals (for medical purposes)",
       "· Cloud infrastructure: Vercel Inc. (USA), Supabase Inc. (USA — data stored in the Seoul (ap-northeast-2) region)",
+      "· Social login authentication: Google LLC (USA), Apple Inc. (USA) — when you use those sign-in options",
       "· Analytics: Google Ireland Ltd. (GA4, Ireland)",
       "· Email delivery: Resend Inc. (USA)",
       "· Telemedicine video calls: LiveKit Inc. (USA)",
@@ -599,6 +605,7 @@ const EN = {
       "· Supabase Inc. — Database hosting (USA — data stored in the Seoul (ap-northeast-2) region)",
       "· Vercel Inc. — Web application hosting (USA)",
       "· Google LLC — Authentication (OAuth), analytics, maps (USA/Ireland)",
+      "· Apple Inc. — Sign in with Apple authentication (USA)",
       "· Resend Inc. — Notification and informational email delivery (USA)",
       "· LiveKit Inc. — Telemedicine video calls (USA)",
       "· Google LLC (Gemini API) — AI chatbot responses, translation, and telemedicine caption transcription (when you use these features, USA)",
@@ -911,6 +918,7 @@ const RU = {
       "【Получатели и юрисдикции】",
       "· Партнёрские больницы в Корее (в медицинских целях)",
       "· Облачная инфраструктура: Vercel Inc. (США), Supabase Inc. (США — данные хранятся в регионе Сеул (ap-northeast-2))",
+      "· Аутентификация через социальные сети: Google LLC (США), Apple Inc. (США) — при использовании этих способов входа",
       "· Аналитика: Google Ireland Ltd. (GA4, Ирландия)",
       "· Отправка электронной почты: Resend Inc. (США)",
       "· Видеозвонки для дистанционных консультаций: LiveKit Inc. (США)",
@@ -941,6 +949,7 @@ const RU = {
       "· Supabase Inc. — хостинг базы данных (США — данные хранятся в регионе Сеул (ap-northeast-2))",
       "· Vercel Inc. — хостинг веб-приложения (США)",
       "· Google LLC — аутентификация (OAuth), аналитика, карты (США/Ирландия)",
+      "· Apple Inc. — аутентификация «Вход с Apple» (США)",
       "· Resend Inc. — отправка уведомительных и информационных электронных писем (США)",
       "· LiveKit Inc. — видеозвонки для дистанционных консультаций (США)",
       "· Google LLC (Gemini API) — ответы ИИ-чатбота, перевод и расшифровка субтитров дистанционных консультаций (при использовании этих функций, США)",
@@ -1253,6 +1262,7 @@ const KZ = {
       "【Алушылар мен юрисдикциялар】",
       "· Кореядағы серіктес ауруханалар (медициналық мақсатта)",
       "· Бұлттық инфрақұрылым: Vercel Inc. (АҚШ), Supabase Inc. (АҚШ — деректер Сеул (ap-northeast-2) аймағында сақталады)",
+      "· Әлеуметтік желі арқылы кіру аутентификациясы: Google LLC (АҚШ), Apple Inc. (АҚШ) — осы кіру тәсілдерін пайдаланған кезде",
       "· Аналитика: Google Ireland Ltd. (GA4, Ирландия)",
       "· Электрондық пошта жіберу: Resend Inc. (АҚШ)",
       "· Қашықтан кеңес беру бейнеқоңыраулары: LiveKit Inc. (АҚШ)",
@@ -1283,6 +1293,7 @@ const KZ = {
       "· Supabase Inc. — дерекқорды хостинг (АҚШ — деректер Сеул (ap-northeast-2) аймағында сақталады)",
       "· Vercel Inc. — веб-қосымшаны хостинг (АҚШ)",
       "· Google LLC — аутентификация (OAuth), аналитика, карталар (АҚШ/Ирландия)",
+      "· Apple Inc. — «Apple арқылы кіру» аутентификациясы (АҚШ)",
       "· Resend Inc. — хабарлама және ақпараттық электрондық хаттарды жіберу (АҚШ)",
       "· LiveKit Inc. — қашықтан кеңес беру бейнеқоңыраулары (АҚШ)",
       "· Google LLC (Gemini API) — ЖИ чат-бот жауаптары, аударма және қашықтан кеңес беру субтитрлерін транскрипциялау (осы функцияларды пайдаланған кезде, АҚШ)",
@@ -1594,6 +1605,7 @@ const ZH = {
       "【接收方及司法管辖区】",
       "· 韩国合作医院（用于医疗目的）",
       "· 云基础设施：Vercel Inc.（美国）、Supabase Inc.（美国——数据存储于首尔（ap-northeast-2）区域）",
+      "· 社交登录身份验证：Google LLC（美国）、Apple Inc.（美国）——使用相应登录方式时",
       "· 分析服务：Google Ireland Ltd.（GA4，爱尔兰）",
       "· 邮件发送：Resend Inc.（美国）",
       "· 远程协诊视频通话：LiveKit Inc.（美国）",
@@ -1624,6 +1636,7 @@ const ZH = {
       "· Supabase Inc. — 数据库托管（美国——数据存储于首尔（ap-northeast-2）区域）",
       "· Vercel Inc. — 网络应用托管（美国）",
       "· Google LLC — 身份验证（OAuth）、分析、地图（美国/爱尔兰）",
+      "· Apple Inc. — 「通过 Apple 登录」身份验证（美国）",
       "· Resend Inc. — 通知及告知类电子邮件发送（美国）",
       "· LiveKit Inc. — 远程协诊视频通话（美国）",
       "· Google LLC（Gemini API）— AI 聊天机器人应答、翻译及远程协诊字幕转写（使用相关功能时，美国）",
@@ -1932,6 +1945,7 @@ const JA = {
       "【移転先および国・地域】",
       "· 韓国国内の提携病院（医療目的）",
       "· クラウドインフラ：Vercel Inc.（米国）、Supabase Inc.（米国 — データはソウル（ap-northeast-2）リージョンに保存）",
+      "· ソーシャルログイン認証：Google LLC（米国）・Apple Inc.（米国）— 当該ログインを利用する場合",
       "· 分析サービス：Google Ireland Ltd.（GA4、アイルランド）",
       "· メール送信：Resend Inc.（米国）",
       "· 遠隔協診のビデオ通話：LiveKit Inc.（米国）",
@@ -1962,6 +1976,7 @@ const JA = {
       "· Supabase Inc. — データベースホスティング（米国 — データはソウル（ap-northeast-2）リージョンに保存）",
       "· Vercel Inc. — ウェブアプリケーションホスティング（米国）",
       "· Google LLC — 認証（OAuth）、分析、地図（米国/アイルランド）",
+      "· Apple Inc. — 「Appleでサインイン」認証（米国）",
       "· Resend Inc. — 通知・案内メールの送信（米国）",
       "· LiveKit Inc. — 遠隔協診のビデオ通話（米国）",
       "· Google LLC（Gemini API）— AI チャットボットの応答、翻訳、遠隔協診の字幕文字起こし（当該機能を利用する場合、米国）",
