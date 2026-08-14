@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
       .select(
         "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, agencies(name)"
       )
+      // 테스트 문의(is_test)는 코디 화면에서 숨긴다 — 야간 자동 점검·로컬 개발 테스트가 만든 가짜 문의가
+      // 진짜 환자 문의와 섞여 코디가 헛일을 한다(2026-08-14 PO 지적). not(...is true) 라 null·false 는 그대로 보인다.
+      .not("is_test", "is", true)
       .order("created_at", { ascending: false })
       .limit(200);
 

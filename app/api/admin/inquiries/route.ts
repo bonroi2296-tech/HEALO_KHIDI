@@ -104,6 +104,8 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from("inquiries")
       .select(LIST_FIELDS, { count: "exact" })
+      // 코디 인박스와 같은 기준으로 테스트 문의를 숨긴다(2026-08-14). null·false 는 그대로 보인다.
+      .not("is_test", "is", true)
       .order("id", { ascending: false })
       .range(offset, offset + limit - 1);
 
