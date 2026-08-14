@@ -34,6 +34,9 @@ export type AiSurface =
   | "note_translate"
   | "opinion_translate"
   | "case_brief"
+  // 회귀 테스트(매주 월·목) — 2026-08-14 이전엔 계측 밖이라 AI 비용 화면에 「0」으로 보였다.
+  | "regression_generate"
+  | "regression_judge"
   | "embedding"
   | "other";
 

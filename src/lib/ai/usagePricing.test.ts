@@ -45,3 +45,24 @@ describe("estimateCostUsd", () => {
     expect(estimateCostUsd("gemini-flash-latest", 1000, 0)).toBeCloseTo(0.0015, 6);
   });
 });
+
+describe("normalizeUsage — 생각 토큰(2026-08-14)", () => {
+  it("생각 토큰을 출력에 합산한다 (안 더하면 출력 비용이 절반 이하로 새어나간다)", () => {
+    // 실측 형태: 답변 411 + 생각 631 = 청구되는 출력 1042
+    expect(normalizeUsage({ promptTokens: 95, completionTokens: 411, thoughtsTokenCount: 631 })).toEqual({
+      promptTokens: 95,
+      completionTokens: 1042,
+      totalTokens: 1137,
+    });
+  });
+  it("SDK 가 reasoningTokens 이름으로 줘도 흡수", () => {
+    expect(normalizeUsage({ inputTokens: 10, outputTokens: 20, reasoningTokens: 30 }).completionTokens).toBe(50);
+  });
+  it("생각 토큰이 없으면 종전과 동일", () => {
+    expect(normalizeUsage({ promptTokens: 10, completionTokens: 20 })).toEqual({
+      promptTokens: 10,
+      completionTokens: 20,
+      totalTokens: 30,
+    });
+  });
+});
