@@ -41,13 +41,21 @@ function measure() {
 
   // 2) 하단 고정 막대에 가려 «못 누르는» 요소
   //    화면 하단에 붙어 있는(fixed, bottom 근처) 막대들의 윗선을 구한다.
+  const vh = window.innerHeight;
   const bars = [...document.querySelectorAll("body *")].filter((el) => {
     const s = getComputedStyle(el);
     if (s.position !== "fixed" || s.display === "none" || s.visibility === "hidden") return false;
+    if (s.pointerEvents === "none" || parseFloat(s.opacity || "1") < 0.05) return false; // 안 보이거나 클릭이 통과하는 겹은 막대가 아니다
     const r = el.getBoundingClientRect();
-    return r.height > 24 && r.width > vw * 0.6 && Math.abs(r.bottom - window.innerHeight) < 8;
+    if (r.height > vh * 0.4) return false; // ⚠️ 화면을 통째로 덮는 겹은 「하단 막대」가 아니다 —
+    //  이 상한이 없어서 코디네이터 화면 12개가 전부 「하단가림(막대 0px)」으로 «오탐»났다(2026-08-14).
+    return r.height > 24 && r.width > vw * 0.6 && Math.abs(r.bottom - vh) < 8;
   });
   const barTop = bars.length ? Math.min(...bars.map((b) => b.getBoundingClientRect().top)) : Infinity;
+  // 잡힌 막대의 «정체»를 같이 남긴다. 이름 없이 「a「」가 걸림」만 보고하면 진짜인지 오탐인지 못 가린다.
+  const barName = bars.length
+    ? bars.map((b) => `${b.tagName.toLowerCase()}.${(b.className || "").toString().split(" ").filter(Boolean).slice(0, 2).join(".")}`).join(",")
+    : "";
 
   if (barTop !== Infinity) {
     const clickable = [...document.querySelectorAll("a,button,input,select,textarea")];
@@ -59,7 +67,7 @@ function measure() {
         if (bars.some((b) => b.contains(el))) continue;
         problems.push({
           kind: "하단가림",
-          detail: `${el.tagName.toLowerCase()}「${(el.innerText || el.value || "").trim().slice(0, 20)}」가 하단 막대(${Math.round(barTop)}px)에 걸림`,
+          detail: `${el.tagName.toLowerCase()}「${(el.innerText || el.value || "").trim().slice(0, 20)}」가 하단 막대[${barName}](윗선 ${Math.round(barTop)}px)에 걸림`,
         });
         break; // 화면당 1건만 — 같은 원인이 줄줄이 잡히는 걸 막는다
       }
@@ -72,21 +80,58 @@ function measure() {
   return problems;
 }
 
+// 🔑 «앱인 척» 하고 잰다 (2026-08-14 추가).
+// 앱/웹 판정은 오직 브라우저 이름표(user agent)에 `healwith-app` 이 있느냐다(`src/lib/isNativeApp.ts`).
+// 그래서 이름표만 붙이면 «앱이 띄우는 화면 그대로»가 재현된다 — 실기기 없이도 앱 화면을 잴 수 있다.
+// 웹 방문자 기준으로 재려면 APP=0 으로 실행. 둘은 화면이 «다르므로» 양쪽 다 돌려야 완전하다.
+const AS_APP = process.env.APP !== "0";
+const ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) " +
+  "Chrome/127.0.0.0 Mobile Safari/537.36";
+
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: VIEWPORT, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
   locale: process.env.LOCALE || "ko-KR",
   colorScheme: process.env.SCHEME === "dark" ? "dark" : "light",
+  ...(AS_APP ? { userAgent: `${ANDROID_UA} healwith-app` } : {}),
 });
+console.log(`[모드] ${AS_APP ? "앱(스토어 앱 안에서 보는 화면)" : "웹(브라우저 방문자)"} · ${VIEWPORT.width}x${VIEWPORT.height} · ${BASE}`);
 // 앱에서는 쿠키 배너가 아예 안 뜬다(isNativeApp 분기) → 배너 때문에 생기는 가짜 「하단가림」을 없앤다.
 // COOKIE=show 로 실행하면 «첫 방문자(배너 뜬 상태)»를 그대로 잰다 — 웹 방문자 기준 점검용.
 if (process.env.COOKIE !== "show") {
   await context.addInitScript(() => { try { localStorage.setItem("healo_cookie_consent", "all"); } catch {} });
 }
+// 바깥 추적·광고 주소는 아예 끊는다 (2026-08-14 추가).
+// 왜: 이 PC 는 광고차단기가 구글 측정 주소를 막아 요청이 «영원히 재시도»된다.
+// 그러면 「통신이 잠잠해질 때까지」 기다리는 이 도구가 시간초과로 죽어 **멀쩡한 화면 4개를
+// 「열림실패」로 잘못 보고**했다(2026-08-14 실측: /hospitals·/telemedicine·/insurance·/search).
+// 추적 스크립트는 화면을 그리지 않으므로 끊어도 측정 결과가 달라지지 않는다.
+const BLOCK = [/google-analytics\.com/, /googletagmanager\.com/, /www\.google\.com\/g\/collect/, /doubleclick\.net/, /google-analytics/, /analytics\.google\.com/];
+await context.route("**/*", (route) => {
+  const url = route.request().url();
+  if (BLOCK.some((re) => re.test(url))) return route.abort();
+  return route.continue();
+});
 const page = await context.newPage();
 
-// 로그인 뒤 화면을 훑을 때: LOGIN_LINK 로 «임시 입장 링크»를 받아 먼저 들어간다.
-// (비밀번호를 치지 않는다 — 서버 열쇠로 만든 1회용 링크다.)
+// 로그인 뒤 화면(환자·코디·관리자 포털)을 훑을 때 — 비밀번호를 치지 않는다.
+//   node scripts/dev-login-as.mjs patient@test.com   → 쿠키 이름·값이 나온다
+//   COOKIE_NAME=... COOKIE_VALUE=... ROUTES=/patient,... node scripts/mobile-sweep.mjs ...
+if (process.env.COOKIE_NAME && process.env.COOKIE_VALUE) {
+  await context.addCookies([{
+    name: process.env.COOKIE_NAME,
+    value: process.env.COOKIE_VALUE,
+    domain: new URL(BASE).hostname,
+    path: "/",
+    httpOnly: false,
+    secure: BASE.startsWith("https"),
+    sameSite: "Lax",
+  }]);
+  console.log("[로그인] 쿠키 심음 — 로그인 뒤 화면을 잰다");
+}
+
+// (옛 방식) LOGIN_LINK 로 «임시 입장 링크»를 받아 먼저 들어간다.
 if (process.env.LOGIN_LINK) {
   await page.goto(process.env.LOGIN_LINK, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(2000);
@@ -99,8 +144,12 @@ for (const route of ROUTES) {
   const onErr = (m) => { if (m.type() === "error") errors.push(m.text().slice(0, 120)); };
   page.on("console", onErr);
   try {
-    const res = await page.goto(BASE + route, { waitUntil: "networkidle", timeout: 45000 });
-    await page.waitForTimeout(1200); // 애니메이션·지연 렌더가 끝난 뒤에 잰다
+    // ⚠️ waitUntil 을 「통신이 완전히 멈출 때까지(networkidle)」로 두지 마라 (2026-08-14 실측).
+    //    챗봇 위젯처럼 «계속 통신하는» 화면은 영영 안 멈춰 시간초과가 나고,
+    //    그러면 **멀쩡한 화면이 「열림실패」로 잘못 보고된다**(/hospitals·/telemedicine·/insurance·/search
+    //    4개가 실제로 그랬다 — 진짜 브라우저에선 정상이었다).
+    const res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(3500); // 애니메이션·지연 렌더가 끝난 뒤에 잰다
     const status = res ? res.status() : 0;
     let problems = [];
     if (status >= 400) {
