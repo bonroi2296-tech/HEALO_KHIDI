@@ -63,7 +63,7 @@ export default function PrivacyPolicyClientLegacy() {
               {pageLabels.tableOfContents || "Contents"}
             </p>
             <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sections.map((s, idx) => (
+              {sections.map((s) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
@@ -83,9 +83,7 @@ export default function PrivacyPolicyClientLegacy() {
                   onMouseEnter={e => { if (activeId !== s.id) e.currentTarget.style.background = "#f0fdfa"; }}
                   onMouseLeave={e => { if (activeId !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span style={{ color: activeId === s.id ? "rgba(255,255,255,0.65)" : "#94a3b8", fontSize: "0.625rem", paddingTop: 2, flexShrink: 0 }}>
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
+                  {/* 번호는 제목 문자열(“1. 총칙”)에 이미 들어 있다 — 자동 순번을 또 붙이면 이중 번호가 된다 */}
                   <span>{s.title}</span>
                 </a>
               ))}
@@ -105,11 +103,6 @@ export default function PrivacyPolicyClientLegacy() {
                   borderBottom: idx < sections.length - 1 ? "1px solid #e2e8f0" : "none",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                  <span style={{ background: "#0d9488", color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", fontFamily: "monospace" }}>
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
-                </div>
                 <h2 style={{ fontSize: "clamp(1.125rem, 2.5vw, 1.5rem)", fontWeight: 800, color: "#0f172a", margin: "0 0 16px", lineHeight: 1.25 }}>
                   {section.title}
                 </h2>
