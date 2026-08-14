@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-// @ts-expect-error — JS 파일
 import { pickImagingFiles, sumBytes, formatMB, isProbablyPhone } from "./cdBundle";
 
 const f = (name: string, size = 1000) => ({ name, size });

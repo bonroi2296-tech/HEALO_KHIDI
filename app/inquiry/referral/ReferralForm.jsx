@@ -64,6 +64,18 @@ const TR = {
                 en: "Also want the hospital's opinion? Continue filling it in",
                 ru: "Хотите ещё и заключение клиники? Продолжить заполнение" },
   backToPick: { ko: "처음으로", en: "Back", ru: "Назад" },
+  sending:    { ko: "보내는 중입니다…", en: "Sending…", ru: "Отправляем…" },
+  errSend:    { ko: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요. 쓰신 내용은 그대로 있습니다.",
+                en: "We couldn't send it. Please try again shortly — your answers are still here.",
+                ru: "Не удалось отправить. Попробуйте ещё раз чуть позже — ваши ответы сохранены." },
+  errTooMany: { ko: "요청이 너무 잦습니다. 1분 뒤에 다시 시도해 주세요.",
+                en: "Too many attempts. Please try again in a minute.",
+                ru: "Слишком много попыток. Повторите через минуту." },
+  doneTitle:  { ko: "접수되었습니다", en: "We've received it", ru: "Заявка принята" },
+  doneBody:   { ko: "코디네이터가 확인하고 곧 연락드리겠습니다. 아래 주소를 저장해 두시면 진행 상황을 보시거나 자료를 더 올리실 수 있습니다.",
+                en: "A coordinator will review it and contact you shortly. Save the link below to track progress or add more documents.",
+                ru: "Координатор рассмотрит заявку и свяжется с вами. Сохраните ссылку ниже, чтобы следить за ходом и добавить документы." },
+  doneNo:     { ko: "접수번호", en: "Reference no.", ru: "Номер обращения" },
   title:      { ko: "환자 의뢰서", en: "Patient referral form", ru: "Направление пациента" },
   titleQuick: { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   subQuick:   { ko: "연락드리는 데 필요한 것만 여쭙니다. 나머지는 코디네이터가 도와드립니다.",
@@ -163,6 +175,9 @@ export default function ReferralForm() {
   const [highlight, setHighlight] = useState(null); // 「남은 칸으로」로 데려간 칸
   // null = 아직 안 고름(갈림길 화면) · "quick" = 연락처만 · "full" = 병원 제출까지
   const [mode, setMode] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [sent, setSent] = useState(null); // { inquiryId, publicToken }
   const loaded = useRef(false);
 
   // 쓰던 내용 복구 — 긴 폼의 유일한 진짜 위험은 「쓰다 날림」이다.
@@ -226,6 +241,40 @@ export default function ReferralForm() {
     });
   };
 
+  async function send() {
+    if (!canSend || sending) return;
+    setSending(true);
+    setSendError("");
+    try {
+      const res = await fetch("/api/inquiries/referral", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...values,
+          mode,
+          consents,
+          sourceLocale: lang,
+          landingPath: typeof location !== "undefined" ? location.pathname : null,
+          referrerHost: typeof document !== "undefined" && document.referrer
+            ? new URL(document.referrer).host : null,
+        }),
+      });
+      const j = await res.json();
+      if (!j?.ok) {
+        // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 여기서 한다.
+        setSendError(tr(j?.error === "rate_limit_exceeded" ? "errTooMany" : "errSend", lang));
+        return;
+      }
+      setSent(j);
+      // 보냈으면 임시저장은 지운다 — 남겨두면 다음에 열었을 때 이미 보낸 내용이 다시 뜬다.
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    } catch {
+      setSendError(tr("errSend", lang));
+    } finally {
+      setSending(false);
+    }
+  }
+
   // 데려간 칸에 테두리를 잠깐 켜 둔다. 포커스만으론 어느 칸인지 눈에 안 들어온다
   // (실측: 스크롤은 됐는데 focus 가 다시 풀려 아무 표시도 안 남았다).
   useEffect(() => {
@@ -233,6 +282,30 @@ export default function ReferralForm() {
     const t = setTimeout(() => setHighlight(null), 2500);
     return () => clearTimeout(t);
   }, [highlight]);
+
+  if (sent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-2xl px-4 py-16">
+          <div className="rounded-xl border border-emerald-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700">
+              <Check size={22} className="text-white" strokeWidth={3} />
+            </div>
+            <h1 className="mt-4 text-2xl font-bold text-gray-900">{tr("doneTitle", lang)}</h1>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600 md:text-base">{tr("doneBody", lang)}</p>
+            <p className="mt-5 text-sm text-gray-600">
+              {tr("doneNo", lang)} <span className="font-bold text-gray-900 tabular-nums">#{sent.inquiryId}</span>
+            </p>
+            {sent.publicToken && (
+              <p className="mt-2 break-all rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+                {typeof location !== "undefined" ? location.origin : ""}/t/{sent.publicToken}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 아직 안 골랐으면 갈림길만 보여준다. 15칸을 먼저 들이대지 않는다.
   if (mode === null) {
@@ -360,11 +433,19 @@ export default function ReferralForm() {
 
         {/* 바닥 */}
         <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
-          <button type="button" disabled={!canSend}
-                  className={`w-full rounded-xl px-6 py-3.5 text-base font-bold transition-all duration-200 ${
-                    canSend ? "bg-teal-700 text-white hover:bg-teal-800" : "cursor-not-allowed bg-gray-200 text-gray-600"}`}>
-            {canSend ? tr("submit", lang) : tr("submitOff", lang, { n: intakeLeft })}
+          <button type="button" disabled={!canSend || sending} onClick={send}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold transition-all duration-200 ${
+                    canSend && !sending ? "bg-teal-700 text-white hover:bg-teal-800" : "cursor-not-allowed bg-gray-200 text-gray-600"}`}>
+            {sending && <Loader2 size={16} className="animate-spin" />}
+            {sending ? tr("sending", lang)
+                     : canSend ? tr("submit", lang)
+                               : tr("submitOff", lang, { n: intakeLeft })}
           </button>
+          {sendError && (
+            <p className="mt-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {sendError}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-gray-600">
             <span>{tr("autosave", lang)}</span>
             {savedAt && <span className="tabular-nums">{tr("saved", lang, {

@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-// @ts-expect-error — JS 파일
 import { DOC_KINDS, NEEDED_KINDS, isKnownKind, kindLabel, missingKinds } from "./docKinds";
 
 describe("서류 종류 판별", () => {

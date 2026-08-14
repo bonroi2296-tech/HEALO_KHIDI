@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-// @ts-expect-error — 스키마는 JS 파일
 import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq } from "./referralSchema";
 
 describe("환자 의뢰서 칸 정의", () => {
