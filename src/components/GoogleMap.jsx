@@ -97,19 +97,27 @@ const LiveMap = ({ apiKey, center, hospitalName, location }) => {
       mapContainerStyle={containerStyle}
       center={center}
       zoom={15}
+      // 🛑 두 가지를 되돌리지 마라 — 되돌리면 지도가 «오류 한 줄 없이» 빈 상자가 된다.
+      //    (2026-08-14 실서비스 화면에서 네 조합을 직접 만들어 비교. 살아난 건 아래 3번뿐.)
+      //      1) {UI만}                     → 빈 상자(내용 83자)  ← 고치기 전 상태
+      //      2) {UI + styles}              → 빈 상자(83자)
+      //      3) {center + zoom + UI}       → 정상(457자)         ← 이 조합
+      //      4) {center + zoom + UI + styles} → 빈 상자(83자)
+      //
+      //  ① center·zoom 을 «options 안»에 같이 넣어야 한다.
+      //     @react-google-maps/api 는 지도를 만들 때 `new google.maps.Map(div, props.options)` 로
+      //     options «만» 넘긴다(dist/esm.js 의 getInstance). 겉의 center/zoom 은 만든 «뒤»에
+      //     setCenter/setZoom 으로 붙는데, 중심 없이 태어난 지도는 그 뒤에 넣어도 안 살아난다.
+      //  ② styles(옛날식 지도 색칠)는 넣으면 안 된다. 구글이 인라인 styles 를 접는 중이다.
+      //     POI 라벨을 다시 감추려면 구글 콘솔에서 지도 스타일을 만들고 mapId 로 넘겨야 한다.
       options={{
+        center,
+        zoom: 15,
         disableDefaultUI: false,
         zoomControl: true,
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: true,
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }],
-          },
-        ],
       }}
     >
       <Marker
