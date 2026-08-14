@@ -27,18 +27,27 @@ import {
 export function encryptTranscriptRow(row: {
   sourceText: string | null | undefined;
   translatedText: string | null | undefined;
+  // 화자 이름(환자 실명)도 PII 다 — 넘기면 평문 대신 암호문 칸에 넣는다(2026-08-14).
+  // 안 넘기는 호출부(맞장구·실시간 경로)는 speaker 를 안 건드린다(DB 기본 null).
+  speakerName?: string | null | undefined;
 }): {
   source_text: null;
   source_text_encrypted: string | null;
   translated_text: null;
   translated_text_encrypted: string | null;
+  speaker_name?: null;
+  speaker_name_encrypted?: string | null;
 } {
-  return {
-    source_text: null,
+  const base = {
+    source_text: null as null,
     source_text_encrypted: encryptStringNullable(row.sourceText),
-    translated_text: null,
+    translated_text: null as null,
     translated_text_encrypted: encryptStringNullable(row.translatedText),
   };
+  if (row.speakerName !== undefined) {
+    return { ...base, speaker_name: null, speaker_name_encrypted: encryptStringNullable(row.speakerName) };
+  }
+  return base;
 }
 
 /**
@@ -75,12 +84,15 @@ export function decryptTranscriptRows<
     source_text_encrypted?: string | null;
     translated_text?: string | null;
     translated_text_encrypted?: string | null;
+    speaker_name?: string | null;
+    speaker_name_encrypted?: string | null;
   },
->(rows: T[] | null | undefined): (T & { source_text: string | null; translated_text: string | null })[] {
+>(rows: T[] | null | undefined): (T & { source_text: string | null; translated_text: string | null; speaker_name: string | null })[] {
   if (!rows?.length) return [];
   return rows.map((r) => ({
     ...r,
     source_text: readTranscriptField(r.source_text_encrypted, r.source_text),
     translated_text: readTranscriptField(r.translated_text_encrypted, r.translated_text),
+    speaker_name: readTranscriptField(r.speaker_name_encrypted, r.speaker_name),
   }));
 }
