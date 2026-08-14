@@ -41,13 +41,21 @@ function measure() {
 
   // 2) 하단 고정 막대에 가려 «못 누르는» 요소
   //    화면 하단에 붙어 있는(fixed, bottom 근처) 막대들의 윗선을 구한다.
+  const vh = window.innerHeight;
   const bars = [...document.querySelectorAll("body *")].filter((el) => {
     const s = getComputedStyle(el);
     if (s.position !== "fixed" || s.display === "none" || s.visibility === "hidden") return false;
+    if (s.pointerEvents === "none" || parseFloat(s.opacity || "1") < 0.05) return false; // 안 보이거나 클릭이 통과하는 겹은 막대가 아니다
     const r = el.getBoundingClientRect();
-    return r.height > 24 && r.width > vw * 0.6 && Math.abs(r.bottom - window.innerHeight) < 8;
+    if (r.height > vh * 0.4) return false; // ⚠️ 화면을 통째로 덮는 겹은 「하단 막대」가 아니다 —
+    //  이 상한이 없어서 코디네이터 화면 12개가 전부 「하단가림(막대 0px)」으로 «오탐»났다(2026-08-14).
+    return r.height > 24 && r.width > vw * 0.6 && Math.abs(r.bottom - vh) < 8;
   });
   const barTop = bars.length ? Math.min(...bars.map((b) => b.getBoundingClientRect().top)) : Infinity;
+  // 잡힌 막대의 «정체»를 같이 남긴다. 이름 없이 「a「」가 걸림」만 보고하면 진짜인지 오탐인지 못 가린다.
+  const barName = bars.length
+    ? bars.map((b) => `${b.tagName.toLowerCase()}.${(b.className || "").toString().split(" ").filter(Boolean).slice(0, 2).join(".")}`).join(",")
+    : "";
 
   if (barTop !== Infinity) {
     const clickable = [...document.querySelectorAll("a,button,input,select,textarea")];
@@ -59,7 +67,7 @@ function measure() {
         if (bars.some((b) => b.contains(el))) continue;
         problems.push({
           kind: "하단가림",
-          detail: `${el.tagName.toLowerCase()}「${(el.innerText || el.value || "").trim().slice(0, 20)}」가 하단 막대(${Math.round(barTop)}px)에 걸림`,
+          detail: `${el.tagName.toLowerCase()}「${(el.innerText || el.value || "").trim().slice(0, 20)}」가 하단 막대[${barName}](윗선 ${Math.round(barTop)}px)에 걸림`,
         });
         break; // 화면당 1건만 — 같은 원인이 줄줄이 잡히는 걸 막는다
       }
@@ -107,8 +115,23 @@ await context.route("**/*", (route) => {
 });
 const page = await context.newPage();
 
-// 로그인 뒤 화면을 훑을 때: LOGIN_LINK 로 «임시 입장 링크»를 받아 먼저 들어간다.
-// (비밀번호를 치지 않는다 — 서버 열쇠로 만든 1회용 링크다.)
+// 로그인 뒤 화면(환자·코디·관리자 포털)을 훑을 때 — 비밀번호를 치지 않는다.
+//   node scripts/dev-login-as.mjs patient@test.com   → 쿠키 이름·값이 나온다
+//   COOKIE_NAME=... COOKIE_VALUE=... ROUTES=/patient,... node scripts/mobile-sweep.mjs ...
+if (process.env.COOKIE_NAME && process.env.COOKIE_VALUE) {
+  await context.addCookies([{
+    name: process.env.COOKIE_NAME,
+    value: process.env.COOKIE_VALUE,
+    domain: new URL(BASE).hostname,
+    path: "/",
+    httpOnly: false,
+    secure: BASE.startsWith("https"),
+    sameSite: "Lax",
+  }]);
+  console.log("[로그인] 쿠키 심음 — 로그인 뒤 화면을 잰다");
+}
+
+// (옛 방식) LOGIN_LINK 로 «임시 입장 링크»를 받아 먼저 들어간다.
 if (process.env.LOGIN_LINK) {
   await page.goto(process.env.LOGIN_LINK, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(2000);
