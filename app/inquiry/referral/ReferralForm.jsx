@@ -43,7 +43,32 @@ const LANGS = [
 ];
 
 const TR = {
+  // ── 갈림길 화면 (맨 처음) ──────────────────────────────────────
+  // 15칸을 처음부터 다 펼쳐 보이면 부담스럽다(PO 2026-08-13). 그렇다고 안 받을 수도
+  // 없는 정보라, «받을 양을 사용자가 고르게» 한다. 제출은 여전히 한 번이다.
+  pickTitle:  { ko: "어떻게 도와드릴까요?", en: "How can we help?", ru: "Чем мы можем помочь?" },
+  pickSub:    { ko: "지금 정하지 않으셔도 됩니다. 나중에 언제든 바꾸실 수 있습니다.",
+                en: "You don't have to decide now — you can switch at any time.",
+                ru: "Решать сейчас необязательно — вы можете передумать в любой момент." },
+  quickTitle: { ko: "먼저 상담만 신청할게요", en: "Just request a consultation first", ru: "Сначала просто заявка на консультацию" },
+  quickBody:  { ko: "연락처만 남겨주시면 코디네이터가 먼저 연락드려 하나씩 도와드립니다.",
+                en: "Leave your contact details and a coordinator will reach out and walk you through the rest.",
+                ru: "Оставьте контакты — координатор свяжется с вами и поможет со всем остальным." },
+  quickMeta:  { ko: "{n}칸 · 1분", en: "{n} fields · 1 minute", ru: "{n} полей · 1 минута" },
+  fullTitle:  { ko: "대학병원 소견을 빨리 받고 싶어요", en: "I want the hospital's opinion as soon as possible", ru: "Хочу быстрее получить заключение клиники" },
+  fullBody:   { ko: "번거로우시겠지만 대학병원이 요구하는 내용을 함께 적어주셔야 합니다. 가지고 계신 검사 자료를 올려주시면 훨씬 빨라집니다.",
+                en: "It takes more effort — the university hospital needs these details. Uploading the documents you already have makes it much faster.",
+                ru: "Это займёт больше времени — клинике нужны эти сведения. Если приложите имеющиеся документы, всё пойдёт заметно быстрее." },
+  fullMeta:   { ko: "{n}칸 · 자료 첨부", en: "{n} fields · with documents", ru: "{n} полей · с документами" },
+  switchToFull:{ ko: "대학병원 소견도 받고 싶으신가요? 이어서 채우기",
+                en: "Also want the hospital's opinion? Continue filling it in",
+                ru: "Хотите ещё и заключение клиники? Продолжить заполнение" },
+  backToPick: { ko: "처음으로", en: "Back", ru: "Назад" },
   title:      { ko: "환자 의뢰서", en: "Patient referral form", ru: "Направление пациента" },
+  titleQuick: { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
+  subQuick:   { ko: "연락드리는 데 필요한 것만 여쭙니다. 나머지는 코디네이터가 도와드립니다.",
+                en: "We only ask what we need to reach you — a coordinator helps with the rest.",
+                ru: "Спрашиваем только то, что нужно для связи — с остальным поможет координатор." },
   sub:        { ko: "한국 대학병원이 진료 의뢰를 받을 때 요구하는 내용입니다. 저희가 대신 정리해 전달해 드립니다 — 아는 만큼만 채우셔도 됩니다.",
                 en: "These are the items Korean university hospitals ask for when accepting a referral. We compile and forward it for you — fill in only what you know.",
                 ru: "Это сведения, которые запрашивают корейские университетские клиники при приёме направления. Мы соберём и передадим их за вас — заполняйте только то, что знаете." },
@@ -136,6 +161,8 @@ export default function ReferralForm() {
   const [open, setOpen] = useState({ essentials: true });
   const [savedAt, setSavedAt] = useState(null);
   const [highlight, setHighlight] = useState(null); // 「남은 칸으로」로 데려간 칸
+  // null = 아직 안 고름(갈림길 화면) · "quick" = 연락처만 · "full" = 병원 제출까지
+  const [mode, setMode] = useState(null);
   const loaded = useRef(false);
 
   // 쓰던 내용 복구 — 긴 폼의 유일한 진짜 위험은 「쓰다 날림」이다.
@@ -146,6 +173,8 @@ export default function ReferralForm() {
         const d = JSON.parse(raw);
         setValues(d.values || {});
         setConsents(d.consents || {});
+        // 돌아온 사람에게 갈림길을 다시 묻지 않는다 — 쓰던 자리로 바로 보낸다.
+        if (d.mode) setMode(d.mode);
       }
     } catch { /* 저장본이 깨졌으면 그냥 빈 폼으로 시작한다 */ }
     loaded.current = true;
@@ -154,10 +183,10 @@ export default function ReferralForm() {
   useEffect(() => {
     if (!loaded.current) return;
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode }));
       setSavedAt(new Date());
     } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
-  }, [values, consents]);
+  }, [values, consents, mode]);
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).
@@ -205,37 +234,58 @@ export default function ReferralForm() {
     return () => clearTimeout(t);
   }, [highlight]);
 
+  // 아직 안 골랐으면 갈림길만 보여준다. 15칸을 먼저 들이대지 않는다.
+  if (mode === null) {
+    return <ModePicker lang={lang} onPick={setMode}
+                       quickN={fieldsByReq("intake").length + 1}
+                       fullN={fieldsByReq("intake").length + fieldsByReq("referral").length + 1} />;
+  }
+  const quick = mode === "quick";
+  // 「연락처만」이면 첫 묶음만 그린다. 나머지는 아예 «안 보여준다» — 접어두기만 해도
+  // 묶음 줄 5개가 보여서 「아직 이만큼 남았구나」로 읽힌다(PO 2026-08-13).
+  const shownSections = quick ? SECTIONS.slice(0, 1) : SECTIONS;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
 
         {/* 머리 */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
-          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{tr("title", lang)}</h1>
-          <p className="mt-2 text-sm text-gray-600 md:text-base">{tr("sub", lang)}</p>
-          {/* 막대가 «두 개»인 게 이 화면의 핵심이다.
-              위: 지금 보낼 수 있나(문턱)  ·  아래: 병원까지 얼마나 왔나(안 막음). */}
+          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+            {quick ? tr("titleQuick", lang) : tr("title", lang)}
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 md:text-base">
+            {quick ? tr("subQuick", lang) : tr("sub", lang)}
+          </p>
+          {/* 「연락처만」일 땐 막대도 하나다 — 안 채울 것의 진행률을 보여주면 그게 곧 부담이다. */}
           <div className="mt-6 space-y-4">
-            <Bar label={tr("barIntake", lang)}
+            {/* 「연락처만」일 땐 제목이 이미 «상담 신청»이라 막대 이름을 또 달면 같은 말이 두 번 뜬다. */}
+            <Bar label={quick ? "" : tr("barIntake", lang)}
                  pct={((intakeTotal - intakeLeft) / intakeTotal) * 100}
                  tone={canSend ? "done" : "todo"}
                  meta={canSend ? tr("barIntakeOk", lang) : tr("barIntakeNo", lang, { n: intakeLeft })}
                  action={canSend ? null : { label: tr("jump", lang), onClick: jumpToNext }} />
-            <Bar label={tr("barReferral", lang)}
-                 pct={readiness} tone="soft"
-                 meta={readiness === 100
-                   ? tr("barRefDone", lang)
-                   : tr("barRefMeta", lang, { pct: readiness, n: missRef.length })} />
+            {!quick && (
+              <Bar label={tr("barReferral", lang)}
+                   pct={readiness} tone="soft"
+                   meta={readiness === 100
+                     ? tr("barRefDone", lang)
+                     : tr("barRefMeta", lang, { pct: readiness, n: missRef.length })} />
+            )}
           </div>
-          <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-xs leading-relaxed text-teal-800 md:text-sm">
-            {tr("laterNote", lang)}
-          </p>
-          <p className="mt-2 px-1 text-xs leading-relaxed text-gray-600">{tr("insuranceNote", lang)}</p>
+          {!quick && (
+            <>
+              <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-xs leading-relaxed text-teal-800 md:text-sm">
+                {tr("laterNote", lang)}
+              </p>
+              <p className="mt-2 px-1 text-xs leading-relaxed text-gray-600">{tr("insuranceNote", lang)}</p>
+            </>
+          )}
         </div>
 
         {/* 묶음 */}
         <div className="mt-5 space-y-3">
-          {SECTIONS.map((sec, i) => {
+          {shownSections.map((sec, i) => {
             const left = secState(sec);
             const isOpen = !!open[sec.id];
             const card = (
@@ -291,7 +341,7 @@ export default function ReferralForm() {
               </section>
             );
             // 「먼저, 이것만」 바로 아래에서 한 번 더 말해준다 — 여기부터는 안 채워도 보낼 수 있다.
-            return i === 0 ? (
+            return i === 0 && !quick ? (
               <div key={sec.id} className="space-y-3">
                 {card}
                 <p className="px-1 pt-2 text-xs leading-relaxed text-gray-600 md:text-sm">{tr("restNote", lang)}</p>
@@ -299,6 +349,14 @@ export default function ReferralForm() {
             ) : card;
           })}
         </div>
+
+        {/* 「연락처만」으로 시작해도 문은 열어둔다 — 마음이 바뀌면 이어서 채운다. */}
+        {quick && (
+          <button type="button" onClick={() => setMode("full")}
+                  className="mt-4 w-full rounded-xl border border-teal-100 bg-teal-50 px-4 py-3.5 text-left text-sm font-semibold text-teal-800 transition-all duration-200 hover:bg-teal-100">
+            {tr("switchToFull", lang)} →
+          </button>
+        )}
 
         {/* 바닥 */}
         <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
@@ -426,6 +484,44 @@ function Field({ f, lang, value, onChange, lit }) {
       )}
       {control}
       {f.hint && <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>}
+    </div>
+  );
+}
+
+/**
+ * 갈림길 — 맨 처음 화면. 「받을 양」을 사용자가 고르게 한다.
+ *
+ * 왜: 15칸을 처음부터 다 보여주면 부담스러워 창을 닫는다. 그렇다고 안 받을 수도 없는
+ *     정보다(병원이 요구한다). 그래서 «안 받는 것»이 아니라 «언제 받을지»를 나눈다.
+ *     제출은 여전히 한 번이고, 「연락처만」으로 시작해도 언제든 이어서 채울 수 있다.
+ */
+function ModePicker({ lang, onPick, quickN, fullN }) {
+  const Card = ({ onClick, title, body, meta, primary }) => (
+    <button type="button" onClick={onClick}
+            className={`w-full rounded-xl border p-5 text-left transition-all duration-200 md:p-6 ${
+              primary ? "border-teal-700 bg-white shadow-sm hover:bg-teal-50"
+                      : "border-gray-200 bg-white shadow-sm hover:border-gray-300"}`}>
+      <p className="text-base font-bold text-gray-900 md:text-lg">{title}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{body}</p>
+      <p className="mt-3 inline-block rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 tabular-nums">
+        {meta}
+      </p>
+    </button>
+  );
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-2xl px-4 py-10 md:py-16">
+        <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{tr("pickTitle", lang)}</h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">{tr("pickSub", lang)}</p>
+        <div className="mt-6 space-y-3">
+          <Card primary onClick={() => onPick("quick")}
+                title={tr("quickTitle", lang)} body={tr("quickBody", lang)}
+                meta={tr("quickMeta", lang, { n: quickN })} />
+          <Card onClick={() => onPick("full")}
+                title={tr("fullTitle", lang)} body={tr("fullBody", lang)}
+                meta={tr("fullMeta", lang, { n: fullN })} />
+        </div>
+      </div>
     </div>
   );
 }
