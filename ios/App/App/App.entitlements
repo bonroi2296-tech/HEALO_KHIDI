@@ -11,10 +11,17 @@
 	        https://healwith.co.kr/.well-known/apple-app-site-association
 	        (app/.well-known/apple-app-site-association/route.ts — 환경변수 APPLE_TEAM_ID 필요)
 	     ⚠️ 애플 개발자 계정에서 이 앱 ID 의 「Associated Domains」 기능도 켜져 있어야 한다. -->
+	<!-- webcredentials — 「이 앱과 웹은 «같은 로그인 정보»를 쓴다」 (2026-08-14 추가).
+	     없으면 아이클라우드 키체인·비밀번호 관리자가 웹에 저장된 healwith 계정을 앱에서 «못 찾아»
+	     화면을 훑어 칸을 찍고, 그러다 아이디·비밀번호 칸을 서로 바꿔 채운다
+	     (PO 갤럭시 실기기에서 정확히 그 증상 — 안드로이드도 같은 원리라 짝으로 고쳤다).
+	     ⚠️ 서버의 /.well-known/apple-app-site-association 에도 webcredentials 항목이 있어야 짝이 맞는다. -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:healwith.co.kr</string>
 		<string>applinks:www.healwith.co.kr</string>
+		<string>webcredentials:healwith.co.kr</string>
+		<string>webcredentials:www.healwith.co.kr</string>
 	</array>
 </dict>
 </plist>
