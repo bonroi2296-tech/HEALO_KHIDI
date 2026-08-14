@@ -220,6 +220,13 @@ export default function ReferralForm() {
   // applyAutoFill 안에서 «최신» 표시 상태를 봐야 한다 — state 는 그 시점 값이라 늦다.
   const autoFilledRef = useRef({});
   const valuesRef = useRef({});
+  // 머리(진행 막대)도 바닥(보내기 버튼)도 «둘 다 화면 밖»일 때만 아래 고정 막대를 띄운다.
+  // 실측 2026-08-14: 문서가 4,274px 인데 진행 막대는 346px 에서 끝난다 —
+  // 8% 만 내려도 진행상황과 보내기 버튼이 «둘 다» 안 보였다(PO 지적).
+  const headRef = useRef(null);
+  const footRef = useRef(null);
+  const [headOut, setHeadOut] = useState(false);
+  const [footOut, setFootOut] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sent, setSent] = useState(null); // { inquiryId, publicToken }
@@ -351,6 +358,25 @@ export default function ReferralForm() {
   useEffect(() => { autoFilledRef.current = autoFilled; }, [autoFilled]);
   useEffect(() => { valuesRef.current = values; }, [values]);
 
+  // ⚠️ IntersectionObserver 를 쓰지 마라. 화면을 안 그리는 환경(미리보기 칸 등)에서는
+  //    «한 번도 안 울린다»(2026-08-14 실측: 새로 만든 감시기도 0회). 그러면 고정 막대가
+  //    영영 안 뜨는데 코드만 봐선 멀쩡해 보인다. 위치를 직접 재는 쪽이 어디서나 돈다.
+  useEffect(() => {
+    const measure = () => {
+      const h = headRef.current?.getBoundingClientRect();
+      const f = footRef.current?.getBoundingClientRect();
+      setHeadOut(!!h && h.bottom < 0);
+      setFootOut(!!f && f.top > window.innerHeight);
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [mode, sent]);
+
   // 데려간 칸에 테두리를 잠깐 켜 둔다. 포커스만으론 어느 칸인지 눈에 안 들어온다
   // (실측: 스크롤은 됐는데 focus 가 다시 풀려 아무 표시도 안 남았다).
   useEffect(() => {
@@ -403,7 +429,7 @@ export default function ReferralForm() {
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
 
         {/* 머리 */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
+        <div ref={headRef} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
           <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
             {quick ? tr("titleQuick", lang) : tr("title", lang)}
           </h1>
@@ -513,7 +539,7 @@ export default function ReferralForm() {
         )}
 
         {/* 바닥 */}
-        <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+        <div ref={footRef} className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
           <button type="button" disabled={!canSend || sending} onClick={send}
                   className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold transition-all duration-200 ${
                     canSend && !sending ? "bg-teal-700 text-white hover:bg-teal-800" : "cursor-not-allowed bg-gray-200 text-gray-600"}`}>
@@ -533,7 +559,43 @@ export default function ReferralForm() {
               t: savedAt.toLocaleTimeString(lang === "ko" ? "ko-KR" : "en-GB", { hour: "2-digit", minute: "2-digit" }) })}</span>}
           </div>
         </div>
+
+        {/* 고정 막대에 마지막 줄이 가려지지 않게 자리를 비워둔다. */}
+        {headOut && footOut && <div className="h-24" aria-hidden />}
       </div>
+
+      {/* 아래 고정 막대 — 진행상황과 보내기를 «항상» 손 닿는 곳에 둔다.
+          실측 2026-08-14: 문서가 4,274px 인데 진행 막대는 346px 에서 끝난다.
+          «8% 만 내려도» 진행상황도 보내기 버튼도 둘 다 안 보였다(PO 지적).
+          머리와 바닥이 «둘 다» 화면 밖일 때만 뜬다 — 같은 걸 두 번 보여주지 않는다. */}
+      {headOut && footOut && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur">
+          <div className="mx-auto max-w-3xl px-4 py-3">
+            <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
+              <div className={`h-full rounded-full transition-all duration-200 ${canSend ? "bg-emerald-700" : "bg-gray-400"}`}
+                   style={{ width: `${Math.max(0, ((intakeTotal - intakeLeft) / intakeTotal) * 100)}%` }} />
+            </div>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-xs text-gray-600 md:text-sm">
+                {canSend ? tr("barIntakeOk", lang) : tr("barIntakeNo", lang, { n: intakeLeft })}
+                {!quick && readiness < 100 && ` · ${tr("barReferral", lang)} ${readiness}%`}
+              </span>
+              {canSend ? (
+                <button type="button" disabled={sending} onClick={send}
+                        className="flex flex-none items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-teal-800">
+                  {sending && <Loader2 size={14} className="animate-spin" />}
+                  {sending ? tr("sending", lang) : tr("submit", lang)}
+                </button>
+              ) : (
+                <button type="button" onClick={jumpToNext}
+                        className="flex-none rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-teal-800">
+                  {tr("jump", lang)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
