@@ -58,7 +58,7 @@ const FORBIDDEN = [
   // (2026-06-30 C레벨 진단 MKT-08: 검사기 사각지대였음). 정본 = healwith.co.kr.
   { re: /healo-khidi\.com/i, msg: "죽은 옛 도메인 healo-khidi.com 잔재 (→ healwith.co.kr) — webhook/설정 URL 이 죽은 도메인을 가리킴 (MKT-08)" },
   // khidi.healo.kr 은 컷오버 전 옛 도메인. 고객 링크/리터럴엔 금지하되, translate API 의 CORS origin allowlist 만 면제(레거시 호환).
-  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
+  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime|allowedOrigin/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
   // 면력한방병원 브랜드명 발명 음역 차단 — AI 번역이 지어낸 이름(2026-07-06 /insurance 카피 검증에서 발견).
   // 공식 표기: en/ru/kz "Immune Hospital", ja "免疫病院", zh "免疫(韩方)医院" (seo.immune.* · immuneCancerDetails.js 기준).

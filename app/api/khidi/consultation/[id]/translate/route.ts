@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 import { encryptTranscriptRow, decryptTranscriptRows } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
+import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
 
 export async function POST(
   request: NextRequest,
@@ -58,6 +59,9 @@ export async function POST(
           source_lang: payload.sourceLanguage,
           target_lang: payload.targetLanguage,
           confidence: payload.confidence ?? null,
+          // 「어느 받아쓰기가 만든 줄인가」 — 아는 값만 통과(모르는 값이 섞이면 이 칸으로
+          // 재는 숫자가 통째로 못 쓰게 된다). 이 라우트는 맞장구 사전 경로가 기본.
+          stt_engine: normalizeSttEngine(payload.sttEngine) ?? STT_ENGINES.BACKCHANNEL,
           ...encryptTranscriptRow({
             sourceText: payload.originalText,
             translatedText: payload.translatedText || null,
