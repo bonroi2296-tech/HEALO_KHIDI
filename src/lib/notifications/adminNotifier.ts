@@ -383,6 +383,23 @@ async function _sendAdminNotificationInternal(
     return;
   }
 
+  // 1-a. 테스트 문의(is_test)면 알림 자체를 건너뛴다.
+  //      2026-08-14: 야간 챗 스모크·로컬 개발 테스트가 만든 문의까지 PO 메일함으로 알림이 가서
+  //      "진짜 문의"와 섞였다. 호출부마다 플래그를 넘기게 하면 새 호출부에서 또 빠뜨리므로 여기서 DB로 확인한다.
+  try {
+    const { data: row } = await supabaseAdmin
+      .from("inquiries")
+      .select("is_test")
+      .eq("id", inquiryId)
+      .maybeSingle();
+    if (row?.is_test) {
+      console.log(`[Notify] Skipping inquiry ${inquiryId} (is_test)`);
+      return;
+    }
+  } catch {
+    // 조회 실패 시엔 보내는 쪽으로(진짜 문의 알림을 놓치는 게 더 나쁘다)
+  }
+
   // 1-b. 웹/앱 종(bell) 알림 — 코디+어드민에게 in-app 발송.
   //      이메일/SMS 수신자 설정과 무관하게 항상 울리도록 수신자 조회보다 먼저 한다(fail-safe).
   try {
