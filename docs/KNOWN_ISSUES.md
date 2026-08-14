@@ -81,11 +81,30 @@
 > 리퍼러 제한을 걸자 그쪽이 `403 API_KEY_HTTP_REFERRER_BLOCKED` 로 죽었다.
 > **제한을 걸기 «전»에 「이 열쇠를 누가 쓰나」를 코드에서 전수 조회했어야 했다.** 다른 세션이 서버 전용 열쇠를 따로 발급해 고쳤다(#1385).
 
-**✅ 사용처 제한 — 걸었다 (2026-08-14)**
-구글이 화면에 *「현재 이 키는 모든 애플리케이션에서 사용할 수 있습니다」* 라고 경고하고 있었고,
-`example.com` 에 우리 열쇠를 붙여 지도를 띄워보니 **거부 없이 그대로 떴다**. 남이 베껴 쓰면 요금이 우리에게 온다.
-→ 프로젝트 **My First Project(`aerobic-gantry-477208-v5`)** 의 「Maps Platform API Key」에
-**HTTP 리퍼러 제한**을 걸었다: `https://healwith.co.kr/*` · `https://*.healwith.co.kr/*`.
+**✅ 사용처 제한 — 걸었고, 실제로 막히는지까지 쟀다 (2026-08-14, PO PC 세션)**
+프로젝트 **My First Project(`aerobic-gantry-477208-v5`)** 의 「Maps Platform API Key」(`AIza…1QZE`, 버셀 값과 동일 확인).
+
+| 칸 | 조이기 전 | 조인 뒤 |
+|---|---|---|
+| 애플리케이션 제한 | HTTP 리퍼러 2줄 (`https://healwith.co.kr/*` · `https://*.healwith.co.kr/*`) | 그대로 (건드릴 게 없었다) |
+| API 제한 | **31개** | **1개 — Maps JavaScript API 만** |
+| 청구 예산 알림 | **0개** | 월 ₩150,000 · 50/90/100% 이메일 |
+
+> ⚠️ **「example.com 에 붙여도 지도가 떴다」는 관찰은 오독이었다.** 제한은 처음부터 먹고 있었다.
+> 허용 안 된 출처에서 열쇠를 쓰면 구글은 **거부하면서도 「지도처럼 생긴 정지 그림」**(`StaticMapService.GetMapImage`)을 그려준다.
+> 눈으로는 지도가 뜬 것처럼 보이지만 **진짜 지도 타일(`maps/vt`)은 0건**이고 콘솔엔 `RefererNotAllowedMapError` 가 찍힌다.
+> **판정은 화면이 아니라 ①콘솔 오류 ②`maps/vt` 요청 건수로 하라.**
+
+**실측 (2026-08-14, Playwright 실브라우저 — PO PC 크롬은 AdGuard 가 healwith.co.kr 을 막아 못 씀)**
+
+| 어디서 | 지도 타일(`maps/vt`) | 콘솔 | 판정 |
+|---|---|---|---|
+| `https://healwith.co.kr/ko/hospitals/severance-sinchon` | **7건 200** + `GetViewportInfo` 200 | Marker 폐기예고 안내만 | ✅ 정상 |
+| `http://127.0.0.1:8899/` (허용 안 된 출처) | **0건** | `RefererNotAllowedMapError` + `gm_authFailure` | ✅ 거부됨 |
+| 서버측 호출(리퍼러 없음) | — | Places `403 API_KEY_HTTP_REFERRER_BLOCKED` · Geocoding `REQUEST_DENIED` | ✅ 거부됨 |
+
+**청구 실측**: 이번 달 구글 청구 ₩49,916 (8/1~12) 은 **전액 Gemini API**. **지도 몫 = ₩0** — 즉 남이 베껴 쓴 흔적은 없었다.
+다만 Gemini 는 7월 한 달 ₩15,721 → 8월 예상 ₩102,253 으로 **6배** 뛰었다(별건, 아래 재검토 대상).
 
 **🟡 남은 것 — 프리뷰(임시 주소)에서는 지도가 안 뜬다**
 열쇠는 preview·development 환경에도 들어 있는데 위 제한 목록에 `*.vercel.app` 을 **일부러 안 넣었다**
@@ -93,31 +112,27 @@
 지금은 문제가 안 된다. **프리뷰에서 지도를 봐야 할 일이 생기면** 그때 `https://healo-khidi-*.vercel.app/*`
 한 줄을 추가하면 된다. **재검토: 2026-09-15**
 
-**🟡 딸린 것 — 같은 열쇠를 «서버»도 쓰고 있다. 리퍼러 제한은 서버 호출을 막는다 (2026-08-14 발견)**
+**✅ 딸린 것 — 같은 열쇠를 «서버»도 쓰고 있었다 → 서버용 열쇠를 갈라서 해결 (2026-08-14 발견 → 같은 날 닫힘)**
 
-위 리퍼러 제한을 걸면서 **같은 열쇠를 브라우저 말고 서버에서도 쓰는 곳이 있다는 걸 아무도 안 봤다.**
 리퍼러 제한은 「브라우저가 보낸 요청」에만 통과 도장을 찍는다 — 서버끼리 부르는 요청엔 리퍼러가 아예 없어서
-구글이 **거부**한다. 즉 **지도는 살렸는데 병원 정보 보강이 죽었을 수 있다.**
+구글이 거부한다. **실측으로 확정**: 지도 열쇠로 `places.googleapis.com/v1/places:searchText` 를 서버에서 부르면
+`403 / "Requests from referer <empty> are blocked" / API_KEY_HTTP_REFERRER_BLOCKED`.
+즉 어드민 **병원 정보 보강**·**크롤** 은 (이 제한이 걸린 시점부터) 이미 죽어 있었다.
 
-| 어디 | 쓰는 열쇠 | 대비책 |
-|---|---|---|
-| `src/lib/crawl/sources/google-places-search.ts:4` | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` **만** | ❌ 없음 → 그대로 막힌다 |
-| `src/lib/enrichment/sources/google-places.ts:4` | `GOOGLE_PLACES_API_KEY` → 없으면 위 열쇠 | ⚠️ `GOOGLE_PLACES_API_KEY` 가 설정돼 있으면 무사 |
+**고친 내용**
+1. 구글 콘솔에 **서버 전용 열쇠**를 새로 만들었다 — 이름 `Places Server Key (no referrer)`, `AIza…ZAjk`.
+   애플리케이션 제한 **없음**(버셀 나가는 IP 가 고정이 아니라 IP 제한이 안 맞는다) · API 제한 **Places API (New) 하나만**.
+2. 버셀 `healo-khidi` 에 `GOOGLE_PLACES_API_KEY` 로 넣었다 (production·preview·development). 로컬 `.env.local` 에도 추가.
+3. `google-places-search.ts` 가 `GOOGLE_PLACES_API_KEY` 를 **먼저** 보게 했다(없으면 종전 열쇠로 폴백).
+   `enrichment/sources/google-places.ts` 는 이미 그 순서였다. 두 파일의 `requiredEnvKeys` 도 실제 쓰는 이름으로 고쳤다.
+4. 검증: 새 열쇠로 `places:searchText("신촌세브란스병원")` → **200 + 정상 주소**.
 
-타는 화면: 어드민 **병원 정보 보강**(`/api/admin/hospitals/enrich`·`/enrich/batch`)과
-**크롤**(`/api/admin/crawl`·`/api/admin/crawl/jobs`). ⏸ **예약 실행은 아니다** — `vercel.json` 의 `crons` 에
-`/api/cron/crawl` 이 없어서 «저절로» 돌지는 않는다. PO 가 그 화면을 눌렀을 때만 터진다(= 조용히 묻히기 쉽다).
+⚠️ **지도 열쇠의 리퍼러 제한을 「푸는 것」으로 해결하지 마라** — 처음 문제(남이 베껴 씀)로 되돌아간다.
 
-**왜 🟡 인가**: 환자 화면엔 영향 0, 저절로 도는 것도 아니다. 대신 **다음에 그 화면을 누르는 사람이 원인을 못 찾는다.**
-
-**고치는 법(둘 중 하나 — 둘 다 구글 콘솔이 필요해 이 상자에서는 못 한다)**
-1. (권장) 서버용 열쇠를 **따로** 만들어 `GOOGLE_PLACES_API_KEY` 로 버셀에 넣는다. 그 열쇠는 리퍼러가 아니라
-   **API 제한만**(Places API) 건다. 그리고 `google-places-search.ts:4` 에도 `GOOGLE_PLACES_API_KEY ||` 폴백을 넣는다.
-2. 지금 열쇠의 제한을 푼다 → **하지 마라.** 그러면 처음 문제(남이 베껴 씀)로 되돌아간다.
-
-**⚠️ 실측 못 했다**: 이 상자엔 열쇠가 없어서(`.env.local` 없음) 실제로 거부되는지 못 찍어봤다.
-근거는 ①구글 문서상 리퍼러 제한 열쇠는 서버 호출 불가 ②위 두 파일이 같은 열쇠 이름을 읽는다는 코드 사실.
-**확인 한 줄**: 어드민 크롤 화면에서 구글 소스로 검색 한 번 → 결과 0건이면 이게 원인이다. **재검토: 2026-09-15**
+**⚠️ 확인 못 한 것**: 어드민 크롤 **화면**에서 실제로 검색을 눌러본 건 아니다(실서비스 로그인 필요 + PO PC 크롬이
+AdGuard 로 healwith.co.kr 을 막고 있었다). 대신 **화면이 부르는 바로 그 API 를 같은 열쇠로 직접 쳐서** 전후를 쟀다
+(막힘 403 → 새 열쇠 200). 또 **버셀에 넣은 값은 다음 실서비스 반영(매일 오후 3시 창구) 뒤에야 서버에 실린다** —
+그전까지 어드민 보강·크롤은 계속 0건이다. **재검토: 2026-09-15**
 
 **🟢 딸린 것**: `google.maps.Marker` 가 구글에서 「더 안 쓰는 것」으로 표시돼 콘솔에 안내가 뜬다
 (`AdvancedMarkerElement` 권장). 지금 동작에는 지장 없고 최소 12개월 예고 후에나 끊긴다. **재검토: 2027-01-31**
