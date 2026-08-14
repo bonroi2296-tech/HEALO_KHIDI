@@ -15,7 +15,11 @@ const REQUIRED_VARS = {
   NEXT_PUBLIC_SUPABASE_URL: 'Supabase project URL',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'Supabase anon key',
   SUPABASE_SERVICE_ROLE_KEY: 'Supabase service role key',
-  ENCRYPTION_KEY_V2: '64-character hex encryption key',
+  // ⚠️ 이름 주의(지도 열쇠와 «똑같은» 사고): 파일 이름은 encryptionV2.ts 인데
+  //    코드가 실제로 읽는 환경변수는 ENCRYPTION_KEY_V1 이다(src/lib/security/encryptionV2.ts:53).
+  //    2026-08-14 까지 이 검사기는 «있지도 않은» ENCRYPTION_KEY_V2 를 요구해서
+  //    ①늘 실패하고(그래서 아무도 안 봄) ②정작 진짜 열쇠가 빠져도 한마디도 안 했다.
+  ENCRYPTION_KEY_V1: '환자 개인정보 암·복호화 열쇠 (base64 44자 또는 hex 64자)',
   GOOGLE_GENERATIVE_AI_API_KEY: 'Google AI API key',
 };
 
@@ -76,10 +80,14 @@ for (const [key, description] of Object.entries(OPTIONAL_VARS)) {
   }
 }
 
-if (process.env.ENCRYPTION_KEY_V2) {
-  const keyLength = process.env.ENCRYPTION_KEY_V2.length;
-  if (keyLength !== 64) {
-    console.error(`\nInvalid ENCRYPTION_KEY_V2 length: ${keyLength} chars. Expected 64 hex chars.`);
+// 길이 판정은 encryptionV2.ts 가 실제로 받아주는 두 형식에 맞춘다 — hex 64자 또는 base64 44자.
+// (예전엔 hex 64자만 통과시켜서, 정상인 base64 열쇠를 «틀렸다»고 잡을 뻔했다.)
+if (process.env.ENCRYPTION_KEY_V1) {
+  const key = process.env.ENCRYPTION_KEY_V1.trim();
+  const okHex = /^[0-9a-fA-F]{64}$/.test(key);
+  const okB64 = key.length === 44 && Buffer.from(key, 'base64').length === 32;
+  if (!okHex && !okB64) {
+    console.error(`\nInvalid ENCRYPTION_KEY_V1: ${key.length} chars. Expected hex 64 chars or base64 44 chars (=32 bytes).`);
     console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
     hasErrors = true;
   }
