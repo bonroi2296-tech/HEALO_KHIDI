@@ -7,6 +7,7 @@
 import "server-only";
 
 import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { logAiUsage } from "@/lib/ai/usageLog";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { sanitizeResponse } from "../playbook/sanitize";
@@ -106,6 +107,15 @@ Rules:
     );
     if (!res.ok) return null;
     const data = await res.json();
+    // 계측 — 매일 도는 크론(automation)이라 자동으로 돈이 나가는데 계측 밖이라
+    // 어드민 AI 비용 화면에 「0」으로 보였다(2026-08-14 감사). REST 직호출이라 응답 본문에서 읽는다.
+    const um = data?.usageMetadata;
+    void logAiUsage({
+      surface: "playbook_auto_improve",
+      model: "gemini-flash-latest",
+      promptTokens: um?.promptTokenCount ?? null,
+      completionTokens: (um?.candidatesTokenCount ?? 0) + (um?.thoughtsTokenCount ?? 0) || null,
+    });
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) return null;
 

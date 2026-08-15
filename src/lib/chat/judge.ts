@@ -16,6 +16,7 @@ import "server-only";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { sendInAppNotification, getStaffIdsByRole } from "../notifications/inApp";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
@@ -131,6 +132,10 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
       maxOutputTokens: 512,
       providerOptions: { google: { thinkingConfig: { thinkingLevel: "minimal" } } },
     });
+
+    // 계측 — 공개 챗이 답할 때마다 이 판사가 같이 돌아 제미나이 호출이 사실상 2배인데,
+    // 판사 쪽이 계측 밖이라 어드민 AI 비용 화면에 「0」으로 보였다(2026-08-14 감사).
+    void logAiUsage({ surface: "judge", model: judgeModel, usage: (result as any)?.usage });
 
     const raw = result.text?.trim() ?? "";
     const latency_ms = Date.now() - t0;

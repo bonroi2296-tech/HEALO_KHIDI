@@ -25,8 +25,12 @@ const DAY = 86_400_000;
 function resolveRange(searchParams: URLSearchParams) {
   const toRaw = searchParams.get("to");
   const fromRaw = searchParams.get("from");
-  const toBase = toRaw ? new Date(toRaw) : new Date();
-  const from = fromRaw ? new Date(fromRaw) : new Date(toBase.getTime() - 90 * DAY);
+  // ⚠️ new Date("2026-08-01") 은 «UTC 자정» = 한국시간 오전 9시로 읽힌다. kpi.ts 의 유치 집계는
+  //    한국시간(+09:00) 경계라, 같은 「8/1~」인데도 두 화면이 하루 경계에서 9시간 어긋났다
+  //    (2026-08-14 감사). 날짜만 온 값은 한국시간 자정으로 읽는다.
+  const asKst = (v: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T00:00:00+09:00` : v);
+  const toBase = toRaw ? asKst(toRaw) : new Date();
+  const from = fromRaw ? asKst(fromRaw) : new Date(toBase.getTime() - 90 * DAY);
   // to 는 그 날 끝까지 포함하도록 +1일
   const toExclusive = new Date(toBase.getTime() + DAY);
   return { from: from.toISOString(), to: toExclusive.toISOString() };
