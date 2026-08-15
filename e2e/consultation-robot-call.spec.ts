@@ -179,6 +179,27 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       "로봇B 화면에 로봇A 가 안 보임"
     ).toBeVisible({ timeout: 30_000 });
 
+    // 3-b) 🔇 하울링 ①번 방어선 — 같은 회선이면 «나중 기기는 조용히 입장» (2026-08-16 신설)
+    //
+    // 로봇 두 대는 같은 실행기(같은 공인 IP)에서 들어간다 → 실제 사무실 2대와 같은 조건이라
+    // 두 번째 로봇(B)에는 「같은 회선이라 소리를 껐어요」 막대가 떠야 하고, 첫 로봇(A)에는 없어야 한다.
+    // 왜 이제야: 이 방어선은 7/29 부터 있었고 로봇도 매일 밤 이 조건으로 들어갔는데, 아무도 이걸
+    // 확인하지 않았고 이 경로는 기록도 안 남겼다 → 8/05~8/15 «하울링 기록 0건»이 «막았다»인지
+    // «안 돈다»인지 열흘간 못 갈랐다. 이 단정이 빨간불이면 = ①이 죽은 것(문구 아닌 속성으로 판정).
+    const guardBarB = robotB.getByTestId("same-room-guard-bar");
+    await expect(
+      guardBarB,
+      "로봇B(같은 회선 두 번째 기기)에 「소리 껐어요」 막대가 안 떴다 — 하울링 ①번 방어선(같은 회선 조용히 입장)이 안 돈다"
+    ).toBeVisible({ timeout: 15_000 });
+    expect(
+      await guardBarB.getAttribute("data-reason"),
+      "막대는 떴는데 이유가 «같은 회선»이 아니다"
+    ).toBe("network");
+    await expect(
+      robotA.getByTestId("same-room-guard-bar"),
+      "로봇A(먼저 들어온 기기)까지 소리가 꺼졌다 — 둘 다 끄면 아무도 못 듣는다"
+    ).toHaveCount(0);
+
     // 4) 채팅 왕복 — 게스트 채팅이 DB 제약·API 회귀로 조용히 죽는 부류를 매일 밤 검출
     //    (2026-07-15 실사고: sender_role CHECK 에 guest·admin 누락 → 전송 500 무증상, 반성문 #94)
     const chatMsg = `robot-chat-${Date.now()}`;

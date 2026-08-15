@@ -82,6 +82,22 @@ describe("client-event — 소리 기록은 오류와 갈라서 센다", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
+  it("같은 회선 조용히 입장(①번)도 소리 기록으로 남고 경보를 안 울린다 (2026-08-16 — 열흘간 0건의 원인)", async () => {
+    const res = await POST(req("howling_quiet_join"), { params });
+    expect(res.status).toBe(200);
+    expect(state.inserts[0].action).toBe("CONSULTATION_AUDIO_EVENT");
+    expect(state.selectCalls).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("자막 경로 전환(stt_fallback)은 CONSULTATION_STT_EVENT 로 남고 오류로 안 센다", async () => {
+    const res = await POST(req("stt_fallback"), { params });
+    expect(res.status).toBe(200);
+    expect(state.inserts[0].action).toBe("CONSULTATION_STT_EVENT");
+    expect(state.selectCalls).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
   it("연결 오류는 예전 그대로 CONSULTATION_CLIENT_ERROR 로 남는다", async () => {
     await POST(req("connect_error"), { params });
     expect(state.inserts[0].action).toBe("CONSULTATION_CLIENT_ERROR");

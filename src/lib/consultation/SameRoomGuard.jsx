@@ -235,6 +235,12 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     autoMutedRef.current = true;
     setQuietByNetwork(true);
     setScreenOnly(true);
+    // ⚠️ 이 경로도 기록을 남긴다. 8/05 에 「감지기에 실측을 심었다」(#1275)고 했는데 ②번(소리)
+    //    경로에만 심었고 이 ①번은 빠져 있었다 → 8/05~8/15 열흘간 야간 로봇이 매일 같은 회선으로
+    //    2대 입장했는데 기록이 0건이라 «①이 막았다»와 «아무것도 안 됐다»를 못 갈랐다(2026-08-15).
+    //    type 은 ②번(howling_muted)과 «다르게» — 보내는 쪽이 같은 type 은 10초에 1건만 보내서, 이 직후
+    //    사람이 되돌리고 ②가 다시 끈 기록이 삼켜지는 것을 막는다(독립 리뷰 지적, 2026-08-16).
+    report?.("howling_quiet_join", `같은 회선이라 조용히 입장 · 같은회선 ${sameNetworkPeers}대 · 마이크+스피커`);
     // setScreenOnly 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sameNetworkPeers, screenOnly]);
@@ -293,7 +299,13 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
   //  오탐이거나 실제로는 다른 방이었으면 상담이 그대로 먹통이 된다.)
   if (screenOnly) {
     return (
-      <div className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-gray-900/95 border border-gray-600 shadow-xl p-3 text-sm text-gray-100 flex items-center justify-between gap-3">
+      // data-testid/data-reason: 야간 로봇 검사가 «두 번째 로봇이 같은 회선이라 조용히 들어왔나»를
+      // 문구(6개 언어)가 아니라 이 속성으로 단정한다(e2e/consultation-robot-call.spec.ts).
+      <div
+        data-testid="same-room-guard-bar"
+        data-reason={quietByNetwork ? "network" : "sound"}
+        className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-gray-900/95 border border-gray-600 shadow-xl p-3 text-sm text-gray-100 flex items-center justify-between gap-3"
+      >
         <span className="text-xs text-gray-300">
           {/* 왜 꺼졌는지를 같이 — 이유 없이 소리가 꺼져 있으면 고장으로 읽힌다.
               마이크를 살려 둔 모드는 «말은 되는데 소리만 껐다»를 분명히 알려야 한다. */}

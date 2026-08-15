@@ -12,6 +12,7 @@ import {
   useConnectionState,
   useLocalParticipant,
   useParticipants,
+  useIsSpeaking,
   useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
@@ -95,6 +96,7 @@ import { uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
+import { shouldSwitchToServerStt, createSpokenClock } from "@/lib/consultation/sttWatchdog";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
@@ -152,8 +154,14 @@ function roleLabel(role, c) {
 // 내 LiveKit identity 도 같이 올린다 — 통역봇 호출 API 가 «누가 통역을 원하는가»를
 // 참가자 속성으로 기록하는 데 쓴다(봇을 언제 내보낼지 판정). 통역 버튼은 방 컨텍스트
 // 밖(페이지 레벨)에 정의돼 있어 identity 를 직접 못 읽는다 → 이미 있는 이 브릿지에 얹었다.
-function MicStateBridge({ onChange, onIdentity, onName }) {
+function MicStateBridge({ onChange, onIdentity, onName, onSpeaking }) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+  // «내가 지금 말하고 있나» — 영상 서버가 내 마이크 소리로 판정한 값. 자막 경로 워치독이
+  // 「내가 말했는데 브라우저 받아쓰기 결과가 0」을 가르는 데 쓴다(sttWatchdog.ts).
+  const isSpeaking = useIsSpeaking(localParticipant);
+  useEffect(() => {
+    onSpeaking?.(!!isSpeaking);
+  }, [isSpeaking, onSpeaking]);
   useEffect(() => {
     onChange?.(!!isMicrophoneEnabled);
   }, [isMicrophoneEnabled, onChange]);
@@ -1711,6 +1719,9 @@ export default function ConsultationRoomPage() {
   // ── Speech Recognition ──
   // 브라우저 STT 가 마지막으로 결과(중간자막 포함)를 낸 시각 — "조용한 사망" 워치독용
   const lastBrowserSttRef = useRef(0);
+  // 내가 «실제로 말한» 누적 시간(영상 서버 isSpeaking 으로 잼) — 워치독이 「말했는데 결과 0」만 잡게.
+  const spokenClockRef = useRef(createSpokenClock());
+  const onLocalSpeaking = useCallback((on) => spokenClockRef.current.set(on), []);
   const [forceServerStt, setForceServerStt] = useState(false);
   const stt = useSpeechRecognition({
     language: myLang,
@@ -2617,26 +2628,48 @@ export default function ConsultationRoomPage() {
 
   // 워치독: "지원된다"는 브라우저 STT 가 결과·에러·종료 이벤트 없이 조용히 죽는 환경
   // (삼성 인터넷 등 실기기에서 확인) — 기존 휴리스틱(에러/빠른종료 3회)은 아무 신호도
-  // 없으면 영영 안 걸림. 통번역 켠 뒤 8초간 브라우저 STT 결과가 전혀 없으면 서버 STT 로
-  // 강제 전환. 크롬에서 8초간 말을 안 했어도 전환되지만, 서버 STT 도 같은 자막
-  // 파이프라인 + 무음 스킵(VAD)이라 동작·비용 차이 없음.
+  // 없으면 영영 안 걸림. → 「내가 실제로 말했는데(영상 서버 isSpeaking 누적 3초+) 브라우저
+  // 결과가 0」이면 서버 STT 로 전환한다.
+  //
+  // ⚠️ 2026-08-16 수정 전엔 「8초간 결과 없음」만 보고 넘겼고 *"크롬에서 8초간 말을 안 했어도
+  //    전환되지만 … 동작·비용 차이 없음"* 이라 적혀 있었다. 그 전제가 틀렸다 — 서버 길은 실측상
+  //    문장 잘림 11~59%·무음 지어냄 83% 라 «다른 길»이다. 회의에서 자막 켜자마자 남 말을 듣는
+  //    사람(흔하다)이 전부 그 길로 «영영» 넘어갔다 = 자막 품질이 날마다 달라 보이던 유력 원인.
+  //    판정 규칙과 시험은 sttWatchdog.ts.
   useEffect(() => {
     if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
+    spokenClockRef.current.reset();
     const timer = setInterval(() => {
-      if (lastBrowserSttRef.current > enabledAt) {
+      const browserSttAlive = lastBrowserSttRef.current > enabledAt;
+      if (browserSttAlive) {
         clearInterval(timer); // 브라우저 STT 정상 동작 확인 — 전환 불필요
         return;
       }
-      if (Date.now() - enabledAt >= 8000) {
+      if (
+        shouldSwitchToServerStt({
+          elapsedMs: Date.now() - enabledAt,
+          spokenMs: spokenClockRef.current.spokenMs(),
+          browserSttAlive,
+          // 영상 서버 방이 없는 화면(미설정·방 없는 상담)엔 MicStateBridge 가 안 그려져 발화 신호가
+          // 영영 0 → 그 화면에선 예전처럼 시간만 보고 넘어간다(독립 리뷰 지적).
+          speakingSignalAvailable: !!(livekitToken && livekitUrl),
+        })
+      ) {
         clearInterval(timer);
         stt.stop(); // 마이크 점유 해제 — 서버 STT 녹음과 충돌 방지
         setForceServerStt(true);
+        // «어느 길로 넘어갔나» 기록 — media_failure 와 type 을 나눈다(같은 type 은 10초 1건이라
+        // 장치 실패 비콘 직후면 이 기록이 삼켜졌다). 서버는 CONSULTATION_STT_EVENT 로 남긴다.
+        reportClientEventRef.current?.(
+          "stt_fallback",
+          `browser STT silent after ${Math.round(spokenClockRef.current.spokenMs() / 1000)}s of speech → server STT`
+        );
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
+  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop, livekitToken, livekitUrl]);
   // 경로가 바뀌면 기록에 남길 표시도 같이 바꾼다 (위 sttEngineRef 참고).
   useEffect(() => {
     sttEngineRef.current = useServerStt ? STT_ENGINES.SERVER : STT_ENGINES.BROWSER;
@@ -3551,7 +3584,12 @@ export default function ConsultationRoomPage() {
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
               {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
-              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} onName={setMyName} />
+              <MicStateBridge
+                onChange={setMyMicOn}
+                onIdentity={setMyIdentity}
+                onName={setMyName}
+                onSpeaking={onLocalSpeaking}
+              />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
