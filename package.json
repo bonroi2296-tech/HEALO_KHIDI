@@ -33,6 +33,7 @@
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:rules": "node scripts/check-rules.mjs",
     "check:parked": "node scripts/check-parked-decisions.mjs",
+    "check:branch-handoffs": "node scripts/check-branch-handoffs.mjs",
     "check:talk": "node scripts/check-plain-korean.mjs",
     "check:ask": "node scripts/check-ask-streak.mjs --selftest",
     "check:handoff": "node scripts/check-handoff.mjs",
