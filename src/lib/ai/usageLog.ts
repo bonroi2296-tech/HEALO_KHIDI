@@ -37,6 +37,8 @@ export type AiSurface =
   // 회귀 테스트(매주 월·목) — 2026-08-14 이전엔 계측 밖이라 AI 비용 화면에 「0」으로 보였다.
   | "regression_generate"
   | "regression_judge"
+  // 매일 도는 자동 개선 크론 — 2026-08-15 계측 추가(그전엔 비용 화면에 0으로 보였다).
+  | "playbook_auto_improve"
   // 병원 리뷰 등 공개 텍스트 번역(/api/translate-text) — 2026-08-14 계측 추가.
   | "text_translate"
   | "embedding"
