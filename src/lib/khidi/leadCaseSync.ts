@@ -96,7 +96,10 @@ export async function syncLeadStatusToCase(
     //   outcome_updated_by=null 로 표시해 점수판이 '자동' 배지로 구분·되돌리기 가능.
     const autoOutcome = outcomeForHospitalLeadStatus(newStatus);
     if (autoOutcome) {
-      await supabase
+      // ⚠️ 이 한 줄이 KHIDI 유치 실적(K-01)이다. Supabase 는 실패를 throw 하지 않고
+      //    { error } 로 돌려주므로, 예전엔 저장이 실패해도 아무 흔적 없이 넘어갔다 —
+      //    병원 화면엔 「치료 확정」인데 실적은 조용히 0 (2026-08-14 감사).
+      const { error } = await supabase
         .from("inquiries")
         .update({
           outcome: autoOutcome,
@@ -106,6 +109,23 @@ export async function syncLeadStatusToCase(
         })
         .eq("id", inquiryId)
         .is("outcome", null); // 코디가 이미 정한 결정은 보존(되돌리기 우선)
+      if (error) {
+        // 실적 누락은 «조용히» 지나가면 안 된다 — 운영 알림으로 사람이 알게 한다.
+        console.error(
+          `[leadCaseSync] 유치 실적 자동집계 실패 (inquiry=${inquiryId}, hospital=${hospitalId}): ${String(error.message).slice(0, 200)}`
+        );
+        try {
+          const { alertKpiAggregationErrors } = await import("@/lib/alerts/operationalAlerts");
+          await alertKpiAggregationErrors(
+            [
+              `문의 #${inquiryId}: 병원 「치료 확정」인데 outcome 저장 실패 — ` +
+                `KHIDI 유치(K-01)에서 누락. 어드민 점수판에서 손으로 「유치 확정」을 눌러 보정할 것. ` +
+                `(${String(error.message).slice(0, 120)})`,
+            ],
+            "leadCaseSync 자동 유치집계"
+          );
+        } catch { /* 알림 실패가 본 흐름을 막지 않게 */ }
+      }
     }
   } catch (e: any) {
     console.error("[partner/leads/id] case sync error:", e?.message?.slice(0, 200));

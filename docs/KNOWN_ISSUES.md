@@ -16,11 +16,15 @@
 ### 🟠 조건부로 터지는 것 (다음 차례)
 1. **환자 실명 평문** — `consultation_translations.speaker_name` 2,020행 · `consultation_admissions.display_name` 288행. 내용은 암호화하면서 이름칸만 평문. 익명읽기는 차단이라 서버·백업 유출 시. 쓰는 곳: `stt/route.ts:313`, `guest-join/route.ts:238`.
 2. **상담 임상요약·권고 평문** — `consultation/[id]/route.ts:167`. `notes`는 암호화하는데 `clinical_summary`·`recommendations`는 평문(암호화 컬럼은 이미 있는데 아무도 안 씀). DB 실측 0행이나 코디가 그 화면 쓰면 쌓임.
-3. **K-02 이중집계** — `kpi.ts:117`. 완료세션+소견 행을 dedup 없이 합산. 실측 1건 겹침. 근본원인=`OpinionsSection.jsx` 소견 중복삽입(유일제약 없음). 허위실적 감사 위험.
-4. **상태전진·유치 에러 조용히 삼킴** — `leadCaseSync.ts:110`, `advanceCaseStatus.ts:44`(Supabase error 미검사). 병원이 확정 눌러도 K-01 누락 가능.
+3. ~~**K-02 이중집계**~~ ✅ **오진이었다 — 취소 (2026-08-15 실측)**
+   - 「같은 환자가 상담+소견 둘 다면 2건」은 **버그가 아니라 의도된 집계**다. PO 확인: *문의 1건에 번역·병원별 문의·환자 언어 회신까지 각각 리소스가 들어가므로 하나씩 다 센다*(기존 결정).
+   - 「소견 2번」도 실측하니 문의 #37 의 **의사 2명이 서로 다른 내용을 쓴 진짜 2건**(의사수 2·내용 2종·55분 간격)이었다. 실수 중복 아님.
+   - → 지금 7건은 부풀려진 게 아니라 **맞는 숫자**다. 「허위실적 위험」 표현은 철회한다.
+   - ⚠️ **다음 세션은 이걸 다시 「중복」으로 잡지 마라.** 실적을 「환자 1명=1건」으로 줄이는 방향은 PO 결정에 반한다.
+4. ~~**상태전진·유치 에러 조용히 삼킴**~~ ✅ **고침 (2026-08-15)** — `advanceCaseStatus` 가 Supabase `{ error }` 를 검사해 로그+`ok/errors` 반환(실패면 `advanced:false`), `leadCaseSync` 는 유치집계 실패 시 운영 알림(`alertKpiAggregationErrors`). 시험 4건 신설.
 5. **자동지출 계측 밖 2건** — `playbookAutoImprove.ts:99`(매일 크론), `judge.ts:288`(공개챗 답변마다). 비용 화면에 0으로 보임.
 6. **직원 「수정」=비번리셋** — `admin/staff/page.jsx:327`. 이름 고치려다 코디 로그인 불가.
-7. **소견 직접입력 중복삽입** — `OpinionsSection.jsx:99`. 3번의 뿌리.
+7. ~~**소견 직접입력 중복삽입**~~ ✅ **이미 고쳐져 있었다 (2026-08-15 재확인)** — `OpinionsSection.jsx:113-121` 이 실패 시 `setDirectError` + `load()` 로 목록을 다시 불러 코디가 저장 여부를 볼 수 있게 해뒀다(그 위험을 주석으로도 명시). 감사 때 본 건 수정 «전» 판이었다.
 8. **추가정보 편집·삭제를 타임스탬프로 대상지정** — `FollowUpsSection.jsx:113`. 시각 겹치면 엉뚱한 줄 삭제.
 9. **크롤 SSRF** — `hospitalOffers/ssrfSafeFetch.ts:80`. 리다이렉트 재검증 안 함 → 내부망 IP 우회.
 10. **문의 첨부 일부 실패해도 「접수 완료」** — `intake/IntakeClient.jsx:122`, `UnifiedInquiryFunnel.jsx:388`. 의료 서류 손실.

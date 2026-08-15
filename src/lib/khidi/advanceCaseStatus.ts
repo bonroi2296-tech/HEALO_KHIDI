@@ -27,7 +27,15 @@ export async function advanceCaseStatus(
   note: string,
   userId: string | null = null,
   opts: { recordHistory?: boolean } = {}
-): Promise<{ advanced: boolean; from: string | null; to: string | null }> {
+): Promise<{
+  advanced: boolean;
+  from: string | null;
+  to: string | null;
+  /** 저장이 실제로 됐나. false 면 단계·이력이 DB 에 안 남았다. */
+  ok: boolean;
+  /** 실패 사유(비PII) — 호출부 로그·알림용. */
+  errors: string[];
+}> {
   const recordHistory = opts.recordHistory ?? true;
 
   const { data: inq } = await supabase
@@ -41,8 +49,14 @@ export async function advanceCaseStatus(
   const now = new Date().toISOString();
   const finalStatus = willAdvance ? targetStatus : cur;
 
+  // ⚠️ Supabase 는 실패를 throw 하지 않고 { error } 로 «돌려준다». 예전엔 그 error 를
+  //    한 번도 안 읽어서, 저장이 실패해도 이 함수가 advanced:true 를 돌려주고 흔적조차
+  //    안 남았다 — 상담·유치는 저장됐는데 단계만 조용히 정체(2026-08-14 감사).
+  //    이제 실패를 잡아 로그로 남기고, 호출부가 알 수 있게 결과에 실어 보낸다.
+  const errors: string[] = [];
+
   if (willAdvance) {
-    await supabase
+    const { error } = await supabase
       .from("inquiries")
       .update({
         case_status: targetStatus,
@@ -50,16 +64,36 @@ export async function advanceCaseStatus(
         case_status_updated_at: now,
       })
       .eq("id", inquiryId);
+    if (error) {
+      errors.push(`update:${error.message}`);
+      console.error(
+        `[advanceCaseStatus] 단계 전진 실패 (inquiry=${inquiryId} → ${targetStatus}): ${String(error.message).slice(0, 200)}`
+      );
+    }
   }
 
   if (recordHistory) {
-    await supabase.from("case_status_history").insert({
+    const { error } = await supabase.from("case_status_history").insert({
       inquiry_id: inquiryId,
       status: finalStatus ?? targetStatus,
       note,
       created_by: userId,
     });
+    if (error) {
+      errors.push(`history:${error.message}`);
+      console.error(
+        `[advanceCaseStatus] 이력 기록 실패 (inquiry=${inquiryId}): ${String(error.message).slice(0, 200)}`
+      );
+    }
   }
 
-  return { advanced: willAdvance, from: cur, to: finalStatus };
+  // 저장이 실패했으면 advanced 를 거짓으로 — 「성공했다」고 속이지 않는다.
+  const ok = errors.length === 0;
+  return {
+    advanced: willAdvance && ok,
+    from: cur,
+    to: ok ? finalStatus : cur,
+    ok,
+    errors,
+  };
 }
