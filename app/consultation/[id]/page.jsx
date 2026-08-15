@@ -2652,19 +2652,24 @@ export default function ConsultationRoomPage() {
           elapsedMs: Date.now() - enabledAt,
           spokenMs: spokenClockRef.current.spokenMs(),
           browserSttAlive,
+          // 영상 서버 방이 없는 화면(미설정·방 없는 상담)엔 MicStateBridge 가 안 그려져 발화 신호가
+          // 영영 0 → 그 화면에선 예전처럼 시간만 보고 넘어간다(독립 리뷰 지적).
+          speakingSignalAvailable: !!(livekitToken && livekitUrl),
         })
       ) {
         clearInterval(timer);
         stt.stop(); // 마이크 점유 해제 — 서버 STT 녹음과 충돌 방지
         setForceServerStt(true);
+        // «어느 길로 넘어갔나» 기록 — media_failure 와 type 을 나눈다(같은 type 은 10초 1건이라
+        // 장치 실패 비콘 직후면 이 기록이 삼켜졌다). 서버는 CONSULTATION_STT_EVENT 로 남긴다.
         reportClientEventRef.current?.(
-          "media_failure",
+          "stt_fallback",
           `browser STT silent after ${Math.round(spokenClockRef.current.spokenMs() / 1000)}s of speech → server STT`
         );
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
+  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop, livekitToken, livekitUrl]);
   // 경로가 바뀌면 기록에 남길 표시도 같이 바꾼다 (위 sttEngineRef 참고).
   useEffect(() => {
     sttEngineRef.current = useServerStt ? STT_ENGINES.SERVER : STT_ENGINES.BROWSER;

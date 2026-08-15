@@ -26,9 +26,16 @@ export function shouldSwitchToServerStt(input: {
   spokenMs: number;
   /** 브라우저 받아쓰기가 결과(중간자막 포함)를 한 번이라도 냈나 */
   browserSttAlive: boolean;
+  /**
+   * «내가 말했나» 신호를 받을 수 있는 상태인가(= 영상 서버 방에 붙어 있나). 방 없이 자막·채팅만
+   * 쓰는 화면(영상 서버 미설정·방 없는 상담)에선 발화 시간이 영영 0 이라 예전 규칙(시간만 보고
+   * 전환)으로 되돌아간다 — 안 그러면 그 화면에선 죽은 받아쓰기를 영영 못 구한다(독립 리뷰 지적).
+   */
+  speakingSignalAvailable?: boolean;
 }): boolean {
   if (input.browserSttAlive) return false;
   if (input.elapsedMs < STT_WATCHDOG.MIN_ELAPSED_MS) return false;
+  if (input.speakingSignalAvailable === false) return true; // 신호가 없으면 시간만으로(옛 규칙)
   return input.spokenMs >= STT_WATCHDOG.MIN_SPOKEN_MS;
 }
 
@@ -49,9 +56,11 @@ export function createSpokenClock(now: () => number = Date.now) {
     spokenMs() {
       return total + (since !== null ? now() - since : 0);
     },
+    /** 누적을 비운다. 말하는 «도중»이면 그 발화는 지금부터 다시 센다(끊지 않는다) — 안 그러면
+     *  자막을 켜는 순간 진행 중이던 발화 한 토막이 통째로 빠져 전환이 그만큼 늦어진다. */
     reset() {
       total = 0;
-      since = null;
+      since = since !== null ? now() : null;
     },
   };
 }

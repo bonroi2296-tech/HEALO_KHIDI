@@ -24,6 +24,16 @@ describe("shouldSwitchToServerStt", () => {
       shouldSwitchToServerStt({ elapsedMs: STT_WATCHDOG.MIN_ELAPSED_MS - 1, spokenMs: 5_000, browserSttAlive: false })
     ).toBe(false);
   });
+
+  it("영상 서버 방이 없는 화면(발화 신호 없음)에선 예전처럼 시간만으로 넘어간다", () => {
+    expect(
+      shouldSwitchToServerStt({ elapsedMs: 8_000, spokenMs: 0, browserSttAlive: false, speakingSignalAvailable: false })
+    ).toBe(true);
+    // 신호가 있으면 발화 0 은 여전히 안 넘어간다
+    expect(
+      shouldSwitchToServerStt({ elapsedMs: 8_000, spokenMs: 0, browserSttAlive: false, speakingSignalAvailable: true })
+    ).toBe(false);
+  });
 });
 
 describe("createSpokenClock", () => {
@@ -42,5 +52,18 @@ describe("createSpokenClock", () => {
     expect(clock.spokenMs()).toBe(4_000);
     clock.reset();
     expect(clock.spokenMs()).toBe(0);
+  });
+
+  it("말하는 도중에 reset 되면 그 발화는 «지금부터» 다시 센다(끊기지 않는다)", () => {
+    let t = 0;
+    const clock = createSpokenClock(() => t);
+    clock.set(true); // 0 부터 말하는 중
+    t = 2_000;
+    clock.reset(); // 자막을 켠 순간 — 누적은 비우되 진행 중 발화는 유지
+    t = 5_000;
+    expect(clock.spokenMs()).toBe(3_000); // 2000~5000
+    clock.set(false);
+    t = 9_000;
+    expect(clock.spokenMs()).toBe(3_000);
   });
 });
