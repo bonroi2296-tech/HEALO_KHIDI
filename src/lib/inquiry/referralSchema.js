@@ -149,9 +149,9 @@ export const SECTIONS = [
       //    칸 자체는 ③환자 신원에 있다.
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
-        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다.",
-                "Insert the CD and pick the whole folder — hundreds of files inside are fine.",
-                "Вставьте диск и выберите папку целиком — даже если внутри сотни файлов.") },
+        // 🛑 여기에 안내를 되살리지 마라 — 자료 상자가 하나로 합쳐지면서 이 문구만 저 아래
+        //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 「CD 폴더 고르기」 버튼 바로 밑에 있다.
+        hint: null },
 
       // ── 여권 ──
       // 틀렸던 전제 교정(2026-08-14 PO): 이대서울병원은 «예약 전»에도 여권을 요구한다.

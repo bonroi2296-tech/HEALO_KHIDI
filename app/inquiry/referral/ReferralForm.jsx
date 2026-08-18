@@ -119,14 +119,22 @@ const TR = {
   needNote:   { ko: "모두 있어야 접수되는 것은 아닙니다. 지금 있는 것만 주셔도 의뢰는 진행되고, 대학병원이 자료를 더 요청할 수 있습니다.",
                 en: "You don't need all of them to send. We proceed with whatever you have, and the hospital may ask for more.",
                 ru: "Не обязательно иметь всё. Мы отправим с тем, что есть, а клиника может запросить дополнительные материалы." },
-  bigLinkTitle:{ ko: "대용량 저장소에 올리고 «주소»를 주셔도 됩니다",
-                en: "You can also upload it to a file-sharing service and give us the link",
-                ru: "Можно загрузить в облако и прислать нам ссылку" },
-  bigLinkHint: { ko: "구글 드라이브 · 드롭박스 등 어디든 괜찮습니다. 주소를 붙여넣어 주세요.",
-                en: "Google Drive, Dropbox — anywhere is fine. Just paste the link.",
-                ru: "Google Drive, Dropbox — подойдёт любой сервис. Просто вставьте ссылку." },
+  bigLinkTitle:{ ko: "구글 드라이브 · 드롭박스 주소를 붙여넣어 주세요",
+                en: "Paste a Google Drive / Dropbox link",
+                ru: "Вставьте ссылку на Google Drive / Dropbox" },
+  bigLinkHint: { ko: "",
+                en: "",
+                ru: "" },
   bigLinkPh:  { ko: "https://…", en: "https://…", ru: "https://…" },
   bigLinkOr:  { ko: "또는", en: "or", ru: "или" },
+  // 🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 200MB까지만 받는다고 하자」).
+  //    막힌 뒤에 알려주면 그건 시간을 뺏고 나서 거절하는 것이다.
+  sizeRule:   { ko: "한 파일 200MB까지 올리실 수 있습니다. 더 크면 왓츠앱으로 보내주시거나, 구글 드라이브·드롭박스에 올려 주소를 알려주세요.",
+                en: "Up to 200MB per file. For anything larger, send it on WhatsApp or upload it to Google Drive / Dropbox and give us the link.",
+                ru: "До 200 МБ на файл. Если больше — пришлите в WhatsApp или загрузите в Google Drive / Dropbox и дайте ссылку." },
+  pickDocs:   { ko: "서류 고르기", en: "Choose documents", ru: "Выбрать документы" },
+  pickDocsSub:{ ko: "진단서 · 검사지 · 사진", en: "Reports, test results, photos", ru: "Заключения, результаты, фото" },
+  pickCdSub:  { ko: "폴더째 고르시면 됩니다 (몇백 개라도)", en: "Pick the whole folder (hundreds of files are fine)", ru: "Выберите папку целиком (даже сотни файлов)" },
   dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
   orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
@@ -907,7 +915,6 @@ function BigFileLink({ lang, value, onChange }) {
   return (
     <div className="mt-3 rounded-xl bg-white/70 p-3">
       <p className="text-xs font-semibold text-gray-700">{tr("bigLinkTitle", lang)}</p>
-      <p className="mt-0.5 text-xs leading-relaxed text-gray-600">{tr("bigLinkHint", lang)}</p>
       <input type="url" inputMode="url" value={value || ""} placeholder={tr("bigLinkPh", lang)}
              onChange={(e) => onChange(e.target.value)}
              className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-teal-700" />
@@ -1250,14 +1257,19 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
         <p className="mt-1 text-xs text-gray-600">{over ? " " : describeUpload("medicalDoc", lang)}</p>
         {!over && (
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {/* 🛑 버튼 이름을 «파일/폴더»로 되돌리지 마라(2026-08-18 PO: 「눌러봐도 똑같은데」).
+                고르는 창이 비슷해 보여서, 이름과 한 줄 설명으로 «무엇을 고르는 것인지»를 갈라야 한다.
+                처리도 다르다 — 서류는 한 장씩 읽어 칸을 채우고, CD 는 통째로 묶어 하나로 올린다. */}
             <button type="button" onClick={() => ref.current?.click()}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
-              {tr("addFile", lang)}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-left transition-all duration-200 hover:border-gray-400">
+              <span className="block text-xs font-semibold text-gray-700">{tr("pickDocs", lang)}</span>
+              <span className="block text-[11px] text-gray-500">{tr("pickDocsSub", lang)}</span>
             </button>
             {cd?.open && (
               <button type="button" onClick={() => cd.open()}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
-                {tr("cdPick", lang)}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-left transition-all duration-200 hover:border-gray-400">
+                <span className="block text-xs font-semibold text-gray-700">{tr("cdPick", lang)}</span>
+                <span className="block text-[11px] text-gray-500">{tr("pickCdSub", lang)}</span>
               </button>
             )}
           </div>
@@ -1265,6 +1277,7 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
       </div>
       <input ref={ref} type="file" multiple className="hidden"
              onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
+      <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{tr("sizeRule", lang)}</p>
       {/* 🛑 「무슨 서류인지 고르실 필요 없습니다」 같은 «우리 사정»을 여기 다시 늘어놓지 마라
           (2026-08-18 PO). 올리는 자리에서 사람이 알고 싶은 건 «무엇을 올려야 하나» 하나다.
           그래서 필요한 서류를 이름으로 세워두고, 없어도 된다는 것을 같이 말한다. */}
