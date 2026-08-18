@@ -122,9 +122,6 @@ const TR = {
   bigLinkTitle:{ ko: "구글 드라이브 · 드롭박스 주소를 붙여넣어 주세요",
                 en: "Paste a Google Drive / Dropbox link",
                 ru: "Вставьте ссылку на Google Drive / Dropbox" },
-  bigLinkHint: { ko: "",
-                en: "",
-                ru: "" },
   bigLinkPh:  { ko: "https://…", en: "https://…", ru: "https://…" },
   bigLinkOr:  { ko: "또는", en: "or", ru: "или" },
   // 🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 200MB까지만 받는다고 하자」).
@@ -934,10 +931,16 @@ function CdFolder({ f, lang, value, onChange, register }) {
   useEffect(() => { setCanPick(canPickFolder()); }, []);
   // 자료 상자가 하나로 합쳐져서, 「CD 폴더 고르기」 버튼과 «폴더를 놓았을 때»의 처리를
   // 저쪽(Envelope)에서 부른다. 여기 상태(묶기·올리기 진행률)는 그대로 이 컴포넌트가 들고 있다.
+  // 🛑 의존성 칸([register])을 지우지 마라 — 매번 등록·해제를 반복하면 저쪽이 다시 그려지고
+  //    그게 또 여기를 다시 그려서 «무한 반복»으로 화면이 죽는다(2026-08-18 실측:
+  //    Maximum update depth exceeded). 게다가 «해제된 찰나»에는 「폴더째 올리기」 버튼이
+  //    사라져서 자료 상자가 줄었다 늘었다 했다. 최신 onPick 은 ref 로 따라간다.
+  const pickRef = useRef(null);
+  pickRef.current = onPick;
   useEffect(() => {
-    register?.({ open: () => ref.current?.click(), pick: onPick });
+    register?.({ open: () => ref.current?.click(), pick: (fl) => pickRef.current?.(fl) });
     return () => register?.(null);
-  });
+  }, [register]);
 
   async function onPick(fileList) {
     const files = pickImagingFiles(fileList);
