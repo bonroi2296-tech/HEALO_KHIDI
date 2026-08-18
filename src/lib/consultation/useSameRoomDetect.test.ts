@@ -93,6 +93,10 @@ describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
     const agcPressed = Array.from({ length: N }, () => 0.3);
     expect(bothLoud(agcPressed, agcPressed)).toBe(false); // 1단(0.45) 그대로
     expect(bothLoud(agcPressed, agcPressed, 3, 0.22)).toBe(true); // 2단(0.22)
+    // ⚠️ 2026-08-18: 「한쪽만 넘으면 안 걸린다」를 못 박는다. 로봇 통화 기록
+    //    my=0.221 / peer=0.217 을 보고 «둘 다 문턱에 닿았다»고 읽어 문턱을 올릴 뻔했는데,
+    //    실제로는 상대가 0.22 를 한 번도 안 넘어 애초에 발동 불가였다(독립 리뷰가 잡음).
+    expect(bothLoud([0.221, 0.221, 0.221], [0.217, 0.217, 0.217], 3, 0.22)).toBe(false);
   });
 });
 

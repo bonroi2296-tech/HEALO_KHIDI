@@ -37,12 +37,14 @@ const VALID_TYPES = new Set(["connect_error", "connect_timeout", "media_failure"
 //   howling_muted  — ②번 방어선: 소리로 하울링을 잡아 자동 차단이 걸렸다(무엇을 껐는지 포함)
 //   howling_kept   — 이 기기는 «소리 유지 대상»으로 정해져 안 껐다
 //   howling_missed — 같은 방으로 보이는데 자동 차단이 안 걸렸다  ← 제일 중요한 기록
+//   howling_levels — 통화당 1건: 감지기가 «실제로 들은» 내/상대 음량·단일음 수 (2026-08-18 신설).
+//                    문턱 0.45·0.22 는 실측 0건짜리 추정값인 채 세 번 조정됐다 — 그 표본을 만든다.
 //   stt_fallback   — 자막 경로가 브라우저 받아쓰기 → 서버 받아쓰기로 넘어갔다(2026-08-16 신설).
 //                    오류가 아니라 «어느 길로 갔나» 기록. media_failure 와 type 을 나눈 이유는 위와 같다
 //                    (장치 실패 비콘 10초 안에 넘어가면 기록이 삼켜졌다). CONSULTATION_STT_EVENT 로 남긴다.
 // ⚠️ 오류(CONSULTATION_CLIENT_ERROR)와 **다른 이름으로** 남긴다. 같이 세면 하울링 한 번에
 //    「오류 폭증」 종이 울려 직원이 헛걸음한다(그 경보는 10분에 8건이면 발사된다).
-const AUDIO_TYPES = new Set(["howling_quiet_join", "howling_muted", "howling_kept", "howling_missed"]);
+const AUDIO_TYPES = new Set(["howling_quiet_join", "howling_muted", "howling_kept", "howling_missed", "howling_levels"]);
 const STT_TYPES = new Set(["stt_fallback"]);
 
 export async function POST(

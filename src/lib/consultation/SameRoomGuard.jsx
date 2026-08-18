@@ -21,7 +21,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
-import { useSameRoomDetect } from "./useSameRoomDetect";
+import {
+  useSameRoomDetect,
+  HOWL_RMS,
+  HOWL_RMS_AGC,
+  TONAL_NEED,
+} from "./useSameRoomDetect";
 
 /**
  * 「마이크가 실제로 올라오면 딱 한 번 끈다」 핸들러를 만든다.
@@ -143,10 +148,19 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     enabled: !!localTrack && !dismissed && !screenOnly,
   });
 
-  /** 판정 순간의 실제 숫자를 한 줄로 — 나중에 기록에서 문턱을 근거 있게 조절하려고. */
+  /** 판정 순간의 실제 숫자를 한 줄로 — 나중에 기록에서 문턱을 근거 있게 조절하려고.
+   *  ⚠️ 문턱은 «상수를 그대로 끼워» 적는다. 손으로 적어 두었더니 상수만 바뀌고 라벨이 안 따라와
+   *     기록이 틀린 문턱을 달고 쌓일 뻔했다(2026-08-18 독립 리뷰).
+   *  ⚠️ both= 가 핵심이다 — 판정은 «같은 순간 양쪽 동시»라서, 따로 잰 my/peer 최댓값으로는
+   *     문턱을 정할 수 없다(그 오독으로 문턱을 잘못 올릴 뻔했다). active=false 면 감지기가
+   *     아예 안 돈 구간이라 0 이 «안 들림»이 아니라 «안 잼»이라는 뜻이다. */
   const stats = () => {
     const s = statsRef?.current || {};
-    return `my=${s.myPeak ?? 0} peer=${s.peerPeak ?? 0} tonal=${s.myTonal ?? 0}/${s.peerTonal ?? 0} (문턱 포화0.45 · AGC0.22+단일음4)`;
+    return (
+      `my=${s.myPeak ?? 0} peer=${s.peerPeak ?? 0} both=${s.bothPeak ?? 0} ` +
+      `tonal=${s.myTonal ?? 0}/${s.peerTonal ?? 0} 양쪽단일음=${s.tonalBothTicks ?? 0}/${s.ticks ?? 0}틱 ` +
+      `active=${s.wasActive ? 1 : 0} (문턱 포화${HOWL_RMS} · AGC${HOWL_RMS_AGC}+단일음${TONAL_NEED})`
+    );
   };
 
   /**
@@ -293,6 +307,35 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     // stats 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sameRoomWith, feedbackOnset, screenOnly, dismissed, report]);
+
+  // ── 「감지기가 지금 무엇을 듣고 있나」를 통화당 딱 한 번 남긴다 (2026-08-18 신설) ──
+  // 왜: 위 howling_missed 는 «느린 경로가 같은방으로 의심»할 때만 남는데, 감지기가 상대 소리를
+  //   아예 못 듣던 동안(~2026-08-18 수정 전) 그 조건 자체가 성립할 수 없어 기록이 영원히 0 건이었다.
+  //   그래서 문턱(0.45 / 0.22)은 **실측 0건짜리 추정값**인 채로 세 번이나 조정됐다.
+  //   → 하울링이 났든 안 났든, 통화 한 건당 «내 음량 / 상대 음량 / 단일음 프레임 수» 한 줄을 남긴다.
+  //     다음 실회의 한 번이면 문턱을 근거 있게 정할 수 있다. 1통화 1건이라 기록 부담도 없다.
+  // ponytail: 타이머 하나·기록 한 줄. 상시 수집으로 키우지 마라 — 필요한 건 «문턱 정할 표본»뿐이다.
+  const levelsSentRef = useRef(false);
+  // ⚠️ report·stats 는 매 렌더 새로 만들어진다 → 의존성에 넣으면 60초 타이머가 계속 리셋돼
+  //    **영영 안 쏜다**(2026-08-18 첫 시도에서 실제로 그랬다). ref 로 최신 것만 들고 있는다.
+  const reportRef = useRef(report);
+  const statsFnRef = useRef(stats);
+  reportRef.current = report;
+  statsFnRef.current = stats;
+  useEffect(() => {
+    if (levelsSentRef.current || !localTrack || !remoteTracks.length) return;
+    const t = setTimeout(() => {
+      if (levelsSentRef.current) return;
+      levelsSentRef.current = true;
+      const active = statsRef?.current?.wasActive;
+      reportRef.current?.(
+        "howling_levels",
+        `통화 60초 시점 ${active ? "관측값" : "«감지기 안 돎»(소리 끔·무시 상태)"} · ` +
+          `상대 ${remoteTracks.length}명 · ${statsFnRef.current()}`
+      );
+    }, 60_000);
+    return () => clearTimeout(t);
+  }, [localTrack, remoteTracks.length]);
 
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
