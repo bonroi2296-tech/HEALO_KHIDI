@@ -471,7 +471,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "황이준", en: "Hwang Yi-jun" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역", en: "Integrative Immunology" },
+      specialty: { ko: "통합면역 대표원장", en: "Integrative Immunology · Chief Director" },
       photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
       branch: "magok",
     },
@@ -513,7 +513,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "배길준", en: "Bae Gil-jun" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역 · 한방재활의학과", en: "Integrative Immunology · KM Rehabilitation Medicine" },
+      specialty: { ko: "통합면역 한방재활의학과", en: "Integrative Immunology · KM Rehabilitation Medicine" },
       photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png",
       branch: "gwangmyeong",
     },
@@ -562,7 +562,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "유형진", en: "Yoo Hyeong-jin" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역", en: "Integrative Immunology" },
+      specialty: { ko: "통합면역 대표원장", en: "Integrative Immunology · Chief Director" },
       photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
       branch: "sinchon",
     },
@@ -604,7 +604,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "강주안", en: "Kang Ju-an" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역", en: "Integrative Immunology" },
+      specialty: { ko: "통합면역 대표원장", en: "Integrative Immunology · Chief Director" },
       photo: "/immune/doctor/seongdong-dr-kang-juan.png",
       branch: "seongdong",
     },
