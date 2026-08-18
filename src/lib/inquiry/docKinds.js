@@ -13,7 +13,10 @@
  *         false = 있으면 좋지만 없다고 안내하지는 않는 것.
  */
 
-const L = (ko, en, ru) => ({ ko, en, ru });
+import { EXTRA } from "./referralI18n";
+
+// 카자흐·중국어·일본어는 덧대기 사전에서 (referralI18n.js)
+const L = (ko, en, ru) => ({ ko, en, ru, ...(EXTRA[ko] || {}) });
 
 export const DOC_KINDS = [
   { value: "discharge", needed: true, label:

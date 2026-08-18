@@ -32,7 +32,11 @@
 // 국적·전화 국가번호·암종·병기 목록은 지금 폼과 같은 것을 쓴다(저장값 불변).
 // 화면이 intakeLabels.js 에서 직접 가져다 쓴다 — 여기서 다시 정의하지 않는다.
 
-const L =(ko, en, ru) => ({ ko, en, ru });
+// 카자흐·중국어·일본어는 «덧대기» 사전에서 붙인다 — 원문 옆에 6줄을 늘어놓으면
+// 「무슨 칸인지」가 안 보인다. 열쇠는 한국어 원문이다(referralI18n.js 머리 설명 참고).
+import { EXTRA } from "./referralI18n";
+
+const L = (ko, en, ru) => ({ ko, en, ru, ...(EXTRA[ko] || {}) });
 
 /** 성별 — 두 병원 양식 모두 필수 */
 const SEX = [

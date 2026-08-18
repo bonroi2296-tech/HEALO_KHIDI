@@ -18,6 +18,7 @@ import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadP
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
+import { EXTRA_TR } from "@/lib/inquiry/referralI18n";
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
   lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection,
@@ -70,14 +71,10 @@ const TR = {
   switchToFull:{ ko: "대학병원 소견도 받고 싶으신가요? 이어서 채우기",
                 en: "Also want the hospital's opinion? Continue filling it in",
                 ru: "Хотите ещё и заключение клиники? Продолжить заполнение" },
-  backToPick: { ko: "처음으로", en: "Back", ru: "Назад" },
   sending:    { ko: "보내는 중입니다…", en: "Sending…", ru: "Отправляем…" },
   errSend:    { ko: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요. 쓰신 내용은 그대로 있습니다.",
                 en: "We couldn't send it. Please try again shortly — your answers are still here.",
                 ru: "Не удалось отправить. Попробуйте ещё раз чуть позже — ваши ответы сохранены." },
-  errTooMany: { ko: "요청이 너무 잦습니다. 1분 뒤에 다시 시도해 주세요.",
-                en: "Too many attempts. Please try again in a minute.",
-                ru: "Слишком много попыток. Повторите через минуту." },
   doneTitle:  { ko: "접수되었습니다", en: "We've received it", ru: "Заявка принята" },
   doneBody:   { ko: "코디네이터가 확인하고 곧 연락드리겠습니다. 아래 주소를 저장해 두시면 진행 상황을 보시거나 자료를 더 올리실 수 있습니다.",
                 en: "A coordinator will review it and contact you shortly. Save the link below to track progress or add more documents.",
@@ -137,9 +134,6 @@ const TR = {
   //    「서류 고르기 / CD 폴더 고르기」는 둘 다 «고르기»여서 무엇이 다른지 안 보였다.
   pickDocs:   { ko: "파일 올리기", en: "Upload files", ru: "Загрузить файлы" },
   dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
-  orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
-  orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
-  dropFolder: { ko: "폴더를 여기에 놓으세요", en: "Drop the folder here", ru: "Отпустите папку здесь" },
   dropNow:    { ko: "여기에 놓으세요", en: "Drop here", ru: "Отпустите здесь" },
   barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
                 en: "The more you fill in, the faster the hospital replies",
@@ -231,15 +225,14 @@ const TR = {
                 en: "This file is {mb}, over the 200MB limit here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
                 ru: "Этот файл — {mb}, это больше лимита в 200 МБ. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
   // 고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
-  sizeHint:   { ko: "한 파일이 200MB를 넘으면 코디네이터가 대신 받아드립니다 — 알려만 주세요.",
-                en: "Over 200MB — just tell us and a coordinator collects it.",
-                ru: "Больше 200 МБ — сообщите нам, координатор примет." },
   upBadType:  { ko: "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
                 en: "This file type can't be uploaded. Please use PDF, images, or Word.",
                 ru: "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word." },
   upFailed:   { ko: "올리지 못했습니다. 다시 시도해 주세요.", en: "Upload failed. Please try again.", ru: "Не удалось загрузить. Попробуйте ещё раз." },
-  retry:      { ko: "다시 올리기", en: "Try again", ru: "Загрузить снова" },
 };
+// 카자흐·중국어·일본어는 «덧대기» 사전에서 붙인다 — 한 문구가 6줄이 되면 무슨 문구인지 안 보인다.
+// 🛑 빠진 언어가 있으면 조용히 영어로 떨어진다. 검사(referralI18n.test.ts)가 그걸 막는다.
+for (const k of Object.keys(TR)) Object.assign(TR[k], EXTRA_TR[k] || {});
 
 /** 서버가 준 오류 코드를 사람 말로. 코드가 그대로 화면에 나가면 안 된다. */
 function uploadErrorText(code, lang, bytes) {
