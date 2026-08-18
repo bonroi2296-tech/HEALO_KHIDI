@@ -97,11 +97,12 @@ const TR = {
                 ru: "Чтобы клиника дала второе мнение и оценку стоимости, нужны медицинские документы пациента. Чем больше вы предоставите, тем быстрее и точнее будет ответ." },
   barIntake:  { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   jump:       { ko: "남은 칸으로", en: "Take me there", ru: "Перейти к полю" },
-  // 「안 채우셔도 되고 채우셔도 되고」는 «그래서 어쩌라는 거야»가 된다(2026-08-18 PO).
-  // 모호하게 두지 말고 «채우면 뭐가 좋아지는지»를 말한다.
-  restNote:   { ko: "여기까지 채우시면 보내실 수 있습니다. 아래를 채우실수록 병원 답이 빠르고 정확해집니다.",
-                en: "You can send it once you get this far. The more you fill in below, the faster and more accurate the hospital's answer.",
-                ru: "С этого момента заявку уже можно отправить. Чем больше заполните ниже, тем быстрее и точнее ответит клиника." },
+  // 🛑 「여기까지 채우시면 보내실 수 있습니다」를 여기 되살리지 마라 — 그 말은 아래 띠가
+  //    이미 하고 있다(2026-08-18 PO). 여기서 할 말은 «아래가 무엇이냐»다:
+  //    우리 사정(보낼 수 있다·없다)이 아니라 «대학병원이 진단하는 데 필요한 것».
+  restNote:   { ko: "아래는 대학병원이 환자분의 상태를 진단하는 데 필요한 내용입니다. 많이 알려주실수록 더 빠르고 정확한 소견을 받으실 수 있습니다.",
+                en: "Below is what the university hospital needs in order to assess the patient. The more you can tell us, the faster and more accurate the opinion you get back.",
+                ru: "Ниже — то, что нужно университетской клинике, чтобы оценить состояние пациента. Чем больше вы расскажете, тем быстрее и точнее будет заключение." },
   barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
   barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
   barReferral:{ ko: "진단에 필요한 내용", en: "What the doctors need", ru: "Что нужно врачам" },
