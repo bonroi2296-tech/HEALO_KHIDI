@@ -298,11 +298,36 @@ def wipe(t):
         child.tail = ''
 
 
+def drop_linesegs(p):
+    """줄 나눔 «캐시»(<hp:linesegarray>)를 지운다.
+
+    ⚠️ 이걸 안 지우면 한글이 «빈 칸이던 시절의 줄 배치»를 그대로 믿고 그려서
+    새로 넣은 긴 글이 한 줄에 겹쳐 찍힌다(2026-08-18 실측, PO 화면 재현).
+    이 값은 한글이 문서를 열 때 다시 계산하는 캐시라 지워도 안전하다.
+    """
+    for ls in p.findall('./' + HP + 'linesegarray'):
+        p.remove(ls)
+
+
+def normalize_charpr(run):
+    """「예시」용 빨강·기울임 글자모양을 같은 크기의 검정 정자로 바꾼다.
+
+    ⚠️ 양식의 예시 칸은 빨강 이탤릭이라, 글자만 바꾸면 «진짜 실적이 예시처럼» 보인다
+    (2026-08-18 실측). 글자모양을 새로 «만들지» 않고 문서에 이미 있는 검정 모양으로 갈아끼운다.
+    """
+    cid = run.get('charPrIDRef')
+    if cid in CHAR_FIX:
+        run.set('charPrIDRef', CHAR_FIX[cid])
+
+
 def set_para_text(p, text):
     """문단 하나의 글자를 바꾼다. 새로 만드는 요소는 <hp:t> 하나뿐이다."""
     runs = p.findall('./' + HP + 'run')
     if not runs:
         return False
+    drop_linesegs(p)
+    for r in runs:
+        normalize_charpr(r)
     done = False
     for run in runs:
         ts = run.findall('./' + HP + 't')
@@ -331,7 +356,31 @@ def set_cell_text(tc, text):
     return ok
 
 
-root = etree.fromstring(zipfile.ZipFile(SRC).read('Contents/section0.xml'))
+HH = '{http://www.hancom.co.kr/hwpml/2011/head}'
+
+
+def build_char_fix(zf):
+    """빨강·기울임 글자모양 → 같은 크기·굵기의 검정 정자 글자모양 짝짓기표."""
+    hdr = etree.fromstring(zf.read('Contents/header.xml'))
+    info, plain = {}, {}
+    for cp in hdr.findall('.//' + HH + 'charPr'):
+        cid = cp.get('id')
+        key = (cp.get('height'), cp.find('./' + HH + 'bold') is not None)
+        color = (cp.get('textColor') or '#000000').upper()
+        italic = cp.find('./' + HH + 'italic') is not None
+        info[cid] = (key, color, italic)
+        if color == '#000000' and not italic:
+            plain.setdefault(key, cid)
+    fix = {}
+    for cid, (key, color, italic) in info.items():
+        if (color != '#000000' or italic) and key in plain:
+            fix[cid] = plain[key]
+    return fix
+
+
+zf = zipfile.ZipFile(SRC)
+CHAR_FIX = build_char_fix(zf)
+root = etree.fromstring(zf.read('Contents/section0.xml'))
 tbls = root.findall('.//' + HP + 'tbl')
 miss = []
 for (ti, ri, ci), val in CELLS.items():
