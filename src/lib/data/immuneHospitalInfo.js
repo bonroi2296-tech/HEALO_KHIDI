@@ -150,11 +150,16 @@ export const IMMUNE_HOSPITAL = {
           en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
         },
         weekend: {
-          ko: "토·일·공휴일 09:00-15:00",
-          en: "Sat/Sun/Holidays 09:00-15:00",
+          ko: "토·일·공휴일 09:00-15:00 (점심 12:30-13:00)",
+          en: "Sat/Sun/Holidays 09:00-15:00 (lunch 12:30-13:00)",
         },
       },
       // 출처: https://sdimmune.app/ (2026-08-18 수집) — 상세는 docs/hospital/면력_성동점_sdimmune_수집자료_2026-08-18.md
+      centers: {
+        ko: "암면역 · 신경면역 · 통증재활 · 항노화(뮨클리닉) 4개 센터",
+        en: "4 centers: Cancer Immunity · Neuro-Immunity · Pain Rehab · Anti-Aging (Mune Clinic)",
+        ru: "4 центра: онкоиммунитет · нейроиммунитет · реабилитация · антивозрастной (Mune Clinic)",
+      },
       nearby: {
         ko: "5호선 답십리역 5번 출구 273m · Big5 대학병원 차량 15~30분",
         en: "273m from Dapsimni Stn. Exit 5 (Line 5) · 15–30 min by car to Seoul's Big 5 hospitals",
@@ -471,6 +476,27 @@ export const IMMUNE_HOSPITAL = {
         "/immune/site/uploads/facilities/68bea94b7914a9.24667654.jpg",
         "/immune/site/uploads/facilities/6895e996409ee8.20820981.jpg",
         "/immune/site/uploads/facilities/6895e9a27163b3.11074499.jpg",
+      ],
+    },
+    {
+      // 성동점에만 있는 공간. 사진 출처: https://sdimmune.app/ (2026-08-18 수집).
+      // 글자가 얹힌 홍보용 이미지는 빼고 «실사 그대로»인 것만 골랐다.
+      id: "immune-forest",
+      name: {
+        ko: "이뮨포레스트 (성동점)",
+        en: "Immune Forest (Seongdong)",
+        ru: "Immune Forest (Сондон)",
+      },
+      description: {
+        ko: "1,100평 원내 휴식 라운지. 날씨와 상관없이 걷는 실내 트랙, 편백 사우나와 족욕, 안마의자와 실내 사이클.",
+        en: "A 1,100-pyeong in-hospital lounge: indoor walking track for any weather, hinoki sauna and foot baths, massage chairs and indoor cycles.",
+        ru: "Лаунж площадью 1 100 пхён: крытая дорожка для ходьбы, сауна из хиноки и ванночки для ног, массажные кресла и велотренажёры.",
+      },
+      images: [
+        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-16.jpg",
+        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-18.jpg",
+        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-20.jpg",
+        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-21.jpg",
       ],
     },
   ],

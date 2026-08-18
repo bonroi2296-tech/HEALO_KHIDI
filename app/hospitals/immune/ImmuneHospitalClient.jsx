@@ -372,6 +372,10 @@ export default function ImmuneHospitalClient() {
                     <span>{l(b.parking)}</span>
                   </p>
                 )}
+                {/* 지점마다 운영 센터가 다르다 (성동점만 항노화센터=뮨클리닉이 추가) — 아는 지점만 표시 */}
+                {b.centers && (
+                  <p className="text-xs text-gray-500 leading-relaxed mb-3">{l(b.centers)}</p>
+                )}
                 {b.nearby && (
                   <p className="text-xs font-semibold text-teal-700 leading-relaxed">{l(b.nearby)}</p>
                 )}
