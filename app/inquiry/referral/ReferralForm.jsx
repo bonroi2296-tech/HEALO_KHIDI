@@ -35,7 +35,9 @@ const NATIONALITIES = [
   { value: "CN", label: "China / 中国" },
   { value: "JP", label: "Japan / 日本" },
   { value: "KR", label: "Korea / 한국" },
-  { value: "OTHER", label: "Other / 기타" },
+  // 🛑 여기만 「그 나라 말」이 없다 — 「기타」는 나라 이름이 아니라 한국어 낱말이라
+  //    러시아어·영어 화면에서 한국어가 그대로 새어나왔다(2026-08-18 실측). 화면 말로 바꾼다.
+  { value: "OTHER", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" } },
 ];
 const LANGS = [
   { value: "ru", label: "Русский" }, { value: "kz", label: "Қазақша" },
@@ -92,14 +94,14 @@ const TR = {
   // 말이 길면 안 읽는다(2026-08-18 PO: «말이 너무 장황하잖아»). 한 줄로.
   sub:        { ko: "적어주시면 저희가 정리해 한국 대학병원에 전달합니다.",
                 en: "Fill this in and we compile it and send it to a Korean university hospital.",
-                ru: "Это сведения, которые нужны корейским врачам, чтобы правильно оценить состояние пациента. Мы всё соберём и передадим — заполняйте только то, что знаете." },
+                ru: "Заполните — мы всё оформим и передадим в корейскую клинику." },
   barIntake:  { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   jump:       { ko: "남은 칸으로", en: "Take me there", ru: "Перейти к полю" },
   // 「안 채우셔도 되고 채우셔도 되고」는 «그래서 어쩌라는 거야»가 된다(2026-08-18 PO).
   // 모호하게 두지 말고 «채우면 뭐가 좋아지는지»를 말한다.
   restNote:   { ko: "여기까지 채우시면 보내실 수 있습니다. 아래는 병원이 답을 주려면 필요한 내용입니다 — 채우실수록 회신이 빨라집니다.",
                 en: "You can send it once you get this far. What follows is what the hospital needs in order to answer — the more you fill in, the faster the reply.",
-                ru: "На этом обязательная часть закончена. Дальше — то, по чему врачи оценивают состояние: можно заполнить позже, уже после отправки." },
+                ru: "С этого момента заявку уже можно отправить. Дальше — то, без чего больница не сможет ответить: чем больше заполните, тем быстрее ответ." },
   barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
   barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
   barReferral:{ ko: "진단에 필요한 내용", en: "What the doctors need", ru: "Что нужно врачам" },
@@ -118,7 +120,7 @@ const TR = {
   barRefDone: { ko: "100% — 의료진이 판단하는 데 필요한 내용이 모두 모였습니다", en: "100% — the doctors have everything they need", ru: "100% — у врачей есть всё необходимое" },
   laterNote:  { ko: "보내신 뒤에도 같은 주소에서 이어서 채우실 수 있습니다.",
                 en: "You can keep filling this in from the same link after sending.",
-                ru: "Не обязательно заполнять всё сразу. После отправки можно продолжить по той же ссылке — мы передадим, когда всё будет готово." },
+                ru: "После отправки можно продолжить по той же ссылке." },
   // 2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
   // 환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
   // → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
@@ -704,7 +706,8 @@ function Field({ f, lang, value, onChange, lit, fromDoc }) {
     }
     case "nationality": case "lang": case "cancerType": case "stage": {
       const opts =
-        f.type === "nationality" ? NATIONALITIES.map((o) => ({ value: o.value, text: o.label })) :
+        f.type === "nationality" ? NATIONALITIES.map((o) => ({
+          value: o.value, text: typeof o.label === "string" ? o.label : lab(o.label, lang) })) :
         f.type === "lang" ? LANGS.map((o) => ({ value: o.value, text: o.label })) :
         f.type === "cancerType" ? CANCER_TYPES.map((o) => ({ value: o.value, text: optLabel(o, lang) })) :
         STAGES.map((o) => ({ value: o.value, text: optLabel(o, lang) }));

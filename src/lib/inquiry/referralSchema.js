@@ -241,8 +241,8 @@ export const SECTIONS = [
         label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
         // 특정 병원 이름을 화면에 쓰지 않는다(PO 지시 2026-08-11). 「대학병원이 요구한다」로만.
         hint: L("병원이 주치의 확인을 요청하는 항목입니다.",
-                "Korean university hospitals ask the treating doctor to confirm this before long-distance travel.",
-                "Корейские университетские клиники просят лечащего врача подтвердить это до дальней поездки.") },
+                "The hospital asks the treating doctor to confirm this.",
+                "Больница просит лечащего врача подтвердить это.") },
     ],
   },
   {
@@ -281,8 +281,8 @@ export const SECTIONS = [
       { name: "stage", type: "stage", req: "optional", half: true,
         label: L("병기", "Stage", "Стадия"),
         hint: L("모르시면 비워두세요 — 서류에서 저희가 확인합니다.",
-                "Please select it if you know — the hospital replies much faster when the stage is known. If not, we read it from your documents.",
-                "Укажите, если знаете — при известной стадии клиника отвечает намного быстрее. Если нет, мы определим по документам.") },
+                "Leave it blank if you are not sure — we read it from your documents.",
+                "Не знаете — оставьте пустым, мы определим по документам.") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",
         label: L("진단서에 적힌 병명", "Diagnosis as written on your medical document", "Диагноз, как указано в документе"),
         hint: L(
