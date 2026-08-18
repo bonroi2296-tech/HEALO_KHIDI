@@ -98,6 +98,7 @@ const CT = {
   inboxColStep: { ko: "Step 완료", en: "Step done", ru: "Этап", kz: "Кезең", zh: "步骤完成", ja: "ステップ完了" },
   inboxColMatch: { ko: "매칭 정확도", en: "Match accuracy", ru: "Точность подбора", kz: "Сәйкестік дәлдігі", zh: "匹配准确度", ja: "マッチング精度" },
   inboxStepOneOnly: { ko: "Step 1만", en: "Step 1 only", ru: "Только этап 1", kz: "Тек 1-кезең", zh: "仅步骤 1", ja: "ステップ1のみ" },
+  inboxFilterDelayed: { ko: "정체", en: "Stalled", ru: "Застой", kz: "Тоқтап тұр", zh: "已停滞", ja: "停滞" },
   inboxDelayedDays: { ko: "{n}일째 정체", en: "Stalled {n}d", ru: "Застой {n} дн.", kz: "{n} күн тоқтап тұр", zh: "已停滞 {n} 天", ja: "{n}日間停滞" },
   badgeAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
   agencyReferral: { ko: "에이전시 의뢰", en: "Agency referral", ru: "Направление от агентства", kz: "Агенттік жолдамасы", zh: "代理机构转介", ja: "代理店からの紹介" },

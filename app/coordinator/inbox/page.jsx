@@ -13,7 +13,7 @@ import {
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { caseDelayDays } from "@/lib/khidi/caseStatus";
+import { caseDelayDays, byDelayThenRecent } from "@/lib/khidi/caseStatus";
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -62,13 +62,28 @@ export default function CoordinatorInboxPage() {
     setLoading(false);
   }
 
-  const filtered = items.filter((item) => {
-    if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
-    if (filter === "step2_done") return !!item.step2_completed_at;
-    return true;
-  });
+  // 지연 일수는 한 번만 계산해 «탭 개수·정렬·배지» 가 같은 값을 쓴다.
+  // 완료·차단(스팸)·오류 문의는 죽은 문의라 제외(독립리뷰 #738 지적).
+  const rows = items.map((item) => ({
+    ...item,
+    delayDays: ["completed", "blocked", "error"].includes(item.status)
+      ? null
+      : caseDelayDays(item.case_status, item.case_status_updated_at || item.created_at),
+  }));
+
+  const filtered = rows
+    .filter((item) => {
+      if (filter === "delayed") return item.delayDays != null;
+      if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
+      if (filter === "step2_done") return !!item.step2_completed_at;
+      return true;
+    })
+    // 정체 건을 «오래된 순» 으로 맨 위로. 예전엔 접수 최신순뿐이라 제일 오래 방치된 문의가
+    // 목록 맨 아래로 밀렸다(2026-08-18 실측: 84일째 #87 이 진짜 문의 9건 중 맨 끝).
+    .sort(byDelayThenRecent);
 
   const step1OnlyCount = items.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
+  const delayedCount = rows.filter((i) => i.delayDays != null).length;
 
   return (
     <div className="space-y-6">
@@ -96,6 +111,12 @@ export default function CoordinatorInboxPage() {
             key: "step1_only",
             label: L.inboxFilterNeedInfo,
             count: step1OnlyCount,
+            badge: "red",
+          },
+          {
+            key: "delayed",
+            label: L.inboxFilterDelayed,
+            count: delayedCount,
             badge: "red",
           },
           {
@@ -158,13 +179,8 @@ export default function CoordinatorInboxPage() {
             <tbody>
               {filtered.map((item) => {
                 const step2Done = !!item.step2_completed_at;
-                // 지연 감지: 살아있는 케이스가 단계 기준일을 넘기면 「N일째 정체」.
-                // 앵커는 단계 갱신 시각, 단계 미설정이면 접수 시각(방치 케이스 감지).
-                // 완료·차단(스팸)·오류 문의는 죽은 문의라 제외(독립리뷰 #738 지적).
-                const delayDays =
-                  ["completed", "blocked", "error"].includes(item.status)
-                    ? null
-                    : caseDelayDays(item.case_status, item.case_status_updated_at || item.created_at);
+                // 지연 일수는 위에서 한 번만 재서 정렬·탭 개수와 같은 값을 쓴다.
+                const delayDays = item.delayDays;
                 return (
                   <tr
                     key={item.id}
