@@ -81,6 +81,10 @@ export function sanitizeFileName(name: string): string {
 export function normalizeMime(name: string, declared: string): string {
   if (declared) return declared;
   if (/\.dcm$/i.test(name)) return "application/dicom";
+  // 확장자가 «아예 없는» 파일도 DICOM 으로 본다. 병원 CD 의 낱개 파일이 그렇다
+  // (2026-08-18 실측: Z01·Z02… 601개, 전부 확장자 없음). 틀렸으면 서버의 앞머리 검사가
+  // 128바이트째 "DICM" 이 없다고 잡아 지운다 — 여기서 관대해도 문이 열리지는 않는다.
+  if (!/\.[A-Za-z0-9]{1,8}$/.test(name)) return "application/dicom";
   return "";
 }
 

@@ -22,13 +22,18 @@ const MB = (b) => Math.round(b / 1024 / 1024);
  */
 export const UPLOAD_POLICY = {
   // 환자 의료서류(문의 첨부·환자 서류함·비자·코디 대리 업로드)
+  // 세브란스 의뢰서가 「JPG, MS, DICOM 등」을 받는다고 안내한다 → 낱개 DICOM 도 여기서 받는다.
+  // 🛑 DICOM 은 «확장자가 없는» 경우가 흔하다. 2026-08-18 실측(환자 CD 601개): 파일 이름이
+  //    Z01·Z02… 로 확장자가 아예 없었고, 128바이트째에 "DICM" 이 있어야 DICOM 이다.
+  //    그래서 확장자·브라우저 형식만 믿으면 안 되고, 서버의 앞머리 검사(fileMagic)가 진짜 문지기다.
   medicalDoc: {
-    exts: ["PDF", "JPG", "PNG", "WebP", "Word"],
-    accept: ".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp",
+    exts: ["PDF", "JPG", "PNG", "WebP", "Word", "DICOM"],
+    accept: ".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.dcm,application/pdf,image/jpeg,image/png,image/gif,image/webp,application/dicom",
     mimes: [
       "application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/dicom",
     ],
     maxBytes: MAX_DOC_BYTES,
   },
