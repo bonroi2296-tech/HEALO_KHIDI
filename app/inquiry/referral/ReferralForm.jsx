@@ -143,7 +143,8 @@ export default function ReferralForm() {
   const [footOut, setFootOut] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
-  const [sent, setSent] = useState(null); // { inquiryId, publicToken }
+  const [sent, setSent] = useState(null);
+  const [copied, setCopied] = useState(false); // { inquiryId, publicToken }
   const loaded = useRef(false);
 
   // 쓰던 내용 복구 — 긴 폼의 유일한 진짜 위험은 「쓰다 날림」이다.
@@ -323,10 +324,32 @@ export default function ReferralForm() {
             {/* 주소는 서버가 만든 걸 그대로 쓴다 — 화면에서 조립하면 실제 경로와 어긋난다
                 (2026-08-14: 「/t/」로 지어냈는데 진짜는 「/claim/」이었다). */}
             {sent.trackUrl && (
-              <a href={sent.trackUrl}
-                 className="mt-2 block break-all rounded-xl bg-gray-50 px-4 py-3 text-xs text-teal-800 underline">
-                {sent.trackUrl}
-              </a>
+              <>
+                <a id="track-url" href={sent.trackUrl}
+                   className="mt-2 block break-all rounded-xl bg-gray-50 px-4 py-3 text-xs text-teal-800 underline">
+                  {sent.trackUrl}
+                </a>
+                {/* 폰에서 긴 주소를 손으로 긁어 복사하기 어렵다(2026-08-19 폰 실측). 한 번 누르면 끝. */}
+                <button type="button"
+                        onClick={async () => {
+                          // ① 요즘 방식 → ② 옛 방식(임시 칸에 넣고 복사 명령) → ③ 둘 다 막히면 주소를 «선택»만이라도 해 준다
+                          //    (2026-08-19 실측: 클립보드가 막힌 환경에서 조용히 실패해 아무 표시가 없었다).
+                          let ok = false;
+                          try { await navigator.clipboard.writeText(sent.trackUrl); ok = true; } catch { /* 아래로 */ }
+                          if (!ok) {
+                            try {
+                              const ta = document.createElement("textarea");
+                              ta.value = sent.trackUrl; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+                              document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); document.body.removeChild(ta);
+                            } catch { /* 아래로 */ }
+                          }
+                          if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+                          else { const a = document.getElementById("track-url"); if (a) { const r = document.createRange(); r.selectNodeContents(a); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } }
+                        }}
+                        className="mt-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+                  {copied ? tr("copied", lang) : tr("copyLink", lang)}
+                </button>
+              </>
             )}
             <p className="mt-3 text-xs leading-relaxed text-gray-600">{tr("doneMail", lang)}</p>
           </div>
@@ -876,10 +899,13 @@ function CdFolder({ f, lang, value, onChange, register }) {
   //    그림이 끝난 뒤 효과에서 갱신한다. 그래서 이 두 효과는 onPick «아래»에 있어야 한다.
   const pickRef = useRef(null);
   useEffect(() => { pickRef.current = onPick; });
+  // 🛑 폰(폴더 고르기 불가)에서는 등록하지 않는다 — 등록하면 자료 상자에 「폴더 올리기」 단추가 뜨는데
+  //    같은 화면에 「휴대폰에서는 CD 폴더를 고를 수 없습니다」 안내도 떠서 모순(2026-08-19 폰 실측).
   useEffect(() => {
+    if (!canPick) { register?.(null); return; }
     register?.({ open: () => ref.current?.click(), pick: (fl) => pickRef.current?.(fl) });
     return () => register?.(null);
-  }, [register]);
+  }, [register, canPick]);
 
   if (!canPick) {
     // 폰에서는 폴더를 못 고른다. 요구하지 말고 나중에 올릴 길만 알려준다.
