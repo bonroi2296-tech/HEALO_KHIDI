@@ -1258,12 +1258,17 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
            }}
            className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
              over ? "border-teal-700 bg-teal-50" : "border-gray-300"}`}>
+        {/* 🛑 끌고 오는 동안 «안을 비우지» 마라(2026-08-18 PO: 「파일 올리면 요렇게 되잖아」).
+            버튼을 감추면 상자가 157px → 60px 로 쪼그라들어서, 놓으려던 자리가 커서 밑에서
+            사라진다. 색만 바뀌고 «크기는 그대로»여야 한다.
+            끌고 오는 동안 안쪽은 pointer-events-none — 안 그러면 버튼 위를 지날 때마다
+            「나갔다」로 잘못 읽혀 상자가 깜빡인다. */}
+        <div className={over ? "pointer-events-none" : ""}>
         <p className="text-sm font-semibold text-gray-700">
           {over ? tr("dropNow", lang) : tr("dropHere", lang)}
         </p>
-        <p className="mt-1 text-xs text-gray-600">{over ? " " : describeUpload("medicalDoc", lang)}</p>
-        {!over && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <p className="mt-1 text-xs text-gray-600">{describeUpload("medicalDoc", lang)}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
             {/* 🛑 버튼 이름을 «파일/폴더»로 되돌리지 마라(2026-08-18 PO: 「눌러봐도 똑같은데」).
                 고르는 창이 비슷해 보여서, 이름과 한 줄 설명으로 «무엇을 고르는 것인지»를 갈라야 한다.
                 처리도 다르다 — 서류는 한 장씩 읽어 칸을 채우고, CD 는 통째로 묶어 하나로 올린다. */}
@@ -1279,8 +1284,8 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
                 <span className="block text-[11px] text-gray-500">{tr("pickCdSub", lang)}</span>
               </button>
             )}
-          </div>
-        )}
+        </div>
+        </div>
       </div>
       <input ref={ref} type="file" multiple className="hidden"
              onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
