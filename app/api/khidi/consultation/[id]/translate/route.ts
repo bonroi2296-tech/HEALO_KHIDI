@@ -59,7 +59,7 @@ export async function POST(
           source_lang: payload.sourceLanguage,
           target_lang: payload.targetLanguage,
           // 「누가 말했나」 — 이 경로(짧은 즉답 사전)에만 빠져 있었다(2026-08-07).
-          speaker_name: String(payload.speakerName || "").trim().slice(0, 80) || null,
+          // ⚠️ 평문 speaker_name 이 아니라 암호문 칸으로 넣는다(2026-08-14 감사) — 아래 스프레드에서.
           confidence: payload.confidence ?? null,
           // 「어느 받아쓰기가 만든 줄인가」 — 아는 값만 통과(모르는 값이 섞이면 이 칸으로
           // 재는 숫자가 통째로 못 쓰게 된다). 이 라우트는 맞장구 사전 경로가 기본.
@@ -67,6 +67,7 @@ export async function POST(
           ...encryptTranscriptRow({
             sourceText: payload.originalText,
             translatedText: payload.translatedText || null,
+            speakerName: String(payload.speakerName || "").trim().slice(0, 80) || null,
           }),
         },
       ])

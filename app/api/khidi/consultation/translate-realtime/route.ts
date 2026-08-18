@@ -248,10 +248,12 @@ async function saveTranslationLog(
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
       stt_engine: data.sttEngine,
-      speaker_name: data.speakerName ?? null,
+      // 화자 이름(환자 실명)은 «암호문 칸»으로 — 평문 speaker_name 은 2026-08-14 감사에서 닫았다.
+      // 8/07 작업본이 평문 칸에 쓰고 있었고(그때는 아직 감사 전), 옮겨 심으면서 되살아날 뻔했다.
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,
+        speakerName: data.speakerName ?? null,
       }),
     },
   ]);

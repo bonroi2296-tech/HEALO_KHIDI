@@ -2664,7 +2664,6 @@ export default function ConsultationRoomPage() {
   //    판정 규칙과 시험은 sttWatchdog.ts.
   useEffect(() => {
     if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
-    if (isAloneInRoom) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
     spokenClockRef.current.reset();
@@ -3248,8 +3247,11 @@ export default function ConsultationRoomPage() {
 
   const sessionActions = (
     <>
-      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF. */}
+      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF(2026-08-07 PO 결정: 누를 때만 켜진다). */}
       <button
+        // 야간 로봇 검사가 «6개 언어 글자»가 아니라 이 표식으로 자막을 켠다 — 기본 OFF 가 되면서
+        // 검사가 자막을 한 줄도 못 보게 됐다(2026-08-18 리뷰). 이름표를 지우지 마라.
+        data-testid="captions-toggle"
         onClick={toggleTranslation}
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
@@ -4151,7 +4153,7 @@ export default function ConsultationRoomPage() {
                               {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
                                   (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
                                   같은 언어끼리 회의는 흔하므로 그때는 번역 줄을 숨긴다. */}
-                              {trans.source_language !== trans.target_language && (
+                              {trans.original_text && (
                                 <div className="pt-2 border-t border-gray-700">
                                   <p className="text-xs text-teal-700 mb-0.5">
                                     {LANG_LABELS[trans.target_language] || trans.target_language}

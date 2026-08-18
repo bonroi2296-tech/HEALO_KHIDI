@@ -210,10 +210,13 @@ export function ListenModeBridge({
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
   const remoteKeys = trackRefs
+    // ⚠️ isMuted 를 «열쇠»에도 넣는다. 아래 필터에만 넣으면 음소거·해제가 이 문자열을 안 바꿔
+    //    효과가 다시 안 돌고, 자막을 켤 때 음소거였던 사람은 마이크를 켜도 영영 자막이 안 나온다
+    //    (2026-08-18 리뷰가 잡음 — 원격 음소거는 트랙 객체·id 를 안 바꾼다).
     .filter((t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t))
     .map(
       (t) =>
-        `${t.participant.identity}::${t.publication.trackSid}::${t.publication.track.mediaStreamTrack.id}`
+        `${t.participant.identity}::${t.publication.trackSid}::${t.publication.track.mediaStreamTrack.id}::${t.publication.isMuted ? "m" : "u"}`
     )
     .sort()
     .join(",");
