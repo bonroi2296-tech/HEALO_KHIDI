@@ -35,6 +35,8 @@ const USED = new Set<string>([
   ...[...schema.matchAll(/K\("(referral\.[\w.]+)"\)/g)].map((m) => m[1]),
   ...[...docKinds.matchAll(/K\("(referral\.[\w.]+)"\)/g)].map((m) => m[1]),
   ...[...form.matchAll(/tr\("(\w+)"/g)].map((m) => `referral.tr.${m[1]}`),
+  // tr(cond ? "a" : "b", …) 꼴 — 삼항으로 고르는 키도 «쓰는 키»다
+  ...[...form.matchAll(/tr\(\s*\w+\s*\?\s*"(\w+)"\s*:\s*"(\w+)"/g)].flatMap((m) => [`referral.tr.${m[1]}`, `referral.tr.${m[2]}`]),
 ]);
 
 describe("의뢰서 6개 언어", () => {
