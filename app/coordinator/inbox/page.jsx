@@ -13,7 +13,7 @@ import {
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { caseDelayDays, byDelayThenRecent } from "@/lib/khidi/caseStatus";
+import { caseDelayDays } from "@/lib/khidi/caseStatus";
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -71,16 +71,14 @@ export default function CoordinatorInboxPage() {
       : caseDelayDays(item.case_status, item.case_status_updated_at || item.created_at),
   }));
 
-  const filtered = rows
-    .filter((item) => {
-      if (filter === "delayed") return item.delayDays != null;
-      if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
-      if (filter === "step2_done") return !!item.step2_completed_at;
-      return true;
-    })
-    // 정체 건을 «오래된 순» 으로 맨 위로. 예전엔 접수 최신순뿐이라 제일 오래 방치된 문의가
-    // 목록 맨 아래로 밀렸다(2026-08-18 실측: 84일째 #87 이 진짜 문의 9건 중 맨 끝).
-    .sort(byDelayThenRecent);
+  // 순서는 접수 최신순 그대로(서버가 created_at 내림차순으로 준다). 정체 건을 위로 올리는 정렬을
+  // 한번 넣었다가 PO 지시로 되돌렸다(2026-08-18) — 정체 건은 「정체」 탭으로 본다.
+  const filtered = rows.filter((item) => {
+    if (filter === "delayed") return item.delayDays != null;
+    if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
+    if (filter === "step2_done") return !!item.step2_completed_at;
+    return true;
+  });
 
   const step1OnlyCount = items.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
   const delayedCount = rows.filter((i) => i.delayDays != null).length;

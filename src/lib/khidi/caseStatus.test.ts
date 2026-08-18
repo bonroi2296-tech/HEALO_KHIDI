@@ -6,7 +6,6 @@ import {
   outcomeForCaseStatus,
   caseStatusToJourneyStage,
   caseDelayDays,
-  byDelayThenRecent,
   CASE_STATUS_DELAY_DAYS,
   CASE_STATUS_KEYS,
   CASE_STATUS_STEPS,
@@ -196,25 +195,5 @@ describe("caseDelayDays (지연 감지 — 파이프라인에서 조용히 죽�
     for (const k of Object.keys(CASE_STATUS_DELAY_DAYS)) {
       expect(["intake", "consultation", "preparation"]).toContain(k);
     }
-  });
-});
-
-describe("byDelayThenRecent (정체 건을 맨 위로 — 84일째 문의가 목록 끝에 묻히던 구멍)", () => {
-  const mk = (delayDays: number | null, created_at: string) => ({ delayDays, created_at });
-
-  it("정체 건이 정상 건보다 앞선다 — 접수가 더 오래됐어도", () => {
-    const stalled = mk(84, "2026-05-26T00:00:00Z");
-    const fresh = mk(null, "2026-08-18T00:00:00Z");
-    expect([fresh, stalled].sort(byDelayThenRecent)[0]).toBe(stalled);
-  });
-
-  it("정체끼리는 오래 방치된 것이 위로", () => {
-    const sorted = [mk(19, "2026-07-30T00:00:00Z"), mk(84, "2026-05-26T00:00:00Z")].sort(byDelayThenRecent);
-    expect(sorted.map((r) => r.delayDays)).toEqual([84, 19]);
-  });
-
-  it("정상 건끼리는 접수 최신순 유지", () => {
-    const sorted = [mk(null, "2026-07-01T00:00:00Z"), mk(null, "2026-08-10T00:00:00Z")].sort(byDelayThenRecent);
-    expect(sorted.map((r) => r.created_at)).toEqual(["2026-08-10T00:00:00Z", "2026-07-01T00:00:00Z"]);
   });
 });

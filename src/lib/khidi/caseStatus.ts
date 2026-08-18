@@ -138,22 +138,6 @@ export function caseDelayDays(
 }
 
 /**
- * 코디 인박스 정렬 규칙 — 「정체된 것을 오래된 순으로 맨 위」, 나머지는 접수 최신순.
- * 왜: 접수 최신순만 쓰면 제일 오래 방치된 문의가 목록 맨 아래로 밀려 안 보인다
- * (2026-08-18 실측: 84일째 정체 건이 진짜 문의 9건 중 맨 끝에 있었다).
- */
-export function byDelayThenRecent(
-  a: { delayDays: number | null; created_at?: string | null },
-  b: { delayDays: number | null; created_at?: string | null }
-): number {
-  const aD = a.delayDays != null;
-  const bD = b.delayDays != null;
-  if (aD !== bD) return aD ? -1 : 1;
-  if (aD && bD) return (b.delayDays as number) - (a.delayDays as number);
-  return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-}
-
-/**
  * 병원 리드 상태 → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
  * 병원이 '치료 확정(converted)'하면 실제 유치 → outcome='admitted' 자동 집계.
  * 그 외(sent/viewed/replied/rejected)는 outcome 을 건드리지 않는다(null 반환).
