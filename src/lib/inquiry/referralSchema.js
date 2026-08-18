@@ -226,7 +226,7 @@ export const SECTIONS = [
       { name: "referralPurpose", type: "textarea", req: "optional",
         label: L("병원에 더 물어보고 싶은 것",
                  "Anything else to ask the hospital",
-                 "Что ещё спросить у больницы"),
+                 "Что ещё спросить у клиники"),
         placeholder: L(
           "예: 지금 먹는 약을 계속 먹어도 되는지, 보호자가 같이 있어야 하는지",
           "e.g. whether I can keep taking my current medication, whether a family member must stay with me",

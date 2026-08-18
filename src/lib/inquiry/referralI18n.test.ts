@@ -119,6 +119,29 @@ describe("의뢰서 6개 언어", () => {
     expect(bad, bad.join(" | ")).toEqual([]);
   });
 
+  it("러시아어에서 «대학병원»을 한 가지 말로만 부른다", () => {
+    // 🛑 실측(2026-08-18): 같은 대학병원을 клиника·университетская клиника·больница
+    //    세 가지로 부르고 있었다 — 환자에겐 «다른 곳»으로 읽힌다.
+    //    «больница» 는 «환자분이 다니는 병원»을 가리킬 때만 쓴다. 늘리려면 여기 이름을 추가하고,
+    //    그때 «정말 환자 쪽 병원인가»를 한 번 더 생각하라.
+    const OWN_HOSPITAL_OK = [
+      "stillNeedWhy",                          // 병원에서 받으시는 대로 = 환자분이 다니는 병원
+      "병원에서 받은 CD (CT · MRI)",            // 환자분이 병원에서 받아 온 것
+      "지금 다니시는 병원에서 권고받은 치료",   // 환자분이 다니는 병원
+    ];
+    const bad: string[] = [];
+    // 화면 문구: 이름 → 그 항목의 ru 값 (「{ }」 통째 잡기는 {n} 때문에 못 쓴다 — entries() 설명 참고)
+    const RU = new RegExp(String.raw`\n  (\w+):\s*\{(?:[^{}]|\{\w+\})*?ru:\s*"([^"]*)"`, "g");
+    for (const m of form.matchAll(RU))
+      if (/больниц/i.test(m[2]) && !OWN_HOSPITAL_OK.includes(m[1])) bad.push(`${m[1]}: ${m[2].slice(0, 50)}`);
+    // 칸 정의: L("<한국어>", "<영어>", "<러시아어>") — 열쇠는 한국어 원문
+    const LRU = new RegExp(String.raw`L\(\s*"([^"]*)"\s*,\s*"[^"]*"\s*,\s*"([^"]*)"`, "g");
+    for (const src of [schema, docKinds])
+      for (const m of src.matchAll(LRU))
+        if (/больниц/i.test(m[2]) && !OWN_HOSPITAL_OK.includes(m[1])) bad.push(`${m[1]}: ${m[2].slice(0, 50)}`);
+    expect(bad, bad.join(" | ")).toEqual([]);
+  });
+
   it("사이트에 언어가 늘면 여기도 늘려야 한다", () => {
     // 🛑 「6개」라고 숫자만 세지 마라 — 사이트에 언어가 하나 늘어도 이 검사는 통과해버린다.
     //    실제 목록(src/lib/i18n/config.js)과 맞춰본다.

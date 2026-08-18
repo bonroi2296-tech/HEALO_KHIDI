@@ -46,6 +46,11 @@ const LANGS = [
   { value: "zh", label: "中文" }, { value: "ko", label: "한국어" },
 ];
 
+// 📐 「대학병원」을 부르는 말은 한 가지로 (2026-08-18 실측: 러시아어가 клиника·университетская
+//    клиника·больница 세 가지로 갈려 있었다 — 환자에겐 «다른 곳»으로 읽힌다).
+//      · 대학병원      → en "university hospital" · ru «университетская клиника»
+//      · 다시 가리킬 때 → en "the hospital"        · ru «клиника»
+//      · 환자분이 다니는 병원 → en "your hospital"  · ru «ваша больница»
 const TR = {
   // ── 갈림길 화면 (맨 처음) ──────────────────────────────────────
   // 15칸을 처음부터 다 펼쳐 보이면 부담스럽다(PO 2026-08-13). 그렇다고 안 받을 수도
@@ -69,8 +74,8 @@ const TR = {
                 ru: "Загрузите имеющиеся медицинские документы — мы прочитаем их и заполним форму за вас. Так намного быстрее." },
   fullMeta:   { ko: "{n}칸 · 자료 첨부 필요", en: "{n} fields · documents needed", ru: "{n} полей · нужны документы" },
   switchToFull:{ ko: "대학병원 소견도 받고 싶으신가요? 이어서 채우기",
-                en: "Also want the hospital's opinion? Continue filling it in",
-                ru: "Хотите ещё и заключение клиники? Продолжить заполнение" },
+                en: "Also want the university hospital's opinion? Continue filling it in",
+                ru: "Хотите ещё и заключение университетской клиники? Продолжить заполнение" },
   sending:    { ko: "보내는 중입니다…", en: "Sending…", ru: "Отправляем…" },
   errSend:    { ko: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요. 쓰신 내용은 그대로 있습니다.",
                 en: "We couldn't send it. Please try again shortly — your answers are still here.",
@@ -91,7 +96,7 @@ const TR = {
   // 말이 길면 안 읽는다(2026-08-18 PO: «말이 너무 장황하잖아»). 한 줄로.
   sub:        { ko: "대학병원에서 2차 소견과 예상 치료비를 안내받으시려면 환자분의 의무기록이 필요합니다. 많이 주실수록 더 빠르고 정확하게 안내해 드립니다.",
                 en: "To get a second opinion and a cost estimate from a Korean university hospital, we need the patient's medical records. The more you give us, the faster and more accurate the answer.",
-                ru: "Чтобы клиника дала второе мнение и оценку стоимости, нужны медицинские документы пациента. Чем больше вы предоставите, тем быстрее и точнее будет ответ." },
+                ru: "Чтобы университетская клиника дала второе мнение и оценку стоимости, нужны медицинские документы пациента. Чем больше вы предоставите, тем быстрее и точнее будет ответ." },
   barIntake:  { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   jump:       { ko: "남은 칸으로", en: "Take me there", ru: "Перейти к полю" },
   // 🛑 「여기까지 채우시면 보내실 수 있습니다」를 여기 되살리지 마라 — 그 말은 아래 띠가
@@ -109,14 +114,14 @@ const TR = {
   // 「0%」는 숫자가 아니라 «실패했다»로 읽힌다. 채운 개수로 보여주고, 다음 한 칸을 지목해 준다.
   barRefMeta: { ko: "{done}/{total} 채우셨습니다 — 채우실수록 병원 회신이 빨라집니다",
                 en: "{done} of {total} filled — the more you fill in, the faster the hospital replies",
-                ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит больница" },
+                ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит клиника" },
   barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
   needTitle:  { ko: "대학병원이 환자분을 보려면 이런 자료가 필요합니다",
-                en: "This is what the hospital needs in order to assess the patient",
-                ru: "Вот что нужно клинике, чтобы оценить состояние пациента" },
+                en: "This is what the university hospital needs in order to assess the patient",
+                ru: "Вот что нужно университетской клинике, чтобы оценить состояние пациента" },
   needPassport:{ ko: "여권 사본 (병원 예약 때 필요합니다)",
                 en: "Passport copy (needed when booking the appointment)",
-                ru: "Копия паспорта (нужна при записи в больницу)" },
+                ru: "Копия паспорта (нужна при записи в клинику)" },
   needNote:   { ko: "모두 있어야 접수되는 것은 아닙니다. 지금 있는 것만 주셔도 의뢰는 진행되고, 대학병원이 자료를 더 요청할 수 있습니다.",
                 en: "You don't need all of them to send. We proceed with whatever you have, and the hospital may ask for more.",
                 ru: "Не обязательно иметь всё. Мы отправим с тем, что есть, а клиника может запросить дополнительные материалы." },
@@ -137,7 +142,7 @@ const TR = {
   dropNow:    { ko: "여기에 놓으세요", en: "Drop here", ru: "Отпустите здесь" },
   barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
                 en: "The more you fill in, the faster the hospital replies",
-                ru: "Чем больше заполните, тем быстрее ответит больница" },
+                ru: "Чем больше заполните, тем быстрее ответит клиника" },
   barRefDone: { ko: "100% — 의료진이 판단하는 데 필요한 내용이 모두 모였습니다", en: "100% — the doctors have everything they need", ru: "100% — у врачей есть всё необходимое" },
   laterNote:  { ko: "보내신 뒤에도 같은 주소에서 이어서 채우실 수 있습니다.",
                 en: "You can keep filling this in from the same link after sending.",
@@ -193,7 +198,7 @@ const TR = {
   stillNeed:  { ko: "이런 서류가 아직 없습니다", en: "These are still missing", ru: "Ещё не хватает" },
   stillNeedWhy:{ ko: "지금 없어도 보내실 수 있습니다. 병원에서 받으시는 대로 이어서 올려주세요.",
                 en: "You can send without them — add them once your hospital issues them.",
-                ru: "Можно отправить и без них — добавьте, когда получите." },
+                ru: "Можно отправить и без них — добавьте, когда получите их в своей больнице." },
   docsAllSet: { ko: "의료진이 판단하는 데 필요한 자료가 모두 확인되었습니다.",
                 en: "The doctors have everything they need.",
                 ru: "У врачей есть все необходимые материалы." },
