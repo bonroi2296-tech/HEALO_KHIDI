@@ -136,8 +136,6 @@ const TR = {
   // 🛑 버튼 이름은 «무엇을 고르나»가 아니라 «어떻게 올리나»로(2026-08-18 PO: 그게 더 직관적이다).
   //    「서류 고르기 / CD 폴더 고르기」는 둘 다 «고르기»여서 무엇이 다른지 안 보였다.
   pickDocs:   { ko: "파일 올리기", en: "Upload files", ru: "Загрузить файлы" },
-  pickDocsSub:{ ko: "진단서 · 검사지 · 사진", en: "Reports, test results, photos", ru: "Заключения, результаты, фото" },
-  pickCdSub:  { ko: "병원에서 받은 CD (몇백 개라도)", en: "A hospital CD (hundreds of files are fine)", ru: "Диск из больницы (даже сотни файлов)" },
   dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
   orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
@@ -208,8 +206,8 @@ const TR = {
   icdUnknown: { ko: "모르겠습니다 — 서류 보고 정해주세요", en: "I don't know — please determine it from my documents", ru: "Не знаю — определите по моим документам" },
   pick:       { ko: "선택", en: "Select", ru: "Выберите" },
   addFile:    { ko: "파일 고르기", en: "Choose file", ru: "Выбрать файл" },
-  cdPick:     { ko: "폴더째 올리기", en: "Upload a whole folder", ru: "Загрузить папку целиком" },
-  cdPickSub:  { ko: "안에 든 파일을 하나씩 고르실 필요 없습니다", en: "No need to pick files one by one", ru: "Выбирать файлы по одному не нужно" },
+  // 🛑 버튼 밑에 한 줄 설명을 다시 달지 마라(2026-08-18 PO). 「파일」과 「폴더」면 충분하다.
+  cdPick:     { ko: "폴더 올리기", en: "Upload a folder", ru: "Загрузить папку" },
   cdZipping:  { ko: "파일 {n}개 ({mb}) 를 하나로 묶고 있습니다", en: "Bundling {n} files ({mb})", ru: "Собираем {n} файлов ({mb})" },
   cdZipWait:  { ko: "창을 닫지 말고 잠시만 기다려 주세요. 보통 10~40초 걸립니다.",
                 en: "Please keep this window open — it usually takes 10–40 seconds.",
@@ -1291,15 +1289,13 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
                 고르는 창이 비슷해 보여서, 이름과 한 줄 설명으로 «무엇을 고르는 것인지»를 갈라야 한다.
                 처리도 다르다 — 서류는 한 장씩 읽어 칸을 채우고, CD 는 통째로 묶어 하나로 올린다. */}
             <button type="button" onClick={() => ref.current?.click()}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-left transition-all duration-200 hover:border-gray-400">
-              <span className="block text-xs font-semibold text-gray-700">{tr("pickDocs", lang)}</span>
-              <span className="block text-[11px] text-gray-500">{tr("pickDocsSub", lang)}</span>
+                    className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+              {tr("pickDocs", lang)}
             </button>
             {cd?.open && (
               <button type="button" onClick={() => cd.open()}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-left transition-all duration-200 hover:border-gray-400">
-                <span className="block text-xs font-semibold text-gray-700">{tr("cdPick", lang)}</span>
-                <span className="block text-[11px] text-gray-500">{tr("pickCdSub", lang)}</span>
+                      className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+                {tr("cdPick", lang)}
               </button>
             )}
         </div>
