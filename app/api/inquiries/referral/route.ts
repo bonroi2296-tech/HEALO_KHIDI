@@ -61,13 +61,17 @@ const Schema = z.object({
   dateFlexible: z.boolean().optional(), flightFitness: s(20),
 
   // 봉투에 올린 서류 — 종류는 «추정»이거나 사용자가 고친 값이다. 사실로 다루지 마라.
+  // link: 파일이 200MB 를 넘어 «못 올린» 경우, 사람이 그 자리에서 남긴 대용량 저장소 주소.
+  // 안 받으면 화면에만 있고 조용히 버려진다(2026-08-18 실측으로 잡음).
   envelope: z.array(z.object({
     path: s(500), name: s(300), size: z.number().optional(),
     kind: s(40), confidence: z.number().nullable().optional(),
     corrected: z.boolean().optional(),
+    link: s(600),
   })).max(30).optional(),
-  cdFolder: z.object({ name: s(300), size: z.number().optional(), count: z.number().optional() })
-    .nullable().optional(),
+  cdFolder: z.object({
+    name: s(300), size: z.number().optional(), count: z.number().optional(), link: s(600),
+  }).nullable().optional(),
 
   consents: z.record(z.string(), z.boolean()).optional(),
   sourceLocale: s(10), referrerHost: s(200), landingPath: s(300),
@@ -147,6 +151,7 @@ export async function POST(request: NextRequest) {
         path: f.path ?? null, name: f.name ?? null, size: f.size ?? null,
         kind: f.kind ?? "unknown", confidence: f.confidence ?? null,
         correctedByUser: f.corrected === true,
+        link: f.link ?? null,   // 200MB 를 넘어 못 올린 경우 사람이 남긴 대용량 저장소 주소
       })),
       cdFolder: d.cdFolder ?? null,
       consents,

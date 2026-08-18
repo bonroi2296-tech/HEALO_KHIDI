@@ -119,6 +119,14 @@ const TR = {
   needNote:   { ko: "모두 있어야 접수되는 것은 아닙니다. 지금 있는 것만 주셔도 의뢰는 진행되고, 대학병원이 자료를 더 요청할 수 있습니다.",
                 en: "You don't need all of them to send. We proceed with whatever you have, and the hospital may ask for more.",
                 ru: "Не обязательно иметь всё. Мы отправим с тем, что есть, а клиника может запросить дополнительные материалы." },
+  bigLinkTitle:{ ko: "대용량 저장소에 올리고 «주소»를 주셔도 됩니다",
+                en: "You can also upload it to a file-sharing service and give us the link",
+                ru: "Можно загрузить в облако и прислать нам ссылку" },
+  bigLinkHint: { ko: "구글 드라이브 · 드롭박스 등 어디든 괜찮습니다. 주소를 붙여넣어 주세요.",
+                en: "Google Drive, Dropbox — anywhere is fine. Just paste the link.",
+                ru: "Google Drive, Dropbox — подойдёт любой сервис. Просто вставьте ссылку." },
+  bigLinkPh:  { ko: "https://…", en: "https://…", ru: "https://…" },
+  bigLinkOr:  { ko: "또는", en: "or", ru: "или" },
   dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
   orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
@@ -887,6 +895,27 @@ function Toggle({ checked, onClick, label, className = "" }) {
  *   · 상한을 넘으면 막다른 골목 대신 왓츠앱으로 사람에게 연결
  *   · 폰이면 아예 요구하지 않는다 (폴더 고르기가 안 된다)
  */
+/**
+ * 「너무 커서 못 올림」이 뜬 «그 자리»에만 나오는 링크 칸.
+ *
+ * 🛑 상시 칸으로 올리지 마라(2026-08-13 결정): 평소엔 자료가 우리 저장소에 있어야
+ *    뷰어가 돌고, 링크는 만료되면 죽는다. 다만 200MB 를 넘어 «막힌 순간»에는
+ *    사람이 그 자리에서 끝낼 길이 있어야 한다 — 세브란스 의뢰서도 「대용량은 링크로
+ *    보내도 무관」이라고 안내한다. 그래서 막혔을 때만 띄운다.
+ */
+function BigFileLink({ lang, value, onChange }) {
+  return (
+    <div className="mt-3 rounded-xl bg-white/70 p-3">
+      <p className="text-xs font-semibold text-gray-700">{tr("bigLinkTitle", lang)}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-gray-600">{tr("bigLinkHint", lang)}</p>
+      <input type="url" inputMode="url" value={value || ""} placeholder={tr("bigLinkPh", lang)}
+             onChange={(e) => onChange(e.target.value)}
+             className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-teal-700" />
+      <p className="mt-2 text-xs text-gray-600">{tr("bigLinkOr", lang)}</p>
+    </div>
+  );
+}
+
 function CdFolder({ f, lang, value, onChange, register }) {
   const ref = useRef(null);
   const [state, setState] = useState({ phase: "idle" }); // idle | picked | zipping | done | toobig
@@ -1001,8 +1030,9 @@ function CdFolder({ f, lang, value, onChange, register }) {
               ? uploadErrorText(state.error, lang)
               : tr("cdTooBig", lang, { mb: formatMB(state.zipped ?? state.raw) })}
           </p>
+          <BigFileLink lang={lang} value={value?.link} onChange={(v) => onChange(f.name, { ...(value || {}), link: v })} />
           <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
-             className="mt-2 inline-block rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">
+             className="mt-3 inline-block rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">
             {tr("cdHelp", lang)}
           </a>
         </div>
@@ -1276,10 +1306,14 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
             <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs leading-relaxed text-amber-700">{uploadErrorText(d.error, lang, d.size)}</p>
               {d.error === "file_too_large" && (
+                <>
+                <BigFileLink lang={lang} value={d.link}
+                             onChange={(v) => onChange(f.name, docs.map((x, j) => (j === i ? { ...x, link: v } : x)))} />
                 <a href={SITE_INFO?.messenger?.whatsapp || "#"} target="_blank" rel="noopener noreferrer"
                    className="mt-2 inline-block rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white">
                   {tr("cdHelp", lang)}
                 </a>
+                </>
               )}
             </div>
           ) : d.reading ? (
