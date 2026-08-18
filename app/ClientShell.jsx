@@ -552,7 +552,10 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
 }
 
 /* 포털 전용 언어 스위처 — 해외 에이전시/의료기관·병원·코디·관리자가 자기 언어로.
-   공개 페이지처럼 URL 언어화/리로드 없이 쿠키만 바꾸고 healo:langchange 로 즉시 리렌더. */
+   공개 페이지처럼 URL 언어화는 없이 쿠키만 바꾸고 **새로 불러온다**.
+   ⚠️ 예전엔 healo:langchange 로 «즉시 리렌더»만 했다 — 7/27부터 브라우저가 «자기 언어 사전 1개»만
+   들고 있어서 그러면 칸 이름은 옛 언어로 남고 서버가 주는 글만 새 언어로 바뀌었다(2026-08-18 실측:
+   러시아어로 바꿨는데 「환자·접수일·보내주신 것」은 한국어, 단계 이름만 러시아어). */
 function PortalLangSwitcher({ langCode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -568,7 +571,11 @@ function PortalLangSwitcher({ langCode }) {
     if (code !== langCode) { try { event(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {} }
     setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
     setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));
+    // 새로 불러와야 layout 이 «그 언어» 사전을 심는다(위 주석). 같은 언어면 굳이 안 한다.
+    if (typeof window !== "undefined") {
+      if (code !== langCode) window.location.reload();
+      else window.dispatchEvent(new Event("healo:langchange"));
+    }
   };
   return (
     <div className="relative notranslate" ref={ref}>
