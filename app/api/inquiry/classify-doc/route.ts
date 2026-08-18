@@ -65,6 +65,7 @@ Return ONLY JSON:
  "fields": {
    "lastName": null, "firstName": null, "birthDate": "YYYY-MM-DD" or null,
    "sex": "female"|"male"|null, "passportNo": null,
+   "nationality": "KZ"|"RU"|"UZ"|"KG"|"MN"|"CN"|"JP"|"KR"|"OTHER"|null,
    "diagnosisNameRaw": null, "icdCode": null,
    "diagnosisDate": "YYYY-MM" or null, "onsetDate": null, "stage": "I"|"II"|"III"|"IV"|null,
    "chiefComplaint": null, "testsAndTreatments": null, "localDoctorOpinion": null,
@@ -84,6 +85,9 @@ Rules:
   at the bottom of a passport). Never return the Cyrillic form, never return both, never join them with
   a slash. Measured 2026-08-14: 1 run in 3 returned "ТАТЕПБАЕВА / TATEPBAYEVA" - that value on a referral
   form does not match the passport and the hospital rejects the registration.
+- NATIONALITY: only from a passport's 3-letter country code (KAZ->KZ, RUS->RU, UZB->UZ, KGZ->KG,
+  MNG->MN, CHN->CN, JPN->JP, KOR->KR; anything else -> "OTHER"). Never infer it from the language a
+  medical record happens to be written in - Russian-language records are routine across all of Central Asia.
 - If unsure of the kind, use "unknown".
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
@@ -93,12 +97,13 @@ date rather than guessing. A wrong date of birth gets the patient rejected at ho
 
 // AI 가 채울 수 있는 칸 목록. 여기 없는 이름을 지어내도 받지 않는다.
 const FILLABLE = new Set([
-  "lastName", "firstName", "birthDate", "sex", "passportNo",
+  "lastName", "firstName", "birthDate", "sex", "passportNo", "nationality",
   "diagnosisNameRaw", "icdCode", "diagnosisDate", "onsetDate", "stage",
   "chiefComplaint", "testsAndTreatments", "localDoctorOpinion",
   "pastHistoryNote", "medications", "familyHistory",
 ]);
 const STAGES = new Set(["I", "II", "III", "IV"]);
+const NATIONS = new Set(["KZ", "RU", "UZ", "KG", "MN", "CN", "JP", "KR", "OTHER"]);
 
 /** AI 가 준 칸 값을 «우리가 아는 모양»으로만 통과시킨다. */
 function cleanFields(raw: any): Record<string, string> {
@@ -110,6 +115,7 @@ function cleanFields(raw: any): Record<string, string> {
     const val = v.trim().slice(0, 3000);
     if (k === "sex" && val !== "female" && val !== "male") continue;
     if (k === "stage" && !STAGES.has(val)) continue;
+    if (k === "nationality" && !NATIONS.has(val)) continue;   // 목록에 없는 값은 버린다
     out[k] = val;
   }
   return out;

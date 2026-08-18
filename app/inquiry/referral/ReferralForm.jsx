@@ -125,11 +125,6 @@ const TR = {
   extraDocs:  { ko: "환자분의 상태에 따라 의료진이 자료를 더 보자고 하는 경우가 있습니다. 그때는 저희가 무엇이 왜 필요한지 정리해서 알려드립니다.",
                 en: "Depending on your condition the doctors may ask to see more. If that happens, we will tell you exactly what is needed and why.",
                 ru: "В зависимости от состояния врачи могут запросить дополнительные материалы. В этом случае мы объясним, что именно нужно и зачем." },
-  // 틀렸던 안내: «내원이 확정된 뒤» 이 아니다 — 이대서울병원은 예약 «전»에도 여권을 요구한다
-  // (2026-08-14 PO 확인). 「나중에 주셔도 된다」고 안내하면 다들 안 내고, 예약 단계에서 막힌다.
-  grpOnsite:  { ko: "여권 — 병원 예약을 잡으려면 필요합니다",
-                en: "Passport — needed to book the hospital appointment",
-                ru: "Паспорт — нужен, чтобы записать вас в больницу" },
   done:       { ko: "완료", en: "done", ru: "готово" },
   left:       { ko: "{n}칸 남음", en: "{n} left", ru: "осталось {n}" },
   optional:   { ko: "(선택)", en: "(optional)", ru: "(необязательно)" },
@@ -1065,8 +1060,7 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
   const docs = values.envelope || [];
   const missing = missingKinds(docs);
   const envelopeField = sec.fields.find((f) => f.name === "envelope");
-  const rest = sec.fields.filter((f) => f.name !== "envelope" && f.group !== "onsite");
-  const onsite = sec.fields.filter((f) => f.group === "onsite");
+  const rest = sec.fields.filter((f) => f.name !== "envelope");
   const filledCount = Object.keys(autoFilled || {}).length;
 
   return (
@@ -1108,13 +1102,6 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
 
       <div className="flex flex-wrap gap-x-4">
         {rest.map((f) => <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} />)}
-      </div>
-
-      <div className="mt-6 border-t border-gray-200 pt-5">
-        <p className="text-xs font-semibold leading-relaxed text-gray-700 md:text-sm">{tr("grpOnsite", lang)}</p>
-        <div className="flex flex-wrap gap-x-4">
-          {onsite.map((f) => <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} />)}
-        </div>
       </div>
 
       <p className="mt-6 rounded-xl bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">

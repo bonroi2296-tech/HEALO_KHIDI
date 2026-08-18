@@ -144,6 +144,14 @@ export const SECTIONS = [
       // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
       //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
       //    통제 밖으로 나가고, 링크는 죽는다. 200MB 를 넘으면 왓츠앱으로 코디가 받는다.
+      // 🛑 여기(자료 묶음)에 «타이핑 칸» 을 되살리지 마라(2026-08-18 PO:
+      //    «1번 섹션은 자료 업로드 파트인데 여권번호를 왜 입력하게 하냐»).
+      //    여기는 «올리는» 자리다. 번호는 여권을 올리면 저절로 채워지고(실측 5칸),
+      //    칸 자체는 ③환자 신원에 있다.
+      { name: "_passportHint", type: "note",
+        label: L("여권 사본도 같이 올려주세요 — 병원 예약을 잡으려면 필요합니다. 올려주시면 여권번호는 저희가 읽어서 채워드립니다.",
+                 "Please include a copy of the passport — it is needed to book the hospital appointment. We read the passport number from it for you.",
+                 "Приложите копию паспорта — она нужна для записи в больницу. Номер паспорта мы считаем сами.") },
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
         hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
@@ -155,11 +163,11 @@ export const SECTIONS = [
       // 「내원이 확정된 뒤에 주셔도 된다」고 안내하면 다들 안 내고, 그럼 예약 단계에서 막힌다.
       // 근거: 대학병원 국제팀 안내 — 「여권 사본은 보내주시지 않더라도 의뢰 진행 가능합니다.
       //       다만 내원 확정시에는 꼭 보내주셔야 합니다.」
-      { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true, group: "onsite",
-        label: L("여권번호", "Passport number", "Номер паспорта"),
-        hint: L("암호화해서 보관하며 의뢰서에만 쓰입니다.",
-                "Stored encrypted; used only on the referral form.",
-                "Хранится в зашифрованном виде, используется только в направлении.") },
+      // 🛑 번호를 «손으로 치게» 만들지 마라(2026-08-18 PO: «여권 번호도 그냥 여권을
+      //    업로드해달라고 하면 되는거 아님?»). 실측: 여권을 봉투에 올리면
+      //    번호·성·이름·생년월일·성별이 한꺼번에 채워진다. 병원도 어차피 사본을 요구한다.
+      //    이 칸은 «읽은 것을 보여주고 고칠 수 있게» 하는 자리지 받아적는 자리가 아니다.
+
     ],
   },
   // ── ② 연락처 · 기본 정보 ─────────────────── ─────────────────────────────────────────────
@@ -247,8 +255,13 @@ export const SECTIONS = [
         label: L("성별", "Gender", "Пол") },
       { name: "nationality", type: "nationality", req: "referral", half: true,
         label: L("국적", "Nationality", "Гражданство") },
-      // 여권번호는 ⑥자료 묶음으로 내렸다. 「찾아와야 하는」 정보를 앞쪽에 두면
-      // 그 자리에서 창을 닫는다. 내원이 확정될 때까지 없어도 의뢰는 진행된다.
+      // 여권을 올리면 이 칸은 «저절로» 찬다(실측: 번호·성·이름·생년월일·성별 5칸).
+      // 손으로 칠 수도 있게 남겨두되, 받아적는 자리는 자료 묶음이 아니라 여기다.
+      { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true,
+        label: L("여권번호", "Passport number", "Номер паспорта"),
+        hint: L("여권 사진을 자료 칸에 올려주시면 저희가 읽어서 채워드립니다. 암호화해서 보관하며 의뢰서에만 쓰입니다.",
+                "Upload a photo of the passport in the documents section and we fill this in for you. Stored encrypted; used only on the referral form.",
+                "Загрузите фото паспорта в разделе документов — мы заполним это поле сами. Хранится в зашифрованном виде.") },
     ],
   },
 
