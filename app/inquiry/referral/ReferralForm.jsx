@@ -22,7 +22,7 @@ import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
-  lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection,
+  lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection, sanitizeDraftValues,
 } from "@/lib/inquiry/referralSchema";
 
 const DRAFT_KEY = "healo_referral_draft_v1";
@@ -153,10 +153,13 @@ export default function ReferralForm() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        setValues(d.values || {});
-        setConsents(d.consents || {});
+        // 🛑 그대로 setValues 하지 마라 — 옛 모양·깨진 값이 들어오면 폼 전체가 오류 화면이 된다
+        //    (2026-08-19 실측: envelope 이 문자열이면 docs.map 에서 죽음). 모양 맞는 칸만 살린다.
+        setValues(sanitizeDraftValues(d.values));
+        const c = d.consents && typeof d.consents === "object" && !Array.isArray(d.consents) ? d.consents : {};
+        setConsents(Object.fromEntries(Object.entries(c).filter(([, v]) => typeof v === "boolean")));
         // 돌아온 사람에게 갈림길을 다시 묻지 않는다 — 쓰던 자리로 바로 보낸다.
-        if (d.mode) setMode(d.mode);
+        if (d.mode === "quick" || d.mode === "full") setMode(d.mode);
       }
     } catch { /* 저장본이 깨졌으면 그냥 빈 폼으로 시작한다 */ }
     loaded.current = true;
@@ -242,8 +245,13 @@ export default function ReferralForm() {
     return s && { ...s, label: lab(s.title, lang) };
   }, [values, lang]);
 
+  // 🛑 «상태(sending)»만으로 막지 마라 — 같은 순간에 두 번 들어오면 둘 다 false 를 본다(고르기 칸에서 실제로
+  //    같은 부류가 터졌다, 2026-08-19). ref 는 그 자리에서 바뀌므로 두 번째는 반드시 걸린다. 문의가 2건 생기면
+  //    코디가 같은 환자를 두 번 상대하고 KHIDI 실적도 2건이 된다.
+  const sendingRef = useRef(false);
   async function send() {
-    if (!canSend || sending) return;
+    if (!canSend || sending || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     setSendError("");
     try {
@@ -272,6 +280,7 @@ export default function ReferralForm() {
     } catch {
       setSendError(tr("errSend", lang));
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
@@ -589,21 +598,25 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
   const box = "w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 " +
               "placeholder:text-gray-500 focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700";
 
+  // 화면낭독기용 — 라벨과 입력칸을 for/id 로 «연결»한다. 눈으로는 붙어 보여도 연결이 없으면
+  // 낭독기가 「편집 칸, 빈칸」이라고만 읽는다(2026-08-19 감사: 20칸 전부 연결 없음).
+  const inputId = `in-${f.name}`;
   let control = null;
   switch (f.type) {
     case "text": case "email": case "url": case "phone":
-      control = <input type={f.type === "email" ? "email" : f.type === "url" ? "url" : "text"}
+      control = <input id={inputId} type={f.type === "email" ? "email" : f.type === "url" ? "url" : "text"}
                        className={box} placeholder={ph} value={value || ""}
                        onChange={(e) => onChange(f.name, e.target.value)} />;
       break;
     case "date":
-      control = <input type="date" className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
+      control = <input id={inputId} type="date" className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
       break;
     case "month":
-      control = <input type="month" className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
+      control = <input id={inputId} type="month" className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
       break;
     case "textarea":
-      control = <textarea rows={3} className={box} placeholder={ph} value={value || ""}
+      // 라벨 없는 딸린 글칸(병력 설명 등)은 칸 안 안내가 곧 이름이다 — 낭독기에도 그걸 준다
+      control = <textarea id={inputId} rows={3} className={box} placeholder={ph} aria-label={label ? undefined : ph} value={value || ""}
                           onChange={(e) => onChange(f.name, e.target.value)} />;
       break;
     case "check":
@@ -616,7 +629,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
       const multi = f.type === "chipsMulti";
       const cur = multi ? (value || []) : value;
       control = (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`lbl-${f.name}`}>
           {f.options.map((o) => {
             const on = multi ? cur.includes(o.value) : cur === o.value;
             // 🛑 «그 순간의 값(cur)»으로 계산해 넘기지 마라 — 화면이 바쁠 때(서류 판독 중) 두 개를
@@ -645,7 +658,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
         f.type === "cancerType" ? CANCER_TYPES.map((o) => ({ value: o.value, text: optLabel(o, lang) })) :
         STAGES.map((o) => ({ value: o.value, text: optLabel(o, lang) }));
       control = (
-        <select className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)}>
+        <select id={inputId} className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)}>
           <option value="">{tr("pick", lang)}</option>
           {opts.map((o) => <option key={o.value} value={o.value}>{o.text}</option>)}
         </select>
@@ -656,7 +669,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
       // 코드를 못 고르는 게 정상이다 — 「모르겠습니다」가 기본이고 관문이 아니다.
       control = (
         <>
-          <input className={box} placeholder="C18.2" value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />
+          <input id={inputId} className={box} placeholder="C18.2" value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />
           <Toggle checked={value === "__unknown__"} onClick={() => onChange(f.name, value === "__unknown__" ? "" : "__unknown__")}
                   label={tr("icdUnknown", lang)} className="mt-2" />
         </>
@@ -665,7 +678,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
     case "cdFolder":
       return <CdFolder f={f} lang={lang} value={value} onChange={onChange} />;
     default:
-      control = <input className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
+      control = <input id={inputId} className={box} value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />;
   }
 
   return (
@@ -675,7 +688,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
          } ${lit ? "-mx-2 rounded-xl bg-teal-50 px-2 py-2 ring-2 ring-teal-700" : ""}`}>
       {/* 라벨 없는 칸(바로 위 칸에 딸린 서술 칸)은 「(선택)」만 덩그러니 뜨지 않게 통째로 뺀다. */}
       {label && (
-        <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+        <label id={`lbl-${f.name}`} htmlFor={inputId} className="mb-1.5 block text-sm font-semibold text-gray-700">
           {label}
           {/* 별표는 «접수 문턱»에만. 의뢰용 칸은 막지 않으므로 별표가 아니라 회색 꼬리표다 —
               별표를 14개 붙이면 사람은 그걸 «다 채워야 한다»로 읽고 창을 닫는다. */}

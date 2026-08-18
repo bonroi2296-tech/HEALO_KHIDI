@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq, nextReferralSection } from "./referralSchema";
+import { SECTIONS, CONSENTS, missingIntake, missingForReferral, referralReadiness, lab, fieldsByReq, nextReferralSection , sanitizeDraftValues } from "./referralSchema";
 
 describe("환자 의뢰서 칸 정의", () => {
   it("빈 폼이면 접수 칸이 전부 「비었다」로 잡힌다", () => {
@@ -131,5 +131,31 @@ describe("묶음 순서", () => {
     expect(wants).toBeTruthy();
     expect(wants!.options.map((o: any) => o.value)).toContain("opinion"); // 소견서
     expect(wants!.options.map((o: any) => o.value)).toContain("cost");    // 비용
+  });
+});
+
+describe("임시저장 복원 — 모양이 다른 값은 버린다 (폼이 죽지 않게)", () => {
+  // 🛑 2026-08-19 실측: envelope 이 문자열로 남은 임시저장을 되살리자 폼 전체가 오류 화면이 됐다.
+  it("옛 모양·깨진 값이 섞여 있어도 살릴 수 있는 것만 남긴다", () => {
+    const out = sanitizeDraftValues({
+      pastHistory: "hypertension",        // 배열이어야 한다 → 버림
+      referralWants: ["cost", 3, null],   // 문자열만 남김
+      envelope: "broken",                 // 배열이어야 한다 → 버림
+      cdFolder: { name: "x" },
+      dateFlexible: "yes",                // 참/거짓만
+      lastName: "AUDITOVA",
+      stage: { weird: 1 },                // 문자열이어야 한다 → 버림
+      unknownField: { a: 1 },             // 모르는 칸 → 버림
+    });
+    expect(out).toEqual({ referralWants: ["cost"], cdFolder: { name: "x" }, dateFlexible: false, lastName: "AUDITOVA" });
+  });
+  it("아예 이상한 것은 빈 폼", () => {
+    expect(sanitizeDraftValues(null)).toEqual({});
+    expect(sanitizeDraftValues("x")).toEqual({});
+    expect(sanitizeDraftValues([1, 2])).toEqual({});
+  });
+  it("정상 값은 그대로", () => {
+    const v = { pastHistory: ["hypertension"], envelope: [{ name: "a.pdf" }], lastName: "A", dateFlexible: true };
+    expect(sanitizeDraftValues(v)).toEqual(v);
   });
 });

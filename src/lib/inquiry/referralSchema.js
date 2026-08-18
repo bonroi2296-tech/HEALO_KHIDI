@@ -355,3 +355,38 @@ export function nextReferralSection(values) {
   }
   return null;
 }
+
+/**
+ * 임시저장(localStorage)에서 «되살릴 수 있는 값»만 남긴다.
+ * 🛑 2026-08-19 실측: 옛 모양·깨진 임시저장(envelope 이 문자열, 고르기 여러 개 칸이 문자열)이 들어오자
+ *    자료 묶음이 그리다 죽어(docs.map is not a function) 폼 «전체»가 오류 화면이 됐다.
+ *    사용자는 저장소를 지울 줄 모른다 — 그 브라우저로는 영영 못 들어온다.
+ *    그래서 복원은 «모양이 맞는 칸만». 모르는 칸·모양이 다른 칸은 조용히 버린다(빈 폼이 죽은 폼보다 낫다).
+ */
+export function sanitizeDraftValues(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out = {};
+  for (const sec of SECTIONS) {
+    for (const f of sec.fields) {
+      const v = raw[f.name];
+      if (v == null) continue;
+      switch (f.type) {
+        case "chipsMulti":
+          if (Array.isArray(v)) out[f.name] = v.filter((x) => typeof x === "string");
+          break;
+        case "envelope":
+          if (Array.isArray(v)) out[f.name] = v.filter((x) => x && typeof x === "object" && !Array.isArray(x));
+          break;
+        case "cdFolder":
+          if (v && typeof v === "object" && !Array.isArray(v)) out[f.name] = v;
+          break;
+        case "check":
+          out[f.name] = v === true;
+          break;
+        default:   // text · textarea · date · month · select 류 — 문자열만
+          if (typeof v === "string") out[f.name] = v;
+      }
+    }
+  }
+  return out;
+}
