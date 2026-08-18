@@ -94,6 +94,31 @@ describe("의뢰서 6개 언어", () => {
     expect(bad, bad.join(", ")).toEqual([]);
   });
 
+  it("중국어·일본어 문장부호가 그 나라 것이다", () => {
+    // 🛑 한국어 습관을 그대로 옮기지 마라. 실측(2026-08-18): 반각 괄호 40곳, 한국식 줄표 24곳.
+    //    괄호는 전각（）, 줄표 「 — 」 대신 「。」·「、」, 인용은 중국어 “ ” · 일본어 「 」.
+    const bad: string[] = [];
+    for (const e of [...extra, ...extraTr])
+      for (const l of ["zh", "ja"]) {
+        const v = e.langs[l] || "";
+        if (/[()]/.test(v)) bad.push(`${e.key}/${l}: 반각 괄호`);
+        if (v.includes(" — ")) bad.push(`${e.key}/${l}: 한국식 줄표`);
+        if (/[一-鿿぀-ヿ],/.test(v)) bad.push(`${e.key}/${l}: 반각 쉼표`);
+        if (l === "zh" && v.includes("「")) bad.push(`${e.key}/zh: 일본식 「」 (중국어는 “ ”)`);
+        if (l === "ja" && v.includes("“")) bad.push(`${e.key}/ja: 중국식 “” (일본어는 「 」)`);
+      }
+    expect(bad, bad.join(" | ")).toEqual([]);
+  });
+
+  it("가운뎃점이 언어별로 맞다 (일본어 ・ / 중국어 ·)", () => {
+    const bad: string[] = [];
+    for (const e of [...extra, ...extraTr]) {
+      if ((e.langs.ja || "").includes("·")) bad.push(`${e.key}/ja: 중국식 ·`);
+      if ((e.langs.zh || "").includes("・")) bad.push(`${e.key}/zh: 일본식 ・`);
+    }
+    expect(bad, bad.join(" | ")).toEqual([]);
+  });
+
   it("사이트에 언어가 늘면 여기도 늘려야 한다", () => {
     // 🛑 「6개」라고 숫자만 세지 마라 — 사이트에 언어가 하나 늘어도 이 검사는 통과해버린다.
     //    실제 목록(src/lib/i18n/config.js)과 맞춰본다.
