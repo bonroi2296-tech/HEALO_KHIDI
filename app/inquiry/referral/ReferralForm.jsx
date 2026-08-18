@@ -555,7 +555,9 @@ export default function ReferralForm() {
                                   onAutoFill={applyAutoFill} autoFilled={autoFilled} />
                     ) : (
                       <div className="flex flex-wrap gap-x-4">
-                        {sec.fields.map((f) => (
+                        {/* showIf 가 붙은 칸은 «조건이 맞을 때만» 나온다 — 고르기 칸 밑에
+                            빈 글칸이 늘 떠 있으면 「둘 다 해야 하나」로 읽힌다(2026-08-18 PO). */}
+                        {sec.fields.filter((f) => !f.showIf || f.showIf(values)).map((f) => (
                           <Fragment key={f.name}>
                             <Field f={f} lang={lang} value={values[f.name]} onChange={set}
                                    lit={highlight === f.name} fromDoc={!!autoFilled[f.name]}

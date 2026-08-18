@@ -308,7 +308,11 @@ export const SECTIONS = [
     fields: [
       { name: "pastHistory", type: "chipsMulti", req: "referral", options: PAST_HISTORY,
         label: L("과거에 앓으셨거나 지금 앓고 계신 병", "Illnesses you have had or still have", "Перенесённые и текущие заболевания") },
+      // 🛑 이 칸을 «항상» 열어두지 마라(2026-08-18 PO: 「선택을 할 거면 선택만, 입력을 할 거면
+      //    입력만 — 중간이 없나」). 고르기 칸 밑에 빈 글칸이 늘 떠 있으면 «둘 다 해야 하나»로
+      //    읽힌다. 고른 게 있을 때만 «그것에 대해» 더 적는 자리로 나온다.
       { name: "pastHistoryNote", type: "textarea", req: "optional",
+        showIf: (v) => Array.isArray(v.pastHistory) && v.pastHistory.some((x) => x !== "none"),
         // 칸 안 안내는 «~해주세요»가 아니라 «무엇을 적는 자리인지»로 통일한다.
         placeholder: L("진단 연도·수술명 등 아는 만큼",
                        "Add years, surgery names, etc. as far as you know",
