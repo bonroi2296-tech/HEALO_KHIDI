@@ -388,6 +388,12 @@ export const IMMUNE_PAGES = {
         credentials: { ko: "항노화센터", en: "Anti-aging Center", ru: "Антивозрастная медицина Центр", kz: "Қартаюға қарсы Орталық", zh: "抗衰老 中心", ja: "抗加齢 センター" },
         photo: "/immune/doctor/seongdong-dr-lee-jinyeong.jpg",
       },
+      {
+        name: { ko: "송시은", en: "Dr. Song Si-eun", ru: "Д-р Сон Си-ын", kz: "Д-р Сон Си-ын", zh: "송시은", ja: "ソン・シウン" },
+        title: { ko: "진료원장", en: "Attending Physician", ru: "Лечащий врач", kz: "Емдеуші дәрігер", zh: "诊疗院长", ja: "診療院長" },
+        credentials: { ko: "항노화센터", en: "Anti-aging Center", ru: "Антивозрастная медицина Центр", kz: "Қартаюға қарсы Орталық", zh: "抗衰老 中心", ja: "抗加齢 センター" },
+        photo: "/immune/doctor/seongdong-dr-song-sieun.jpg",
+      },
               ],
       },
       ],

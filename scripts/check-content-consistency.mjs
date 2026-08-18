@@ -805,22 +805,33 @@ try {
   } catch (e) {
     errors.push(`[의료진드리프트] 검사 실패: ${e.message}`);
   }
-  // /hospitals 목록 페이지의 하드코딩 DOCTORS(작은따옴표 표기)도 같은 부류 — 동일 검사
+  // /hospitals 목록이 쓰는 명단(단일 원본, 작은따옴표 표기)도 같은 부류 — 동일 검사.
+  // 2026-08-18: 명단이 HospitalsClient.jsx 안에 있던 것을 src/lib/data/immuneDoctors.js 로 옮겼다.
+  const ROSTER_SRC = "src/lib/data/immuneDoctors.js";
   try {
-    const listPage = readFileSync(join(ROOT, "app/hospitals/HospitalsClient.jsx"), "utf8");
+    const listPage = readFileSync(join(ROOT, ROSTER_SRC), "utf8");
     const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
-    const block = listPage.split("const DOCTORS = [")[1]?.split("Branch Config")[0] || "";
+    const block = listPage.split("export const IMMUNE_DOCTOR_ROSTER = [")[1]?.split("IMMUNE_BRANCH_META")[0] || "";
     const names = [...block.matchAll(/name: \{ ko: '([가-힣]{2,5})'/g)].map((m) => m[1]);
     if (!names.length) {
-      errors.push(`[의료진드리프트] app/hospitals/HospitalsClient.jsx 의 DOCTORS 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+      errors.push(`[의료진드리프트] ${ROSTER_SRC} 의 IMMUNE_DOCTOR_ROSTER 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
     }
     for (const n of names) {
       if (!live.includes(`"${n}"`)) {
-        errors.push(`[의료진드리프트] /hospitals DOCTORS 의 "${n}" 이 라이브 소스(immuneHospitalInfo.js)에 없음 — 퇴사·개명 가능성. 공식 사이트 대조 후 갱신할 것 (POSTMORTEMS #66)`);
+        errors.push(`[의료진드리프트] 의료진 명단의 "${n}" 이 라이브 소스(immuneHospitalInfo.js)에 없음 — 퇴사·개명 가능성. 공식 사이트 대조 후 갱신할 것 (POSTMORTEMS #66)`);
+      }
+    }
+    // 거꾸로도 본다: 라이브 소스에만 있고 명단에 없는 사람(= 새로 온 원장을 한쪽만 넣은 것).
+    // 2026-08-18 실측: 이 방향이 없어서 송시은 원장이 사본 3곳에서 빠진 채 통과했다.
+    const liveDoctorBlock = live.slice(live.indexOf("\n  doctors: ["), live.indexOf("\n  teamStructure:"));
+    const liveNames = [...liveDoctorBlock.matchAll(/name: \{ ko: "([가-힣]{2,5})"/g)].map((m) => m[1]);
+    for (const n of new Set(liveNames)) {
+      if (!names.includes(n)) {
+        errors.push(`[의료진드리프트] immuneHospitalInfo.js 의 "${n}" 이 ${ROSTER_SRC} 명단에 없음 — 한쪽만 갱신한 것 (POSTMORTEMS #66)`);
       }
     }
   } catch (e) {
-    errors.push(`[의료진드리프트] /hospitals 검사 실패: ${e.message}`);
+    errors.push(`[의료진드리프트] 의료진 명단 검사 실패: ${e.message}`);
   }
 }
 
@@ -2280,12 +2291,12 @@ const TEAL600_BASELINE = {
 
 // ── §34) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
 // 왜: 2026-07-27 PO 지적 — /ru/hospitals 에서 섹션 제목(경력·학력)만 번역되고 **내용은 전부 영어**로
-//     나왔다. DOCTORS(app/hospitals/HospitalsClient.jsx)가 ko/en 만 들고 있었기 때문.
+//     나왔다. 의료진 명단(src/lib/data/immuneDoctors.js)이 ko/en 만 들고 있었기 때문.
 //     번역을 doctorPhrases.js 로 옮겼는데, 의사를 새로 추가하면서 사전에 넣는 걸 잊으면
 //     **그 줄만 조용히 영어로** 나간다 — 같은 부류의 재발이라 기계가 잡는다.
 // 무엇을 보나: DOCTORS 의 en 배열 문구·subspecialty.en 이 DOCTOR_PHRASES 에 있고 4개 언어가 다 찼는지.
 {
-  const SRC = "app/hospitals/HospitalsClient.jsx";
+  const SRC = "src/lib/data/immuneDoctors.js";
   let phrases = null;
   try {
     ({ DOCTOR_PHRASES: phrases } = await import(
@@ -2316,12 +2327,12 @@ const TEAL600_BASELINE = {
   if (phrases) {
     let src = "";
     try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
-    // DOCTORS 배열 구간만 본다(그 뒤 BRANCH_CONFIG 등은 별개).
-    const from = src.indexOf("const DOCTORS = [");
-    const to = src.indexOf("const BRANCH_CONFIG");
+    // 명단 배열 구간만 본다(그 뒤 지점 메타 등은 별개).
+    const from = src.indexOf("export const IMMUNE_DOCTOR_ROSTER = [");
+    const to = src.indexOf("export const IMMUNE_BRANCH_META");
     const block = from >= 0 && to > from ? src.slice(from, to) : "";
     if (!block) {
-      errors.push(`[의료진i18n] ${SRC} 에서 DOCTORS 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
     }
     const used = new Set();
     for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
