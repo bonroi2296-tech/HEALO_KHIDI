@@ -16,7 +16,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
-import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop, splitDrop } from "@/lib/inquiry/cdBundle";
+import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
@@ -809,7 +809,6 @@ function BigFileLink({ lang, value, onChange }) {
 function CdFolder({ f, lang, value, onChange, register }) {
   const ref = useRef(null);
   const [state, setState] = useState({ phase: "idle" }); // idle | picked | zipping | done | toobig
-  const [over, setOver] = useState(false);
   const [canPick, setCanPick] = useState(true);
 
   useEffect(() => { setCanPick(canPickFolder()); }, []);
@@ -819,13 +818,6 @@ function CdFolder({ f, lang, value, onChange, register }) {
   //    그게 또 여기를 다시 그려서 «무한 반복»으로 화면이 죽는다(2026-08-18 실측:
   //    Maximum update depth exceeded). 게다가 «해제된 찰나»에는 「폴더째 올리기」 버튼이
   //    사라져서 자료 상자가 줄었다 늘었다 했다. 최신 onPick 은 ref 로 따라간다.
-  const pickRef = useRef(null);
-  pickRef.current = onPick;
-  useEffect(() => {
-    register?.({ open: () => ref.current?.click(), pick: (fl) => pickRef.current?.(fl) });
-    return () => register?.(null);
-  }, [register]);
-
   async function onPick(fileList) {
     const files = pickImagingFiles(fileList);
     if (!files.length) return;
@@ -864,6 +856,21 @@ function CdFolder({ f, lang, value, onChange, register }) {
       setState({ phase: "toobig", count: files.length, raw });
     }
   }
+
+  // 자료 상자가 하나로 합쳐져서, 「폴더 올리기」 버튼과 «폴더를 놓았을 때»의 처리를
+  // 저쪽(Envelope)에서 부른다. 여기 상태(묶기·올리기 진행률)는 그대로 이 컴포넌트가 들고 있다.
+  // 🛑 의존성 칸([register])을 지우지 마라 — 매번 등록·해제를 반복하면 저쪽이 다시 그려지고
+  //    그게 또 여기를 다시 그려서 «무한 반복»으로 화면이 죽는다(2026-08-18 실측:
+  //    Maximum update depth exceeded). 게다가 «해제된 찰나»에는 「폴더 올리기」 버튼이
+  //    사라져서 자료 상자가 줄었다 늘었다 했다.
+  // ⚠️ 최신 onPick 은 ref 로 따라가되 «그리는 도중»에 쓰면 안 된다(리액트 규칙 위반) →
+  //    그림이 끝난 뒤 효과에서 갱신한다. 그래서 이 두 효과는 onPick «아래»에 있어야 한다.
+  const pickRef = useRef(null);
+  useEffect(() => { pickRef.current = onPick; });
+  useEffect(() => {
+    register?.({ open: () => ref.current?.click(), pick: (fl) => pickRef.current?.(fl) });
+    return () => register?.(null);
+  }, [register]);
 
   if (!canPick) {
     // 폰에서는 폴더를 못 고른다. 요구하지 말고 나중에 올릴 길만 알려준다.
