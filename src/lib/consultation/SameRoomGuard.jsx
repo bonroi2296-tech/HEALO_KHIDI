@@ -21,7 +21,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
-import { useSameRoomDetect } from "./useSameRoomDetect";
+import {
+  useSameRoomDetect,
+  HOWL_RMS,
+  HOWL_RMS_AGC,
+  TONAL_NEED,
+} from "./useSameRoomDetect";
 
 /**
  * 「마이크가 실제로 올라오면 딱 한 번 끈다」 핸들러를 만든다.
@@ -143,10 +148,19 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     enabled: !!localTrack && !dismissed && !screenOnly,
   });
 
-  /** 판정 순간의 실제 숫자를 한 줄로 — 나중에 기록에서 문턱을 근거 있게 조절하려고. */
+  /** 판정 순간의 실제 숫자를 한 줄로 — 나중에 기록에서 문턱을 근거 있게 조절하려고.
+   *  ⚠️ 문턱은 «상수를 그대로 끼워» 적는다. 손으로 적어 두었더니 상수만 바뀌고 라벨이 안 따라와
+   *     기록이 틀린 문턱을 달고 쌓일 뻔했다(2026-08-18 독립 리뷰).
+   *  ⚠️ both= 가 핵심이다 — 판정은 «같은 순간 양쪽 동시»라서, 따로 잰 my/peer 최댓값으로는
+   *     문턱을 정할 수 없다(그 오독으로 문턱을 잘못 올릴 뻔했다). active=false 면 감지기가
+   *     아예 안 돈 구간이라 0 이 «안 들림»이 아니라 «안 잼»이라는 뜻이다. */
   const stats = () => {
     const s = statsRef?.current || {};
-    return `my=${s.myPeak ?? 0} peer=${s.peerPeak ?? 0} tonal=${s.myTonal ?? 0}/${s.peerTonal ?? 0} (문턱 포화0.45 · AGC0.22+단일음4)`;
+    return (
+      `my=${s.myPeak ?? 0} peer=${s.peerPeak ?? 0} both=${s.bothPeak ?? 0} ` +
+      `tonal=${s.myTonal ?? 0}/${s.peerTonal ?? 0} 양쪽단일음=${s.tonalBothTicks ?? 0}/${s.ticks ?? 0}틱 ` +
+      `active=${s.wasActive ? 1 : 0} (문턱 포화${HOWL_RMS} · AGC${HOWL_RMS_AGC}+단일음${TONAL_NEED})`
+    );
   };
 
   /**
@@ -313,9 +327,11 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     const t = setTimeout(() => {
       if (levelsSentRef.current) return;
       levelsSentRef.current = true;
+      const active = statsRef?.current?.wasActive;
       reportRef.current?.(
         "howling_levels",
-        `통화 60초 시점 관측값 · 상대 ${remoteTracks.length}명 · ${statsFnRef.current()}`
+        `통화 60초 시점 ${active ? "관측값" : "«감지기 안 돎»(소리 끔·무시 상태)"} · ` +
+          `상대 ${remoteTracks.length}명 · ${statsFnRef.current()}`
       );
     }, 60_000);
     return () => clearTimeout(t);

@@ -37,7 +37,7 @@ const SUSTAIN_MS = 4000;     // 의심이 이만큼 지속돼야 확정(기침·
 // ── 빠른 경로(하울링 즉발) ── 상관계수는 지속 하울링(높고 평평한 파형)을 못 잡는다.
 // 대신 하울링의 지문 = "양쪽 마이크가 동시에 계속 큰 소리". 짧은 창으로 잡아 ~1초 내 확정.
 const FAST_LEN = 3;          // 최근 표본 개수 ≈ 0.18초(순간 스파이크만 평활 — 반응을 거의 즉각으로)
-const HOWL_RMS = 0.45;       // 하울링 확정 문턱(0~1 RMS). 하울링은 마이크를 '포화'시켜 이 근처까지 치솟지만
+export const HOWL_RMS = 0.45;       // 하울링 확정 문턱(0~1 RMS). 하울링은 마이크를 '포화'시켜 이 근처까지 치솟지만
                              //   일반 발화·소음은 여기까지 지속되지 않는다 → 같은 방이 아닌 정상 원격통화
                              //   (겹발화·환자쪽 소음)에서 오작동 자동뮤트를 막는다(독립리뷰 #1: 소리 크기만으론
                              //   같은-방 특정이 안 됨). 일부러 높게 잡음: 빗나가도 실패 방향이 '안 꺼짐'(안전).
@@ -47,16 +47,19 @@ const FAST_SUSTAIN_MS = 200; // 양쪽 동시 큰 소리가 이만큼 지속되�
 // 원인: 브라우저 자동게인(AGC)이 하울링 음량을 눌러 0.45 문턱을 영영 못 넘김(#922 독립리뷰가 경고한 그 경로).
 // AGC 는 '크기'만 누르고 스펙트럼 '모양'은 못 바꾼다 → 하울링의 두 번째 지문(에너지가 한 주파수에
 // 몰린 단일음)을 보조 판정으로 쓴다. 말소리는 포먼트로 에너지가 퍼져 이 비율이 안 나온다.
-// 2026-08-18: 0.22 → 0.30. **드디어 실측이 생겨서** 올린다(그 전엔 감지기가 상대 소리를 못 들어
-//   숫자 자체가 없었다 — 위 attach() 주석 참고). 로봇 2대 실통화에서 앱이 남긴 관측값:
-//   `my=0.221 peer=0.217 tonal=6/6` — **정상 말소리가 0.22 에 그대로 닿고, 단일음 판정도 6/6 로
-//   가득 찼다.** 즉 0.22+단일음 조합은 말소리와 하울링을 못 가른다 → 감지기가 귀를 뜬 지금
-//   그대로 두면 «멀쩡히 말하는 사람을 자동 음소거»가 난다. 하울링(포화 0.45+)과 말소리(≤0.24)
-//   사이인 0.30 으로 올려 둔다. 실회의 `howling_levels` 표본이 쌓이면 근거 있게 다시 정한다.
-const HOWL_RMS_AGC = 0.30;    // 2단 문턱: 중간 음량 + 단일음(tonal)일 때만 하울링 인정
+// 2026-08-18: 0.22 → 0.30 으로 올렸다가 **같은 날 되돌렸다(0.22 유지).**
+//   올린 근거는 로봇 통화 기록 `my=0.221 peer=0.217 tonal=6/6` 을 「정상 말소리가 문턱에 닿았다」로
+//   읽은 것이었는데, 독립 리뷰가 그 독해를 반박했고 확인해보니 맞았다:
+//   ①이 숫자들은 «각각 따로» 누적된 최댓값이라 같은 순간에 났다는 보장이 없고
+//   ②bothLoud 는 양쪽이 «동시에» 넘어야 참인데 peer 는 0.217 로 0.22 를 **한 번도 안 넘었다**
+//     → 그 통화에서 옛 문턱은 애초에 발동 불가였다. 즉 「닿았다」는 관측이 아니라 내 추측이었다.
+//   문턱을 실측 없이 만지는 것이 이 파일이 세 번 반복한 실패다 — 네 번째를 보태지 않는다.
+//   대신 아래 statsRef 를 «판정 조건 그대로»(동시 음량·양쪽 단일음 지속) 재도록 고쳤다.
+//   실회의 howling_levels 표본이 쌓이면 그때 근거를 갖고 정한다.
+export const HOWL_RMS_AGC = 0.22;    // 2단 문턱: 중간 음량 + 단일음(tonal)일 때만 하울링 인정
 const TONAL_SUSTAIN_MS = 600; // 2단은 오탐 여지가 커서 1단(200ms)보다 길게 지속돼야 확정
 const TONAL_WINDOW = 6;       // 단일음 판정 창: 최근 표본 6개(≈0.36초)
-const TONAL_NEED = 4;         // 그중 4개 이상이 단일음이어야
+export const TONAL_NEED = 4;         // 그중 4개 이상이 단일음이어야
 const TONAL_PEAK_MIN = 110;   // 주파수 피크 최소 크기(0~255) — 이보다 작으면 배경음 수준
 // 2026-08-04: 5 → 4. 코드가 「2단이 안 잡으면 4로」라고 적어 둔 그대로 내린다.
 // 근거: 8/4 회의에서 PO 가 하울링을 겪었는데 자동 차단 기록이 0건 = 2단이 안 잡았다.
@@ -163,7 +166,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
   // 지금도 실측 0건짜리 추정값이다.
   //   → 판정 순간의 실제 음량·단일음 수치를 ref 로 내보낸다. state 가 아니라 ref 인 이유:
   //     60ms 마다 갱신되므로 state 면 초당 16번 화면을 다시 그린다.
-  const statsRef = useRef({ myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, peer: null });
+  const statsRef = useRef({ myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, bothPeak: 0, tonalBothTicks: 0, ticks: 0, peer: null, wasActive: false });
   const [sameRoomWith, setSameRoomWith] = useState(null);
   // 하울링 즉발(빠른 경로)로 확정됐는지 — 배너가 이걸 보고 '경고'가 아니라 '자동 음소거'로 대응.
   const [feedbackOnset, setFeedbackOnset] = useState(false);
@@ -178,7 +181,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       setFeedbackPeers((prev) => (prev.length ? [] : prev));
       suspectSinceRef.current = {};
       loudSinceRef.current = {};
-      statsRef.current = { myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, peer: null };
+      statsRef.current = { myPeak: 0, peerPeak: 0, myTonal: 0, peerTonal: 0, bothPeak: 0, tonalBothTicks: 0, ticks: 0, peer: null, wasActive: false };
       return;
     }
 
@@ -252,6 +255,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       return;
     }
 
+    statsRef.current.wasActive = true; // 감지기가 «실제로 돌았다» — 기록의 0 이 «꺼짐»인지 «안 들림»인지 가른다
     const timer = setInterval(() => {
       const push = (n) => {
         n.samples.push(rms(n.analyser, n.buf));
@@ -309,6 +313,12 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       // ── 실측용 숫자 (판정 결과가 아니라 «판정 재료»를 남긴다) ──
       // 「자동 차단이 안 걸렸다」고 할 때 그게 소리가 작아서인지(문턱 미달) 단일음 판정이
       // 안 나와서인지를 갈라야 문턱을 근거 있게 조절할 수 있다. 가장 시끄러운 상대 기준.
+      //
+      // ⚠️ 2026-08-18: myPeak·peerPeak 을 «따로» 최대 누적하던 것이 오독을 낳았다 — 서로 다른
+      //   순간의 최댓값 두 개를 나란히 놓고 「둘 다 문턱에 닿았다」고 읽어 문턱을 잘못 올릴 뻔했다
+      //   (독립 리뷰가 잡음). 판정은 **같은 순간 양쪽이 동시에** 넘어야 성립하므로, 그 조건
+      //   그대로인 값을 따로 잰다: bothPeak = 매 틱 min(내 음량, 상대 음량) 의 최댓값
+      //   = 「양쪽 동시 음량이 여기까지 올라갔다」 → 이 값이 문턱을 정하는 진짜 근거다.
       {
         const my = meanOfLast(nodes.local.samples, FAST_LEN);
         let loudest = null;
@@ -327,6 +337,10 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
               : arr.slice(-TONAL_WINDOW).filter(Boolean).length;
           s.myTonal = Math.max(s.myTonal, hits(nodes.local.tonals));
           s.peerTonal = Math.max(s.peerTonal, hits(loudest.r.tonals));
+          // 판정 조건과 «같은 모양»의 값들
+          s.bothPeak = Math.max(s.bothPeak, Number(Math.min(my, loudest.v).toFixed(3)));
+          if (tonalBoth(nodes.local.tonals, loudest.r.tonals)) s.tonalBothTicks += 1;
+          s.ticks += 1;
         }
       }
 

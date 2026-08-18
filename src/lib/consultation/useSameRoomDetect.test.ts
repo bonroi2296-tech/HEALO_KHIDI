@@ -92,10 +92,11 @@ describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
     // 이 음량대는 tonalBoth(단일음)와 결합해서만 하울링으로 인정된다(훅의 agcHowl 경로).
     const agcPressed = Array.from({ length: N }, () => 0.3);
     expect(bothLoud(agcPressed, agcPressed)).toBe(false); // 1단(0.45) 그대로
-    expect(bothLoud(agcPressed, agcPressed, 3, 0.22)).toBe(true); // 2단 옛 문턱(0.22)
-    // 2026-08-18 실측: «정상 말소리»가 0.221 까지 올라오고 단일음도 6/6 이 나온다 →
-    // 0.22 는 말소리와 하울링을 못 가른다. 실제 문턱은 0.30 이며 이 음량대는 이제 안 걸려야 한다.
-    expect(bothLoud([0.22, 0.221, 0.219], [0.217, 0.216, 0.218], 3, 0.3)).toBe(false);
+    expect(bothLoud(agcPressed, agcPressed, 3, 0.22)).toBe(true); // 2단(0.22)
+    // ⚠️ 2026-08-18: 「한쪽만 넘으면 안 걸린다」를 못 박는다. 로봇 통화 기록
+    //    my=0.221 / peer=0.217 을 보고 «둘 다 문턱에 닿았다»고 읽어 문턱을 올릴 뻔했는데,
+    //    실제로는 상대가 0.22 를 한 번도 안 넘어 애초에 발동 불가였다(독립 리뷰가 잡음).
+    expect(bothLoud([0.221, 0.221, 0.221], [0.217, 0.217, 0.217], 3, 0.22)).toBe(false);
   });
 });
 
