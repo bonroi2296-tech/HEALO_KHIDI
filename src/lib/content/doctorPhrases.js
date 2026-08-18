@@ -1,5 +1,5 @@
 /* ───────── 의료진 세부 이력 다국어 사전 (ru·kz·zh·ja) ─────────
-   왜 별도 파일인가: app/hospitals/HospitalsClient.jsx 의 DOCTORS 는 의사 28명이
+   왜 별도 파일인가: src/lib/data/immuneDoctors.js 의 IMMUNE_DOCTOR_ROSTER 는 의사 28명이
    같은 문구(예: '(Current) Attending Director, Immune Hospital')를 반복해서 쓴다.
    배열마다 6개 언어를 박으면 같은 번역이 수십 번 복제된다 → 문구 단위로 1번만 번역한다.
 
