@@ -371,16 +371,19 @@ export default function DocumentsClient() {
                     {t('patientDocs.view', lang)}
                   </a>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(doc)}
-                  disabled={deletingId === doc.id}
-                  aria-label={`${t('patientDocs.delete', lang)}: ${doc.file_name}`}
-                  title={t('patientDocs.delete', lang)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition"
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                </button>
+                {/* 코디·의사가 상담방에 공유한 자료는 환자가 못 지운다(can_delete=false) — 버튼 자체를 안 그린다 */}
+                {doc.can_delete !== false && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(doc)}
+                    disabled={deletingId === doc.id}
+                    aria-label={`${t('patientDocs.delete', lang)}: ${doc.file_name}`}
+                    title={t('patientDocs.delete', lang)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition"
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
+                )}
               </div>
             </div>
           ))}

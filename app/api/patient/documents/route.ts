@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
   const { data: docs, error: docErr } = await supabaseAdmin
     .from("consultation_documents")
     .select(
-      "id, consultation_id, file_name, file_type, file_size, storage_path, document_type, description, created_at"
+      "id, consultation_id, file_name, file_type, file_size, storage_path, document_type, description, created_at, uploaded_by"
     )
     .in("consultation_id", sessionIds)
     .is("deleted_at", null)
@@ -101,6 +101,8 @@ export async function GET(request: NextRequest) {
         ...doc,
         url: urlData?.signedUrl || null,
         consultation: session || null,
+        // 본인이 올린 것(또는 출처 미상 옛 줄)만 지울 수 있다 — 코디·의사가 공유한 자료는 못 지움
+        can_delete: !doc.uploaded_by || doc.uploaded_by === user.id,
       };
     })
   );
@@ -181,13 +183,14 @@ export async function POST(request: NextRequest) {
           storage_path: storagePath,
           document_type: documentType,
           description,
+          uploaded_by: user.id,
         })
         .select()
         .single();
 
       // 같은 commit 이 두 번 오면(브라우저 재전송 — 2026-08-18 실사고: 0.4초 간격 2번 → 목록 2줄)
       // DB 유일 인덱스(storage_path, 살아있는 줄)가 두 번째를 막는다. 그때는 실패가 아니라
-      // «이미 저장된 그 줄»을 돌려준다. 여기서 파일을 지우면 첫 줄이 빈 파일을 가리키게 된다 — 절대 금지.
+      // «이미 저장된 그 줄»을 돌려준다. 이 갈래에선 파일을 절대 지우지 않는다 — 첫 줄이 그 파일을 쓴다.
       if (dbError?.code === "23505") {
         const { data: existing } = await supabaseAdmin
           .from("consultation_documents")
@@ -196,6 +199,7 @@ export async function POST(request: NextRequest) {
           .is("deleted_at", null)
           .maybeSingle();
         if (existing) return Response.json({ ok: true, data: existing });
+        return Response.json({ ok: false, error: "conflict" }, { status: 409 });
       }
 
       if (dbError) {
@@ -244,6 +248,9 @@ export async function POST(request: NextRequest) {
 // 행·파일은 남기고 deleted_at 만 찍는다 → 환자·코디·상담방 목록 전부에서 사라진다.
 export async function DELETE(request: NextRequest) {
   try {
+    const limited = uploadLimiter.check(request);
+    if (limited) return limited;
+
     const user = await getAuthUser(request);
     if (!user) {
       return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -255,16 +262,15 @@ export async function DELETE(request: NextRequest) {
 
     const { data: doc } = await supabaseAdmin
       .from("consultation_documents")
-      .select("id, consultation_id, deleted_at")
+      .select("id, consultation_id, deleted_at, uploaded_by")
       .eq("id", id)
       .maybeSingle();
     if (!doc) {
       return Response.json({ ok: false, error: "not_found" }, { status: 404 });
     }
-    // 이미 지운 것 — 다시 눌러도(재전송 포함) 탈 없이
-    if (doc.deleted_at) return Response.json({ ok: true });
 
-    // 본인 상담의 문서인지 — POST 와 같은 기준(계정 세션 patient_user_id, 레거시 patient_id)
+    // 본인 상담의 문서인지 — POST 와 같은 기준(계정 세션 patient_user_id, 레거시 patient_id).
+    // 권한 확인이 「이미 지움」 답보다 먼저다 — 남의 문서 id 를 찍어 상태를 알아내지 못하게.
     const { data: session } = await supabaseAdmin
       .from("consultation_sessions")
       .select("id, patient_id, patient_user_id")
@@ -273,6 +279,13 @@ export async function DELETE(request: NextRequest) {
     if (!session || (session.patient_user_id !== user.id && session.patient_id !== user.id)) {
       return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
     }
+    // 본인이 올린 것만(옛 줄·게스트 업로드는 uploaded_by 가 없어 허용). 코디·의사가 상담방에 공유한
+    // 자료를 환자가 지우면 의사 화면에서도 사라진다 — 환자 링크 화면(claim/submit)과 같은 원칙.
+    if (doc.uploaded_by && doc.uploaded_by !== user.id) {
+      return Response.json({ ok: false, error: "not_yours" }, { status: 403 });
+    }
+    // 이미 지운 것 — 다시 눌러도(재전송 포함) 탈 없이
+    if (doc.deleted_at) return Response.json({ ok: true });
 
     const { error } = await supabaseAdmin
       .from("consultation_documents")

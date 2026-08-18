@@ -1449,6 +1449,7 @@ export type Database = {
           file_type: string
           id: string
           storage_path: string
+          uploaded_by: string | null
         }
         Insert: {
           consultation_id: string
@@ -1461,6 +1462,7 @@ export type Database = {
           file_type: string
           id?: string
           storage_path: string
+          uploaded_by?: string | null
         }
         Update: {
           consultation_id?: string
@@ -1473,6 +1475,7 @@ export type Database = {
           file_type?: string
           id?: string
           storage_path?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {

@@ -11,6 +11,11 @@
 alter table public.consultation_documents
   add column if not exists deleted_at timestamptz;
 
+-- 누가 올렸나(계정 id). 환자는 «본인이 올린 것»만 지울 수 있다 — 코디·의사가 상담방에 공유한
+-- 자료를 환자가 지우면 의사 화면에서도 사라지기 때문. 게스트(초대링크)·옛 줄은 null(=출처 미상, 삭제 허용).
+alter table public.consultation_documents
+  add column if not exists uploaded_by uuid;
+
 -- 살아있는 줄 기준으로 경로 유일. 소프트 삭제된 줄은 제외(부분 인덱스).
 create unique index if not exists uq_consultation_documents_live_path
   on public.consultation_documents (storage_path)

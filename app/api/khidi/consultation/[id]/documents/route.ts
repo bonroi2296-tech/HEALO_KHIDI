@@ -89,12 +89,14 @@ export async function POST(
         storage_path: storagePath,
         document_type: documentType,
         description,
+        // 누가 올렸나 — 환자는 본인이 올린 것만 지울 수 있다(게스트 초대링크는 계정이 없어 null)
+        uploaded_by: access.userId ?? null,
       })
       .select()
       .single();
 
     // 같은 commit 이 두 번 오면(브라우저 재전송) 유일 인덱스가 막는다 → 이미 저장된 그 줄을 돌려준다.
-    // 여기서 파일을 지우면 첫 줄이 빈 파일을 가리킨다(app/api/patient/documents 와 같은 처리).
+    // 이 갈래에선 파일을 절대 지우지 않는다 — 첫 줄이 그 파일을 쓴다(app/api/patient/documents 와 같은 처리).
     if (dbError?.code === '23505') {
       const { data: existing } = await supabase
         .from('consultation_documents')
@@ -103,6 +105,7 @@ export async function POST(
         .is('deleted_at', null)
         .maybeSingle();
       if (existing) return NextResponse.json({ ok: true, data: existing });
+      return NextResponse.json({ ok: false, error: 'conflict' }, { status: 409 });
     }
 
     if (dbError) {
