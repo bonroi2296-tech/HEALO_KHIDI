@@ -273,9 +273,9 @@ export const SECTIONS = [
         label: L("병기", "Stage", "Стадия") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",
         label: L("진단서에 적힌 병명", "Diagnosis as written on your medical document", "Диагноз, как указано в документе"),
-        placeholder: L("번역하지 마시고 적힌 그대로",
-                       "Exactly as written — do not translate",
-                       "Точно как написано — не переводите") },
+        // 🛑 「번역하지 마시고 적힌 그대로」를 되살리지 마라(2026-08-18 PO) —
+        //    칸 이름이 이미 「진단서에 적힌 병명」이다.
+      },
       // 코드는 «고르면 좋은 것»이지 관문이 아니다. 「모르겠습니다」가 기본값.
       { name: "icdCode", type: "icdSuggest", req: "optional",
         label: L("질병 코드 (아는 경우에만)", "Disease code (only if you know it)", "Код заболевания (если известен)") },
