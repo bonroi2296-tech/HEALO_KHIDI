@@ -151,6 +151,12 @@ export const IMMUNE_HOSPITAL = {
           en: "Sat/Sun/Holidays 09:00-15:00",
         },
       },
+      // 출처: https://sdimmune.app/ (2026-08-18 수집) — 상세는 docs/hospital/면력_성동점_sdimmune_수집자료_2026-08-18.md
+      nearby: {
+        ko: "5호선 답십리역 5번 출구 273m · Big5 대학병원 차량 15~30분",
+        en: "273m from Dapsimni Stn. Exit 5 (Line 5) · 15–30 min by car to Seoul's Big 5 hospitals",
+        ru: "273 м от станции Тапсимни, выход 5 · 15–30 мин на машине до 5 крупнейших больниц Сеула",
+      },
       director: {
         name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Джуан", kz: "Д-р Кан Джуан", zh: "姜周安 代表院长", ja: "姜周安 代表院長" },
         photo: "/immune/doctor/seongdong-dr-kang-juan.png",
