@@ -871,13 +871,19 @@ function Bar({ label, pct, meta, tone, action }) {
   const fill = tone === "done" ? "bg-emerald-700" : tone === "soft" ? "bg-teal-700" : "bg-gray-400";
   return (
     <div>
-      <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      {/* 🛑 단추를 안내 글 «안»에 넣지 마라(2026-08-18 실측). 폰 폭(375)에서 글이 두 줄로 접히면
+          단추가 문장 한가운데 끼어 「0/14 채우셨습니다 — 채우실수록 병원 회신이 [다음:…] 빨라집니다」
+          꼴이 된다. 한국어에서도 그랬다 — 번역 탓이 아니다.
+          글과 단추를 «각각 한 덩어리»로 두면 좁을 때 단추가 통째로 아랫줄로 내려간다. */}
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <span className="text-sm font-semibold text-gray-700">{label}</span>
-        <span className={`text-xs tabular-nums md:text-sm ${tone === "done" ? "font-semibold text-emerald-700" : "text-gray-600"}`}>
-          {meta}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span className={`text-xs tabular-nums md:text-sm ${tone === "done" ? "font-semibold text-emerald-700" : "text-gray-600"}`}>
+            {meta}
+          </span>
           {action && (
             <button type="button" onClick={action.onClick}
-                    className="ml-2 rounded-full bg-teal-700 px-3 py-1 text-xs font-semibold text-white transition-all duration-200 hover:bg-teal-800">
+                    className="flex-none rounded-full bg-teal-700 px-3 py-1 text-xs font-semibold text-white transition-all duration-200 hover:bg-teal-800">
               {action.label}
             </button>
           )}
