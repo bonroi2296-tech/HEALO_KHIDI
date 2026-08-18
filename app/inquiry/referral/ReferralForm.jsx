@@ -122,9 +122,6 @@ const TR = {
   // 2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
   // 환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
   // → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
-  extraDocs:  { ko: "환자분의 상태에 따라 의료진이 자료를 더 보자고 하는 경우가 있습니다. 그때는 저희가 무엇이 왜 필요한지 정리해서 알려드립니다.",
-                en: "Depending on your condition the doctors may ask to see more. If that happens, we will tell you exactly what is needed and why.",
-                ru: "В зависимости от состояния врачи могут запросить дополнительные материалы. В этом случае мы объясним, что именно нужно и зачем." },
   done:       { ko: "완료", en: "done", ru: "готово" },
   left:       { ko: "{n}칸 남음", en: "{n} left", ru: "осталось {n}" },
   optional:   { ko: "(선택)", en: "(optional)", ru: "(необязательно)" },
@@ -171,9 +168,9 @@ const TR = {
                 en: "We couldn't read this one. A coordinator will check it — pick the type if you know it.",
                 ru: "Этот файл прочитать не удалось. Проверит координатор — выберите тип, если знаете." },
   stillNeed:  { ko: "이런 서류가 아직 없습니다", en: "These are still missing", ru: "Ещё не хватает" },
-  stillNeedWhy:{ ko: "의료진이 환자분의 상태를 보고 「어떤 치료가 가능한지」를 판단하는 데 쓰는 자료입니다. 지금 없어도 보내실 수 있고, 병원에서 받으시는 대로 이어서 올리시면 됩니다.",
-                en: "These are what the doctors read to work out what treatment is possible for you. You can still send now and add them once your hospital issues them.",
-                ru: "По этим материалам врачи определяют, какое лечение возможно. Отправить можно и сейчас, а добавить — когда получите их в своей больнице." },
+  stillNeedWhy:{ ko: "지금 없어도 보내실 수 있습니다. 병원에서 받으시는 대로 이어서 올려주세요.",
+                en: "You can send without them — add them once your hospital issues them.",
+                ru: "Можно отправить и без них — добавьте, когда получите." },
   docsAllSet: { ko: "의료진이 판단하는 데 필요한 자료가 모두 확인되었습니다.",
                 en: "The doctors have everything they need.",
                 ru: "У врачей есть все необходимые материалы." },
@@ -205,9 +202,9 @@ const TR = {
                 en: "This file is {mb}, over the 200MB limit here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
                 ru: "Этот файл — {mb}, это больше лимита в 200 МБ. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
   // 고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
-  sizeHint:   { ko: "한 파일이 200MB를 넘으면 여기서는 못 올립니다. 그럴 땐 코디네이터가 대신 받아드리니 그냥 알려만 주세요.",
-                en: "Files over 200MB can't be uploaded here. If that happens, just tell us — a coordinator will take them for you.",
-                ru: "Файлы больше 200 МБ здесь загрузить нельзя. В этом случае просто сообщите нам — координатор примет их за вас." },
+  sizeHint:   { ko: "한 파일이 200MB를 넘으면 코디네이터가 대신 받아드립니다 — 알려만 주세요.",
+                en: "Over 200MB — just tell us and a coordinator collects it.",
+                ru: "Больше 200 МБ — сообщите нам, координатор примет." },
   upBadType:  { ko: "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
                 en: "This file type can't be uploaded. Please use PDF, images, or Word.",
                 ru: "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word." },
@@ -1104,9 +1101,6 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
         {rest.map((f) => <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} />)}
       </div>
 
-      <p className="mt-6 rounded-xl bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">
-        {tr("extraDocs", lang)}
-      </p>
     </>
   );
 }

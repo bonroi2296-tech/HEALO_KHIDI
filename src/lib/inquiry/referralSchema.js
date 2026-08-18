@@ -125,9 +125,9 @@ export const SECTIONS = [
   {
     id: "documents",
     title: L("먼저, 자료부터", "Documents first", "Сначала документы"),
-    lead: L("가지고 계신 서류를 올려주시면 저희가 읽고 아래 칸을 대신 채워드립니다. 지금 없으시면 건너뛰고 아래부터 채우셔도 됩니다.",
-            "Upload the documents you have and we read them and fill the fields below for you. If you don't have them now, skip ahead and fill the rest in yourself.",
-            "Загрузите имеющиеся документы — мы прочитаем их и заполним поля ниже за вас. Если сейчас их нет, пропустите и заполните остальное сами."),
+    lead: L("올려주시면 저희가 읽고 아래 칸을 대신 채워드립니다.",
+            "Upload what you have and we fill the fields below for you.",
+            "Загрузите — мы прочитаем и заполним поля ниже за вас."),
     fields: [
       // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
       //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
@@ -137,9 +137,9 @@ export const SECTIONS = [
         label: L("가지고 계신 서류를 그대로 올려주세요",
                  "Upload whatever documents you have, as they are",
                  "Загрузите документы, которые у вас есть, как есть"),
-        hint: L("무슨 서류인지 고르실 필요 없습니다. 올려주시면 저희가 읽고 무엇이 더 필요한지 알려드립니다.",
-                "You don't have to sort them. We read them and tell you what is still missing.",
-                "Сортировать не нужно. Мы прочитаем и скажем, чего ещё не хватает.") },
+        hint: L("무슨 서류인지 고르실 필요 없습니다.",
+                "No need to sort them.",
+                "Сортировать не нужно.") },
       // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
       // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
       //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
@@ -149,9 +149,9 @@ export const SECTIONS = [
       //    여기는 «올리는» 자리다. 번호는 여권을 올리면 저절로 채워지고(실측 5칸),
       //    칸 자체는 ③환자 신원에 있다.
       { name: "_passportHint", type: "note",
-        label: L("여권 사본도 같이 올려주세요 — 병원 예약을 잡으려면 필요합니다. 올려주시면 여권번호는 저희가 읽어서 채워드립니다.",
-                 "Please include a copy of the passport — it is needed to book the hospital appointment. We read the passport number from it for you.",
-                 "Приложите копию паспорта — она нужна для записи в больницу. Номер паспорта мы считаем сами.") },
+        label: L("여권 사본이 있으시면 같이 올려주세요. 병원 예약 때 쓰이고, 여권번호는 저희가 읽어드립니다.",
+                 "If you have a passport copy, add it too — we read the number from it and the hospital needs it when booking.",
+                 "Если есть копия паспорта, приложите её — номер мы считаем сами, а больнице она нужна при записи.") },
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
         hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
@@ -240,7 +240,7 @@ export const SECTIONS = [
       { name: "flightFitness", type: "chips", req: "referral", options: FLIGHT_FITNESS,
         label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
         // 특정 병원 이름을 화면에 쓰지 않는다(PO 지시 2026-08-11). 「대학병원이 요구한다」로만.
-        hint: L("한국 대학병원이 장거리 이동 전에 주치의 확인을 요청하는 항목입니다.",
+        hint: L("병원이 주치의 확인을 요청하는 항목입니다.",
                 "Korean university hospitals ask the treating doctor to confirm this before long-distance travel.",
                 "Корейские университетские клиники просят лечащего врача подтвердить это до дальней поездки.") },
     ],
@@ -257,11 +257,13 @@ export const SECTIONS = [
         label: L("국적", "Nationality", "Гражданство") },
       // 여권을 올리면 이 칸은 «저절로» 찬다(실측: 번호·성·이름·생년월일·성별 5칸).
       // 손으로 칠 수도 있게 남겨두되, 받아적는 자리는 자료 묶음이 아니라 여기다.
-      { name: "passportNo", type: "text", req: "referral", half: true, sensitive: true,
+      // 🛑 필수로 되돌리지 마라 — 코디네이터 의견(2026-08-18): 처음부터 여권까지 달라고 하면
+      //    환자가 부담스러워한다. 내원이 확정될 때 받아도 늦지 않다.
+      { name: "passportNo", type: "text", req: "optional", half: true, sensitive: true,
         label: L("여권번호", "Passport number", "Номер паспорта"),
-        hint: L("여권 사진을 자료 칸에 올려주시면 저희가 읽어서 채워드립니다. 암호화해서 보관하며 의뢰서에만 쓰입니다.",
-                "Upload a photo of the passport in the documents section and we fill this in for you. Stored encrypted; used only on the referral form.",
-                "Загрузите фото паспорта в разделе документов — мы заполним это поле сами. Хранится в зашифрованном виде.") },
+        hint: L("여권을 올리시면 저절로 채워집니다. 암호화해서 보관합니다.",
+                "Fills in by itself if you upload the passport. Stored encrypted.",
+                "Заполнится само, если загрузить паспорт. Хранится в зашифрованном виде.") },
     ],
   },
 
@@ -278,7 +280,7 @@ export const SECTIONS = [
       //    올린 서류에서도 뽑는다(실측: 종합소견서에서 stage 3 fibrosis 추출됨).
       { name: "stage", type: "stage", req: "optional", half: true,
         label: L("병기", "Stage", "Стадия"),
-        hint: L("아시면 꼭 골라주세요 — 병기에 따라 병원 회신이 훨씬 빨라집니다. 모르시면 서류에서 저희가 확인합니다.",
+        hint: L("모르시면 비워두세요 — 서류에서 저희가 확인합니다.",
                 "Please select it if you know — the hospital replies much faster when the stage is known. If not, we read it from your documents.",
                 "Укажите, если знаете — при известной стадии клиника отвечает намного быстрее. Если нет, мы определим по документам.") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",

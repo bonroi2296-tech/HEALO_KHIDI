@@ -39,7 +39,8 @@ describe("환자 의뢰서 칸 정의", () => {
     const ref = fieldsByReq("referral").map((f: any) => f.name);
     const intake = fieldsByReq("intake").map((f: any) => f.name);
     expect(intake.filter((n: string) => ref.includes(n))).toEqual([]);
-    for (const n of ["passportNo", "envelope", "localDoctorOpinion", "preferredDate"]) {
+    // 여권번호는 2026-08-18 부터 «선택» 이다(코디네이터 의견) — 이 목록에 다시 넣지 마라.
+    for (const n of ["envelope", "localDoctorOpinion", "preferredDate"]) {
       expect(ref, n).toContain(n);
       expect(intake, n).not.toContain(n);
     }
@@ -57,8 +58,8 @@ describe("환자 의뢰서 칸 정의", () => {
     expect(referralReadiness({})).toBe(0);
     const all = Object.fromEntries(fieldsByReq("referral").map((f: any) => [f.name, "x"]));
     expect(referralReadiness(all)).toBe(100);
-    expect(referralReadiness({ passportNo: "N1" })).toBeGreaterThan(0);
-    expect(referralReadiness({ passportNo: "N1" })).toBeLessThan(100);
+    expect(referralReadiness({ envelope: [{ name: "a.pdf" }] })).toBeGreaterThan(0);
+    expect(referralReadiness({ envelope: [{ name: "a.pdf" }] })).toBeLessThan(100);
   });
 
   it("질병 코드는 필수가 아니다 — 서류에 진단명이 없는 게 정상이다", () => {
