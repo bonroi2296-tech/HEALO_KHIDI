@@ -294,6 +294,33 @@ export function SameRoomGuard({ copy, sameNetworkPeers = 0, report }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sameRoomWith, feedbackOnset, screenOnly, dismissed, report]);
 
+  // ── 「감지기가 지금 무엇을 듣고 있나」를 통화당 딱 한 번 남긴다 (2026-08-18 신설) ──
+  // 왜: 위 howling_missed 는 «느린 경로가 같은방으로 의심»할 때만 남는데, 감지기가 상대 소리를
+  //   아예 못 듣던 동안(~2026-08-18 수정 전) 그 조건 자체가 성립할 수 없어 기록이 영원히 0 건이었다.
+  //   그래서 문턱(0.45 / 0.22)은 **실측 0건짜리 추정값**인 채로 세 번이나 조정됐다.
+  //   → 하울링이 났든 안 났든, 통화 한 건당 «내 음량 / 상대 음량 / 단일음 프레임 수» 한 줄을 남긴다.
+  //     다음 실회의 한 번이면 문턱을 근거 있게 정할 수 있다. 1통화 1건이라 기록 부담도 없다.
+  // ponytail: 타이머 하나·기록 한 줄. 상시 수집으로 키우지 마라 — 필요한 건 «문턱 정할 표본»뿐이다.
+  const levelsSentRef = useRef(false);
+  // ⚠️ report·stats 는 매 렌더 새로 만들어진다 → 의존성에 넣으면 60초 타이머가 계속 리셋돼
+  //    **영영 안 쏜다**(2026-08-18 첫 시도에서 실제로 그랬다). ref 로 최신 것만 들고 있는다.
+  const reportRef = useRef(report);
+  const statsFnRef = useRef(stats);
+  reportRef.current = report;
+  statsFnRef.current = stats;
+  useEffect(() => {
+    if (levelsSentRef.current || !localTrack || !remoteTracks.length) return;
+    const t = setTimeout(() => {
+      if (levelsSentRef.current) return;
+      levelsSentRef.current = true;
+      reportRef.current?.(
+        "howling_levels",
+        `통화 60초 시점 관측값 · 상대 ${remoteTracks.length}명 · ${statsFnRef.current()}`
+      );
+    }, 60_000);
+    return () => clearTimeout(t);
+  }, [localTrack, remoteTracks.length]);
+
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
   //  오탐이거나 실제로는 다른 방이었으면 상담이 그대로 먹통이 된다.)

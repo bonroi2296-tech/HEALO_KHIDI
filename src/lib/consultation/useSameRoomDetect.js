@@ -47,7 +47,13 @@ const FAST_SUSTAIN_MS = 200; // 양쪽 동시 큰 소리가 이만큼 지속되�
 // 원인: 브라우저 자동게인(AGC)이 하울링 음량을 눌러 0.45 문턱을 영영 못 넘김(#922 독립리뷰가 경고한 그 경로).
 // AGC 는 '크기'만 누르고 스펙트럼 '모양'은 못 바꾼다 → 하울링의 두 번째 지문(에너지가 한 주파수에
 // 몰린 단일음)을 보조 판정으로 쓴다. 말소리는 포먼트로 에너지가 퍼져 이 비율이 안 나온다.
-const HOWL_RMS_AGC = 0.22;    // 2단 문턱: 중간 음량 + 단일음(tonal)일 때만 하울링 인정
+// 2026-08-18: 0.22 → 0.30. **드디어 실측이 생겨서** 올린다(그 전엔 감지기가 상대 소리를 못 들어
+//   숫자 자체가 없었다 — 위 attach() 주석 참고). 로봇 2대 실통화에서 앱이 남긴 관측값:
+//   `my=0.221 peer=0.217 tonal=6/6` — **정상 말소리가 0.22 에 그대로 닿고, 단일음 판정도 6/6 로
+//   가득 찼다.** 즉 0.22+단일음 조합은 말소리와 하울링을 못 가른다 → 감지기가 귀를 뜬 지금
+//   그대로 두면 «멀쩡히 말하는 사람을 자동 음소거»가 난다. 하울링(포화 0.45+)과 말소리(≤0.24)
+//   사이인 0.30 으로 올려 둔다. 실회의 `howling_levels` 표본이 쌓이면 근거 있게 다시 정한다.
+const HOWL_RMS_AGC = 0.30;    // 2단 문턱: 중간 음량 + 단일음(tonal)일 때만 하울링 인정
 const TONAL_SUSTAIN_MS = 600; // 2단은 오탐 여지가 커서 1단(200ms)보다 길게 지속돼야 확정
 const TONAL_WINDOW = 6;       // 단일음 판정 창: 최근 표본 6개(≈0.36초)
 const TONAL_NEED = 4;         // 그중 4개 이상이 단일음이어야
@@ -195,14 +201,38 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
     }
 
     /** 트랙 하나를 관찰용으로 연결. 스피커로는 절대 보내지 않는다(destination 미연결). */
-    const attach = (track) => {
+    const attach = (track, isRemote) => {
       const stream = new MediaStream([track]);
+      // ⚠️⚠️ 이 감지기가 «한 번도 안 걸린» 진짜 이유 (2026-08-18 로봇 2대로 실측 확정).
+      //   크롬은 **원격(WebRTC) 트랙을 새 MediaStream 으로 감싸 AnalyserNode 에만** 물리면
+      //   소리를 흘려보내지 않는다 — 분석기엔 거의 0 만 들어온다. 같은 순간 같은 상대를 재보니
+      //   상대 마이크: 지금 방식 최대 0.044·평균 0.004 / 소리가 흐르게 한 뒤 최대 0.217·평균 0.065.
+      //   1단 문턱 0.45 는커녕 2단 0.22 도 **원리적으로 못 넘는다** → 빠른 경로 영구 미발동.
+      //   상대 파형이 사실상 상수라 분산≈0 → 상관계수도 null → 느린 경로도 영구 미발동.
+      //   그래서 그동안의 문턱 조정(0.45 → 2단 0.22 신설 → TONAL_RATIO 5→4)은 전부 **입력이 0 인
+      //   숫자를 만지작거린 것**이었다. 문턱 문제가 아니었다.
+      //   → 고치는 법: 같은 스트림을 «무음 오디오 엘리먼트»에 붙여 재생하면 소리가 흐르기 시작한다.
+      //     muted=true + volume=0 이라 스피커로는 안 나간다(두 번 들리면 그게 곧 하울링이다).
+      //   ponytail: 내 마이크(로컬)는 이 처치가 필요 없다(실측 정상) — 원격에만 건다.
+      let sink = null;
+      if (isRemote && typeof Audio !== "undefined") {
+        try {
+          sink = new Audio();
+          sink.muted = true;
+          sink.volume = 0;
+          sink.srcObject = stream;
+          sink.play().catch(() => {});
+        } catch {
+          sink = null; // 못 만들면 예전 동작(감지 불가) — 통화 자체는 안 건드린다
+        }
+      }
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
       src.connect(analyser); // → destination 으로 잇지 않음: 소리가 두 번 나면 안 된다
       return {
         src,
+        sink,
         analyser,
         buf: new Uint8Array(analyser.fftSize),
         freqBuf: new Uint8Array(analyser.frequencyBinCount), // 단일음(하울링 지문) 판정용 스펙트럼
@@ -214,8 +244,8 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
     let nodes;
     try {
       nodes = {
-        local: attach(localTrack),
-        remotes: remoteTracks.map((r) => ({ identity: r.identity, ...attach(r.track) })),
+        local: attach(localTrack, false),
+        remotes: remoteTracks.map((r) => ({ identity: r.identity, ...attach(r.track, true) })),
       };
     } catch {
       ctx.close?.();
@@ -314,7 +344,19 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       clearInterval(timer);
       try {
         nodes.local.src.disconnect();
-        nodes.remotes.forEach((r) => r.src.disconnect());
+        nodes.remotes.forEach((r) => {
+          r.src.disconnect();
+          // 관찰용 무음 재생기도 반드시 놓아준다 — 안 놓으면 참가자가 바뀔 때마다 쌓여
+          // 트랙을 계속 붙들고 있는다(퇴장한 사람의 트랙이 안 풀림).
+          if (r.sink) {
+            try {
+              r.sink.pause();
+              r.sink.srcObject = null;
+            } catch {
+              /* 이미 정리됨 */
+            }
+          }
+        });
         ctx.close?.();
       } catch {
         /* 정리 실패는 무시 — 페이지 이동 중일 수 있다 */
