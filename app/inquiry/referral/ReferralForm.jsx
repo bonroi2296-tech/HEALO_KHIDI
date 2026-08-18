@@ -100,9 +100,12 @@ const TR = {
   // 🛑 「여기까지 채우시면 보내실 수 있습니다」를 여기 되살리지 마라 — 그 말은 아래 띠가
   //    이미 하고 있다(2026-08-18 PO). 여기서 할 말은 «아래가 무엇이냐»다:
   //    우리 사정(보낼 수 있다·없다)이 아니라 «대학병원이 진단하는 데 필요한 것».
-  restNote:   { ko: "아래는 대학병원이 환자분의 상태를 진단하는 데 필요한 내용입니다. 많이 알려주실수록 더 빠르고 정확한 소견을 받으실 수 있습니다.",
-                en: "Below is what the university hospital needs in order to assess the patient. The more you can tell us, the faster and more accurate the opinion you get back.",
-                ru: "Ниже — то, что нужно университетской клинике, чтобы оценить состояние пациента. Чем больше вы расскажете, тем быстрее и точнее будет заключение." },
+  restNote:   { ko: "아래는 대학병원이 환자분의 상태를 진단하는 데 필요한 내용입니다.",
+                en: "Below is what the university hospital needs in order to assess the patient.",
+                ru: "Ниже — то, что нужно университетской клинике, чтобы оценить состояние пациента." },
+  restNote2:  { ko: "아시는 만큼 최대한 알려주시면 더 빠르고 정확한 소견을 받으실 수 있습니다.",
+                en: "Tell us as much as you know — the more we have, the faster and more accurate the opinion you get back.",
+                ru: "Расскажите как можно больше — так заключение будет быстрее и точнее." },
   barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
   barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
   barReferral:{ ko: "진단에 필요한 내용", en: "What the doctors need", ru: "Что нужно врачам" },
@@ -555,7 +558,8 @@ export default function ReferralForm() {
                         {sec.fields.map((f) => (
                           <Fragment key={f.name}>
                             <Field f={f} lang={lang} value={values[f.name]} onChange={set}
-                                   lit={highlight === f.name} fromDoc={!!autoFilled[f.name]} />
+                                   lit={highlight === f.name} fromDoc={!!autoFilled[f.name]}
+                                   bare={sec.id !== "essentials"} />
                             {/* 안내는 «고른 칸 바로 밑»에 붙는다. 묶음 끝에 두면 758px 아래라
                                 화면 밖이고, 골라도 아무 일 없는 것처럼 보인다(2026-08-13 PO 실사용). */}
                             {f.name === "stage" && LATE_STAGES.includes(values.stage) && (
@@ -585,7 +589,12 @@ export default function ReferralForm() {
             return sec.id === "essentials" && !quick ? (
               <div key={sec.id} className="space-y-3">
                 {card}
-                <p className="px-1 pt-2 text-xs leading-relaxed text-gray-600 md:text-sm">{tr("restNote", lang)}</p>
+                {/* 🛑 두 문장을 한 줄로 붙이지 마라(2026-08-18 PO). 「무엇이냐」와 「그래서 뭘 하면 좋냐」는
+                    따로 읽혀야 한다. */}
+                <div className="space-y-1.5 px-1 pt-2">
+                  <p className="text-xs leading-relaxed text-gray-600 md:text-sm">{tr("restNote", lang)}</p>
+                  <p className="text-xs leading-relaxed text-gray-600 md:text-sm">{tr("restNote2", lang)}</p>
+                </div>
               </div>
             ) : card;
           })}
@@ -675,7 +684,12 @@ export default function ReferralForm() {
 }
 
 /* ── 칸 하나 ─────────────────────────────────────────────── */
-function Field({ f, lang, value, onChange, lit, fromDoc }) {
+// bare = 「진단에 필요」·「(선택)」 꼬리표를 달지 않는 칸.
+// 🛑 3번 묶음부터 꼬리표를 되살리지 마라(2026-08-18 PO: 「뭐는 진단에 필요고 뭐는 선택이고
+//    이게 애매하다 — 어차피 주면 좋은 건데」). 거기부터는 «전부 채우면 좋은 것»이라
+//    칸마다 등급을 매기면 사람은 「선택이면 안 해도 되겠네」로 읽는다.
+//    묶음 위 한 줄이 «많이 알려주실수록 좋다»를 대신 말한다.
+function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
   if (f.type === "note") {
     return <p className="mt-2 w-full text-xs leading-relaxed text-gray-600">{lab(f.label, lang)}</p>;
   }
@@ -773,12 +787,12 @@ function Field({ f, lang, value, onChange, lit, fromDoc }) {
           {/* 별표는 «접수 문턱»에만. 의뢰용 칸은 막지 않으므로 별표가 아니라 회색 꼬리표다 —
               별표를 14개 붙이면 사람은 그걸 «다 채워야 한다»로 읽고 창을 닫는다. */}
           {f.req === "intake" && <span className="ml-0.5 text-red-600">*</span>}
-          {f.req === "referral" && (
+          {!bare && f.req === "referral" && (
             <span className="ml-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
               {tr("forReferral", lang)}
             </span>
           )}
-          {f.req === "optional" && <span className="ml-1.5 text-xs font-normal text-gray-500">{tr("optional", lang)}</span>}
+          {!bare && f.req === "optional" && <span className="ml-1.5 text-xs font-normal text-gray-500">{tr("optional", lang)}</span>}
         </label>
       )}
       {control}

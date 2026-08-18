@@ -213,10 +213,11 @@ export const SECTIONS = [
         hint: L("이것이 병원이 답해야 할 질문이 됩니다.",
                 "This becomes the question the hospital has to answer.",
                 "Именно на это будет отвечать больница.") },
-      { name: "referralPurpose", type: "textarea", req: "optional",   // (선택)이라 써놓고 「진단에 필요」 딱지를 달면 모순이다
-        label: L("병원에 더 물어보고 싶은 것 (선택)",
-                 "Anything else to ask the hospital (optional)",
-                 "Что ещё спросить у больницы (необязательно)"),
+      // 🛑 칸 이름에 「(선택)」을 다시 박지 마라 — 화면이 꼬리표를 따로 붙여서 「(선택)(선택)」이 됐다.
+      { name: "referralPurpose", type: "textarea", req: "optional",
+        label: L("병원에 더 물어보고 싶은 것",
+                 "Anything else to ask the hospital",
+                 "Что ещё спросить у больницы"),
         placeholder: L(
           "예: 지금 먹는 약을 계속 먹어도 되는지, 보호자가 같이 있어야 하는지",
           "e.g. whether I can keep taking my current medication, whether a family member must stay with me",
@@ -251,10 +252,9 @@ export const SECTIONS = [
       // 🛑 필수로 되돌리지 마라 — 코디네이터 의견(2026-08-18): 처음부터 여권까지 달라고 하면
       //    환자가 부담스러워한다. 내원이 확정될 때 받아도 늦지 않다.
       { name: "passportNo", type: "text", req: "optional", half: true, sensitive: true,
-        label: L("여권번호", "Passport number", "Номер паспорта"),
-        hint: L("여권을 올리시면 저절로 채워집니다. 암호화해서 보관합니다.",
-                "Fills in by itself if you upload the passport. Stored encrypted.",
-                "Заполнится само, если загрузить паспорт. Хранится в зашифрованном виде.") },
+        // 🛑 「여권을 올리시면 저절로 채워집니다 · 암호화해서 보관합니다」를 되살리지 마라
+        //    (2026-08-18 PO). 우리 사정이지 사람이 여기서 알고 싶은 게 아니다.
+        label: L("여권번호", "Passport number", "Номер паспорта") },
     ],
   },
 
