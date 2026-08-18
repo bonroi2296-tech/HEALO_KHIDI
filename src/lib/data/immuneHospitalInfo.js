@@ -31,11 +31,8 @@ export const IMMUNE_HOSPITAL = {
   representative: { ko: "황이준", en: "Hwang Yi-jun" },
   foundedYear: 2017,
   mainPhone: "1588-2915",
-  // 면력 자체 집계값. 출처: https://sdimmune.app/ (2026-08-18 수집) — PO 가 실제 수치라고 확인.
-  // 직전 값은 50,000+ / 98% (면력 자체조사 2024.11.06). 화면 컴포넌트에 박혀 있던 걸 여기로 옮겼다 — 여기가 SoR.
-  cumulativeCases: "51,823",
-  cumulativeAsOf: "2026-08-18",
-  satisfaction: "93.5%",
+  cumulativeCases: "50,000+",
+  cumulativeAsOf: "2024-11-06",
 
   // ===== 4개 지점 =====
   branches: [
@@ -50,52 +47,29 @@ export const IMMUNE_HOSPITAL = {
         ko: "강서점 (본원)",
         en: "Gangseo (Main Branch)",
         ru: "Кансо (главный офис)",
-        kz: "Кансо (бас филиал)",
-        zh: "江西院（本院）",
-        ja: "江西院（本院）",
       },
       address: {
         ko: "서울 강서구 마곡중앙6로 93 열린프라자 6층, 7층, 10층",
         en: "Open Plaza 6F/7F/10F, 93 Magokjungang 6-ro, Gangseo-gu, Seoul",
-        ru: "Сеул, Кансо-гу, Магокчунан 6-ро, 93, Ёллин Плаза, 6, 7 и 10 этажи",
-        kz: "Сеул, Кансо-гу, Магокчунан 6-ро, 93, Yeollin Plaza, 6, 7, 10-қабаттар",
-        zh: "首尔江西区麻谷中央6路93号 开放广场6层·7层·10层",
-        ja: "ソウル市江西区麻谷中央6路93 ヨルリンプラザ6階・7階・10階",
       },
       phone: "1588-2915",
       hours: {
         weekday: {
           ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
           en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
-          ru: "Пн–Пт 09:00–20:00 (перерыв 13:00–14:00, вечерний приём)",
-          kz: "Дс–Жм 09:00–20:00 (үзіліс 13:00–14:00, кешкі қабылдау)",
-          zh: "周一至周五 09:00-20:00（午休 13:00-14:00，夜间门诊）",
-          ja: "平日 09:00-20:00（昼休み 13:00-14:00、夜間診療）",
         },
         weekend: {
           ko: "토·일·공휴일 09:00-15:00",
           en: "Sat/Sun/Holidays 09:00-15:00",
-          ru: "Сб/Вс/праздники 09:00–15:00",
-          kz: "Сб/Жк/мереке 09:00–15:00",
-          zh: "周六·周日·节假日 09:00-15:00",
-          ja: "土・日・祝 09:00-15:00",
         },
       },
       parking: {
         ko: "입·퇴원 3시간 무료, 외래 3시간 무료 (초과 시 유료)",
         en: "3 hours free for admission/discharge & outpatient. Paid beyond.",
-        ru: "3 часа бесплатно при госпитализации/выписке и для амбулаторных пациентов (далее платно)",
-        kz: "Емдеуге жатқызу/шығару және амбулаторлық қабылдау үшін 3 сағат тегін (одан кейін ақылы)",
-        zh: "住院·出院及门诊各免费3小时（超时收费）",
-        ja: "入退院・外来ともに3時間無料（超過分は有料）",
       },
       nearby: {
         ko: "이대서울병원 도보 1분",
         en: "1-min walk from Ewha Womans University Seoul Hospital",
-        ru: "1 минута пешком до Сеульской больницы университета Ихва",
-        kz: "Ихва университеті Сеул ауруханасына жаяу 1 минут",
-        zh: "步行1分钟至梨大首尔医院",
-        ja: "梨大ソウル病院まで徒歩1分",
       },
       director: {
         name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄伊俊 代表院长", ja: "黄伊俊 代表院長" },
@@ -110,42 +84,21 @@ export const IMMUNE_HOSPITAL = {
       id: "sinchon",
       slug: "immunehospital-sinchon",
       photo: "/images/hospitals/immunehospital-sinchon/1.jpg",
-      name: { ko: "신촌점", en: "Sinchon", ru: "Синчхон", kz: "Синчхон", zh: "新村院", ja: "新村院" },
+      name: { ko: "신촌점", en: "Sinchon", ru: "Синчхон" },
       address: {
         ko: "서울 서대문구 연세로 12, 8층~14층",
         en: "8F-14F, 12 Yonsei-ro, Seodaemun-gu, Seoul",
         ru: "Сеул, Содэмун-гу, Ёнсе-ро, 12, 8-14 этажи",
-        kz: "Сеул, Содэмун-гу, Ёнсе-ро, 12, 8–14-қабаттар",
-        zh: "首尔西大门区延世路12号 8~14层",
-        ja: "ソウル市西大門区延世路12 8階〜14階",
       },
       phone: "1588-2915",
       hours: {
         weekday: {
           ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
           en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
-          ru: "Пн–Пт 09:00–20:00 (перерыв 13:00–14:00, вечерний приём)",
-          kz: "Дс–Жм 09:00–20:00 (үзіліс 13:00–14:00, кешкі қабылдау)",
-          zh: "周一至周五 09:00-20:00（午休 13:00-14:00，夜间门诊）",
-          ja: "平日 09:00-20:00（昼休み 13:00-14:00、夜間診療）",
         },
-        weekend: {
-          ko: "토·일·공휴일 09:00-15:00",
-          en: "Sat/Sun/Holidays 09:00-15:00",
-          ru: "Сб/Вс/праздники 09:00–15:00",
-          kz: "Сб/Жк/мереке 09:00–15:00",
-          zh: "周六·周日·节假日 09:00-15:00",
-          ja: "土・日・祝 09:00-15:00",
-        },
+        weekend: { ko: "토·일·공휴일 09:00-15:00", en: "Sat/Sun/Holidays 09:00-15:00" },
       },
-      nearby: {
-        ko: "신촌세브란스병원 인근",
-        en: "Near Severance Hospital, Sinchon",
-        ru: "Рядом с больницей Северанс (Синчхон)",
-        kz: "Северанс ауруханасына (Синчхон) жақын",
-        zh: "邻近新村延世世福兰斯医院",
-        ja: "新村セブランス病院の近く",
-      },
+      nearby: { ko: "신촌세브란스병원 인근", en: "Near Severance Hospital, Sinchon" },
       director: {
         name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" },
         photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
@@ -156,33 +109,19 @@ export const IMMUNE_HOSPITAL = {
       id: "gwangmyeong",
       slug: "immunehospital-gwangmyeong",
       photo: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
-      name: { ko: "광명점", en: "Gwangmyeong", ru: "Кванмён", kz: "Кванмён", zh: "光明院", ja: "光明院" },
+      name: { ko: "광명점", en: "Gwangmyeong", ru: "Кванмён" },
       address: {
         ko: "경기 광명시 철산로 16, 트라이앵글빌딩 6층·8층~11층",
         en: "Triangle Building 6F, 8F-11F, 16 Cheolsan-ro, Gwangmyeong-si, Gyeonggi-do",
         ru: "Кёнги-до, Кванмён-си, Чхольсан-ро, 16, Трайэнгл билдинг, 6, 8-11 этажи",
-        kz: "Кёнгидо, Кванмён-си, Чхольсан-ро, 16, Triangle ғимараты, 6, 8–11-қабаттар",
-        zh: "京畿道光明市铁山路16号 三角大厦6层·8~11层",
-        ja: "京畿道光明市鉄山路16 トライアングルビル6階・8階〜11階",
       },
       phone: "1588-2915",
       hours: {
         weekday: {
           ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
           en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
-          ru: "Пн–Пт 09:00–20:00 (перерыв 13:00–14:00, вечерний приём)",
-          kz: "Дс–Жм 09:00–20:00 (үзіліс 13:00–14:00, кешкі қабылдау)",
-          zh: "周一至周五 09:00-20:00（午休 13:00-14:00，夜间门诊）",
-          ja: "平日 09:00-20:00（昼休み 13:00-14:00、夜間診療）",
         },
-        weekend: {
-          ko: "토·일·공휴일 09:00-15:00",
-          en: "Sat/Sun/Holidays 09:00-15:00",
-          ru: "Сб/Вс/праздники 09:00–15:00",
-          kz: "Сб/Жк/мереке 09:00–15:00",
-          zh: "周六·周日·节假日 09:00-15:00",
-          ja: "土・日・祝 09:00-15:00",
-        },
+        weekend: { ko: "토·일·공휴일 09:00-15:00", en: "Sat/Sun/Holidays 09:00-15:00" },
       },
       director: {
         name: { ko: "배길준 대표원장", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гильчжун", kz: "Д-р Пэ Гильчжун", zh: "裴吉俊 代表院长", ja: "裴吉俊 代表院長" },
@@ -195,50 +134,22 @@ export const IMMUNE_HOSPITAL = {
       // ⚠️ 성동점은 DB(hospitals)에 행이 없다 → 구글 리뷰도 없음. 카드는 정보만 뜬다.
       slug: "immunehospital-seongdong",
       photo: "/images/hospitals/immunehospital-seongdong/1.jpg",
-      name: { ko: "성동점", en: "Seongdong", ru: "Сондон", kz: "Сондон", zh: "城东院", ja: "城東院" },
+      name: { ko: "성동점", en: "Seongdong", ru: "Сондон" },
       address: {
         ko: "서울 성동구 천호대로 320, 2~7층, B101호 (용답동, 장안빌딩)",
         en: "2F-7F, B101, 320 Cheonho-daero, Seongdong-gu, Seoul (Jangan Building)",
         ru: "Сеул, Сондон-гу, Чхонхо-дэро, 320, 2-7 этажи, B101 (здание Чанган)",
-        kz: "Сеул, Сондон-гу, Чхонхо-дэро, 320, 2–7-қабаттар, B101 (Чанган ғимараты)",
-        zh: "首尔城东区天湖大路320号 2~7层 B101（龙踏洞·长安大厦）",
-        ja: "ソウル市城東区天戸大路320 2階〜7階 B101号（龍踏洞・長安ビル）",
       },
       phone: "1588-2915",
       hours: {
         weekday: {
           ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
           en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
-          ru: "Пн–Пт 09:00–20:00 (перерыв 13:00–14:00, вечерний приём)",
-          kz: "Дс–Жм 09:00–20:00 (үзіліс 13:00–14:00, кешкі қабылдау)",
-          zh: "周一至周五 09:00-20:00（午休 13:00-14:00，夜间门诊）",
-          ja: "平日 09:00-20:00（昼休み 13:00-14:00、夜間診療）",
         },
         weekend: {
-          ko: "토·일·공휴일 09:00-15:00 (점심 12:30-13:00)",
-          en: "Sat/Sun/Holidays 09:00-15:00 (lunch 12:30-13:00)",
-          ru: "Сб/Вс/праздники 09:00–15:00 (перерыв 12:30–13:00)",
-          kz: "Сб/Жк/мереке 09:00–15:00 (үзіліс 12:30–13:00)",
-          zh: "周六·周日·节假日 09:00-15:00（午休 12:30-13:00）",
-          ja: "土・日・祝 09:00-15:00（昼休み 12:30-13:00）",
+          ko: "토·일·공휴일 09:00-15:00",
+          en: "Sat/Sun/Holidays 09:00-15:00",
         },
-      },
-      // 출처: https://sdimmune.app/ (2026-08-18 수집) — 상세는 docs/hospital/면력_성동점_sdimmune_수집자료_2026-08-18.md
-      centers: {
-        ko: "암면역 · 신경면역 · 통증재활 · 항노화(뮨클리닉) 4개 센터",
-        en: "4 centers: Cancer Immunity · Neuro-Immunity · Pain Rehab · Anti-Aging (Mune Clinic)",
-        ru: "4 центра: онкоиммунитет · нейроиммунитет · реабилитация · антивозрастной (Mune Clinic)",
-        kz: "4 орталық: онкоиммунитет · нейроиммунитет · ауырсынуды оңалту · қартаюға қарсы (Mune Clinic)",
-        zh: "癌症免疫·神经免疫·疼痛康复·抗衰老（Mune Clinic）4大中心",
-        ja: "がん免疫・神経免疫・疼痛リハビリ・抗老化（ミュンクリニック）の4センター",
-      },
-      nearby: {
-        ko: "5호선 답십리역 5번 출구 273m · Big5 대학병원 차량 15~30분",
-        en: "273m from Dapsimni Stn. Exit 5 (Line 5) · 15–30 min by car to Seoul's Big 5 hospitals",
-        ru: "273 м от станции Тапсимни, выход 5 · 15–30 мин на машине до 5 крупнейших больниц Сеула",
-        kz: "Тапсимни станциясы, 5-шығудан 273 м · Сеулдің Big5 ауруханаларына көлікпен 15–30 мин",
-        zh: "地铁5号线踏十里站5号出口273m · 距首尔五大医院车程15~30分钟",
-        ja: "地下鉄5号線タプシムニ駅5番出口から273m · ソウルBig5大学病院まで車で15〜30分",
       },
       director: {
         name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Джуан", kz: "Д-р Кан Джуан", zh: "姜周安 代表院长", ja: "姜周安 代表院長" },
@@ -553,34 +464,6 @@ export const IMMUNE_HOSPITAL = {
         "/immune/site/uploads/facilities/6895e9a27163b3.11074499.jpg",
       ],
     },
-    {
-      // 성동점에만 있는 공간. 사진 출처: https://sdimmune.app/ (2026-08-18 수집).
-      // 글자가 얹힌 홍보용 이미지는 빼고 «실사 그대로»인 것만 골랐다.
-      id: "immune-forest",
-      name: {
-        ko: "이뮨포레스트 (성동점)",
-        en: "Immune Forest (Seongdong)",
-        ru: "Immune Forest (Сондон)",
-        kz: "Immune Forest (Сондон)",
-        zh: "Immune Forest 森林休憩区（城东院）",
-        ja: "イミューンフォレスト（城東院）",
-      },
-      // 「평」은 한국 밖에선 안 통하는 단위라 다른 언어에선 ㎡ 로 적는다 (1,100평 ≒ 3,600㎡)
-      description: {
-        ko: "1,100평 원내 휴식 라운지. 날씨와 상관없이 걷는 실내 트랙, 편백 사우나와 족욕, 안마의자와 실내 사이클.",
-        en: "A 3,600 m² in-hospital lounge: indoor walking track for any weather, hinoki sauna and foot baths, massage chairs and indoor cycles.",
-        ru: "Лаунж площадью 3 600 м²: крытая дорожка для ходьбы, сауна из хиноки и ванночки для ног, массажные кресла и велотренажёры.",
-        kz: "3 600 м² ішкі демалыс лаунжы: ауа райына тәуелсіз жүру жолағы, хиноки сауна мен аяқ ваннасы, массаж креслолары мен велотренажёрлар.",
-        zh: "约3,600㎡院内休憩大厅。不受天气影响的室内步道、扁柏桑拿与足浴、按摩椅与室内单车。",
-        ja: "約3,600㎡の院内リラクゼーションラウンジ。天候に左右されない屋内ウォーキングトラック、ひのきサウナと足湯、マッサージチェアと室内サイクル。",
-      },
-      images: [
-        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-16.jpg",
-        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-18.jpg",
-        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-20.jpg",
-        "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-21.jpg",
-      ],
-    },
   ],
 
   // ===== 의료진 =====
@@ -785,8 +668,8 @@ export const IMMUNE_HOSPITAL = {
 
   // ===== 협진 체계 =====
   teamStructure: {
-    ko: "의료진(한방+양방 협진) + 임상 영양사 + 치료식 전담 셰프의 3축 협진. 누적 51,823 사례(2026-08 면력 집계).",
-    en: "Three-axis collaboration: physicians (KM+Western) + clinical dietitian + in-house therapeutic chef. 51,823 cumulative treatment cases (Aug 2026).",
+    ko: "의료진(한방+양방 협진) + 임상 영양사 + 치료식 전담 셰프의 3축 협진. 누적 50,000+ 사례.",
+    en: "Three-axis collaboration: physicians (KM+Western) + clinical dietitian + in-house therapeutic chef. 50,000+ cumulative cases.",
   },
 
   // ===== 근거 자료 =====

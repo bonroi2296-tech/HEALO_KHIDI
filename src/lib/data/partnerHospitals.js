@@ -174,17 +174,11 @@ const PARTNER_HOSPITALS = {
     doctorCount: 8,
     certifications: ["외국인환자 유치의료기관 등록"],
     image: "/images/hospitals/immunehospital-seongdong/1.jpg",
-    // 뒤 4장은 이뮨포레스트(3층 휴식 라운지). 출처 https://sdimmune.app/ 2026-08-18 수집 —
-    // 글자가 얹힌 홍보 이미지는 제외하고 실사만 골랐다.
     gallery: [
       "/images/hospitals/immunehospital-seongdong/2.jpg",
       "/images/hospitals/immunehospital-seongdong/3.jpg",
       "/images/hospitals/immunehospital-seongdong/4.jpg",
       "/images/hospitals/immunehospital-seongdong/5.jpg",
-      "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-16.jpg",
-      "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-18.jpg",
-      "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-20.jpg",
-      "/images/hospitals/immunehospital-seongdong/sdimmune-2026-08/photo-21.jpg",
     ],
   },
 

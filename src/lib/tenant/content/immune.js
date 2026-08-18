@@ -10,7 +10,7 @@
  *
  * 📌 사실 근거 (지어내지 않은 것만 씀):
  *   · 3개 센터(암면역·신경면역·재활)·다루는 암종·의료진 구성·진료시간·대표번호 = immunehospital.com
- *   · 누적 치료사례 51,823건(2026-08 기준) = immunehospital.com 자체 표기
+ *   · 누적 치료사례 50,000건(2024-11 기준) = immunehospital.com 자체 표기
  *   · 4개 지점(강서 마곡·신촌·광명·성동)·주소·전화 = `hospitals` 테이블 실데이터
  *   · 치료 항목(pDRN 신경주사·CRYO 냉각치료·줄기세포 GFC·면역 수액·한약 처방) = `center_menu_items` 실데이터
  *
@@ -24,10 +24,10 @@ export const IMMUNE_HOME_CONTENT = {
   hero: {
     badge: {
       ko: "양·한방 협진 통합 면역치료",
-      en: "Integrative Korean Medicine · 51,823 Treatment Cases",
-      ru: "Интегративная корейская медицина · 51 823 случая лечения",
-      kz: "Интегративті корей медицинасы · 51 823 емдеу жағдайы",
-      zh: "韩医与西医协诊 · 累计诊疗51,823例",
+      en: "Integrative Korean Medicine · 50,000+ Treatment Cases",
+      ru: "Интегративная корейская медицина · 50 000+ случаев лечения",
+      kz: "Интегративті корей медицинасы · 50 000+ емдеу жағдайы",
+      zh: "韩医与西医协诊 · 累计诊疗50,000例",
       ja: "韓方・西洋医学の協診 · 累計5万件の治療実績",
     },
     title: {
@@ -84,7 +84,7 @@ export const IMMUNE_HOME_CONTENT = {
     },
     items: [
       {
-        value: "51,823",
+        value: "50,000+",
         label: {
           ko: "누적 치료 사례\n(2024.11 기준)",
           en: "Cumulative\nTreatment Cases\n(as of Nov 2024)",

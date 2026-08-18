@@ -79,8 +79,8 @@ export default function ImmuneHospitalClient() {
         {/* 통계 바 */}
         <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-6">
           {[
-            { num: H.cumulativeCases, label: tr("statCases") },
-            { num: H.satisfaction, label: tr("statSatisfaction") },
+            { num: "50,000+", label: tr("statCases") },
+            { num: "98%", label: tr("statSatisfaction") },
             { num: String(years), unit: tr("yearsUnit"), label: tr("statYears") },
             { num: String(H.branches.length), label: tr("statBranches") },
             { num: "7+", label: tr("statDoctors") },
@@ -95,7 +95,7 @@ export default function ImmuneHospitalClient() {
             </div>
           ))}
         </div>
-        {/* 만족도 출처 명기 — 면력 자체 집계. 숫자는 immuneHospitalInfo.js 가 SoR. */}
+        {/* 만족도 98% 출처 명기 — 면력 자체조사(2024.11.06 전지점). 근거 있는 수치임을 표시. */}
         <p className="mt-4 text-[11px] text-gray-400 leading-relaxed">{tr("satisfactionNote")}</p>
       </section>
 
@@ -371,10 +371,6 @@ export default function ImmuneHospitalClient() {
                     <Car size={15} className="shrink-0 mt-0.5 text-gray-400" />
                     <span>{l(b.parking)}</span>
                   </p>
-                )}
-                {/* 지점마다 운영 센터가 다르다 (성동점만 항노화센터=뮨클리닉이 추가) — 아는 지점만 표시 */}
-                {b.centers && (
-                  <p className="text-xs text-gray-500 leading-relaxed mb-3">{l(b.centers)}</p>
                 )}
                 {b.nearby && (
                   <p className="text-xs font-semibold text-teal-700 leading-relaxed">{l(b.nearby)}</p>
