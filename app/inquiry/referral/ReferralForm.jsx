@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide-react";
-import { DOC_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
+import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
@@ -110,6 +110,16 @@ const TR = {
                 en: "{done} of {total} filled — the more you fill in, the faster the hospital replies",
                 ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит больница" },
   barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
+  needTitle:  { ko: "대학병원이 환자분을 보려면 이런 자료가 필요합니다",
+                en: "This is what the hospital needs in order to assess the patient",
+                ru: "Вот что нужно клинике, чтобы оценить состояние пациента" },
+  needPassport:{ ko: "여권 사본 (병원 예약 때 필요합니다)",
+                en: "Passport copy (needed when booking the appointment)",
+                ru: "Копия паспорта (нужна при записи в больницу)" },
+  needNote:   { ko: "모두 있어야 접수되는 것은 아닙니다. 지금 있는 것만 주셔도 의뢰는 진행되고, 대학병원이 자료를 더 요청할 수 있습니다.",
+                en: "You don't need all of them to send. We proceed with whatever you have, and the hospital may ask for more.",
+                ru: "Не обязательно иметь всё. Мы отправим с тем, что есть, а клиника может запросить дополнительные материалы." },
+  dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
   orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
   dropFolder: { ko: "폴더를 여기에 놓으세요", en: "Drop the folder here", ru: "Отпустите папку здесь" },
@@ -877,13 +887,19 @@ function Toggle({ checked, onClick, label, className = "" }) {
  *   · 상한을 넘으면 막다른 골목 대신 왓츠앱으로 사람에게 연결
  *   · 폰이면 아예 요구하지 않는다 (폴더 고르기가 안 된다)
  */
-function CdFolder({ f, lang, value, onChange }) {
+function CdFolder({ f, lang, value, onChange, register }) {
   const ref = useRef(null);
   const [state, setState] = useState({ phase: "idle" }); // idle | picked | zipping | done | toobig
   const [over, setOver] = useState(false);
   const [canPick, setCanPick] = useState(true);
 
   useEffect(() => { setCanPick(canPickFolder()); }, []);
+  // 자료 상자가 하나로 합쳐져서, 「CD 폴더 고르기」 버튼과 «폴더를 놓았을 때»의 처리를
+  // 저쪽(Envelope)에서 부른다. 여기 상태(묶기·올리기 진행률)는 그대로 이 컴포넌트가 들고 있다.
+  useEffect(() => {
+    register?.({ open: () => ref.current?.click(), pick: onPick });
+    return () => register?.(null);
+  });
 
   async function onPick(fileList) {
     const files = pickImagingFiles(fileList);
@@ -935,31 +951,7 @@ function CdFolder({ f, lang, value, onChange }) {
   }
 
   return (
-    <div id={`f-${f.name}`} className="mt-4 w-full">
-      <label className="mb-1.5 block text-sm font-semibold text-gray-700">{lab(f.label, lang)}</label>
-
-      {state.phase !== "done" && state.phase !== "toobig" && state.phase !== "uploading" && (
-        <button type="button" disabled={state.phase === "zipping"} onClick={() => ref.current?.click()}
-                onDragEnter={(e) => { e.preventDefault(); setOver(true); }}
-                onDragOver={(e) => { e.preventDefault(); setOver(true); }}
-                onDragLeave={() => setOver(false)}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  setOver(false);
-                  // 폴더째 놓으면 dataTransfer.files 는 «비어 있다» — 안을 직접 훑어야 한다.
-                  onPick(await filesFromDrop(e.dataTransfer));
-                }}
-                className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
-                  state.phase === "zipping" ? "border-gray-200"
-                    : over ? "border-teal-700 bg-teal-50" : "border-gray-300 hover:border-gray-400"}`}>
-          <span className="block text-sm font-semibold text-gray-700">
-            {over ? tr("dropFolder", lang) : tr("cdPick", lang)}
-          </span>
-          <span className="mt-1 block text-xs text-gray-600">
-            {over ? " " : `${tr("cdPickSub", lang)} · ${tr("orDropFolder", lang)}`}
-          </span>
-        </button>
-      )}
+    <div id={`f-${f.name}`} className="w-full">
       {/* webkitdirectory: 폴더 안 파일 전부를 한 번에 넘겨준다 */}
       <input ref={ref} type="file" className="hidden" webkitdirectory="" directory=""
              onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
@@ -1026,9 +1018,8 @@ function FileBox({ f, lang, value, onChange }) {
   return (
     <div>
       <button type="button" onClick={() => ref.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed border-gray-300 px-4 py-5 text-center transition-all duration-200 hover:border-gray-400">
-        <span className="block text-sm font-semibold text-gray-700">{tr("addFile", lang)}</span>
-        <span className="mt-1 block text-xs text-gray-600">{describeUpload(f.kind || "medicalDoc", lang)}</span>
+              className="w-full rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center text-sm font-semibold text-gray-700">
+        {tr("addFile", lang)}
       </button>
       {/* 실제 올리기는 서버 붙일 때. 지금은 고른 파일만 보여준다. */}
       <input ref={ref} type="file" multiple className="hidden"
@@ -1062,10 +1053,12 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
   const envelopeField = sec.fields.find((f) => f.name === "envelope");
   const rest = sec.fields.filter((f) => f.name !== "envelope");
   const filledCount = Object.keys(autoFilled || {}).length;
+  // CD 쪽 「고르기 창 열기」와 「폴더 넘기기」 손잡이 — 합쳐진 자료 상자가 이걸 쓴다.
+  const [cd, setCd] = useState(null);
 
   return (
     <>
-      <Envelope f={envelopeField} lang={lang} docs={docs} onChange={set} onAutoFill={onAutoFill} />
+      <Envelope f={envelopeField} lang={lang} docs={docs} onChange={set} onAutoFill={onAutoFill} cd={cd} />
 
       {/* 읽어서 «채운» 칸이 있으면 그 자리에서 알려준다 — 아래 묶음에 가서야 알면 늦다. */}
       {filledCount > 0 && (
@@ -1101,7 +1094,10 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
       )}
 
       <div className="flex flex-wrap gap-x-4">
-        {rest.map((f) => <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} />)}
+        {/* CD 는 «합쳐진 자료 상자»가 버튼과 폴더 놓기를 대신 부른다 — 그래서 손잡이를 넘긴다. */}
+        {rest.map((f) => f.name === "cdFolder"
+          ? <CdFolder key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} register={setCd} />
+          : <Field key={f.name} f={f} lang={lang} value={values[f.name]} onChange={set} />)}
       </div>
 
     </>
@@ -1109,7 +1105,7 @@ function DocSection({ lang, sec, values, set, onAutoFill, autoFilled }) {
 }
 
 /** 봉투 — 고르는 즉시 서버로 보내 「무슨 서류인지」를 물어보고 그 자리에서 보여준다. */
-function Envelope({ f, lang, docs, onChange, onAutoFill }) {
+function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
   const ref = useRef(null);
   const [busy, setBusy] = useState(0);
   const [over, setOver] = useState(false);
@@ -1202,24 +1198,56 @@ function Envelope({ f, lang, docs, onChange, onAutoFill }) {
           {tr("forReferral", lang)}
         </span>
       </label>
-      <button type="button" onClick={() => ref.current?.click()}
-              onDragEnter={(e) => { e.preventDefault(); setOver(true); }}
-              onDragOver={(e) => { e.preventDefault(); setOver(true); }}
-              onDragLeave={() => setOver(false)}
-              onDrop={(e) => { e.preventDefault(); setOver(false); add(e.dataTransfer?.files); }}
-              className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
-                over ? "border-teal-700 bg-teal-50" : "border-gray-300 hover:border-gray-400"}`}>
-        <span className="block text-sm font-semibold text-gray-700">
-          {over ? tr("dropNow", lang) : tr("addFile", lang)}
-        </span>
-        <span className="mt-1 block text-xs text-gray-600">
-          {over ? " " : `${describeUpload("medicalDoc", lang)} · ${tr("orDrop", lang)}`}
-        </span>
-      </button>
+      {/* 🛑 상자를 다시 둘로 쪼개지 마라(2026-08-18 PO: 「꼭 나눠야 하니?」).
+          브라우저가 「파일 고르기」와 「폴더 고르기」를 한 창으로 못 줘서 «버튼»은 둘이지만,
+          끌어다 놓기는 둘 다 받으므로 «상자»는 하나다. 놓인 게 폴더면 CD 길(묶어서 올리기)로,
+          파일이면 서류 길(한 장씩 읽기)로 갈라 보낸다. */}
+      <div onDragEnter={(e) => { e.preventDefault(); setOver(true); }}
+           onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+           onDragLeave={() => setOver(false)}
+           onDrop={async (e) => {
+             e.preventDefault(); setOver(false);
+             const dt = e.dataTransfer;
+             const hasFolder = [...(dt?.items || [])].some((it) => it.webkitGetAsEntry?.()?.isDirectory);
+             if (hasFolder && cd?.pick) cd.pick(await filesFromDrop(dt));
+             else add(dt?.files);
+           }}
+           className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
+             over ? "border-teal-700 bg-teal-50" : "border-gray-300"}`}>
+        <p className="text-sm font-semibold text-gray-700">
+          {over ? tr("dropNow", lang) : tr("dropHere", lang)}
+        </p>
+        <p className="mt-1 text-xs text-gray-600">{over ? " " : describeUpload("medicalDoc", lang)}</p>
+        {!over && (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <button type="button" onClick={() => ref.current?.click()}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+              {tr("addFile", lang)}
+            </button>
+            {cd?.open && (
+              <button type="button" onClick={() => cd.open()}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+                {tr("cdPick", lang)}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       <input ref={ref} type="file" multiple className="hidden"
              onChange={(e) => { add(e.target.files); e.target.value = ""; }} />
-      <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>
-      <p className="mt-1 text-xs leading-relaxed text-gray-600">{tr("sizeHint", lang)}</p>
+      {/* 🛑 「무슨 서류인지 고르실 필요 없습니다」 같은 «우리 사정»을 여기 다시 늘어놓지 마라
+          (2026-08-18 PO). 올리는 자리에서 사람이 알고 싶은 건 «무엇을 올려야 하나» 하나다.
+          그래서 필요한 서류를 이름으로 세워두고, 없어도 된다는 것을 같이 말한다. */}
+      <div className="mt-2 rounded-xl bg-gray-50 px-4 py-3">
+        <p className="text-xs font-semibold text-gray-700 md:text-sm">{tr("needTitle", lang)}</p>
+        <ul className="mt-1.5 space-y-0.5">
+          {NEEDED_KINDS.map((k) => (
+            <li key={k} className="text-xs leading-relaxed text-gray-600">· {kindLabel(k, lang)}</li>
+          ))}
+          <li className="text-xs leading-relaxed text-gray-600">· {tr("needPassport", lang)}</li>
+        </ul>
+        <p className="mt-2 text-xs leading-relaxed text-gray-600">{tr("needNote", lang)}</p>
+      </div>
 
       {docs.map((d, i) => (
         <div key={i} className="mt-2 rounded-xl border border-gray-200 p-3">

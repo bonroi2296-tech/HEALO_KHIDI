@@ -138,9 +138,7 @@ export const SECTIONS = [
         label: L("가지고 계신 서류를 그대로 올려주세요",
                  "Upload whatever documents you have, as they are",
                  "Загрузите документы, которые у вас есть, как есть"),
-        hint: L("무슨 서류인지 고르실 필요 없습니다.",
-                "No need to sort them.",
-                "Сортировать не нужно.") },
+        hint: null },
       // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
       // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
       //    용량이 안 아껴지고(어차피 우리 저장소에 들어와야 뷰어가 돈다), 자료가 우리
@@ -149,10 +147,6 @@ export const SECTIONS = [
       //    «1번 섹션은 자료 업로드 파트인데 여권번호를 왜 입력하게 하냐»).
       //    여기는 «올리는» 자리다. 번호는 여권을 올리면 저절로 채워지고(실측 5칸),
       //    칸 자체는 ③환자 신원에 있다.
-      { name: "_passportHint", type: "note",
-        label: L("여권 사본이 있으시면 같이 올려주세요. 병원 예약 때 쓰이고, 여권번호는 저희가 읽어드립니다.",
-                 "If you have a passport copy, add it too — we read the number from it and the hospital needs it when booking.",
-                 "Если есть копия паспорта, приложите её — номер мы считаем сами, а больнице она нужна при записи.") },
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
         hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다.",
@@ -303,17 +297,19 @@ export const SECTIONS = [
         label: L("발병 시기", "Time of onset", "Начало заболевания"),
         placeholder: L("예: 2025년 12월경", "e.g. around Dec 2025", "например, декабрь 2025") },
       { name: "chiefComplaint", type: "textarea", req: "referral",
-        label: L("지금 가장 불편하거나 아픈 곳은 어디인가요? 어떻게 아픈지도 적어주세요",
-                 "Where does it hurt or bother you most right now? Please describe how it feels",
-                 "Что и где беспокоит вас сильнее всего сейчас? Опишите, как именно") },
+        label: L("지금 가장 불편한 곳", "Main symptom right now", "Что беспокоит сейчас больше всего"),
+        hint: L("어디가 어떻게 아프신지 적어주세요.",
+                "Tell us where it hurts and how it feels.",
+                "Опишите, где болит и как именно.") },
       { name: "testsAndTreatments", type: "textarea", req: "referral",
         label: L("지금까지 받은 검사와 치료",
                  "Tests and treatments performed so far",
                  "Проведённые обследования и лечение") },
       { name: "localDoctorOpinion", type: "textarea", req: "referral",
-        label: L("지금 다니시는 병원 주치의 소견 — 그곳에서 권고받은 치료",
-                 "Your current doctor's opinion — the treatment recommended there",
-                 "Заключение вашего лечащего врача — какое лечение он рекомендует") },
+        label: L("현지 주치의 소견", "Your doctor's opinion", "Заключение лечащего врача"),
+        hint: L("지금 다니시는 병원에서 권고받은 치료를 적어주세요.",
+                "What treatment your current hospital recommended.",
+                "Какое лечение рекомендовали в вашей больнице.") },
     ],
   },
 
