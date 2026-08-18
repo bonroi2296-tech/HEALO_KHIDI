@@ -93,6 +93,18 @@ export async function POST(
       .select()
       .single();
 
+    // 같은 commit 이 두 번 오면(브라우저 재전송) 유일 인덱스가 막는다 → 이미 저장된 그 줄을 돌려준다.
+    // 여기서 파일을 지우면 첫 줄이 빈 파일을 가리킨다(app/api/patient/documents 와 같은 처리).
+    if (dbError?.code === '23505') {
+      const { data: existing } = await supabase
+        .from('consultation_documents')
+        .select()
+        .eq('storage_path', storagePath)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (existing) return NextResponse.json({ ok: true, data: existing });
+    }
+
     if (dbError) {
       console.error('[DocumentUpload] DB error:', dbError);
       // Clean up uploaded file on DB failure
@@ -127,6 +139,7 @@ export async function GET(
       .from('consultation_documents')
       .select('*')
       .eq('consultation_id', consultationId)
+      .is('deleted_at', null) // 환자가 지운 것(소프트 삭제)은 상담방에서도 안 보인다
       .order('created_at', { ascending: false });
 
     if (error) {

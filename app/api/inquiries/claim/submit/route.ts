@@ -141,6 +141,10 @@ export async function POST(request: NextRequest) {
       if (!verified.ok) return Response.json({ ok: false, error: verified.error }, { status: 400 });
 
       const existing = Array.isArray(inq.attachments) ? inq.attachments : [];
+      // 같은 commit 이 두 번 오면(브라우저 재전송 — 환자 문서 화면 2026-08-18 실사고와 같은 경로)
+      // 두 번째는 붙이지 않고 «이미 있음»으로 답한다. 안 그러면 첨부가 두 줄로 보인다.
+      const dup = existing.find((a) => String(a?.path || "") === path);
+      if (dup) return Response.json({ ok: true, attachment: { name: dup.name } });
       if (existing.length >= MAX_ATTACHMENTS) {
         await supabaseAdmin.storage.from(BUCKET).remove([path]);
         return Response.json({ ok: false, error: "too_many_files" }, { status: 400 });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
+import { Upload, FileText, AlertCircle, ChevronDown, Trash2 } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -137,6 +137,31 @@ export default function DocumentsClient() {
     }
     setUploading(false);
     setProgress(0);
+  };
+
+  const [deletingId, setDeletingId] = useState(null);
+  const handleDelete = async (doc) => {
+    if (!window.confirm(`${t('patientDocs.deleteConfirm', lang)}\n${doc.file_name}`)) return;
+    setDeletingId(doc.id);
+    setMessage(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/patient/documents?id=${encodeURIComponent(doc.id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      const result = await res.json().catch(() => ({ ok: false }));
+      if (result.ok) {
+        // 서버 답을 기다렸다가 목록에서 빼기 — 재조회(스피너)로 화면 전체를 깜빡이지 않게
+        setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      } else {
+        setMessage({ type: 'error', text: t('patientDocs.deleteFailed', lang) });
+      }
+    } catch (_e) {
+      setMessage({ type: 'error', text: t('patientDocs.deleteFailed', lang) });
+    }
+    setDeletingId(null);
   };
 
   const handleDrop = (e) => {
@@ -335,16 +360,28 @@ export default function DocumentsClient() {
                   </div>
                 )}
               </div>
-              {doc.url && (
-                <a
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-3 text-sm text-teal-700 hover:text-teal-700 font-semibold whitespace-nowrap"
+              <div className="ml-3 flex items-center gap-1 shrink-0">
+                {doc.url && (
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1.5 text-sm text-teal-700 hover:text-teal-800 font-semibold whitespace-nowrap"
+                  >
+                    {t('patientDocs.view', lang)}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDelete(doc)}
+                  disabled={deletingId === doc.id}
+                  aria-label={`${t('patientDocs.delete', lang)}: ${doc.file_name}`}
+                  title={t('patientDocs.delete', lang)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition"
                 >
-                  View
-                </a>
-              )}
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
