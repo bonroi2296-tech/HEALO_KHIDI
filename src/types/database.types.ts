@@ -1441,6 +1441,7 @@ export type Database = {
         Row: {
           consultation_id: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           document_type: string | null
           file_name: string
@@ -1448,10 +1449,12 @@ export type Database = {
           file_type: string
           id: string
           storage_path: string
+          uploaded_by: string | null
         }
         Insert: {
           consultation_id: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           document_type?: string | null
           file_name: string
@@ -1459,10 +1462,12 @@ export type Database = {
           file_type: string
           id?: string
           storage_path: string
+          uploaded_by?: string | null
         }
         Update: {
           consultation_id?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           document_type?: string | null
           file_name?: string
@@ -1470,6 +1475,7 @@ export type Database = {
           file_type?: string
           id?: string
           storage_path?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
