@@ -54,6 +54,9 @@ const Schema = z.object({
   chiefComplaint: s(3000), testsAndTreatments: s(3000), localDoctorOpinion: s(3000),
   pastHistory: z.array(z.string().max(40)).max(20).optional(),
   pastHistoryNote: s(2000), medications: s(2000), familyHistory: s(2000),
+  // 환자가 무엇을 받고 싶은가 — 병원에 보낼 의뢰서의 «질문»이 된다.
+  // 개인정보가 아니라 고른 목록이므로 암호화 안 한다(코디가 목록에서 바로 보여야 한다).
+  referralWants: z.array(z.string().max(20)).max(10).optional(),
   referralPurpose: s(2000), preferredDate: s(20),
   dateFlexible: z.boolean().optional(), flightFitness: s(20),
 
@@ -136,6 +139,7 @@ export async function POST(request: NextRequest) {
       pastHistoryNote: enc(d.pastHistoryNote ?? null),
       medications: enc(d.medications ?? null),
       familyHistory: enc(d.familyHistory ?? null),
+      referralWants: d.referralWants ?? [],
       referralPurpose: enc(d.referralPurpose ?? null),
       flightFitness: d.flightFitness ?? null,
       // ⚠️ kind 는 «AI 추정 또는 사용자가 고친 값»이다. 의료 판단의 근거로 쓰지 마라.

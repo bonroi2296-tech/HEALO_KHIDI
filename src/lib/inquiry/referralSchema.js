@@ -93,6 +93,24 @@ export const LATE_STAGE_NOTICE = {
 export const LATE_STAGES = ["IV"];
 
 /** 장시간 비행 가능 여부 — 세브란스 메일이 「주치의 확인」을 명시한 항목 */
+
+// 환자가 «실제로» 물어보는 것. 기록으로 확인(2026-08-18):
+//   진짜 문의 9건 중 «환자가 뭐를 원하는지»가 남은 건 1건뿐이었다 — 나머지는 진단명만 들어 있었다.
+//   정작 병원이 회신하는 것은 「소견·예상비용」이다(이대서울 8/14 회신 실물).
+//   자유 서술 칸 하나로만 받으면 비워 둔다 — 가장 흔한 둘을 누를 수 있게 놓는다.
+const REFERRAL_WANTS = [
+  { value: "opinion", label: L("소견서 (한국 의료진의 제2 의견)",
+                               "A written second opinion from a Korean specialist",
+                               "Письменное второе мнение корейского врача") },
+  { value: "cost",    label: L("예상 치료비", "Estimated treatment cost", "Ориентировочная стоимость лечения") },
+  { value: "feasible",label: L("한국에서 치료가 가능한지",
+                               "Whether treatment in Korea is possible",
+                               "Возможно ли лечение в Корее") },
+  { value: "schedule",label: L("언제 갈 수 있는지 · 얼마나 걸리는지",
+                               "When I could come and how long it would take",
+                               "Когда можно приехать и сколько это займёт") },
+];
+
 const FLIGHT_FITNESS = [
   { value: "yes", label: L("가능", "Fit to fly", "Может лететь") },
   { value: "no", label: L("불가", "Not fit", "Не может") },
@@ -180,6 +198,45 @@ export const SECTIONS = [
   },
 
   // ── ③ 환자 신원 ────────────────────────────────────────────────
+  // ── ③ 무엇을 받고 싶은가 ─────────────────────────────────────
+  // 🛑 이 묶음을 «맨 뒤»로 되돌리지 마라(2026-08-18 PO: «환자는 대학병원의 소견서나
+  //    비용을 문의했던거 같은데?»). 실측: 진짜 문의 9건 중 «환자가 뭘 원하는지»가
+  //    남은 건 1건뿐이었다 — 나머지는 진단명만 들어가 있었다. 사람이 여기 온 «이유»를
+  //    맨 마지막에 묻고 있었으니 당연히 안 적고 나간다.
+  {
+    id: "purpose",
+    title: L("의뢰 목적 · 일정", "Purpose & schedule", "Цель обращения и сроки"),
+    fields: [
+      { name: "referralWants", type: "chipsMulti", req: "referral", options: REFERRAL_WANTS,
+        label: L("무엇을 받고 싶으세요? (여러 개 고르셔도 됩니다)",
+                 "What would you like to receive? (choose as many as apply)",
+                 "Что вы хотели бы получить? (можно несколько)"),
+        hint: L("이것이 병원이 답해야 할 질문이 됩니다.",
+                "This becomes the question the hospital has to answer.",
+                "Именно на это будет отвечать больница.") },
+      { name: "referralPurpose", type: "textarea", req: "referral",
+        label: L("더 여쪼보시고 싶은 것이 있으면 적어주세요",
+                 "Anything else you want to ask", "Что ещё вы хотите спросить"),
+        placeholder: L(
+          "예: 한국에서 수술이 가능한지, 어떤 치료를 받게 되는지, 비용이 얼마나 드는지",
+          "e.g. whether surgery is possible in Korea, what treatment I would receive, how much it costs",
+          "например: возможна ли операция в Корее, какое лечение предстоит, сколько это стоит"),
+        hint: L(
+          "병원이 이 질문에 답하는 형태로 소견을 보내옵니다. 구체적일수록 답도 구체적입니다.",
+          "The hospital answers this question in its opinion. The more specific you are, the more specific the answer.",
+          "Больница отвечает именно на этот вопрос. Чем конкретнее вопрос, тем конкретнее ответ.") },
+      { name: "preferredDate", type: "date", req: "referral", half: true,
+        label: L("한국에 오시고 싶은 날짜", "When would you like to come to Korea?", "Когда вы хотели бы приехать в Корею?") },
+      { name: "dateFlexible", type: "check", req: "optional", half: true,
+        label: L("날짜는 조율 가능합니다", "The date is flexible", "Дата может быть скорректирована") },
+      { name: "flightFitness", type: "chips", req: "referral", options: FLIGHT_FITNESS,
+        label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
+        // 특정 병원 이름을 화면에 쓰지 않는다(PO 지시 2026-08-11). 「대학병원이 요구한다」로만.
+        hint: L("한국 대학병원이 장거리 이동 전에 주치의 확인을 요청하는 항목입니다.",
+                "Korean university hospitals ask the treating doctor to confirm this before long-distance travel.",
+                "Корейские университетские клиники просят лечащего врача подтвердить это до дальней поездки.") },
+    ],
+  },
   {
     id: "identity",
     title: L("환자 신원", "Patient details", "Данные пациента"),
@@ -267,32 +324,6 @@ export const SECTIONS = [
   },
 
   // ── ⑥ 의뢰 목적·일정 ───────────────────────────────────────────
-  {
-    id: "purpose",
-    title: L("의뢰 목적 · 일정", "Purpose & schedule", "Цель обращения и сроки"),
-    fields: [
-      { name: "referralPurpose", type: "textarea", req: "referral",
-        label: L("무엇을 알고 싶으신가요?", "What do you want to know?", "Что вы хотите узнать?"),
-        placeholder: L(
-          "예: 한국에서 수술이 가능한지, 어떤 치료를 받게 되는지, 비용이 얼마나 드는지",
-          "e.g. whether surgery is possible in Korea, what treatment I would receive, how much it costs",
-          "например: возможна ли операция в Корее, какое лечение предстоит, сколько это стоит"),
-        hint: L(
-          "병원이 이 질문에 답하는 형태로 소견을 보내옵니다. 구체적일수록 답도 구체적입니다.",
-          "The hospital answers this question in its opinion. The more specific you are, the more specific the answer.",
-          "Больница отвечает именно на этот вопрос. Чем конкретнее вопрос, тем конкретнее ответ.") },
-      { name: "preferredDate", type: "date", req: "referral", half: true,
-        label: L("한국에 오시고 싶은 날짜", "When would you like to come to Korea?", "Когда вы хотели бы приехать в Корею?") },
-      { name: "dateFlexible", type: "check", req: "optional", half: true,
-        label: L("날짜는 조율 가능합니다", "The date is flexible", "Дата может быть скорректирована") },
-      { name: "flightFitness", type: "chips", req: "referral", options: FLIGHT_FITNESS,
-        label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
-        // 특정 병원 이름을 화면에 쓰지 않는다(PO 지시 2026-08-11). 「대학병원이 요구한다」로만.
-        hint: L("한국 대학병원이 장거리 이동 전에 주치의 확인을 요청하는 항목입니다.",
-                "Korean university hospitals ask the treating doctor to confirm this before long-distance travel.",
-                "Корейские университетские клиники просят лечащего врача подтвердить это до дальней поездки.") },
-    ],
-  },
 
 ];
 

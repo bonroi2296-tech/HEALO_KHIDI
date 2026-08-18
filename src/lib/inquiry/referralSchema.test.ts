@@ -121,4 +121,14 @@ describe("묶음 순서", () => {
     expect(SECTIONS[0].id).toBe("documents");
     expect(SECTIONS[1].id).toBe("essentials");
   });
+
+  // 🛑 2026-08-18 PO: «환자는 대학병원의 소견서나 비용을 문의했던거 같은데?»
+  //    실측: 진짜 문의 9건 중 «뭐를 원하는지»가 남은 건 1건뿐. 맨 뒤에서 물으면 안 적는다.
+  it("«무엇을 받고 싶은가»를 연락처 바로 다음에 묻는다 (맨 뒤로 밀지 마라)", () => {
+    expect(SECTIONS[2].id).toBe("purpose");
+    const wants = SECTIONS[2].fields.find((f: any) => f.name === "referralWants");
+    expect(wants).toBeTruthy();
+    expect(wants!.options.map((o: any) => o.value)).toContain("opinion"); // 소견서
+    expect(wants!.options.map((o: any) => o.value)).toContain("cost");    // 비용
+  });
 });
