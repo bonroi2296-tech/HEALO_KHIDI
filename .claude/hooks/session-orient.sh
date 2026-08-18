@@ -296,6 +296,8 @@ echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어�
 # 왜: 2026-07-23 PO 결정 4건이 어시 기억파일에만 있어 8일 묻혔다. 기억파일은 정리 세션의
 #     모집단(작업본·신청서)에도, 할 일 목록에도 없는 «아무도 안 보는 자리»다.
 node scripts/check-parked-decisions.mjs 2>/dev/null || true
+# 작업본 «안»에만 있는 인수인계 — 「신청서 없음 = 방치」 오판 방지(2026-08-15 실제 오판으로 신설)
+node scripts/check-branch-handoffs.mjs 2>/dev/null || true
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────
 if [ -f "$CTX" ]; then
