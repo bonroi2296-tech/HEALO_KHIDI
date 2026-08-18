@@ -857,11 +857,11 @@ function CdFolder({ f, lang, value, onChange, register }) {
   const [canPick, setCanPick] = useState(true);
 
   useEffect(() => { setCanPick(canPickFolder()); }, []);
-  // 자료 상자가 하나로 합쳐져서, 「CD 폴더 고르기」 버튼과 «폴더를 놓았을 때»의 처리를
+  // 자료 상자가 하나로 합쳐져서, 「폴더 올리기」 버튼과 «폴더를 놓았을 때»의 처리를
   // 저쪽(Envelope)에서 부른다. 여기 상태(묶기·올리기 진행률)는 그대로 이 컴포넌트가 들고 있다.
   // 🛑 의존성 칸([register])을 지우지 마라 — 매번 등록·해제를 반복하면 저쪽이 다시 그려지고
   //    그게 또 여기를 다시 그려서 «무한 반복»으로 화면이 죽는다(2026-08-18 실측:
-  //    Maximum update depth exceeded). 게다가 «해제된 찰나»에는 「폴더째 올리기」 버튼이
+  //    Maximum update depth exceeded). 게다가 «해제된 찰나»에는 「폴더 올리기」 버튼이
   //    사라져서 자료 상자가 줄었다 늘었다 했다. 최신 onPick 은 ref 로 따라간다.
   async function onPick(fileList) {
     const files = pickImagingFiles(fileList);
@@ -988,32 +988,6 @@ function CdFolder({ f, lang, value, onChange, register }) {
           </a>
         </div>
       )}
-    </div>
-  );
-}
-
-function FileBox({ f, lang, value, onChange }) {
-  const files = value || [];
-  const ref = useRef(null);
-  return (
-    <div>
-      <button type="button" onClick={() => ref.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center text-sm font-semibold text-gray-700">
-        {tr("addFile", lang)}
-      </button>
-      {/* 실제 올리기는 서버 붙일 때. 지금은 고른 파일만 보여준다. */}
-      <input ref={ref} type="file" multiple className="hidden"
-             onChange={(e) => onChange(f.name, [...files, ...Array.from(e.target.files || [])
-               .map((x) => ({ name: x.name, size: x.size }))])} />
-      {files.map((x, i) => (
-        <div key={i} className="mt-2 flex items-center gap-2.5 rounded-xl border border-gray-200 px-3 py-2.5 text-sm">
-          <Paperclip size={14} className="flex-none text-gray-500" />
-          <span className="min-w-0 flex-1 truncate text-gray-900">{x.name}</span>
-          <span className="flex-none text-xs text-gray-600 tabular-nums">{formatMB(x.size)}</span>
-          <button type="button" onClick={() => onChange(f.name, files.filter((_, j) => j !== i))}
-                  className="flex-none text-gray-500 hover:text-gray-700"><X size={14} /></button>
-        </div>
-      ))}
     </div>
   );
 }
@@ -1179,7 +1153,7 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
         </span>
       </label>
       {/* 🛑 상자를 다시 둘로 쪼개지 마라(2026-08-18 PO: 「꼭 나눠야 하니?」).
-          브라우저가 「파일 고르기」와 「폴더 고르기」를 한 창으로 못 줘서 «버튼»은 둘이지만,
+          브라우저가 「파일 올리기」와 「폴더 올리기」를 한 창으로 못 줘서 «버튼»은 둘이지만,
           끌어다 놓기는 둘 다 받으므로 «상자»는 하나다. 놓인 게 폴더면 CD 길(묶어서 올리기)로,
           파일이면 서류 길(한 장씩 읽기)로 갈라 보낸다. */}
       <div onDragEnter={(e) => { e.preventDefault(); setOver(true); }}

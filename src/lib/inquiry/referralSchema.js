@@ -139,7 +139,7 @@ export const SECTIONS = [
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: K("referral.f.cdFolder.label"),
         // 🛑 여기에 안내를 되살리지 마라 — 자료 상자가 하나로 합쳐지면서 이 문구만 저 아래
-        //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 「폴더째 올리기」 버튼 바로 밑에 있다.
+        //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 자료 상자 밑 한 줄(200MB 규칙)에 있다.
       },
 
       // ── 여권 ──
