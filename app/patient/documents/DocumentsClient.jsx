@@ -379,7 +379,7 @@ export default function DocumentsClient() {
                     disabled={deletingId === doc.id}
                     aria-label={`${t('patientDocs.delete', lang)}: ${doc.file_name}`}
                     title={t('patientDocs.delete', lang)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition"
+                    className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition"
                   >
                     <Trash2 size={16} aria-hidden="true" />
                   </button>
