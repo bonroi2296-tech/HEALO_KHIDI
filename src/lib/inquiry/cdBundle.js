@@ -107,3 +107,33 @@ export async function filesFromDrop(dataTransfer, { maxFiles = 20000 } = {}) {
   for (const e of entries) await walk(e, "");
   return out;
 }
+
+/**
+ * 끌어다 놓은 것을 «폴더»와 «낱개 파일»로 갈라준다.
+ *
+ * 왜 (2026-08-18 PO: 「파일이랑 폴더 둘 다 가능하게 하면 되는 거 아냐?」):
+ * 폴더 하나만 보고 전부를 CD 길로 보내면, 같이 놓은 서류(PDF 등)가 조용히 사라진다.
+ * 두 갈래는 처리가 다르다 — 폴더는 통째로 묶어 하나로 올리고, 낱개 서류는 한 장씩 읽어
+ * 칸을 채운다. 그러니 «갈라서» 각자 길로 보낸다.
+ */
+export async function splitDrop(dataTransfer) {
+  const items = Array.from(dataTransfer?.items || []);
+  const entries = items
+    .map((it) => (typeof it.webkitGetAsEntry === "function" ? it.webkitGetAsEntry() : null))
+    .filter(Boolean);
+
+  // 폴더를 못 읽는 브라우저면 전부 낱개 파일로 본다.
+  if (!entries.length) return { folderFiles: [], looseFiles: Array.from(dataTransfer?.files || []) };
+
+  const dirs = entries.filter((e) => e.isDirectory);
+  const files = entries.filter((e) => e.isFile);
+
+  const folderFiles = dirs.length
+    ? await filesFromDrop({ items: dirs.map((e) => ({ webkitGetAsEntry: () => e })), files: [] })
+    : [];
+  const looseFiles = files.length
+    ? await filesFromDrop({ items: files.map((e) => ({ webkitGetAsEntry: () => e })), files: [] })
+    : [];
+
+  return { folderFiles, looseFiles };
+}

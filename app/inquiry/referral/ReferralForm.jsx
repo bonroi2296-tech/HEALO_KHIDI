@@ -15,7 +15,7 @@ import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/
 import { useLang } from "@/lib/i18n/LangContext";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
-import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop } from "@/lib/inquiry/cdBundle";
+import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
 import {
@@ -132,9 +132,11 @@ const TR = {
   sizeRule:   { ko: "한 파일 200MB까지 올리실 수 있습니다. 더 크면 왓츠앱으로 보내주시거나, 구글 드라이브·드롭박스에 올려 주소를 알려주세요.",
                 en: "Up to 200MB per file. For anything larger, send it on WhatsApp or upload it to Google Drive / Dropbox and give us the link.",
                 ru: "До 200 МБ на файл. Если больше — пришлите в WhatsApp или загрузите в Google Drive / Dropbox и дайте ссылку." },
-  pickDocs:   { ko: "서류 고르기", en: "Choose documents", ru: "Выбрать документы" },
+  // 🛑 버튼 이름은 «무엇을 고르나»가 아니라 «어떻게 올리나»로(2026-08-18 PO: 그게 더 직관적이다).
+  //    「서류 고르기 / CD 폴더 고르기」는 둘 다 «고르기»여서 무엇이 다른지 안 보였다.
+  pickDocs:   { ko: "파일 올리기", en: "Upload files", ru: "Загрузить файлы" },
   pickDocsSub:{ ko: "진단서 · 검사지 · 사진", en: "Reports, test results, photos", ru: "Заключения, результаты, фото" },
-  pickCdSub:  { ko: "폴더째 고르시면 됩니다 (몇백 개라도)", en: "Pick the whole folder (hundreds of files are fine)", ru: "Выберите папку целиком (даже сотни файлов)" },
+  pickCdSub:  { ko: "병원에서 받은 CD (몇백 개라도)", en: "A hospital CD (hundreds of files are fine)", ru: "Диск из больницы (даже сотни файлов)" },
   dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
   orDrop:     { ko: "끌어다 놓으셔도 됩니다", en: "or drag and drop", ru: "или перетащите сюда" },
   orDropFolder:{ ko: "폴더를 끌어다 놓으셔도 됩니다", en: "or drag the folder here", ru: "или перетащите папку сюда" },
@@ -205,7 +207,7 @@ const TR = {
   icdUnknown: { ko: "모르겠습니다 — 서류 보고 정해주세요", en: "I don't know — please determine it from my documents", ru: "Не знаю — определите по моим документам" },
   pick:       { ko: "선택", en: "Select", ru: "Выберите" },
   addFile:    { ko: "파일 고르기", en: "Choose file", ru: "Выбрать файл" },
-  cdPick:     { ko: "CD 폴더 고르기", en: "Pick the CD folder", ru: "Выбрать папку с диска" },
+  cdPick:     { ko: "폴더째 올리기", en: "Upload a whole folder", ru: "Загрузить папку целиком" },
   cdPickSub:  { ko: "안에 든 파일을 하나씩 고르실 필요 없습니다", en: "No need to pick files one by one", ru: "Выбирать файлы по одному не нужно" },
   cdZipping:  { ko: "파일 {n}개 ({mb}) 를 하나로 묶고 있습니다", en: "Bundling {n} files ({mb})", ru: "Собираем {n} файлов ({mb})" },
   cdZipWait:  { ko: "창을 닫지 말고 잠시만 기다려 주세요. 보통 10~40초 걸립니다.",
@@ -1244,10 +1246,12 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
            onDragLeave={() => setOver(false)}
            onDrop={async (e) => {
              e.preventDefault(); setOver(false);
-             const dt = e.dataTransfer;
-             const hasFolder = [...(dt?.items || [])].some((it) => it.webkitGetAsEntry?.()?.isDirectory);
-             if (hasFolder && cd?.pick) cd.pick(await filesFromDrop(dt));
-             else add(dt?.files);
+             // 🛑 폴더가 하나라도 있다고 «전부»를 CD 길로 보내지 마라 — 같이 놓은 서류가
+             //    조용히 사라진다(2026-08-18 PO: 「둘 다 가능하게 하면 되는 거 아냐?」).
+             //    갈라서 각자 길로 보낸다: 폴더는 통째로 묶고, 낱개 서류는 한 장씩 읽는다.
+             const { folderFiles, looseFiles } = await splitDrop(e.dataTransfer);
+             if (folderFiles.length && cd?.pick) cd.pick(folderFiles);
+             if (looseFiles.length) add(looseFiles);
            }}
            className={`w-full rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all duration-200 ${
              over ? "border-teal-700 bg-teal-50" : "border-gray-300"}`}>

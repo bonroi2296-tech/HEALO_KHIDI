@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickImagingFiles, sumBytes, formatMB, isProbablyPhone , filesFromDrop } from "./cdBundle";
+import { pickImagingFiles, sumBytes, formatMB, isProbablyPhone , filesFromDrop, splitDrop } from "./cdBundle";
 
 const f = (name: string, size = 1000) => ({ name, size });
 
@@ -72,5 +72,52 @@ describe("filesFromDrop — 폴더째 끌어다 놓기", () => {
     const f = new File(["x"], "a.pdf");
     const got = await filesFromDrop({ items: [{}], files: [f] } as any);
     expect(got.length).toBe(1);
+  });
+});
+
+// ── 폴더와 서류를 «같이» 놓았을 때 ────────────────────────────────────────
+function fakeFile(name: string): any {
+  return { isFile: true, isDirectory: false, name, file: (ok: (f: any) => void) => ok(new File(["x"], name)) };
+}
+function fakeDir2(name: string, names: string[]): any {
+  let sent = 0;
+  return {
+    isFile: false, isDirectory: true, name,
+    createReader: () => ({
+      readEntries(cb: (e: any[]) => void) {
+        const batch = names.slice(sent, sent + 100).map(fakeFile);
+        sent += batch.length;
+        cb(batch);
+      },
+    }),
+  };
+}
+
+describe("splitDrop — 폴더와 서류를 갈라 보낸다", () => {
+  it("🛑 폴더와 서류를 같이 놓아도 서류가 사라지지 않는다", async () => {
+    const dt: any = {
+      items: [
+        { webkitGetAsEntry: () => fakeDir2("DICOM", ["IM1.dcm", "IM2.dcm"]) },
+        { webkitGetAsEntry: () => fakeFile("소견서.pdf") },
+      ],
+      files: [],
+    };
+    const { folderFiles, looseFiles } = await splitDrop(dt);
+    expect(folderFiles.map((f) => f.name)).toEqual(["IM1.dcm", "IM2.dcm"]);
+    expect(looseFiles.map((f) => f.name)).toEqual(["소견서.pdf"]);
+  });
+
+  it("서류만 놓으면 폴더 쪽은 비어 있다", async () => {
+    const dt: any = { items: [{ webkitGetAsEntry: () => fakeFile("a.pdf") }], files: [] };
+    const { folderFiles, looseFiles } = await splitDrop(dt);
+    expect(folderFiles).toEqual([]);
+    expect(looseFiles.map((f) => f.name)).toEqual(["a.pdf"]);
+  });
+
+  it("폴더를 못 읽는 브라우저면 전부 낱개 서류로 본다", async () => {
+    const f = new File(["x"], "b.pdf");
+    const { folderFiles, looseFiles } = await splitDrop({ items: [{}], files: [f] } as any);
+    expect(folderFiles).toEqual([]);
+    expect(looseFiles.length).toBe(1);
   });
 });
