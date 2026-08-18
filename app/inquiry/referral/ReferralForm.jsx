@@ -802,7 +802,9 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
           <Check size={12} strokeWidth={3} />{tr("fromDoc", lang)}
         </p>
       )}
-      {f.hint && <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>}
+      {/* 🛑 «칸 밑 안내 줄»을 되살리지 마라(2026-08-18 PO: 「뭐는 칸 안에 있고 뭐는 밑에 있고
+          뒤죽박죽인데」). 안내는 한 자리에만 — 글로 쓰는 칸은 «칸 안»(placeholder),
+          고르는 칸은 «칸 이름»으로 끝낸다. 규칙 본문은 referralSchema.js 머리에 있다. */}
     </div>
   );
 }
@@ -1064,7 +1066,6 @@ function CdFolder({ f, lang, value, onChange, register }) {
           </a>
         </div>
       )}
-      <p className="mt-1.5 text-xs leading-relaxed text-gray-600">{lab(f.hint, lang)}</p>
     </div>
   );
 }

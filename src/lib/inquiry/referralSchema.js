@@ -17,6 +17,12 @@
  *   referral — 병원 의뢰에 필요. 안 막는다. 「의뢰 준비 n%」에 셈하고 코디 화면에 빠진 목록으로 뜬다.
  *   optional — 있으면 좋음. 어디에도 안 센다.
  *
+ * 📐 안내를 어디에 쓰나 — «한 가지 규칙»만 지킨다 (2026-08-18 PO: 「뭐는 칸 안에 있고
+ *    뭐는 밑에 있고 뒤죽박죽인데」).
+ *      · 글로 쓰는 칸(text·textarea) → 안내는 **칸 안(placeholder)**. 밑에 줄을 달지 마라.
+ *      · 고르는 칸(chips·select·날짜) → 안내를 달지 마라. 칸 이름으로 끝낸다.
+ *    그리고 «우리 사정»(번역은 저희가 합니다·병원이 요청하는 항목입니다)은 어느 쪽에도 안 쓴다.
+ *
  * ponytail: 라벨을 여기 {ko,en,ru} 로 직접 들고 있다. 칸 목록이 확정되면
  *   src/lib/i18n/dictionary.js 로 옮기고 labelKey → t() 로 바꾼다
  *   (코디 콘텐츠 편집기가 사전 키만 검색하므로 최종본은 사전에 있어야 한다).
@@ -150,8 +156,8 @@ export const SECTIONS = [
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
         // 🛑 여기에 안내를 되살리지 마라 — 자료 상자가 하나로 합쳐지면서 이 문구만 저 아래
-        //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 「CD 폴더 고르기」 버튼 바로 밑에 있다.
-        hint: null },
+        //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 「폴더째 올리기」 버튼 바로 밑에 있다.
+      },
 
       // ── 여권 ──
       // 틀렸던 전제 교정(2026-08-14 PO): 이대서울병원은 «예약 전»에도 여권을 요구한다.
@@ -209,10 +215,7 @@ export const SECTIONS = [
       { name: "referralWants", type: "chipsMulti", req: "referral", options: REFERRAL_WANTS,
         label: L("무엇을 받고 싶으세요? (여러 개 고르셔도 됩니다)",
                  "What would you like to receive? (choose as many as apply)",
-                 "Что вы хотели бы получить? (можно несколько)"),
-        hint: L("이것이 병원이 답해야 할 질문이 됩니다.",
-                "This becomes the question the hospital has to answer.",
-                "Именно на это будет отвечать больница.") },
+                 "Что вы хотели бы получить? (можно несколько)") },
       // 🛑 칸 이름에 「(선택)」을 다시 박지 마라 — 화면이 꼬리표를 따로 붙여서 「(선택)(선택)」이 됐다.
       { name: "referralPurpose", type: "textarea", req: "optional",
         label: L("병원에 더 물어보고 싶은 것",
@@ -222,19 +225,14 @@ export const SECTIONS = [
           "예: 지금 먹는 약을 계속 먹어도 되는지, 보호자가 같이 있어야 하는지",
           "e.g. whether I can keep taking my current medication, whether a family member must stay with me",
           "например: можно ли продолжать принимать текущие лекарства, нужно ли сопровождение родственника"),
-        hint: L("위에서 고르신 것 말고 따로 궁금한 게 있을 때만 적으시면 됩니다.",
-                "Only if you have something beyond what you selected above.",
-                "Только если есть что-то помимо выбранного выше.") },
+      },
       { name: "preferredDate", type: "date", req: "referral", half: true,
         label: L("한국에 오시고 싶은 날짜", "When would you like to come to Korea?", "Когда вы хотели бы приехать в Корею?") },
       { name: "dateFlexible", type: "check", req: "optional", half: true,
         label: L("날짜는 조율 가능합니다", "The date is flexible", "Дата может быть скорректирована") },
       { name: "flightFitness", type: "chips", req: "referral", options: FLIGHT_FITNESS,
         label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
-        // 특정 병원 이름을 화면에 쓰지 않는다(PO 지시 2026-08-11). 「대학병원이 요구한다」로만.
-        hint: L("병원이 주치의 확인을 요청하는 항목입니다.",
-                "The hospital asks the treating doctor to confirm this.",
-                "Больница просит лечащего врача подтвердить это.") },
+      },
     ],
   },
   {
@@ -270,23 +268,15 @@ export const SECTIONS = [
       //    그런데 실측상 실서비스 18건 중 병기가 채워진 건 1건뿐이다 → 안내 문구로 유도하고,
       //    올린 서류에서도 뽑는다(실측: 종합소견서에서 stage 3 fibrosis 추출됨).
       { name: "stage", type: "stage", req: "optional", half: true,
-        label: L("병기", "Stage", "Стадия"),
-        hint: L("모르시면 비워두세요 — 서류에서 저희가 확인합니다.",
-                "Leave it blank if you are not sure — we read it from your documents.",
-                "Не знаете — оставьте пустым, мы определим по документам.") },
+        label: L("병기", "Stage", "Стадия") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",
         label: L("진단서에 적힌 병명", "Diagnosis as written on your medical document", "Диагноз, как указано в документе"),
-        hint: L(
-          "번역하지 말고 진단서에 적힌 그대로 적어주세요. 한국어·영어 번역은 저희가 합니다.",
-          "Copy it exactly as written — do not translate. We handle the Korean/English translation.",
-          "Скопируйте точно как написано — не переводите. Перевод на корейский/английский мы сделаем сами.") },
+        placeholder: L("번역하지 마시고 적힌 그대로",
+                       "Exactly as written — do not translate",
+                       "Точно как написано — не переводите") },
       // 코드는 «고르면 좋은 것»이지 관문이 아니다. 「모르겠습니다」가 기본값.
       { name: "icdCode", type: "icdSuggest", req: "optional",
-        label: L("질병 코드 (아는 경우에만)", "Disease code (only if you know it)", "Код заболевания (если известен)"),
-        hint: L(
-          "진단서에 C18.2 같은 코드가 있으면 골라주세요. 몰라도 괜찮습니다.",
-          "Pick it if your document shows a code like C18.2. It is fine not to know — we confirm it from your documents.",
-          "Выберите, если в документе есть код вроде C18.2. Можно не знать — мы уточним по вашим документам.") },
+        label: L("질병 코드 (아는 경우에만)", "Disease code (only if you know it)", "Код заболевания (если известен)") },
       { name: "diagnosisDate", type: "month", req: "referral", half: true,
         label: L("진단 시기", "Time of diagnosis", "Время постановки диагноза") },
       { name: "onsetDate", type: "text", req: "optional", half: true,
@@ -294,18 +284,18 @@ export const SECTIONS = [
         placeholder: L("예: 2025년 12월경", "e.g. around Dec 2025", "например, декабрь 2025") },
       { name: "chiefComplaint", type: "textarea", req: "referral",
         label: L("지금 가장 불편한 곳", "Main symptom right now", "Что беспокоит сейчас больше всего"),
-        hint: L("어디가 어떻게 아프신지 적어주세요.",
-                "Tell us where it hurts and how it feels.",
-                "Опишите, где болит и как именно.") },
+        placeholder: L("어디가 어떻게 아프신지",
+                       "Where it hurts and how it feels",
+                       "Где болит и как именно") },
       { name: "testsAndTreatments", type: "textarea", req: "referral",
         label: L("지금까지 받은 검사와 치료",
                  "Tests and treatments performed so far",
                  "Проведённые обследования и лечение") },
       { name: "localDoctorOpinion", type: "textarea", req: "referral",
         label: L("현지 주치의 소견", "Your doctor's opinion", "Заключение лечащего врача"),
-        hint: L("지금 다니시는 병원에서 권고받은 치료를 적어주세요.",
-                "What treatment your current hospital recommended.",
-                "Какое лечение рекомендовали в вашей больнице.") },
+        placeholder: L("지금 다니시는 병원에서 권고받은 치료",
+                       "The treatment your current hospital recommended",
+                       "Лечение, рекомендованное в вашей больнице") },
     ],
   },
 
@@ -317,7 +307,8 @@ export const SECTIONS = [
       { name: "pastHistory", type: "chipsMulti", req: "referral", options: PAST_HISTORY,
         label: L("과거에 앓으셨거나 지금 앓고 계신 병", "Illnesses you have had or still have", "Перенесённые и текущие заболевания") },
       { name: "pastHistoryNote", type: "textarea", req: "optional",
-        placeholder: L("진단 연도·수술명 등을 아는 만큼 적어주세요",
+        // 칸 안 안내는 «~해주세요»가 아니라 «무엇을 적는 자리인지»로 통일한다.
+        placeholder: L("진단 연도·수술명 등 아는 만큼",
                        "Add years, surgery names, etc. as far as you know",
                        "Укажите годы, названия операций и т.п.") },
       { name: "medications", type: "textarea", req: "referral", half: true,
