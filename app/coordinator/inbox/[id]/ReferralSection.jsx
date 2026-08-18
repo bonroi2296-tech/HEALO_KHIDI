@@ -109,7 +109,7 @@ export default function ReferralSection({ referral, lang }) {
               {g.rows.map((r) => (
                 <div key={r.label} className="flex gap-3 py-1.5 text-sm">
                   <dt className="w-44 shrink-0 text-gray-500">{r.label}</dt>
-                  <dd className={`min-w-0 break-words whitespace-pre-wrap ${r.value ? "text-gray-900" : "text-gray-400 italic"}`}>
+                  <dd className={`min-w-0 break-words whitespace-pre-wrap ${r.value ? "text-gray-900" : "text-gray-500 italic"}`}>
                     {r.value ?? ui("empty", lang)}
                   </dd>
                 </div>
