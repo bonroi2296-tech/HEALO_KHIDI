@@ -471,7 +471,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "황이준", en: "Hwang Yi-jun" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역 · 암환자 케어", en: "Integrative Immunology · Cancer Care" },
+      specialty: { ko: "통합면역", en: "Integrative Immunology" },
       photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
       branch: "magok",
     },
@@ -511,16 +511,9 @@ export const IMMUNE_HOSPITAL = {
       branch: "magok",
     },
     {
-      name: { ko: "김정현", en: "Kim Jeong-hyeon" },
-      role: { ko: "진료원장", en: "Attending Director" },
-      specialty: { ko: "통증재활", en: "Pain Rehab" },
-      photo: "/immune/doctor/gangeo-dr-kim-junghyun.jpg",
-      branch: "magok",
-    },
-    {
       name: { ko: "배길준", en: "Bae Gil-jun" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역 · 암환자 케어", en: "Integrative Immunology · Cancer Care" },
+      specialty: { ko: "통합면역 · 한방재활의학과", en: "Integrative Immunology · KM Rehabilitation Medicine" },
       photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png",
       branch: "gwangmyeong",
     },
@@ -569,7 +562,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "유형진", en: "Yoo Hyeong-jin" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "통합면역 · 암환자 케어", en: "Integrative Immunology · Cancer Care" },
+      specialty: { ko: "통합면역", en: "Integrative Immunology" },
       photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
       branch: "sinchon",
     },
@@ -611,7 +604,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "강주안", en: "Kang Ju-an" },
       role: { ko: "대표원장", en: "Chief Director" },
-      specialty: { ko: "한방내과 · 면역통합의학", en: "KM Internal Medicine · Integrative Immunology" },
+      specialty: { ko: "통합면역", en: "Integrative Immunology" },
       photo: "/immune/doctor/seongdong-dr-kang-juan.png",
       branch: "seongdong",
     },
@@ -639,7 +632,7 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "이문성", en: "Lee Mun-seong" },
       role: { ko: "진료원장", en: "Attending Director" },
-      specialty: { ko: "통증재활센터 · 한방내과", en: "Pain Rehab · KM Internal Medicine" },
+      specialty: { ko: "통증재활센터", en: "Pain Rehabilitation Center" },
       photo: "/immune/doctor/seongdong-dr-lee-munseong.jpg",
       branch: "seongdong",
     },
@@ -660,8 +653,15 @@ export const IMMUNE_HOSPITAL = {
     {
       name: { ko: "이진영", en: "Lee Jin-yeong" },
       role: { ko: "진료원장", en: "Attending Director" },
-      specialty: { ko: "항노화센터 · 한방내과", en: "Anti-Aging · KM Internal Medicine" },
+      specialty: { ko: "항노화센터", en: "Anti-Aging Center" },
       photo: "/immune/doctor/seongdong-dr-lee-jinyeong.jpg",
+      branch: "seongdong",
+    },
+    {
+      name: { ko: "송시은", en: "Song Si-eun" },
+      role: { ko: "진료원장", en: "Attending Director" },
+      specialty: { ko: "항노화센터", en: "Anti-Aging Center" },
+      photo: "/immune/doctor/seongdong-dr-song-sieun.jpg",
       branch: "seongdong",
     },
   ],
