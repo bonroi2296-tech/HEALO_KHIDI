@@ -89,13 +89,16 @@ const TR = {
   subQuick:   { ko: "연락드리는 데 필요한 것만 여쭙니다. 나머지는 코디네이터가 도와드립니다.",
                 en: "We only ask what we need to reach you — a coordinator helps with the rest.",
                 ru: "Спрашиваем только то, что нужно для связи — с остальным поможет координатор." },
-  sub:        { ko: "한국 대학병원 의료진이 환자분의 상태를 정확히 보려면 필요한 내용입니다. 저희가 정리해 전달해 드립니다 — 아는 만큼만 채우셔도 됩니다.",
-                en: "This is what the doctors in Korea need in order to understand your condition properly. We compile and forward it for you — fill in only what you know.",
+  // 말이 길면 안 읽는다(2026-08-18 PO: «말이 너무 장황하잖아»). 한 줄로.
+  sub:        { ko: "적어주시면 저희가 정리해 한국 대학병원에 전달합니다.",
+                en: "Fill this in and we compile it and send it to a Korean university hospital.",
                 ru: "Это сведения, которые нужны корейским врачам, чтобы правильно оценить состояние пациента. Мы всё соберём и передадим — заполняйте только то, что знаете." },
   barIntake:  { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
   jump:       { ko: "남은 칸으로", en: "Take me there", ru: "Перейти к полю" },
-  restNote:   { ko: "여기까지가 필수입니다. 아래는 의료진이 환자분의 상태를 판단하는 데 쓰는 내용이라 지금 안 채우셔도 되고, 보내신 뒤에 이어서 채우셔도 됩니다.",
-                en: "That's all that's required. What follows is what the doctors use to assess your condition — you can leave it for now and continue after sending.",
+  // 「안 채우셔도 되고 채우셔도 되고」는 «그래서 어쩌라는 거야»가 된다(2026-08-18 PO).
+  // 모호하게 두지 말고 «채우면 뭐가 좋아지는지»를 말한다.
+  restNote:   { ko: "여기까지 채우시면 보내실 수 있습니다. 아래는 병원이 답을 주려면 필요한 내용입니다 — 채우실수록 회신이 빨라집니다.",
+                en: "You can send it once you get this far. What follows is what the hospital needs in order to answer — the more you fill in, the faster the reply.",
                 ru: "На этом обязательная часть закончена. Дальше — то, по чему врачи оценивают состояние: можно заполнить позже, уже после отправки." },
   barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
   barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
@@ -113,15 +116,12 @@ const TR = {
                 en: "The more you fill in, the faster the hospital replies",
                 ru: "Чем больше заполните, тем быстрее ответит больница" },
   barRefDone: { ko: "100% — 의료진이 판단하는 데 필요한 내용이 모두 모였습니다", en: "100% — the doctors have everything they need", ru: "100% — у врачей есть всё необходимое" },
-  laterNote:  { ko: "지금 다 못 채워도 됩니다. 보내신 뒤에도 같은 링크에서 이어서 채울 수 있고, 준비가 되면 저희가 대학병원에 전달합니다.",
-                en: "You don't have to finish now. You can keep filling it in from the same link after sending — we forward it once it's ready.",
+  laterNote:  { ko: "보내신 뒤에도 같은 주소에서 이어서 채우실 수 있습니다.",
+                en: "You can keep filling this in from the same link after sending.",
                 ru: "Не обязательно заполнять всё сразу. После отправки можно продолжить по той же ссылке — мы передадим, когда всё будет готово." },
   // 2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
   // 환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
   // → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
-  insuranceNote: { ko: "치료비는 병원에 직접 결제하시게 됩니다. 보험을 이용하시는 경우, 결제 후 보험사에 청구하시거나 저희가 도와드릴 수 있습니다 — 병원이 보험사와 직접 정산하지는 않습니다.",
-                en: "Treatment costs are paid directly to the hospital. If you use insurance, you claim it from your insurer after payment — the hospital does not settle with insurers directly. We can help with the claim.",
-                ru: "Лечение оплачивается напрямую клинике. При использовании страховки возмещение запрашивается у страховой после оплаты — клиника не рассчитывается со страховой напрямую. Мы можем помочь с оформлением." },
   extraDocs:  { ko: "환자분의 상태에 따라 의료진이 자료를 더 보자고 하는 경우가 있습니다. 그때는 저희가 무엇이 왜 필요한지 정리해서 알려드립니다.",
                 en: "Depending on your condition the doctors may ask to see more. If that happens, we will tell you exactly what is needed and why.",
                 ru: "В зависимости от состояния врачи могут запросить дополнительные материалы. В этом случае мы объясним, что именно нужно и зачем." },
@@ -493,7 +493,6 @@ export default function ReferralForm() {
               <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-xs leading-relaxed text-teal-800 md:text-sm">
                 {tr("laterNote", lang)}
               </p>
-              <p className="mt-2 px-1 text-xs leading-relaxed text-gray-600">{tr("insuranceNote", lang)}</p>
             </>
           )}
         </div>
@@ -556,8 +555,9 @@ export default function ReferralForm() {
                 )}
               </section>
             );
-            // 「먼저, 이것만」 바로 아래에서 한 번 더 말해준다 — 여기부터는 안 채워도 보낼 수 있다.
-            return i === 0 && !quick ? (
+            // 🛑 «연락처» 묶음 뒤에 붙인다 — 자료 묶음 뒤에 붙이면 「자료만 올리면 끝」으로 읽힌다
+            //    (2026-08-18 PO: «자료 업로드 하고 땡이야? 정작 기본 연락처는 그 다음인데?»).
+            return sec.id === "essentials" && !quick ? (
               <div key={sec.id} className="space-y-3">
                 {card}
                 <p className="px-1 pt-2 text-xs leading-relaxed text-gray-600 md:text-sm">{tr("restNote", lang)}</p>
