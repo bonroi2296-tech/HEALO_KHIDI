@@ -177,22 +177,18 @@ export const SECTIONS = [
             "Only what we need to reach you. You can send it with just this filled in.",
             "Только то, что нужно, чтобы связаться с вами. Этого уже достаточно для отправки."),
     fields: [
+      // 🛑 「라틴 문자 그대로」 같은 설명을 따로 붙이지 마라(2026-08-18 PO: 「그게 무슨 말이야,
+      //    영문이면 어떡할라고?」). 러시아어 여권엔 키릴·라틴이 같이 적혀 있어 «어느 줄»인지만
+      //    말하면 된다 — 그건 칸 이름 한 줄로 충분하고, 밑에 또 적으면 같은 말 두 번이다.
       { name: "lastName", type: "text", req: "intake", half: true,
-        label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (как в паспорте)") },
+        label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (латиницей, как в паспорте)") },
       { name: "firstName", type: "text", req: "intake", half: true,
-        label: L("이름 (여권 영문 표기)", "Given name (as in passport)", "Имя (как в паспорте)") },
-      { name: "_nameHint", type: "note",
-        label: L(
-          "여권에 적힌 라틴 문자 그대로 적어주세요. 병원은 이 표기로 환자를 등록합니다.",
-          "Use the Latin spelling exactly as in the passport — the hospital registers the patient under this spelling.",
-          "Укажите латиницей точно как в паспорте — больница регистрирует пациента именно по этому написанию.") },
+        label: L("이름 (여권 영문 표기)", "Given name (as in passport)", "Имя (латиницей, как в паспорте)") },
       { name: "email", type: "email", req: "intake", half: true,
         label: L("이메일", "Email", "Электронная почта") },
       { name: "patientLang", type: "lang", req: "intake", half: true,
-        label: L("연락받으실 언어", "Language for us to contact you in", "Язык для связи с вами"),
-        hint: L("코디네이터가 이 언어로 연락합니다.",
-                "Your coordinator will contact you in this language.",
-                "Координатор свяжется с вами на этом языке.") },
+        // 🛑 「이 언어로 연락합니다」를 되살리지 마라 — 칸 이름이 이미 그 말이다(2026-08-18 PO).
+        label: L("연락받으실 언어", "Language for us to contact you in", "Язык для связи с вами") },
       { name: "cancerType", type: "cancerType", req: "intake", half: true,
         label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
       { name: "phone", type: "phone", req: "optional", half: true,
