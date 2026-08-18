@@ -823,8 +823,15 @@ try {
     }
     // 거꾸로도 본다: 라이브 소스에만 있고 명단에 없는 사람(= 새로 온 원장을 한쪽만 넣은 것).
     // 2026-08-18 실측: 이 방향이 없어서 송시은 원장이 사본 3곳에서 빠진 채 통과했다.
-    const liveDoctorBlock = live.slice(live.indexOf("\n  doctors: ["), live.indexOf("\n  teamStructure:"));
+    const liveFrom = live.indexOf("\n  doctors: [");
+    const liveTo = live.indexOf("\n  teamStructure:");
+    const liveDoctorBlock = liveFrom >= 0 && liveTo > liveFrom ? live.slice(liveFrom, liveTo) : "";
     const liveNames = [...liveDoctorBlock.matchAll(/name: \{ ko: "([가-힣]{2,5})"/g)].map((m) => m[1]);
+    if (!liveNames.length) {
+      // 표시가 밀리면 자를 구간을 못 찾고 «이름 0명»이 된다 — 그걸 통과로 읽으면
+      // 이 검사가 잡으려던 바로 그 실패(한쪽에만 들어간 원장)를 조용히 놓친다.
+      errors.push(`[의료진드리프트] immuneHospitalInfo.js 의 doctors[] 구간에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+    }
     for (const n of new Set(liveNames)) {
       if (!names.includes(n)) {
         errors.push(`[의료진드리프트] immuneHospitalInfo.js 의 "${n}" 이 ${ROSTER_SRC} 명단에 없음 — 한쪽만 갱신한 것 (POSTMORTEMS #66)`);

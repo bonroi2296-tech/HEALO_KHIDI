@@ -93,12 +93,24 @@ async function seed() {
       is_active: true,
     };
 
-    const { data: existing } = await supabase
+    // 조회가 «실패»한 것과 «없는» 것은 다르다 — 오류를 삼키면 이미 있는 사람을 또 넣는다.
+    const { data: existing, error: lookupError } = await supabase
       .from("partner_doctors")
-      .select("id")
+      .select("id, i18n")
       .eq("branch_id", branchId)
       .eq("name_ko", doc.name.ko)
       .maybeSingle();
+
+    if (lookupError) {
+      console.error(`  ${doc.name.ko} 건너뜀 — 기존 행 조회 실패:`, lookupError.message);
+      continue;
+    }
+
+    if (existing) {
+      // 백오피스에서 사람이 넣은 러시아어·카자흐어·중국어·일본어 번역을 지우지 않는다.
+      // 여기서 만드는 건 영어뿐이라, 통째로 덮어쓰면 나머지 언어가 증발한다.
+      record.i18n = { ...(existing.i18n || {}), ...record.i18n };
+    }
 
     const { error } = existing
       ? await supabase.from("partner_doctors").update(record).eq("id", existing.id)

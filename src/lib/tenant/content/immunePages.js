@@ -340,7 +340,7 @@ export const IMMUNE_PAGES = {
         photo: "/immune/doctor/sinchon-dr-hong-jeonghwa.jpg",
       },
 
-      /* ── 성동점 8명 ── */
+      /* ── 성동점 9명 ── */
       {
         name: { ko: "강주안", en: "Dr. Kang Ju-an", ru: "Д-р Кан Чжу-ан", kz: "Д-р Кан Чжу-ан", zh: "강주안", ja: "カン・ジュアン" },
         title: { ko: "성동점 대표원장", en: "Seongdong Director", ru: "Сондон Главный врач", kz: "Сондон Бас дәрігер", zh: "城东院区 代表院长", ja: "城東院 代表院長" },
