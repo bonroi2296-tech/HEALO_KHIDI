@@ -125,6 +125,7 @@ export const SECTIONS = [
   {
     id: "documents",
     title: L("먼저, 자료부터", "Documents first", "Сначала документы"),
+    // 🛑 머리말이 이미 «왜 필요한지»를 말한다 — 여기서 또 하면 같은 말이 두 번이다(2026-08-18 PO: 장황함).
     lead: L("올려주시면 저희가 읽고 아래 칸을 대신 채워드립니다.",
             "Upload what you have and we fill the fields below for you.",
             "Загрузите — мы прочитаем и заполним поля ниже за вас."),
@@ -154,9 +155,9 @@ export const SECTIONS = [
                  "Если есть копия паспорта, приложите её — номер мы считаем сами, а больнице она нужна при записи.") },
       { name: "cdFolder", type: "cdFolder", req: "optional",
         label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
-        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다 — 묶는 건 저희가 합니다.",
-                "Insert the CD and pick the whole folder. Even with hundreds of files inside you don't have to select them one by one — we bundle it for you.",
-                "Вставьте диск и выберите папку целиком. Даже если внутри сотни файлов, выбирать по одному не нужно — мы соберём их сами.") },
+        hint: L("CD를 넣고 폴더를 통째로 골라주세요. 안에 파일이 몇백 개라도 하나씩 고르실 필요 없습니다.",
+                "Insert the CD and pick the whole folder — hundreds of files inside are fine.",
+                "Вставьте диск и выберите папку целиком — даже если внутри сотни файлов.") },
 
       // ── 여권 ──
       // 틀렸던 전제 교정(2026-08-14 PO): 이대서울병원은 «예약 전»에도 여권을 요구한다.
@@ -293,7 +294,7 @@ export const SECTIONS = [
       { name: "icdCode", type: "icdSuggest", req: "optional",
         label: L("질병 코드 (아는 경우에만)", "Disease code (only if you know it)", "Код заболевания (если известен)"),
         hint: L(
-          "진단서에 C18.2 같은 코드가 있으면 골라주세요. 몰라도 괜찮습니다 — 올려주신 서류를 보고 저희가 확인합니다.",
+          "진단서에 C18.2 같은 코드가 있으면 골라주세요. 몰라도 괜찮습니다.",
           "Pick it if your document shows a code like C18.2. It is fine not to know — we confirm it from your documents.",
           "Выберите, если в документе есть код вроде C18.2. Можно не знать — мы уточним по вашим документам.") },
       { name: "diagnosisDate", type: "month", req: "referral", half: true,
