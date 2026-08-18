@@ -120,7 +120,9 @@ const REFERRAL_WANTS = [
 const FLIGHT_FITNESS = [
   { value: "yes", label: L("가능", "Fit to fly", "Может лететь") },
   { value: "no", label: L("불가", "Not fit", "Не может") },
-  { value: "unknown", label: L("주치의에게 확인 안 됨", "Not confirmed by doctor", "Не подтверждено врачом") },
+  // 🛑 「확인 안 됨」으로 되돌리지 마라(2026-08-18 PO) — 안 한 일을 탓하는 말로 읽힌다.
+  //    「확인 필요함」은 «앞으로 할 일»이라 고르기도 쉽고 코디네이터에게도 그대로 할 일이 된다.
+  { value: "unknown", label: L("확인 필요함", "Needs to be confirmed", "Требуется уточнить") },
 ];
 
 export const SECTIONS = [
