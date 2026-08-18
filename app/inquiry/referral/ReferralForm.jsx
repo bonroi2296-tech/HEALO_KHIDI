@@ -380,6 +380,9 @@ export default function ReferralForm() {
           </div>
           {!quick && (
             <>
+              {/* 🛑 「이어서 채우실 수 있습니다」로 되돌리지 마라(2026-08-19 실측). 이어채우기 화면(/claim)엔
+                  «자료 더 올리기·글 덧붙이기»만 있고 남은 칸을 채우는 길은 없다. 약속은 있는 만큼만.
+                  칸 이어채우기를 붙일지는 PO 판단 항목(PROJECT_CONTEXT 참고). */}
               <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-xs leading-relaxed text-teal-800 md:text-sm">
                 {tr("laterNote", lang)}
               </p>
@@ -593,10 +596,13 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
         <div className="flex flex-wrap gap-2">
           {f.options.map((o) => {
             const on = multi ? cur.includes(o.value) : cur === o.value;
+            // 🛑 «그 순간의 값(cur)»으로 계산해 넘기지 마라 — 화면이 바쁠 때(서류 판독 중) 두 개를
+            //    빠르게 누르면 둘 다 옛 값을 보고 «마지막 것만» 남는다(2026-08-19 실측: 2개 눌렀는데 1개 저장).
+            //    최신 값을 받아 계산하는 함수로 넘긴다(set() 이 함수형을 받는다).
             return (
               <button key={o.value} type="button"
                 onClick={() => onChange(f.name, multi
-                  ? (on ? cur.filter((x) => x !== o.value) : [...cur, o.value])
+                  ? (prev) => { const p = Array.isArray(prev) ? prev : []; return p.includes(o.value) ? p.filter((x) => x !== o.value) : [...p, o.value]; }
                   : (on ? "" : o.value))}
                 className={`rounded-full border px-4 py-2 text-sm transition-all duration-200 ${
                   on ? "border-teal-700 bg-teal-50 font-semibold text-teal-800" : "border-gray-300 text-gray-700 hover:border-gray-400"}`}>

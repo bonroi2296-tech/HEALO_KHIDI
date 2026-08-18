@@ -35,9 +35,9 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceived";
 import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
+import { safeLink, toCanonicalConsents, toDateOrNull } from "@/lib/inquiry/referralSubmit";
 
 const s = (max: number) => z.string().max(max).nullable().optional();
-
 const Schema = z.object({
   // 접수 문턱 — 화면과 «같은 5칸». 여기를 늘리려면 referralSchema.js 부터 고쳐라.
   lastName: z.string().min(1).max(100),
@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
       sex: d.sex ?? null,
       diagnosisNameRaw: enc(d.diagnosisNameRaw ?? null),
       icdCode: d.icdCode ?? null,
+      stage: d.stage ?? null,                       // 병기는 그 자체로 사람을 특정하지 않는다 — 평문
+      diagnosisDate: enc(d.diagnosisDate ?? null),  // 건강정보 — 암호화(옛 intake.diagnosis_date 와 같은 취급)
       onsetDate: enc(d.onsetDate ?? null),
       chiefComplaint: enc(d.chiefComplaint ?? null),
       testsAndTreatments: enc(d.testsAndTreatments ?? null),
@@ -151,9 +153,9 @@ export async function POST(request: NextRequest) {
         path: f.path ?? null, name: f.name ?? null, size: f.size ?? null,
         kind: f.kind ?? "unknown", confidence: f.confidence ?? null,
         correctedByUser: f.corrected === true,
-        link: f.link ?? null,   // 200MB 를 넘어 못 올린 경우 사람이 남긴 대용량 저장소 주소
+        link: safeLink(f.link),   // 200MB 를 넘어 못 올린 경우 사람이 남긴 대용량 저장소 주소
       })),
-      cdFolder: d.cdFolder ?? null,
+      cdFolder: d.cdFolder ? { ...d.cdFolder, link: safeLink(d.cdFolder.link) } : null,
       consents,
       consentAt: new Date().toISOString(),
     };
@@ -171,9 +173,11 @@ export async function POST(request: NextRequest) {
         phone: enc(d.phone ?? null),
         treatment_type: d.cancerType,
         preferred_date: d.preferredDate || null,
-        preferred_date_flex: d.dateFlexible ?? true,
+        // 🛑 기본을 true 로 두지 마라 — 환자가 「날짜는 조율 가능합니다」를 안 눌렀는데 코디 화면에
+        //    「(조율 가능)」이 붙는다(2026-08-19 실측 #119). 안 눌렀으면 아니오다.
+        preferred_date_flex: d.dateFlexible === true,
         attachments: (d.envelope ?? []).map((f) => ({ path: f.path, name: f.name, kind: f.kind })),
-        intake: { consents, consentAt: intakeData.consentAt },
+        intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt },
         intake_data: intakeData,
         intake_step: d.mode === "quick" ? "referral_quick" : "referral_full",
         status: "received",
@@ -206,7 +210,7 @@ export async function POST(request: NextRequest) {
           inquiry_id: row.id,
           cancer_type: d.cancerType,
           cancer_stage: d.stage || null,
-          diagnosis_date: d.diagnosisDate || null,
+          diagnosis_date: toDateOrNull(d.diagnosisDate),
           language_preference: d.patientLang,
         }, { onConflict: "inquiry_id" });
       // 실패해도 접수는 성공이다 — 본체는 이미 들어갔다.

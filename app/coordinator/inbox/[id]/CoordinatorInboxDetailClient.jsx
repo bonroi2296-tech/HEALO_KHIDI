@@ -27,6 +27,7 @@ import OpinionsSection from "./OpinionsSection";
 import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
+import ReferralSection from "./ReferralSection";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -1174,6 +1175,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           </Card>
         );
       })()}
+
+      {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
+      <ReferralSection referral={inquiry.referral} lang={lang} />
 
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
