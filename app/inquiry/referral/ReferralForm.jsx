@@ -14,6 +14,7 @@ import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide
 import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, splitDrop } from "@/lib/inquiry/cdBundle";
@@ -230,7 +231,7 @@ export default function ReferralForm() {
     setHighlight(name);
     requestAnimationFrame(() => {
       document.getElementById(name === "consent" ? "consent-block" : `f-${name}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        ?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     });
   };
   const jumpToNext = () => jumpTo(missIntake[0] || (consentOk ? null : "consent"), "essentials");
@@ -300,8 +301,10 @@ export default function ReferralForm() {
   // (실측: 스크롤은 됐는데 focus 가 다시 풀려 아무 표시도 안 남았다).
   useEffect(() => {
     if (!highlight) return;
-    const t = setTimeout(() => setHighlight(null), 2500);
-    return () => clearTimeout(t);
+    // 🛑 이 변수를 t 로 되돌리지 마라 — 사전 함수 t() 를 가려서 이 안의 t("키") 가
+    //    「숫자를 호출」하게 된다. 빌드·타입·검사는 다 통과하고 «화면에서만» 터진다.
+    const timer = setTimeout(() => setHighlight(null), 2500);
+    return () => clearTimeout(timer);
   }, [highlight]);
 
   if (sent) {

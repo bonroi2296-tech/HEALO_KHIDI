@@ -102,7 +102,12 @@ export function resolveTestDomains(): string[] {
   //   그래서 사후 그물이 아니라 «만드는 시점»에서 막아야 한다.
   //   healo-test.invalid 는 이미 이 저장소가 내부 전용으로 쓰는 도메인이다
   //   (scripts/dev-login-as.mjs 의 허용 목록과 같은 뜻).
-  return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid"];
+  //   healwith.co.kr 을 넣는 이유(2026-08-18 실측): 의뢰서 「보내기」를 확인하려고
+  //   admin@healwith.co.kr 로 넣었더니 **진짜 문의 #118 로 저장됐다**(is_test=false).
+  //   우리 회사 주소로 문의하는 환자는 없다 — 전부 우리 시험이다. KHIDI 실적에 섞이면
+  //   그건 허위 실적이 된다. 「사후에 골라내기」는 이미 한 번 실패한 길이라(위 로봇 문의)
+  //   만드는 시점에서 막는다.
+  return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid", "healwith.co.kr"];
 }
 
 /**
