@@ -13,43 +13,41 @@
  *         false = 있으면 좋지만 없다고 안내하지는 않는 것.
  */
 
-import { EXTRA } from "./referralI18n";
+import { t } from "@/lib/i18n";
 
-// 카자흐·중국어·일본어는 덧대기 사전에서 (referralI18n.js)
-const L = (ko, en, ru) => ({ ko, en, ru, ...(EXTRA[ko] || {}) });
+// 문구는 사전(dictionary.js)에 있다 — 코디 편집기로 고칠 수 있게. 여기는 키만 든다.
+const K = (key) => ({ key });
 
 export const DOC_KINDS = [
   { value: "discharge", needed: true, label:
-    L("진단서 · 퇴원요약", "Discharge summary / medical certificate", "Выписка / эпикриз") },
+    K("referral.doc.discharge") },
   { value: "pathology", needed: true, label:
-    L("조직검사 결과", "Pathology / biopsy result", "Гистология / биопсия") },
+    K("referral.doc.pathology") },
   { value: "imaging_report", needed: true, label:
-    L("영상 판독지 (CT · MRI 등)", "Imaging report (CT / MRI)", "Заключение по снимкам (КТ / МРТ)") },
+    K("referral.doc.imaging_report") },
   { value: "blood", needed: true, label:
-    L("혈액검사 결과", "Blood test result", "Анализ крови") },
+    K("referral.doc.blood") },
   { value: "endoscopy", needed: false, label:
-    L("내시경 결과지 · 사진", "Endoscopy report / images", "Заключение эндоскопии / снимки") },
+    K("referral.doc.endoscopy") },
   { value: "surgery_record", needed: false, label:
-    L("수술기록지", "Surgery record", "Протокол операции") },
+    K("referral.doc.surgery_record") },
   { value: "chemo_record", needed: false, label:
-    L("항암 치료 기록", "Chemotherapy record", "Записи химиотерапии") },
+    K("referral.doc.chemo_record") },
   { value: "radio_record", needed: false, label:
-    L("방사선 치료 기록", "Radiotherapy record", "Записи лучевой терапии") },
+    K("referral.doc.radio_record") },
   { value: "prescription", needed: false, label:
-    L("처방전", "Prescription", "Рецепт") },
+    K("referral.doc.prescription") },
   { value: "passport", needed: false, label:
-    L("여권 사본", "Passport copy", "Копия паспорта") },
+    K("referral.doc.passport") },
   { value: "imaging_file", needed: false, label:
-    L("영상 파일 (DICOM)", "Imaging files (DICOM)", "Файлы снимков (DICOM)") },
+    K("referral.doc.imaging_file") },
   { value: "other", needed: false, label:
-    L("그 밖의 서류", "Other document", "Другой документ") },
+    K("referral.doc.other") },
   // 「판별 못 함」은 «누가» 못 했단 건지·«내가 뭐해야 하는지»를 안 알려준다(2026-08-14 PO:
   // 「사용자가 판별을 못했다는거야 아님 뭐 어쩌라는건데?」).
   // 고르는 칸의 한 줄은 «사람이 고를 수 있는 답» 이어야 한다 — 상태 보고가 아니라.
   { value: "unknown", needed: false, label:
-    L("저도 잘 모르겠습니다 — 코디네이터가 확인해 주세요",
-      "I'm not sure either — please have a coordinator check",
-      "Я тоже не знаю — пусть проверит координатор") },
+    K("referral.doc.unknown") },
 ];
 
 /** 대학병원이 요구하는 종류만. 「아직 없는 것」 목록의 기준. */
@@ -60,7 +58,7 @@ export const isKnownKind = (v) => DOC_KINDS.some((k) => k.value === v);
 export function kindLabel(value, lang) {
   const k = DOC_KINDS.find((x) => x.value === value);
   if (!k) return value || "";
-  return k.label[lang] || k.label.en || k.label.ko;
+  return t(k.label.key, lang);
 }
 
 /**

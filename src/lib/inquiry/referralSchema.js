@@ -32,27 +32,30 @@
 // 국적·전화 국가번호·암종·병기 목록은 지금 폼과 같은 것을 쓴다(저장값 불변).
 // 화면이 intakeLabels.js 에서 직접 가져다 쓴다 — 여기서 다시 정의하지 않는다.
 
-// 카자흐·중국어·일본어는 «덧대기» 사전에서 붙인다 — 원문 옆에 6줄을 늘어놓으면
-// 「무슨 칸인지」가 안 보인다. 열쇠는 한국어 원문이다(referralI18n.js 머리 설명 참고).
-import { EXTRA } from "./referralI18n";
+import { t } from "@/lib/i18n";
 
-const L = (ko, en, ru) => ({ ko, en, ru, ...(EXTRA[ko] || {}) });
+// 📐 문구는 여기 없다 — 사전(src/lib/i18n/dictionary.js)에 있다.
+//    그래야 코디 백오피스 편집기(/coordinator/content)로 «배포 없이» 고칠 수 있다
+//    (2026-08-18 PO: 「코디 백오피스 편집기로 수정 가능한 거지?」 — 그때는 안 됐다).
+//    여기가 들고 있는 건 «어느 키를 쓰는지»뿐이다.
+// 🛑 문구를 다시 이 파일에 적지 마라. 적는 순간 편집기에서 안 보이고, 고치려면 배포를 기다려야 한다.
+const K = (key) => ({ key });
 
 /** 성별 — 두 병원 양식 모두 필수 */
 const SEX = [
-  { value: "female", label: L("여성", "Female", "Женский") },
-  { value: "male", label: L("남성", "Male", "Мужской") },
+  { value: "female", label: K("referral.opt.sex.female") },
+  { value: "male", label: K("referral.opt.sex.male") },
 ];
 
 /** 과거력 — 세브란스 양식이 예시로 지목한 항목 그대로 */
 const PAST_HISTORY = [
-  { value: "hypertension", label: L("고혈압", "Hypertension", "Гипертония") },
-  { value: "diabetes", label: L("당뇨", "Diabetes", "Диабет") },
-  { value: "hepatitis", label: L("간염", "Hepatitis", "Гепатит") },
-  { value: "tuberculosis", label: L("결핵", "Tuberculosis", "Туберкулёз") },
-  { value: "allergy", label: L("알레르기", "Allergy", "Аллергия") },
-  { value: "surgery", label: L("수술 이력", "Past surgery", "Перенесённые операции") },
-  { value: "none", label: L("해당 없음", "None", "Нет") },
+  { value: "hypertension", label: K("referral.opt.past.hypertension") },
+  { value: "diabetes", label: K("referral.opt.past.diabetes") },
+  { value: "hepatitis", label: K("referral.opt.past.hepatitis") },
+  { value: "tuberculosis", label: K("referral.opt.past.tuberculosis") },
+  { value: "allergy", label: K("referral.opt.past.allergy") },
+  { value: "surgery", label: K("referral.opt.past.surgery") },
+  { value: "none", label: K("referral.opt.past.none") },
 ];
 
 /**
@@ -67,35 +70,19 @@ const PAST_HISTORY = [
  * 🛑 「완치」·「보장」류 단어 금지(의료광고법). 문을 닫지도 마라 — 결정은 환자 몫이다.
  */
 export const LATE_STAGE_NOTICE = {
-  title: {
-    ko: "먼저 알려드립니다.",
-    en: "Before you continue.",
-    ru: "Сразу предупредим.",
-  },
+  title: K("referral.late.title"),
   // 「진행된 병기」처럼 돌려 말하지 마라(PO 2026-08-13). 환자는 방금 «4기»를 직접 골랐다.
   // 에둘러 말하면 얼버무리는 것으로 읽히고, 무슨 얘긴지도 흐려진다. 고른 그대로 부른다.
   // 「직접 보지 않고는」이라고 쓰지 마라(PO 2026-08-13) — 얼굴을 본다는 뜻으로 읽힌다.
   // 실제로 필요한 건 «검사»다. 그대로 적는다.
-  body: {
-    ko: "4기는 서류만으로 치료 계획과 비용을 답변드리기 어렵습니다. 환자분의 상태를 검사하기 전에는 책임 있는 답을 드릴 수 없기 때문입니다.",
-    en: "At stage IV the hospital cannot give a treatment plan or cost from documents alone — a responsible answer is only possible after the patient is examined.",
-    ru: "При 4 стадии клиника не может дать план лечения и стоимость только по документам — ответственный ответ возможен только после обследования пациента.",
-  },
+  body: K("referral.late.body"),
   points: [
     // 「회신」의 주인을 밝힌다(PO 2026-08-13) — 안 밝히면 «우리» 회신으로 읽힌다.
-    {
-      ko: "대학병원으로부터 회신이 늦어지거나, 「현지에서 치료를 이어가시라」는 답을 받으실 수 있습니다",
-      en: "The reply from the university hospital may be delayed, or may say it is better to continue treatment at home",
-      ru: "Ответ из университетской клиники может задержаться или прийти в виде «лучше продолжить лечение дома»",
-    },
+    K("referral.late.p1"),
     // 「검사만 받는 길」이라고 쓰지 마라 — 거기서 끝난다는 뜻으로 읽혀 문을 닫는다(PO 2026-08-13).
     // 실제로는 «검사부터» 시작하고 결과에 따라 치료로 이어진다. 다만 치료를 약속하는 문장이
     // 되면 안 되므로 「결과에 따라」를 반드시 남긴다(의료광고법).
-    {
-      ko: "대신 한국에 오셔서 검사부터 받아보는 길도 있습니다. 결과에 따라 치료 방향이 정해지며, 비용과 기간은 케이스마다 달라 확인 후 안내드립니다.",
-      en: "Alternatively you can come to Korea and start with an examination. The results determine what treatment is possible; cost and duration vary by case, and we will confirm and let you know.",
-      ru: "Есть другой путь — приехать в Корею и начать с обследования. По его результатам определяется тактика лечения; стоимость и сроки зависят от случая, мы уточним и сообщим.",
-    },
+    K("referral.late.p2"),
   ],
 };
 
@@ -109,24 +96,18 @@ export const LATE_STAGES = ["IV"];
 //   정작 병원이 회신하는 것은 「소견·예상비용」이다(이대서울 8/14 회신 실물).
 //   자유 서술 칸 하나로만 받으면 비워 둔다 — 가장 흔한 둘을 누를 수 있게 놓는다.
 const REFERRAL_WANTS = [
-  { value: "opinion", label: L("소견서 (한국 의료진의 제2 의견)",
-                               "A written second opinion from a Korean specialist",
-                               "Письменное второе мнение корейского врача") },
-  { value: "cost",    label: L("예상 치료비", "Estimated treatment cost", "Ориентировочная стоимость лечения") },
-  { value: "feasible",label: L("한국에서 치료가 가능한지",
-                               "Whether treatment in Korea is possible",
-                               "Возможно ли лечение в Корее") },
-  { value: "schedule",label: L("언제 갈 수 있는지 · 얼마나 걸리는지",
-                               "When I could come and how long it would take",
-                               "Когда можно приехать и сколько это займёт") },
+  { value: "opinion", label: K("referral.opt.wants.opinion") },
+  { value: "cost",    label: K("referral.opt.wants.cost") },
+  { value: "feasible",label: K("referral.opt.wants.feasible") },
+  { value: "schedule",label: K("referral.opt.wants.schedule") },
 ];
 
 const FLIGHT_FITNESS = [
-  { value: "yes", label: L("가능", "Fit to fly", "Может лететь") },
-  { value: "no", label: L("불가", "Not fit", "Не может") },
+  { value: "yes", label: K("referral.opt.flight.yes") },
+  { value: "no", label: K("referral.opt.flight.no") },
   // 🛑 「확인 안 됨」으로 되돌리지 마라(2026-08-18 PO) — 안 한 일을 탓하는 말로 읽힌다.
   //    「확인 필요함」은 «앞으로 할 일»이라 고르기도 쉽고 코디네이터에게도 그대로 할 일이 된다.
-  { value: "unknown", label: L("확인 필요함", "Needs to be confirmed", "Требуется уточнить") },
+  { value: "unknown", label: K("referral.opt.flight.unknown") },
 ];
 
 export const SECTIONS = [
@@ -136,20 +117,16 @@ export const SECTIONS = [
   // 사람에게 먼저 치게 시키는 셋이다(2026-08-14 PO 지적).
   {
     id: "documents",
-    title: L("먼저, 자료부터", "Documents first", "Сначала документы"),
+    title: K("referral.sec.documents.title"),
     // 🛑 머리말이 이미 «왜 필요한지»를 말한다 — 여기서 또 하면 같은 말이 두 번이다(2026-08-18 PO: 장황함).
-    lead: L("올려주시면 저희가 읽고 아래 칸을 대신 채워드립니다.",
-            "Upload what you have and we fill the fields below for you.",
-            "Загрузите — мы прочитаем и заполним поля ниже за вас."),
+    lead: K("referral.sec.documents.lead"),
     fields: [
       // 🛑 종류별로 칸을 나누지 마라. 나눠도 이상한 게 오는 건 똑같고(칸 이름은 아무것도
       //    보장 안 한다) 환자에게 «판단»을 시켜서 안 내게 만들 뿐이다.
       //    실서비스에 실제로 올라온 파일 이름: `папка 2.rar` · `мед доки.pdf` · `image01.png`.
       //    분류는 우리가 한다 → /api/inquiry/classify-doc 가 올리는 즉시 열어보고 종류를 추정한다.
       { name: "envelope", type: "envelope", req: "referral", kind: "medicalDoc",
-        label: L("가지고 계신 서류를 그대로 올려주세요",
-                 "Upload whatever documents you have, as they are",
-                 "Загрузите документы, которые у вас есть, как есть"),
+        label: K("referral.f.envelope.label"),
         hint: null },
       // 병원에서 받아온 CD 를 «폴더째» 고르게 한다. 압축은 브라우저가 한다.
       // 🛑 「구글 드라이브에 올려 링크 주세요」 칸을 여기 되살리지 마라(2026-08-13 결정):
@@ -160,7 +137,7 @@ export const SECTIONS = [
       //    여기는 «올리는» 자리다. 번호는 여권을 올리면 저절로 채워지고(실측 5칸),
       //    칸 자체는 ③환자 신원에 있다.
       { name: "cdFolder", type: "cdFolder", req: "optional",
-        label: L("병원에서 받은 CD (CT · MRI)", "Hospital CD (CT / MRI)", "Диск из больницы (КТ / МРТ)"),
+        label: K("referral.f.cdFolder.label"),
         // 🛑 여기에 안내를 되살리지 마라 — 자료 상자가 하나로 합쳐지면서 이 문구만 저 아래
         //    동떨어져 떠 있었다(2026-08-18 PO). 안내는 「폴더째 올리기」 버튼 바로 밑에 있다.
       },
@@ -184,27 +161,25 @@ export const SECTIONS = [
   //    안 알려주는 화면은 사람을 헤매게 한다. 문턱은 한 자리에 모은다.
   {
     id: "essentials",
-    title: L("연락처 · 기본 정보", "Contact · basics", "Контакты и основное"),
-    lead: L("연락드리는 데 필요한 것만입니다. 여기까지만 채우셔도 보내실 수 있습니다.",
-            "Only what we need to reach you. You can send it with just this filled in.",
-            "Только то, что нужно, чтобы связаться с вами. Этого уже достаточно для отправки."),
+    title: K("referral.sec.essentials.title"),
+    lead: K("referral.sec.essentials.lead"),
     fields: [
       // 🛑 「라틴 문자 그대로」 같은 설명을 따로 붙이지 마라(2026-08-18 PO: 「그게 무슨 말이야,
       //    영문이면 어떡할라고?」). 러시아어 여권엔 키릴·라틴이 같이 적혀 있어 «어느 줄»인지만
       //    말하면 된다 — 그건 칸 이름 한 줄로 충분하고, 밑에 또 적으면 같은 말 두 번이다.
       { name: "lastName", type: "text", req: "intake", half: true,
-        label: L("성 (여권 영문 표기)", "Family name (as in passport)", "Фамилия (латиницей, как в паспорте)") },
+        label: K("referral.f.lastName.label") },
       { name: "firstName", type: "text", req: "intake", half: true,
-        label: L("이름 (여권 영문 표기)", "Given name (as in passport)", "Имя (латиницей, как в паспорте)") },
+        label: K("referral.f.firstName.label") },
       { name: "email", type: "email", req: "intake", half: true,
-        label: L("이메일", "Email", "Электронная почта") },
+        label: K("referral.f.email.label") },
       { name: "patientLang", type: "lang", req: "intake", half: true,
         // 🛑 「이 언어로 연락합니다」를 되살리지 마라 — 칸 이름이 이미 그 말이다(2026-08-18 PO).
-        label: L("연락받으실 언어", "Language for us to contact you in", "Язык для связи с вами") },
+        label: K("referral.f.patientLang.label") },
       { name: "cancerType", type: "cancerType", req: "intake", half: true,
-        label: L("어떤 암인가요?", "Cancer type", "Тип рака") },
+        label: K("referral.f.cancerType.label") },
       { name: "phone", type: "phone", req: "optional", half: true,
-        label: L("휴대전화", "Mobile", "Мобильный телефон") },
+        label: K("referral.f.phone.label") },
     ],
   },
 
@@ -216,41 +191,34 @@ export const SECTIONS = [
   //    맨 마지막에 묻고 있었으니 당연히 안 적고 나간다.
   {
     id: "purpose",
-    title: L("의뢰 목적 · 일정", "Purpose & schedule", "Цель обращения и сроки"),
+    title: K("referral.sec.purpose.title"),
     fields: [
       { name: "referralWants", type: "chipsMulti", req: "referral", options: REFERRAL_WANTS,
-        label: L("무엇을 받고 싶으세요? (여러 개 고르셔도 됩니다)",
-                 "What would you like to receive? (choose as many as apply)",
-                 "Что вы хотели бы получить? (можно несколько)") },
+        label: K("referral.f.referralWants.label") },
       // 🛑 칸 이름에 「(선택)」을 다시 박지 마라 — 화면이 꼬리표를 따로 붙여서 「(선택)(선택)」이 됐다.
       { name: "referralPurpose", type: "textarea", req: "optional",
-        label: L("병원에 더 물어보고 싶은 것",
-                 "Anything else to ask the hospital",
-                 "Что ещё спросить у клиники"),
-        placeholder: L(
-          "예: 지금 먹는 약을 계속 먹어도 되는지, 보호자가 같이 있어야 하는지",
-          "e.g. whether I can keep taking my current medication, whether a family member must stay with me",
-          "например: можно ли продолжать принимать текущие лекарства, нужно ли сопровождение родственника"),
+        label: K("referral.f.referralPurpose.label"),
+        placeholder: K("referral.f.referralPurpose.ph"),
       },
       { name: "preferredDate", type: "date", req: "referral", half: true,
-        label: L("한국에 오시고 싶은 날짜", "When would you like to come to Korea?", "Когда вы хотели бы приехать в Корею?") },
+        label: K("referral.f.preferredDate.label") },
       { name: "dateFlexible", type: "check", req: "optional", half: true,
-        label: L("날짜는 조율 가능합니다", "The date is flexible", "Дата может быть скорректирована") },
+        label: K("referral.f.dateFlexible.label") },
       { name: "flightFitness", type: "chips", req: "referral", options: FLIGHT_FITNESS,
-        label: L("장시간 비행이 가능한 상태인가요?", "Is the patient fit for a long flight?", "Может ли пациент перенести длительный перелёт?"),
+        label: K("referral.f.flightFitness.label"),
       },
     ],
   },
   {
     id: "identity",
-    title: L("환자 신원", "Patient details", "Данные пациента"),
+    title: K("referral.sec.identity.title"),
     fields: [
       { name: "birthDate", type: "date", req: "referral", half: true,
-        label: L("생년월일", "Date of birth", "Дата рождения") },
+        label: K("referral.f.birthDate.label") },
       { name: "sex", type: "chips", req: "referral", half: true, options: SEX,
-        label: L("성별", "Gender", "Пол") },
+        label: K("referral.f.sex.label") },
       { name: "nationality", type: "nationality", req: "referral", half: true,
-        label: L("국적", "Nationality", "Гражданство") },
+        label: K("referral.f.nationality.label") },
       // 여권을 올리면 이 칸은 «저절로» 찬다(실측: 번호·성·이름·생년월일·성별 5칸).
       // 손으로 칠 수도 있게 남겨두되, 받아적는 자리는 자료 묶음이 아니라 여기다.
       // 🛑 필수로 되돌리지 마라 — 코디네이터 의견(2026-08-18): 처음부터 여권까지 달라고 하면
@@ -258,14 +226,14 @@ export const SECTIONS = [
       { name: "passportNo", type: "text", req: "optional", half: true, sensitive: true,
         // 🛑 「여권을 올리시면 저절로 채워집니다 · 암호화해서 보관합니다」를 되살리지 마라
         //    (2026-08-18 PO). 우리 사정이지 사람이 여기서 알고 싶은 게 아니다.
-        label: L("여권번호", "Passport number", "Номер паспорта") },
+        label: K("referral.f.passportNo.label") },
     ],
   },
 
   // ── ④ 진단·현재 상태 ───────────────────────────────────────────
   {
     id: "diagnosis",
-    title: L("진단 · 현재 상태", "Diagnosis & current condition", "Диагноз и состояние"),
+    title: K("referral.sec.diagnosis.title"),
     fields: [
       // ⚠️ 병기는 「있으면 좋은 값」이 아니라 «회신 속도를 가르는 값»이다.
       //    2026-08-13 이대서울병원: 지금까지 회신이 느렸던 건 우리가 보낸 케이스가 전부
@@ -274,58 +242,50 @@ export const SECTIONS = [
       //    그런데 실측상 실서비스 18건 중 병기가 채워진 건 1건뿐이다 → 안내 문구로 유도하고,
       //    올린 서류에서도 뽑는다(실측: 종합소견서에서 stage 3 fibrosis 추출됨).
       { name: "stage", type: "stage", req: "optional", half: true,
-        label: L("병기", "Stage", "Стадия") },
+        label: K("referral.f.stage.label") },
       { name: "diagnosisNameRaw", type: "text", req: "referral",
-        label: L("진단서에 적힌 병명", "Diagnosis as written on your medical document", "Диагноз, как указано в документе"),
+        label: K("referral.f.diagnosisNameRaw.label"),
         // 🛑 「번역하지 마시고 적힌 그대로」를 되살리지 마라(2026-08-18 PO) —
         //    칸 이름이 이미 「진단서에 적힌 병명」이다.
       },
       // 코드는 «고르면 좋은 것»이지 관문이 아니다. 「모르겠습니다」가 기본값.
       { name: "icdCode", type: "icdSuggest", req: "optional",
-        label: L("질병 코드 (아는 경우에만)", "Disease code (only if you know it)", "Код заболевания (если известен)") },
+        label: K("referral.f.icdCode.label") },
       { name: "diagnosisDate", type: "month", req: "referral", half: true,
-        label: L("진단 시기", "Time of diagnosis", "Время постановки диагноза") },
+        label: K("referral.f.diagnosisDate.label") },
       { name: "onsetDate", type: "text", req: "optional", half: true,
-        label: L("발병 시기", "Time of onset", "Начало заболевания"),
-        placeholder: L("예: 2025년 12월경", "e.g. around Dec 2025", "например, декабрь 2025") },
+        label: K("referral.f.onsetDate.label"),
+        placeholder: K("referral.f.onsetDate.ph") },
       { name: "chiefComplaint", type: "textarea", req: "referral",
-        label: L("지금 가장 불편한 곳", "Main symptom right now", "Что беспокоит сейчас больше всего"),
-        placeholder: L("어디가 어떻게 아프신지",
-                       "Where it hurts and how it feels",
-                       "Где болит и как именно") },
+        label: K("referral.f.chiefComplaint.label"),
+        placeholder: K("referral.f.chiefComplaint.ph") },
       { name: "testsAndTreatments", type: "textarea", req: "referral",
-        label: L("지금까지 받은 검사와 치료",
-                 "Tests and treatments performed so far",
-                 "Проведённые обследования и лечение") },
+        label: K("referral.f.testsAndTreatments.label") },
       { name: "localDoctorOpinion", type: "textarea", req: "referral",
-        label: L("현지 주치의 소견", "Your doctor's opinion", "Заключение лечащего врача"),
-        placeholder: L("지금 다니시는 병원에서 권고받은 치료",
-                       "The treatment your current hospital recommended",
-                       "Лечение, рекомендованное в вашей больнице") },
+        label: K("referral.f.localDoctorOpinion.label"),
+        placeholder: K("referral.f.localDoctorOpinion.ph") },
     ],
   },
 
   // ── ⑤ 병력·약물 ────────────────────────────────────────────────
   {
     id: "history",
-    title: L("병력 · 약물", "Medical history & medications", "Анамнез и препараты"),
+    title: K("referral.sec.history.title"),
     fields: [
       { name: "pastHistory", type: "chipsMulti", req: "referral", options: PAST_HISTORY,
-        label: L("과거에 앓으셨거나 지금 앓고 계신 병", "Illnesses you have had or still have", "Перенесённые и текущие заболевания") },
+        label: K("referral.f.pastHistory.label") },
       // 🛑 이 칸을 «항상» 열어두지 마라(2026-08-18 PO: 「선택을 할 거면 선택만, 입력을 할 거면
       //    입력만 — 중간이 없나」). 고르기 칸 밑에 빈 글칸이 늘 떠 있으면 «둘 다 해야 하나»로
       //    읽힌다. 고른 게 있을 때만 «그것에 대해» 더 적는 자리로 나온다.
       { name: "pastHistoryNote", type: "textarea", req: "optional",
         showIf: (v) => Array.isArray(v.pastHistory) && v.pastHistory.some((x) => x !== "none"),
         // 칸 안 안내는 «~해주세요»가 아니라 «무엇을 적는 자리인지»로 통일한다.
-        placeholder: L("진단 연도·수술명 등 아는 만큼",
-                       "Add years, surgery names, etc. as far as you know",
-                       "Укажите годы, названия операций и т.п.") },
+        placeholder: K("referral.f.pastHistoryNote.ph") },
       { name: "medications", type: "textarea", req: "referral", half: true,
-        label: L("복용 중인 약물", "Current medications", "Принимаемые препараты") },
+        label: K("referral.f.medications.label") },
       { name: "familyHistory", type: "textarea", req: "optional", half: true,
-        label: L("가족 중 암을 앓으신 분", "Cancer in your family", "Онкология у родственников"),
-        placeholder: L("부모·형제의 암 병력 등", "Cancer in parents or siblings, etc.", "Онкология у родителей, братьев, сестёр") },
+        label: K("referral.f.familyHistory.label"),
+        placeholder: K("referral.f.familyHistory.ph") },
       // 코로나 백신 칸은 뺐다. 이대 양식엔 아직 있지만 2026-08-13 이대서울병원 방문에서
       // 「코로나 여부는 중요하지 않다, 옛날에 코로나 심할 때 필요했던 것」이라고 확인받았다.
       // 🛑 이대 양식에 칸이 있다고 되살리지 마라 — 양식이 실제 요구보다 뒤처져 있는 것이다.
@@ -338,31 +298,18 @@ export const SECTIONS = [
 
 /** 동의 — 법(PIPA) 필수 4 + 선택 1. 지금 폼과 같은 값을 그대로 쓴다. */
 export const CONSENTS = [
-  { name: "pipa", required: true, label: L(
-      "[필수] 개인정보(이름 · 연락처 · 국적 · 여권번호) 수집 · 이용",
-      "[Required] Collection and use of personal data (name, contact, nationality, passport no.)",
-      "[Обязательно] Сбор и использование персональных данных (имя, контакты, гражданство, номер паспорта)") },
-  { name: "sensitive", required: true, label: L(
-      "[필수] 민감정보(진단 · 치료 등 건강정보) 수집 · 이용",
-      "[Required] Collection and use of health data (diagnosis, treatment)",
-      "[Обязательно] Сбор и использование данных о здоровье (диагноз, лечение)") },
-  { name: "thirdParty", required: true, label: L(
-      "[필수] 한국 협력 의료기관 · 의뢰 에이전시에 정보 제공",
-      "[Required] Sharing with partner hospitals in Korea and the referring agency",
-      "[Обязательно] Передача партнёрским клиникам в Корее и направляющему агентству") },
-  { name: "crossBorder", required: true, label: L(
-      "[필수] 개인정보 국외 이전 (대한민국 ↔ 환자 소재국)",
-      "[Required] Cross-border transfer of personal data (Korea ↔ patient's country)",
-      "[Обязательно] Трансграничная передача данных (Корея ↔ страна пациента)") },
-  { name: "marketing", required: false, label: L(
-      "[선택] 마케팅 · 뉴스레터 수신",
-      "[Optional] Marketing and newsletter",
-      "[Необязательно] Маркетинг и рассылка") },
+  { name: "pipa", required: true, label: K("referral.consent.pipa") },
+  { name: "sensitive", required: true, label: K("referral.consent.sensitive") },
+  { name: "thirdParty", required: true, label: K("referral.consent.thirdParty") },
+  { name: "crossBorder", required: true, label: K("referral.consent.crossBorder") },
+  { name: "marketing", required: false, label: K("referral.consent.marketing") },
 ];
 
 /** 라벨 읽기 — 그 언어가 없으면 영어, 영어도 없으면 한국어. */
 export function lab(label, lang) {
   if (!label) return "";
+  // 지금은 전부 사전 키다. {ko,en,ru} 를 그대로 든 옛 모양도 받아준다(다른 화면이 넘겨줄 수 있다).
+  if (label.key) return t(label.key, lang);
   return label[lang] || label.en || label.ko || "";
 }
 

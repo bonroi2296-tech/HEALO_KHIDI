@@ -13,12 +13,12 @@ import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide-react";
 import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
+import { t } from "@/lib/i18n";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, filesFromDrop, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
-import { EXTRA_TR } from "@/lib/inquiry/referralI18n";
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
   lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection,
@@ -51,193 +51,55 @@ const LANGS = [
 //      · 대학병원      → en "university hospital" · ru «университетская клиника»
 //      · 다시 가리킬 때 → en "the hospital"        · ru «клиника»
 //      · 환자분이 다니는 병원 → en "your hospital"  · ru «ваша больница»
-const TR = {
-  // ── 갈림길 화면 (맨 처음) ──────────────────────────────────────
-  // 15칸을 처음부터 다 펼쳐 보이면 부담스럽다(PO 2026-08-13). 그렇다고 안 받을 수도
-  // 없는 정보라, «받을 양을 사용자가 고르게» 한다. 제출은 여전히 한 번이다.
-  pickTitle:  { ko: "어떻게 도와드릴까요?", en: "How can we help?", ru: "Чем мы можем помочь?" },
-  pickSub:    { ko: "지금 정하지 않으셔도 됩니다. 나중에 언제든 바꾸실 수 있습니다.",
-                en: "You don't have to decide now — you can switch at any time.",
-                ru: "Решать сейчас необязательно — вы можете передумать в любой момент." },
-  quickTitle: { ko: "먼저 상담만 신청할게요", en: "Just request a consultation first", ru: "Сначала просто заявка на консультацию" },
-  quickBody:  { ko: "연락처만 남겨주시면 코디네이터가 먼저 연락드려 하나씩 도와드립니다.",
-                en: "Leave your contact details and a coordinator will reach out and walk you through the rest.",
-                ru: "Оставьте контакты — координатор свяжется с вами и поможет со всем остальным." },
-  quickMeta:  { ko: "{n}칸 · 1분", en: "{n} fields · 1 minute", ru: "{n} полей · 1 минута" },
-  fullTitle:  { ko: "진단과 치료 방향을 빨리 알고 싶어요", en: "I want to know the diagnosis and treatment options sooner", ru: "Хочу быстрее узнать диагноз и варианты лечения" },
-  // 한 덩어리로 붙여놓으면 안 읽힌다 — «왜 필요한가»와 «어떻게 빨라지나»를 문단으로 나눈다.
-  fullBody:   { ko: "번거로우시겠지만, 의료진이 환자분의 상태를 정확히 보려면 환자 정보가 필요합니다.",
-                en: "It takes a bit more effort, but the doctors need the patient's information to assess the condition accurately.",
-                ru: "Это займёт немного больше времени, но врачам нужна информация о пациенте, чтобы точно оценить состояние." },
-  fullBody2:  { ko: "가지고 계신 의무 기록을 올려주시면 저희가 읽고 대신 채워드립니다. 훨씬 빨라집니다.",
-                en: "Upload the medical records you already have — we read them and fill the form in for you. It goes much faster.",
-                ru: "Загрузите имеющиеся медицинские документы — мы прочитаем их и заполним форму за вас. Так намного быстрее." },
-  fullMeta:   { ko: "{n}칸 · 자료 첨부 필요", en: "{n} fields · documents needed", ru: "{n} полей · нужны документы" },
-  switchToFull:{ ko: "대학병원 소견도 받고 싶으신가요? 이어서 채우기",
-                en: "Also want the university hospital's opinion? Continue filling it in",
-                ru: "Хотите ещё и заключение университетской клиники? Продолжить заполнение" },
-  sending:    { ko: "보내는 중입니다…", en: "Sending…", ru: "Отправляем…" },
-  errSend:    { ko: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요. 쓰신 내용은 그대로 있습니다.",
-                en: "We couldn't send it. Please try again shortly — your answers are still here.",
-                ru: "Не удалось отправить. Попробуйте ещё раз чуть позже — ваши ответы сохранены." },
-  doneTitle:  { ko: "접수되었습니다", en: "We've received it", ru: "Заявка принята" },
-  doneBody:   { ko: "코디네이터가 확인하고 곧 연락드리겠습니다. 아래 주소를 저장해 두시면 진행 상황을 보시거나 자료를 더 올리실 수 있습니다.",
-                en: "A coordinator will review it and contact you shortly. Save the link below to track progress or add more documents.",
-                ru: "Координатор рассмотрит заявку и свяжется с вами. Сохраните ссылку ниже, чтобы следить за ходом и добавить документы." },
-  doneNo:     { ko: "접수번호", en: "Reference no.", ru: "Номер обращения" },
-  doneMail:   { ko: "같은 주소를 이메일로도 보내드렸습니다. 메일이 안 보이면 스팸함도 확인해 주세요.",
-                en: "We've emailed you the same link. If you don't see it, please check your spam folder.",
-                ru: "Мы отправили эту же ссылку на вашу почту. Если письма нет, проверьте папку «Спам»." },
-  title:      { ko: "환자 의뢰서", en: "Patient referral form", ru: "Направление пациента" },
-  titleQuick: { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
-  subQuick:   { ko: "연락드리는 데 필요한 것만 여쭙니다. 나머지는 코디네이터가 도와드립니다.",
-                en: "We only ask what we need to reach you — a coordinator helps with the rest.",
-                ru: "Спрашиваем только то, что нужно для связи — с остальным поможет координатор." },
-  // 말이 길면 안 읽는다(2026-08-18 PO: «말이 너무 장황하잖아»). 한 줄로.
-  sub:        { ko: "대학병원에서 2차 소견과 예상 치료비를 안내받으시려면 환자분의 의무기록이 필요합니다. 많이 주실수록 더 빠르고 정확하게 안내해 드립니다.",
-                en: "To get a second opinion and a cost estimate from a Korean university hospital, we need the patient's medical records. The more you give us, the faster and more accurate the answer.",
-                ru: "Чтобы университетская клиника дала второе мнение и оценку стоимости, нужны медицинские документы пациента. Чем больше вы предоставите, тем быстрее и точнее будет ответ." },
-  barIntake:  { ko: "상담 신청", en: "Consultation request", ru: "Заявка на консультацию" },
-  jump:       { ko: "남은 칸으로", en: "Take me there", ru: "Перейти к полю" },
-  // 🛑 「여기까지 채우시면 보내실 수 있습니다」를 여기 되살리지 마라 — 그 말은 아래 띠가
-  //    이미 하고 있다(2026-08-18 PO). 여기서 할 말은 «아래가 무엇이냐»다:
-  //    우리 사정(보낼 수 있다·없다)이 아니라 «대학병원이 진단하는 데 필요한 것».
-  restNote:   { ko: "아래는 대학병원이 환자분의 상태를 진단하는 데 필요한 내용입니다.",
-                en: "Below is what the university hospital needs in order to assess the patient.",
-                ru: "Ниже — то, что нужно университетской клинике, чтобы оценить состояние пациента." },
-  restNote2:  { ko: "아시는 만큼 최대한 알려주시면 더 빠르고 정확한 소견을 받으실 수 있습니다.",
-                en: "Tell us as much as you know — the more we have, the faster and more accurate the opinion you get back.",
-                ru: "Расскажите как можно больше — так заключение будет быстрее и точнее." },
-  barIntakeOk:{ ko: "지금 보낼 수 있습니다", en: "You can send it now", ru: "Можно отправить сейчас" },
-  barIntakeNo:{ ko: "{n}칸만 채우면 보낼 수 있습니다", en: "{n} more field(s) and you can send", ru: "Ещё {n} — и можно отправить" },
-  barReferral:{ ko: "진단에 필요한 내용", en: "What the doctors need", ru: "Что нужно врачам" },
-  // 「0%」는 숫자가 아니라 «실패했다»로 읽힌다. 채운 개수로 보여주고, 다음 한 칸을 지목해 준다.
-  barRefMeta: { ko: "{done}/{total} 채우셨습니다 — 채우실수록 병원 회신이 빨라집니다",
-                en: "{done} of {total} filled — the more you fill in, the faster the hospital replies",
-                ru: "Заполнено {done} из {total} — чем больше, тем быстрее ответит клиника" },
-  barNext:    { ko: "다음: {f} {n}칸", en: "Next: {f} ({n})", ru: "Далее: {f} ({n})" },
-  needTitle:  { ko: "대학병원이 환자분을 보려면 이런 자료가 필요합니다",
-                en: "This is what the university hospital needs in order to assess the patient",
-                ru: "Вот что нужно университетской клинике, чтобы оценить состояние пациента" },
-  needPassport:{ ko: "여권 사본 (병원 예약 때 필요합니다)",
-                en: "Passport copy (needed when booking the appointment)",
-                ru: "Копия паспорта (нужна при записи в клинику)" },
-  needNote:   { ko: "모두 있어야 접수되는 것은 아닙니다. 지금 있는 것만 주셔도 의뢰는 진행되고, 대학병원이 자료를 더 요청할 수 있습니다.",
-                en: "You don't need all of them to send. We proceed with whatever you have, and the hospital may ask for more.",
-                ru: "Не обязательно иметь всё. Мы отправим с тем, что есть, а клиника может запросить дополнительные материалы." },
-  bigLinkTitle:{ ko: "구글 드라이브 · 드롭박스 주소를 붙여넣어 주세요",
-                en: "Paste a Google Drive / Dropbox link",
-                ru: "Вставьте ссылку на Google Drive / Dropbox" },
-  bigLinkPh:  { ko: "https://…", en: "https://…", ru: "https://…" },
-  bigLinkOr:  { ko: "또는", en: "or", ru: "или" },
-  // 🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 200MB까지만 받는다고 하자」).
-  //    막힌 뒤에 알려주면 그건 시간을 뺏고 나서 거절하는 것이다.
-  sizeRule:   { ko: "한 파일 200MB까지 올리실 수 있습니다. 더 크면 왓츠앱으로 보내주시거나, 구글 드라이브·드롭박스에 올려 주소를 알려주세요.",
-                en: "Up to 200MB per file. For anything larger, send it on WhatsApp or upload it to Google Drive / Dropbox and give us the link.",
-                ru: "До 200 МБ на файл. Если больше — пришлите в WhatsApp или загрузите в Google Drive / Dropbox и дайте ссылку." },
-  // 🛑 버튼 이름은 «무엇을 고르나»가 아니라 «어떻게 올리나»로(2026-08-18 PO: 그게 더 직관적이다).
-  //    「서류 고르기 / CD 폴더 고르기」는 둘 다 «고르기»여서 무엇이 다른지 안 보였다.
-  pickDocs:   { ko: "파일 올리기", en: "Upload files", ru: "Загрузить файлы" },
-  dropHere:   { ko: "여기에 끌어다 놓으세요", en: "Drag files or a CD folder here", ru: "Перетащите файлы или папку с диска сюда" },
-  dropNow:    { ko: "여기에 놓으세요", en: "Drop here", ru: "Отпустите здесь" },
-  barWhy:     { ko: "채우실수록 병원 회신이 빨라집니다",
-                en: "The more you fill in, the faster the hospital replies",
-                ru: "Чем больше заполните, тем быстрее ответит клиника" },
-  barRefDone: { ko: "100% — 의료진이 판단하는 데 필요한 내용이 모두 모였습니다", en: "100% — the doctors have everything they need", ru: "100% — у врачей есть всё необходимое" },
-  laterNote:  { ko: "보내신 뒤에도 같은 주소에서 이어서 채우실 수 있습니다.",
-                en: "You can keep filling this in from the same link after sending.",
-                ru: "После отправки можно продолжить по той же ссылке." },
-  // 2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
-  // 환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
-  // → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
-  done:       { ko: "완료", en: "done", ru: "готово" },
-  left:       { ko: "{n}칸 남음", en: "{n} left", ru: "осталось {n}" },
-  optional:   { ko: "(선택)", en: "(optional)", ru: "(необязательно)" },
-  forReferral:{ ko: "진단에 필요", en: "for the diagnosis", ru: "для диагностики" },
-  submit:     { ko: "의뢰서 보내기", en: "Send referral", ru: "Отправить направление" },
-  submitOff:  { ko: "{n}칸만 더 채우면 보낼 수 있습니다", en: "Fill {n} more field(s) to send", ru: "Заполните ещё {n} — и можно отправить" },
-  autosave:   { ko: "쓰던 내용은 자동 저장됩니다",
-                en: "Your answers are saved automatically — closing the window is safe.",
-                ru: "Ответы сохраняются автоматически — можно закрыть окно." },
-  saved:      { ko: "마지막 저장 {t}", en: "Saved {t}", ru: "Сохранено {t}" },
-  consentTitle:{ ko: "개인정보 수집 · 이용 동의", en: "Consent", ru: "Согласие на обработку данных" },
-  consentAll: { ko: "모두 동의 (선택 포함)", en: "Agree to all (including optional)", ru: "Согласен со всем (включая необязательное)" },
-  reading:    { ko: "읽는 중입니다…", en: "Reading it…", ru: "Читаем документ…" },
-  fromDoc:    { ko: "올려주신 서류에서 저희가 읽은 값입니다 — 다르면 고쳐주세요",
-                en: "We read this from the document you uploaded — please correct it if it's wrong",
-                ru: "Это значение мы прочитали из вашего документа — исправьте, если оно неверно" },
-  autoFilledTitle: { ko: "서류를 읽고 {n}칸을 대신 채웠습니다",
-                en: "We read your documents and filled in {n} field(s) for you",
-                ru: "Мы прочитали ваши документы и заполнили за вас {n} полей" },
-  autoFilledBody: { ko: "아래 묶음에서 초록색 표시가 붙은 칸이 그것입니다. 저희가 잘못 읽었으면 직접 고쳐주세요 — 사람이 쓰신 값이 항상 우선입니다.",
-                en: "They're marked in green in the sections below. If we read something wrong, just correct it — what you type always wins.",
-                ru: "Они отмечены зелёным в разделах ниже. Если мы прочитали неверно — просто исправьте: ваш ввод всегда важнее." },
-  readingN:   { ko: "{n}개를 읽고 있습니다. 잠시만요.", en: "Reading {n} file(s)…", ru: "Читаем {n} файл(ов)…" },
-  // 「이렇게 읽었습니다」는 «무엇을» 고치라는 건지 안 알려준다(2026-08-14 PO).
-  // 바로 아래가 «서류 종류 고르는 칸»이니 그걸 가리켜야 한다.
-  readAs:     { ko: "이런 서류로 판단했습니다. 틀리면 다시 골라주세요.",
-                en: "We think this is what the document is. If not, pick the right one below.",
-                ru: "Мы определили документ так. Если неверно — выберите нужное ниже." },
-  // 우리가 못 알아본 경우. 「판별 못 함」만 띄우면 사람이 «내가 뭐하라는 거지» 를 모른다(PO 지적).
-  pickKind:   { ko: "무슨 서류인지 저희가 못 알아봤습니다. 아래에서 골라주세요 — 모르시면 그대로 두셔도 코디네이터가 확인합니다.",
-                en: "We could not tell what this document is. Please pick it below — or leave it and a coordinator will check.",
-                ru: "Мы не смогли определить документ. Выберите ниже — или оставьте как есть, координатор проверит." },
-  // 「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
-  partialRead:{ ko: "큰 서류라 앞 {n}쪽만 읽었습니다(전체 {t}쪽). 나머지는 코디네이터가 직접 봅니다.",
-                en: "Large document — we read the first {n} of {t} pages. Your coordinator reviews the rest.",
-                ru: "Большой документ — прочитаны первые {n} из {t} стр. Остальное посмотрит координатор." },
-  cantReadBig:{ ko: "파일이 커서 자동으로는 못 읽었습니다(12MB 넘음). 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
-                en: "Too large to read automatically (over 12MB). It did upload — your coordinator will open it. Pick the type if you know it.",
-                ru: "Файл слишком большой для автоматического чтения (более 12 МБ). Файл загружен — координатор откроет его. Если знаете тип — выберите." },
-  cantReadType:{ko: "이 형식은 자동으로 못 읽습니다. 올라가긴 했으니 코디네이터가 직접 열어봅니다 — 아시면 골라주세요.",
-                en: "This file type can't be read automatically. It did upload — your coordinator will open it. Pick the type if you know it.",
-                ru: "Этот тип файла нельзя прочитать автоматически. Файл загружен — координатор откроет его. Если знаете тип — выберите." },
-  cantRead:   { ko: "이 파일은 저희가 못 읽었습니다. 올라가긴 했으니 코디네이터가 직접 확인합니다 — 아시면 골라주세요.",
-                en: "We couldn't read this one. A coordinator will check it — pick the type if you know it.",
-                ru: "Этот файл прочитать не удалось. Проверит координатор — выберите тип, если знаете." },
-  stillNeed:  { ko: "이런 서류가 아직 없습니다", en: "These are still missing", ru: "Ещё не хватает" },
-  stillNeedWhy:{ ko: "지금 없어도 보내실 수 있습니다. 병원에서 받으시는 대로 이어서 올려주세요.",
-                en: "You can send without them — add them once your hospital issues them.",
-                ru: "Можно отправить и без них — добавьте, когда получите их в своей больнице." },
-  docsAllSet: { ko: "의료진이 판단하는 데 필요한 자료가 모두 확인되었습니다.",
-                en: "The doctors have everything they need.",
-                ru: "У врачей есть все необходимые материалы." },
-  icdUnknown: { ko: "모르겠습니다 — 서류 보고 정해주세요", en: "I don't know — please determine it from my documents", ru: "Не знаю — определите по моим документам" },
-  pick:       { ko: "선택", en: "Select", ru: "Выберите" },
-  addFile:    { ko: "파일 고르기", en: "Choose file", ru: "Выбрать файл" },
-  // 🛑 버튼 밑에 한 줄 설명을 다시 달지 마라(2026-08-18 PO). 「파일」과 「폴더」면 충분하다.
-  cdPick:     { ko: "폴더 올리기", en: "Upload a folder", ru: "Загрузить папку" },
-  cdZipping:  { ko: "파일 {n}개 ({mb}) 를 하나로 묶고 있습니다", en: "Bundling {n} files ({mb})", ru: "Собираем {n} файлов ({mb})" },
-  cdZipWait:  { ko: "창을 닫지 말고 잠시만 기다려 주세요. 보통 10~40초 걸립니다.",
-                en: "Please keep this window open — it usually takes 10–40 seconds.",
-                ru: "Не закрывайте окно — обычно это занимает 10–40 секунд." },
-  // 「134MB → 134MB」는 아무것도 안 알려준다(2026-08-14 PO). 이미 압축된 영상은 더 안 줄어든다.
-  // 사람이 알아야 할 건 «몇 개가 올라갔나» 하나다.
-  cdDone:     { ko: "파일 {n}개 올리기 완료 · {to}", en: "{n} files uploaded · {to}", ru: "Загружено файлов: {n} · {to}" },
-  cdRedo:     { ko: "다시 고르기", en: "Pick again", ru: "Выбрать заново" },
-  // 「너무 큽니다」만 하면 코디에게 연락할 때 뭐라고 말해야 할지 모른다. 숫자를 같이 준다.
-  cdTooBig:   { ko: "자료가 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 연락하실 때 「{mb} 자료」라고 말씀해 주시면 바로 도와드립니다.",
-                en: "These files are {mb}, over the 200MB limit here. A coordinator will take them for you — just mention “{mb} of files” when you contact us.",
-                ru: "Объём файлов — {mb}, это больше лимита в 200 МБ. Координатор примет их за вас — при обращении просто скажите «{mb} материалов»." },
-  cdHelp:     { ko: "코디네이터에게 연락하기", en: "Contact a coordinator", ru: "Связаться с координатором" },
-  cdPhone:    { ko: "휴대폰에서는 CD 폴더를 고를 수 없습니다. 지금은 문의만 보내주시면, 영상 올리는 링크를 따로 보내드립니다.",
-                en: "Phones cannot pick a CD folder. Just send the inquiry for now — we will email you a separate link for the images.",
-                ru: "С телефона нельзя выбрать папку с диска. Отправьте обращение сейчас — ссылку для загрузки снимков мы пришлём отдельно." },
-  uploading:  { ko: "올리는 중 {pct}%", en: "Uploading {pct}%", ru: "Загрузка {pct}%" },
-  upWait:     { ko: "창을 닫지 말아 주세요.", en: "Please keep this window open.", ru: "Не закрывайте окно." },
-  // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 화면 몫이다.
-  upTooBig:   { ko: "이 파일은 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 올리는 시간을 버리지 않으시도록 미리 알려드립니다.",
-                en: "This file is {mb}, over the 200MB limit here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
-                ru: "Этот файл — {mb}, это больше лимита в 200 МБ. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку." },
-  // 고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
-  upBadType:  { ko: "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
-                en: "This file type can't be uploaded. Please use PDF, images, or Word.",
-                ru: "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word." },
-  upFailed:   { ko: "올리지 못했습니다. 다시 시도해 주세요.", en: "Upload failed. Please try again.", ru: "Не удалось загрузить. Попробуйте ещё раз." },
-};
-// 카자흐·중국어·일본어는 «덧대기» 사전에서 붙인다 — 한 문구가 6줄이 되면 무슨 문구인지 안 보인다.
-// 🛑 빠진 언어가 있으면 조용히 영어로 떨어진다. 검사(referralI18n.test.ts)가 그걸 막는다.
-for (const k of Object.keys(TR)) Object.assign(TR[k], EXTRA_TR[k] || {});
+/**
+ * 이 화면 문구를 고칠 때 — 이미 결정된 것들.
+ *
+ * 문구 «값»은 여기 없다. 사전(src/lib/i18n/dictionary.js)의 `referral.tr.*` 에 있고,
+ * 코디 백오피스 편집기(/coordinator/content)에서 배포 없이 고칠 수 있다.
+ * 아래는 그 문구들에 대해 이미 내려진 결정이라, 편집기에서 고칠 때도 그대로 지켜야 한다.
+ */
+ // ── referral.tr.pickTitle
+ //    ── 갈림길 화면 (맨 처음) ──────────────────────────────────────
+ //    15칸을 처음부터 다 펼쳐 보이면 부담스럽다(PO 2026-08-13). 그렇다고 안 받을 수도
+ //    없는 정보라, «받을 양을 사용자가 고르게» 한다. 제출은 여전히 한 번이다.
+ // ── referral.tr.fullBody
+ //    한 덩어리로 붙여놓으면 안 읽힌다 — «왜 필요한가»와 «어떻게 빨라지나»를 문단으로 나눈다.
+ // ── referral.tr.sub
+ //    말이 길면 안 읽는다(2026-08-18 PO: «말이 너무 장황하잖아»). 한 줄로.
+ // ── referral.tr.restNote
+ //    🛑 「여기까지 채우시면 보내실 수 있습니다」를 여기 되살리지 마라 — 그 말은 아래 띠가
+ //    이미 하고 있다(2026-08-18 PO). 여기서 할 말은 «아래가 무엇이냐»다:
+ //    우리 사정(보낼 수 있다·없다)이 아니라 «대학병원이 진단하는 데 필요한 것».
+ // ── referral.tr.barRefMeta
+ //    「0%」는 숫자가 아니라 «실패했다»로 읽힌다. 채운 개수로 보여주고, 다음 한 칸을 지목해 준다.
+ // ── referral.tr.sizeRule
+ //    🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 200MB까지만 받는다고 하자」).
+ //    막힌 뒤에 알려주면 그건 시간을 뺏고 나서 거절하는 것이다.
+ // ── referral.tr.pickDocs
+ //    🛑 버튼 이름은 «무엇을 고르나»가 아니라 «어떻게 올리나»로(2026-08-18 PO: 그게 더 직관적이다).
+ //    「서류 고르기 / CD 폴더 고르기」는 둘 다 «고르기»여서 무엇이 다른지 안 보였다.
+ // ── referral.tr.done
+ //    2026-08-13 이대서울병원 확인: 보험은 병원이 관여하지 않는다.
+ //    환자가 먼저 결제하고 보험사와 처리하거나, 에이전시가 대신 진행한다.
+ //    → 나중에 알면 분쟁이 되므로 폼에서 미리 알린다.
+ // ── referral.tr.readAs
+ //    「이렇게 읽었습니다」는 «무엇을» 고치라는 건지 안 알려준다(2026-08-14 PO).
+ //    바로 아래가 «서류 종류 고르는 칸»이니 그걸 가리켜야 한다.
+ // ── referral.tr.pickKind
+ //    우리가 못 알아본 경우. 「판별 못 함」만 띄우면 사람이 «내가 뭐하라는 거지» 를 모른다(PO 지적).
+ // ── referral.tr.partialRead
+ //    「못 읽었다」만 적으면 «우리 판독기가 고장난 것»으로 읽힌다 — 이유를 밝힌다(2026-08-14 PO: 「이건 pdf 자료가 많아서 못읽었다는거야?」).
+ // ── referral.tr.cdPick
+ //    🛑 버튼 밑에 한 줄 설명을 다시 달지 마라(2026-08-18 PO). 「파일」과 「폴더」면 충분하다.
+ // ── referral.tr.cdDone
+ //    「134MB → 134MB」는 아무것도 안 알려준다(2026-08-14 PO). 이미 압축된 영상은 더 안 줄어든다.
+ //    사람이 알아야 할 건 «몇 개가 올라갔나» 하나다.
+ // ── referral.tr.cdTooBig
+ //    「너무 큽니다」만 하면 코디에게 연락할 때 뭐라고 말해야 할지 모른다. 숫자를 같이 준다.
+ // ── referral.tr.upTooBig
+ //    서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 화면 몫이다.
+ // ── referral.tr.upBadType
+ //    고르기 «전에» 보이는 안내. 다 올린 뒤에 안 된다고 하면 그건 시간을 뺏고 나서 거절하는 것이다.
 
 /** 서버가 준 오류 코드를 사람 말로. 코드가 그대로 화면에 나가면 안 된다. */
 function uploadErrorText(code, lang, bytes) {
@@ -245,8 +107,9 @@ function uploadErrorText(code, lang, bytes) {
   if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
   return tr("upFailed", lang);
 }
+/** 화면 문구 한 줄. 값은 사전(referral.tr.*)에서 오고, {n}·{mb} 같은 자리는 여기서 갈아끼운다. */
 const tr = (k, lang, vars) => {
-  let s = TR[k]?.[lang] || TR[k]?.en || TR[k]?.ko || "";
+  let s = t(`referral.tr.${k}`, lang);
   if (vars) for (const [n, v] of Object.entries(vars)) s = s.replaceAll(`{${n}}`, v);
   return s;
 };
