@@ -79,8 +79,8 @@ export default function ImmuneHospitalClient() {
         {/* 통계 바 */}
         <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-6">
           {[
-            { num: "50,000+", label: tr("statCases") },
-            { num: "98%", label: tr("statSatisfaction") },
+            { num: H.cumulativeCases, label: tr("statCases") },
+            { num: H.satisfaction, label: tr("statSatisfaction") },
             { num: String(years), unit: tr("yearsUnit"), label: tr("statYears") },
             { num: String(H.branches.length), label: tr("statBranches") },
             { num: "7+", label: tr("statDoctors") },

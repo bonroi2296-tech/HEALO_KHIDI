@@ -31,8 +31,11 @@ export const IMMUNE_HOSPITAL = {
   representative: { ko: "황이준", en: "Hwang Yi-jun" },
   foundedYear: 2017,
   mainPhone: "1588-2915",
-  cumulativeCases: "50,000+",
-  cumulativeAsOf: "2024-11-06",
+  // 면력 자체 집계값. 출처: https://sdimmune.app/ (2026-08-18 수집) — PO 가 실제 수치라고 확인.
+  // ⚠️ 화면의 이 두 숫자는 예전엔 코드에 박혀 있었고(50,000+ / 98%) 근거가 없었다. 여기가 유일한 출처다.
+  cumulativeCases: "51,823",
+  cumulativeAsOf: "2026-08-18",
+  satisfaction: "93.5%",
 
   // ===== 4개 지점 =====
   branches: [
@@ -674,8 +677,8 @@ export const IMMUNE_HOSPITAL = {
 
   // ===== 협진 체계 =====
   teamStructure: {
-    ko: "의료진(한방+양방 협진) + 임상 영양사 + 치료식 전담 셰프의 3축 협진. 누적 50,000+ 사례.",
-    en: "Three-axis collaboration: physicians (KM+Western) + clinical dietitian + in-house therapeutic chef. 50,000+ cumulative cases.",
+    ko: "의료진(한방+양방 협진) + 임상 영양사 + 치료식 전담 셰프의 3축 협진. 누적 51,823 사례(2026-08 면력 집계).",
+    en: "Three-axis collaboration: physicians (KM+Western) + clinical dietitian + in-house therapeutic chef. 51,823 cumulative treatment cases (Aug 2026).",
   },
 
   // ===== 근거 자료 =====

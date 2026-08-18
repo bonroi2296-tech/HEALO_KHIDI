@@ -8,18 +8,18 @@ export async function generateMetadata() {
 const baseMeta = {
   title: "Immune Hospital — 면력한방병원",
   description:
-    "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCRN 5-principles, 50,000+ cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
+    "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCRN 5-principles, 51,823 cumulative cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
   keywords: ["면력한방병원", "Immune Hospital Korea", "Korean Medicine cancer immune therapy", "ITCRN protocol", "cancer hospital Seoul"],
   openGraph: {
     title: "Immune Hospital — Integrated cancer immune care in Korea",
     description:
-      "50,000+ cancer patient cases. 5-principle ITCRN protocol. Chef-led therapeutic meals. healwith's direct partner.",
+      "51,823 cumulative treatment cases. 5-principle ITCRN protocol. Chef-led therapeutic meals. healwith's direct partner.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Immune Hospital — 면력한방병원 | healwith",
-    description: "50,000+ cancer patient cases. Korean Medicine immune therapy. 4 branches in Seoul & Gyeonggi.",
+    description: "51,823 cumulative treatment cases. Korean Medicine immune therapy. 4 branches in Seoul & Gyeonggi.",
   },
 };
 
@@ -33,7 +33,7 @@ const hospitalJsonLd = {
     "Корейская больница иммунитета",
   ],
   description:
-    "Immune Hospital is healwith's direct partner specializing in Korean Medicine immune therapy for cancer patients. Operating with the ITCRN 5-principle protocol and over 50,000 cancer patient cases.",
+    "Immune Hospital is healwith's direct partner specializing in Korean Medicine immune therapy for cancer patients. Operating with the ITCRN 5-principle protocol and over 51,800 cumulative treatment cases.",
   url: "https://healwith.co.kr/hospitals/immune",
   address: {
     "@type": "PostalAddress",
