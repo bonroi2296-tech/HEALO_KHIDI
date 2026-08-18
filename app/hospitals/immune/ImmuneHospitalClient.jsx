@@ -95,7 +95,7 @@ export default function ImmuneHospitalClient() {
             </div>
           ))}
         </div>
-        {/* 만족도 98% 출처 명기 — 면력 자체조사(2024.11.06 전지점). 근거 있는 수치임을 표시. */}
+        {/* 만족도 출처 명기 — 면력 자체 집계. 숫자는 immuneHospitalInfo.js 가 SoR. */}
         <p className="mt-4 text-[11px] text-gray-400 leading-relaxed">{tr("satisfactionNote")}</p>
       </section>
 

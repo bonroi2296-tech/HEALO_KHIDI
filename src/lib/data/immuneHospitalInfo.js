@@ -32,7 +32,7 @@ export const IMMUNE_HOSPITAL = {
   foundedYear: 2017,
   mainPhone: "1588-2915",
   // 면력 자체 집계값. 출처: https://sdimmune.app/ (2026-08-18 수집) — PO 가 실제 수치라고 확인.
-  // ⚠️ 화면의 이 두 숫자는 예전엔 코드에 박혀 있었고(50,000+ / 98%) 근거가 없었다. 여기가 유일한 출처다.
+  // 직전 값은 50,000+ / 98% (면력 자체조사 2024.11.06). 화면 컴포넌트에 박혀 있던 걸 여기로 옮겼다 — 여기가 SoR.
   cumulativeCases: "51,823",
   cumulativeAsOf: "2026-08-18",
   satisfaction: "93.5%",
