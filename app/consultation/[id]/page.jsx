@@ -980,6 +980,8 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
+  // 「자막」 스위치 최신값 — DC 수신 자막을 내 화면에 띄울지 판정한다(2026-08-07 PO 제보).
+  const translationEnabledRef = useRef(false);
   // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
   // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
   // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
@@ -991,6 +993,9 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     voiceOnRef.current = voiceOn;
   }, [voiceOn]);
+  useEffect(() => {
+    translationEnabledRef.current = translationEnabled;
+  }, [translationEnabled]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
     if (agentPresent) {
@@ -1406,6 +1411,8 @@ export default function ConsultationRoomPage() {
                 sourceLanguage: myLang,
                 targetLanguage: targetLang,
                 sttEngine: STT_ENGINES.BACKCHANNEL,
+                // 회의록에 「누가 말했나」를 남긴다 — 이 경로에만 빠져 있었다(2026-08-07).
+                speakerName: myNameRef.current || undefined,
               }),
             }).catch(() => {});
           }
@@ -1427,6 +1434,7 @@ export default function ConsultationRoomPage() {
               speakerRole: "self",
               // 이 글을 만든 받아쓰기 경로 — 기록에 남겨야 길별 품질을 실사용에서 잰다.
               sttEngine: sttEngineRef.current,
+          speakerName: myNameRef.current || undefined,
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
               context: contextForApi(convoContextRef.current),
             }),
@@ -1489,6 +1497,11 @@ export default function ConsultationRoomPage() {
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role, name, participantIdentity, interim, utter }) => {
+      // ── 내가 「자막」을 안 켰으면 안 띄운다 (2026-08-07 PO 제보) ──
+      // 자막은 **방 전체에** 뿌려지므로, 상대 한 명만 켜도 안 켠 사람 화면에 자막이 올라왔다.
+      // PO 실사용: 노트북에서만 자막을 켰는데 PC 화면에 «지 멋대로» 자막이 뜸.
+      // 자막 스위치는 「내 화면에 자막을 볼지」를 정하는 내 스위치다 — 상대가 못 끄게 한다.
+      if (!translationEnabledRef.current) return;
       // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
       // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
       if (voiceOnRef.current && agentPresentRef.current) return;
@@ -1556,6 +1569,9 @@ export default function ConsultationRoomPage() {
   // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
   const handleBotSubtitle = useCallback(
     ({ text, lang, role, speakerId, name }) => {
+      // 통역봇은 방에 하나뿐이라 «상대가 통역을 켜면» 내 화면에도 자막이 흘러든다.
+      // DC 자막과 같은 이유로 내 스위치를 따른다 (2026-08-07).
+      if (!translationEnabledRef.current) return;
       // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
       // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
       showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
@@ -1695,6 +1711,7 @@ export default function ConsultationRoomPage() {
           targetLang,
           consultationId, // 인증용 — partial 이라 서버는 기록하지 않는다
           speakerRole: "self",
+          speakerName: myNameRef.current || undefined,
           partial: true,
           context: contextForApi(convoContextRef.current),
         }),
@@ -1769,20 +1786,18 @@ export default function ConsultationRoomPage() {
     }
   }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
 
-  // ── 방에 들어오면 자막을 한 번 자동으로 켠다 (2026-08-03) ──
-  // 예전엔 기본 꺼짐이라 «사람이 버튼을 눌러야» 켜졌다. 8/3 실회의 2건 실측:
-  //   첫 입장 → 첫 자막까지 회의A 13분 26초, 회의B 11분 32초.
-  //   회의B 는 첫 자막 줄이 **문장 중간**에서 시작한다 = 대화가 이미 돌던 중에 켜졌다는 뜻.
-  // 그 시간 동안 통역도 기록도 통째로 없었고, 결국 손님이 먼저 «러시아어 자막이 안 보인다»고
-  // 말했다(16:12:43). 우리가 파는 기능을 손님이 켜 달라고 말하게 두면 안 된다.
-  // 딱 한 번만 켠다 — 끈 사람에게 도로 켜지면 버튼이 먹통으로 느껴진다.
-  const autoCaptionsOnRef = useRef(false);
-  useEffect(() => {
-    if (autoCaptionsOnRef.current || !myIdentity || translationEnabled) return;
-    autoCaptionsOnRef.current = true;
-    toggleTranslation();
-  }, [myIdentity, translationEnabled, toggleTranslation]);
-
+  // ── 자막은 «사람이 누를 때만» 켜진다 (PO 결정 2026-08-07) ──
+  //
+  // 2026-08-03 에 «방에 들어오면 한 번 자동으로 켜기»를 넣었었다. 그때 근거는 실회의 2건에서
+  //   첫 입장 → 첫 자막까지 13분 26초 / 11분 32초가 걸렸고 손님이 먼저 «러시아어 자막이
+  //   안 보인다»고 말한 것이었다.
+  // 그런데 자동으로 켜지면 «내가 안 켰는데 자막이 지 멋대로 올라온다»가 된다. 2026-08-07
+  //   홍보 영상 촬영 중 PO 가 정확히 그 상황을 겪었다 — 노트북·PC 두 대를 켜 놨는데 버튼을
+  //   누르지 않은 PC 화면에 자막이 계속 올라왔다. 게다가 그 자막에는 아무도 안 한 말이 섞인다.
+  //   → PO 결정: **자동으로 켜지 않는다. 누르면 켜진다.**
+  //
+  // ⚠️ 되살리지 마라. 8/03 의 «늦게 켜진다» 문제는 여전히 유효하지만, 답은 «몰래 켜기»가
+  //    아니라 «켜라고 눈에 띄게 알려 주기»다(그건 별건).
   // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
   // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
   useEffect(() => {
@@ -2612,8 +2627,19 @@ export default function ConsultationRoomPage() {
   const useServerStt =
     translationEnabled &&
     myMicOn && // 마이크 꺼짐 = 송신 STT 중지 (수신 자막은 ListenModeBridge 가 별도 동작)
+    !isAloneInRoom && // 혼자 = 자막을 볼 상대가 없다. 아래 참조.
     (stt.failed || !stt.isSupported || forceServerStt) &&
     mediaRecOk;
+
+  // ⚠️ 혼자 있을 때 서버 STT 를 왜 막나 (2026-08-07 PO 제보):
+  //   테스트 방에 혼자 들어가 있는데 자막이 스스로 진료 문장을 만들어냈다
+  //   ("약에 대해서 다시 좀 부작용이라든가 설명해 주실 수는 없을까요?" — 아무도 안 한 말).
+  //   원인: 아래 VAD 문턱(rms>0.014)은 숨소리·사무실 잡음을 통과시키고(실측 잡음 0.021),
+  //   그 «말이 아닌» 조각을 받으면 모델이 도메인에 어울리는 문장을 창작한다.
+  //   2026-08-06 A/B 실측: 조용한 구간에서 창작 10/12(83%). 프롬프트 금지문은 안 지켜진다
+  //   (8/03 에 두 번 강화했으나 15~17% 에서 안 줄었음).
+  //   → 근본 수리(언어별 모델 분기)는 별건이고, 혼자인 방은 애초에 자막이 갈 곳이 없으므로
+  //     여기서 아예 안 돌린다. 비용도 같이 준다.
 
   // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
   // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
@@ -3221,8 +3247,11 @@ export default function ConsultationRoomPage() {
 
   const sessionActions = (
     <>
-      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF. */}
+      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF(2026-08-07 PO 결정: 누를 때만 켜진다). */}
       <button
+        // 야간 로봇 검사가 «6개 언어 글자»가 아니라 이 표식으로 자막을 켠다 — 기본 OFF 가 되면서
+        // 검사가 자막을 한 줄도 못 보게 됐다(2026-08-18 리뷰). 이름표를 지우지 마라.
+        data-testid="captions-toggle"
         onClick={toggleTranslation}
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
@@ -4121,12 +4150,17 @@ export default function ConsultationRoomPage() {
                                 </p>
                                 <p className="text-sm text-gray-200">{trans.original_text}</p>
                               </div>
-                              <div className="pt-2 border-t border-gray-700">
-                                <p className="text-xs text-teal-700 mb-0.5">
-                                  {LANG_LABELS[trans.target_language] || trans.target_language}
-                                </p>
-                                <p className="text-sm text-teal-300">{trans.translated_text}</p>
-                              </div>
+                              {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
+                                  (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
+                                  같은 언어끼리 회의는 흔하므로 그때는 번역 줄을 숨긴다. */}
+                              {trans.original_text && (
+                                <div className="pt-2 border-t border-gray-700">
+                                  <p className="text-xs text-teal-700 mb-0.5">
+                                    {LANG_LABELS[trans.target_language] || trans.target_language}
+                                  </p>
+                                  <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

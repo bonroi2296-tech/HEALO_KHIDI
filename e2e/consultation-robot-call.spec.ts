@@ -275,6 +275,13 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
       await robotA.locator('button[aria-label="Toggle chat panel"]').first().click();
 
+      // ⚠️ 자막을 «켠다». 2026-08-07 부터 자막은 기본 꺼짐(PO 결정: 누를 때만)이라, 예전처럼
+      //    통역만 켜고 자막을 기다리면 **앱이 멀쩡해도 영원히 «자막 못 봄»**이 나온다.
+      //    이 검사가 통역·자막 파이프라인을 보는 유일한 눈이므로 여기서 명시적으로 켠다.
+      for (const p of [robotA, robotB]) {
+        await p.getByTestId("captions-toggle").first().click({ timeout: 10_000 }).catch(() => {});
+      }
+
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
 

@@ -27,6 +27,7 @@ import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
+import { transcriptsAgree } from "@/lib/consultation/transcriptAgreement";
 
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024;
 
@@ -184,6 +185,52 @@ export async function POST(
 
     let detectedLang = "";
 
+    // ── 지어냄 거르개: 확정 자막은 «두 번 물어 답이 닮았을 때만» 채택한다 ──
+    //
+    // 왜: 모델은 말이 없는 조각을 받으면 침묵하지 않고 그럴듯한 진료 문장을 만든다
+    //   (2026-08-07 실측: 무음·잡음 조각에서 15/15 = 100% 창작. PO 가 빈 방에서 본 그것).
+    //   프롬프트로 금지하는 방식은 8/03·8/04 두 번 시도해 안 줄었다(#1253·#1297).
+    //   그런데 **창작은 부를 때마다 다른 문장이고 진짜 말은 매번 같은 문장**이다 —
+    //   실측 닮음이 창작 0.01~0.02 대 진짜 0.87~1.00 로 겹치지 않는다.
+    //   판정 근거·문턱·재현법은 src/lib/consultation/transcriptAgreement.ts 참고.
+    //
+    // 부분 조각(말하는 중)은 1회만 부른다 — 어차피 곧 확정본이 덮고, 화면에만 잠깐 뜨며
+    //   기록에는 안 남는다. 여기까지 두 배로 부르면 비용·지연만 늘고 얻는 게 적다.
+    //   ⚠️ 그래서 «말하는 중» 자막엔 지어낸 문장이 잠깐 스칠 수 있다.
+    // ⚠️ 한 쪽이 실패해도 자막을 통째로 죽이지 않는다.
+    //   Promise.all 로 두면 «둘 중 하나만 삐끗해도 요청 전체가 실패»한다 = 호출을 두 배로
+    //   늘린 만큼 자막이 끊길 확률도 두 배가 된다. 지어냄을 막으려다 자막을 끊으면 손해다.
+    //   한 쪽만 살아 오면 그 답을 쓴다 — 그건 오늘까지의 동작(1회 호출)과 같아서 나빠지진 않는다.
+    //   대신 그 조각엔 대조가 안 걸렸다는 뜻이므로 기록에 남긴다.
+    const askModel = async (
+      modelId: string,
+      genArgs: { messages: any; temperature: number; maxOutputTokens: number }
+    ): Promise<string[]> => {
+      if (isPartial) return [await genWithFallback(modelId, genArgs)];
+      const settled = await Promise.allSettled([
+        genWithFallback(modelId, genArgs),
+        genWithFallback(modelId, genArgs),
+      ]);
+      const ok = settled
+        .filter((s): s is PromiseFulfilledResult<string> => s.status === "fulfilled")
+        .map((s) => s.value);
+      if (ok.length === 0) throw (settled[0] as PromiseRejectedResult).reason;
+      if (ok.length === 1) {
+        console.info("[consultation/stt] 두 번 중 한 번만 응답 — 대조 없이 통과시킴");
+      }
+      return ok;
+    };
+
+    /** 두 번째 답과 닮지 않으면 «지어냄»으로 보고 버린다. 1회 호출(부분)이면 그대로 통과. */
+    const agreedOrEmpty = (runs: { transcript: string }[]): boolean => {
+      if (runs.length < 2) return true;
+      if (transcriptsAgree(runs[0].transcript, runs[1].transcript)) return true;
+      console.info(
+        `[consultation/stt] 합의 실패로 버림: "${runs[0].transcript.slice(0, 40)}" vs "${runs[1].transcript.slice(0, 40)}"`
+      );
+      return false;
+    };
+
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
       // 언어 자동 감지: 화자가 설정 언어(lang)와 다른 언어를 말해도(같은 방 마이크에
@@ -191,7 +238,7 @@ export async function POST(
       // 감지 언어가 이미 targetLang 이면 번역하지 않고 전사를 그대로 자막으로 (echo 방지 —
       // 7/10 로그 전수조사에서 한국어 발화가 ru→ko 로 들어가 원문 그대로 echo 된 건 10건).
       const targetName = LANG_NAMES[targetLang];
-      const text = await genWithFallback(sttModelFor(lang, targetLang, isPartial), {
+      const texts = await askModel(sttModelFor(lang, targetLang, isPartial), {
         messages: [
           {
             role: "user",
@@ -218,22 +265,31 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
       });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
-      const cleaned = (text || "").replace(/```(?:json)?/g, "").trim();
-      const m = cleaned.match(/\{[\s\S]*\}/);
-      if (m) {
+      const runs = texts.map((text) => {
+        const cleaned = (text || "").replace(/```(?:json)?/g, "").trim();
+        const m = cleaned.match(/\{[\s\S]*\}/);
+        if (!m) return { transcript: "", translated: "", detectedLang: "" }; // 파싱 실패 — 조각 폐기
         try {
           const j = JSON.parse(m[0]);
-          transcript = String(j.t || "").trim();
-          translated = String(j.x || "").trim();
           const l = String(j.l || "").trim().toLowerCase();
-          detectedLang = LANG_NAMES[l] ? l : "";
+          return {
+            transcript: String(j.t || "").trim(),
+            translated: String(j.x || "").trim(),
+            detectedLang: LANG_NAMES[l] ? l : "",
+          };
         } catch {
           // 파싱 실패 — 조각 폐기 (깨진 텍스트를 자막으로 내보내는 것보다 안전)
+          return { transcript: "", translated: "", detectedLang: "" };
         }
+      });
+      if (agreedOrEmpty(runs)) {
+        transcript = runs[0].transcript;
+        translated = runs[0].translated;
+        detectedLang = runs[0].detectedLang;
       }
     } else {
       // ── 전사만 (targetLang 없음 또는 같은 언어) ──
-      const text = await genWithFallback(sttModelFor(lang), {
+      const texts = await askModel(sttModelFor(lang), {
         messages: [
           {
             role: "user",
@@ -252,8 +308,11 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
         temperature: 0,
         maxOutputTokens: 400,
       });
-      const raw = (text || "").trim();
-      transcript = raw === "[NO_SPEECH]" ? "" : raw;
+      const runs = texts.map((text) => {
+        const raw = (text || "").trim();
+        return { transcript: raw === "[NO_SPEECH]" ? "" : raw };
+      });
+      if (agreedOrEmpty(runs)) transcript = runs[0].transcript;
       // 같은 언어면 자막 파이프라인이 그대로 표시할 수 있게 번역=원문
       if (targetLang === lang) translated = transcript;
     }
