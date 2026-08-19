@@ -268,7 +268,13 @@ export default function ReferralForm() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          ...values,
+          // 🛑 「상담만」이면 «화면에 보인 칸»만 보낸다. 전체 모드에서 자료를 올렸다가 되돌아가 「상담만」으로
+          //    보내면 자료가 같이 실려 나갔다(2026-08-19 PO 실측 #129: 「접수만 했는데 자료가 첨부돼 버렸다」).
+          //    사람은 «지금 보이는 것»을 보낸다고 생각한다 — 안 보이는 건 안 보내야 맞다.
+          //    (임시저장엔 그대로 남아 있으니, 나중에 전체로 돌아오면 다시 쓸 수 있다.)
+          ...(mode === "quick"
+            ? Object.fromEntries((SECTIONS.find((s) => s.id === "essentials")?.fields || []).map((f) => [f.name, values[f.name]]))
+            : values),
           mode,
           consents,
           sourceLocale: lang,
