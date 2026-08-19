@@ -17,7 +17,9 @@
 >   page.jsx 「(작업 중)」 제목·noindex 제거 → localizedMeta · patientLang enum · 접수확인 메일 결과 로그 · 임시저장 7일 TTL · 새 검사 `referralSchemaDrift.test.ts`(화면 칸↔zod↔저장 — 조용히 버려지는 키 차단).
 > · **보류(후속)**: classify-doc 무인증(HMAC 티켓) · 순차 업로드·자동저장 디바운스 · 포털 상세 3번째 select 합치기.
 > · **실측**: 로컬→실DB #131(is_test) — 위조 경로 2개 전부 버려짐·병기 저장·진단시기 암호화 컬럼만. 테스트 1256·typecheck·build·check:content 통과.
-> · **다음**: CI 초록 → PR #1414 머지 → `gh workflow run "Daily Deploy (배포 창구)"` → /api/health 로 커밋 확인 → 실서비스 /inquiry/referral 6언어·코디 카드 눈으로.
+> · **✅ 실서비스 반영 완료 (2026-08-19 11:30 KST)**: #1414 합침 `c4a2366b` → 배포 창구 수동 실행 → /api/health 커밋 일치 → 6언어 /inquiry/referral 200+제목 현지어 → 실서비스에 시험 문의 #132(is_test) 넣어 위조 경로 버려짐·동의 공용키·병기·진단시기 암호화 컬럼 확인 → 코디 화면 「의뢰서」 카드 + **AI 브리프가 의뢰서 내용(C18 sigmoid 2기)을 읽음** 확인.
+> · 실서비스 확인 중 발견 1건: 브리프가 지난 진단일(2026-06)을 «미래 날짜»라고 씀 — 모델이 오늘을 모름 → PR #1417(1줄, today 주기). 15:00 창구로 나감.
+> · **다음(후속)**: classify-doc HMAC 티켓 · 순차 업로드/디바운스 · /inquiry 갈아끼우기·/claim 이어채우기·쿠키 띠 겹침(PO 판단) · 원어민 검수(대조표 artifact).
 
 > **📌 중간 저장 (2026-08-19 새벽 — 밤샘 감사: 접수 «뒤» 여정에서 결함 11건. 아직 안 합침)**
 > · **작업방**: `HEALO_worktrees/inquiry-redesign` · 작업본 `work/inquiry-redesign` · 커밋 `b6f6931e`+
