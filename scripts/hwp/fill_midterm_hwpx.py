@@ -499,6 +499,62 @@ def clone_rows(tbl, src_row, times):
     tbl.set('rowCnt', str(len(tbl.findall('./' + HP + 'tr'))))
 
 
+LINE_H = 2712   # 표 안 한 줄 높이(양식 실측)
+CHAR_W = 960    # 한글 한 글자 폭(양식 실측)
+
+
+def disp_len(s):
+    """화면에서 차지하는 폭 — 한글·전각은 1, 그 밖은 0.55로 센다."""
+    return sum(1.0 if ord(c) > 0x1100 else 0.55 for c in s)
+
+
+def cell_text(tc):
+    return ''.join(x for t in tc.iter(HP + 't') for x in [t.text or ''] + [c.tail or '' for c in t])
+
+
+def refit_table(tbl):
+    """칸 높이를 «내용에 맞게» 다시 잡는다.
+
+    ⚠️ 양식의 칸 높이는 고정값이다. 글을 길게 넣으면 넘친 부분이 그냥 «안 그려진다» —
+    2026-08-18 실측: 「성과(물) 활용계획」·「문제점 및 건의」 행과 계획대비표 8월 행이 통째로 사라졌다.
+    한글이 알아서 늘려주지 않으므로 여기서 미리 계산해 넣는다.
+    """
+    trs = tbl.findall('./' + HP + 'tr')
+    rows = len(trs)
+    cells = []
+    for tr in trs:
+        for tc in tr.findall('./' + HP + 'tc'):
+            ca, sp, sz = (tc.find('./' + HP + x) for x in ('cellAddr', 'cellSpan', 'cellSz'))
+            if ca is None or sz is None:
+                continue
+            r = int(ca.get('rowAddr'))
+            rs = int(sp.get('rowSpan')) if sp is not None else 1
+            w = int(sz.get('width'))
+            per = max(4.0, (w - 400) / CHAR_W)
+            need = max(1, -(-int(disp_len(cell_text(tc)) * 100) // int(per * 100))) * LINE_H
+            cells.append((tc, sz, r, rs, need, int(sz.get('height'))))
+
+    row_h = [0] * rows
+    for tc, sz, r, rs, need, old in cells:
+        if rs == 1:
+            row_h[r] = max(row_h[r], need, old)
+    for r in range(rows):
+        if row_h[r] == 0:
+            row_h[r] = LINE_H
+    # 세로로 합쳐진 칸이 모자라면 마지막 걸친 행을 키운다
+    for tc, sz, r, rs, need, old in cells:
+        if rs > 1:
+            have = sum(row_h[r:r + rs])
+            if have < need:
+                row_h[r + rs - 1] += need - have
+
+    for tc, sz, r, rs, need, old in cells:
+        sz.set('height', str(sum(row_h[r:r + rs])))
+    tsz = tbl.find('./' + HP + 'sz')
+    if tsz is not None:
+        tsz.set('height', str(sum(row_h)))
+
+
 def build_char_fix(zf):
     hdr = etree.fromstring(zf.read('Contents/header.xml'))
     info, plain = {}, {}
@@ -523,8 +579,7 @@ miss = []
 # 0) 표가 한 쪽을 넘으면 «잘려서 사라지지» 않게 — 양식은 pageBreak="NONE" 이라
 #    내용이 길어지면 뒷부분 행이 통째로 안 보인다(2026-08-18 실측: 「문제점 및 건의」 행 실종).
 for t in tbls:
-    if t.get('pageBreak') == 'NONE':
-        t.set('pageBreak', 'CELL')
+    t.set('pageBreak', 'CELL')
 
 # 1) 표 늘리기 — 글자를 채우기 «전»에 해야 한다
 for ti, src_row, times in ROW_CLONES:
@@ -574,6 +629,17 @@ for (ti, ri, ci, pi), val in CELL_PARAS.items():
         continue
     if not set_para_text(p, val):
         miss.append(('cell-para-run', ti, ri, ci, pi))
+
+# 3-1) 칸 높이를 내용에 맞게 다시 잡는다 (글자를 다 채운 «뒤»에)
+#      그리고 «한 쪽에 안 들어가는 표»만 「글자처럼 취급」을 꺼서 쪽을 넘게 한다.
+#      ⚠️ 전부 끄면 표가 본문 흐름에서 떨어져 나와 순서가 뒤엉킨다(2026-08-18 실측: 표지·수행기관 표가 쪼개짐).
+BODY_H = 60000  # 본문 한 쪽에 들어가는 높이(A4 84188 − 여백·머리말·꼬리말, 제목 여유 뺀 값)
+for t in tbls:
+    refit_table(t)
+    tsz = t.find('./' + HP + 'sz')
+    pos = t.find('./' + HP + 'pos')
+    if tsz is not None and pos is not None and int(tsz.get('height')) > BODY_H:
+        pos.set('treatAsChar', '0')
 
 # 4) 원본 zip 구조 그대로 두고 section0.xml 만 갈아끼운다
 new = etree.tostring(root, xml_declaration=True, encoding='UTF-8', standalone=True)
