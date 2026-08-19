@@ -7,6 +7,9 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+// 국적·암종을 코드(KZ·kidney) 그대로 뿌리던 것을 사람이 읽는 이름으로. 코디 인박스와 같은 헬퍼를 쓴다.
+import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { nationalityLabelL } from "@/lib/khidi/nationality";
 
 const RANGES = [
   { key: "30", label: "최근 30일", days: 30 },
@@ -20,6 +23,9 @@ const SOURCE_LABELS = {
   ai_agent: "AI 상담",
   messenger_telegram: "Telegram 상담",
   messenger_whatsapp: "WhatsApp 상담",
+  // 플랫폼 도입 이전 상담을 나중에 등록한 것(2026-08-06 소급 등록 2건). 코드가 그대로 보이던 것을 채웠다.
+  offline_backfill: "소급 등록(플랫폼 이전)",
+  agency: "에이전시 접수",
   "(미상)": "(미상)",
 };
 
@@ -210,7 +216,7 @@ export default function ConversionDashboard() {
                 <tbody>
                   {data.byCountry.map((c) => (
                     <tr key={c.nationality} className="border-b border-gray-50">
-                      <td className="py-2 font-medium text-gray-800">{c.nationality}</td>
+                      <td className="py-2 font-medium text-gray-800">{nationalityLabelL(c.nationality, "ko")}</td>
                       <td className="py-2 text-right text-gray-600">{c.total}</td>
                       <td className="py-2 text-right text-gray-600">{c.pre_consult}</td>
                       <td className="py-2 text-right font-semibold text-teal-700">{c.admitted}</td>
@@ -266,6 +272,13 @@ export default function ConversionDashboard() {
             <p className="text-xs text-gray-500 mb-3">
               참여기관(한방)·협진(대학병원)별 상담 세션 집계. 참여기관 「원격 사후관리」 실적 = 사후관리 열.
             </p>
+            {/* 2026-08-19: 위 깔때기와 이 표의 「사전상담」 숫자가 달라 보여 오해를 샀다.
+                세는 기준이 다르기 때문이며, 화면에 그 이유를 밝혀 둔다. */}
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+              세는 기준이 위 깔때기와 다릅니다 — 깔때기의 「사전상담」은 <b>문의에 연결된</b> 상담만,
+              이 표는 <b>전체 상담 세션</b>입니다. 또한 「(미지정)」은 상담을 만들 때 병원을 지정하지 않은
+              세션입니다(에이전시 미팅 등). 기관별 실적으로 제출하려면 해당 세션에 병원을 지정해야 합니다.
+            </p>
             {(data?.byOrg ?? []).length === 0 ? (
               <p className="text-sm text-gray-500">데이터 없음 (상담 생성 시 병원을 지정하면 집계됩니다)</p>
             ) : (
@@ -318,7 +331,7 @@ export default function ConversionDashboard() {
                   >
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">
-                        {p.name} · {p.nationality}
+                        {p.name} · {nationalityLabelL(p.nationality, "ko")}
                         {p.is_test && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium shrink-0">
                             테스트
@@ -326,7 +339,7 @@ export default function ConversionDashboard() {
                         )}
                       </div>
                       <div className="text-xs text-gray-500 truncate">
-                        {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
+                        {cancerTypeLabelL(p.cancer_type, "ko") || "—"} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
@@ -377,7 +390,7 @@ export default function ConversionDashboard() {
                   >
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">
-                        {p.name} · {p.nationality}
+                        {p.name} · {nationalityLabelL(p.nationality, "ko")}
                         {p.auto && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium shrink-0">
                             자동
@@ -390,7 +403,7 @@ export default function ConversionDashboard() {
                         )}
                       </div>
                       <div className="text-xs text-gray-500 truncate">
-                        {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
+                        {cancerTypeLabelL(p.cancer_type, "ko") || "—"} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">

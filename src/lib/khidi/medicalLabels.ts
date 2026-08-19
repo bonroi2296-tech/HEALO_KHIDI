@@ -18,6 +18,12 @@ export const CANCER_TYPE_LABELS: Record<string, Record<string, string>> = {
   pancreatic:  { ko: "췌장암", en: "Pancreatic cancer", ru: "Рак поджелудочной железы", kz: "Ұйқы безі обыры", zh: "胰腺癌", ja: "膵臓がん" },
   gynecologic: { ko: "부인암", en: "Gynecologic cancer", ru: "Гинекологический рак", kz: "Гинекологиялық обыр", zh: "妇科癌", ja: "婦人科がん" },
   cervical:    { ko: "자궁경부암", en: "Cervical cancer", ru: "Рак шейки матки", kz: "Жатыр мойны обыры", zh: "宫颈癌", ja: "子宮頸がん" },
+  // 문의 폼 선택지에는 없지만 코디·에이전시가 직접 넣는 값. 사전에 없으면 코드가 화면에 그대로 노출된다
+  // (2026-08-19 실측: 문의 #60 의 암종이 목록·환자 화면에 "kidney" 로 보였다).
+  kidney:      { ko: "신장암", en: "Kidney cancer", ru: "Рак почки", kz: "Бүйрек обыры", zh: "肾癌", ja: "腎がん" },
+  prostate:    { ko: "전립선암", en: "Prostate cancer", ru: "Рак простаты", kz: "Простата обыры", zh: "前列腺癌", ja: "前立腺がん" },
+  bladder:     { ko: "방광암", en: "Bladder cancer", ru: "Рак мочевого пузыря", kz: "Қуық обыры", zh: "膀胱癌", ja: "膀胱がん" },
+  esophageal:  { ko: "식도암", en: "Esophageal cancer", ru: "Рак пищевода", kz: "Өңеш обыры", zh: "食道癌", ja: "食道がん" },
   other:       { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" },
 };
 

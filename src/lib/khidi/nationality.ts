@@ -24,6 +24,11 @@ export const NATIONALITY_NAMES: Record<string, string> = {
   CN: "중국",
   JP: "일본",
   US: "미국",
+  // 실제 문의 #87(케이스 A, 소급 등록) — 에리트레아 출신·에티오피아 체류.
+  // 사전에 없어 화면·리포트에 "ET" 코드가 그대로 나오던 것을 채웠다(2026-08-19).
+  ET: "에티오피아",
+  ER: "에리트레아",
+  TR: "튀르키예",
 };
 
 /**
@@ -57,6 +62,9 @@ export const NATIONALITY_NAMES_L: Record<string, Record<string, string>> = {
   CN: { ko: "중국", en: "China", ru: "Китай", kz: "Қытай", zh: "中国", ja: "中国" },
   JP: { ko: "일본", en: "Japan", ru: "Япония", kz: "Жапония", zh: "日本", ja: "日本" },
   US: { ko: "미국", en: "USA", ru: "США", kz: "АҚШ", zh: "美国", ja: "アメリカ" },
+  ET: { ko: "에티오피아", en: "Ethiopia", ru: "Эфиопия", kz: "Эфиопия", zh: "埃塞俄比亚", ja: "エチオピア" },
+  ER: { ko: "에리트레아", en: "Eritrea", ru: "Эритрея", kz: "Эритрея", zh: "厄立特里亚", ja: "エリトリア" },
+  TR: { ko: "튀르키예", en: "Türkiye", ru: "Турция", kz: "Түркия", zh: "土耳其", ja: "トルコ" },
   OTHER: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" },
 };
 
