@@ -10,6 +10,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import { loginAs } from "./fixtures/auth";
+import { findClipped } from "./fixtures/clipCheck";
 
 const uniq = () => `e2e-referral-${Date.now()}@healo-test.invalid`;
 
@@ -167,10 +168,11 @@ test.describe("환자 의뢰서 @smoke", () => {
     const MARK = `E2E-DX-${Date.now()}`;
     await page.locator("#in-diagnosisNameRaw").fill(MARK);
     await page.getByTestId("send").click();
-    await expect(page.locator("#track-url")).toBeVisible({ timeout: 20000 });
-    const no = (await page.locator("#track-url").getAttribute("href"))!;      // 번호는 화면에도 있다
-    const id = (await page.locator("body").innerText()).match(/#(\d+)/)?.[1];
-    expect(id, `접수 번호를 화면에서 못 찾았다 (${no})`).toBeTruthy();
+    // 🛑 innerText 를 «한 번» 읽고 판단하지 마라 — 하이드레이션과 경주가 된다(사이트 규칙 §33-b).
+    //    될 때까지 기다리는 expect 로 본 뒤에 값을 읽는다.
+    await expect(page.getByTestId("inquiry-no")).toBeVisible({ timeout: 20000 });
+    const id = ((await page.getByTestId("inquiry-no").textContent()) || "").replace(/[^0-9]/g, "");
+    expect(id, "접수 번호가 화면에 안 뜬다").not.toEqual("");
 
     await loginAs(page, "coordinator");
     await page.goto(`/coordinator/inbox/${id}`);
@@ -185,4 +187,22 @@ test.describe("환자 의뢰서 @smoke", () => {
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(over, "가로 스크롤이 생기면 폰에서 글자가 잘린다").toBeLessThanOrEqual(1);
   });
+
+  // 어제(2026-08-18) 내가 6개 언어 × 2가지 폭을 «눈으로» 훑었다. 그 일을 기계에 넘긴다 —
+  // 러시아어·카자흐어는 한국어보다 2~3배 길어서 칸을 제일 잘 넘친다.
+  for (const lang of ["ru", "kz"]) {
+    test(`${lang} 20칸이 폰에서 글자가 잘리지 않는다`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(`/${lang}/inquiry/referral`);
+      await page.getByTestId("pick-full").click();
+      const closed = page.locator('section > button[aria-expanded="false"]');
+      for (let i = await closed.count(); i > 0; i = await closed.count()) {
+        await closed.first().click();
+        if (i === (await closed.count())) break;
+      }
+      await page.waitForTimeout(600);          // 펼침 애니메이션이 끝난 뒤에 잰다
+      const bad = await findClipped(page);     // 잘림 판정은 사이트 공용 탐지기 하나로
+      expect(bad.map((b) => `${b.over}px 넘침: ${b.text}`), JSON.stringify(bad.slice(0, 4))).toEqual([]);
+    });
+  }
 });

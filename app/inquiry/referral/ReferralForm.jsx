@@ -394,7 +394,7 @@ export default function ReferralForm() {
             <h1 className="mt-4 text-2xl font-bold text-gray-900">{tr("doneTitle", lang)}</h1>
             <p className="mt-2 text-sm leading-relaxed text-gray-600 md:text-base">{tr("doneBody", lang)}</p>
             <p className="mt-5 text-sm text-gray-600">
-              {tr("doneNo", lang)} <span className="font-bold text-gray-900 tabular-nums">#{sent.inquiryId}</span>
+              {tr("doneNo", lang)} <span data-testid="inquiry-no" className="font-bold text-gray-900 tabular-nums">#{sent.inquiryId}</span>
             </p>
             {/* 주소는 서버가 만든 걸 그대로 쓴다 — 화면에서 조립하면 실제 경로와 어긋난다
                 (2026-08-14: 「/t/」로 지어냈는데 진짜는 「/claim/」이었다). */}
