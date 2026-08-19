@@ -9,6 +9,7 @@
  * 🛑 「있으면 채운다」식으로 무르게 쓰지 마라 — 칸이 사라져도 통과해버려 검사가 «아무것도 안 보는» 상태가 된다.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { loginAs } from "./fixtures/auth";
 
 const uniq = () => `e2e-referral-${Date.now()}@healo-test.invalid`;
 
@@ -128,6 +129,53 @@ test.describe("환자 의뢰서 @smoke", () => {
     const NATIVE_NAMES = ["한국어", "한국"];
     const hangul = (text.match(/[가-힣]{2,}/g) || []).filter((w) => !NATIVE_NAMES.includes(w));
     expect(hangul, `러시아어 화면에 한국어: ${[...new Set(hangul)].slice(0, 8).join(", ")}`).toEqual([]);
+  });
+
+  test("접수 뒤 받는 진행 링크가 «환자 언어»로 열린다", async ({ page }) => {
+    // 🛑 이 링크는 카자흐·러시아 환자가 폰에서 여는 화면이다. 한국어로 열리면 그 자리에서 끝난다.
+    //    (규칙: ①사람이 고른 언어 ②문의서에 적은 환자 언어 ③브라우저 ④영어)
+    await page.goto("/inquiry/referral");
+    await page.getByTestId("pick-quick").click();
+    await fillEssentials(page, uniq());          // patientLang = ru 로 넣는다
+    await page.getByTestId("send").click();
+    await expect(page.locator("#track-url")).toBeVisible({ timeout: 20000 });
+    const track = await page.locator("#track-url").getAttribute("href");
+
+    // 언어 흔적이 없는 «새 사람»으로 연다 — 환자는 우리 사이트를 처음 여는 사람이다
+    const fresh = await page.context().browser()!.newContext();
+    const p2 = await fresh.newPage();
+    await p2.goto(track!);
+    await expect(p2.locator("main")).toContainText(/[А-Яа-я]{4,}/, { timeout: 15000 });
+    const txt = await p2.locator("main").innerText();
+    const hangul = (txt.match(/[가-힣]{2,}/g) || []).filter((w) => !["한국어", "한국"].includes(w));
+    expect(hangul, `러시아어 환자 화면에 한국어: ${[...new Set(hangul)].slice(0, 6).join(", ")}`).toEqual([]);
+    await fresh.close();
+  });
+
+  test("코디 화면에 환자가 쓴 의뢰서가 «그대로» 뜬다", async ({ page }) => {
+    // 🛑 이 개편의 존재 이유다. 2026-08-19 실측으로 여기가 통째로 비어 있었다 —
+    //    환자가 진단명·불편한 곳·약물을 다 채웠는데 코디 화면엔 옛 6칸만 떴다.
+    //    화면이 조용히 사라져도 아무도 모르니 기계가 본다.
+    await page.goto("/inquiry/referral");
+    await page.getByTestId("pick-full").click();
+    await fillEssentials(page, uniq());
+    const closed = page.locator('section > button[aria-expanded="false"]');
+    for (let i = await closed.count(); i > 0; i = await closed.count()) {
+      await closed.first().click();
+      if (i === (await closed.count())) break;
+    }
+    const MARK = `E2E-DX-${Date.now()}`;
+    await page.locator("#in-diagnosisNameRaw").fill(MARK);
+    await page.getByTestId("send").click();
+    await expect(page.locator("#track-url")).toBeVisible({ timeout: 20000 });
+    const no = (await page.locator("#track-url").getAttribute("href"))!;      // 번호는 화면에도 있다
+    const id = (await page.locator("body").innerText()).match(/#(\d+)/)?.[1];
+    expect(id, `접수 번호를 화면에서 못 찾았다 (${no})`).toBeTruthy();
+
+    await loginAs(page, "coordinator");
+    await page.goto(`/coordinator/inbox/${id}`);
+    // 라벨이 아니라 «환자가 쓴 값»이 떠야 한다 — 카드만 있고 값이 비면 못 잡는다
+    await expect(page.locator("body")).toContainText(MARK, { timeout: 20000 });
   });
 
   test("폰 크기에서 옆으로 밀리지 않는다", async ({ page }) => {
