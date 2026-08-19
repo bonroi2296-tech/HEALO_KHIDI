@@ -2332,19 +2332,32 @@ const TEAL600_BASELINE = {
   }
 
   if (phrases) {
-    let src = "";
-    try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
-    // 명단 배열 구간만 본다(그 뒤 지점 메타 등은 별개).
-    const from = src.indexOf("export const IMMUNE_DOCTOR_ROSTER = [");
-    const to = src.indexOf("export const IMMUNE_BRANCH_META");
-    const block = from >= 0 && to > from ? src.slice(from, to) : "";
-    if (!block) {
-      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+    // 소스를 글자로 훑지 말고 «불러와서» 본다. 2026-08-19 실측: 옛 정규식이
+    //   en: [ ... ]  를 「첫 ] 까지」로 잘라서, 문구 «안»에 대괄호가 든 줄부터 통째로 안 읽혔다
+    //   («[MBC] TV appearance…», «[6]-Shogaol…» 3건이 번역 없이 영어로 나가는데도 검사는 통과).
+    let roster = null;
+    try {
+      ({ IMMUNE_DOCTOR_ROSTER: roster } = await import(pathToFileURL(join(ROOT, SRC)).href));
+    } catch (e) {
+      errors.push(`[의료진i18n] ${SRC} 를 불러오지 못했다 (${e.message}) — 이 가드가 무력화됐다.`);
+    }
+    if (!Array.isArray(roster) || !roster.length) {
+      // 「불러오기는 됐는데 명단이 없다」도 무력화다 — 이름이 바뀌거나 다른 파일로 옮겨가면
+      // roster 가 undefined 가 되고, 검사가 «볼 게 없으니 통과» 로 조용히 넘어간다.
+      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 얻지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
     }
     const used = new Set();
-    for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
-      for (const s of m[1].matchAll(/'([^']*)'/g)) used.add(s[1]);
-    for (const m of block.matchAll(/subspecialty:\s*\{[^}]*en:\s*'([^']*)'/g)) used.add(m[1]);
+    for (const doc of Array.isArray(roster) ? roster : []) {
+      if (doc.subspecialty?.en) used.add(doc.subspecialty.en);
+      // 칸 이름을 못 박지 말고 «en 이 배열인 칸»을 전부 본다 — 나중에 «수상» 같은 칸이
+      // 늘어도 검사 밖으로 새지 않는다. (이름·직위는 en 이 문자열이라 자동으로 빠진다:
+      //  영어로 내보내기로 한 것 — PO 2026-07-27)
+      for (const value of Object.values(doc)) {
+        if (value && typeof value === "object" && Array.isArray(value.en)) {
+          for (const line of value.en) used.add(line);
+        }
+      }
+    }
 
     const LANGS = ["ru", "kz", "zh", "ja"];
     const missing = [];
