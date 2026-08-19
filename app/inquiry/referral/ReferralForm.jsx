@@ -215,7 +215,11 @@ export default function ReferralForm() {
   const missIntake = useMemo(() => missingIntake(values), [values]);
   const consentOk = CONSENTS.filter((c) => c.required).every((c) => consents[c.name]);
   const intakeTotal = fieldsByReq("intake").length + 1; // 동의 묶음을 한 칸으로 센다
-  const intakeLeft = missIntake.length + (consentOk ? 0 : 1);
+  // 🛑 «비어 있지 않다»만 보지 마라 — 「11」을 넣어도 단추가 켜져서 서버가 거부하고, 화면은 엉뚱하게
+  //    「잠시 뒤 다시 시도」라고 했다(2026-08-19 PO 실측). 서버(z.string().email())와 같은 눈으로 본다.
+  //    틀린 이메일은 «남은 칸 1»로 센다 — 안 그러면 막대가 「0칸만 채우면」이라 하면서 단추는 막혀 있다.
+  const emailBad = !!values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.email).trim());
+  const intakeLeft = missIntake.length + (consentOk ? 0 : 1) + (emailBad ? 1 : 0);
   const canSend = intakeLeft === 0;
 
   // 문턱 ② 의뢰 준비 — 아무것도 막지 않는다. 얼마나 왔는지만 보여준다.
@@ -243,7 +247,7 @@ export default function ReferralForm() {
         ?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     });
   };
-  const jumpToNext = () => jumpTo(missIntake[0] || (consentOk ? null : "consent"), "essentials");
+  const jumpToNext = () => jumpTo(missIntake[0] || (emailBad ? "email" : null) || (consentOk ? null : "consent"), "essentials");
 
   const nextRef = useMemo(() => {
     const s = nextReferralSection(values);
@@ -276,7 +280,13 @@ export default function ReferralForm() {
       const j = await res.json();
       if (!j?.ok) {
         // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 여기서 한다.
-        setSendError(tr(j?.error === "rate_limit_exceeded" ? "errTooMany" : "errSend", lang));
+        // 코드마다 «다음에 뭘 하면 되는지»가 다르다 — 형식 오류에 「다시 시도」라고 하면 틀린 조언이다.
+        const code = j?.error;
+        setSendError(tr(
+          code === "rate_limit_exceeded" ? "errTooMany"
+          : code === "validation_error" || code === "invalid_json" || code === "broken_encoding" ? "errInvalid"
+          : code === "consent_required" ? "errConsent"
+          : "errSend", lang));
         return;
       }
       setSent(j);
@@ -467,7 +477,8 @@ export default function ReferralForm() {
                           <Fragment key={f.name}>
                             <Field f={f} lang={lang} value={values[f.name]} onChange={set}
                                    lit={highlight === f.name} fromDoc={!!autoFilled[f.name]}
-                                   bare={sec.id !== "essentials"} />
+                                   bare={sec.id !== "essentials"}
+                                   error={f.name === "email" && emailBad ? tr("emailBad", lang) : null} />
                             {/* 안내는 «고른 칸 바로 밑»에 붙는다. 묶음 끝에 두면 758px 아래라
                                 화면 밖이고, 골라도 아무 일 없는 것처럼 보인다(2026-08-13 PO 실사용). */}
                             {f.name === "stage" && LATE_STAGES.includes(values.stage) && (
@@ -597,7 +608,7 @@ export default function ReferralForm() {
 //    이게 애매하다 — 어차피 주면 좋은 건데」). 거기부터는 «전부 채우면 좋은 것»이라
 //    칸마다 등급을 매기면 사람은 「선택이면 안 해도 되겠네」로 읽는다.
 //    묶음 위 한 줄이 «많이 알려주실수록 좋다»를 대신 말한다.
-function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
+function Field({ f, lang, value, onChange, lit, fromDoc, bare, error }) {
   if (f.type === "note") {
     return <p className="mt-2 w-full text-xs leading-relaxed text-gray-600">{lab(f.label, lang)}</p>;
   }
@@ -711,6 +722,9 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
         </label>
       )}
       {control}
+      {/* «틀린 것»은 안내 규칙(칸 밑 설명 금지)의 예외다 — 이건 설명이 아니라 «지금 막힌 이유»고,
+          맞게 고치면 사라진다. */}
+      {error && <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p>}
       {/* 우리가 서류에서 읽어 채운 칸이라는 «출처 표시». 사람이 고치면 사라진다. */}
       {fromDoc && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">

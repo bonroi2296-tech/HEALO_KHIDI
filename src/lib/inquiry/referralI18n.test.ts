@@ -30,13 +30,19 @@ function referralKeys(lang: string): Map<string, string> {
 }
 const BY_LANG = Object.fromEntries(LANGS.map((l) => [l, referralKeys(l)])) as Record<string, Map<string, string>>;
 
-/** 소스가 실제로 쓰는 키 — K("referral.x") 와 tr("x") */
+/** 소스가 실제로 쓰는 키.
+ *  · 칸 정의·서류: K("referral.…") 그대로.
+ *  · 화면 문구: tr("이름") 직접 호출 + «사전에 있는 이름이 소스에 문자열로 등장하면 쓰는 것»으로 본다 —
+ *    tr(code === "a" ? "x" : "y", lang) 처럼 갈래로 고르는 키를 놓치지 않기 위해서다.
+ *    🛑 «tr("이름"» 만 잡으면 갈래 안의 키가 «안 쓰는 키»로 오판돼 지워진다(2026-08-19: errTooMany 를
+ *       그렇게 지웠다가 요청 과다 때 화면에 날것 키가 뜰 뻔했다). */
+const DIRECT = new Set([...form.matchAll(/tr\("(\w+)"/g)].map((m) => `referral.tr.${m[1]}`));
+const MENTIONED = new Set([...form.matchAll(/"(\w+)"/g)].map((m) => m[1]));
 const USED = new Set<string>([
   ...[...schema.matchAll(/K\("(referral\.[\w.]+)"\)/g)].map((m) => m[1]),
   ...[...docKinds.matchAll(/K\("(referral\.[\w.]+)"\)/g)].map((m) => m[1]),
-  ...[...form.matchAll(/tr\("(\w+)"/g)].map((m) => `referral.tr.${m[1]}`),
-  // tr(cond ? "a" : "b", …) 꼴 — 삼항으로 고르는 키도 «쓰는 키»다
-  ...[...form.matchAll(/tr\(\s*\w+\s*\?\s*"(\w+)"\s*:\s*"(\w+)"/g)].flatMap((m) => [`referral.tr.${m[1]}`, `referral.tr.${m[2]}`]),
+  ...DIRECT,
+  ...[...BY_LANG.ko.keys()].filter((k) => k.startsWith("referral.tr.") && MENTIONED.has(k.slice("referral.tr.".length))),
 ]);
 
 describe("의뢰서 6개 언어", () => {
