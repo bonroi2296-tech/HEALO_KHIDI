@@ -182,7 +182,10 @@ export default function ReferralForm() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    // 🛑 보낸 뒤에는 저장하지 않는다 — 안 그러면 «보내기» 직후 지운 임시저장을, 아직 안 끝난
+    //    0.4초 저장이 되살려 다음에 열었을 때 이미 보낸 내용이 다시 뜬다
+    //    (2026-08-19 실서비스에서 자동 클릭 검사가 잡음. 로컬에선 빨라서 안 보였다).
+    if (!hydrated || sent) return;
     // 🛑 글자 하나 칠 때마다 저장하지 않는다 — 긴 글칸(3000자)에서 매 타자마다 통째로 JSON 으로 만들어
     //    쓰는 일이 벌어져 느린 기기에서 입력이 밀린다. 0.4초 멈추면 그때 저장한다(독립 리뷰).
     const timer = setTimeout(() => {
@@ -194,7 +197,7 @@ export default function ReferralForm() {
       } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
     }, 400);
     return () => clearTimeout(timer);
-  }, [hydrated, values, consents, mode, autoFilled]);
+  }, [hydrated, sent, values, consents, mode, autoFilled]);
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).

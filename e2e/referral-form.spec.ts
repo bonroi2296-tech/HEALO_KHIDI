@@ -48,7 +48,10 @@ test.describe("환자 의뢰서 @smoke", () => {
     const track = await page.locator("#track-url").getAttribute("href");
     expect(track, "진행 링크(/claim/…)가 나와야 한다").toMatch(/\/claim\/[0-9a-f-]{36}$/);
 
-    // 보낸 뒤엔 임시저장이 남아 있으면 안 된다 — 다음에 열었을 때 보낸 내용이 되살아난다
+    // 보낸 뒤엔 임시저장이 남아 있으면 안 된다 — 다음에 열었을 때 보낸 내용이 되살아난다.
+    // 🛑 «바로» 재지 마라 — 0.4초 뒤에 쓰는 자동저장이 아직 남아 있으면 지운 것을 되살린다
+    //    (2026-08-19 실서비스에서 실제로 그랬다. 로컬은 빨라서 안 보였다). 그 시간을 지나고 잰다.
+    await page.waitForTimeout(1200);
     expect(await page.evaluate(() => localStorage.getItem("healo_referral_draft_v1"))).toBeNull();
     expect(errors.filter((e) => !/favicon|Failed to load resource/i.test(e)), errors.join(" | ")).toEqual([]);
   });
