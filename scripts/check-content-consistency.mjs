@@ -2332,19 +2332,25 @@ const TEAL600_BASELINE = {
   }
 
   if (phrases) {
-    let src = "";
-    try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
-    // 명단 배열 구간만 본다(그 뒤 지점 메타 등은 별개).
-    const from = src.indexOf("export const IMMUNE_DOCTOR_ROSTER = [");
-    const to = src.indexOf("export const IMMUNE_BRANCH_META");
-    const block = from >= 0 && to > from ? src.slice(from, to) : "";
-    if (!block) {
-      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+    // 소스를 글자로 훑지 말고 «불러와서» 본다. 2026-08-19 실측: 옛 정규식이
+    //   en: [ ... ]  를 「첫 ] 까지」로 잘라서, 문구 «안»에 대괄호가 든 줄부터 통째로 안 읽혔다
+    //   («[MBC] TV appearance…», «[6]-Shogaol…» 3건이 번역 없이 영어로 나가는데도 검사는 통과).
+    let roster = null;
+    try {
+      ({ IMMUNE_DOCTOR_ROSTER: roster } = await import(pathToFileURL(join(ROOT, SRC)).href));
+    } catch (e) {
+      errors.push(`[의료진i18n] ${SRC} 를 불러오지 못했다 (${e.message}) — 이 가드가 무력화됐다.`);
+    }
+    if (roster && !roster.length) {
+      errors.push(`[의료진i18n] ${SRC} 의 IMMUNE_DOCTOR_ROSTER 가 비어 있다 — 이 가드가 무력화됐다.`);
     }
     const used = new Set();
-    for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
-      for (const s of m[1].matchAll(/'([^']*)'/g)) used.add(s[1]);
-    for (const m of block.matchAll(/subspecialty:\s*\{[^}]*en:\s*'([^']*)'/g)) used.add(m[1]);
+    for (const doc of roster || []) {
+      if (doc.subspecialty?.en) used.add(doc.subspecialty.en);
+      for (const key of ["경력", "학력", "활동", "논문", "keywords"]) {
+        for (const line of doc[key]?.en || []) used.add(line);
+      }
+    }
 
     const LANGS = ["ru", "kz", "zh", "ja"];
     const missing = [];
