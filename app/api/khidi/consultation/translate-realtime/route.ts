@@ -2,7 +2,7 @@
  * Real-time Translation API (Streaming)
  *
  * POST /api/khidi/consultation/translate-realtime
- * Body: { text, sourceLang, targetLang, consultationId?, speakerRole? }
+ * Body: { text, sourceLang, targetLang, consultationId?, speakerRole?, speakerName? }
  *
  * Uses Gemini 2.5 Flash for low-latency medical translation.
  * Returns streamed translation text + saves to DB if consultationId provided.
@@ -20,23 +20,13 @@ import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { detectLanguage } from "@/lib/translate";
 import { looksLikeLeakedTranslation } from "@/lib/consultation/translateOutputGuard";
-
-// Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
-const ALLOWED_ORIGINS = new Set<string>([
-  "http://localhost:3000",
-  "http://localhost:3001",
-]);
-function isAllowedOrigin(originHeader: string | null): boolean {
-  if (!originHeader) return false;
-  if (ALLOWED_ORIGINS.has(originHeader)) return true;
-  try {
-    const u = new URL(originHeader);
-    if (u.hostname.endsWith(".vercel.app")) return true;
-    if (u.hostname.endsWith(".healo.kr") || u.hostname === "khidi.healo.kr") return true;
-    if (u.hostname.endsWith(".healwith.co.kr") || u.hostname === "healwith.co.kr") return true;
-  } catch {}
-  return false;
-}
+import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
+// 출처 검증(브라우저에서 진료 중 호출되므로 비밀값 대신 Origin 으로 막는다).
+// 2026-08-06: 여기 있던 허용목록은 localhost **3000·3001 만** 박혀 있어, 다른 포트로 띄운
+//   개발 서버에서는 실시간 번역이 통째로 403 이었다(화면엔 「자막이 안 뜬다」로만 보임).
+//   판정을 공용 모듈로 옮기고 **개발에서만** localhost 아무 포트나 허용한다.
+//   실서비스 동작은 그대로 — 시험(allowedOrigin.test.ts)으로 잠갔다.
+import { isAllowedOrigin } from "@/lib/security/allowedOrigin";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -109,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     // partial=true: 말하는 중(interim) 부분 번역 — 화면 표시 전용이라 DB 기록을 남기지 않는다
     // (같은 발화가 확정 번역과 이중 기록되는 것 방지. 인증·비용가드는 동일 적용.)
-    const { text, sourceLang, targetLang, consultationId, speakerRole, context, partial } =
+    const { text, sourceLang, targetLang, consultationId, speakerRole, context, partial, sttEngine, speakerName } =
       await request.json();
 
     if (!text || !sourceLang || !targetLang) {
@@ -209,6 +199,11 @@ ${text}`,
         sourceLang,
         targetLang,
         speakerRole: speakerRole || "unknown",
+        // 「어느 받아쓰기가 이 글을 만들었나」 — 클라이언트가 알려주지만 아는 값만 통과시킨다.
+        // 이 라우트는 브라우저 받아쓰기가 기본이고, 서버 받아쓰기 폴백도 여기로 올 수 있다.
+        sttEngine: normalizeSttEngine(sttEngine) ?? STT_ENGINES.BROWSER,
+        // 「누가 말했나」 — 안 넣으면 회의록에 화자가 빈 줄로 남는다(2026-08-07 실측 3줄).
+        speakerName: String(speakerName || "").trim().slice(0, 80) || null,
       }).catch((err) =>
         console.error("[translate-realtime] DB save error:", err.message)
       );
@@ -237,6 +232,8 @@ async function saveTranslationLog(
     sourceLang: string;
     targetLang: string;
     speakerRole: string;
+    sttEngine: string;
+    speakerName?: string | null;
   }
 ) {
   const { getSupabaseServerClient } = await import(
@@ -250,9 +247,13 @@ async function saveTranslationLog(
       session_id: consultationId,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      stt_engine: data.sttEngine,
+      // 화자 이름(환자 실명)은 «암호문 칸»으로 — 평문 speaker_name 은 2026-08-14 감사에서 닫았다.
+      // 8/07 작업본이 평문 칸에 쓰고 있었고(그때는 아직 감사 전), 옮겨 심으면서 되살아날 뻔했다.
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,
+        speakerName: data.speakerName ?? null,
       }),
     },
   ]);

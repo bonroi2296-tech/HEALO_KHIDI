@@ -58,7 +58,7 @@ const FORBIDDEN = [
   // (2026-06-30 C레벨 진단 MKT-08: 검사기 사각지대였음). 정본 = healwith.co.kr.
   { re: /healo-khidi\.com/i, msg: "죽은 옛 도메인 healo-khidi.com 잔재 (→ healwith.co.kr) — webhook/설정 URL 이 죽은 도메인을 가리킴 (MKT-08)" },
   // khidi.healo.kr 은 컷오버 전 옛 도메인. 고객 링크/리터럴엔 금지하되, translate API 의 CORS origin allowlist 만 면제(레거시 호환).
-  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
+  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime|allowedOrigin/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
   // 면력한방병원 브랜드명 발명 음역 차단 — AI 번역이 지어낸 이름(2026-07-06 /insurance 카피 검증에서 발견).
   // 공식 표기: en/ru/kz "Immune Hospital", ja "免疫病院", zh "免疫(韩方)医院" (seo.immune.* · immuneCancerDetails.js 기준).
@@ -805,22 +805,40 @@ try {
   } catch (e) {
     errors.push(`[의료진드리프트] 검사 실패: ${e.message}`);
   }
-  // /hospitals 목록 페이지의 하드코딩 DOCTORS(작은따옴표 표기)도 같은 부류 — 동일 검사
+  // /hospitals 목록이 쓰는 명단(단일 원본, 작은따옴표 표기)도 같은 부류 — 동일 검사.
+  // 2026-08-18: 명단이 HospitalsClient.jsx 안에 있던 것을 src/lib/data/immuneDoctors.js 로 옮겼다.
+  const ROSTER_SRC = "src/lib/data/immuneDoctors.js";
   try {
-    const listPage = readFileSync(join(ROOT, "app/hospitals/HospitalsClient.jsx"), "utf8");
+    const listPage = readFileSync(join(ROOT, ROSTER_SRC), "utf8");
     const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
-    const block = listPage.split("const DOCTORS = [")[1]?.split("Branch Config")[0] || "";
+    const block = listPage.split("export const IMMUNE_DOCTOR_ROSTER = [")[1]?.split("IMMUNE_BRANCH_META")[0] || "";
     const names = [...block.matchAll(/name: \{ ko: '([가-힣]{2,5})'/g)].map((m) => m[1]);
     if (!names.length) {
-      errors.push(`[의료진드리프트] app/hospitals/HospitalsClient.jsx 의 DOCTORS 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+      errors.push(`[의료진드리프트] ${ROSTER_SRC} 의 IMMUNE_DOCTOR_ROSTER 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
     }
     for (const n of names) {
       if (!live.includes(`"${n}"`)) {
-        errors.push(`[의료진드리프트] /hospitals DOCTORS 의 "${n}" 이 라이브 소스(immuneHospitalInfo.js)에 없음 — 퇴사·개명 가능성. 공식 사이트 대조 후 갱신할 것 (POSTMORTEMS #66)`);
+        errors.push(`[의료진드리프트] 의료진 명단의 "${n}" 이 라이브 소스(immuneHospitalInfo.js)에 없음 — 퇴사·개명 가능성. 공식 사이트 대조 후 갱신할 것 (POSTMORTEMS #66)`);
+      }
+    }
+    // 거꾸로도 본다: 라이브 소스에만 있고 명단에 없는 사람(= 새로 온 원장을 한쪽만 넣은 것).
+    // 2026-08-18 실측: 이 방향이 없어서 송시은 원장이 사본 3곳에서 빠진 채 통과했다.
+    const liveFrom = live.indexOf("\n  doctors: [");
+    const liveTo = live.indexOf("\n  teamStructure:");
+    const liveDoctorBlock = liveFrom >= 0 && liveTo > liveFrom ? live.slice(liveFrom, liveTo) : "";
+    const liveNames = [...liveDoctorBlock.matchAll(/name: \{ ko: "([가-힣]{2,5})"/g)].map((m) => m[1]);
+    if (!liveNames.length) {
+      // 표시가 밀리면 자를 구간을 못 찾고 «이름 0명»이 된다 — 그걸 통과로 읽으면
+      // 이 검사가 잡으려던 바로 그 실패(한쪽에만 들어간 원장)를 조용히 놓친다.
+      errors.push(`[의료진드리프트] immuneHospitalInfo.js 의 doctors[] 구간에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+    }
+    for (const n of new Set(liveNames)) {
+      if (!names.includes(n)) {
+        errors.push(`[의료진드리프트] immuneHospitalInfo.js 의 "${n}" 이 ${ROSTER_SRC} 명단에 없음 — 한쪽만 갱신한 것 (POSTMORTEMS #66)`);
       }
     }
   } catch (e) {
-    errors.push(`[의료진드리프트] /hospitals 검사 실패: ${e.message}`);
+    errors.push(`[의료진드리프트] 의료진 명단 검사 실패: ${e.message}`);
   }
 }
 
@@ -2280,12 +2298,12 @@ const TEAL600_BASELINE = {
 
 // ── §34) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
 // 왜: 2026-07-27 PO 지적 — /ru/hospitals 에서 섹션 제목(경력·학력)만 번역되고 **내용은 전부 영어**로
-//     나왔다. DOCTORS(app/hospitals/HospitalsClient.jsx)가 ko/en 만 들고 있었기 때문.
+//     나왔다. 의료진 명단(src/lib/data/immuneDoctors.js)이 ko/en 만 들고 있었기 때문.
 //     번역을 doctorPhrases.js 로 옮겼는데, 의사를 새로 추가하면서 사전에 넣는 걸 잊으면
 //     **그 줄만 조용히 영어로** 나간다 — 같은 부류의 재발이라 기계가 잡는다.
 // 무엇을 보나: DOCTORS 의 en 배열 문구·subspecialty.en 이 DOCTOR_PHRASES 에 있고 4개 언어가 다 찼는지.
 {
-  const SRC = "app/hospitals/HospitalsClient.jsx";
+  const SRC = "src/lib/data/immuneDoctors.js";
   let phrases = null;
   try {
     ({ DOCTOR_PHRASES: phrases } = await import(
@@ -2314,19 +2332,32 @@ const TEAL600_BASELINE = {
   }
 
   if (phrases) {
-    let src = "";
-    try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
-    // DOCTORS 배열 구간만 본다(그 뒤 BRANCH_CONFIG 등은 별개).
-    const from = src.indexOf("const DOCTORS = [");
-    const to = src.indexOf("const BRANCH_CONFIG");
-    const block = from >= 0 && to > from ? src.slice(from, to) : "";
-    if (!block) {
-      errors.push(`[의료진i18n] ${SRC} 에서 DOCTORS 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+    // 소스를 글자로 훑지 말고 «불러와서» 본다. 2026-08-19 실측: 옛 정규식이
+    //   en: [ ... ]  를 「첫 ] 까지」로 잘라서, 문구 «안»에 대괄호가 든 줄부터 통째로 안 읽혔다
+    //   («[MBC] TV appearance…», «[6]-Shogaol…» 3건이 번역 없이 영어로 나가는데도 검사는 통과).
+    let roster = null;
+    try {
+      ({ IMMUNE_DOCTOR_ROSTER: roster } = await import(pathToFileURL(join(ROOT, SRC)).href));
+    } catch (e) {
+      errors.push(`[의료진i18n] ${SRC} 를 불러오지 못했다 (${e.message}) — 이 가드가 무력화됐다.`);
+    }
+    if (!Array.isArray(roster) || !roster.length) {
+      // 「불러오기는 됐는데 명단이 없다」도 무력화다 — 이름이 바뀌거나 다른 파일로 옮겨가면
+      // roster 가 undefined 가 되고, 검사가 «볼 게 없으니 통과» 로 조용히 넘어간다.
+      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 얻지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
     }
     const used = new Set();
-    for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
-      for (const s of m[1].matchAll(/'([^']*)'/g)) used.add(s[1]);
-    for (const m of block.matchAll(/subspecialty:\s*\{[^}]*en:\s*'([^']*)'/g)) used.add(m[1]);
+    for (const doc of Array.isArray(roster) ? roster : []) {
+      if (doc.subspecialty?.en) used.add(doc.subspecialty.en);
+      // 칸 이름을 못 박지 말고 «en 이 배열인 칸»을 전부 본다 — 나중에 «수상» 같은 칸이
+      // 늘어도 검사 밖으로 새지 않는다. (이름·직위는 en 이 문자열이라 자동으로 빠진다:
+      //  영어로 내보내기로 한 것 — PO 2026-07-27)
+      for (const value of Object.values(doc)) {
+        if (value && typeof value === "object" && Array.isArray(value.en)) {
+          for (const line of value.en) used.add(line);
+        }
+      }
+    }
 
     const LANGS = ["ru", "kz", "zh", "ja"];
     const missing = [];

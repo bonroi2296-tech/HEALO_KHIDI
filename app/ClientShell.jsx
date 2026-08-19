@@ -199,7 +199,12 @@ export default function ClientShell({ children, initialLang = "en" }) {
   }, [pathname]);
 
   // 인콰이어리(문의 퍼널)는 집중 태스크 흐름 → 하단 탭바 숨겨 채팅·폼 공간 확보(모바일)
-  const hideBottomNav = pathname.includes("success") || pathname.includes("/inquiry");
+  // 로그인·가입 계열도 같은 이유 + 실제 결함: 아이폰(좁은 화면)에서 하단 탭바/문의 동그라미가
+  // 「Apple로 계속하기」 줄을 덮는다(2026-08-13 시뮬레이터 사진으로 확인). 애플 심사 4.8.0 위험.
+  const hideBottomNav =
+    pathname.includes("success") ||
+    pathname.includes("/inquiry") ||
+    /\/(login|signup|find-id|forgot-password)(\/|$)/.test(pathname);
   // 포털(자체 깔끔한 상단바 + 공개 헤더/하단바/푸터 숨김): 관리자·국내병원·해외에이전시/의료기관·환자
   // ⚠️ /patient 누락 시: 공개 헤더+공개 하단바(진료과목/문의/병원)+푸터가 환자 레이아웃의
   //    자체 하단탭(홈/문서/더보기) 위에 겹쳐 모바일 레이아웃이 깨짐(2026-06-23 PO 신고, POSTMORTEMS #32).
@@ -547,7 +552,10 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
 }
 
 /* 포털 전용 언어 스위처 — 해외 에이전시/의료기관·병원·코디·관리자가 자기 언어로.
-   공개 페이지처럼 URL 언어화/리로드 없이 쿠키만 바꾸고 healo:langchange 로 즉시 리렌더. */
+   공개 페이지처럼 URL 언어화는 없이 쿠키만 바꾸고 **새로 불러온다**.
+   ⚠️ 예전엔 healo:langchange 로 «즉시 리렌더»만 했다 — 7/27부터 브라우저가 «자기 언어 사전 1개»만
+   들고 있어서 그러면 칸 이름은 옛 언어로 남고 서버가 주는 글만 새 언어로 바뀌었다(2026-08-18 실측:
+   러시아어로 바꿨는데 「환자·접수일·보내주신 것」은 한국어, 단계 이름만 러시아어). */
 function PortalLangSwitcher({ langCode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -563,7 +571,11 @@ function PortalLangSwitcher({ langCode }) {
     if (code !== langCode) { try { event(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {} }
     setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
     setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));
+    // 새로 불러와야 layout 이 «그 언어» 사전을 심는다(위 주석). 같은 언어면 굳이 안 한다.
+    if (typeof window !== "undefined") {
+      if (code !== langCode) window.location.reload();
+      else window.dispatchEvent(new Event("healo:langchange"));
+    }
   };
   return (
     <div className="relative notranslate" ref={ref}>

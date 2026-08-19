@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
-import { checkRateLimit, getClientIp, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rateLimit";
 
 const MAX_INACTIVE_DAYS = 30;
 
@@ -91,9 +91,9 @@ async function resume(token: string | null) {
 
 // 복호화된 게스트 PII(이름·이메일·전화)를 반환하므로, token 추측 공격을 막기 위해
 // thread-summary 와 동일하게 IP 기반 속도제한을 둔다(무제한 PII/쓰기 오라클 방지).
-function rateLimited(request: NextRequest): Response | null {
+async function rateLimited(request: NextRequest): Promise<Response | null> {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(ip, RATE_LIMITS.CHAT_READ);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },
@@ -105,7 +105,7 @@ function rateLimited(request: NextRequest): Response | null {
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
-  const limited = rateLimited(request);
+  const limited = await rateLimited(request);
   if (limited) return limited;
   const token = new URL(request.url).searchParams.get("token");
   const result = await resume(token);
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
-  const limited = rateLimited(request);
+  const limited = await rateLimited(request);
   if (limited) return limited;
   const body = await request.json().catch(() => ({}));
   const result = await resume(body.token || null);

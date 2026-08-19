@@ -45,6 +45,13 @@ export async function GET() {
             },
           ],
         },
+        // 「이 앱과 웹은 «같은 로그인 정보»를 쓴다」 — 아이클라우드 키체인·1Password 등이
+        // 웹에 저장된 healwith 계정을 앱에서도 찾게 해준다. 안드로이드의 get_login_creds 와 같은 짝.
+        // 없으면 관리자가 화면을 훑어 칸을 «찍는데», 그러다 아이디·비밀번호 칸을 서로 바꿔 채운다.
+        // (App.entitlements 에 webcredentials:healwith.co.kr 도 같이 있어야 실제로 동작한다.)
+        webcredentials: {
+          apps: [`${teamId}.${BUNDLE_ID}`],
+        },
       }
     : {};
 

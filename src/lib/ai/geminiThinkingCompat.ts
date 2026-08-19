@@ -19,6 +19,7 @@
  * 칸(mitigation)은 4종이고, **적용 가능한 것만** 골라 «해가 적은 순서» 로 조합한다:
  *   - strip        : temperature/topP/topK 제거 (비용 영향 0 — 그래서 가장 먼저)
  *   - minimal      : thinkingLevel:"minimal" (신세대 체계, 생각 최소화로 비용 억제)
+ *   - low          : thinkingLevel:"low" (minimal 을 거절하는 세대의 최저 유효값 — 2026-08-14 추가)
  *   - dropThinking : thinkingConfig 제거 (모델 기본값 — 비용 늘지만 동작 우선)
  *   - dropGoogle   : google providerOptions 통째 제거 (safetySettings 등까지 방어, SDK 전용)
  *
@@ -66,7 +67,7 @@ function withoutSampling<T extends Params>(obj: T): T {
   return next as T;
 }
 
-type Mitigation = "strip" | "minimal" | "dropThinking" | "dropGoogle";
+type Mitigation = "strip" | "minimal" | "low" | "dropThinking" | "dropGoogle";
 
 /** 조합 키 — memo 비교용 안정 문자열. 빈 집합(원본)은 "none". */
 function keyOf(set: readonly Mitigation[]): string {
@@ -92,6 +93,12 @@ function buildLadder(opts: {
     // (2026-07-27 기본값을 minimal 로 바꾼 뒤 생긴 상황 — 실패 경로에서 헛왕복 1회 절약.)
     if (!alreadyMinimal) ladder.push(["minimal"]);
     if (sampling && !alreadyMinimal) ladder.push(["minimal", "strip"]);
+    // low 는 dropThinking 「앞」에 둔다 — 2026-08-14 실측: gemini-3.7-flash 는 minimal 을
+    // 400 으로 거절하고 "off" 라는 값이 없다. 그래서 minimal 이 막히면 곧장 «생각 제어 없음»
+    // 으로 떨어졌다. low 는 그 세대에서 유효한 최저값이라 한 칸을 더 버틴다.
+    // (같은 질문 실측 — 설정없음 생각 631 토큰 / low 593 토큰 / thinkingBudget:0 은 조용히 무시돼 874)
+    ladder.push(["low"]);
+    if (sampling) ladder.push(["low", "strip"]);
     ladder.push(["dropThinking"]);
     if (sampling) ladder.push(["dropThinking", "strip"]);
   }
@@ -115,11 +122,12 @@ function applySdk(params: Params, set: readonly Mitigation[]): Params {
       delete providerOptions.google;
       next = { ...next, providerOptions };
     }
-  } else if (set.includes("minimal") || set.includes("dropThinking")) {
+  } else if (set.includes("minimal") || set.includes("low") || set.includes("dropThinking")) {
     const g = next?.providerOptions?.google;
     if (g && typeof g === "object" && g.thinkingConfig) {
       const google = { ...g };
       if (set.includes("minimal")) google.thinkingConfig = { thinkingLevel: "minimal" };
+      else if (set.includes("low")) google.thinkingConfig = { thinkingLevel: "low" };
       else delete google.thinkingConfig;
       next = { ...next, providerOptions: { ...next.providerOptions, google } };
     }
@@ -195,10 +203,11 @@ function applyRest(body: any, set: readonly Mitigation[]): any {
   if (!gc || typeof gc !== "object") return body;
   let generationConfig: Params = gc;
 
-  if (set.includes("minimal") || set.includes("dropThinking")) {
+  if (set.includes("minimal") || set.includes("low") || set.includes("dropThinking")) {
     if (generationConfig.thinkingConfig) {
       generationConfig = { ...generationConfig };
       if (set.includes("minimal")) generationConfig.thinkingConfig = { thinkingLevel: "minimal" };
+      else if (set.includes("low")) generationConfig.thinkingConfig = { thinkingLevel: "low" };
       else delete generationConfig.thinkingConfig;
     }
   }

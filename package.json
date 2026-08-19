@@ -27,9 +27,13 @@
     "check:legal-citations": "node scripts/check-legal-citations.mjs --selftest && node scripts/check-legal-citations.mjs",
     "check:metric-honesty": "node scripts/check-metric-honesty.mjs --selftest && node scripts/check-metric-honesty.mjs",
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
+    "check:ratelimit-scope": "node scripts/check-ratelimit-scope.mjs --selftest && node scripts/check-ratelimit-scope.mjs",
+    "check:email-ownership": "node scripts/check-email-ownership.mjs --selftest && node scripts/check-email-ownership.mjs",
+    "check:autocomplete": "node scripts/check-autocomplete.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:rules": "node scripts/check-rules.mjs",
     "check:parked": "node scripts/check-parked-decisions.mjs",
+    "check:branch-handoffs": "node scripts/check-branch-handoffs.mjs",
     "check:talk": "node scripts/check-plain-korean.mjs",
     "check:ask": "node scripts/check-ask-streak.mjs --selftest",
     "check:handoff": "node scripts/check-handoff.mjs",
@@ -73,7 +77,8 @@
     "check:e2e-schema": "node scripts/check-e2e-schema.mjs",
     "check:ghost-columns": "node scripts/check-ghost-columns.mjs",
     "blast": "node scripts/blast-radius.mjs",
-    "blast:verify": "node scripts/blast-verify.mjs"
+    "blast:verify": "node scripts/blast-verify.mjs",
+    "sweep": "node scripts/sweep.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",

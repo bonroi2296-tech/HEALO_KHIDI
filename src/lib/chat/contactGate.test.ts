@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   hasReachableContact,
   pickHandoffConfirm,
+  stripFalseIntakeConfirm,
   HANDOFF_CONFIRM,
   HANDOFF_CONFIRM_IN_CHANNEL,
   HANDOFF_NEED_CONTACT,
@@ -88,5 +89,32 @@ describe("pickHandoffConfirm — 연락 가능 여부로 접수 멘트 분기", 
     for (const [lang, msg] of Object.entries(HANDOFF_RECEIVED_ACK)) {
       expect(msg, `ACK.${lang}`).not.toMatch(/즉시|24시간|24\/7|immediately|немедленно|сразу же|すぐに|立即/i);
     }
+  });
+});
+
+describe("stripFalseIntakeConfirm — 연락처 없을 때 모델의 거짓 '접수완료' 제거", () => {
+  it("한국어 거짓 확정 문장을 지우고 나머지 안내는 살린다", () => {
+    const reply = [
+      "고객님의 접수 요청이 **정상적으로 접수**되었습니다. (출처: healwith 안내자료)",
+      "",
+      "원활한 진행을 위해 **의무기록 사본**, **진단서**를 준비해 주시면 됩니다.",
+    ].join("\n");
+    const out = stripFalseIntakeConfirm(reply);
+    expect(out).not.toMatch(/접수되었|접수됐|접수\s*완료/);
+    expect(out).toContain("의무기록 사본");
+  });
+
+  it("영어·러시아어 거짓 확정도 지운다", () => {
+    expect(stripFalseIntakeConfirm("Your request has been registered.")).toBe("");
+    expect(stripFalseIntakeConfirm("Ваша заявка принята.")).toBe("");
+  });
+
+  it("접수 얘기가 아닌 평범한 답변은 건드리지 않는다", () => {
+    const reply = "위암 치료는 병기에 따라 수술·항암을 조합합니다.";
+    expect(stripFalseIntakeConfirm(reply)).toBe(reply);
+  });
+
+  it("빈 값은 그대로 돌려준다", () => {
+    expect(stripFalseIntakeConfirm("")).toBe("");
   });
 });

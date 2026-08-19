@@ -143,9 +143,13 @@ export async function POST(request: NextRequest) {
       target = created.user;
       createdNew = true;
     } else {
-      // 기존: 역할 부여 + 비밀번호 재설정
+      // 기존 계정: 역할·이름만 바꾼다. **비밀번호는 명시적으로 요청했을 때만** 재설정한다.
+      //   왜(2026-08-14 감사): 예전엔 여기서 무조건 비번을 덮어써서, 관리자가 이름 오타만
+      //   고치려고 「수정 → 제출」해도 그 코디의 비번이 말없이 초기화돼 로그인 불가가 됐다.
+      //   PO 결정(2026-08-15): 비번 초기화는 «따로» 요청해야 일어난다(resetPassword=true).
+      const wantsReset = body.resetPassword === true || !!String(body.password || "").trim();
       const { error: updErr } = await supabase.auth.admin.updateUserById(target.id, {
-        password,
+        ...(wantsReset ? { password } : {}),
         app_metadata: { ...(target.app_metadata || {}), role, disabled: false },
         ...(fullName
           ? { user_metadata: { ...(target.user_metadata || {}), full_name: fullName } }
@@ -155,10 +159,17 @@ export async function POST(request: NextRequest) {
         console.error("[admin/staff] updateUser failed:", updErr);
         return Response.json({ ok: false, error: "role_update_failed" }, { status: 500 });
       }
+      // 비번을 안 건드렸으면 임시 비번을 «돌려주지 않는다» — 화면이 「이 비번으로 로그인하세요」를
+      // 잘못 안내하면 직원이 못 들어간다.
+      return Response.json({
+        ok: true, userId: target.id, role, createdNew: false, loginEmail: email,
+        ...(wantsReset ? { tempPassword: password } : {}),
+        passwordReset: wantsReset,
+      });
     }
 
-    // 직원에게 전달할 로그인 정보 (이메일 + 방금 설정한 임시 비번)
-    return Response.json({ ok: true, userId: target.id, role, createdNew, loginEmail: email, tempPassword: password });
+    // 신규 생성: 직원에게 전달할 로그인 정보 (이메일 + 방금 설정한 임시 비번)
+    return Response.json({ ok: true, userId: target.id, role, createdNew, loginEmail: email, tempPassword: password, passwordReset: true });
   } catch (err: any) {
     console.error("[admin/staff] POST error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });

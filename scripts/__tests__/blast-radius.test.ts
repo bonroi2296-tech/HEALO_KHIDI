@@ -41,7 +41,10 @@ function commitExists(sha: string): boolean {
   }
 }
 
-describe("영향 반경 지도", () => {
+// 이 파일의 시험은 매번 «진짜 도구를 실행»한다(가짜 저장소가 아니라 이 저장소의 실제 커밋).
+// 한 번에 5초를 넘기는 일이 있어 기본 제한시간(5초)에 가끔 걸렸다 — 무해한데 「내 변경 탓인가」로
+// 다음 사람이 헤맨다(2026-08-15 실측: 5회 중 1회 5.4초로 실패). 제한시간만 넉넉히 준다.
+describe("영향 반경 지도", { timeout: 30_000 }, () => {
   it("도구가 존재하고 실행된다", () => {
     expect(fs.existsSync(path.join(ROOT, TOOL))).toBe(true);
     const r = run(["--files", "src/lib/i18n/index.js"]);

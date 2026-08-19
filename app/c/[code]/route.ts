@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { hashGuestToken, INVITE_CODE_RE } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
 
 const RATE = {
   windowMs: 60 * 1000,
@@ -39,7 +39,7 @@ export async function GET(
 ) {
   try {
     const ip = getClientIp(request) || "unknown";
-    if (!checkRateLimit(ip, RATE).allowed) {
+    if (!(await checkRateLimitPersistent(ip, RATE)).allowed) {
       return new NextResponse("too_many_requests", { status: 429 });
     }
 

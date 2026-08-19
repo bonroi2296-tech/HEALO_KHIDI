@@ -37,6 +37,31 @@ echo "- 미커밋 변경: ${dirty}개 파일"
 echo "- 최근 커밋:"
 git log --oneline -3 2>/dev/null | sed 's/^/    - /'
 
+# ── 「이 폴더가 본판보다 얼마나 낡았나」 (2026-08-14 신설) ────────────
+# 왜: 이 폴더가 8/03 에 갈라진 작업본에 **11일간** 올라타 있었는데 아무 경보도 없었다.
+#   아래 「서랍에 갇힌 작업」 경보는 «마지막 커밋 날짜»로 방치를 재는데, 자동 저장 훅이
+#   2분마다 커밋하므로 어떤 작업본이든 늘 「방금 만진 것」으로 보인다 → **영원히 안 걸린다.**
+#   그래서 방치를 «갈라진 날짜»로 다시 잰다(자동 저장이 못 지우는 값).
+# 무엇이 걸려 있나: 낡은 사본 위에서 파일을 고쳐 합치면 그 사이 남이 고친 것이 **되돌아간다.**
+#   2026-08-14 실제로 걸릴 뻔했다(본판 8/04 법 조문 교정이 이 폴더에 없어 삭제로 잡혔다).
+if [ "$branch" != "main" ] && [ "$branch" != "production" ]; then
+  behind=$(git rev-list --count "HEAD..origin/main" 2>/dev/null || echo 0)
+  fork=$(git merge-base HEAD origin/main 2>/dev/null || echo "")
+  fdate=""; fdays=""
+  if [ -n "$fork" ]; then
+    fdate=$(git log -1 --format=%cd --date=short "$fork" 2>/dev/null)
+    if [ -n "$fdate" ]; then
+      ts_now=$(date +%s 2>/dev/null); ts_f=$(date -d "$fdate" +%s 2>/dev/null || echo "")
+      [ -n "$ts_f" ] && [ -n "$ts_now" ] && fdays=$(( (ts_now - ts_f) / 86400 ))
+    fi
+  fi
+  if [ "${behind:-0}" -ge 20 ] 2>/dev/null || { [ -n "$fdays" ] && [ "$fdays" -ge 3 ]; } 2>/dev/null; then
+    echo "- 🔶 **이 폴더는 본판(main)보다 커밋 ${behind}개 뒤처졌다** — 갈라진 날 ${fdate:-?} (${fdays:-?}일 전)"
+    echo "    → 코드를 고치기 전에 둘 중 하나: ①본판 최신을 이 작업본에 흡수 ②\`git worktree add <경로> -b <새작업본> origin/main\` 으로 **본판에서 새로 따서** 거기서 작업."
+    echo "    → 이미 이 폴더에서 고쳤다면, 옮길 때 **삭제된 줄을 전수 확인**하라(남의 최신 수정이 삭제로 잡힌다)."
+  fi
+fi
+
 # ── 핸드오프 뒤처짐 경보 (C) ──────────────────────────────────
 # ⚠️ 한글 「핸드오프」만 찾으면 안 된다 (2026-07-31 실측: 인수인계 커밋 9개 중 1개만 걸렸다).
 #    이 저장소의 인수인계 커밋 제목은 대부분 `docs(handoff):` 로 «영문»이고 본문에 「인수인계」를 쓴다.
@@ -65,11 +90,33 @@ fi
 #     **다음 날까지 아무도 모른다**(하루 1회라 실패가 눈에 안 띈다 — 반성문 #142).
 #     그래서 세션이 열릴 때마다 「본판에는 있는데 실서비스엔 아직 없는 커밋」 수를 띄운다.
 #     정상값은 0~그날 머지분이고, 이틀치가 쌓여 있으면 창구가 죽은 것이다.
+#
+# 🛑 2026-08-12 수리: 기준을 production 가지 → **실서비스가 실제로 돌고 있는 커밋**으로 바꿨다.
+#     정시 창구(Vercel 예약, app/api/cron/daily-deploy/route.ts)는 열쇠가 없어 production
+#     가지를 «갱신하지 않고» main 커밋으로 배포를 직접 만든다. 그래서 가지를 기준으로 재면
+#     정상 배포된 것까지 「안 나갔다」로 세어 매 세션 거짓 경보가 떴다
+#     (실측 2026-08-12: 「16개 안 나감」이라 떴지만 실제 미배포는 문서 2건뿐).
+#     → daily-deploy.yml 의 건너뛰기 판정과 «같은 신호»(공개 헬스체크의 commit)를 본다.
 git fetch -q --depth=50 origin main production >/dev/null 2>&1 || true
-lag=$(git rev-list --count origin/production..origin/main 2>/dev/null || echo "")
+health_url="${HEALTH_URL:-https://healwith.co.kr/api/health}"
+live=$(curl -fsS --max-time 8 "$health_url" 2>/dev/null \
+       | sed -n 's/.*"commit":"\([0-9a-f]\{7,40\}\)".*/\1/p' || true)
+if [ -n "$live" ] && git cat-file -e "$live^{commit}" 2>/dev/null; then
+  base="$live"; base_label="실서비스 커밋"
+else
+  # 헬스체크가 안 열리거나 그 커밋을 아직 못 받았으면 옛 기준(production 가지)으로 물러선다.
+  # 이땐 숫자가 부풀 수 있으므로 「참고값」이라고 밝힌다.
+  base="origin/production"; base_label="production 가지(참고값 — 헬스체크 못 읽음)"
+fi
+lag=$(git rev-list --count "$base..origin/main" 2>/dev/null || echo "")
 if [ -n "$lag" ] && [ "$lag" -gt 0 ] 2>/dev/null; then
-  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' origin/production 2>/dev/null)
-  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (마지막 배포: ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
+  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' "$base" 2>/dev/null)
+  code_lag=$(git rev-list "$base..origin/main" 2>/dev/null \
+             | while read -r c; do
+                 git show --name-only --format= "$c" 2>/dev/null \
+                   | grep -qvE '^(docs/|\.claude/|[^/]*\.md$)' && echo x
+               done | wc -l | tr -d ' ')
+  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (그중 코드 변경 ${code_lag}개 / 기준: ${base_label}, ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
   echo "    ⚠️ 이 숫자가 어제치까지 쌓여 있으면 창구가 죽은 것 → Actions 의 \"Daily Deploy (배포 창구)\" 실행 이력 확인."
 fi
 
@@ -249,6 +296,8 @@ echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어�
 # 왜: 2026-07-23 PO 결정 4건이 어시 기억파일에만 있어 8일 묻혔다. 기억파일은 정리 세션의
 #     모집단(작업본·신청서)에도, 할 일 목록에도 없는 «아무도 안 보는 자리»다.
 node scripts/check-parked-decisions.mjs 2>/dev/null || true
+# 작업본 «안»에만 있는 인수인계 — 「신청서 없음 = 방치」 오판 방지(2026-08-15 실제 오판으로 신설)
+node scripts/check-branch-handoffs.mjs 2>/dev/null || true
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────
 if [ -f "$CTX" ]; then

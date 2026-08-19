@@ -131,9 +131,15 @@ export const LoginPage = ({ setView }) => {
                         </div>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
+                            {/* name·autoComplete 는 «장식»이 아니다 — 폰의 비밀번호 관리자(삼성 패스·구글)가
+                                이 표시를 보고 어느 칸에 무엇을 넣을지 정한다. 없으면 «추측»하다가
+                                이메일을 비밀번호 칸에 채운다(2026-08-14 PO 갤럭시 S25 Ultra 실측). 빼지 마라. */}
                             <input
                                 id="login-email"
+                                name="email"
                                 type="email"
+                                autoComplete="username"
+                                inputMode="email"
                                 required
                                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder={t("login.emailPlaceholder", langCode)}
@@ -152,7 +158,9 @@ export const LoginPage = ({ setView }) => {
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
                             <input
                                 id="login-password"
+                                name="password"
                                 type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
                                 required
                                 className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder="••••••••"

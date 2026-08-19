@@ -37,7 +37,15 @@ export async function GET() {
   const body = fingerprints.length
     ? [
         {
-          relation: ["delegate_permission/common.handle_all_urls"],
+          // handle_all_urls  = 「이 앱이 우리 웹 주소를 열 수 있다」(앱 링크)
+          // get_login_creds  = 「이 앱과 웹은 «같은 로그인 정보»를 쓴다」(비밀번호 공유)
+          //   ⚠️ 두 번째가 없으면 폰 비밀번호 관리자가 웹에 저장된 healwith 계정을 앱에서 «못 찾아»
+          //      화면을 훑어 칸을 찍는다 → 아이디·비밀번호 칸을 서로 바꿔 채우는 사고가 난다
+          //      (2026-08-14 PO 갤럭시 S25 Ultra 실기기 신고. 순정 안드로이드 흉내기에선 재현 안 됨).
+          relation: [
+            "delegate_permission/common.handle_all_urls",
+            "delegate_permission/common.get_login_creds",
+          ],
           target: {
             namespace: "android_app",
             package_name: PACKAGE_NAME,

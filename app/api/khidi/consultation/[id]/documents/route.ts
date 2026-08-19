@@ -89,9 +89,24 @@ export async function POST(
         storage_path: storagePath,
         document_type: documentType,
         description,
+        // 누가 올렸나 — 환자는 본인이 올린 것만 지울 수 있다(게스트 초대링크는 계정이 없어 null)
+        uploaded_by: access.userId ?? null,
       })
       .select()
       .single();
+
+    // 같은 commit 이 두 번 오면(브라우저 재전송) 유일 인덱스가 막는다 → 이미 저장된 그 줄을 돌려준다.
+    // 이 갈래에선 파일을 절대 지우지 않는다 — 첫 줄이 그 파일을 쓴다(app/api/patient/documents 와 같은 처리).
+    if (dbError?.code === '23505') {
+      const { data: existing } = await supabase
+        .from('consultation_documents')
+        .select()
+        .eq('storage_path', storagePath)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (existing) return NextResponse.json({ ok: true, data: existing });
+      return NextResponse.json({ ok: false, error: 'conflict' }, { status: 409 });
+    }
 
     if (dbError) {
       console.error('[DocumentUpload] DB error:', dbError);
@@ -127,6 +142,7 @@ export async function GET(
       .from('consultation_documents')
       .select('*')
       .eq('consultation_id', consultationId)
+      .is('deleted_at', null) // 환자가 지운 것(소프트 삭제)은 상담방에서도 안 보인다
       .order('created_at', { ascending: false });
 
     if (error) {

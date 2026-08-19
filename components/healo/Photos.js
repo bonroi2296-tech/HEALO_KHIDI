@@ -55,7 +55,6 @@ export const IMMUNE_PHOTOS = {
   drKimJ: "/immune/doctor/gangeo-dr-kim-jiyoung.jpg",     // 김지영
   drKimE: "/immune/doctor/gangeo-dr-kim-eunji.jpg",       // 김은지
   drBae: "/immune/doctor/gangeo-dr-bae-sanggeun.jpg",     // 배상근
-  drKimJH: "/immune/doctor/gangeo-dr-kim-junghyun.jpg",   // 김정현
 
   // 성동 의료진 — self-host
   drKangJuan: "/immune/doctor/seongdong-dr-kang-juan.png",        // 강주안 (성동 대표원장)

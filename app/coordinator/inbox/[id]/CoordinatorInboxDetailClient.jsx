@@ -567,6 +567,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttDownloadPath(null);
   }
 
+  // 병원에 넘길 자료를 «한 번에» 확보 — 파일을 낱개로 순서대로 받는다.
+  //   왜 하나로 압축하지 «않나»: ①병원 메일이 압축파일을 막는 경우가 있고
+  //   (세브란스 2026-08 회신: 실행파일 자동 차단) ②받은 뒤 클라우드에 올릴 때 낱개가
+  //   그대로 폴더에 들어가 병원이 풀 필요가 없다. 서버에서 수백 MB 를 묶을 일도 없어진다.
+  const [bulkDown, setBulkDown] = useState(null); // { done, total } | null
+  async function downloadAllAttachments(atts) {
+    const list = (Array.isArray(atts) ? atts : [])
+      .map((a) => ({
+        path: typeof a === "string" ? a : a?.path,
+        name: (typeof a === "object" && a?.name) || null,
+      }))
+      .filter((x) => x.path);
+    if (!list.length || bulkDown) return;
+    setBulkDown({ done: 0, total: list.length });
+    for (let i = 0; i < list.length; i++) {
+      await downloadAttachment(list[i].path, list[i].name || list[i].path.split("/").pop());
+      setBulkDown({ done: i + 1, total: list.length });
+      // 연달아 내려받으면 브라우저가 «자동 다운로드»로 보고 막는다(크롬은 한 번 «허용»을 묻는다).
+      // 사이를 조금 띄우면 그 물음이 한 번으로 끝난다.
+      if (i < list.length - 1) await new Promise((r) => setTimeout(r, 600));
+    }
+    setTimeout(() => setBulkDown(null), 1500);
+  }
+
   // 첨부 번역: 외국 검사지를 병원·환자 전달용으로 원문 1:1 번역(요약 아님, 숫자 보존). 출력 언어=ko/en/ru.
   const [transLoadingKey, setTransLoadingKey] = useState(null); // `${path}::${lang}` 로딩중
   const [translations, setTranslations] = useState({}); // `${path}::${lang}` -> { doc } | { error }
@@ -1186,6 +1210,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         return (
         <Card title={`${L.ibAttachmentsCard} (${atts.length})`}>
           <div className="space-y-2">
+            {/* 병원 의뢰용 — 파일이 2개 이상일 때만. 1개면 아래 낱개 버튼으로 충분하다. */}
+            {atts.length > 1 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => downloadAllAttachments(atts)}
+                  disabled={!!bulkDown}
+                  title={L.atDownloadAllTitle}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-teal-700 text-xs font-medium hover:bg-teal-100 disabled:opacity-60"
+                >
+                  {bulkDown ? (
+                    <span className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Download size={13} />
+                  )}
+                  {bulkDown
+                    ? `${L.atDownloadAllBusy} ${bulkDown.done}/${bulkDown.total}`
+                    : `${L.atDownloadAll} (${atts.length})`}
+                </button>
+              </div>
+            )}
             {atts.map((a, i) => {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);

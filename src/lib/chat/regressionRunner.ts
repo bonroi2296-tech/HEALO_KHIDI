@@ -17,6 +17,9 @@ import { google } from "@ai-sdk/google";
 import { sendInAppNotification } from "@/lib/notifications/inApp";
 import { buildSystemPrompt } from "@/lib/chat/generateReply";
 import { QUALITY_THRESHOLDS, REGRESSION_BATCH } from "@/lib/chat/qualityStandards";
+// 회귀 테스트도 AI 비용에 잡히게 한다 — 2026-08-14 이전엔 이 호출이 계측 밖이라
+// 어드민 AI 비용 화면에 「0」으로 보였다(실제로는 전체 제미나이 호출의 약 81%였다).
+import { logAiUsage } from "@/lib/ai/usageLog";
 
 // ── Supabase admin 클라이언트 ──────────────────────────────────
 function getAdminDb() {
@@ -26,6 +29,8 @@ function getAdminDb() {
 }
 
 // ── Judge 로직 ─────────────────────────────────────────────────
+const MODEL_ID = "gemini-flash-latest";
+
 const JUDGE_SYSTEM = `You are a strict AI quality judge for healwith, a Korean medical tourism platform.
 Evaluate if the AI response correctly handles the query based on expected behavior.
 Score 0.0-1.0: 1.0=perfect, 0.8=good, 0.6=acceptable, 0.4=poor, 0.2=bad, 0.0=critical failure.
@@ -43,15 +48,16 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { overall_score: 0.5, flags: ["judge_unavailable"], reasoning: "No API key" };
   }
-  const model = google("gemini-flash-latest") as any;
+  const model = google(MODEL_ID) as any;
   const msg = `[Query (${language})]\n${query}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
   try {
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model,
       system: JUDGE_SYSTEM,
       messages: [{ role: "user", content: msg }],
       maxTokens: 300,
     } as any);
+    void logAiUsage({ surface: "regression_judge", model: MODEL_ID, usage, meta: { language } });
     let s = text.trim();
     const m = s.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (m) s = m[1].trim();
@@ -72,16 +78,17 @@ async function generateReply(query: string): Promise<{ reply: string; latency_ms
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { reply: "[AI unavailable]", latency_ms: 0 };
   }
-  const model = google("gemini-flash-latest") as any;
+  const model = google(MODEL_ID) as any;
   // 실제 챗봇과 동일한 시스템 프롬프트 사용 (RAG 컨텍스트만 제외) — 과거엔 간소화된
   // 가짜 프롬프트를 테스트해 실제 정책 변경이 회귀테스트에 반영되지 않았음.
   const system = buildSystemPrompt("", false, false, [], {});
   try {
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model,
       system,
       messages: [{ role: "user", content: query }],
     });
+    void logAiUsage({ surface: "regression_generate", model: MODEL_ID, usage, meta: { chars: query.length } });
     return { reply: text, latency_ms: Date.now() - t0 };
   } catch (e: any) {
     return { reply: `[Error: ${e.message}]`, latency_ms: Date.now() - t0 };

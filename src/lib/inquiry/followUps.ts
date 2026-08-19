@@ -9,10 +9,11 @@
  */
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
-export type FollowUp = { at: string; by: string; text: string; removedAt: string | null };
-type StoredFollowUp = { at?: string; by?: string; text_encrypted?: string | null; removed_at?: string | null };
+export type FollowUp = { id: string; at: string; by: string; text: string; removedAt: string | null };
+type StoredFollowUp = { id?: string; at?: string; by?: string; text_encrypted?: string | null; removed_at?: string | null };
 
 export const FOLLOWUP_MAX_LEN = 4000;
 
@@ -26,6 +27,9 @@ export function readFollowUps(raw: unknown): FollowUp[] {
   return raw
     .filter((x) => x && typeof x === "object")
     .map((x: StoredFollowUp) => ({
+      // 고치기·지우기의 «대상 지목»에 쓰는 안정적 식별자. 옛 글엔 없으므로 시각으로 갈음한다
+      //   (2026-08-14 감사: 시각만으로 지우면 같은 초에 들어온 다른 줄까지 함께 지워질 수 있었다).
+      id: String(x.id || x.at || ""),
       at: String(x.at || ""),
       by: String(x.by || ""),
       text: decryptStringNullable(x.text_encrypted ?? null) ?? "(읽지 못한 내용 — 원본 확인 필요)",
@@ -39,6 +43,8 @@ export function readFollowUps(raw: unknown): FollowUp[] {
 export function appendFollowUp(raw: unknown, text: string, by: string): StoredFollowUp[] {
   const prev: StoredFollowUp[] = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
   const entry: StoredFollowUp = {
+    // 시각은 겹칠 수 있다(환자·코디가 같은 초에 쓰면). 대상 지목은 이 id 로 한다.
+    id: randomUUID(),
     at: new Date().toISOString(),
     by: by.slice(0, 120),
     text_encrypted: encryptStringNullable(text.slice(0, FOLLOWUP_MAX_LEN)),
@@ -62,10 +68,21 @@ export function followUpSig(raw: unknown): string {
   return `${raw.length}:${raw.map((x: any) => String(x?.at || "")).join("|")}`;
 }
 
-/** 한 줄을 «고친» 저장용 배열. 시각(at)으로 찾는다 — 화면이 그 값을 갖고 있다. */
-export function editFollowUp(raw: unknown, at: string, text: string): StoredFollowUp[] | null {
+/**
+ * 대상 한 줄의 위치. **id 우선**, 없으면(옛 글) 시각으로 갈음한다.
+ * ⚠️ 항상 «하나»만 돌려준다 — 시각이 겹치는 다른 줄까지 건드리면 안 된다(2026-08-14 감사).
+ */
+function indexOfTarget(prev: StoredFollowUp[], key: string): number {
+  const byId = prev.findIndex((x) => x.id && String(x.id) === key);
+  if (byId >= 0) return byId;
+  // 옛 글(무id) 폴백 — id 가 «없는» 줄 중에서만 찾는다. id 가 있는 줄은 시각으로 안 잡힌다.
+  return prev.findIndex((x) => !x.id && String(x.at || "") === key);
+}
+
+/** 한 줄을 «고친» 저장용 배열. 화면이 가진 id(옛 글은 시각)로 찾는다. */
+export function editFollowUp(raw: unknown, key: string, text: string): StoredFollowUp[] | null {
   const prev: StoredFollowUp[] = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
-  const i = prev.findIndex((x) => String(x.at || "") === at);
+  const i = indexOfTarget(prev, key);
   if (i < 0) return null;
   const next = [...prev];
   // 적은 시각은 그대로 둔다 — 언제 들어온 정보인지가 판단 근거라 고쳐 쓰면 안 된다.
@@ -74,8 +91,10 @@ export function editFollowUp(raw: unknown, at: string, text: string): StoredFoll
 }
 
 /** 한 줄을 «지운» 저장용 배열. 잘못 적은 내용이 의료진에게 그대로 가는 걸 막는 통로다. */
-export function removeFollowUp(raw: unknown, at: string): StoredFollowUp[] | null {
+export function removeFollowUp(raw: unknown, key: string): StoredFollowUp[] | null {
   const prev: StoredFollowUp[] = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
-  const next = prev.filter((x) => String(x.at || "") !== at);
-  return next.length === prev.length ? null : next;
+  const i = indexOfTarget(prev, key);
+  if (i < 0) return null;
+  // filter 가 아니라 «그 자리 하나»만 뺀다 — 예전엔 시각이 같은 줄이 전부 지워질 수 있었다.
+  return prev.filter((_, idx) => idx !== i);
 }

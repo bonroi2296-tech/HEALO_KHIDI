@@ -100,6 +100,9 @@ async function cleanup() {
   for (const id of createdThreadIds) {
     try {
       // FK 순서: playbook_usage_events(메시지 참조) → chat_messages → chat_threads
+      // ponytail: 3턴+ 자동 승격으로 생기는 is_test 문의 행은 안 지운다 — inquiries 를 참조하는
+      // FK 중 NO ACTION 이 5개(normalized_inquiries 등)라 지우려면 연쇄 삭제가 필요하다.
+      // 문제였던 "매일 오는 알림 메일"은 adminNotifier 의 is_test 스킵으로 막았고, 남는 행은 실적 집계에서 제외된다.
       await fetch(`${SB_URL}/rest/v1/playbook_usage_events?thread_id=eq.${id}`, { method: "DELETE", headers: h });
       await fetch(`${SB_URL}/rest/v1/chat_messages?thread_id=eq.${id}`, { method: "DELETE", headers: h });
       await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${id}`, { method: "DELETE", headers: h });
