@@ -142,10 +142,13 @@ test.describe("환자 의뢰서 @smoke", () => {
     await expect(page.locator("#track-url")).toBeVisible({ timeout: 20000 });
     const track = await page.locator("#track-url").getAttribute("href");
 
-    // 언어 흔적이 없는 «새 사람»으로 연다 — 환자는 우리 사이트를 처음 여는 사람이다
+    // 언어 흔적이 없는 «새 사람»으로 연다 — 환자는 우리 사이트를 처음 여는 사람이다.
+    // 🛑 링크의 «주소 전체»로 가지 마라 — 메일에 넣는 주소는 늘 실서비스(healwith.co.kr)라,
+    //    자동 검사가 자기가 만든 문의를 «남의 서버»에서 찾다가 「링크가 유효하지 않습니다」를 본다
+    //    (2026-08-19 CI 실측). 지금 검사 중인 서버에서 «같은 길»을 연다.
     const fresh = await page.context().browser()!.newContext();
     const p2 = await fresh.newPage();
-    await p2.goto(track!);
+    await p2.goto(new URL(track!).pathname);
     await expect(p2.locator("main")).toContainText(/[А-Яа-я]{4,}/, { timeout: 15000 });
     const txt = await p2.locator("main").innerText();
     const hangul = (txt.match(/[가-힣]{2,}/g) || []).filter((w) => !["한국어", "한국"].includes(w));
