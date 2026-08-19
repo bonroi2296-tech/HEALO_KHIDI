@@ -12,6 +12,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptReferralData } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { briefSig, readBriefMap, normalizeBriefLang } from "@/lib/inquiry/caseBrief";
 
@@ -101,12 +102,37 @@ export async function GET(
     }
     Object.assign(data as object, arrival);
 
+    // 새 의뢰서(/inquiry/referral)가 채운 칸은 intake_data 에 있다 — 여기도 «따로» 읽는다(위와 같은 이유).
+    // 🛑 2026-08-19 실측: 쓰는 곳(referral route)은 있는데 읽는 곳이 없어 환자가 채운 진단명·불편한 곳·
+    //    약물·비행 가능·받고 싶은 것 전부가 코디 화면에 «안 떴다». 개편의 존재 이유가 통째로 빠져 있었다.
+    //    암호화된 칸은 아래에서 복호화한다(referral route 의 enc() 목록과 짝).
+    let referral: Record<string, unknown> | null = null;
+    {
+      const { data: r } = await supabaseAdmin
+        .from("inquiries")
+        .select("intake_data")
+        .eq("id", Number(rawId))
+        .single();
+      const raw = (r as any)?.intake_data;
+      if (raw && typeof raw === "object" && raw.version === "referral_v1") referral = raw;
+    }
+
     // PII 복호화 (staff 인증 통과 후 서버에서만). 실패해도 나머지는 반환(fail-safe).
     let inquiry: any = data;
     try {
       inquiry = await decryptInquiryForAdmin(data);
     } catch (e: any) {
       console.error("[portal/inbox/:id] decrypt error:", e?.message);
+    }
+
+    // 의뢰서 칸 복호화 — referral route 가 enc() 로 감싼 키만. 실패한 칸은 null(fail-safe).
+    inquiry.referral = null;
+    if (referral) {
+      try {
+        inquiry.referral = decryptReferralData(referral);
+      } catch (e: any) {
+        console.error("[portal/inbox/:id] referral decrypt error:", e?.message);
+      }
     }
 
     // 에이전시명 평탄화(관계조인 → 단일 필드)

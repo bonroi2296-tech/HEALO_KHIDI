@@ -198,3 +198,25 @@ export async function decryptNormalizedInquiryForAdmin(normalized: any): Promise
 
   return decrypted;
 }
+
+/**
+ * 새 의뢰서(/inquiry/referral, intake_data.version === "referral_v1") 칸 복호화.
+ * 🛑 이 목록은 app/api/inquiries/referral/route.ts 의 enc() 목록과 «짝»이다.
+ *    거기서 암호화하는 칸을 늘리면 여기도 늘려라 — 안 늘리면 코디 화면에 암호문이 그대로 뜬다.
+ *    복호화 실패한 칸은 null (암호문을 화면에 내보내지 않는다).
+ */
+const REFERRAL_ENCRYPTED_KEYS = [
+  "passportNo", "birthDate", "diagnosisNameRaw", "onsetDate", "chiefComplaint",
+  "testsAndTreatments", "localDoctorOpinion", "pastHistoryNote", "medications",
+  "familyHistory", "referralPurpose", "diagnosisDate",
+] as const;
+export function decryptReferralData(data: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...data };
+  for (const k of REFERRAL_ENCRYPTED_KEYS) {
+    const v = out[k];
+    if (typeof v !== "string" || !v) continue;
+    if (!isEncryptedPayload(v)) continue;          // 옛 평문·빈 값은 그대로
+    try { out[k] = decryptString(v); } catch { out[k] = null; }
+  }
+  return out;
+}

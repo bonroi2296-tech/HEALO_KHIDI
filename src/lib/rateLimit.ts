@@ -277,6 +277,15 @@ export const RATE_LIMITS = {
   // ⚠️ 통(apiName)이 같으면 «여러 라우트가 한 통에 합산»된다 — 키가 `apiName:IP` 라서다.
   // 인메모리 시절엔 인스턴스마다 흩어져 잘 안 걸렸는데, DB 판으로 옮기면 정확히 합산돼
   // 정상 사용자가 막힐 수 있다. 성격이 다른 흐름(제출 vs 화면 열기)은 통을 나눠라.
+  // 의뢰서 «서류 판독»(/api/inquiry/classify-doc) — 서류 1개당 1회. 🛑 INQUIRY(접수, 5/분)와 통을 «같이 쓰지 마라».
+  //    2026-08-19 독립 리뷰: 같은 통을 쓰고 있어서 폼이 권하는 서류 5개를 올리면 판독 5회가 접수 한도를 다 먹고
+  //    정작 「보내기」가 429 를 맞았다. 업로드 서명 통(20/분)과 같은 크기.
+  DOC_CLASSIFY: {
+    windowMs: 60 * 1000,
+    maxRequests: 20,
+    apiName: 'doc_classify',
+    message: 'Too many document reads. Please wait a minute.',
+  },
   INQUIRY: {
     windowMs: 60 * 1000,
     maxRequests: 5,

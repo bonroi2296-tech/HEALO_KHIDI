@@ -10,12 +10,14 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptInquiryForAdmin, decryptReferralData } from "@/lib/security/decryptForAdmin";
 import { generateCaseBrief, briefSig, normalizeBriefLang, readBriefMap } from "@/lib/inquiry/caseBrief";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
 const BRIEF_FIELDS = [
   "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments", "follow_ups",
+  // 새 의뢰서(/inquiry/referral)가 채운 칸 — 안 읽으면 브리프가 진단명·주소·약물·현지 소견을 통째로 모른다(독립 리뷰 2026-08-19).
+  "intake_data",
   // ⚠️ 캐시 두 칸도 반드시 읽어와야 한다. 안 읽으면 «이전 값»이 늘 비어 보여서
   //    언어별 묶음을 덧붙이지 못하고 **통째로 덮어쓴다**(러시아어 만들면 한국어가 날아감).
   //    2026-07-29 실측으로 잡음: 러 → 한 → 러 순으로 열었더니 마지막 러시아어가 다시 만들어졌다.
@@ -58,6 +60,8 @@ export async function POST(
     let inquiry: any = data;
     try {
       inquiry = await decryptInquiryForAdmin(data);
+      const ref = (data as any)?.intake_data;
+      if (ref && typeof ref === "object" && ref.version === "referral_v1") inquiry.referral = decryptReferralData(ref);
     } catch (e: any) {
       console.error("[coordinator/brief] decrypt error:", e?.message);
     }
