@@ -143,6 +143,8 @@ function buildContext(inq: any, lang: BriefLang): string {
   const looksEnc = (s: any) => typeof s === "string" && /^\{"(v|iv|tag|data)"\s*:/.test(s.trim());
   const clean = (v: any) => (looksEnc(v) ? null : v);
   const lines: string[] = [];
+  // 모델은 «오늘»을 모른다 — 안 주면 지난 진단일(2026-06)을 «미래 날짜, 오기재»로 판정한다(2026-08-19 실서비스 #132 실측).
+  lines.push(`today: ${new Date().toISOString().slice(0, 10)}`);
   if (inq?.nationality) lines.push(`nationality: ${inq.nationality}`);
   if (inq?.cancer_type) lines.push(`cancer_type: ${inq.cancer_type}`);
   if (clean(intake.stage)) lines.push(`stage: ${intake.stage}`);
