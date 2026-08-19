@@ -274,6 +274,56 @@ async function 검사_예약작업() {
   add("cron", "예약 작업이 돌고 있나", 멈춤.length ? "볼 것" : "통과", 멈춤.length ? 멈춤.join(" · ") : 정상.join(" · "));
 }
 
+// ── 7. 폰 앱에 «안 들어간» 네이티브 고침
+//    왜: 이 앱은 라이브 로드라 «웹은 고치면 즉시 폰에 반영»된다. 그래서 앱 고침도 그럴 거라고
+//    착각하기 쉬운데, 캡시터 플러그인·AndroidManifest·capacitor.config 같은 «네이티브»는
+//    앱 파일(AAB)을 새로 구워 스토어에 올려야만 폰에 간다.
+//    2026-08-19 PO 제보가 정확히 이것이었다 — 뒤로가기 고침(8/5, `@capacitor/app` 부품 추가)을
+//    합치고 배포까지 했는데 폰은 그대로였다. 스토어 판(빌드 7)이 8/4 소스라 부품 자체가 없었다.
+//    2주간 아무도 «폰에 갔는지»를 안 봤다 — 사람이 볼 자리가 없었기 때문이다. 그래서 여기 만든다.
+const 네이티브경로 = ["capacitor.config.ts", "android", "ios"];
+
+async function 검사_앱미반영() {
+  let 기준;
+  try {
+    기준 = JSON.parse(fs.readFileSync(path.join("docs", "sweep-baseline.json"), "utf8")).앱출시?.안드로이드;
+  } catch {
+    /* 아래에서 「못 잼」 */
+  }
+  if (!기준?.versionCode) return add("app", "폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 앱출시 칸이 비었다");
+
+  const gradle = fs.readFileSync(path.join("android", "app", "build.gradle"), "utf8");
+  const 저장소 = Number((gradle.match(/versionCode\s+(\d+)/) || [])[1] || 0);
+  const 저장소이름 = (gradle.match(/versionName\s+"([^"]+)"/) || [])[1] || "?";
+  const 폰 = `${기준.versionCode}(${기준.versionName}, ${기준.게시일} 게시)`;
+
+  if (저장소 <= 기준.versionCode) {
+    return add("app", "폰 앱에 안 들어간 고침", "통과", `스토어 판 ${폰} = 저장소 ${저장소}(${저장소이름})`);
+  }
+
+  let 목록 = [];
+  try {
+    const 끝 = execSync("git rev-parse --verify -q origin/main || git rev-parse HEAD", { encoding: "utf8", shell: "/bin/bash" }).trim();
+    목록 = execSync(`git log --oneline ${기준.빌드한소스}..${끝} -- ${네이티브경로.join(" ")}`, { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+  } catch {
+    return add("app", "폰 앱에 안 들어간 고침", "못 잼", `기준 커밋 ${기준.빌드한소스} 를 이 저장소에서 못 찾음`);
+  }
+
+  add(
+    "app",
+    "폰 앱에 안 들어간 고침",
+    목록.length ? "볼 것" : "통과",
+    목록.length
+      ? `스토어 판 ${폰} · 저장소 ${저장소}(${저장소이름}) · 그 사이 네이티브 고침 ${목록.length}건 → ` +
+        `앱 파일을 새로 굽기 «전»에는 폰에 안 간다. 맨 위 ${Math.min(3, 목록.length)}건: ` +
+        목록.slice(0, 3).join(" / ")
+      : `버전은 앞서 있지만(저장소 ${저장소}) 네이티브 변경은 0건 — 웹 배포만으로 충분`
+  );
+}
+
 const 검사들 = [
   ["pii", 검사_평문개인정보],
   ["rls", 검사_익명읽기],
@@ -281,6 +331,7 @@ const 검사들 = [
   ["env", 검사_환경변수이름],
   ["deploy", 검사_미배포],
   ["cron", 검사_예약작업],
+  ["app", 검사_앱미반영],
 ];
 
 for (const [id, fn] of 검사들) {
