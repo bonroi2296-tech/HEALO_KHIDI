@@ -30,6 +30,15 @@ describe("자료 칸의 DICOM 받기", () => {
     expect(normalizeMime("scan.dcm", "")).toBe("application/dicom");
   });
 
+  it("브라우저별 딴 이름(x-rar·octet-stream)을 앞머리 검사가 아는 이름으로 맞춘다", () => {
+    // 🛑 안 맞추면 sign 통과 → commit 의 앞머리 검사가 mime_mismatch 로 지운다(「올렸는데 사라짐」)
+    expect(normalizeMime("cd.rar", "application/x-rar-compressed")).toBe("application/vnd.rar");
+    expect(normalizeMime("cd.rar", "application/octet-stream")).toBe("application/vnd.rar");
+    expect(normalizeMime("cd.zip", "application/octet-stream")).toBe("application/zip");
+    expect(normalizeMime("IM0001.dcm", "application/octet-stream")).toBe("application/dicom");
+    expect(normalizeMime("Z01", "application/octet-stream")).toBe("application/dicom");
+  });
+
   it("브라우저가 형식을 알려주면 그걸 존중한다 (사진을 DICOM 으로 만들지 않는다)", () => {
     expect(normalizeMime("x.jpg", "image/jpeg")).toBe("image/jpeg");
     expect(normalizeMime("보고서.pdf", "application/pdf")).toBe("application/pdf");

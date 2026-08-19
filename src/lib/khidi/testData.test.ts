@@ -211,4 +211,8 @@ describe("우리 회사 주소로 넣은 문의는 시험이다", () => {
   it("환자 주소는 그대로 진짜 문의", () => {
     expect(detectInquiryIsTest({ email: "aigerim@mail.ru" })).toBe(false);
   });
+  it("🛑 코디 «계정»이 회사 도메인이어도 환자 문의는 진짜다 (연락 이메일에만 본다)", () => {
+    // 독립 리뷰(2026-08-19): 계정에도 적용하면 코디가 넣은 진짜 문의가 전부 시험이 되고 야간 감사가 소급한다
+    expect(detectInquiryIsTest({ email: "aigerim@mail.ru", accountEmail: "coordinator@healwith.co.kr" })).toBe(false);
+  });
 });

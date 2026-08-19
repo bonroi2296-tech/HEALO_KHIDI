@@ -61,6 +61,13 @@ export interface DetectTestInput {
 }
 
 /** 문의가 테스트인지 판정. 트리거 하나라도 해당하면 true. */
+/**
+ * 우리 회사 주소로 «연락받겠다»고 적힌 문의는 시험이다 — 환자가 우리 주소로 문의할 일은 없다.
+ * (2026-08-18 실측: 「보내기」를 확인하려고 admin@healwith.co.kr 로 넣었더니 진짜 문의 #118 로 저장됐다.)
+ * 🛑 «연락 이메일»에만 본다. 로그인 계정에 적용하면 코디가 넣은 진짜 문의가 시험이 된다(위 참고).
+ */
+export const OWN_COMPANY_DOMAINS = ["healwith.co.kr"];
+
 export function detectInquiryIsTest(input: DetectTestInput): boolean {
   const officeIps = input.officeIps ?? parseList(process.env.TEST_OFFICE_IPS);
   // ⚠️ 기본 목록을 여기 또 적지 마라 — resolveTestDomains() 한 곳만 쓴다.
@@ -71,6 +78,7 @@ export function detectInquiryIsTest(input: DetectTestInput): boolean {
   if (input.manual === true) return true;
   if (isOfficeIp(input.ip, officeIps)) return true;
   if (isTestEmail(input.email, testDomains)) return true;
+  if (isTestEmail(input.email, OWN_COMPANY_DOMAINS)) return true;   // 연락 이메일에만
   if (isTestEmail(input.accountEmail, testDomains)) return true;
   return false;
 }
@@ -102,12 +110,11 @@ export function resolveTestDomains(): string[] {
   //   그래서 사후 그물이 아니라 «만드는 시점»에서 막아야 한다.
   //   healo-test.invalid 는 이미 이 저장소가 내부 전용으로 쓰는 도메인이다
   //   (scripts/dev-login-as.mjs 의 허용 목록과 같은 뜻).
-  //   healwith.co.kr 을 넣는 이유(2026-08-18 실측): 의뢰서 「보내기」를 확인하려고
-  //   admin@healwith.co.kr 로 넣었더니 **진짜 문의 #118 로 저장됐다**(is_test=false).
-  //   우리 회사 주소로 문의하는 환자는 없다 — 전부 우리 시험이다. KHIDI 실적에 섞이면
-  //   그건 허위 실적이 된다. 「사후에 골라내기」는 이미 한 번 실패한 길이라(위 로봇 문의)
-  //   만드는 시점에서 막는다.
-  return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid", "healwith.co.kr"];
+  //   🛑 여기(공용 목록)에 우리 회사 도메인(healwith.co.kr)을 넣지 마라 — 2026-08-19 독립 리뷰:
+  //   이 목록은 «로그인 계정(accountEmail)»에도, 야간 감사(findTestPollutedInquiryIds)에도 쓰인다.
+  //   코디가 자기 계정(@healwith.co.kr)으로 넣은 «진짜 환자 문의»가 전부 시험이 되고, 야간 감사가
+  //   지난 것까지 소급해 뒤집는다. 회사 도메인은 아래 OWN_COMPANY_DOMAINS 로 «환자가 적은 연락 이메일»에만.
+  return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid"];
 }
 
 /**

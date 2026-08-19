@@ -20,12 +20,19 @@ import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadP
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
 import { SITE_INFO } from "@/lib/siteSettings";
+import { isValidEmail } from "@/lib/utils/phoneFormat";
+import { event as gaEvent, GA_EVENTS } from "@/lib/ga";
+
+// GA 는 «부가»다 — 차단기(AdGuard 등)로 실패해도 접수를 막으면 안 된다.
+const ga = (name, params) => { try { gaEvent(name, params); } catch {} };
 import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
   lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection, sanitizeDraftValues,
 } from "@/lib/inquiry/referralSchema";
 
 const DRAFT_KEY = "healo_referral_draft_v1";
+// 임시저장엔 여권번호·진단명이 «평문»으로 남는다(브라우저 안). PC방·가족 공용 PC 를 생각해 7일 지나면 버린다.
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // 국적·언어 — 지금 폼과 같은 목록(저장값 불변).
 const NATIONALITIES = [
@@ -129,6 +136,8 @@ export default function ReferralForm() {
   const [highlight, setHighlight] = useState(null); // 「남은 칸으로」로 데려간 칸
   // null = 아직 안 고름(갈림길 화면) · "quick" = 연락처만 · "full" = 병원 제출까지
   const [mode, setMode] = useState(null);
+  // 옛 퍼널의 「1단계 시작」과 같은 이벤트 — 깔때기(시작→접수)가 새 폼에서도 이어져 잡히게.
+  useEffect(() => { if (mode) ga(GA_EVENTS.STEP1_STARTED, { form: "referral", mode }); }, [mode]);
   // 서류에서 읽어 «우리가 채운» 칸. 값이 아니라 «출처 표시»다 — 사용자가 고치면 목록에서 빠진다.
   const [autoFilled, setAutoFilled] = useState({});
   // applyAutoFill 안에서 «최신» 표시 상태를 봐야 한다 — state 는 그 시점 값이라 늦다.
@@ -156,9 +165,11 @@ export default function ReferralForm() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
+        if (typeof d?.at === "number" && Date.now() - d.at > DRAFT_TTL_MS) throw new Error("expired");
         // 🛑 그대로 setValues 하지 마라 — 옛 모양·깨진 값이 들어오면 폼 전체가 오류 화면이 된다
         //    (2026-08-19 실측: envelope 이 문자열이면 docs.map 에서 죽음). 모양 맞는 칸만 살린다.
         setValues(sanitizeDraftValues(d.values));
+        if (d.autoFilled && typeof d.autoFilled === "object" && !Array.isArray(d.autoFilled)) setAutoFilled(d.autoFilled);
         const c = d.consents && typeof d.consents === "object" && !Array.isArray(d.consents) ? d.consents : {};
         setConsents(Object.fromEntries(Object.entries(c).filter(([, v]) => typeof v === "boolean")));
         // 🛑 모드(상담만/전체)는 «되살리지 않는다» — 갈림길은 매번 보여준다(2026-08-19 PO:
@@ -166,17 +177,19 @@ export default function ReferralForm() {
         //    할 수도 있는 거 아냐?»). 칸을 하나 건드리고 나갔던 사람이 돌아와 바로 20칸을 맞닥뜨리는 건
         //    선택을 뺏는 것이다. 값은 그대로 남아 있으니 어느 쪽을 골라도 손해가 없다.
       }
-    } catch { /* 저장본이 깨졌으면 그냥 빈 폼으로 시작한다 */ }
+    } catch { try { localStorage.removeItem(DRAFT_KEY); } catch {} /* 깨졌거나 오래됐으면 지우고 빈 폼으로 */ }
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode }));
+      // autoFilled(«서류에서 읽은 값» 표시)도 같이 — 안 넣으면 돌아왔을 때 기계가 읽은 값이 «사람이 쓴 값»으로
+      // 둔갑해, 더 선명한 서류를 올려도 고쳐 쓰지 않는다(독립 리뷰).
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode, autoFilled, at: Date.now() }));
       setSavedAt(new Date());
     } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
-  }, [hydrated, values, consents, mode]);
+  }, [hydrated, values, consents, mode, autoFilled]);
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).
@@ -218,9 +231,12 @@ export default function ReferralForm() {
   // 🛑 «비어 있지 않다»만 보지 마라 — 「11」을 넣어도 단추가 켜져서 서버가 거부하고, 화면은 엉뚱하게
   //    「잠시 뒤 다시 시도」라고 했다(2026-08-19 PO 실측). 서버(z.string().email())와 같은 눈으로 본다.
   //    틀린 이메일은 «남은 칸 1»로 센다 — 안 그러면 막대가 「0칸만 채우면」이라 하면서 단추는 막혀 있다.
-  const emailBad = !!values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(values.email).trim());
+  const emailBad = !!values.email && !isValidEmail(String(values.email).trim());
   const intakeLeft = missIntake.length + (consentOk ? 0 : 1) + (emailBad ? 1 : 0);
-  const canSend = intakeLeft === 0;
+  // 🛑 자료를 «올리는 중»에 보내면 경로 없는 첨부가 저장돼 코디가 못 여는 서류가 생긴다(독립 리뷰).
+  //    다 올라갈 때까지 단추를 막는다 — 자료 묶음이 첫 묶음이라 접수 6칸을 치는 동안 대개 끝난다.
+  const uploadingN = (Array.isArray(values.envelope) ? values.envelope : []).filter((d) => d && (d.uploading || d.reading)).length;
+  const canSend = intakeLeft === 0 && uploadingN === 0;
 
   // 문턱 ② 의뢰 준비 — 아무것도 막지 않는다. 얼마나 왔는지만 보여준다.
   const missRef = useMemo(() => missingForReferral(values), [values]);
@@ -258,6 +274,16 @@ export default function ReferralForm() {
   //    같은 부류가 터졌다, 2026-08-19). ref 는 그 자리에서 바뀌므로 두 번째는 반드시 걸린다. 문의가 2건 생기면
   //    코디가 같은 환자를 두 번 상대하고 KHIDI 실적도 2건이 된다.
   const sendingRef = useRef(false);
+  // 조건부 칸(showIf)이 숨겨졌으면 그 값도 보내지 않는다 — 「병력 없음」을 고르고도 앞서 적은 병력 설명이
+  // 같이 나가 서로 모순되는 의뢰서가 됐다(독립 리뷰). 화면에 안 보이는 건 안 보낸다.
+  function dropHiddenValues(v) {
+    const out = { ...v };
+    for (const sec of SECTIONS) for (const fld of sec.fields) if (fld.showIf && !fld.showIf(v)) delete out[fld.name];
+    // 서류 목록의 화면용 진행 상태는 서버에 보낼 게 아니다
+    if (Array.isArray(out.envelope)) out.envelope = out.envelope.map(({ _id: _i, uploading: _u, pct: _p, reading: _r, ...d }) => d);
+    return out;
+  }
+
   async function send() {
     if (!canSend || sending || sendingRef.current) return;
     sendingRef.current = true;
@@ -274,7 +300,7 @@ export default function ReferralForm() {
           //    (임시저장엔 그대로 남아 있으니, 나중에 전체로 돌아오면 다시 쓸 수 있다.)
           ...(mode === "quick"
             ? Object.fromEntries((SECTIONS.find((s) => s.id === "essentials")?.fields || []).map((f) => [f.name, values[f.name]]))
-            : values),
+            : dropHiddenValues(values)),
           mode,
           consents,
           sourceLocale: lang,
@@ -288,6 +314,7 @@ export default function ReferralForm() {
         // 서버는 코드형 오류만 준다(보안 규칙). 사람 말로 바꾸는 건 여기서 한다.
         // 코드마다 «다음에 뭘 하면 되는지»가 다르다 — 형식 오류에 「다시 시도」라고 하면 틀린 조언이다.
         const code = j?.error;
+        ga(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 1, form: "referral", code: code || "unknown" });
         setSendError(tr(
           code === "rate_limit_exceeded" ? "errTooMany"
           : code === "validation_error" || code === "invalid_json" || code === "broken_encoding" ? "errInvalid"
@@ -296,9 +323,15 @@ export default function ReferralForm() {
         return;
       }
       setSent(j);
+      // ⭐ 핵심 전환 — 서버 저장이 확인된 이 지점에서만 발화(옛 퍼널과 같은 이벤트·같은 자리 — 깔때기 집계가 이어져야 한다).
+      ga(GA_EVENTS.INQUIRY_SUBMITTED, {
+        cancer_type: values.cancerType || null, nationality: values.nationality || null,
+        preferred_language: values.patientLang || null, from_ai_chat: false, form: "referral", mode,
+      });
       // 보냈으면 임시저장은 지운다 — 남겨두면 다음에 열었을 때 이미 보낸 내용이 다시 뜬다.
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
     } catch {
+      ga(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 1, form: "referral", code: "network" });
       setSendError(tr("errSend", lang));
     } finally {
       sendingRef.current = false;
@@ -695,7 +728,8 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare, error }) {
       // 코드를 못 고르는 게 정상이다 — 「모르겠습니다」가 기본이고 관문이 아니다.
       control = (
         <>
-          <input id={inputId} className={box} placeholder="C18.2" value={value || ""} onChange={(e) => onChange(f.name, e.target.value)} />
+          <input id={inputId} className={box} placeholder="C18.2" disabled={value === "__unknown__"}
+                 value={value === "__unknown__" ? "" : (value || "")} onChange={(e) => onChange(f.name, e.target.value)} />
           <Toggle checked={value === "__unknown__"} onClick={() => onChange(f.name, value === "__unknown__" ? "" : "__unknown__")}
                   label={tr("icdUnknown", lang)} className="mt-2" />
         </>
@@ -1114,26 +1148,27 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
   async function add(files) {
     const picked = Array.from(files || []);
     if (!picked.length) return;
-    const base = docs.length;
-    // 🛑 크기는 «고른 즉시» 잰다. 다 올린 뒤에 「너무 큽니다」라고 하면 그건 시간을 뺏고
-    //    나서 거절하는 것이다(PO 2026-08-14). 100MB 를 10분 올린 뒤 안 된다고 하면 떠난다.
-    onChange(f.name, [...docs, ...picked.map((x) => ({
-      name: x.name, size: x.size, kind: null,
+    // 🛑 «자리 번호(idx)»로 갱신하지 마라 — 올리는 도중 앞의 것을 지우면 자리가 밀려 다른 파일에
+    //    경로·판독 결과가 붙는다(2026-08-19 독립 리뷰 3명이 같은 것을 짚음). 항목마다 고유 표(_id)를 달고
+    //    그 표로 찾아 갱신한다. 목록에 넣을 때도 «그 순간의 docs»가 아니라 최신 목록에 덧붙인다.
+    const mk = () => (crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`);
+    const rows = picked.map((x) => ({
+      _id: mk(), name: x.name, size: x.size, kind: null,
       ...(x.size > MAX_UPLOAD_BYTES
         ? { uploading: false, error: "file_too_large" }
         : { uploading: true, pct: 0 }),
-    }))]);
+    }));
+    // 🛑 크기는 «고른 즉시» 잰다. 다 올린 뒤에 「너무 큽니다」라고 하면 그건 시간을 뺏고
+    //    나서 거절하는 것이다(PO 2026-08-14). 100MB 를 10분 올린 뒤 안 된다고 하면 떠난다.
+    onChange(f.name, (prev) => [...(prev || []), ...rows]);
     const toUpload = picked.filter((x) => x.size <= MAX_UPLOAD_BYTES).length;
     setBusy((n) => n + toUpload);
 
     for (let i = 0; i < picked.length; i++) {
       if (picked[i].size > MAX_UPLOAD_BYTES) continue; // 이미 안내했다
-      const idx = base + i;
-      const patch = (p) => onChange(f.name, (prev) => {
-        const next = [...(prev || [])];
-        next[idx] = { ...next[idx], ...p };
-        return next;
-      });
+      const id = rows[i]._id;
+      const patch = (p) => onChange(f.name, (prev) =>
+        (prev || []).map((d) => (d._id === id ? { ...d, ...p } : d)));   // 지워졌으면 조용히 건너뛴다
 
       const up = await uploadAttachment(picked[i], {
         onProgress: (r) => patch({ pct: Math.round(r * 100) }),

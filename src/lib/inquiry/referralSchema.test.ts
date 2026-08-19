@@ -155,7 +155,19 @@ describe("임시저장 복원 — 모양이 다른 값은 버린다 (폼이 죽�
     expect(sanitizeDraftValues([1, 2])).toEqual({});
   });
   it("정상 값은 그대로", () => {
-    const v = { pastHistory: ["hypertension"], envelope: [{ name: "a.pdf" }], lastName: "A", dateFlexible: true };
+    const v = { pastHistory: ["hypertension"], envelope: [{ name: "a.pdf", path: "inquiry/x_a.pdf" }], lastName: "A", dateFlexible: true };
     expect(sanitizeDraftValues(v)).toEqual(v);
+  });
+  it("서류: 올리다 만 것(경로 없음)은 버리고, 진행 상태(uploading·pct·reading)는 떼어낸다", () => {
+    // 되살리면 «영원히 도는 진행 막대»가 되고, 보내면 경로 없는 첨부가 저장된다(독립 리뷰)
+    const out = sanitizeDraftValues({ envelope: [
+      { name: "half.pdf", size: 10, uploading: true, pct: 37 },                       // 올리다 만 것 → 버림
+      { name: "ok.pdf", path: "inquiry/x_ok.pdf", kind: "blood", reading: true },     // 판독 중 표시만 뗌
+      { name: "big.iso", size: 3e8, error: "file_too_large", link: "https://a.b/c" }, // 너무 커서 링크로 — 살림
+    ] });
+    expect(out.envelope).toEqual([
+      { name: "ok.pdf", path: "inquiry/x_ok.pdf", kind: "blood" },
+      { name: "big.iso", size: 3e8, error: "file_too_large", link: "https://a.b/c" },
+    ]);
   });
 });

@@ -79,6 +79,14 @@ export function sanitizeFileName(name: string): string {
  * .dcm(의료영상)은 표준 MIME 이 없어 브라우저가 빈 문자열로 준다 — 병원 CD 자료가 이 경우.
  */
 export function normalizeMime(name: string, declared: string): string {
+  // 브라우저마다 다른 이름으로 오는 것을 «앞머리 검사가 아는 이름»으로 맞춘다. 안 맞추면 sign 은 통과하고
+  // commit 의 앞머리 검사가 mime_mismatch 로 지운다 — 환자 눈엔 「올렸는데 사라짐」(독립 리뷰 3건 지적).
+  if (declared === "application/x-rar-compressed") return "application/vnd.rar";
+  if (declared === "application/octet-stream") {
+    if (/\.rar$/i.test(name)) return "application/vnd.rar";
+    if (/\.zip$/i.test(name)) return "application/zip";
+    declared = "";   // 나머지는 확장자로 다시 본다(.dcm·확장자 없음 → DICOM)
+  }
   if (declared) return declared;
   if (/\.dcm$/i.test(name)) return "application/dicom";
   // 확장자가 «아예 없는» 파일도 DICOM 으로 본다. 병원 CD 의 낱개 파일이 그렇다

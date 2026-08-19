@@ -375,7 +375,12 @@ export function sanitizeDraftValues(raw) {
           if (Array.isArray(v)) out[f.name] = v.filter((x) => typeof x === "string");
           break;
         case "envelope":
-          if (Array.isArray(v)) out[f.name] = v.filter((x) => x && typeof x === "object" && !Array.isArray(x));
+          // 올리다 만 항목(경로 없음)은 되살려도 «영원히 돌아가는 진행 막대»가 된다 — 버린다.
+          // 화면용 진행 상태(uploading·pct·reading)도 떼어낸다. (독립 리뷰 2명이 짚음)
+          if (Array.isArray(v))
+            out[f.name] = v
+              .filter((x) => x && typeof x === "object" && !Array.isArray(x) && (typeof x.path === "string" || x.error))
+              .map(({ uploading: _u, pct: _p, reading: _r, ...d }) => d);
           break;
         case "cdFolder":
           if (v && typeof v === "object" && !Array.isArray(v)) out[f.name] = v;

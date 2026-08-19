@@ -154,6 +154,18 @@ function buildContext(inq: any, lang: BriefLang): string {
     lines.push(`priorities: ${intake.priorities.map((p: string) => pl[p] || p).join(", ")}`);
   }
   if (inq?.preferred_date) lines.push(`preferred_date: ${inq.preferred_date}`);
+  // 새 의뢰서(intake_data, referral_v1 — 복호화된 inq.referral)의 임상 칸. 여권번호·생년월일 같은 식별정보는 넣지 않는다.
+  const ref = inq?.referral && typeof inq.referral === "object" && inq.referral.version === "referral_v1" ? inq.referral : null;
+  if (ref) {
+    const REF_KEYS = ["diagnosisNameRaw", "icdCode", "stage", "diagnosisDate", "onsetDate", "chiefComplaint", "testsAndTreatments",
+      "localDoctorOpinion", "pastHistory", "pastHistoryNote", "medications", "familyHistory", "referralWants", "referralPurpose", "flightFitness"];
+    for (const k of REF_KEYS) {
+      const v = clean(ref[k]);
+      if (v == null || v === "" || (Array.isArray(v) && !v.length)) continue;
+      lines.push(`referral.${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
+    }
+    if (ref.mode === "quick") lines.push("referral.mode: quick (patient chose consultation-only; clinical fields intentionally left empty)");
+  }
   // 접수 «이후»에 코디가 받은 환자 상태 — 서류엔 없지만 «지금» 상태라 브리프에 꼭 들어가야 한다.
   const fu = followUpsForBrief(inq?.follow_ups);
   if (fu) lines.push(`follow_up_notes (received after intake, from coordinator):\n${fu}`);

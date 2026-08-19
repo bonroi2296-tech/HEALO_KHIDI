@@ -123,7 +123,7 @@ function cleanFields(raw: any): Record<string, string> {
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
-  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.DOC_CLASSIFY);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limit_exceeded" },
