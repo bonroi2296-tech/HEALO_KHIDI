@@ -47,6 +47,7 @@ const ROUTES = [
   "/partners",
   "/visa",
   "/inquiry",
+  "/inquiry/referral",   // 환자 의뢰서(갈래 화면) — 우리 첫 접점이라 한국어가 새면 바로 이탈이다
   "/intake",
   "/search",
   "/specialties/korean-medicine",
