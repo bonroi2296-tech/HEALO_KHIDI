@@ -499,7 +499,9 @@ export default function ReferralForm() {
             const isOpen = !!open[sec.id];
             const card = (
               <section key={sec.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                {/* 낭독기(스크린리더)가 「펼쳐졌나 접혔나」를 읽을 수 있어야 한다 — 없으면 눈으로만 알 수 있는 상태가 된다. */}
                 <button type="button" onClick={() => setOpen((p) => ({ ...p, [sec.id]: !p[sec.id] }))}
+                        aria-expanded={isOpen} aria-controls={`sec-${sec.id}`}
                         className="flex w-full items-center gap-3 px-4 py-4 text-left md:px-6">
                   <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg text-xs font-bold ${
                     left === 0 ? "bg-emerald-700 text-white" : "bg-gray-200 text-gray-700"}`}>
@@ -513,7 +515,7 @@ export default function ReferralForm() {
                 </button>
 
                 {isOpen && (
-                  <div className="border-t border-gray-200 px-4 pb-6 md:px-6">
+                  <div id={`sec-${sec.id}`} className="border-t border-gray-200 px-4 pb-6 md:px-6">
                     {sec.lead && (
                       <p className="mt-4 text-xs leading-relaxed text-gray-600 md:text-sm">{lab(sec.lead, lang)}</p>
                     )}
@@ -580,7 +582,7 @@ export default function ReferralForm() {
 
         {/* 바닥 */}
         <div ref={footRef} className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
-          <button type="button" disabled={!canSend || sending} onClick={send}
+          <button type="button" data-testid="send" disabled={!canSend || sending} onClick={send}
                   className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold transition-all duration-200 ${
                     canSend && !sending ? "bg-teal-700 text-white hover:bg-teal-800" : "cursor-not-allowed bg-gray-200 text-gray-600"}`}>
             {sending && <Loader2 size={16} className="animate-spin" />}
@@ -609,7 +611,10 @@ export default function ReferralForm() {
           «8% 만 내려도» 진행상황도 보내기 버튼도 둘 다 안 보였다(PO 지적).
           머리와 바닥이 «둘 다» 화면 밖일 때만 뜬다 — 같은 걸 두 번 보여주지 않는다. */}
       {headOut && footOut && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur">
+        // 🛑 bottom-0 로 두지 마라 — 첫 방문자에겐 쿠키 동의 띠(z-9999)가 이 막대를 통째로 덮어
+        //    「보내기」가 안 눌린다(2026-08-19 자동 클릭 검사가 잡음: 「띠가 클릭을 가로챈다」).
+        //    사이트 규칙: 바닥에 붙는 것은 배너 높이만큼 비켜 앉는다(src/components/CookieConsent.jsx).
+        <div className="fixed inset-x-0 bottom-[var(--cookie-banner-h,0px)] z-40 border-t border-gray-200 bg-white/95 backdrop-blur">
           <div className="mx-auto max-w-3xl px-4 py-3">
             {/* 접수가 끝나면 막대가 100% 로 굳어 죽는다 — 그때부터는 «의뢰 준비도»를 계속 움직인다. */}
             <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
@@ -634,7 +639,7 @@ export default function ReferralForm() {
                 )}
               </span>
               {canSend ? (
-                <button type="button" disabled={sending} onClick={send}
+                <button type="button" data-testid="send-bar" disabled={sending} onClick={send}
                         className="flex flex-none items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-teal-800">
                   {sending && <Loader2 size={14} className="animate-spin" />}
                   {sending ? tr("sending", lang) : tr(quick ? "submitQuick" : "submit", lang)}
@@ -797,9 +802,10 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare, error }) {
  *     정보다(병원이 요구한다). 그래서 «안 받는 것»이 아니라 «언제 받을지»를 나눈다.
  *     제출은 여전히 한 번이고, 「연락처만」으로 시작해도 언제든 이어서 채울 수 있다.
  */
+// data-testid 는 «문구가 바뀌어도 자동 검사가 안 깨지게» 다는 이름표다(카피는 PO 가 자주 고친다).
 function ModePicker({ lang, onPick, quickN, fullN, savedN = 0 }) {
-  const Card = ({ onClick, title, body, meta, primary }) => (
-    <button type="button" onClick={onClick}
+  const Card = ({ onClick, title, body, meta, primary, testId }) => (
+    <button type="button" onClick={onClick} data-testid={testId}
             className={`w-full rounded-xl border p-5 text-left transition-all duration-200 md:p-6 ${
               primary ? "border-teal-700 bg-white shadow-sm hover:bg-teal-50"
                       : "border-gray-200 bg-white shadow-sm hover:border-gray-300"}`}>
@@ -822,10 +828,10 @@ function ModePicker({ lang, onPick, quickN, fullN, savedN = 0 }) {
           <p className="mt-3 rounded-xl bg-teal-50 px-4 py-2.5 text-xs text-teal-800 md:text-sm">{tr("pickSaved", lang, { n: savedN })}</p>
         )}
         <div className="mt-6 space-y-3">
-          <Card primary onClick={() => onPick("quick")}
+          <Card primary testId="pick-quick" onClick={() => onPick("quick")}
                 title={tr("quickTitle", lang)} body={tr("quickBody", lang)}
                 meta={tr("quickMeta", lang, { n: quickN })} />
-          <Card onClick={() => onPick("full")}
+          <Card testId="pick-full" onClick={() => onPick("full")}
                 title={tr("fullTitle", lang)} body={[tr("fullBody", lang), tr("fullBody2", lang)]}
                 meta={tr("fullMeta", lang, { n: fullN })} />
         </div>
@@ -889,9 +895,12 @@ function Bar({ label, pct, meta, tone, action }) {
   );
 }
 
-function Toggle({ checked, onClick, label, className = "" }) {
+function Toggle({ checked, onClick, label, className = "", testId }) {
+  // 🛑 겉모습만 네모칸이면 낭독기(스크린리더)엔 «그냥 단추»로 들린다 — 켜졌는지 꺼졌는지 안 읽힌다.
+  //    동의는 법적 기록이라 「내가 켰나」를 못 듣는 건 그 자체로 결함이다(2026-08-19 전수 훑기).
   return (
-    <button type="button" onClick={onClick} className={`flex items-start gap-2.5 text-left ${className}`}>
+    <button type="button" role="checkbox" aria-checked={!!checked} data-testid={testId}
+            onClick={onClick} className={`flex items-start gap-2.5 text-left ${className}`}>
       <span className={`mt-0.5 flex h-[18px] w-[18px] flex-none items-center justify-center rounded border-2 transition-all duration-200 ${
         checked ? "border-teal-700 bg-teal-700" : "border-gray-300"}`}>
         {checked && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -1385,11 +1394,11 @@ function ConsentBlock({ lang, consents, setConsents }) {
   const all = CONSENTS.every((c) => consents[c.name]);
   return (
     <div className="space-y-2.5 pt-4">
-      <Toggle checked={all} label={tr("consentAll", lang)}
+      <Toggle checked={all} label={tr("consentAll", lang)} testId="consent-all"
               onClick={() => setConsents(all ? {} : Object.fromEntries(CONSENTS.map((c) => [c.name, true])))} />
       <div className="h-px bg-gray-200" />
       {CONSENTS.map((c) => (
-        <Toggle key={c.name} checked={!!consents[c.name]} label={lab(c.label, lang)}
+        <Toggle key={c.name} checked={!!consents[c.name]} label={lab(c.label, lang)} testId={`consent-${c.name}`}
                 onClick={() => setConsents((p) => ({ ...p, [c.name]: !p[c.name] }))} />
       ))}
     </div>

@@ -377,7 +377,11 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
+        {/* 🛑 하단바를 숨기는 화면(문의·로그인·가입·완료)도 «쿠키 동의 띠» 만큼은 자리를 비워야 한다 —
+            안 그러면 첫 방문자에게 화면 맨 아래(의뢰서의 「보내기」 등)가 띠에 덮여 눌리지 않는다
+            (2026-08-19 자동 클릭 검사가 의뢰서에서 잡음). 띠가 닫히면 변수가 0이라 여백도 사라진다.
+            포털·상담방은 자체 레이아웃이 바닥을 직접 다루므로 손대지 않는다. */}
+        <main id="main-content" className={isPortalPage || isConsultationPage ? "" : hideBottomNav ? "pb-[var(--cookie-banner-h,0px)]" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
       {/* 푸터에 붙어 있던 `pt-safe-area` 제거(2026-08-03) — 위쪽 안전영역은 «화면 맨 위 상태표시줄»을
