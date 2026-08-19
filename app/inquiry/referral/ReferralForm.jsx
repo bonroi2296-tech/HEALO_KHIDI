@@ -145,7 +145,10 @@ export default function ReferralForm() {
   const [sendError, setSendError] = useState("");
   const [sent, setSent] = useState(null);
   const [copied, setCopied] = useState(false); // { inquiryId, publicToken }
-  const loaded = useRef(false);
+  // 🛑 ref 로 «복원 끝» 표시를 하지 마라. ref 는 «그 자리에서» 켜지는데 값(setValues)은 «다음 그림»에 반영된다 —
+  //    그 사이에 저장 효과가 돌아 «빈 값»으로 임시저장을 덮어쓴다(2026-08-19 실측: 새로고침 한 번에 사라짐,
+  //    개발 모드의 효과 2회 실행에서 결정적으로 터진다). 상태(state)로 두면 값과 «같은 그림»에 켜진다.
+  const [hydrated, setHydrated] = useState(false);
 
   // 쓰던 내용 복구 — 긴 폼의 유일한 진짜 위험은 「쓰다 날림」이다.
   useEffect(() => {
@@ -158,20 +161,22 @@ export default function ReferralForm() {
         setValues(sanitizeDraftValues(d.values));
         const c = d.consents && typeof d.consents === "object" && !Array.isArray(d.consents) ? d.consents : {};
         setConsents(Object.fromEntries(Object.entries(c).filter(([, v]) => typeof v === "boolean")));
-        // 돌아온 사람에게 갈림길을 다시 묻지 않는다 — 쓰던 자리로 바로 보낸다.
-        if (d.mode === "quick" || d.mode === "full") setMode(d.mode);
+        // 🛑 모드(상담만/전체)는 «되살리지 않는다» — 갈림길은 매번 보여준다(2026-08-19 PO:
+        //    「입력한 데이터나 임시 저장해주는게 좋을 거 같고… 막상 들어왔더니 너무 많아서 접수만 할래
+        //    할 수도 있는 거 아냐?»). 칸을 하나 건드리고 나갔던 사람이 돌아와 바로 20칸을 맞닥뜨리는 건
+        //    선택을 뺏는 것이다. 값은 그대로 남아 있으니 어느 쪽을 골라도 손해가 없다.
       }
     } catch { /* 저장본이 깨졌으면 그냥 빈 폼으로 시작한다 */ }
-    loaded.current = true;
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!loaded.current) return;
+    if (!hydrated) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode }));
       setSavedAt(new Date());
     } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
-  }, [values, consents, mode]);
+  }, [hydrated, values, consents, mode]);
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).
@@ -369,7 +374,8 @@ export default function ReferralForm() {
 
   // 아직 안 골랐으면 갈림길만 보여준다. 15칸을 먼저 들이대지 않는다.
   if (mode === null) {
-    return <ModePicker lang={lang} onPick={setMode}
+    const savedN = Object.values(values).filter((v) => !(v == null || v === "" || (Array.isArray(v) && v.length === 0))).length;
+    return <ModePicker lang={lang} onPick={setMode} savedN={savedN}
                        quickN={fieldsByReq("intake").length + 1}
                        fullN={fieldsByReq("intake").length + fieldsByReq("referral").length + 1} />;
   }
@@ -412,6 +418,12 @@ export default function ReferralForm() {
           </div>
           {!quick && (
             <>
+              {/* 반대 방향(상담만 → 이어서 채우기)만 있고 이 방향이 없었다(2026-08-19 PO). 값은 그대로 남는다 —
+                  같은 values 를 쓰고 「상담만」은 묶음을 «덜 보여줄» 뿐이다. */}
+              <button type="button" onClick={() => setMode("quick")}
+                      className="mt-4 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
+                {tr("switchToQuick", lang)} →
+              </button>
               {/* 🛑 「이어서 채우실 수 있습니다」로 되돌리지 마라(2026-08-19 실측). 이어채우기 화면(/claim)엔
                   «자료 더 올리기·글 덧붙이기»만 있고 남은 칸을 채우는 길은 없다. 약속은 있는 만큼만.
                   칸 이어채우기를 붙일지는 PO 판단 항목(PROJECT_CONTEXT 참고). */}
@@ -722,7 +734,7 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare }) {
  *     정보다(병원이 요구한다). 그래서 «안 받는 것»이 아니라 «언제 받을지»를 나눈다.
  *     제출은 여전히 한 번이고, 「연락처만」으로 시작해도 언제든 이어서 채울 수 있다.
  */
-function ModePicker({ lang, onPick, quickN, fullN }) {
+function ModePicker({ lang, onPick, quickN, fullN, savedN = 0 }) {
   const Card = ({ onClick, title, body, meta, primary }) => (
     <button type="button" onClick={onClick}
             className={`w-full rounded-xl border p-5 text-left transition-all duration-200 md:p-6 ${
@@ -742,6 +754,10 @@ function ModePicker({ lang, onPick, quickN, fullN }) {
       <div className="mx-auto max-w-2xl px-4 py-10 md:py-16">
         <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{tr("pickTitle", lang)}</h1>
         <p className="mt-2 text-sm text-gray-600 md:text-base">{tr("pickSub", lang)}</p>
+        {/* 쓰다 나갔던 사람 — 「저장돼 있다」를 여기서 말해줘야 안심하고 다시 고른다 */}
+        {savedN > 0 && (
+          <p className="mt-3 rounded-xl bg-teal-50 px-4 py-2.5 text-xs text-teal-800 md:text-sm">{tr("pickSaved", lang, { n: savedN })}</p>
+        )}
         <div className="mt-6 space-y-3">
           <Card primary onClick={() => onPick("quick")}
                 title={tr("quickTitle", lang)} body={tr("quickBody", lang)}
