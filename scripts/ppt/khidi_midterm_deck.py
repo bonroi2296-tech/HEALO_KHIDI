@@ -261,6 +261,10 @@ for t in ["· 8월 현지 검색광고로 직접 유입 병행",
     line(tf, t, 10, BLACK, REG, before=6)
 band(s, "▶ 부진 원인은 기능 미비가 아니라 현지 신뢰 확보에 걸리는 시간이며, 대책은 광고와 실사 투어입니다.", y=430)
 
+# ── SWOT
+s = content(prs, "2부 · 3. 수익모델", "사업진출 SWOT 분석", "카자흐스탄 시장 · 2026-08 기준")
+picture(s, os.path.join(SHOT, "swot.png"), (W - 438) / 2, 130, w=438, border=False)
+
 # ── 수익모델
 s = content(prs, "2부 · 3. 수익모델", "수익모델 및 매출계획", "현장 협의로 확정된 수수료 조건 반영")
 tf = text(s, MARGIN, 146, 420, 190)
