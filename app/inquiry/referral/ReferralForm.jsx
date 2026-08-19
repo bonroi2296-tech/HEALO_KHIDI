@@ -183,18 +183,27 @@ export default function ReferralForm() {
 
   useEffect(() => {
     if (!hydrated) return;
-    try {
-      // autoFilled(«서류에서 읽은 값» 표시)도 같이 — 안 넣으면 돌아왔을 때 기계가 읽은 값이 «사람이 쓴 값»으로
-      // 둔갑해, 더 선명한 서류를 올려도 고쳐 쓰지 않는다(독립 리뷰).
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode, autoFilled, at: Date.now() }));
-      setSavedAt(new Date());
-    } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
+    // 🛑 글자 하나 칠 때마다 저장하지 않는다 — 긴 글칸(3000자)에서 매 타자마다 통째로 JSON 으로 만들어
+    //    쓰는 일이 벌어져 느린 기기에서 입력이 밀린다. 0.4초 멈추면 그때 저장한다(독립 리뷰).
+    const timer = setTimeout(() => {
+      try {
+        // autoFilled(«서류에서 읽은 값» 표시)도 같이 — 안 넣으면 돌아왔을 때 기계가 읽은 값이 «사람이 쓴 값»으로
+        // 둔갑해, 더 선명한 서류를 올려도 고쳐 쓰지 않는다(독립 리뷰).
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, consents, mode, autoFilled, at: Date.now() }));
+        setSavedAt(new Date());
+      } catch { /* 저장 공간이 없어도 폼은 계속 쓸 수 있어야 한다 */ }
+    }, 400);
+    return () => clearTimeout(timer);
   }, [hydrated, values, consents, mode, autoFilled]);
 
   // v 에 함수를 줄 수 있다 — 서류 판독처럼 «먼저 목록에 올리고 나중에 결과를 끼워 넣는»
   // 경우엔 그때의 최신 목록을 받아야 한다(안 그러면 여러 개 올릴 때 앞의 결과가 지워진다).
   const set = (name, v) => {
-    setValues((p) => ({ ...p, [name]: typeof v === "function" ? v(p[name]) : v }));
+    setValues((p) => {
+      const next = { ...p, [name]: typeof v === "function" ? v(p[name]) : v };
+      valuesRef.current = next;   // 🛑 «지금 값»을 그리기 뒤로 미루지 마라 — 아래 applyAutoFill 이 이걸 보고
+      return next;                //    판단한다. 늦게 갱신되면 방금 사람이 친 글자를 서류 판독이 덮어쓴다.
+    });
     // 사람이 직접 고친 칸은 「저희가 읽은 값」 표시를 뗀다 — 안 그러면 표시가 거짓말이 된다.
     setAutoFilled((p) => {
       if (!p[name]) return p;
@@ -220,6 +229,9 @@ export default function ReferralForm() {
       if (empty || autoFilledRef.current[k]) { patch[k] = v; marked[k] = true; }
     }
     if (!Object.keys(patch).length) return;
+    // 표를 즉시 갱신한다 — 서류 여러 개를 «동시에» 읽으므로, 다음 서류가 이 결과를 보고 판단해야 한다.
+    valuesRef.current = { ...cur, ...patch };
+    autoFilledRef.current = { ...autoFilledRef.current, ...marked };
     setValues((p) => ({ ...p, ...patch }));
     setAutoFilled((p) => ({ ...p, ...marked }));
   };
@@ -1164,8 +1176,19 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
     const toUpload = picked.filter((x) => x.size <= MAX_UPLOAD_BYTES).length;
     setBusy((n) => n + toUpload);
 
-    for (let i = 0; i < picked.length; i++) {
-      if (picked[i].size > MAX_UPLOAD_BYTES) continue; // 이미 안내했다
+    // 🛑 한 개씩 차례로 하지 마라 — 서류 5장이면 (올리기 + 판독 8초)가 5번 «줄줄이» 이어져 1분을 넘긴다.
+    //    사람은 그 앞에서 기다리다 떠난다. 동시에 3개까지 돌린다(판독 창구 상한 20회/분 안쪽).
+    //    3개로 묶는 이유: 카자흐스탄 쪽 회선에서 큰 서류를 한꺼번에 올리면 서로 대역폭을 뺏는다.
+    const CONCURRENCY = 3;
+    let cursor = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, picked.length) }, async () => {
+        for (let i = cursor++; i < picked.length; i = cursor++) await one(i);
+      })
+    );
+
+    async function one(i) {
+      if (picked[i].size > MAX_UPLOAD_BYTES) return; // 이미 안내했다
       const id = rows[i]._id;
       const patch = (p) => onChange(f.name, (prev) =>
         (prev || []).map((d) => (d._id === id ? { ...d, ...p } : d)));   // 지워졌으면 조용히 건너뛴다
@@ -1176,7 +1199,7 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
       if (up?.ok === false) {
         patch({ uploading: false, reading: false, error: up.error || "upload_failed" });
         setBusy((n) => n - 1);
-        continue;
+        return;
       }
       patch({ uploading: false, reading: true, path: up.path, type: up.type, error: null });
 

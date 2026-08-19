@@ -91,16 +91,12 @@ export async function GET(
     // 「어디서 왔나」 네 칸은 «따로» 읽는다 — 위 목록에 섞으면 그 컬럼이 아직 없는 환경에서
     // 조회 «전체»가 죽어 문의 상세가 통째로 안 열린다(2026-08-04 동작 시험에서 실제로 그랬다:
     // 화면에 「조회 중 문제가 발생했습니다」만 떴다). 여기서 실패하면 그 줄만 안 보이면 된다.
-    let arrival: Record<string, unknown> = {};
-    {
-      const { data: a } = await supabaseAdmin
-        .from("inquiries")
-        .select("source_locale, referrer_host, landing_path, utm")
-        .eq("id", Number(rawId))
-        .single();
-      if (a) arrival = a as Record<string, unknown>;
-    }
-    Object.assign(data as object, arrival);
+    // ⚠️ 두 «따로 읽기»는 서로 상관이 없다 → 줄줄이 기다리지 말고 나란히(독립 리뷰: 상세 한 번에 왕복 3회).
+    const [arrivalRow, referralRow] = await Promise.all([
+      supabaseAdmin.from("inquiries").select("source_locale, referrer_host, landing_path, utm").eq("id", Number(rawId)).single(),
+      supabaseAdmin.from("inquiries").select("intake_data").eq("id", Number(rawId)).single(),
+    ]);
+    if (arrivalRow.data) Object.assign(data as object, arrivalRow.data as Record<string, unknown>);
 
     // 새 의뢰서(/inquiry/referral)가 채운 칸은 intake_data 에 있다 — 여기도 «따로» 읽는다(위와 같은 이유).
     // 🛑 2026-08-19 실측: 쓰는 곳(referral route)은 있는데 읽는 곳이 없어 환자가 채운 진단명·불편한 곳·
@@ -108,12 +104,7 @@ export async function GET(
     //    암호화된 칸은 아래에서 복호화한다(referral route 의 enc() 목록과 짝).
     let referral: Record<string, unknown> | null = null;
     {
-      const { data: r } = await supabaseAdmin
-        .from("inquiries")
-        .select("intake_data")
-        .eq("id", Number(rawId))
-        .single();
-      const raw = (r as any)?.intake_data;
+      const raw = (referralRow.data as any)?.intake_data;
       if (raw && typeof raw === "object" && raw.version === "referral_v1") referral = raw;
     }
 

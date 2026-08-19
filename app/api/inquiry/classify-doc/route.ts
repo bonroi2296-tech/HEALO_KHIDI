@@ -12,6 +12,15 @@
  *
  * ⚠️ 결과는 «추정»이다. 사용자가 화면에서 고칠 수 있어야 하고(PO 결정 2026-08-12),
  *    이 값만 보고 의료 판단을 하면 안 된다.
+ *
+ * 🔒 이 주소는 «로그인 없이» 열려 있어야 한다 — 환자는 계정 없이 서류를 올린다.
+ *    그래서 돈이 새지 않게 막는 건 «신분»이 아니라 «양»이다. 세 겹:
+ *      ① 분당 20회(IP)  ② AI 공용 하루 상한(IP·전체) = 다른 AI 창구와 «같은 계량기»
+ *      ③ 경로 모양 검사 — 우리 문의 폴더의 파일만(남의 서류 읽히기 차단)
+ *    ✋ «서명 표(HMAC 티켓)»는 일부러 «안» 만들었다(2026-08-19 검토). 표를 화면 HTML 에 심든
+ *       발급 주소를 두든, 그 표를 얻는 것 자체가 「화면을 한 번 더 불러오기」라 로봇이 그대로 따라 한다.
+ *       막히는 건 제일 게으른 스크립트뿐인데, 화면을 오래 열어둔 «진짜 환자»는 표가 만료돼 판독이 죽는다.
+ *       돈이 새는 걸 진짜로 막는 건 ②의 하루 상한이다(넘으면 자동 차단 + 알림). 되살리려면 이 근거부터 반박해라.
  */
 export const runtime = "nodejs";
 
@@ -23,6 +32,7 @@ import {
   RATE_LIMITS,
   getRateLimitHeaders,
 } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { renderForAi } from "@/lib/documents/pdfPage";
@@ -128,6 +138,16 @@ export async function POST(request: NextRequest) {
     return Response.json(
       { ok: false, error: "rate_limit_exceeded" },
       { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
+  // 하루 상한(IP·전체) — 채팅·번역과 «같은 계량기»를 쓴다. 여기만 빠져 있어서, IP 를 바꿔 가며
+  // 부르면 AI 요금이 상한 없이 늘어날 수 있었다(2026-08-19 독립 리뷰). 넘으면 자동 차단 + 알림.
+  const guard = await checkAiGuards(clientIp, "inquiry_classify_doc");
+  if (!guard.allowed) {
+    return Response.json(
+      { ok: false, error: guard.code },
+      { status: guard.status, headers: { "Retry-After": String(guard.retryAfterSec) } }
     );
   }
 
