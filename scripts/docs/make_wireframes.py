@@ -47,9 +47,13 @@ def box(d, x, y, w, h, label='', sub='', fill=FILL, dash=False, center=True):
             d.line([i, y, min(i + 6, x + w), y], fill=GRAY, width=2)
     if label:
         f = FB if len(label) < 30 else F
-        tw = d.textlength(label, font=f)
-        tx = x + (w - tw) / 2 if center else x + 10
-        d.text((tx, y + (h / 2 - 16 if sub else h / 2 - 9)), label, font=f, fill=INK)
+        # label 도 sub 과 같은 이유로 줄마다 따로 잰다(PIL 은 여러 줄 길이를 못 잰다).
+        lines = label.split('\n')
+        base = y + (h / 2 - 16 if sub else h / 2 - 9) - (len(lines) - 1) * 9
+        for i, ln in enumerate(lines):
+            tw = d.textlength(ln, font=f)
+            tx = x + (w - tw) / 2 if center else x + 10
+            d.text((tx, base + i * 18), ln, font=f, fill=INK)
     if sub:
         # 여러 줄이면 줄마다 따로 재서 가운데 맞춘다 (PIL 은 여러 줄 길이를 못 잰다)
         for i, ln in enumerate(sub.split('\n')):
