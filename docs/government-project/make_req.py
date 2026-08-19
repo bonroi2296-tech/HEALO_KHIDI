@@ -108,7 +108,7 @@ tbl_info = doc.add_table(rows=0, cols=2)
 tbl_info.style = 'Table Grid'
 info_rows = [
     ('문서 번호', 'HEALO-REQ-2026-001'),
-    ('작성 기관', '(주)본로이 (Bonroi)'),
+    ('작성 기관', '본로이 (Bonroi)'),
     ('작성일', '2026년 4월 30일'),
     ('버전', 'v1.0'),
     ('보안 등급', '대외비'),

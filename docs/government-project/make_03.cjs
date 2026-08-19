@@ -133,7 +133,7 @@ const doc = new Document({
           border: { top: { style: BorderStyle.SINGLE, size: 6, color: BLUE, space: 1 } },
           alignment: AlignmentType.CENTER,
           children: [
-            new TextRun({ text: "(주)본로이 | 기밀문서 — 무단 배포 금지  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
+            new TextRun({ text: "본로이 | 기밀문서 — 무단 배포 금지  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
             new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "666666", font: "맑은 고딕" }),
             new TextRun({ text: " / ", size: 16, color: "666666", font: "맑은 고딕" }),
             new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: "666666", font: "맑은 고딕" }),
@@ -176,7 +176,7 @@ const doc = new Document({
             new TableCell({ borders: noBorders, width: { size: 2200, type: WidthType.DXA },
               children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "주 관 기 관", size: 20, bold: true, color: BLUE, font: "맑은 고딕" })] })] }),
             new TableCell({ borders: noBorders, width: { size: 4800, type: WidthType.DXA },
-              children: [new Paragraph({ children: [new TextRun({ text: "(주)본로이 (Bonroi)", size: 20, font: "맑은 고딕" })] })] })
+              children: [new Paragraph({ children: [new TextRun({ text: "본로이 (Bonroi)", size: 20, font: "맑은 고딕" })] })] })
           ]}),
           new TableRow({ children: [
             new TableCell({ borders: noBorders, width: { size: 2200, type: WidthType.DXA },
@@ -294,7 +294,7 @@ const doc = new Document({
               shading: { fill: "1F4E79", type: ShadingType.CLEAR },
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
               children: [new Paragraph({ alignment: AlignmentType.CENTER,
-                children: [new TextRun({ text: "주관기관: (주)본로이 (Bonroi)", bold: true, size: 20, color: "FFFFFF", font: "맑은 고딕" })] })]
+                children: [new TextRun({ text: "주관기관: 본로이 (Bonroi)", bold: true, size: 20, color: "FFFFFF", font: "맑은 고딕" })] })]
             })
           ]}),
           new TableRow({ children: [

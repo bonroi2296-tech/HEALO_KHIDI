@@ -63,7 +63,7 @@ const doc = new Document({
       border: { top: { style: BorderStyle.SINGLE, size: 6, color: BLUE, space: 1 } },
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({ text: "(주)본로이 | 기밀문서  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
+        new TextRun({ text: "본로이 | 기밀문서  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ text: " / ", size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: "666666", font: "맑은 고딕" }),
@@ -101,7 +101,7 @@ const doc = new Document({
           ]}),
           new TableRow({ children: [
             new TableCell({ borders: noBorders, width: { size: 2200, type: WidthType.DXA }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "주 관 기 관", size: 20, bold: true, color: BLUE, font: "맑은 고딕" })] })] }),
-            new TableCell({ borders: noBorders, width: { size: 4800, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: "(주)본로이 (Bonroi)", size: 20, font: "맑은 고딕" })] })] }),
+            new TableCell({ borders: noBorders, width: { size: 4800, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: "본로이 (Bonroi)", size: 20, font: "맑은 고딕" })] })] }),
           ]}),
         ]
       }),
@@ -264,7 +264,7 @@ const doc = new Document({
       // ── 8. 결론·제언 ─────────────────────────────────────────────────
       h1("8. 결론 및 제언"),
       h2("8.1 결론"),
-      body("본 사업을 통해 (주)본로이는 ICT 기반 외국인 암환자 사전상담·사후관리 지원 플랫폼 HEALO를 성공적으로 구축하였다."),
+      body("본 사업을 통해 본로이는 ICT 기반 외국인 암환자 사전상담·사후관리 지원 플랫폼 HEALO를 성공적으로 구축하였다."),
       body("AI 챗봇(3-Tier RAG), LiveKit 화상 협진, 6개 언어 다국어 인터페이스, AES-256-GCM 전면 암호화를 통해 CIS 지역 암환자의 한국 의료관광 접근성을 획기적으로 개선하는 플랫폼 기반을 확보하였다."),
       tbd("최종 KPI 달성 수치 및 구체적 성과 서술 추가"),
       ...space(1),

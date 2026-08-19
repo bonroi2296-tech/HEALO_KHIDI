@@ -153,7 +153,7 @@ for k, v in [
     ('문 서 번 호', 'HEALO-KHIDI-2026-11'),
     ('문 서 명', '과제 요구사항(6대 ICT 서비스) 분석 및 구현 대비표'),
     ('사 업 명', '카자흐스탄 암환자 대상 ICT 기반 사전상담 및 사후관리 통합 의료연계 서비스 구축(HEALO 플랫폼)'),
-    ('주 관 기 관', '(주)본로이  |  총괄책임자 강주영'),
+    ('주 관 기 관', '본로이  |  총괄책임자 강주영'),
     ('참 여 기 관', '면력한방병원, 신촌면력한방병원'),
     ('사 업 기 간', '2026. 4. ~ 2026. 11. (8개월)'),
     ('작 성 일 자', '2026. 7. 25.'),
@@ -182,7 +182,7 @@ article('문서 개정 이력')
 t = table(['개정 번호', '개정 일자', '개정 사유 및 주요 내용', '작성'], [2.2, 2.4, 9.4, 2.0])
 row(t, ('Rev. 0', '2026. 7. 25.',
         '최초 작성. 공고 6대 ICT 서비스 요구사항 원문을 기준으로 분석 결과·구현 계획·구현 결과·'
-        '착수 후 고도화 이력을 대비 정리함.', '(주)본로이'), center=(0, 1, 3))
+        '착수 후 고도화 이력을 대비 정리함.', '본로이'), center=(0, 1, 3))
 
 spacer(12)
 article('목차')
@@ -716,7 +716,7 @@ p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 set_font(p.add_run('— 이 상 —'), size=10.5, bold=True)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 p.paragraph_format.space_before = Pt(14)
-set_font(p.add_run('2026. 7. 25.   (주)본로이'), size=9.5, color=(110, 110, 110))
+set_font(p.add_run('2026. 7. 25.   본로이'), size=9.5, color=(110, 110, 110))
 
 out = '11_과제요구사항_6대ICT_분석및구현대비표.docx'
 doc.save(out)

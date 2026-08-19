@@ -107,7 +107,7 @@ tbl_info = doc.add_table(rows=0, cols=2)
 tbl_info.style = 'Table Grid'
 for label, val in [
     ('문서 번호', 'HEALO-EVAL-2026-001'),
-    ('작성 기관', '(주)본로이 (Bonroi)'),
+    ('작성 기관', '본로이 (Bonroi)'),
     ('작성일', '2026년 4월 30일'),
     ('평가 근거', '공고문 붙임1 평가기준 (공고문 p.4, p.9)'),
 ]:

@@ -31,14 +31,14 @@ _facts.py — 정부지원과제 산출물이 공유하는 「현행 사실」 �
 # ── 문서 공통 메타 ───────────────────────────────────────────────────────────
 PROJECT = {
     "사업명": "2026년 KHIDI 「ICT 기반 외국인환자 사전상담·사후관리 지원 사업」",
-    "수행기관": "(주)본로이 (Bonroi)",
+    "수행기관": "본로이 (Bonroi)",
     "플랫폼": "HEALO",
     "파트너 의료기관": "면력한방병원 (4개 지점)",
     "중간평가": "2026. 8. 27.",
 }
 
 # 사실 확인 기준일 — 문서 표지·각주에 그대로 인쇄한다(언제 기준인지 독자가 알게).
-AS_OF = "2026. 7. 27."
+AS_OF = "2026. 8. 19."
 
 # 확인 근거(문서 말미 「근거자료」 표에 사용). 출처 없는 서술을 만들지 않기 위함.
 PROVENANCE = [
@@ -137,23 +137,25 @@ KPI_TARGET = {
 # ⚠️ 추정 금지. 아래는 AS_OF 기준 운영DB 정확 COUNT.
 #    테스트 데이터는 inquiries.is_test 표식으로 제외한 «실건»이다(정직 기준선).
 KPI_ACTUAL = {
-    "attraction": 0,          # admitted 5건은 전부 테스트 표식 → 실건 0
-    "preConsultation": 1,     # session_type='pre_consultation' & completed
-    "followUp": 0,
-    "satisfactionSamples": 0, # 응답 1건은 테스트 문의에 연결 → 실표본 0
-    "inquiriesReal": 15,      # 전체 41건 중 실건
-    "sessionsReal": 10,       # 전체 54건 중 실건
+    "attraction": 0,          # K-01. 한국 도착·진료 개시 기준 → 아직 0
+    # K-02. 2026-08-06 PO 지시로 «두 매체 합산»으로 정의 확대 — 상세는 KPI_측정방법_명세.md
+    "preConsultation": 6,     # 영상 사전상담 1(문의 #60) + 환자에게 «전달된» 소견 5
+    "preConsultationBreakdown": (1, 5),   # (영상, 전달된 소견)
+    "followUp": 0,            # K-04. session_type='follow_up' & completed → 0
+    "satisfactionSamples": 0, # K-03. 실환자에 연결된 설문 응답 0건
+    "inquiriesReal": 8,       # 전체 144건 중 실건 8 (web 6 + 소급등록 2)
+    "sessionsReal": 1,        # 전체 132건 중 실환자 문의에 연결된 것 1
     "languages": 6,
 }
 
 # ── 품질검증 실적 (AS_OF 기준 실행 결과 — 추정 아님) ─────────────────────────
 # 단위테스트: `npx vitest run` / 통합·E2E: `npx playwright test --list`
 QUALITY = {
-    "unit_files": 82,
-    "unit_tests": 748,
-    "unit_result": "전건 통과",
-    "e2e_files": 40,
-    "e2e_tests": 108,
+    "unit_files": 110,
+    "unit_tests": 1002,
+    "unit_result": "전건 통과 (2026-08-19 실행, 15.8초)",
+    "e2e_files": 45,
+    "e2e_tests": 164,
     "ci_gates": [
         ("타입·빌드", "TypeScript 검사 및 프로덕션 빌드", "매 변경 자동 실행"),
         ("콘텐츠 일관성", "폐지된 경로·용어, 6개 언어 키 누락 검사", "매 변경 자동 실행"),
