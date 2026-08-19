@@ -2341,14 +2341,21 @@ const TEAL600_BASELINE = {
     } catch (e) {
       errors.push(`[의료진i18n] ${SRC} 를 불러오지 못했다 (${e.message}) — 이 가드가 무력화됐다.`);
     }
-    if (roster && !roster.length) {
-      errors.push(`[의료진i18n] ${SRC} 의 IMMUNE_DOCTOR_ROSTER 가 비어 있다 — 이 가드가 무력화됐다.`);
+    if (!Array.isArray(roster) || !roster.length) {
+      // 「불러오기는 됐는데 명단이 없다」도 무력화다 — 이름이 바뀌거나 다른 파일로 옮겨가면
+      // roster 가 undefined 가 되고, 검사가 «볼 게 없으니 통과» 로 조용히 넘어간다.
+      errors.push(`[의료진i18n] ${SRC} 에서 IMMUNE_DOCTOR_ROSTER 배열을 얻지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
     }
     const used = new Set();
-    for (const doc of roster || []) {
+    for (const doc of Array.isArray(roster) ? roster : []) {
       if (doc.subspecialty?.en) used.add(doc.subspecialty.en);
-      for (const key of ["경력", "학력", "활동", "논문", "keywords"]) {
-        for (const line of doc[key]?.en || []) used.add(line);
+      // 칸 이름을 못 박지 말고 «en 이 배열인 칸»을 전부 본다 — 나중에 «수상» 같은 칸이
+      // 늘어도 검사 밖으로 새지 않는다. (이름·직위는 en 이 문자열이라 자동으로 빠진다:
+      //  영어로 내보내기로 한 것 — PO 2026-07-27)
+      for (const value of Object.values(doc)) {
+        if (value && typeof value === "object" && Array.isArray(value.en)) {
+          for (const line of value.en) used.add(line);
+        }
       }
     }
 
