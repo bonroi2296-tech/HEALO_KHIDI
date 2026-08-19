@@ -16,8 +16,6 @@ import { encryptStringNullable, decryptStringNullable } from "@/lib/security/enc
 
 const BRIEF_FIELDS = [
   "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments", "follow_ups",
-  // 새 의뢰서(/inquiry/referral)가 채운 칸 — 안 읽으면 브리프가 진단명·주소·약물·현지 소견을 통째로 모른다(독립 리뷰 2026-08-19).
-  "intake_data",
   // ⚠️ 캐시 두 칸도 반드시 읽어와야 한다. 안 읽으면 «이전 값»이 늘 비어 보여서
   //    언어별 묶음을 덧붙이지 못하고 **통째로 덮어쓴다**(러시아어 만들면 한국어가 날아감).
   //    2026-07-29 실측으로 잡음: 러 → 한 → 러 순으로 열었더니 마지막 러시아어가 다시 만들어졌다.
@@ -60,7 +58,10 @@ export async function POST(
     let inquiry: any = data;
     try {
       inquiry = await decryptInquiryForAdmin(data);
-      const ref = (data as any)?.intake_data;
+      // 새 의뢰서(/inquiry/referral)가 채운 칸 — 안 읽으면 브리프가 진단명·불편한 곳·약물·현지 소견을 통째로 모른다.
+      // 🛑 위 목록(BRIEF_FIELDS)에 섞지 마라 — 그 컬럼이 아직 없는 환경에서 조회 «전체»가 죽어 브리프가 안 만들어진다.
+      const { data: refRow } = await supabaseAdmin.from("inquiries").select("intake_data").eq("id", Number(id)).single();
+      const ref = (refRow as any)?.intake_data;
       if (ref && typeof ref === "object" && ref.version === "referral_v1") inquiry.referral = decryptReferralData(ref);
     } catch (e: any) {
       console.error("[coordinator/brief] decrypt error:", e?.message);
