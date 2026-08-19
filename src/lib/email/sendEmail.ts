@@ -39,8 +39,27 @@ export interface SendEmailResult {
   error?: string;
 }
 
+/**
+ * 「받는 사람이 존재할 수 없는 주소」 — 여기로 보내면 100% 반송(하드 바운스)된다.
+ *
+ * 🛑 왜 막나 (2026-08-19 실측): 자동 검사·수동 시험이 만든 문의에도 「접수 확인」 메일이 그대로 나가고 있었다.
+ *    하루에만 26건. 받는 곳이 없는 주소라 전부 반송되는데, 반송률이 높아지면 발송사(Resend·SES)가
+ *    **우리 계정을 제한**하고 진짜 환자 메일이 스팸함으로 간다. 코디 알림은 이미 시험 문의를 걸렀는데
+ *    (adminNotifier) 환자 확인 메일만 안 걸러져 있었다.
+ * · .invalid/.test/.example/.localhost 는 «절대 실존하지 않는» 예약 이름(RFC 2606)이다.
+ * · test.com 은 남의 실제 도메인이다 — 우리 시험 계정이 쓰는 주소라 더더욱 보내면 안 된다.
+ */
+const UNDELIVERABLE = /@([\w-]+\.)*(invalid|test|example|localhost)$|@test\.com$/i;
+
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
-  const toArr = Array.isArray(opts.to) ? opts.to : [opts.to];
+  const toArr = (Array.isArray(opts.to) ? opts.to : [opts.to]).filter(Boolean);
+
+  const blocked = toArr.filter((a) => UNDELIVERABLE.test(String(a).trim()));
+  if (blocked.length === toArr.length && toArr.length > 0) {
+    // 조용히 «성공»이라고 하지 않는다 — 기록은 남겨 「왜 안 왔지」를 3초에 풀 수 있게.
+    console.log(`[Email] 시험 주소라 보내지 않음(반송 방지): ${toArr.join(", ")} / ${opts.subject}`);
+    return { ok: true, provider: "console", messageId: "skipped_test_recipient" };
+  }
 
   // ── Resend ──────────────────────────
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
