@@ -418,12 +418,9 @@ export default function ReferralForm() {
           </div>
           {!quick && (
             <>
-              {/* 반대 방향(상담만 → 이어서 채우기)만 있고 이 방향이 없었다(2026-08-19 PO). 값은 그대로 남는다 —
-                  같은 values 를 쓰고 「상담만」은 묶음을 «덜 보여줄» 뿐이다. */}
-              <button type="button" onClick={() => setMode("quick")}
-                      className="mt-4 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold text-gray-700 transition-all duration-200 hover:border-gray-400">
-                {tr("switchToQuick", lang)} →
-              </button>
+              {/* 🛑 「너무 많으신가요? 연락처만 남기고…」 되돌아가기 단추를 여기 다시 달지 마라(2026-08-19 PO: «오바다»).
+                  전체 의뢰서는 6칸만 채우면 보내지고 나머지는 안 막으니, 되돌아갈 이유가 애초에 없다.
+                  「접수만 할래」는 갈림길에서 고르는 것이다 — 갈림길은 이제 매번 뜬다. */}
               {/* 🛑 「이어서 채우실 수 있습니다」로 되돌리지 마라(2026-08-19 실측). 이어채우기 화면(/claim)엔
                   «자료 더 올리기·글 덧붙이기»만 있고 남은 칸을 채우는 길은 없다. 약속은 있는 만큼만.
                   칸 이어채우기를 붙일지는 PO 판단 항목(PROJECT_CONTEXT 참고). */}
