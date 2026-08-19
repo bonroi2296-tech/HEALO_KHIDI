@@ -30,8 +30,39 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # (파일, [(옛 문구, 새 문구), ...])
 # 폐지된 화면을 설명하던 문장을 현행 화면으로 바꾼다. 근거는 app/ 실재 여부로 확인함.
 REPLACEMENTS = {
+    "01_요구사항정의서.docx": [
+        # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
+        ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
+        ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        ("/app/api/email", "src/lib/email/sendEmail.ts"),
+        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
+         "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
+        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
+    ],
+    "02_기능명세서.docx": [
+        # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
+        ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
+        ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        ("/app/api/email", "src/lib/email/sendEmail.ts"),
+        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
+         "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
+        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
+    ],
     "04_중간보고서.docx": [
         ("/admin/*, /partner/* 완성", "/admin/*, /hospital/* 완성"),
+        # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
+        ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
+        ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        ("/app/api/email", "src/lib/email/sendEmail.ts"),
+        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
+         "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
+        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
         # ── 2026-08-19 갱신 : 본문이 4월 30일 기준에 멈춰 있어 부록(현행)과 어긋났다.
         ("기준일 2026년 4월 30일 기준", "기준일 2026년 8월 19일 기준"),
         ("전체 기능 구현 진척률은 74% (완료) + 26% (부분구현)로, 미구현 기능은 없다.",
@@ -60,6 +91,22 @@ REPLACEMENTS = {
         ("Critical: 0건, High: 0건, Moderate: [확인 필요 — TBD]",
          "Critical: 0건, High: 1건, Moderate: 2건 (운영 의존성 기준, 2026-08-19 실행)"),
         ("2026-04-30", "2026-08-19"),
+        ("(e2e/ 디렉토리 예정)",
+         "— 아래 표는 2026-04 시점 «수동 확인» 시나리오다. 2026-08-19 현재는 e2e 폴더에 자동화 스크립트 45개 파일 164건이 들어와 자동 실행된다."),
+        ("Playwright E2E 스크립트 코드베이스 내 미포함 — 현재 수동 시나리오 기반 (e2e/ 디렉토리 추가 예정)",
+         "[해소됨 2026-08-19] Playwright E2E 스크립트 도입 완료 — 45개 파일 164건. 매 변경 시 스모크, 매일 밤 전체 실행."),
+        ("단위 테스트(Jest) 케이스 부재 — requireAdminAuth.test.ts 등 추가 필요",
+         "[해소됨 2026-08-19] 단위 테스트 110개 파일 1,002건 도입 완료(전건 통과)."),
+        ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역)"),
+        ("27건 | 27/27 (100%) | 현재 시점 전체 통과", "27건 | 27/27 | 2026-04 수동 확인 기준"),
+        ("27/27 (100%)", "27/27 (2026-04 수동 확인 기준)"),
+        ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막 — 실서비스 가동, 통번역 3,542건"),
+        ("2026년 5월 | requireAdminAuth 단위 테스트", "[완료] requireAdminAuth 단위 테스트 도입"),
+        ("2026년 6월 | 부하 테스트 (100 동시 접속)", "[예정] 부하 테스트 (100 동시 접속)"),
+        ("2026년 7월 | 외부 침투 테스트", "[예정] 외부 침투 테스트"),
+        ("name_encrypted 컬럼 암호문 확인, 평문 없음",
+         "성명·이메일·전화 암호문 확인(2026-08-19 재확인: 이메일 109건·전화 22건 전건 암호문). 문의 본문·의료진 소견은 검색·번역 목적으로 평문 보관"),
+        ("PII 평문 저장 없음", "식별정보 평문 저장 없음"),
     ],
     "09_산출물목록.docx": [
         ("Phase A 산출물은 사업 착수 및 KHIDI 신청 단계에서 작성된 문서이다. 2026년 4월 30일 완료.",
@@ -83,9 +130,13 @@ REPLACEMENTS = {
          "[화면: /consultation/[id] — 화상 상담방(초대링크 입장)]"),
         ("[화면: /partner/patients/[id]/opinion 페이지]",
          "[화면: /opinion/[token] — 전문의 소견 작성]"),
+        ("HEALO v1.0 (2026년 4월 기준)", "HEALO (2026년 8월 19일 기준)"),
+        ("2026-04-30", "2026-08-19"),
     ],
     "07_관리자매뉴얼.docx": [
         ("/admin/intake/[id] 에서", "/admin/inquiries 에서"),
+        ("HEALO v1.0 (2026년 4월 기준)", "HEALO (2026년 8월 19일 기준)"),
+        ("2026-04-30", "2026-08-19"),
     ],
 }
 

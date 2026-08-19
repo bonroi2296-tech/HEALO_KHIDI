@@ -121,7 +121,7 @@ tbl_info.style = 'Table Grid'
 for label, val in [
     ('문서 번호', 'HEALO-FSD-2026-001'),
     ('작성 기관', '본로이 (Bonroi)'),
-    ('작성일', '2026년 4월 30일'),
+    ('작성일', '2026년 8월 19일'),
     ('버전', 'v1.0'),
     ('관련 문서', 'HEALO-REQ-2026-001 요구사항정의서'),
 ]:
@@ -748,8 +748,8 @@ for row in summary_data:
 
 doc.add_paragraph()
 add_para(doc, '구현 비율 집계:')
-add_para(doc, '✅ 완료: 약 17개 그룹 (74%)', indent=1)
-add_para(doc, '🟡 부분구현: 약 6개 그룹 (26%)', indent=1)
+add_para(doc, '✅ 완료: 22개 기능 (96%) — 착수 시 부분구현 6건 중 5건이 완료로 전환(2026-08-19 실측)', indent=1)
+add_para(doc, '🟡 부분구현: 1개 기능 (4%) — 예약 리마인더의 의료진 일정 연동', indent=1)
 add_para(doc, '❌ 미구현: 0개 그룹 (모든 기능 최소 부분 구현 상태)', indent=1)
 add_para(doc, '※ 부분구현 항목은 Phase B에서 완성 예정.')
 
