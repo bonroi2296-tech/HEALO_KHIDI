@@ -116,6 +116,11 @@ export default function ClientShell({ children, initialLang = "en" }) {
     import("@/lib/app/androidBackButton")
       .then((m) => m.registerAndroidBackButton())
       .catch(() => { /* 네이티브 아님 → 무시 */ });
+    // 앱 링크(메일·상담 초대)로 들어온 주소를 그 화면으로 옮긴다 — 안 하면 무조건 첫 화면이 뜬다.
+    // 2026-08-20 흉내기 실측: /ko/hospitals 를 눌러도 홈(/ru)이 열렸다(앱 꺼져 있을 때·켜져 있을 때 둘 다).
+    import("@/lib/app/deepLinks")
+      .then((m) => m.registerDeepLinks())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
   }, []);
 
   // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
