@@ -135,6 +135,13 @@ REPLACEMENTS = {
         ("Step 3에서 PDF 파일 첨부", "2단계에서 PDF 파일 첨부"),
     ],
     "09_산출물목록.docx": [
+        # ↓ 제출 일정표에 빠져 있던 산출물 3종을 넣는다(2026-08-20)
+        ('중간보고서 (KHIDI 지정 양식, 별도 관리)',
+         '중간보고서 (KHIDI 지정 양식, 별도 관리)\n11_과제요구사항_6대ICT_분석및구현대비표.docx\n01-1_화면설계서.docx'),
+        ('01_요구사항정의서.docx\n02_기능명세서.docx\nEVAL_MATRIX.docx',
+         '01_요구사항정의서.docx\n01-1_화면설계서.docx\n02_기능명세서.docx\n10_백오피스_재설계_요구사항대비표.docx\n11_과제요구사항_6대ICT_분석및구현대비표.docx\nEVAL_MATRIX.docx'),
+        ('성과지표 중간 달성률 포함. 8월 27일 중간평가 수검',
+         '성과지표 중간 달성률 포함. 8월 27일 중간평가 수검. 6대 ICT 이행 대비표와 화면 설계서를 정성지표 증빙으로 함께 제시'),
         # ↓ 파일 실재·내용을 직접 확인해 정정(2026-08-20)
         ('AI_ARCHITECTURE_REPORT_2026_04.md', 'archive/AI_ARCHITECTURE_REPORT_2026_04.md'),
         ('Vercel 배포 설정: crons, rewrites, headers', 'Vercel 배포 설정: 정기 실행 9종 · 보안 머리값 2종 · 빌드 창구 판정'),
