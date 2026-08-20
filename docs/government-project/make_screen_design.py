@@ -21,6 +21,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -343,14 +344,27 @@ def main():
     # 시스템 구성도」를 결과물로 약속했다. 앞 둘은 실물이 있었는데 구성도만 없어서
     # 이 문서 안에 넣는다(2026-08-20). 별도 문서를 새로 만들지 않는 이유는 M1 결과물
     # 둘이 한 문서에 담기는 편이 대조하는 사람에게 낫기 때문이다.
+    # ⚠️ 이 한 쪽만 «가로»다. 구성도는 16:9 라 세로 쪽에 넣으면 글자가 읽을 수 없게
+    #    작아진다(6.3인치 폭 → 본문 글씨 6pt 수준). 쪽을 눕혀 9.5인치로 넣는다.
+    land = doc.add_section(WD_SECTION.NEW_PAGE)
+    land.orientation = WD_ORIENT.LANDSCAPE
+    land.page_width, land.page_height = Inches(11.69), Inches(8.27)
+    land.left_margin = land.right_margin = Cm(1.5)
+    land.top_margin = land.bottom_margin = Cm(1.5)
+
     heading(doc, "2. 시스템 구성도")
     para(doc, "이용자부터 데이터 보관까지 플랫폼 전체가 어떻게 이어지는지 한 장으로 보인다. "
               "점선 상자는 바깥 서비스이고 나머지는 직접 만들어 운영한다.")
     arch = os.path.join(WF_DIR, "S-01_architecture.png")
     if os.path.exists(arch):
-        doc.add_picture(arch, width=Inches(6.3))
+        doc.add_picture(arch, width=Inches(10.4))
         doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_page_break()
+
+    back = doc.add_section(WD_SECTION.NEW_PAGE)
+    back.orientation = WD_ORIENT.PORTRAIT
+    back.page_width, back.page_height = Inches(8.27), Inches(11.69)
+    back.left_margin = back.right_margin = Cm(2.0)
+    back.top_margin = back.bottom_margin = Cm(2.0)
 
     # ── 3. 화면별 상세 ──────────────────────────────────────────────────
     heading(doc, "3. 화면별 상세")
