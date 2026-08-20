@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
 import { REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
-import { HOME_CONTENT } from "@/lib/content/homeContent";
 import OrganIcon from "../_components/OrganIcon";
 import {
   ArrowRight,
@@ -122,8 +121,12 @@ const PARTNERS_META = [
 export default function HomeClient({ content } = {}) {
   const router = useRouter();
   const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
-  // 콘텐츠: 서버(page.jsx)가 DB 오버라이드를 병합해 넘겨준 값 → 없으면 기본값(HOME_CONTENT).
-  const L = content || HOME_CONTENT;
+  // 콘텐츠: 서버(page.jsx)가 기본값에 DB 오버라이드를 병합해 항상 넘겨준다.
+  // ⚠️ 여기서 기본값(HOME_CONTENT)을 예비로 import 하지 마라. 이 부품을 쓰는 곳은
+  // app/page.jsx 한 곳뿐이고 거기서 content 를 항상 채워 보내므로 예비값은 쓰이지 않는데,
+  // import 만 해도 6개 언어 문구 전체가 첫 화면 자바스크립트 꾸러미에 실린다(문서에도
+  // 같은 내용이 이미 실려 있어 두 벌이 된다). 2026-08-20 확인.
+  const L = content;
   const [faqTab, setFaqTab] = useState("general");
   const [openFaq, setOpenFaq] = useState(null);
   const l = (obj) => obj?.[lang] || obj?.["en"] || "";
