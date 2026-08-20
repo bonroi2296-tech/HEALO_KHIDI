@@ -8,8 +8,26 @@
  * 이 상수는 generateReply.buildSystemPrompt 에서 항상 Context로 주입된다.
  * (RAG 벡터 검색에 의존하지 않고 매번 확실히 참고하게 — "서류 뭐 필요?"/"얼마?"는 핵심 질문)
  *
- * 가격 변동·항목 추가는 이 파일만 고치면 전 언어·전 채널에 반영됨 (단일 SoR).
+ * ⚠️ 금액은 이 파일에 «적지 마라». 2026-08-20 부터 숫자의 단일 출처는
+ *   `@/lib/costs/surgeryRanges`(대학병원 수술 범위)와 `@/lib/costs/immuneClinicPrices`(면력 확정가)다.
+ *   화면(환자 견적·코디 견적서)과 AI 안내문이 같은 값을 봐야 하기 때문이다.
+ *   같은 숫자를 두 곳에 적으면 한쪽만 고쳐져 조용히 어긋난다.
+ *   A 블록(대학병원 수술 범위)은 그 자료에서 «만들어진다» — 글자 형태가 예전과 동일함을 대조로 확인했다.
+ *   C·D 블록(면력 치료·검진)은 달러 표기가 원본 자료 그대로라 문자열로 두되,
+ *   `careReference.prices.test.ts` 가 immuneClinicPrices 의 원화값과 어긋나지 않는지 매번 대조한다.
  */
+
+import { CANCER_EN, CANCER_ORDER, toUsd, overallRange } from "@/lib/costs/surgeryRanges";
+
+const usd = (krw: number) => `$${toUsd(krw).toLocaleString("en-US")}`;
+const mil = (krw: number) => `₩${Math.round(krw / 1_000_000)}M`;
+
+/** A) 대학병원 암수술 범위 — surgeryRanges 에서 만든다. */
+const SURGERY_BLOCK = CANCER_ORDER.map((k) => {
+  const r = overallRange(k);
+  if (!r) return "";
+  return `- ${CANCER_EN[k]}: ${usd(r.minKrw)}–${toUsd(r.maxKrw).toLocaleString("en-US")} (≈${mil(r.minKrw)}–${Math.round(r.maxKrw / 1_000_000)}M)`;
+}).filter(Boolean).join(String.fromCharCode(10));
 
 export const CARE_REFERENCE = `
 [healwith 안내자료 | Official | 인테이크 필수서류 & 견적 범위]
@@ -26,13 +44,7 @@ REQUIRED DOCUMENTS — ask the patient for these to prepare an estimate / start 
 → Once these are shared with a healwith coordinator, the hospital prepares a personalized quote, treatment plan and timeline. Preliminary review is free.
 
 A) UNIVERSITY-HOSPITAL CANCER SURGERY (international/uninsured). "from" = minimally invasive; robotic (da Vinci) = upper bound. Includes ~5–10 days hospitalization, basic workup, surgery:
-- Thyroid cancer (갑상선암): $3,000–18,500 (≈₩4M–25M)
-- Stomach cancer (위암): $6,000–18,500 (≈₩8M–25M)
-- Colorectal cancer (대장암): $7,500–13,500 (≈₩10M–18M)
-- Lung cancer (폐암): $9,000–18,500 (≈₩12M–25M)
-- Liver cancer (간암): $9,000–18,500 (≈₩12M–25M)
-- Breast cancer (유방암): $6,000–13,500 (≈₩8M–18M)
-- Uterine/ovarian (자궁·난소암): $7,500–15,000 (≈₩10M–20M)
+${SURGERY_BLOCK}
 
 B) PRE-OP DIAGNOSIS / TESTS (paid separately from surgery):
 - CT: $220–450 · MRI: $600–750 · PET-CT (whole body): $750–1,000
