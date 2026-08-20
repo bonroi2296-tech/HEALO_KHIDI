@@ -409,6 +409,11 @@ def ensure_footer(doc):
     n = 0
     for sec in doc.sections:
         f = sec.footer
+        # 이미 우리 꼬리말이면 손대지 않는다. 안 그러면 돌릴 때마다 파일이 다시 저장돼
+        # 내용이 같은데도 git 에 변경으로 잡힌다.
+        if (not f.is_linked_to_previous
+                and any(FOOTER_LEFT in par.text for par in f.paragraphs)):
+            continue
         f.is_linked_to_previous = False
         for par in list(f.paragraphs)[1:]:
             par._p.getparent().remove(par._p)
