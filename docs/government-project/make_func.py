@@ -276,7 +276,7 @@ add_scenario(doc, {
     '입력': '성명(암호화), 연락처(암호화), 국가, 암 종류, 병기, 파일, 희망 내용',
     '출력': 'inquiry 레코드 생성, 코디네이터 이메일 알림',
     '화면 경로': '/app/inquiry (통합 문의 퍼널)',
-    'DB 테이블/컬럼': 'inquiries (id, encrypted_name, encrypted_email, encrypted_contact, encryption_version, cancer_type, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
+    'DB 테이블/컬럼': 'inquiries (id, first_name, last_name, email, phone — 이 넷에 암호문 저장, cancer_type, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
     '보안': 'AES-256-GCM 암호화 (encryptionV2.ts)\n개인정보보호법 동의 수집',
     '현재 구현 상태': '완료: /app/inquiry (통합 문의 퍼널)\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
 })
@@ -677,11 +677,11 @@ add_heading(doc, '15.1 환자 PII AES-256-GCM 암호화 (FN-SEC-01)', 2)
 add_scenario(doc, {
     '기능 ID': 'FN-SEC-01',
     '기능명': '환자 PII 암호화 저장',
-    '대상 컬럼': 'inquiries.encrypted_name · encrypted_email · encrypted_contact(연락처)\nconsultation_sessions.notes_encrypted 등 암호화 칸',
+    '대상 컬럼': 'inquiries.first_name · last_name · email · phone (암호문 저장)\nconsultation_sessions.notes_encrypted · cancer_patient_intakes.*_encrypted 등',
     '암호화 방식': 'AES-256-GCM (src/lib/security/encryptionV2.ts)',
     '암호화 시점': '인테이크 폼 제출 → 서버 측에서 암호화 후 저장\n평문 컬럼은 migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) 에서 삭제 완료',
     '복호화 권한': 'service_role 키 보유 서버 모듈만 복호화 가능\nimport "server-only" 적용',
-    'DB 테이블/컬럼': 'inquiries (encrypted_name, encrypted_email, encrypted_contact)\ncancer_intake_encrypted\nmigrations/20260420_drop_cancer_intake_plaintext\nmigrations/20260420_drop_inquiries_plaintext_email',
+    'DB 테이블/컬럼': 'inquiries (first_name, last_name, email, phone — 전부 암호문)\ncancer_intake_encrypted\nmigrations/20260420_drop_cancer_intake_plaintext\nmigrations/20260420_drop_inquiries_plaintext_email',
     '현재 구현 상태': '완료: src/lib/security/encryptionV2.ts\nmigrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)',
 })
 

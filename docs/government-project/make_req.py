@@ -386,7 +386,7 @@ fr_data = [
      '완료 · src/hooks/useNotifications.ts, src/lib/push/fcm.ts (Supabase Realtime 구독 + FCM 푸시)'),
 
     ('FR-27', '환자 PII 암호화', 'H',
-     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (암호화 칸 23개 — 대부분 *_encrypted, inquiries 만 encrypted_* 꼴). encryptionV2.ts 활용.',
+     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (암호화 칸 20개(*_encrypted) + inquiries 의 first_name·last_name·email·phone). encryptionV2.ts 활용.',
      '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)'),
 
     ('FR-28', 'API Rate Limiting', 'H',
@@ -496,7 +496,7 @@ ext_data = [
      'HTTP REST 크롤링 + RAG 인제스트',
      'src/lib/rag/*\nmigrations/20260225_crawl_*'),
     ('AES-256-GCM (자체 구현)',
-     '환자 PII 암호화·복호화\n암호화 칸 23개 데이터 보호(*_encrypted · inquiries.encrypted_*)',
+     '환자 PII 암호화·복호화\n암호화 칸 데이터 보호(*_encrypted 20개 + inquiries 의 성명·이메일·전화)',
      'Web Crypto API 기반 자체 구현',
      'src/lib/security/encryptionV2.ts'),
 ]
