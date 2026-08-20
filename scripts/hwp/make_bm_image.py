@@ -14,7 +14,7 @@ import sys, os
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'bm.png'
-W, H = 1800, 1290
+W, H = 1800, 1250
 
 BLACK = (0, 0, 0)
 INK = (26, 26, 26)
@@ -97,7 +97,7 @@ arrow(RX, BOT + 90, MX + MW, '② 플랫폼 이용료', money=True)
 arrow(LX + CW, BOT + 62, MX, '환자 발굴 · 현지 경과')
 
 # ─────────────────────────── 수익 계산식
-FY = 620
+FY = 580
 d.line([70, FY, W - 70, FY], fill=LINE, width=2)
 d.text((132, FY + 26), '① 원격진료 매출', font=f(7, 24), fill=BLACK)
 d.text((400, FY + 28), '진료비 × 병원 지급 수수료율 15%   (지출: 에이전시 수수료 15~20%)',
@@ -107,7 +107,7 @@ d.text((400, FY + 76), '플랫폼 이용 의료기관 수 × 월 이용료 50~10
        font=f(4, 22), fill=INK)
 
 # ─────────────────────────── 연도별 매출계획표
-TY = 780
+TY = 740
 cols = [132, 560, 860, 1120, 1380, W - 70]
 rows = [TY + i * 56 for i in range(7)]
 head = ['구  분', '2026년 (하반기)', '2027년', '2028년', '비  고']
