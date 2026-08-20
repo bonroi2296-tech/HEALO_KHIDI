@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useCoordinatorL, useDateLocale, useBackofficeLang } from "@/lib/i18n/coordinator";
 import { t } from "@/lib/i18n";
 
 // 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
@@ -23,7 +22,8 @@ const STATUS_ORDER = Object.keys(STATUS_COLOR);
 export default function CoordinatorCostListClient() {
   const L = useCoordinatorL();
   const dateLoc = useDateLocale();
-  const lang = useLang();
+  // 코디 포털 언어(healo_bo_lang). 공개 사이트 언어와 별개다.
+  const lang = useBackofficeLang();
   const STATUS_LABEL = {
     auto_range: L.coStatusAutoRange,
     formal_requested: L.coStatusFormalRequested,

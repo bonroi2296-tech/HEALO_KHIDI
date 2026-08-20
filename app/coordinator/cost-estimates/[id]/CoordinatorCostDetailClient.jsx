@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useCoordinatorL, useDateLocale, useBackofficeLang } from "@/lib/i18n/coordinator";
 import { t } from "@/lib/i18n";
 import { IMMUNE_CLINIC_PRICES, PRICE_SOURCE_DATE, priceLang } from "@/lib/costs/immuneClinicPrices";
 
@@ -53,7 +52,8 @@ function feeCapMessage(detail, L) {
 
 export default function CoordinatorCostDetailClient({ estimateId }) {
   const L = useCoordinatorL();
-  const lang = useLang();
+  // 코디 포털 언어(healo_bo_lang). 공개 사이트 언어와 별개다.
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   const STATUS_LABELS = {
     auto_range: L.coStatusAutoRange,
