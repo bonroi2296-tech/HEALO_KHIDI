@@ -10,6 +10,7 @@
 
 export const DICTIONARY = {
   en: {
+    "app.backAgainToExit": "Press back again to exit",
     "intakeLabels.cancer.stomach": "Stomach",
     "intakeLabels.cancer.liver": "Liver",
     "intakeLabels.cancer.lung": "Lung",
@@ -1953,6 +1954,7 @@ export const DICTIONARY = {
     "referral.tr.upFailed": "Upload failed. Please try again.",
   },
   ko: {
+    "app.backAgainToExit": "한 번 더 누르면 종료됩니다",
     "intakeLabels.cancer.stomach": "위암",
     "intakeLabels.cancer.liver": "간암",
     "intakeLabels.cancer.lung": "폐암",
@@ -3886,6 +3888,7 @@ export const DICTIONARY = {
     "referral.tr.upFailed": "올리지 못했습니다. 다시 시도해 주세요.",
   },
   zh: {
+    "app.backAgainToExit": "再按一次返回键退出",
     "intakeLabels.cancer.stomach": "胃癌",
     "intakeLabels.cancer.liver": "肝癌",
     "intakeLabels.cancer.lung": "肺癌",
@@ -5819,6 +5822,7 @@ export const DICTIONARY = {
     "referral.tr.upFailed": "上传失败，请重试。",
   },
   ja: {
+    "app.backAgainToExit": "もう一度戻るボタンを押すと終了します",
     "intakeLabels.cancer.stomach": "胃がん",
     "intakeLabels.cancer.liver": "肝がん",
     "intakeLabels.cancer.lung": "肺がん",
@@ -8330,6 +8334,7 @@ export const DICTIONARY = {
     "intake.failedSave": "Gagal menyimpan.",
   },
   ru: {
+    "app.backAgainToExit": "Нажмите «Назад» ещё раз, чтобы выйти",
     "intakeLabels.cancer.stomach": "Желудок",
     "intakeLabels.cancer.liver": "Печень",
     "intakeLabels.cancer.lung": "Лёгкое",
@@ -10323,6 +10328,7 @@ export const DICTIONARY = {
     "referral.tr.upFailed": "Не удалось загрузить. Попробуйте ещё раз.",
   },
   kz: {
+    "app.backAgainToExit": "Шығу үшін «Артқа» түймесін тағы бір рет басыңыз",
     "intakeLabels.cancer.stomach": "Асқазан",
     "intakeLabels.cancer.liver": "Бауыр",
     "intakeLabels.cancer.lung": "Өкпе",
