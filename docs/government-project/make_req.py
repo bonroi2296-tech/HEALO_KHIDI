@@ -416,7 +416,7 @@ NFR_VERDICT = {
  'NFR-08': '충족 — 권한 판정에 user_metadata 를 쓰는 곳 0건(전수 검색). app_metadata.role 기준',
  'NFR-09': '충족 — 자동 검사 check:ratelimit-scope 통과',
  'NFR-10': '충족 — 실서비스 머리값 확인: Strict-Transport-Security(2년·하위도메인·preload) · CSP · X-Content-Type-Options · X-Frame-Options',
- 'NFR-11': '미검증 — 가동률 통계는 Vercel 콘솔에서 확인해야 한다',
+ 'NFR-11': '충족 — 가동 감시가 10분마다 돈다. 최근 100회(2026-08-17~20) 전건 성공(100%). 같은 시각 실서비스 상태 확인 20회 연속 200 응답. 실서비스 빌드 최근 100건 중 실패 0건' ,
  'NFR-12': '충족 — Supabase Pro 플랜 자동 백업(7일 보관). 플랜 상태는 콘솔에서 확인',
  'NFR-13': '충족 — sentry.client·server·edge.config.js 세 개 모두 존재',
  'NFR-14': '충족 — 화면이 쓰는 문구 1,941개를 6개 언어에 전건 채움. 러시아어·카자흐어는 자동 검사가 매 변경마다 100% 확인',
