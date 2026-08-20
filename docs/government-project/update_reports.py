@@ -188,6 +188,79 @@ REPLACEMENTS = {
         ("한국어 (ru/kk 번역본 추후 제공 예정)", "한국어 (러시아어·카자흐어 번역본 추후 제공 예정)"),
         ("HEALO (2026년 8월 19일 기준)", "HEALO (2026년 8월 20일 기준)"),
         ("2026-08-19", "2026-08-20"),
+        # ↓ 화면을 직접 띄워 확인한 것들(2026-08-20). 메뉴·단추 이름을 실제 것으로 맞췄다.
+        ('환자 대시보드(/patient) 접속 후 [의료 기록] 메뉴 클릭',
+         '환자 대시보드(/patient)에서 빠른 메뉴 [의료 문서] 클릭'),
+        ('[파일 추가] 버튼 클릭 또는 파일을 드래그앤드롭',
+         '「연결할 상담」을 고르고, 점선 상자에 파일을 끌어다 놓거나 상자를 클릭해 파일 선택'),
+        ('지원 형식: DICOM, JPEG, PNG, PDF (파일당 최대 200MB)',
+         '「문서 유형」(진단서·검사 결과·영상(CT/MRI)·처방전·기타)을 고르고 필요하면 설명을 적는다'),
+        ('업로드 완료 시 파일 목록에 표시되고 코디네이터에게 알림이 발송된다.',
+         '지원 형식은 PDF·JPG·PNG·WebP·Word·DICOM, 파일당 최대 200MB. 업로드하면 「내 문서」 목록에 뜨고 코디네이터에게 알림이 간다.'),
+        ('환자 대시보드 [의료 기록] 탭에서 업로드된 파일 목록 확인',
+         '「의료 문서」 화면 아래 「내 문서」에서 올린 파일 목록 확인'),
+        ('파일명 클릭 시 다운로드 또는 미리보기',
+         '파일 오른쪽 [보기]를 누르면 내려받거나 미리 볼 수 있다'),
+        ('코디네이터가 검토 의견을 추가한 경우 해당 파일에 메모 표시',
+         '파일마다 문서 유형·연결된 상담·용량이 함께 표시된다'),
+        ('화면 우측 상단 언어 선택 버튼(국기 아이콘) 클릭',
+         '화면 우측 상단 [언어 변경] 버튼 클릭'),
+        ('환자 대시보드(/patient) 상단 메시지 아이콘 클릭',
+         '환자 대시보드(/patient) 상단 알림 아이콘(읽지 않은 개수 표시) 클릭'),
+        ('상담 종료 후 [상담 종료] 버튼을 클릭한다.',
+         '상담이 끝나면 도구 막대의 [종료]를 누른다.'),
+        ('의료 기록 화면 공유 가능 (PC 전용)',
+         '의료 기록 화면 공유 (PC 전용)'),
+        ('신규 인테이크 수신 현황: 미배정 건수 표시',
+         '대기 중인 문의 건수'),
+        ('예정 화상상담 일정',
+         '오늘 상담 건수'),
+        ('미답변 메시지 수',
+         '예정 상담 건수'),
+        ('월별 상담 건수 통계',
+         '긴급 알림(증상) 건수. 카드 아래에 예정 상담 목록과 바로가기가 이어진다'),
+        ('문의 목록에서 이름 또는 문의 번호로 검색',
+         '목록 위 거르기 세 갈래(전체 / 추가 정보 필요 / 매칭 준비 완료)로 좁힌다. 각 갈래에 건수가 함께 뜬다'),
+        ('환자 이름 클릭 시 상세 페이지 이동',
+         '단계 기준일을 넘긴 케이스에는 「N일째 정체」 빨간 배지가 붙는다. 환자 이름을 누르면 케이스 상세로 이동'),
+        ('[문의함] 메뉴에서 신규 접수 건 확인',
+         '[문의함]에서 신규 접수 건을 확인한 뒤 [의뢰·케이스/병원배정] 메뉴로 이동'),
+        ('[병원 매칭 AI 추천] 버튼 클릭 시 AI가 적합 병원 3개 추천',
+         '문의를 케이스로 전환한다. AI 케이스 브리프가 환자 요약·확인 포인트·주의사항 초안을 만들어 둔다'),
+        ('추천 결과 검토 후 [배정] 버튼으로 병원 및 의료진 배정',
+         '검토 후 적합한 제휴 병원을 배정한다'),
+        ('환자에게 배정 결과 이메일 자동 발송',
+         '배정 결과는 케이스 이력에 남고 담당자에게 알림이 간다'),
+        ('[화면: /coordinator/inbox 페이지: 문의함]',
+         '[화면: /coordinator/cases 페이지: 의뢰·케이스/병원배정]'),
+        ('환자 상세 페이지 [화상상담 설정] 탭 클릭',
+         '[상담 일정] 메뉴에서 상담을 만든다'),
+        ('상담 일시, 참여자(의료진) 선택 후 [방 생성]',
+         '필수 입력은 환자와 예약 시각 둘뿐이다. 시각은 한국시간이며 협정시계를 함께 보여준다'),
+        ('생성된 화상상담 링크를 환자에게 이메일/WhatsApp으로 전송',
+         '상담 링크는 하나다(줌과 같다). [🔗 링크 복사]로 복사해 왓츠앱·메일로 보낸다'),
+        ('상담 시간에 맞춰 [화상 참여] 클릭으로 화상방에 입장',
+         '시간이 되면 [상담 시작]을 누른다. 같은 링크로 내가 입장하고 링크가 클립보드에 복사된다'),
+        ('상담 종료 후 상담 결과 메모 저장 및 후속 액션 설정',
+         '상담이 끝나면 [상담 완료]를 누른다. 이때만 KHIDI 사전상담·사후관리 실적에 잡힌다'),
+        ('게스트 참여 링크는 24시간 유효. 만료 시 새 링크 재발급 필요.',
+         '상담방에서 [종료]만 누르면 실적에 잡히지 않는다. [상담 완료] 처리하면 보낸 초대 링크는 폐기된다.'),
+        ('환자 상세 페이지 또는 [메시지] 메뉴에서 해당 환자 선택',
+         '[메시지] 메뉴에서 대화를 고른다. 대화마다 채널 배지(웹·텔레그램·왓츠앱·에이전시)가 붙는다'),
+        ('메시지 입력창에 텍스트 작성 후 [전송]',
+         '입력창 위 「추천 답장」 칩을 누르면 자주 쓰는 답이 채워진다(자동 전송은 아니다). 고쳐서 [전송]'),
+        ('환자에게 새 메시지 이메일 알림 자동 발송',
+         '텔레그램·왓츠앱 대화에 답하면 환자의 메신저 앱으로 실제 발송된다. 사람이 답하기 시작하면 AI 는 더 이상 끼어들지 않는다'),
+        ('메시지는 현재 텍스트 전용. 파일 첨부는 [의료 기록] 탭에서 별도 처리.',
+         '발송 실패나 왓츠앱 24시간 창 만료는 말풍선 아래 미전달 표시로 보인다.'),
+        ('화상상담 종료 후 [진료 의견서 작성] 클릭',
+         '코디네이터가 케이스 상세에서 [소견 요청 링크 만들기]를 눌러 링크를 보낸다. 의료진은 계정 없이 그 링크로 들어간다'),
+        ('권고 치료 방법, 예상 입원 기간, 주의사항 입력',
+         '검사지를 보고 소견을 남긴다. 이미 카톡·메일로 보낸 소견이 있으면 코디네이터가 [이미 받은 소견 직접 입력]으로 등록한다'),
+        ('[제출] 클릭 시 코디네이터에게 전달되고 환자에게 이메일 발송',
+         '도착한 소견은 원문 그대로 케이스 상세에만 쌓인다. AI 가 환자 언어 번역 초안을 만들고, 코디네이터가 교정한 뒤 [에이전시에 공개]를 눌러야 밖으로 나간다'),
+        ('[화면: /opinion/<토큰>: 환자가 소견을 확인하는 화면]',
+         '[화면: /coordinator/inbox/[번호] 「전문의 소견」 · /opinion/<토큰>(환자가 확인하는 화면)]'),
     ],
     "07_관리자매뉴얼.docx": [
         ("/admin/intake/[id] 에서", "/admin/inquiries 에서"),
@@ -216,6 +289,50 @@ REPLACEMENTS = {
          "밀 때만 빌드된다. main 에 합쳤다고 바로 실서비스에 나가지 않는다."),
         ("git revert HEAD", "git revert <되돌릴 커밋>"),
         ("HEALO (2026년 8월 19일 기준)", "HEALO (2026년 8월 20일 기준)"),
+        ('/admin/statistics 접속',
+         '[홈 › KHIDI 리포트] 메뉴 클릭 (/admin/khidi/kpi-dashboard)'),
+        ('[화면: /admin/khidi/conversion 페이지: 유치 전환 대시보드]',
+         '[화면: /admin/khidi/kpi-dashboard 페이지: KHIDI 리포트]'),
+        ('기간 선택 후 KPI 현황 확인',
+         '유치·상담·사후관리·만족도가 목표 대비 자동 집계된다. 아래 [북극성 지표]·[유치 전환 상세]·[환자 만족도]·[증빙 산출물]로 더 파고든다'),
+        ('/admin/khidi 접속',
+         '[홈 › KHIDI 리포트 › 증빙 산출물] 열기 (/admin/khidi/evidence)'),
+        ('보고 기간 선택 (월별 / 분기별)',
+         '보고 기간을 고른다'),
+        ('/admin/users 접속 후 [새 사용자 추가] 클릭',
+         '[파트너·회원 › 직원(코디) 계정] 메뉴 클릭 (/admin/staff)'),
+        ('이메일 입력 후 역할 선택: coordinator',
+         '이름·이메일을 넣고 역할을 「코디네이터」로 둔다. 임시 비밀번호는 비우면 자동 생성된다'),
+        ('임시 비밀번호 발급 및 초대 이메일 발송',
+         '[계정 생성 / 역할 부여]를 누른다. 초대 메일이 나가는 것이 아니라, 나온 이메일과 임시 비밀번호를 직원에게 직접 전달하면 본인이 바꾼다'),
+        ('사용자 목록에서 계정 선택 후 [역할 변경]',
+         '「등록된 직원」 목록에서 [수정]을 누른다. 같은 줄에 [비밀번호 초기화]·[비활성화]도 있다'),
+        ('역할: 환자 / 코디네이터 / 관리자 (국내 의료기관·해외 에이전시·해외 의료기관은 hospital_users·agency_users 표에서 따로 관리한다)',
+         '의사는 계정이 없다. 상담방 초대링크로 참여한다. 국내 의료기관·해외 에이전시·해외 의료기관은 [에이전시·클리닉]·[제휴 병원] 메뉴에서 따로 관리한다'),
+        ('신규 인테이크',
+         '환자'),
+        ('미처리 인테이크 수신 건수 (오늘/이번 주)',
+         '문의 건수 · AI 채팅 · 텔레그램/왓츠앱'),
+        ('활성 세션',
+         '코디네이터'),
+        ('현재 진행 중인 화상상담 세션 수',
+         '상담 건수 · 예정 상담 · 견적/문구 편집'),
+        ('전체 사용자 수',
+         '에이전시·클리닉'),
+        ('가입 환자·코디네이터·의료진 합계',
+         '활성 기관 수 · 협진 의뢰 · 파트너 계정'),
+        ('월별 상담 건수',
+         '병원'),
+        ('KPI K-02 추적용 차트',
+         '미응답 리드 · 제휴 병원 · 리드 전체'),
+        ('오류 로그',
+         '시스템'),
+        ('최근 24시간 API 오류 건수',
+         'AI 회귀 시험 · 환각 응답 · 최근 실행. 카드를 누르면 해당 화면으로 이동하고, 아래 「최근 활동」이 모든 역할의 변경사항을 시간순으로 보여준다'),
+        ('검색 필터: 국가, 암종, 인테이크 상태, 등록일',
+         '문의를 국가·암종·상태로 좁혀 본다'),
+        ('환자 클릭 시 전체 인테이크·상담·문서 이력 확인',
+         '문의를 누르면 케이스 상세로 들어가 접수 내용·서류·상담·소견 이력을 본다. 가입 회원 목록은 [파트너·회원 › 환자 회원]에서 따로 본다'),
         ("2026-08-19", "2026-08-20"),
     ],
 }
@@ -644,6 +761,121 @@ def widen_id_columns(doc, min_in=1.0):
     return n
 
 
+def restart_numbered_lists(doc):
+    """절차마다 번호를 1부터 다시 시작시킨다.
+
+    2026-08-20 실측: 06 사용자매뉴얼의 번호가 장을 넘어 1~59 로 계속 이어져,
+    「문서 업로드」 절차의 첫 줄이 16번으로 시작했다. 앞에 열다섯 단계가 있었던 것처럼 읽힌다.
+    같은 번호 서식(abstractNumId)을 가리키되 «1 부터 다시»를 지정한 목록 정의를
+    묶음마다 새로 만들어 붙인다.
+    """
+    numbering = doc.part.numbering_part.element
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+    def num_pr(par):
+        pPr = par._p.find(qn("w:pPr"))
+        return None if pPr is None else pPr.find(qn("w:numPr"))
+
+    def abstract_of(num_id):
+        for n in numbering.findall(W + "num"):
+            if n.get(qn("w:numId")) == num_id:
+                a = n.find(W + "abstractNumId")
+                return None if a is None else a.get(qn("w:val"))
+        return None
+
+    used = [int(n.get(qn("w:numId"))) for n in numbering.findall(W + "num")]
+    next_id = max(used) + 1 if used else 1
+
+    made = {}
+    def fresh(abstract_id):
+        """abstract_id 서식을 그대로 쓰되 1 부터 시작하는 새 목록 정의를 만든다."""
+        nonlocal next_id
+        num = OxmlElement("w:num")
+        num.set(qn("w:numId"), str(next_id))
+        a = OxmlElement("w:abstractNumId"); a.set(qn("w:val"), abstract_id)
+        num.append(a)
+        ov = OxmlElement("w:lvlOverride"); ov.set(qn("w:ilvl"), "0")
+        st = OxmlElement("w:startOverride"); st.set(qn("w:val"), "1")
+        ov.append(st); num.append(ov)
+        numbering.append(num)
+        next_id += 1
+        return str(next_id - 1)
+
+    n = 0
+    prev_listed = False
+    cur = None
+    for par in doc.paragraphs:
+        np = num_pr(par)
+        if np is None:
+            prev_listed = False
+            cur = None
+            continue
+        nid_el = np.find(qn("w:numId"))
+        if nid_el is None:
+            continue
+        if not prev_listed:                      # 새 묶음의 첫 줄
+            abs_id = abstract_of(nid_el.get(qn("w:val")))
+            cur = fresh(abs_id) if abs_id else None
+            n += 1
+        if cur:
+            nid_el.set(qn("w:val"), cur)
+        prev_listed = True
+    return n
+
+
+def keep_screen_notes_with_steps(doc):
+    """「[화면: …]」 줄이 앞 절차와 떨어져 혼자 다음 쪽으로 넘어가는 것을 막는다.
+
+    2026-08-20 실측: 06 사용자매뉴얼 6쪽이 「[화면: /patient/messages 페이지]」 한 줄뿐이었다.
+    이 줄은 바로 위 절차를 가리키는 것이라 떨어지면 무슨 화면인지 알 수 없다.
+    """
+    n = 0
+    pars = doc.paragraphs
+    for i, par in enumerate(pars):
+        if not par.text.strip().startswith("[화면:"):
+            continue
+        for prev in reversed(pars[max(0, i - 4):i]):
+            if not prev.text.strip():
+                continue
+            if not prev.paragraph_format.keep_with_next:
+                prev.paragraph_format.keep_with_next = True
+                n += 1
+            break
+    return n
+
+
+def keep_short_procedures_together(doc, max_steps=6):
+    """짧은 절차(번호 목록)가 쪽 경계에 걸려 마지막 한두 줄만 넘어가는 것을 막는다.
+
+    2026-08-20 실측: 06 사용자매뉴얼 6쪽이 「3. 답장 입력 후 [전송] 클릭」 한 줄과
+    화면 표시 한 줄뿐이었다. 절차는 통째로 한 쪽에 있어야 따라 할 수 있다.
+    바로 앞의 소제목까지 함께 묶어 제목만 앞 쪽에 남는 것도 막는다.
+    """
+    pars = doc.paragraphs
+
+    def is_step(par):
+        pPr = par._p.find(qn("w:pPr"))
+        return pPr is not None and pPr.find(qn("w:numPr")) is not None
+
+    n = 0
+    i = 0
+    while i < len(pars):
+        if not is_step(pars[i]):
+            i += 1
+            continue
+        j = i
+        while j < len(pars) and is_step(pars[j]):
+            j += 1
+        if j - i <= max_steps:
+            head = pars[i - 1] if i > 0 and pars[i - 1].text.strip() else None
+            for par in ([head] if head is not None else []) + pars[i:j - 1]:
+                if not par.paragraph_format.keep_with_next:
+                    par.paragraph_format.keep_with_next = True
+                    n += 1
+        i = j
+    return n
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -697,6 +929,9 @@ def main():
         n += move_page_breaks(doc)
         n += keep_short_tables_together(doc)
         n += widen_id_columns(doc)
+        n += restart_numbered_lists(doc)
+        n += keep_screen_notes_with_steps(doc)
+        n += keep_short_procedures_together(doc)
         if n:
             doc.save(str(path))
             changed.append(f"{path.name}: 공통 정리 {n}곳(꼬리말·머리행 포함)")
