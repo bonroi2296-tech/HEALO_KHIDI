@@ -126,7 +126,9 @@ export default function HomeClient({ content } = {}) {
   // app/page.jsx 한 곳뿐이고 거기서 content 를 항상 채워 보내므로 예비값은 쓰이지 않는데,
   // import 만 해도 6개 언어 문구 전체가 첫 화면 자바스크립트 꾸러미에 실린다(문서에도
   // 같은 내용이 이미 실려 있어 두 벌이 된다). 2026-08-20 확인.
-  const L = content;
+  // content 가 비는 경로는 없어야 정상이지만, 비면 화면 전체가 죽으므로 빈 객체로 받는다.
+  // (기본 문구를 예비로 import 하면 6개 언어가 통째로 꾸러미에 실리므로 그건 쓰지 않는다.)
+  const L = content || {};
   const [faqTab, setFaqTab] = useState("general");
   const [openFaq, setOpenFaq] = useState(null);
   const l = (obj) => obj?.[lang] || obj?.["en"] || "";

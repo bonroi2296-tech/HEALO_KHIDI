@@ -178,7 +178,7 @@ SCREENS = [
         ],
         data=[
             "consultation_sessions 132건(7월 83 · 8월 49) · 입퇴장 기록 323건",
-            "consultation_translations 3,542건 — 러→한 2,593 · 한→러 487 · 카자흐→한 117 등",
+            "consultation_translations 3,277건(시험 방 제외) : 러→한 2,487 · 한→러 393 · 카자흐→한 117 등",
             "상담 기록·자막은 암호화 저장(AES-256)",
         ],
         nexts="→ P-05 소견 확인 · P-07 케이스 상세(기록 축적)",
