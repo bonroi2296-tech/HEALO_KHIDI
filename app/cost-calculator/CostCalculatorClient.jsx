@@ -105,7 +105,7 @@ export default function CostCalculatorClient() {
         <h2 className="text-xl md:text-2xl font-bold mb-2">{t("costCalc.quoteTitle", lang)}</h2>
         <p className="text-sm text-teal-100 max-w-xl mx-auto">{t("costCalc.quoteText", lang)}</p>
         <p className="text-xs text-teal-100/80 mt-3">{t(CANCER_KEYS[cancerIdx], lang)} · {t(`costCalc.programs.${programKey}.name`, lang)}</p>
-        <Link href="/inquiry" className="inline-block mt-5 bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
+        <Link href={localeHref("/inquiry", lang)} className="inline-block mt-5 bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
           {t("costCalc.cta", lang)}
         </Link>
       </section>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 
 const COPY = {
   ko: { title: "페이지를 찾을 수 없습니다", body: "주소가 바뀌었거나 존재하지 않는 페이지예요.", home: "홈으로", inquiry: "상담 신청 →" },
@@ -37,7 +38,7 @@ export default function NotFoundClient() {
             {c.home}
           </Link>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center px-6 py-3 text-teal-700 hover:text-teal-700 font-bold transition-colors"
           >
             {c.inquiry}

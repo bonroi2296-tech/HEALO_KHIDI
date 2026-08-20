@@ -134,7 +134,7 @@ export default function CancerDetailClient({ slug }) {
         {/* 목록으로 — 스토어 앱에는 브라우저 뒤로가기가 없다(아이폰은 쓸어넘기기도 꺼져 있음).
             같은 링크가 화면 «맨 아래»에도 있지만 거기까지 내려야 보여서, 위에도 둔다. */}
         <Link
-          href="/treatments"
+          href={localeHref("/treatments", lang)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-4"
         >
           <ArrowLeft size={14} /> {tr("section.allTypes")}
