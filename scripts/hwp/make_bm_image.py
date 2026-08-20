@@ -142,12 +142,14 @@ cols = [132, 560, 860, 1120, 1380, W - 70]
 rows = [TY + i * 54 for i in range(7)]
 head = ['구  분', '2026년 (하반기)', '2027년', '2028년', '비  고']
 body = [
-    ['① 유치 건수', '12 건 (목표)', '30 건', '60 건', '월 1.5건 → 2.5건 → 5건'],
-    ['① 유치 수수료 매출', '건수 × 진료비 × 15%', '〃', '〃', '진료비 단가 확정 중'],
-    ['사후관리 연계 건수', '120 건 (목표)', '300 건', '600 건', '유치 1건당 10회'],
-    ['② 이용료 도입 기관', '없음', '5 개 (검토)', '12 개 (검토)', '도입 여부는 2027년 판단'],
-    ['② 이용료 매출', '없음', '3,000 만원', '7,200 만원', '도입 시 월 50만원 기준'],
+    ['1.  유치 건수', '12 건 (목표)', '30 건', '60 건', '월 1.5건 → 2.5건 → 5건'],
+    ['2.  매출액', '건수 × 진료비 × 유치 수수료', '상    동', None, '환자별 치료 구성에 따라 변동'],
+    ['3.  사후관리 연계 건수', '120 건 (목표)', '300 건', '600 건', '유치 1건당 10회 (예상치)'],
+    ['4.  이용료 도입 기관', '없음', '5 개', '12 개', '유료화 여부는 2027년 판단'],
+    ['5.  이용료 매출', '없음', '3,000 만원', '7,200 만원', '월 50만원 기준'],
 ]
+GREY = (3, 4)          # 아직 시행 안 하는 줄은 옅게
+MERGE_ROW = 1          # 2번 줄은 2027·2028 을 한 칸으로 합친다
 
 d.rectangle([cols[0], rows[0], cols[-1], rows[1]], fill=HEAD, outline=LINE, width=2)
 for i, t in enumerate(head):
@@ -159,20 +161,29 @@ for i, t in enumerate(head):
 for r, row in enumerate(body):
     y0, y1 = rows[r + 1], rows[r + 2]
     d.rectangle([cols[0], y0, cols[-1], y1], fill='white', outline=LINE, width=1)
-    grey = row[0].startswith('②')          # 아직 시행 안 하는 항목은 옅게
+    ink = MUTED if r in GREY else INK
     for c, t in enumerate(row):
+        if t is None:
+            continue
         if c == 0:
-            d.text((cols[0] + 20, y0 + 16), t, font=f(6, 20), fill=MUTED if grey else BLACK)
+            d.text((cols[0] + 20, y0 + 16), t, font=f(6, 20), fill=MUTED if r in GREY else BLACK)
+        elif r == MERGE_ROW and c == 2:
+            mid((cols[2] + cols[4]) / 2, y0 + 16, t, f(4, 20), ink)
         else:
-            mid((cols[c] + cols[c + 1]) / 2, y0 + 16, t, f(4, 20), MUTED if grey else INK)
-for c in cols[1:-1]:
-    d.line([c, rows[0], c, rows[-1]], fill=LINE, width=1)
+            mid((cols[c] + cols[c + 1]) / 2, y0 + 16, t, f(4, 20), ink)
+
+# 세로선. 합친 칸 가운데 선은 긋지 않는다
+for ci, c in enumerate(cols[1:-1], start=1):
+    for r in range(len(body) + 1):
+        if r == MERGE_ROW + 1 and ci == 3:
+            continue
+        d.line([c, rows[r], c, rows[r + 1]], fill=LINE, width=1)
 
 # ─────────────────────────── 각주
 NY = rows[-1] + 24
 for i, t in enumerate([
     '※ 2026년 하반기는 유치 실적 확보 단계로, 매출보다 「사례 · 데이터 축적」을 우선한다.',
-    '※ ② 플랫폼 이용료는 아직 받지 않는다. 참여병원 두 곳은 무상으로 쓰고 있으며, 도입 여부는 2027년에 판단한다.',
+    '※ 플랫폼 이용료는 아직 받지 않는다. 참여병원 두 곳은 무상으로 쓰고 있으며, 유료화 여부는 2027년에 판단한다.',
     '※ 해외 에이전시 지급 수수료는 계약서로 확정: MedicaTour(러시아) 15% · MedVoyage(영국) 20%.',
     '     「치료를 실제로 받은 환자」에 한해 지급한다.',
 ]):

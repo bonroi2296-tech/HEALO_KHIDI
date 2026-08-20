@@ -33,10 +33,15 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
   test.setTimeout(360_000);
 
   let fakeMediaBrowser: Browser | null = null;
+  // 로봇 B 전용 브라우저. 가짜 마이크 파일이 브라우저 단위로 고정되기 때문에
+  // 「로봇마다 다른 말」을 시키려면 브라우저를 따로 띄우는 수밖에 없다(아래 주석 참고).
+  let fakeMediaBrowserB: Browser | null = null;
 
   test.afterEach(async () => {
     await fakeMediaBrowser?.close().catch(() => {});
+    await fakeMediaBrowserB?.close().catch(() => {});
     fakeMediaBrowser = null;
+    fakeMediaBrowserB = null;
   });
 
   test("로봇 2대가 같은 초대링크로 입장해 서로 연결된다", async ({ page }) => {
@@ -100,24 +105,33 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     //    (e2e/fixtures/auth.ts 에 같은 경고가 이미 있었는데 내가 어겼다. 첫 실행에서
     //     `ReferenceError: __dirname is not defined` 로 터짐 — tsc 는 @types/node 때문에
     //     통과시켜 주므로 «타입검사 초록 = 동작»이 아님을 다시 확인한 사례.)
-    const fakeAudioPath = path.join(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "fixtures/audio/ko-patient-speech.wav"
-    );
-    fakeMediaBrowser = await chromium.launch({
-      args: [
-        "--use-fake-ui-for-media-stream",
-        "--use-fake-device-for-media-stream",
-        `--use-file-for-fake-audio-capture=${fakeAudioPath}`,
-      ],
-    });
+    // ⚠️ 가짜 마이크 파일은 «브라우저를 띄울 때» 정해진다(창마다 바꿀 수 없다).
+    //    그래서 로봇마다 다른 말을 시키려면 **로봇 수만큼 브라우저를 띄워야 한다.**
+    //
+    //    2026-08-20 정정: 그 전까지 브라우저 «하나»에 한국어 WAV 하나만 물리고
+    //    로봇 둘을 같은 브라우저에서 띄웠다. 그 결과 **러시아어라고 신고한 로봇 B 가
+    //    실제로는 한국어를 뱉고 있었다.** 통역봇은 발화를 듣고 언어를 가려내지 않고
+    //    참가자가 신고한 `lang` 속성을 그대로 믿는다 → 한국어 소리를 러시아어로 알고
+    //    받아쓰게 된다. 「자막 지어냄」의 재료가 되기 좋은 상태였다.
+    //    이제 로봇마다 «신고한 언어 = 실제로 내는 소리» 가 맞는다.
+    const audioDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures/audio");
+    const launchWithVoice = (wav: string) =>
+      chromium.launch({
+        args: [
+          "--use-fake-ui-for-media-stream",
+          "--use-fake-device-for-media-stream",
+          `--use-file-for-fake-audio-capture=${path.join(audioDir, wav)}`,
+        ],
+      });
+    fakeMediaBrowser = await launchWithVoice("ko-patient-speech.wav");
+    fakeMediaBrowserB = await launchWithVoice("en-coordinator-speech.wav");
 
     // 로봇마다 «다른 언어»로 붙는다 (2026-07-28 PO 지시: 통역까지 확인).
     //   방 UI 언어 = Accept-Language(= 컨텍스트 locale) 이고, 그 언어가 그대로 LiveKit
     //   `lang` 속성으로 방에 알려진다 → 통역봇은 그 속성으로 «누구 말을 어느 언어로»를 정한다.
     //   둘 다 영어면 번역할 게 없어 세션 자체가 안 만들어진다(첫 실행에서 실제로 그랬다).
-    const joinAsRobot = async (name: string, locale: string) => {
-      const ctx = await fakeMediaBrowser!.newContext({
+    const joinAsRobot = async (name: string, locale: string, browser: Browser) => {
+      const ctx = await browser.newContext({
         permissions: ["camera", "microphone"],
         locale,
       });
@@ -165,9 +179,18 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       return robot;
     };
 
-    // A=한국어 화자(가짜 마이크의 WAV 가 한국어다) / B=러시아어 청취자 — 실사용 조합.
-    const robotA = await joinAsRobot("E2E-ROBOT-A", "ko-KR");
-    const robotB = await joinAsRobot("E2E-ROBOT-B", "ru-RU");
+    // A=한국어 화자(한국어 WAV) / B=영어 화자(영어 WAV). 둘 다 «말을 한다».
+    //
+    // 2026-08-20 바뀐 점과 그 대가:
+    //   전: A=한국어 화자 / B=러시아어 «청취자». 그런데 B 도 마이크가 켜져 있었고
+    //       한국어 WAV 를 같이 물고 있어서, 실제로는 「러시아어라고 신고하고 한국어를
+    //       내는 참가자」였다. 한 방향(한국어에서 러시아어로)만, 그것도 어긋난 재료로 쟀다.
+    //   후: 두 사람이 각자 제 언어로 말한다 → **양방향 통역**이 처음으로 검사 대상이 된다.
+    //   🔴 대가: **러시아어 경로는 이제 안 재진다.** 러시아어 말소리 파일이 없기 때문이다.
+    //      되살리려면 `e2e/fixtures/audio/README.md` 의 절차대로 `ru-patient-speech.wav` 를
+    //      만들어 로봇을 하나 더 붙이면 된다(브라우저도 하나 더 띄워야 한다).
+    const robotA = await joinAsRobot("E2E-ROBOT-A", "ko-KR", fakeMediaBrowser!);
+    const robotB = await joinAsRobot("E2E-ROBOT-B", "en-US", fakeMediaBrowserB!);
 
     // 3) 상호 확인 — 각 로봇 화면에 '상대' 이름 타일이 보여야 진짜 연결
     await expect(
