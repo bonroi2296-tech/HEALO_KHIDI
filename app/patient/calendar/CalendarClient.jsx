@@ -23,6 +23,8 @@ const CADENCE_LABEL_KEYS = {
   medication_check: "patientCalendar.types.cadence.medicationCheck",
   video_call: "patientCalendar.types.cadence.videoCall",
   lab_review: "patientCalendar.types.cadence.labReview",
+  // 교육 글 제안(cron 이 단계 도래 시 생성, schedule.kind='education')도 같은 라벨 표를 쓴다.
+  education: "patientCalendar.types.cadence.education",
 };
 
 // 요일 헤더(일~토 순서 고정 — getDay() 인덱스와 1:1)
@@ -109,7 +111,8 @@ export default function CalendarClient() {
         title: t("patientCalendar.types.followup", lang),
         // 케이던스 제안(cron 생성)은 phase 원문(week_2 등 영어 키) 대신 action 라벨로(6개 언어)
         sub:
-          journey.followup.schedule?.kind === "cadence"
+          journey.followup.schedule?.kind === "cadence" ||
+          journey.followup.schedule?.kind === "education"
             ? (CADENCE_LABEL_KEYS[journey.followup.schedule.action]
                 ? t(CADENCE_LABEL_KEYS[journey.followup.schedule.action], lang)
                 : "")

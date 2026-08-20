@@ -264,6 +264,7 @@ export async function GET(request: NextRequest) {
   // 앵커가 stamp 시점부터 시작하므로 기존 케이스도 첫 실행에 폭주하지 않는다(D+7부터).
   let caseSurveysDispatched = 0;
   let proposalsCreated = 0;
+  let educationCreated = 0;
   let casesChecked = 0;
   // 직원 종 알림용 목록 — 제안이 실제로 생길 때 1회만 조회(매일 헛도는 날 listUsers 호출 아끼기).
   let staffIdsPromise: Promise<{ admins: string[]; coordinators: string[] }> | null = null;
@@ -468,6 +469,63 @@ export async function GET(request: NextRequest) {
             console.warn(`[cron/dispatch-surveys] case=${c.id} ${stepKey} 종 알림 실패(무시):`, bellErr?.message);
           }
         }
+
+        // ── 그 단계의 «교육 글» → 환자 포털 읽을거리 제안 (2026-08-20 연결) ──
+        // 왜 여기냐: 교육 글은 「암종 + 치료 후 며칠」 두 값만으로 정해진다(병원 진료정보 불필요).
+        // 그 두 값이 이미 이 블록에 있으므로 단계가 도래할 때 같이 얹는 것이 가장 짧다.
+        // 멱등: schedule.kind='education' + phase 로 존재검사(케이던스 제안과 키가 안 겹친다).
+        {
+          const eduPhases = Array.from(
+            new Set([
+              ...plan.surveysDue.map((x) => x.step.phase),
+              ...plan.proposalsDue.map((x) => x.step.phase),
+            ])
+          );
+          const firedEduPhases = new Set<string>(
+            ((propRows as any[]) || [])
+              .map((r) => (r.schedule?.kind === "education" ? String(r.schedule?.phase) : null))
+              .filter((k): k is string => !!k)
+          );
+          for (const phase of eduPhases) {
+            if (firedEduPhases.has(phase)) continue;
+            let items: Array<{ id: string; title: string; category: string }> = [];
+            try {
+              const { fetchEducationForPhase } = await import("@/lib/followup/educationEngine");
+              items = await fetchEducationForPhase(
+                db,
+                c.cancer_type,
+                phase,
+                c.preferred_language || "ru"
+              );
+            } catch (eduErr: any) {
+              errors.push(`case=${c.id} ${phase}:education 조회 실패 — ${eduErr?.message}`);
+              continue;
+            }
+            if (items.length === 0) continue; // 그 단계에 줄 글이 없으면 조용히 넘어간다
+
+            const { error: insEduErr } = await db.from("followup_schedules").insert({
+              inquiry_id: c.id,
+              patient_user_id: c.user_id ?? null,
+              cancer_type: c.cancer_type || "unspecified",
+              treatment_completed_at: anchor.slice(0, 10),
+              status: "proposed",
+              current_phase: phase,
+              next_action_at: new Date().toISOString(),
+              schedule: {
+                kind: "education",
+                phase,
+                action: "education",
+                count: items.length,
+                items: items.map((it) => ({ id: it.id, title: it.title, category: it.category })),
+              },
+            });
+            if (insEduErr) {
+              errors.push(`case=${c.id} ${phase}:education 제안 생성 실패 — ${insEduErr.message}`);
+              continue;
+            }
+            educationCreated++;
+          }
+        }
       } catch (err: any) {
         errors.push(`case=${c.id}: ${err.message}`);
       }
@@ -541,6 +599,7 @@ export async function GET(request: NextRequest) {
     surveysDispatched,
     caseSurveysDispatched,
     proposalsCreated,
+    educationCreated,
     skipped,
     unclosed,
     unclosedCheckFailed,
