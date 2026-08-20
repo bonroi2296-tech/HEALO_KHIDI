@@ -145,7 +145,7 @@ for num, title in [
     ('3.', '환자 인테이크·문서 업로드'),
     ('4.', '병원 매칭·정보 제공'),
     ('5.', '원격 화상상담 (LiveKit)'),
-    ('6.', 'AI 챗봇·Human Agent 상담'),
+    ('6.', 'AI 챗봇·사람 상담원 상담'),
     ('7.', 'AI 실시간 번역'),
     ('8.', '예약·일정·비자 관리'),
     ('9.', '사후관리·모니터링·교육'),
@@ -220,7 +220,7 @@ add_scenario(doc, {
     '전제 조건': '네트워크 연결, 유효한 이메일 주소 보유',
     '트리거': '사용자가 /signup 또는 /login 페이지 접근',
     '기본 흐름': '① 이메일·비밀번호 또는 Google OAuth 선택\n② Supabase Auth 인증 처리\n③ 세션 쿠키 발급 (@supabase/ssr)\n④ role에 따라 적절한 대시보드로 리다이렉트',
-    '예외 흐름': '• 이메일 미인증 → 인증 메일 재발송 안내\n• 잘못된 비밀번호 → "인증 실패" 메시지 (error.message 직접 노출 금지)\n• 소셜 OAuth 실패 → fallback 이메일 로그인 안내',
+    '예외 흐름': '• 이메일 미인증 → 인증 메일 재발송 안내\n• 잘못된 비밀번호 → 「인증 실패」 메시지 (error.message 직접 노출 금지)\n• 소셜 OAuth 실패 → fallback 이메일 로그인 안내',
     '입력': '이메일, 비밀번호 (또는 OAuth 토큰)',
     '출력': 'Supabase 세션 쿠키, 리다이렉트',
     '화면 경로': '/app/signup, /app/login',
@@ -310,7 +310,7 @@ add_scenario(doc, {
     '기능명': 'AI 기반 병원·의료진 자동 매칭',
     '액터': '환자 (P-01), AI Agent',
     '전제 조건': '인테이크 정보 또는 채팅 증상 입력 완료',
-    '트리거': '상담 시작 또는 "병원 추천" 요청',
+    '트리거': '상담 시작 또는 「병원 추천」 요청',
     '기본 흐름': '① 환자 증상·희망 치료·예산·국가 입력\n② AI Agent (Gemini Flash) 쿼리 생성\n③ RAG 1계층: HEALO DB에서 병원 벡터 검색\n④ RAG 2계층: HIRA 데이터 보완 검색\n⑤ RAG 3계층: Google Search Grounding\n⑥ 다국어 매칭 결과 반환 (병원명·진료과·의료진·예상비용)',
     '예외 흐름': '• 해당 진료과 병원 미보유 → 유사 병원 추천\n• AI 응답 5초 초과 → 스트리밍 응답으로 부분 표시',
     '입력': '증상 텍스트, 암 종류, 선호 병원 유형, 예산',
@@ -349,7 +349,7 @@ add_scenario(doc, {
     '기능명': 'LiveKit 기반 WebRTC 화상상담',
     '액터': '환자 (P-01), 코디네이터/의료진 (P-02, P-03)',
     '전제 조건': '상담 예약 확정 또는 즉시 상담 요청',
-    '트리거': '"화상상담 시작" 버튼 클릭',
+    '트리거': '「화상상담 시작」 버튼 클릭',
     '기본 흐름': '① /api/khidi/consultation/token 에서 방 이름 기반 접근 토큰 발급\n② 환자: 게스트 토큰 또는 로그인 토큰으로 참여\n③ 코디네이터/의료진: 로그인 후 참여\n④ @livekit/components-react 기반 UI 렌더링\n⑤ 오디오/비디오/채팅 채널 활성화\n⑥ 상담 종료 → consultation_sessions 테이블에 기록',
     '예외 흐름': '• 카메라/마이크 권한 거부 → 오디오 전용 모드\n• 네트워크 불안정 → 재연결 시도 3회\n• 참여자 미접속 → 대기 상태 유지(자동 종료하지 않는다)',
     '입력': '방 이름(room_name), 참여자 ID, 역할',
@@ -376,9 +376,9 @@ add_scenario(doc, {
 doc.add_page_break()
 
 # ================================================================
-# 6. AI 챗봇·Human Agent 상담
+# 6. AI 챗봇·사람 상담원 상담
 # ================================================================
-add_heading(doc, '6. AI 챗봇·Human Agent 상담 시스템', 1)
+add_heading(doc, '6. AI 챗봇·사람 상담원 상담 시스템', 1)
 
 add_heading(doc, '6.1 AI 챗봇 24시간 상담 (FN-CHAT-01)', 2)
 add_scenario(doc, {
@@ -388,7 +388,7 @@ add_scenario(doc, {
     '전제 조건': '채팅 UI 로드, 사용자 언어 감지',
     '트리거': '환자 메시지 입력 및 전송',
     '기본 흐름': '① 환자가 채팅 입력 (텍스트, 다국어)\n② /api/public/chat/message 호출\n③ src/lib/chat/generateReply.ts 실행\n  - RAG 검색: rag_documents에서 관련 병원·치료 정보 벡터 검색\n  - Gemini Flash 로 응답 생성 (스트리밍)\n④ 응답 반환 (병원 정보, 치료 안내, 비용 안내 등)\n⑤ 복잡 케이스 감지 → Human Agent 이관 플래그 설정\n⑥ 대화 내용 chat_threads 테이블 저장',
-    '예외 흐름': '• Gemini API 타임아웃 → "잠시 후 다시 시도" 메시지\n• 의료 진단 요청 → "의료진 상담 연결" 안내',
+    '예외 흐름': '• Gemini API 타임아웃 → 「잠시 후 다시 시도」 메시지\n• 의료 진단 요청 → 「의료진 상담 연결」 안내',
     '입력': '사용자 메시지 텍스트, 언어 코드, 상담 컨텍스트',
     '출력': '스트리밍 텍스트 응답, 병원 카드, Human 이관 여부',
     '화면 경로': '/app/patient/chat, /app/consult',
@@ -422,7 +422,7 @@ add_scenario(doc, {
     '기능 ID': 'FN-TRANS-01',
     '기능명': '채팅 메시지 AI 실시간 번역',
     '액터': '환자, 코디네이터, 의료진',
-    '트리거': '메시지 전송 또는 "번역 보기" 버튼 클릭',
+    '트리거': '메시지 전송 또는 「번역 보기」 버튼 클릭',
     '기본 흐름': '① 사용자 메시지 감지\n② /api/translate-text 호출\n③ Gemini로 러시아어↔한국어 번역\n④ 상대 발화를 내 언어로 한 줄 자막 표시(두 언어를 나란히 놓지 않는다)',
     '화면 경로': '/app/api/translate-text',
     'DB 테이블/컬럼': '별도 저장 없음 (실시간 처리)',
@@ -656,7 +656,7 @@ add_para(doc, '사업계획서 p.30~31 AI 학습 기반 상담 자동화 시스�
 add_scenario(doc, {
     '기능 ID': 'FN-RAG-01',
     '기능명': 'RAG 3계층 기반 AI 응답 생성',
-    '개요': '사업계획서(p.31) "현재는 Human, 미래는 AI": Human Agent 상담 데이터 RAG 학습 파이프라인',
+    '개요': '사업계획서(p.31) 「지금은 사람이, 앞으로는 AI 가」: Human Agent 상담 데이터 RAG 학습 파이프라인',
     '1계층 (HEALO DB)': 'Supabase pgvector로 병원·치료·FAQ 벡터 저장\nrag_documents 테이블 (embedding, content, trust_tier)\nmigrations/20260225_rag_vector_v1',
     '2계층 (HIRA 크롤링)': 'HIRA 의료수가·병원 정보 크롤링 및 RAG 인제스트\ncrawl_raw_items, crawl_jobs 테이블\nmigrations/20260225_crawl_pipeline',
     '3계층 (Google Grounding)': 'Gemini Google Search Grounding\n실시간 최신 의료 정보 보완',
