@@ -225,6 +225,7 @@ export default function AdminDashboard() {
               rows={[
                 ["환각 응답", loading ? "…" : c?.system.aiHallucinations != null ? `${c.system.aiHallucinations}건` : "–"],
                 ["최근 실행", loading ? "…" : (c?.system.aiRunDate || "–")],
+                ["알림 발송 실패(7일)", loading ? "…" : `${c?.system.notifyFailed7d ?? 0}건`],
               ]}
               onClick={() => router.push("/admin/khidi/ai-regression")}
             />
