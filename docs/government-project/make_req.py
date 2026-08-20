@@ -404,6 +404,33 @@ doc.add_page_break()
 # ================================================================
 add_heading(doc, '4. 비기능 요구사항', 1)
 
+# 2026-08-20 실측 — 어떻게 쟀는지까지 적는다. 못 잰 것은 왜 못 쟀는지 적는다.
+NFR_VERDICT = {
+ 'NFR-01': '미달(모바일) / 충족(데스크톱) — 라이트하우스 5회 중앙값: 모바일 6.96초 · 데스크톱 1.47초',
+ 'NFR-02': '미달 — AI 회귀 시험 기록 2,212건 중앙값 5.7초(목표 5초). 개선 과제',
+ 'NFR-03': '미검증 — 카자흐스탄 현지에서 재야 한다. 국내에서는 왕복 지연을 잴 수 없다',
+ 'NFR-04': '미검증 — 부하 시험 미실시. 실서비스에 부하를 거는 방식이라 유치 확대 시점에 별도 진행',
+ 'NFR-05': '충족 — 운영DB 조회: 성명(first_name·last_name)·이메일·전화 값이 있는 행 전부 암호문, 평문 0건',
+ 'NFR-06': '충족 — 자동 검사 check:err-exposure 통과(매 변경 실행)',
+ 'NFR-07': '충족 — API 라우트 223개 전수 확인. 관문 흔적이 없던 10개는 모두 정당(공개 조회·상태 확인·서명 검증·폐쇄된 라우트)',
+ 'NFR-08': '충족 — 권한 판정에 user_metadata 를 쓰는 곳 0건(전수 검색). app_metadata.role 기준',
+ 'NFR-09': '충족 — 자동 검사 check:ratelimit-scope 통과',
+ 'NFR-10': '충족 — 실서비스 머리값 확인: Strict-Transport-Security(2년·하위도메인·preload) · CSP · X-Content-Type-Options · X-Frame-Options',
+ 'NFR-11': '미검증 — 가동률 통계는 Vercel 콘솔에서 확인해야 한다',
+ 'NFR-12': '충족 — Supabase Pro 플랜 자동 백업(7일 보관). 플랜 상태는 콘솔에서 확인',
+ 'NFR-13': '충족 — sentry.client·server·edge.config.js 세 개 모두 존재',
+ 'NFR-14': '충족 — 화면이 쓰는 문구 1,941개를 6개 언어에 전건 채움. 러시아어·카자흐어는 자동 검사가 매 변경마다 100% 확인',
+ 'NFR-15': '대체로 충족 — 라이트하우스 접근성 97점. 미달 1건(글자와 배경 대비). 개선 과제',
+ 'NFR-16': '충족 — 375px 폭 기준 글자 잘림·겹침 자동 검사 상시 실행(content-clip-sweep · header-no-overlap)',
+ 'NFR-17': "충족 — tsconfig paths: {'@/*': ['src/*']}",
+ 'NFR-18': '충족 — strict:false 유지, Zod 런타임 검증 사용',
+ 'NFR-19': '충족 — package.json build 가 next build --webpack',
+ 'NFR-20': '충족 — /api/rag/ingest 로 코드 수정 없이 올린다. 현재 문서 21건·조각 21개',
+ 'NFR-21': '충족 — 웹 접수 6건 전부 동의 기록과 동의 판번호 보존. 나머지 2건은 플랫폼 밖에서 받아 소급 등록한 건이라 화면 동의 기록이 없다(별도 서면 보관)',
+ 'NFR-22': '유지 — 문구·화면 모두 정보 제공·연결 서비스로 표기. 법률 판단은 외부 검토 대상',
+ 'NFR-23': '진행 중 — 유치 0/12 · 사전상담+사후관리 7/120 · 만족도 표본 1건. 잔여 기간 유입에 달려 있다',
+}
+
 nfr_cats = [
     ('성능 (Performance)', [
         ('NFR-01', '페이지 초기 로드 ≤ 3초 (LCP 기준, 4G 환경)'),
@@ -444,11 +471,11 @@ nfr_cats = [
 
 for cat_name, items in nfr_cats:
     add_heading(doc, cat_name, 2)
-    ntbl = doc.add_table(rows=0, cols=2)
+    ntbl = doc.add_table(rows=0, cols=3)
     ntbl.style = 'Table Grid'
-    add_header_row(ntbl, ['NFR-ID', '요구사항 내용'])
+    add_header_row(ntbl, ['NFR-ID', '요구사항 내용', '검증 결과 (2026. 8. 20. 실측)'])
     for nfr_id, nfr_desc in items:
-        add_data_row(ntbl, [nfr_id, nfr_desc], bold_first=True)
+        add_data_row(ntbl, [nfr_id, nfr_desc, NFR_VERDICT.get(nfr_id, '미검증')], bold_first=True)
     doc.add_paragraph()
 
 doc.add_page_break()
