@@ -449,6 +449,10 @@ def main():
                         c = row.cells[0]; c.text = ""
                         set_font(c.paragraphs[0].add_run(f"B-{n:02d}"), size=9, bold=True)
         if not any(PLAN_MAP_TITLE in p_.text for p_ in doc.paragraphs):
+            # ⚠️ 부록을 먼저 걷어내고 붙인다. 그냥 붙이면 «부록 뒤»에 놓이고,
+            #    뒤에서 부록을 걷어낼 때 부록 제목부터 문서 끝까지 지우므로 이 표도
+            #    같이 날아간다(2026-08-20 실측). 부록은 아래 단계에서 다시 붙는다.
+            strip_appendix(doc)
             doc.add_page_break()
             heading(doc, PLAN_MAP_TITLE)
             para(doc, "2026. 5. 14. 제출한 사업계획서가 결과물로 적은 항목과 실제 산출물을 "
