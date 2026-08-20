@@ -99,3 +99,63 @@ export const PHASE_LABELS: Record<FollowupPhase, Record<string, string>> = {
   month_6: { ko: '6개월', en: 'Month 6', ru: '6 месяцев', zh: '第6月', ja: '6ヶ月', kz: '6 ай' },
   year_1: { ko: '1년', en: 'Year 1', ru: '1 год', zh: '第1年', ja: '1年', kz: '1 жыл' },
 };
+
+// ============================================================
+// 실제 표(education_contents) 조회 — 2026-08-20 추가
+//
+// 왜 새로 쓰나: 위 localizeEducation 은 i18n JSONB 한 칸을 전제하는데
+// 실제 표는 언어마다 칸이 따로다(title_ru·body_ru·title_kz…). 그대로 이으면
+// 조회가 통째로 실패한다(「없는 칸에 쓰기」와 같은 부류). 표 구조를 그대로 읽는다.
+//
+// db 를 인자로 받는 순수 함수 — server-only 를 안 물어서 단위시험에서 바로 부른다.
+// ============================================================
+
+/** 표의 한 줄 (education_contents) */
+export interface EducationRow {
+  id: string;
+  cancer_type: string;
+  content_type: string;
+  send_at_phase: string;
+  is_published?: boolean | null;
+  [k: string]: any; // title_ko·body_ru 등 언어별 칸
+}
+
+/** 표 한 줄을 요청 언어로 고른다. 폴백: 요청어 → 영어 → 한국어 */
+export function pickEducationLang(row: EducationRow, lang: string) {
+  const pick = (kind: "title" | "body") =>
+    row[`${kind}_${lang}`] || row[`${kind}_en`] || row[`${kind}_ko`] || "";
+  return {
+    id: row.id,
+    cancerType: row.cancer_type,
+    phase: row.send_at_phase,
+    category: row.content_type,
+    title: pick("title"),
+    body: pick("body"),
+  };
+}
+
+/**
+ * 그 암종·그 단계의 교육 글을 현지어로 가져온다.
+ * 암종별 글이 없으면 암종 무관(common) 글로 폴백 — 단계는 반드시 일치시킨다.
+ */
+export async function fetchEducationForPhase(
+  db: any,
+  cancerType: string | null | undefined,
+  phase: string,
+  lang = "ko"
+) {
+  const { data, error } = await db
+    .from("education_contents")
+    .select("*")
+    .eq("send_at_phase", phase)
+    .eq("is_published", true);
+  if (error || !Array.isArray(data)) return [];
+
+  const ct = (cancerType || "").trim().toLowerCase();
+  const mine = ct ? data.filter((r: EducationRow) => (r.cancer_type || "").toLowerCase() === ct) : [];
+  const common = data.filter((r: EducationRow) =>
+    ["common", "all", "", null].includes((r.cancer_type || "").toLowerCase())
+  );
+  const rows = mine.length > 0 ? mine : common;
+  return rows.map((r: EducationRow) => pickEducationLang(r, lang));
+}
