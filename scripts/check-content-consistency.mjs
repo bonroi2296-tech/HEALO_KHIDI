@@ -57,8 +57,10 @@ const FORBIDDEN = [
   // 죽은 옛 도메인 healo-khidi.com — LiveKit webhook/외부설정 URL 이 이 도메인을 가리키면 이벤트가 안 옴
   // (2026-06-30 C레벨 진단 MKT-08: 검사기 사각지대였음). 정본 = healwith.co.kr.
   { re: /healo-khidi\.com/i, msg: "죽은 옛 도메인 healo-khidi.com 잔재 (→ healwith.co.kr) — webhook/설정 URL 이 죽은 도메인을 가리킴 (MKT-08)" },
-  // khidi.healo.kr 은 컷오버 전 옛 도메인. 고객 링크/리터럴엔 금지하되, translate API 의 CORS origin allowlist 만 면제(레거시 호환).
-  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime|allowedOrigin/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
+  // khidi.healo.kr 은 컷오버 전 옛 도메인 — 이제 «없는 주소»고 healo.kr 자체가 남의 사이트다.
+  // 2026-08-20: translate API 의 origin 허용목록에서도 뺐으므로 면제(allow) 자체를 없앴다.
+  //   → 누가 다시 넣으면 이 검사가 잡는다(시험 파일은 EXCLUDE 로 애초에 안 훑는다).
+  { re: /khidi\.healo\.kr/i, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr) — 없는 주소이고 healo.kr 은 남의 도메인" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
   // 면력한방병원 브랜드명 발명 음역 차단 — AI 번역이 지어낸 이름(2026-07-06 /insurance 카피 검증에서 발견).
   // 공식 표기: en/ru/kz "Immune Hospital", ja "免疫病院", zh "免疫(韩方)医院" (seo.immune.* · immuneCancerDetails.js 기준).
