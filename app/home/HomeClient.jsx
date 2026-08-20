@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
+import { REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
 import { HOME_CONTENT } from "@/lib/content/homeContent";
 import OrganIcon from "../_components/OrganIcon";
 import {
@@ -98,6 +99,12 @@ const DOCTORS_META = [
 // 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
 // 문구(병원명·설명)는 HOME_CONTENT.partners.items — 코디 콘텐츠 편집기에서 수정.
 // 여기엔 slug·배지·이미지 등 비문구 메타만 (HOME_CONTENT.partners.items 와 순서 일치 필수).
+// 면력 지점 4곳은 next.config.js 가 /hospitals/immune 로 영구이동시킨다(REDIRECTED_PARTNER_SLUGS).
+// 카드가 지점 주소를 그대로 걸면 구글이 «리디렉션되는 링크»를 따라가 크롤 예산만 쓴다
+// (GSC 「리디렉션이 포함된 페이지」의 원인) → 도착지를 바로 건다. 사람이 눌러도 결과는 같다.
+const hospitalPath = (slug) =>
+  REDIRECTED_PARTNER_SLUGS.includes(slug) ? "/hospitals/immune" : `/hospitals/${slug}`;
+
 const PARTNERS_META = [
   { slug: "immunehospital-magok", badge: "partner", img: "/images/hospitals/immunehospital-magok/1.jpg?v=3" },
   { slug: "immunehospital-sinchon", badge: "partner", img: "/images/hospitals/immunehospital-sinchon/1.jpg?v=3" },
@@ -337,7 +344,7 @@ export default function HomeClient({ content } = {}) {
               return (
                 <Link
                   key={i}
-                  href={localeHref(`/hospitals/${meta.slug}`, lang)}
+                  href={localeHref(hospitalPath(meta.slug), lang)}
                   className="block bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
                   <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
