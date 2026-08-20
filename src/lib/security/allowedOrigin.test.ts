@@ -6,12 +6,21 @@ const dev = { isProduction: false };
 
 describe("isAllowedOrigin", () => {
   it("우리 도메인은 실서비스에서도 통과", () => {
-    for (const o of [
-      "https://healwith.co.kr",
-      "https://www.healwith.co.kr",
-      "https://khidi.healo.kr",
-    ]) {
+    for (const o of ["https://healwith.co.kr", "https://www.healwith.co.kr"]) {
       expect(isAllowedOrigin(o, prod), o).toBe(true);
+    }
+  });
+
+  it("healo.kr 은 우리 도메인이 아니다 — 막는다 (2026-08-20)", () => {
+    // healo.kr 은 남의 사이트, khidi.healo.kr 은 없는 주소. 남이 서브도메인을 만들면
+    // 그대로 CSRF 문이 된다 → 접미사째로 제거했다.
+    for (const o of [
+      "https://khidi.healo.kr",
+      "https://healo.kr",
+      "https://evil.healo.kr",
+    ]) {
+      expect(isAllowedOrigin(o, prod), o).toBe(false);
+      expect(isAllowedOrigin(o, dev), o).toBe(false);
     }
   });
 

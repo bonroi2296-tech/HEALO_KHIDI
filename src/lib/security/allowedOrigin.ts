@@ -16,12 +16,12 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
 /** 실서비스에서도 항상 허용하는 우리 도메인. */
 function isOwnDomain(hostname: string): boolean {
-  return (
-    hostname === "healwith.co.kr" ||
-    hostname.endsWith(".healwith.co.kr") ||
-    hostname === "khidi.healo.kr" ||
-    hostname.endsWith(".healo.kr")
-  );
+  return hostname === "healwith.co.kr" || hostname.endsWith(".healwith.co.kr");
+  // ⚠️ 옛 healo 도메인(컷오버 전 주소)은 2026-08-20 제거했다. 우리 도메인이 «아니다» —
+  //    실측: 그 도메인은 남의 사이트로 연결되고(AWS 3.170.221.x), 옛 khidi 서브도메인은
+  //    아예 없는 주소(NXDOMAIN)다. 접미사 허용까지 남아 있어서, 그 도메인의 DNS 를 쥔
+  //    사람이 서브도메인을 아무거나 만들면 우리 translate API 를 대신 호출(CSRF)할 수
+  //    있었다. 살아 있던 적이 없어 제거 손해 0. 되살리지 마라(검사기가 다시 잡는다).
   // ⚠️ `.vercel.app` 은 일부러 뺐다(2026-08-14 보안감사). vercel.app 서브도메인은
   //    «누구나» 원하는 이름으로 선점할 수 있어(전역 유니크), `.vercel.app` 접미사 허용은
   //    남의 `evil.vercel.app` 이 우리 API 를 대신 호출(CSRF)하는 문을 열어준다.
