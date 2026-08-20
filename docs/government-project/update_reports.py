@@ -38,15 +38,6 @@ GLOBAL = [
 # (파일, [(옛 문구, 새 문구), ...])
 # 폐지된 화면을 설명하던 문장을 현행 화면으로 바꾼다. 근거는 app/ 실재 여부로 확인함.
 REPLACEMENTS = {
-    # 03 은 4월 30일자 문서지만 협약 서명(4/16) 뒤에 쓴 것이라 옛 목표치(10/80/80)가
-    # 처음부터 틀린 값이었다. 확정 목표는 12 / 120 / 90 이다(PO 결정 2026-08-20).
-    "03_착수보고서.docx": [
-        ("시범 환자 모집 (목표 10건 유치)", "시범 환자 모집 (목표 12건 유치)"),
-        ("상담 80건 달성 목표 추진", "사전상담·사후관리 120건 달성 목표 추진"),
-        ("KPI 목표치 확인: 유치 10건, 상담 80건, 만족도 80점",
-         "KPI 목표치 확인: 유치 12건, 사전상담·사후관리 120건, 만족도 90점"),
-    ],
-
     "01_요구사항정의서.docx": [
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
@@ -433,6 +424,22 @@ def fill_cwv(doc):
     return False
 
 
+def drop_rows_containing(doc, needle):
+    """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
+
+    ⚠️ 번호(B-01 등)로 지우지 마라. 지운 뒤 번호를 다시 매기면 «다음 문서»가 그
+       번호를 물려받아, 다시 실행할 때 엉뚱한 줄이 지워진다(2026-08-20 실측:
+       04_중간보고서 줄이 이렇게 사라졌다). 파일명처럼 안 바뀌는 값으로 지운다.
+    """
+    n = 0
+    for t in doc.tables:
+        for row in list(t.rows):
+            if any(needle in c.text for c in row.cells):
+                t._tbl.remove(row._tr)
+                n += 1
+    return n
+
+
 def set_cells(doc, first_cell, values):
     """첫 칸이 first_cell 인 줄을 찾아 {열번호: 값} 으로 덮어쓴다. 없으면 False."""
     for t in doc.tables:
@@ -508,17 +515,6 @@ def main():
             doc.save(path)
             changed.append("08_테스트결과서.docx: 성능 측정 표 실측 반영")
 
-    # 0-2b) 03 성과지표 표 — 확정 목표치로
-    path = os.path.join(HERE, "03_착수보고서.docx")
-    if os.path.exists(path):
-        doc = Document(path)
-        hit = set_cells(doc, "K-01", {2: "12건 이상"})
-        hit += set_cells(doc, "K-02", {1: "사전상담·사후관리 건수", 2: "120건 이상"})
-        hit += set_cells(doc, "K-03", {2: "90점 이상 (100점)"})
-        if hit:
-            doc.save(path)
-            changed.append(f"03_착수보고서.docx: 성과지표 목표 {hit}줄 정정")
-
     # 0-2c) 05 최종보고서 성과지표 목표 — 옛 값(10/80/80)에 지표 이름도 옛 것이었다.
     #       11월에 쓸 문서지만 «목표치»는 지금 확정된 값이어야 한다.
     path = os.path.join(HERE, "05_최종보고서.docx")
@@ -531,6 +527,27 @@ def main():
         if hit:
             doc.save(path)
             changed.append(f"05_최종보고서.docx: 성과지표 목표 {hit}줄 정정")
+
+    # 0-2d) 09 산출물목록에서 03_착수보고서 흔적 제거 (PO 결정 2026-08-20: 문서 폐기)
+    #        KHIDI 가 요구한 적 없는데 이전 세션이 만든 문서다. 목록·일정표에서 뺀다.
+    path = os.path.join(HERE, "09_산출물목록.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = drop_rows_containing(doc, "03_착수보고서")  # 목록 줄 + 제출 일정표 줄
+        if hit:
+            # 번호가 B-02 부터 시작하면 보기 나쁘다. 남은 줄을 B-01 부터 다시 매긴다.
+            for t in doc.tables:
+                labels = [r.cells[0].text.strip() for r in t.rows]
+                if not any(l.startswith("B-") for l in labels):
+                    continue
+                n = 0
+                for row in t.rows:
+                    if row.cells[0].text.strip().startswith("B-"):
+                        n += 1
+                        c = row.cells[0]; c.text = ""
+                        set_font(c.paragraphs[0].add_run(f"B-{n:02d}"), size=9, bold=True)
+            doc.save(path)
+            changed.append(f"09_산출물목록.docx: 03 착수보고서 {hit}줄 제거 + 번호 재정렬")
 
     # 0-3) 04 KPI 표 · 08 남은 측정 칸
     path = os.path.join(HERE, "04_중간보고서.docx")
