@@ -71,6 +71,8 @@ REPLACEMENTS = {
     ],
     "04_중간보고서.docx": [
         ("/admin/*, /partner/* 완성", "/admin/*, /hospital/* 완성"),
+        ("2026년 8월 [예정 — 실제 제출 시 갱신]", "2026년 8월 27일 (중간평가일)"),
+        ("2026년 8월 19일 (착수 후 5개월 시점)", "2026년 8월 20일 (착수 후 5개월 시점)"),
         ("현 단계 KPI 미달성은 정상 — 사업 초기(착수 1개월) 시스템 구축 집중 기간이며, "
          "7월 시범 운영 개시를 통해 KPI 달성 기간 진입 예정.",
          "플랫폼 구축·배포는 완료되어 운영 중이며, 운영 KPI 는 실환자가 상담·치료 단계에 "
@@ -453,7 +455,7 @@ KPI_ROWS_04 = {
              3: f"{F.KPI_ACTUAL['attraction']}건", 4: "유치 파이프라인 가동 중. 8~10월 유입 필요"},
     "K-02": {1: "사전상담·사후관리 건수", 2: f"{F.KPI_TARGET['consultAndCare']}건",
              3: f"{F.KPI_ACTUAL['preConsultation'] + F.KPI_ACTUAL['followUp']}건",
-             4: "영상 사전상담 1건 + 환자에게 전달된 소견 5건"},
+             4: "영상 사전상담 1건 + 환자에게 전달된 소견 6건"},
     "K-03": {1: "서비스 만족도", 2: f"{F.KPI_TARGET['satisfaction']}점",
              3: f"표본 {F.KPI_ACTUAL['satisfactionSamples']}건", 4: "완료 상담 증가에 연동"},
 }
@@ -516,6 +518,19 @@ def main():
         if hit:
             doc.save(path)
             changed.append(f"03_착수보고서.docx: 성과지표 목표 {hit}줄 정정")
+
+    # 0-2c) 05 최종보고서 성과지표 목표 — 옛 값(10/80/80)에 지표 이름도 옛 것이었다.
+    #       11월에 쓸 문서지만 «목표치»는 지금 확정된 값이어야 한다.
+    path = os.path.join(HERE, "05_최종보고서.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = set_cells(doc, "K-01", {2: f"{F.KPI_TARGET['attraction']}건 이상"})
+        hit += set_cells(doc, "K-02", {1: "사전상담·사후관리 건수",
+                                       2: f"{F.KPI_TARGET['consultAndCare']}건 이상"})
+        hit += set_cells(doc, "K-03", {2: f"{F.KPI_TARGET['satisfaction']}점 이상 (100점)"})
+        if hit:
+            doc.save(path)
+            changed.append(f"05_최종보고서.docx: 성과지표 목표 {hit}줄 정정")
 
     # 0-3) 04 KPI 표 · 08 남은 측정 칸
     path = os.path.join(HERE, "04_중간보고서.docx")
