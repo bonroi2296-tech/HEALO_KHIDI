@@ -1,4 +1,5 @@
 import HomeClient from "./home/HomeClient";
+import { Suspense } from "react";
 import { localizedMeta } from "@/lib/i18n/metadata";
 import { partnerHospitalLdList, websiteLd, ORG_ID } from "@/lib/seo/structuredData";
 import { getMergedHomeContent } from "@/lib/content/overrides";
@@ -109,11 +110,9 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, websiteLd()]) }}
       />
-      {/* Suspense 로 감싸지 마라. fallback 없는 경계라 높이가 0으로 잡혀,
-          서버가 「머리말 + 빈 본문 + 꼬리말」을 먼저 보내고 본문을 나중에 끼워 넣었다.
-          그 사이 브라우저가 꼬리말을 화면 위에 그렸다가 본문이 도착하면 6,000px 아래로
-          밀어내서 화면 밀림(CLS)이 0.97 까지 올랐다(목표 0.1). 2026-08-20 실측. */}
+      <Suspense>
       <HomeClient content={content} />
+      </Suspense>
     </>
   );
 }
