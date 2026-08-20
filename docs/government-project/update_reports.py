@@ -60,42 +60,6 @@ REPLACEMENTS = {
         ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
-    "04_중간보고서.docx": [
-        ("/admin/*, /partner/* 완성", "/admin/*, /hospital/* 완성"),
-        ("2026년 8월 [예정 — 실제 제출 시 갱신]", "2026년 8월 27일 (중간평가일)"),
-        ("2026년 8월 19일 (착수 후 5개월 시점)", "2026년 8월 20일 (착수 후 5개월 시점)"),
-        ("현 단계 KPI 미달성은 정상 — 사업 초기(착수 1개월) 시스템 구축 집중 기간이며, "
-         "7월 시범 운영 개시를 통해 KPI 달성 기간 진입 예정.",
-         "플랫폼 구축·배포는 완료되어 운영 중이며, 운영 KPI 는 실환자가 상담·치료 단계에 "
-         "도달해야 발생하는 구조다. 잔여 기간(8~10월) 환자 유입이 달성의 관건이다."),
-        # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
-        ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
-        ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
-        ("/app/api/email", "src/lib/email/sendEmail.ts"),
-        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
-         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
-         "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
-        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
-        ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
-        # ── 2026-08-19 갱신 : 본문이 4월 30일 기준에 멈춰 있어 부록(현행)과 어긋났다.
-        ("기준일 2026년 4월 30일 기준", "기준일 2026년 8월 19일 기준"),
-        ("전체 기능 구현 진척률은 74% (완료) + 26% (부분구현)로, 미구현 기능은 없다.",
-         "전체 기능 구현 진척률은 96% (완료 22/23) + 4% (부분구현 1/23)로, 미구현 기능은 없다. "
-         "착수 시 부분구현으로 분류했던 6개 기능 중 5개가 완료로 전환되었다."),
-        ("사업 기간 기준 진척률: 4월/8개월 = 12.5% (초기 단계)이나, 기능 구현은 사전 개발로 74% 완료 상태.",
-         "사업 기간 기준 진척률: 5개월/8개월 = 62.5% 경과. 기능 구현은 96% 완료 상태이며, "
-         "플랫폼은 6월 정식 배포 이후 실서비스로 운영 중이다."),
-        ("2026년 4월 30일 기준 — 시스템 구축 단계이므로 운영 KPI는 측정 전 상태이다.",
-         "2026년 8월 19일 기준 — 플랫폼 구축·배포는 완료되어 운영 중이며, "
-         "운영 KPI는 실환자 유입 단계에 따라 집계된다."),
-        ("2026년 4월 30일 (착수 후 1개월 시점)", "2026년 8월 19일 (착수 후 5개월 시점)"),
-        ("74% (17/23 기능)", "96% (22/23 기능)"),
-        ("26% (6/23 기능)", "4% (1/23 기능)"),
-        ("화상 내 실시간 번역 자막, 예약 리마인더 자동화, 사후관리 AI 감지, 러시아어·카자흐어 UI 완성, 실시간 푸시 알림",
-         "예약 리마인더 자동화(의료진 일정 연동 잔여)"),
-        ("v0.9 [Draft]", "v1.1"),
-        ("2026-04-30", "2026-08-19"),
-    ],
     "08_테스트결과서.docx": [
         ("«수동 확인»", "수동 확인"),
         ("SEC-01~08 모두 통과 (2026-04-30 기준)", "SEC-01~08 모두 통과 (2026-08-19 기준)"),
@@ -154,6 +118,28 @@ REPLACEMENTS = {
         ("2026-04-30", "2026-08-19"),
     ],
 }
+
+# 사업계획서(2026-05-14 제출본)가 약속한 결과물과 실제 산출물의 대응.
+# 계획서엔 「UI/UX 설계서」인데 우리 파일 이름은 「화면 설계서」인 것처럼 표현이
+# 조금씩 다르다. 파일 이름을 바꾸는 대신 이 표로 이어 보인다(이름을 바꾸면 참조가
+# 여러 곳이라 비용이 크고, 대조하는 사람에게는 이 표 한 장이면 충분하다).
+PLAN_MAP_TITLE = "사업계획서 약속 대비표"
+PLAN_MAP_ROWS = [
+    ("M1. 플랫폼 설계 완료 (5월)", "요구사항 정의서", "01_요구사항정의서.docx", "충족"),
+    ("", "UI/UX 설계서", "01-1_화면설계서.docx (화면 10종 lo-fi 설계)", "충족"),
+    ("", "시스템 구성도", "01-1_화면설계서.docx 제2장", "충족"),
+    ("M2. 플랫폼 개발 완료 (6월)", "HEALO 배포본", "healwith.co.kr 실서비스 가동", "충족"),
+    ("", "기능 테스트 결과서", "08_테스트결과서.docx", "충족"),
+    ("M4. 중간점검 (9월)", "중간 실적 보고서", "중간보고서 (KHIDI 지정 양식, 별도 관리)", "진행"),
+    ("정성지표 증빙", "플랫폼 시연 및 관련 산출물(정의서 · 설계서 · 테스트 결과 등)",
+     "위 문서 일체 + 02_기능명세서 · 11_6대ICT 대비표", "충족"),
+]
+
+# 09 제출 일정표에서 폐기 문서를 가리키던 문구. 제출은 계속 있으므로 문구만 바꾼다.
+DROPPED_DOC_NOTES = [
+    ("04_중간보고서.docx (갱신본)", "중간보고서 (KHIDI 지정 양식, 별도 관리)"),
+    ("05_최종보고서.docx", "최종보고서 (KHIDI 지정 양식, 별도 관리)"),
+]
 
 # ── 덧붙일 장(章) ───────────────────────────────────────────────────────────
 # 제목이 이미 있으면 다시 붙이지 않는다(재실행 안전).
@@ -348,46 +334,9 @@ def add_appendix(doc, kind):
     table(doc, ["구분", "출처", "확인 내용"], F.PROVENANCE)
 
 
-# ── 04 예산 집행 표 ─────────────────────────────────────────────────────────
-# 협약서(2026-186-001) 사업비와 2026-08-10 제출한 중간정산 사용실적보고서 확정치.
-# 비목별 계획액은 회계법인 제출본에만 있으므로 재원별로만 적는다(추정해 채우지 않는다).
-BUDGET_ROWS = [
-    ("정부지원금(국고)", "70,000,000", "7,850,826",
-     "집행률 11.2%(홍보비·클라우드 이용료·소모품비)"),
-    ("자기부담", "17,500,000", "6,503,386",
-     "집행률 37.2%. 현금 4,375,000 / 현물 13,125,000 중 참여기관 현물 인건비 집행분"),
-    ("합계", "87,500,000", "14,354,212", "집행률 16.4%"),
-]
-BUDGET_LEAD = ("사업 예산 집행 현황은 협약서(2026-186-001) 사업비와 2026. 8. 10. 제출한 "
-               "중간정산 사용실적보고서 기준이다.")
-BUDGET_TAIL = ("※ 국고 집행액의 대부분은 온라인 마케팅 위탁 홍보비 7,700,000원"
-               "(세금계산서 2026. 7. 16.)이며, 나머지는 앱 등록비·클라우드 인프라 이용료·"
-               "소모품비이다. 비목별 세부 내역은 중간정산 사용실적보고서에 따른다.")
-
-
-def fill_budget(doc):
-    """04 의 예산 집행 표를 재원별 3줄로 다시 쓴다. 몇 번 돌려도 같은 결과."""
-    for t in doc.tables:
-        if t.rows and t.rows[0].cells[0].text.strip() != "예산 항목":
-            continue
-        for tr in t._tbl.tr_lst[1:]:                       # 머리줄만 남기고 비운다
-            t._tbl.remove(tr)
-        t.rows[0].cells[0].text = ""
-        set_font(t.rows[0].cells[0].paragraphs[0].add_run("재원"), size=9, bold=True,
-                 color=(255, 255, 255))
-        set_cell_bg(t.rows[0].cells[0], "00467F")
-        for r in BUDGET_ROWS:
-            dr = t.add_row()
-            for i, v in enumerate(r):
-                c = dr.cells[i]; c.text = ""
-                set_font(c.paragraphs[0].add_run(v), size=9, bold=(i == 0))
-        return True
-    return False
-
-
 # ── 08 Core Web Vitals ─────────────────────────────────────────────────────
-# 2026-08-19 Lighthouse 12.8.2 실측(https://healwith.co.kr/ko, 헤드리스 크롬).
-# 모바일은 저속 4G·CPU 4배 감속 조건, 데스크톱은 기본 조건.
+# 2026-08-20 Lighthouse 12.8.2 실측(https://healwith.co.kr/ko). 광고차단 프로그램을 끈 상태,
+# 모바일·데스크톱 각 5회 측정의 중앙값.
 CWV_ROWS = [
     ("LCP (최대 콘텐츠 페인트)", "2.5초 이하", "모바일 6.40초 / 데스크톱 1.41초",
      "각 5회 반복 측정의 중앙값. 데스크톱 충족, 모바일 미달"
@@ -401,9 +350,9 @@ CWV_ROWS = [
     ("AI 챗봇 첫 토큰", "3초 이하", "미측정", "별도 계측 도구 필요"),
 ]
 CWV_NOTE = ("Lighthouse 12.8.2 실측(2026. 8. 20., https://healwith.co.kr/ko). "
-            "모바일은 저속 4G·CPU 4배 감속 조건이며 5회 반복 측정의 중앙값이다. 측정 PC 의 광고차단 프로그램이 값을 "
-            "왜곡시키므로 해당 프로그램을 끈 상태에서 측정하였다. 종합 점수는 측정 환경에 따라 "
-            "편차가 크므로 기재하지 않고 지표값만 기재한다.")
+            "모바일은 저속 4G·CPU 4배 감속 조건이며 5회 반복 측정의 중앙값이다. 측정 PC 의 "
+            "광고차단 프로그램이 값을 왜곡시키므로 해당 프로그램을 끈 상태에서 측정하였다. "
+            "종합 점수는 측정 환경에 따라 편차가 크므로 기재하지 않고 지표값만 기재한다.")
 
 
 def fill_cwv(doc):
@@ -424,8 +373,13 @@ def fill_cwv(doc):
     return False
 
 
-def drop_rows_containing(doc, needle):
+def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
+
+    only_table_with 를 주면 «첫 칸이 그 글자로 시작하는 줄이 있는 표»에서만 지운다.
+    같은 파일명이 여러 표에 나올 때(목록 표 + 제출 일정표) 엉뚱한 표까지
+    지우는 것을 막는다. 2026-08-20 실측: 이걸 안 두었더니 제출 일정표의
+    8월·11월 줄이 통째로 날아갔다.
 
     ⚠️ 번호(B-01 등)로 지우지 마라. 지운 뒤 번호를 다시 매기면 «다음 문서»가 그
        번호를 물려받아, 다시 실행할 때 엉뚱한 줄이 지워진다(2026-08-20 실측:
@@ -433,6 +387,9 @@ def drop_rows_containing(doc, needle):
     """
     n = 0
     for t in doc.tables:
+        if only_table_with and not any(
+                r.cells[0].text.strip().startswith(only_table_with) for r in t.rows):
+            continue
         for row in list(t.rows):
             if any(needle in c.text for c in row.cells):
                 t._tbl.remove(row._tr)
@@ -455,19 +412,6 @@ def set_cells(doc, first_cell, values):
     return False
 
 
-# 04 본문 KPI 표가 옛 목표(10건/80건/80점)에 멈춰 있어 같은 문서의 부록(12/120/90)과
-# 어긋나 있었다. 확정 목표는 협약 기준 12 / 120 / 90 이다.
-KPI_ROWS_04 = {
-    "K-01": {1: "외국인환자 유치 건수", 2: f"{F.KPI_TARGET['attraction']}건",
-             3: f"{F.KPI_ACTUAL['attraction']}건", 4: "유치 파이프라인 가동 중. 8~10월 유입 필요"},
-    "K-02": {1: "사전상담·사후관리 건수", 2: f"{F.KPI_TARGET['consultAndCare']}건",
-             3: f"{F.KPI_ACTUAL['preConsultation'] + F.KPI_ACTUAL['followUp']}건",
-             4: "영상 사전상담 1건 + 환자에게 전달된 소견 6건"},
-    "K-03": {1: "서비스 만족도", 2: f"{F.KPI_TARGET['satisfaction']}점",
-             3: f"표본 {F.KPI_ACTUAL['satisfactionSamples']}건", 4: "완료 상담 증가에 연동"},
-}
-
-
 def main():
     changed = []
 
@@ -480,22 +424,44 @@ def main():
             doc.save(str(path))
             changed.append(f"{path.name}: 공통 교체 {n}곳")
 
-    # 0-1) 04 예산 표
-    path = os.path.join(HERE, "04_중간보고서.docx")
+    # 0-1) 09 산출물목록에서 폐기 문서 흔적 제거
+    #      03 착수보고서: KHIDI 가 요구한 적 없는데 이전 세션이 만든 것(PO 결정 2026-08-20).
+    #      04 중간보고서·05 최종보고서: KHIDI 정해진 양식으로 따로 만든다(PO 결정 2026-08-20).
+    #      제출 자체는 계속 있으므로 일정표는 지우지 않고 문구만 바꾼다.
+    path = os.path.join(HERE, "09_산출물목록.docx")
     if os.path.exists(path):
         doc = Document(path)
+        hit = 0
+        for gone in ("03_착수보고서", "04_중간보고서.docx", "05_최종보고서.docx"):
+            hit += drop_rows_containing(doc, gone, only_table_with="B-")
+        # ⚠️ 문구 교체는 «줄을 지운 뒤»에 한다. 먼저 하면 삭제 기준 글자가 사라져 줄이 안 지워진다.
         for para_ in iter_paragraphs(doc):
-            if "실제 수치는 사업비 확정 후 갱신 예정이다" in para_.text and para_.runs:
-                para_.runs[0].text = BUDGET_LEAD
-                for r_ in para_.runs[1:]:
-                    r_.text = ""
-            if para_.text.strip().startswith("※ 인프라 실비 현황") and para_.runs:
-                para_.runs[0].text = BUDGET_TAIL
-                for r_ in para_.runs[1:]:
-                    r_.text = ""
-        if fill_budget(doc):
+            for old_, new_ in DROPPED_DOC_NOTES:
+                replace_in_paragraph(para_, old_, new_)
+        if hit:
+            for t in doc.tables:
+                if not any(r.cells[0].text.strip().startswith("B-") for r in t.rows):
+                    continue
+                n = 0
+                for row in t.rows:
+                    if row.cells[0].text.strip().startswith("B-"):
+                        n += 1
+                        c = row.cells[0]; c.text = ""
+                        set_font(c.paragraphs[0].add_run(f"B-{n:02d}"), size=9, bold=True)
+        if not any(PLAN_MAP_TITLE in p_.text for p_ in doc.paragraphs):
+            # ⚠️ 부록을 먼저 걷어내고 붙인다. 그냥 붙이면 «부록 뒤»에 놓이고,
+            #    뒤에서 부록을 걷어낼 때 부록 제목부터 문서 끝까지 지우므로 이 표도
+            #    같이 날아간다(2026-08-20 실측). 부록은 아래 단계에서 다시 붙는다.
+            strip_appendix(doc)
+            doc.add_page_break()
+            heading(doc, PLAN_MAP_TITLE)
+            para(doc, "2026. 5. 14. 제출한 사업계획서가 결과물로 적은 항목과 실제 산출물을 "
+                      "나란히 둔 표다. 계획서 표현과 파일 이름이 다른 곳이 있어 함께 적는다.", size=9)
+            table(doc, ["마일스톤", "계획서가 적은 결과물", "실제 산출물", "상태"], PLAN_MAP_ROWS)
+            hit += 1
+        if hit:
             doc.save(path)
-            changed.append("04_중간보고서.docx: 예산 집행 표 갱신")
+            changed.append(f"09_산출물목록.docx: 폐기 문서 정리 + 계획서 대비표")
 
     # 0-2) 08 성능 실측
     path = os.path.join(HERE, "08_테스트결과서.docx")
@@ -514,51 +480,6 @@ def main():
         if fill_cwv(doc):
             doc.save(path)
             changed.append("08_테스트결과서.docx: 성능 측정 표 실측 반영")
-
-    # 0-2c) 05 최종보고서 성과지표 목표 — 옛 값(10/80/80)에 지표 이름도 옛 것이었다.
-    #       11월에 쓸 문서지만 «목표치»는 지금 확정된 값이어야 한다.
-    path = os.path.join(HERE, "05_최종보고서.docx")
-    if os.path.exists(path):
-        doc = Document(path)
-        hit = set_cells(doc, "K-01", {2: f"{F.KPI_TARGET['attraction']}건 이상"})
-        hit += set_cells(doc, "K-02", {1: "사전상담·사후관리 건수",
-                                       2: f"{F.KPI_TARGET['consultAndCare']}건 이상"})
-        hit += set_cells(doc, "K-03", {2: f"{F.KPI_TARGET['satisfaction']}점 이상 (100점)"})
-        if hit:
-            doc.save(path)
-            changed.append(f"05_최종보고서.docx: 성과지표 목표 {hit}줄 정정")
-
-    # 0-2d) 09 산출물목록에서 03_착수보고서 흔적 제거 (PO 결정 2026-08-20: 문서 폐기)
-    #        KHIDI 가 요구한 적 없는데 이전 세션이 만든 문서다. 목록·일정표에서 뺀다.
-    path = os.path.join(HERE, "09_산출물목록.docx")
-    if os.path.exists(path):
-        doc = Document(path)
-        hit = drop_rows_containing(doc, "03_착수보고서")  # 목록 줄 + 제출 일정표 줄
-        if hit:
-            # 번호가 B-02 부터 시작하면 보기 나쁘다. 남은 줄을 B-01 부터 다시 매긴다.
-            for t in doc.tables:
-                labels = [r.cells[0].text.strip() for r in t.rows]
-                if not any(l.startswith("B-") for l in labels):
-                    continue
-                n = 0
-                for row in t.rows:
-                    if row.cells[0].text.strip().startswith("B-"):
-                        n += 1
-                        c = row.cells[0]; c.text = ""
-                        set_font(c.paragraphs[0].add_run(f"B-{n:02d}"), size=9, bold=True)
-            doc.save(path)
-            changed.append(f"09_산출물목록.docx: 03 착수보고서 {hit}줄 제거 + 번호 재정렬")
-
-    # 0-3) 04 KPI 표 · 08 남은 측정 칸
-    path = os.path.join(HERE, "04_중간보고서.docx")
-    if os.path.exists(path):
-        doc = Document(path)
-        hit = sum(set_cells(doc, k, v) for k, v in KPI_ROWS_04.items())
-        hit += set_cells(doc, "T-01", {2: "레드라인 위반 0건 유지",
-                                       3: "매일 자동 시험 가동(위반 자동 검출·경보)"})
-        if hit:
-            doc.save(path)
-            changed.append(f"04_중간보고서.docx: KPI·기술지표 {hit}줄 갱신")
 
     path = os.path.join(HERE, "08_테스트결과서.docx")
     if os.path.exists(path):
@@ -592,7 +513,6 @@ def main():
 
     # 2) 부록 — 있던 것을 걷어내고 새로 붙인다(몇 번 돌려도 한 벌만 남는다)
     for fname, kind in [
-        ("04_중간보고서.docx", "report"),
         ("06_사용자매뉴얼.docx", "user"),
         ("07_관리자매뉴얼.docx", "admin"),
         ("08_테스트결과서.docx", "test"),
