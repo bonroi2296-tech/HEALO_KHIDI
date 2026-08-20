@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-update_reports.py — 생성기가 없는 산출물(04·06·07·08·09)을 현행으로 갱신한다.
+update_reports.py: 생성기가 없는 산출물(04·06·07·08·09)을 현행으로 갱신한다.
 
 왜 «수정 스크립트»인가:
   01·02·EVAL 은 생성기(make_*.py)가 있어 통째로 다시 뽑으면 되지만,
@@ -14,6 +14,7 @@ update_reports.py — 생성기가 없는 산출물(04·06·07·08·09)을 현�
 """
 import os
 import pathlib
+import re
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -45,7 +46,7 @@ REPLACEMENTS = {
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
         ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
-         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
+         "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
         ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
@@ -56,7 +57,7 @@ REPLACEMENTS = {
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
         ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
-         "식별정보 암호화 적용 — 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
+         "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
         ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
@@ -68,19 +69,19 @@ REPLACEMENTS = {
         ("82개 파일 / 748건", "110개 파일 / 1,002건"),
         ("40개 파일 / 108건", "45개 파일 / 164건"),
         ("현재 (4월 30일)", "현재 (8월 19일)"),
-        ("Critical: 0건, High: 0건, Moderate: [확인 필요 — TBD]",
+        ("Critical: 0건, High: 0건, Moderate: [확인 필요. TBD]",
          "Critical: 0건, High: 1건, Moderate: 2건 (운영 의존성 기준, 2026-08-19 실행)"),
         ("2026-04-30", "2026-08-19"),
         ("(e2e/ 디렉토리 예정)",
          "(아래 표는 2026-04 시점 수동 확인 시나리오다. 2026-08-20 현재는 자동화 스크립트 45개 파일 164건으로 대체되어 자동 실행된다.)"),
-        ("Playwright E2E 스크립트 코드베이스 내 미포함 — 현재 수동 시나리오 기반 (e2e/ 디렉토리 추가 예정)",
-         "[해소됨 2026-08-19] Playwright E2E 스크립트 도입 완료 — 45개 파일 164건. 매 변경 시 스모크, 매일 밤 전체 실행."),
-        ("단위 테스트(Jest) 케이스 부재 — requireAdminAuth.test.ts 등 추가 필요",
+        ("Playwright E2E 스크립트 코드베이스 내 미포함. 현재 수동 시나리오 기반 (e2e/ 디렉토리 추가 예정)",
+         "[해소됨 2026-08-19] Playwright E2E 스크립트 도입 완료: 45개 파일 164건. 매 변경 시 스모크, 매일 밤 전체 실행."),
+        ("단위 테스트(Jest) 케이스 부재: requireAdminAuth.test.ts 등 추가 필요",
          "[해소됨 2026-08-19] 단위 테스트 110개 파일 1,002건 도입 완료(전건 통과)."),
         ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역)"),
         ("27건 | 27/27 (100%) | 현재 시점 전체 통과", "27건 | 27/27 | 2026-04 수동 확인 기준"),
         ("27/27 (100%)", "27/27 (2026-04 수동 확인 기준)"),
-        ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막 — 실서비스 가동, 통번역 3,542건"),
+        ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막: 실서비스 가동, 통번역 3,542건"),
         ("2026년 5월 | requireAdminAuth 단위 테스트", "[완료] requireAdminAuth 단위 테스트 도입"),
         ("2026년 6월 | 부하 테스트 (100 동시 접속)", "[예정] 부하 테스트 (100 동시 접속)"),
         ("2026년 7월 | 외부 침투 테스트", "[예정] 외부 침투 테스트"),
@@ -98,18 +99,18 @@ REPLACEMENTS = {
     ],
     "06_사용자매뉴얼.docx": [
         ("healo.kr/intake", "healo.kr/inquiry"),
-        ("[화면: /intake 페이지 — Step 1]", "[화면: /inquiry 페이지 — 1단계]"),
-        ("[화면: /intake 페이지 — Step 5 제출 완료 화면]", "[화면: /inquiry 페이지 — 제출 완료]"),
+        ("[화면: /intake 페이지: Step 1]", "[화면: /inquiry 페이지: 1단계]"),
+        ("[화면: /intake 페이지: Step 5 제출 완료 화면]", "[화면: /inquiry 페이지: 제출 완료]"),
         ("[화면: /coordinator/intake/[id] 페이지]", "[화면: /coordinator/intakes 페이지]"),
         ("healo.kr/partner 접속 후 의료진 계정으로 로그인",
          "healo.kr/hospital 접속 후 의료기관 담당자 계정으로 로그인 "
          "(의료진 본인은 계정 없이 상담방 초대링크로 참여)"),
-        ("[화면: /partner 페이지 — 파트너 대시보드]", "[화면: /hospital 페이지 — 국내 의료기관 대시보드]"),
-        ("[화면: /partner/patients/[id] 페이지]", "[화면: /hospital/leads 페이지 — 의뢰 환자 상세]"),
-        ("[화면: /partner/sessions/[id] 페이지 — 화상 협진]",
-         "[화면: /consultation/[id] — 화상 상담방(초대링크 입장)]"),
+        ("[화면: /partner 페이지: 파트너 대시보드]", "[화면: /hospital 페이지: 국내 의료기관 대시보드]"),
+        ("[화면: /partner/patients/[id] 페이지]", "[화면: /hospital/leads 페이지: 의뢰 환자 상세]"),
+        ("[화면: /partner/sessions/[id] 페이지: 화상 협진]",
+         "[화면: /consultation/[id]: 화상 상담방(초대링크 입장)]"),
         ("[화면: /partner/patients/[id]/opinion 페이지]",
-         "[화면: /opinion/[token] — 전문의 소견 작성]"),
+         "[화면: /opinion/[token]: 전문의 소견 작성]"),
         ("HEALO v1.0 (2026년 4월 기준)", "HEALO (2026년 8월 19일 기준)"),
         ("2026-04-30", "2026-08-19"),
     ],
@@ -388,6 +389,31 @@ def fill_cwv(doc):
     return False
 
 
+def fix_em_dash(doc):
+    """한국어 문장 가운데의 줄표를 콜론·마침표로 바꾼다(PO 규칙 2026-08-20).
+
+    국어 문장부호 규정상 줄표의 용법은 「제목 뒤 부제」뿐이다. 앞말이 문장으로 끝나면
+    마침표, 명사로 끝나면 콜론을 쓴다. 표 칸에서 「해당 없음」을 뜻하는 홀로 선 줄표는
+    기호라서 건드리지 않는다(앞뒤 공백이 있는 것만 바꾼다).
+    """
+    D = chr(8212)
+    ENDS = ("다", "음", "함", "임", "됨", "것", "요", "까", "나")
+    n = 0
+    for par in iter_paragraphs(doc):
+        t = par.text
+        if f" {D} " not in t:
+            continue
+        new = re.sub(r"(\S) " + D + r" (\S)",
+                     lambda m: m.group(1) + (". " if m.group(1)[-1] in ENDS else ": ") + m.group(2), t)
+        if new == t or not par.runs:
+            continue
+        par.runs[0].text = new
+        for r in par.runs[1:]:
+            r.text = ""
+        n += 1
+    return n
+
+
 FOOTER_LEFT = "본로이  |  기밀문서, 무단 배포 금지"
 
 
@@ -495,6 +521,7 @@ def main():
         doc = Document(str(path))
         n = sum(1 for p in iter_paragraphs(doc) for old, new in GLOBAL
                 if replace_in_paragraph(p, old, new))
+        n += fix_em_dash(doc)
         n += ensure_footer(doc)
         n += repeat_table_headers(doc)
         if n:

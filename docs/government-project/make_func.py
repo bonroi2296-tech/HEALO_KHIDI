@@ -225,22 +225,22 @@ add_scenario(doc, {
     '출력': 'Supabase 세션 쿠키, 리다이렉트',
     '화면 경로': '/app/signup, /app/login, /app/auth',
     'DB 테이블': 'auth.users (Supabase 관리)\napp_metadata.role 컬럼',
-    '현재 구현 상태': '완료 — middleware.js, src/lib/auth, /app/auth',
+    '현재 구현 상태': '완료: middleware.js, src/lib/auth, /app/auth',
 })
 
 add_heading(doc, '2.2 역할 기반 접근 제어 (FN-AUTH-02)', 2)
 add_scenario(doc, {
     '기능 ID': 'FN-AUTH-02',
-    '기능명': 'RBAC — 역할 기반 라우트 보호',
+    '기능명': 'RBAC: 역할 기반 라우트 보호',
     '액터': '시스템 (Next.js 미들웨어)',
     '전제 조건': '사용자 세션 쿠키 존재',
     '트리거': '보호된 라우트 (/patient/*, /admin/*, /coordinator/*) 접근 시',
     '기본 흐름': '① Next.js middleware.js에서 세션 검증\n② app_metadata.role 확인\n③ 역할 불일치 → /login 리다이렉트\n④ 역할 일치 → 페이지 렌더링 허용',
     '예외 흐름': '• 세션 만료 → 재로그인 안내\n• role 미설정 → 기본 환자 권한',
-    '역할 정의': '비회원(게스트): 상담방 초대링크 토큰으로만 /consultation/[id] 입장\n환자: /patient/* 접근\ncoordinator: /coordinator/* 접근\nadmin: /admin/* 전체 접근\n국내 의료기관: /hospital/* 접근\n해외 에이전시: /agency/* 접근\n해외 의료기관: /clinic/* 접근\n※ 의사는 계정 계층이 아님 — 초대링크 게스트 또는 병원 계정으로 참여',
+    '역할 정의': '비회원(게스트): 상담방 초대링크 토큰으로만 /consultation/[id] 입장\n환자: /patient/* 접근\ncoordinator: /coordinator/* 접근\nadmin: /admin/* 전체 접근\n국내 의료기관: /hospital/* 접근\n해외 에이전시: /agency/* 접근\n해외 의료기관: /clinic/* 접근\n※ 의사는 계정 계층이 아님: 초대링크 게스트 또는 병원 계정으로 참여',
     '화면 경로': 'middleware.js (루트 레벨)',
     'DB/컬럼': 'auth.users.app_metadata.role (user_metadata 사용 금지)',
-    '현재 구현 상태': '완료 — middleware.js, src/lib/auth/requireAdminAuth',
+    '현재 구현 상태': '완료: middleware.js, src/lib/auth/requireAdminAuth',
 })
 
 add_heading(doc, '2.3 게스트 토큰 (FN-AUTH-03)', 2)
@@ -254,7 +254,7 @@ add_scenario(doc, {
     '예외 흐름': '• 토큰 만료 (30일) → 새 토큰 발급, 이전 이력 연결 불가',
     '화면 경로': '/inquiry (토큰 발급 시작점)',
     'DB 테이블/컬럼': 'inquiries.public_token (migrations/20260125)',
-    '현재 구현 상태': '완료 — migrations/20260125_inquiries_public_token',
+    '현재 구현 상태': '완료: migrations/20260125_inquiries_public_token',
 })
 
 doc.add_page_break()
@@ -278,7 +278,7 @@ add_scenario(doc, {
     '화면 경로': '/app/inquiry (통합 문의 퍼널)',
     'DB 테이블/컬럼': 'inquiries (id, name_encrypted, email_encrypted, cancer_type, stage, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
     '보안': 'AES-256-GCM 암호화 (encryptionV2.ts)\n개인정보보호법 동의 수집',
-    '현재 구현 상태': '완료 — /app/inquiry (통합 문의 퍼널)\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
+    '현재 구현 상태': '완료: /app/inquiry (통합 문의 퍼널)\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
 })
 
 add_heading(doc, '3.2 의료문서 업로드·관리 (FN-INTAKE-02)', 2)
@@ -294,7 +294,7 @@ add_scenario(doc, {
     '출력': 'Supabase Storage URL, attachments 레코드',
     '화면 경로': '/app/inquiry (업로드), /app/patient/documents (관리)',
     'DB 테이블/컬럼': 'attachments (id, inquiry_id, file_url, file_type, uploaded_at)\nconsultation_documents (migrations/20260406)',
-    '현재 구현 상태': '완료 — /app/api/attachments\nmigrations/20260406_consultation_documents',
+    '현재 구현 상태': '완료: /app/api/attachments\nmigrations/20260406_consultation_documents',
 })
 
 doc.add_page_break()
@@ -318,7 +318,7 @@ add_scenario(doc, {
     '화면 경로': '/app/hospitals, /app/api/chat',
     'DB 테이블/컬럼': 'hospitals (id, name, specialty, location, i18n JSONB)\nrag_documents (embedding vector, content)\nmigrations/20260225_rag_vector_v1, 20260223_i18n_jsonb',
     '참조 특허': '특허 10-2745881 (EMR 연동 플랫폼), 특허 10-2868334 (AI 기반 중개)',
-    '현재 구현 상태': '완료 — src/lib/chat/generateReply.ts\nsrc/lib/rag/*, /app/api/chat/route.ts',
+    '현재 구현 상태': '완료: src/lib/chat/generateReply.ts\nsrc/lib/rag/*, /app/api/chat/route.ts',
 })
 
 add_heading(doc, '4.2 병원 목록·상세 조회 (FN-MATCH-02)', 2)
@@ -333,7 +333,7 @@ add_scenario(doc, {
     '출력': '병원 카드 목록, 상세 정보, 지도',
     '화면 경로': '/app/hospitals, /app/treatments',
     'DB 테이블/컬럼': 'hospitals (id, name, specialty, address, i18n JSONB, is_published)\ntreatments, specialties\nmigrations/20260223_i18n_jsonb, 20260125_add_is_published',
-    '현재 구현 상태': '완료 — /app/hospitals, /app/treatments\nmigrations/20260223_i18n_jsonb',
+    '현재 구현 상태': '완료: /app/hospitals, /app/treatments\nmigrations/20260223_i18n_jsonb',
 })
 
 doc.add_page_break()
@@ -357,7 +357,7 @@ add_scenario(doc, {
     '화면 경로': '/app/telemedicine/TelemedicineClient.jsx',
     'DB 테이블/컬럼': 'consultation_sessions (id, inquiry_id, room_name, started_at, ended_at, duration_min)\nmigrations/20260403_add_consultation_sessions',
     '연동 서비스': 'LiveKit Cloud (livekit-server-sdk)\n@livekit/components-react, livekit-client',
-    '현재 구현 상태': '완료 — /app/api/livekit/route.ts\n/app/telemedicine/TelemedicineClient.jsx\nmigrations/20260403_add_consultation_sessions',
+    '현재 구현 상태': '완료: /app/api/livekit/route.ts\n/app/telemedicine/TelemedicineClient.jsx\nmigrations/20260403_add_consultation_sessions',
 })
 
 add_heading(doc, '5.2 게스트 참여 토큰 (FN-VIDEO-02)', 2)
@@ -370,7 +370,7 @@ add_scenario(doc, {
     '기본 흐름': '① 코디네이터가 환자에게 상담 링크 전송\n② 환자가 링크 접속 (로그인 불필요)\n③ /api/livekit에서 게스트 토큰 발급\n④ 이름 입력 후 화상상담 참여',
     '예외 흐름': '• 링크 만료 (24시간) → 코디네이터에게 재발급 요청',
     '화면 경로': '/app/telemedicine/ (게스트 진입)',
-    '현재 구현 상태': '완료 — /app/api/livekit/route.ts',
+    '현재 구현 상태': '완료: /app/api/livekit/route.ts',
 })
 
 doc.add_page_break()
@@ -393,7 +393,7 @@ add_scenario(doc, {
     '출력': '스트리밍 텍스트 응답, 병원 카드, Human 이관 여부',
     '화면 경로': '/app/patient/chat, /app/consult',
     'DB 테이블/컬럼': 'chat_threads (id, inquiry_id, messages JSONB, created_at)\nrag_documents (embedding, content, trust_tier)\nmigrations/20260225_chat_threads, 20260225_rag_vector_v1',
-    '현재 구현 상태': '완료 — /app/api/chat/route.ts\nsrc/lib/chat/generateReply.ts\nsrc/lib/rag/*',
+    '현재 구현 상태': '완료: /app/api/chat/route.ts\nsrc/lib/chat/generateReply.ts\nsrc/lib/rag/*',
 })
 
 add_heading(doc, '6.2 Human Agent 이관 및 코디네이터 상담 (FN-CHAT-02)', 2)
@@ -407,7 +407,7 @@ add_scenario(doc, {
     '예외 흐름': '• 코디네이터 비접속 (1시간) → 슈퍼바이저에게 에스컬레이션',
     '화면 경로': '/app/coordinator/messages',
     'DB 테이블/컬럼': 'chat_threads.assigned_to (coordinator user_id)\nchat_threads.is_escalated',
-    '현재 구현 상태': '완료 — /app/coordinator/messages\n/app/coordinator/*',
+    '현재 구현 상태': '완료: /app/coordinator/messages\n/app/coordinator/*',
 })
 
 doc.add_page_break()
@@ -427,7 +427,7 @@ add_scenario(doc, {
     '화면 경로': '/app/api/translate-text',
     'DB 테이블/컬럼': '별도 저장 없음 (실시간 처리)',
     '참조 특허': '특허 10-2868334 (실시간 통역 가능 생성형AI 기반 중개 플랫폼)',
-    '현재 구현 상태': '완료 (API) — /app/api/translate/route.ts\n/app/api/translate-text/route.ts',
+    '현재 구현 상태': '완료 (API): /app/api/translate/route.ts\n/app/api/translate-text/route.ts',
 })
 
 add_heading(doc, '7.2 화상상담 중 실시간 번역 (FN-TRANS-02)', 2)
@@ -439,7 +439,7 @@ add_scenario(doc, {
     '기본 흐름': '① 음성 → STT 변환\n② /api/translate-text로 번역 요청\n③ 자막 형태로 화면 표시',
     '예외 흐름': '• STT 인식률 저하 → 텍스트 입력 전환 안내',
     '화면 경로': '/app/telemedicine/ (자막 오버레이)',
-    '현재 구현 상태': '부분구현 — translate API 완성\n화상 내 실시간 자막 통합은 추가 개발 필요\n(Phase B 개발 예정)',
+    '현재 구현 상태': '부분구현: translate API 완성\n화상 내 실시간 자막 통합은 추가 개발 필요\n(Phase B 개발 예정)',
 })
 
 doc.add_page_break()
@@ -459,7 +459,7 @@ add_scenario(doc, {
     '예외 흐름': '• 선택 날짜 의료진 부재 → 대안 일정 제시\n• 예약 취소 요청 → 72시간 전 무료 취소',
     '화면 경로': '/app/patient/calendar',
     'DB 테이블/컬럼': 'consultation_sessions (scheduled_at, confirmed)\nmigrations/20260403_add_consultation_sessions',
-    '현재 구현 상태': '부분구현 — /app/patient/calendar UI 있음\n자동 리마인더·의료진 일정 연동 추가 개발 필요',
+    '현재 구현 상태': '부분구현: /app/patient/calendar UI 있음\n자동 리마인더·의료진 일정 연동 추가 개발 필요',
 })
 
 add_heading(doc, '8.2 비자 발급 안내 (FN-SCHED-02)', 2)
@@ -471,7 +471,7 @@ add_scenario(doc, {
     '기본 흐름': '① 비자 종류 안내 (의료비자 C-3-1)\n② 필요 서류 목록 제공 (진단서, 예약 확인서, 재정증명 등)\n③ 처리 기간·수수료 안내\n④ 진단서·예약확인서 PDF 다운로드 연동',
     '화면 경로': '/app/patient/visa, /app/visa',
     'DB 테이블/컬럼': 'education_visa_rebooking (migrations/20260406)',
-    '현재 구현 상태': '완료 — /app/patient/visa, /app/visa\nmigrations/20260406_education_visa_rebooking',
+    '현재 구현 상태': '완료: /app/patient/visa, /app/visa\nmigrations/20260406_education_visa_rebooking',
 })
 
 doc.add_page_break()
@@ -494,7 +494,7 @@ add_scenario(doc, {
     '출력': '경과 기록, 의료진 알림',
     '화면 경로': '/app/patient/symptoms',
     'DB 테이블/컬럼': 'inquiries (follow_up_status)\nconsultation_sessions (post_care_notes)',
-    '현재 구현 상태': '부분구현 — /app/patient/symptoms UI 있음\nAI 자동 이상징후 감지 미구현 (Phase B)',
+    '현재 구현 상태': '부분구현: /app/patient/symptoms UI 있음\nAI 자동 이상징후 감지 미구현 (Phase B)',
 })
 
 add_heading(doc, '9.2 건강관리 교육 콘텐츠 (FN-POST-02)', 2)
@@ -506,7 +506,7 @@ add_scenario(doc, {
     '기본 흐름': '① 환자 암 유형에 따른 콘텐츠 필터링\n② 식이요법, 운동가이드, 복약안내, 면역력 관리 콘텐츠\n③ 러시아어·카자흐어 콘텐츠 제공\n④ 영상·카드뉴스·텍스트 형태',
     '화면 경로': '/app/patient/education, /app/education',
     'DB 테이블/컬럼': 'education_visa_rebooking (content_type, language, content)\nmigrations/20260406_education_visa_rebooking',
-    '현재 구현 상태': '부분구현 — /app/patient/education UI 있음\n러시아어 콘텐츠 일부 번역 완료, 전체 완성 필요',
+    '현재 구현 상태': '부분구현: /app/patient/education UI 있음\n러시아어 콘텐츠 일부 번역 완료, 전체 완성 필요',
 })
 
 add_heading(doc, '9.3 재방문 예약 (Rebooking) (FN-POST-03)', 2)
@@ -518,7 +518,7 @@ add_scenario(doc, {
     '기본 흐름': '① AI가 경과 데이터 분석 → 재방문 필요성 판단\n② 환자에게 재방문 알림 발송\n③ 재진 예상비용·일정·비자 재발급 안내\n④ 예약 확정',
     '화면 경로': '/app/patient/rebooking',
     'DB 테이블/컬럼': 'education_visa_rebooking (rebooking_status, next_visit_date)',
-    '현재 구현 상태': '완료 — /app/patient/rebooking\nmigrations/20260406_education_visa_rebooking',
+    '현재 구현 상태': '완료: /app/patient/rebooking\nmigrations/20260406_education_visa_rebooking',
 })
 
 doc.add_page_break()
@@ -537,7 +537,7 @@ add_scenario(doc, {
     '기본 흐름': '① 브라우저 Accept-Language 헤더 감지\n② 또는 /ru, /kk 경로로 직접 접근\n③ src/lib/i18n/index.js에서 언어 메시지 로드\n④ 해당 언어 UI 렌더링',
     '지원 언어': 'ko (한국어), en (영어), ru (러시아어), kk (카자흐어), zh (중국어), ja (일본어)',
     '화면 경로': '/app/ru, /app/kk, src/lib/i18n/index.js',
-    '현재 구현 상태': '부분구현 — /app/ru, /app/kk 라우트 존재\n러시아어·카자흐어 UI 부분 적용\n전체 번역 완성 필요 (Phase B)',
+    '현재 구현 상태': '부분구현: /app/ru, /app/kk 라우트 존재\n러시아어·카자흐어 UI 부분 적용\n전체 번역 완성 필요 (Phase B)',
 })
 
 add_heading(doc, '10.2 DB 콘텐츠 자동번역 (FN-I18N-02)', 2)
@@ -549,7 +549,7 @@ add_scenario(doc, {
     '기본 흐름': '① 관리자가 한국어 콘텐츠 입력\n② /api/rag 배치 처리: Gemini로 6개 언어 번역\n③ hospitals.i18n JSONB 컬럼에 번역 저장\n④ 각 언어 UI에서 자동 로드',
     '화면 경로': '/app/admin/* (관리자 실행), 전체 공개 페이지에서 결과 표시',
     'DB 테이블/컬럼': 'hospitals.i18n JSONB\ntreatments.translations\nmigrations/20260223_auto_translate_fields\nmigrations/20260226_treatment_translations',
-    '현재 구현 상태': '완료 — migrations/20260223_auto_translate_fields\nmigrations/20260226_treatment_translations',
+    '현재 구현 상태': '완료: migrations/20260223_auto_translate_fields\nmigrations/20260226_treatment_translations',
 })
 
 doc.add_page_break()
@@ -562,14 +562,14 @@ add_heading(doc, '11. 코디네이터 포털', 1)
 add_heading(doc, '11.1 코디네이터 대시보드·환자 관리 (FN-COORD-01)', 2)
 add_scenario(doc, {
     '기능 ID': 'FN-COORD-01',
-    '기능명': '코디네이터 포털 — 환자 관리 및 상담 처리',
+    '기능명': '코디네이터 포털: 환자 관리 및 상담 처리',
     '액터': '코디네이터 (P-02)',
     '전제 조건': 'coordinator role 로그인',
     '트리거': '/coordinator 접근',
     '기본 흐름': '① 담당 환자 목록 및 상태 확인\n② AI 이관 상담 목록 확인\n③ 환자 메시지 읽기·응답\n④ 의료문서 라우팅 (병원에 전달)\n⑤ 예약·일정 확정\n⑥ 실적 현황 (유치 건수, 상담 건수) 확인',
     '화면 경로': '/app/coordinator/page.jsx\n/app/coordinator/messages\n/app/coordinator/intakes\n/app/coordinator/consultations',
     'DB 테이블/컬럼': 'inquiries (coordinator_id, status)\nchat_threads (assigned_to)\nconsultation_sessions (coordinator_id)',
-    '현재 구현 상태': '완료 — /app/coordinator/*',
+    '현재 구현 상태': '완료: /app/coordinator/*',
 })
 
 add_heading(doc, '11.2 코디네이터 응답·문서 관리 (FN-COORD-02)', 2)
@@ -579,7 +579,7 @@ add_scenario(doc, {
     '액터': '코디네이터 (P-02)',
     '기본 흐름': '① 상담 응답 내용 기록 (coordinator_responses 테이블)\n② 의료문서 분류·병원 전달\n③ 상담 요약 생성 (AI 보조)',
     'DB 테이블/컬럼': 'coordinator_responses (id, inquiry_id, response_text, created_at)\nmigrations/20260225_coordinator_responses',
-    '현재 구현 상태': '완료 — migrations/20260225_coordinator_responses',
+    '현재 구현 상태': '완료: migrations/20260225_coordinator_responses',
 })
 
 doc.add_page_break()
@@ -598,7 +598,7 @@ add_scenario(doc, {
     '기본 흐름': '① KPI 대시보드: 유치 건수, 상담 건수, 만족도\n② 사용자 관리: 역할 변경, 활성화/비활성화\n③ 병원·의료진 데이터 관리\n④ AI 성능 모니터링: RAG 응답 품질, 자동응답률\n⑤ 감사 로그 조회\n⑥ 성과보고서 PDF 출력',
     '화면 경로': '/app/admin/page.jsx\n/app/admin/analytics\n/app/admin/consultations\n/app/admin/audit',
     'DB 테이블/컬럼': 'admin_audit_logs (id, action, user_id, timestamp)\nmigrations/20260129_add_admin_audit_logs',
-    '현재 구현 상태': '완료 — /app/admin/*',
+    '현재 구현 상태': '완료: /app/admin/*',
 })
 
 add_heading(doc, '12.2 파트너 병원 포털 (FN-PARTNER-01)', 2)
@@ -610,7 +610,7 @@ add_scenario(doc, {
     '기본 흐름': '① 병원 프로필·의료진 정보 관리\n② 협진 의뢰 수신·처리\n③ 진료 결과 입력\n④ 가용 일정 관리',
     '화면 경로': '/app/hospital/*',
     'DB 테이블/컬럼': 'hospital_users (hospital_id, user_id, role)\npartner_doctors (doctor_id, hospital_id, specialty)\nmigrations/20260220_hospital_users\nmigrations/20260407_partner_doctors_branches',
-    '현재 구현 상태': '완료 — /app/hospital/*\nmigrations/20260407_partner_doctors_branches',
+    '현재 구현 상태': '완료: /app/hospital/*\nmigrations/20260407_partner_doctors_branches',
 })
 
 doc.add_page_break()
@@ -630,7 +630,7 @@ add_scenario(doc, {
     '이메일 유형': '예약 확인서, 상담 완료 요약, 경과 체크인 리마인더\n관리자 신규 문의 알림, 코디네이터 이관 알림',
     '화면 경로': '/app/api/email/*',
     'DB 테이블/컬럼': 'admin_notification_logs (id, type, recipient, sent_at)\nmigrations/20260204_add_admin_notification_logs',
-    '현재 구현 상태': '완료 — /app/api/email, src/lib/email',
+    '현재 구현 상태': '완료: /app/api/email, src/lib/email',
 })
 
 add_heading(doc, '13.2 실시간 In-app 알림 (FN-NOTIF-02)', 2)
@@ -641,7 +641,7 @@ add_scenario(doc, {
     '트리거': '신규 메시지, AI 이관, 의료진 회신',
     '기본 흐름': '① Supabase Realtime 채널 구독\n② DB 변경 감지 시 클라이언트에 push\n③ 알림 뱃지·토스트 표시',
     '화면 경로': '/app/patient/messages, /app/coordinator/*',
-    '현재 구현 상태': '부분구현 — 메시지 화면 있음\n실시간 푸시 Supabase Realtime 통합 일부',
+    '현재 구현 상태': '부분구현: 메시지 화면 있음\n실시간 푸시 Supabase Realtime 통합 일부',
 })
 
 doc.add_page_break()
@@ -656,14 +656,14 @@ add_para(doc, '사업계획서 p.30~31 AI 학습 기반 상담 자동화 시스�
 add_scenario(doc, {
     '기능 ID': 'FN-RAG-01',
     '기능명': 'RAG 3계층 기반 AI 응답 생성',
-    '개요': '사업계획서(p.31) "현재는 Human, 미래는 AI" — Human Agent 상담 데이터 RAG 학습 파이프라인',
+    '개요': '사업계획서(p.31) "현재는 Human, 미래는 AI": Human Agent 상담 데이터 RAG 학습 파이프라인',
     '1계층 (HEALO DB)': 'Supabase pgvector로 병원·치료·FAQ 벡터 저장\nrag_documents 테이블 (embedding, content, trust_tier)\nmigrations/20260225_rag_vector_v1',
     '2계층 (HIRA 크롤링)': 'HIRA 의료수가·병원 정보 크롤링 및 RAG 인제스트\ncrawl_items, crawl_pipeline 테이블\nmigrations/20260225_crawl_pipeline',
     '3계층 (Google Grounding)': 'Gemini Google Search Grounding\n실시간 최신 의료 정보 보완',
     '학습 파이프라인': '① Human Agent 상담 기록\n② 자동 구조화 (JSON/CSV)\n③ 벡터 임베딩 생성\n④ pgvector 저장\n⑤ RAG 검색으로 AI 응답 품질 향상',
     '화면 경로': 'src/lib/rag/*, src/lib/chat/generateReply.ts',
     'DB 테이블/컬럼': 'rag_documents (id, content, embedding, trust_tier, source)\nplaybook_patterns, playbook_usage_events\nmigrations/20260225_rag_*, 20260225_playbook_*',
-    '현재 구현 상태': '완료 — src/lib/rag/*\nmigrations/20260225_rag_vector_v1\nmigrations/20260225_playbook_patterns',
+    '현재 구현 상태': '완료: src/lib/rag/*\nmigrations/20260225_rag_vector_v1\nmigrations/20260225_playbook_patterns',
 })
 
 doc.add_page_break()
@@ -682,7 +682,7 @@ add_scenario(doc, {
     '암호화 시점': '인테이크 폼 제출 → 서버 측에서 암호화 후 저장\n평문 컬럼은 migrations/20260420_drop_*_plaintext 에서 삭제 완료',
     '복호화 권한': 'service_role 키 보유 서버 모듈만 복호화 가능\nimport "server-only" 적용',
     'DB 테이블/컬럼': 'inquiries (name_encrypted, email_encrypted)\ncancer_intake_encrypted\nmigrations/20260420_drop_cancer_intake_plaintext\nmigrations/20260420_drop_inquiries_plaintext_email',
-    '현재 구현 상태': '완료 — src/lib/security/encryptionV2.ts\nmigrations/20260420_drop_*_plaintext (평문 완전 제거)',
+    '현재 구현 상태': '완료: src/lib/security/encryptionV2.ts\nmigrations/20260420_drop_*_plaintext (평문 완전 제거)',
 })
 
 add_heading(doc, '15.2 API 보안 헬퍼 및 Rate Limiting (FN-SEC-02)', 2)
@@ -690,11 +690,11 @@ add_scenario(doc, {
     '기능 ID': 'FN-SEC-02',
     '기능명': 'API 인증·권한 검증 및 Rate Limiting',
     '인증 헬퍼': 'requireAdminAuth(): admin role 검증\nrequireConsultationAccess(): 상담 접근 권한\n모든 새 API 라우트에 의무 적용',
-    'Rate Limiting': 'src/lib/rateLimit.ts — IP 기반 요청 수 제한\n공개 POST 엔드포인트 필수 적용',
+    'Rate Limiting': 'src/lib/rateLimit.ts: IP 기반 요청 수 제한\n공개 POST 엔드포인트 필수 적용',
     '오류 처리': 'API 응답에 error.message 직접 노출 금지\n"internal_error" 등 코드형 오류만 반환',
     'RLS (Row Level Security)': 'Supabase PostgreSQL 행 단위 접근 제어\nmigrations/20260125_security_rls_policies\nmigrations/20260130_enable_rls_inquiries',
     '화면 경로': 'src/lib/auth/*, src/lib/rateLimit.ts',
-    '현재 구현 상태': '완료 — src/lib/security/*\nsrc/lib/rateLimit.ts\nmigrations/20260125_security_*',
+    '현재 구현 상태': '완료: src/lib/security/*\nsrc/lib/rateLimit.ts\nmigrations/20260125_security_*',
 })
 
 add_heading(doc, '15.3 감사 로그 (FN-SEC-03)', 2)
@@ -704,7 +704,7 @@ add_scenario(doc, {
     '기록 대상': '관리자 로그인, 사용자 역할 변경, 데이터 수정, 병원 정보 변경 등',
     '화면 경로': '/app/admin/audit',
     'DB 테이블/컬럼': 'admin_audit_logs (id, action, target_id, user_id, ip, created_at)\nmigrations/20260129_add_admin_audit_logs',
-    '현재 구현 상태': '완료 — migrations/20260129_add_admin_audit_logs',
+    '현재 구현 상태': '완료: migrations/20260129_add_admin_audit_logs',
 })
 
 # ================================================================
@@ -748,8 +748,8 @@ for row in summary_data:
 
 doc.add_paragraph()
 add_para(doc, '구현 비율 집계:')
-add_para(doc, '완료: 22개 기능 (96%) — 착수 시 부분구현 6건 중 5건이 완료로 전환(2026-08-19 실측)', indent=1)
-add_para(doc, '부분구현: 1개 기능 (4%) — 예약 리마인더의 의료진 일정 연동', indent=1)
+add_para(doc, '완료: 22개 기능 (96%): 착수 시 부분구현 6건 중 5건이 완료로 전환(2026-08-19 실측)', indent=1)
+add_para(doc, '부분구현: 1개 기능 (4%): 예약 리마인더의 의료진 일정 연동', indent=1)
 add_para(doc, '미구현: 0개 그룹 (모든 기능 최소 부분 구현 상태)', indent=1)
 add_para(doc, '※ 부분구현 항목은 Phase B에서 완성 예정.')
 
