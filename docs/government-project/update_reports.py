@@ -357,8 +357,13 @@ def fill_cwv(doc):
     return False
 
 
-def drop_rows_containing(doc, needle):
+def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
+
+    only_table_with 를 주면 «첫 칸이 그 글자로 시작하는 줄이 있는 표»에서만 지운다.
+    같은 파일명이 여러 표에 나올 때(목록 표 + 제출 일정표) 엉뚱한 표까지
+    지우는 것을 막는다. 2026-08-20 실측: 이걸 안 두었더니 제출 일정표의
+    8월·11월 줄이 통째로 날아갔다.
 
     ⚠️ 번호(B-01 등)로 지우지 마라. 지운 뒤 번호를 다시 매기면 «다음 문서»가 그
        번호를 물려받아, 다시 실행할 때 엉뚱한 줄이 지워진다(2026-08-20 실측:
@@ -366,6 +371,9 @@ def drop_rows_containing(doc, needle):
     """
     n = 0
     for t in doc.tables:
+        if only_table_with and not any(
+                r.cells[0].text.strip().startswith(only_table_with) for r in t.rows):
+            continue
         for row in list(t.rows):
             if any(needle in c.text for c in row.cells):
                 t._tbl.remove(row._tr)
@@ -409,7 +417,7 @@ def main():
         doc = Document(path)
         hit = 0
         for gone in ("03_착수보고서", "04_중간보고서.docx", "05_최종보고서.docx"):
-            hit += drop_rows_containing(doc, gone)
+            hit += drop_rows_containing(doc, gone, only_table_with="B-")
         # ⚠️ 문구 교체는 «줄을 지운 뒤»에 한다. 먼저 하면 삭제 기준 글자가 사라져 줄이 안 지워진다.
         for para_ in iter_paragraphs(doc):
             for old_, new_ in DROPPED_DOC_NOTES:
