@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """SWOT 분석 그림 — BeyondK 깔(docs/rules/PPT_STYLE.md) 기준.
 
-규격 : 흰 바탕 · 라임(#D9FE55)은 한 곳만 · 에스코어 드림 글꼴.
+규격 : 흰 바탕 · 브랜드 색(teal-700 #0f766e)은 한 곳만 · 에스코어 드림 글꼴.
 쓰는 곳 : 중간보고서 2부 「수익모델」 / 발표자료 SWOT 장.
 
 쓰는 법:  python scripts/ppt/make_swot_image.py <나올.png>
@@ -19,7 +19,7 @@ MUTED = (0x9A, 0x97, 0x97)
 LINE = (0xDC, 0xDD, 0xDD)
 PANEL = (0xF7, 0xF7, 0xF7)
 PANEL2 = (0xFA, 0xFA, 0xFA)
-LIME = (0xD9, 0xFE, 0x55)
+BRAND = (0x0F, 0x76, 0x6E)      # teal-700 · 우리 브랜드 색
 
 FDIR = r'C:\Users\user\AppData\Local\Microsoft\Windows\Fonts'
 
@@ -95,14 +95,14 @@ def side(y, text):
 side(Y0 + 96, '내부요인')
 side(Y0 + CH + GAP + 96, '외부요인')
 
-# ─────────────────────────── 전략 띠 (라임은 여기 한 곳만)
+# ─────────────────────────── 전략 띠 (브랜드 색은 여기 한 곳만)
 BY = Y0 + (CH + GAP) * 2 + 14
-d.rectangle([X0, BY, W - 70, BY + 96], fill=LIME)
+d.rectangle([X0, BY, W - 70, BY + 96], fill=BRAND)
 d.text((X0 + 34, BY + 16), 'SO 전략',
-       font=f(8, 27), fill=BLACK)
+       font=f(8, 27), fill='white')
 d.text((X0 + 34, BY + 54),
        '한국 대학병원 소견을 현지에서 먼저 받아보는 경로를 러시아어권 전체로 넓힌다   ·   올 수 있는 환자인지를 방한 전에 가려내 환자의 시간과 비용을 줄인다',
-       font=f(5, 23), fill=BLACK)
+       font=f(5, 23), fill=(0xCC, 0xFB, 0xF1))
 
 img.save(OUT)
 print('만듦 :', OUT, img.size)

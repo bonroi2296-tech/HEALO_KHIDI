@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """비즈니스모델 체계도 그림 — BeyondK 깔(docs/rules/PPT_STYLE.md) 기준.
 
-규격 : 흰 바탕 · 라임(#D9FE55)은 한 곳만(가운데 healwith 상자) · 에스코어 드림 글꼴.
+규격 : 흰 바탕 · 브랜드 색(teal-700 #0f766e)은 한 곳만(가운데 healwith 상자) · 에스코어 드림 글꼴.
 쓰는 곳 : 중간보고서 2부 「수익모델」 / 발표자료.
 내용 고치는 곳 : 01. 작업본/비즈니스모델_내용_편집용.txt
 
@@ -23,7 +23,9 @@ MUTED = (0x9A, 0x97, 0x97)
 LINE = (0xDC, 0xDD, 0xDD)
 PANEL = (0xF7, 0xF7, 0xF7)
 HEAD = (0xEC, 0xEC, 0xEC)
-LIME = (0xD9, 0xFE, 0x55)
+BRAND = (0x0F, 0x76, 0x6E)     # teal-700 · 우리 브랜드 색
+BRAND_D = (0x11, 0x5E, 0x59)   # teal-800 (테두리)
+PALE = (0xCC, 0xFB, 0xF1)      # teal-100 (짙은 바탕 위 작은 글씨)
 
 FDIR = r'C:\Users\user\AppData\Local\Microsoft\Windows\Fonts'
 
@@ -42,13 +44,13 @@ def mid(x, y, text, font, fill):
 
 
 def card(x, y, w, h, title, sub=None, strong=False):
-    """상자 하나. strong 이면 라임 바탕(가운데 healwith 만)."""
-    d.rectangle([x, y, x + w, y + h], fill=LIME if strong else PANEL,
-                outline=BLACK if strong else LINE, width=3 if strong else 2)
+    """상자 하나. strong 이면 브랜드 색 바탕(가운데 healwith 만)."""
+    d.rectangle([x, y, x + w, y + h], fill=BRAND if strong else PANEL,
+                outline=BRAND_D if strong else LINE, width=3 if strong else 2)
     cx = x + w / 2
     if sub:
-        mid(cx, y + h / 2 - 34, title, f(7, 28), BLACK)
-        mid(cx, y + h / 2 + 8, sub, f(4, 21), INK if strong else BODY)
+        mid(cx, y + h / 2 - 34, title, f(7, 28), 'white' if strong else BLACK)
+        mid(cx, y + h / 2 + 8, sub, f(4, 21), PALE if strong else BODY)
     else:
         mid(cx, y + h / 2 - 16, title, f(7, 28), BLACK)
 
