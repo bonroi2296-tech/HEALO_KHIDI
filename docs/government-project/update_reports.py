@@ -38,6 +38,15 @@ GLOBAL = [
 # (파일, [(옛 문구, 새 문구), ...])
 # 폐지된 화면을 설명하던 문장을 현행 화면으로 바꾼다. 근거는 app/ 실재 여부로 확인함.
 REPLACEMENTS = {
+    # 03 은 4월 30일자 문서지만 협약 서명(4/16) 뒤에 쓴 것이라 옛 목표치(10/80/80)가
+    # 처음부터 틀린 값이었다. 확정 목표는 12 / 120 / 90 이다(PO 결정 2026-08-20).
+    "03_착수보고서.docx": [
+        ("시범 환자 모집 (목표 10건 유치)", "시범 환자 모집 (목표 12건 유치)"),
+        ("상담 80건 달성 목표 추진", "사전상담·사후관리 120건 달성 목표 추진"),
+        ("KPI 목표치 확인: 유치 10건, 상담 80건, 만족도 80점",
+         "KPI 목표치 확인: 유치 12건, 사전상담·사후관리 120건, 만족도 90점"),
+    ],
+
     "01_요구사항정의서.docx": [
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
@@ -490,6 +499,17 @@ def main():
         if fill_cwv(doc):
             doc.save(path)
             changed.append("08_테스트결과서.docx: 성능 측정 표 실측 반영")
+
+    # 0-2b) 03 성과지표 표 — 확정 목표치로
+    path = os.path.join(HERE, "03_착수보고서.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = set_cells(doc, "K-01", {2: "12건 이상"})
+        hit += set_cells(doc, "K-02", {1: "사전상담·사후관리 건수", 2: "120건 이상"})
+        hit += set_cells(doc, "K-03", {2: "90점 이상 (100점)"})
+        if hit:
+            doc.save(path)
+            changed.append(f"03_착수보고서.docx: 성과지표 목표 {hit}줄 정정")
 
     # 0-3) 04 KPI 표 · 08 남은 측정 칸
     path = os.path.join(HERE, "04_중간보고서.docx")
