@@ -17,6 +17,15 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
  *   법정 기록이 없어진다. 그래서 **사람을 식별하는 칸만 지우고 통계용 칸은 남긴다.**
  *   이 방침은 화면 안내 문구(patientAccount.delDesc)와 짝이다 — 한쪽만 바꾸지 마라.
  *
+ * 🚫 **첨부파일 이름은 «일부러» 안 건드린다** (2026-08-20 PO 판단으로 되돌림).
+ *    한 번 지우는 코드를 넣었다가 뺐다. 이유:
+ *      ① 파일 «안»에 환자 이름이 그대로 적혀 있다. 이름표만 바꿔선 익명이 안 된다(효과 0에 가깝다).
+ *      ② 한 문의에 첨부가 5개 넘는 경우가 있다(#93). 전부 "첨부파일.pdf" 가 되면
+ *         어느 게 MRI 이고 어느 게 퇴원기록인지 구분이 안 된다.
+ *      ③ 그 서류는 법으로 «남겨야 하는» 진료기록이다. 알아볼 수 없게 만드는 것은 보존이 아니라 훼손이다.
+ *    → 고칠 것은 코드가 아니라 «우리가 화면에 적은 문장»이다. 지금 문구는 실제 동작 그대로 적혀 있다.
+ *    PO: *«오히려 문서명을 바꾸는게 문제 아님?»*
+ *
  * ⚠️ 되돌릴 수 없다. 부르기 «전»에 반드시 ①본인 로그인 세션 확인 ②화면에서 확인 절차를 거칠 것.
  */
 
@@ -69,15 +78,6 @@ export function confirmMatchesEmail(typed: unknown, email: string | null | undef
   return typeof typed === "string" && typed.trim().toLowerCase() === want;
 }
 
-/**
- * 첨부파일 이름을 확장자만 남긴 이름표로 바꾼다("...Татепбаева Айгерим.pdf" → "첨부파일.pdf").
- * 파일을 찾는 데 쓰는 건 path 이지 name 이 아니므로, 이름을 지워도 진료기록은 그대로 열린다.
- */
-export function fileLabel(name: string | null | undefined): string {
-  const m = typeof name === "string" ? name.match(/[.]([A-Za-z0-9]{1,8})$/) : null;
-  return m ? `첨부파일.${m[1].toLowerCase()}` : "첨부파일";
-}
-
 export async function deleteAccountCompletely(userId: string): Promise<DeleteAccountResult> {
   const failedSteps: string[] = [];
   let anonymizedInquiries = 0;
@@ -87,29 +87,6 @@ export async function deleteAccountCompletely(userId: string): Promise<DeleteAcc
 
   // ① 진료성 기록: 사람만 지우고 기록은 남긴다
   try {
-    // 먼저 첨부 목록을 읽는다 — 파일 «이름»에 환자 실명이 그대로 박혀 있다.
-    // (2026-08-20 실측: 문의 #93 의 attachments[].name = "Заключение ... Татепбаева Айгерим ... .pdf")
-    // 파일 자체는 진료기록이라 남기지만, 이름 글자는 지운다. path 는 이미 이름이 지워진 형태라 그대로 둔다.
-    const { data: rows, error: readErr } = await admin
-      .from("inquiries")
-      .select("id, attachments")
-      .eq("user_id", userId);
-    if (readErr) throw readErr;
-
-    for (const row of rows ?? []) {
-      if (!Array.isArray(row.attachments) || row.attachments.length === 0) continue;
-      const scrubbed = row.attachments.map((a: Record<string, unknown>) => ({
-        ...a,
-        name: fileLabel(typeof a?.name === "string" ? a.name : null),
-        note: null, // 코디가 적은 메모에도 이름이 들어갈 수 있다
-      }));
-      const { error } = await admin
-        .from("inquiries")
-        .update({ attachments: scrubbed })
-        .eq("id", row.id);
-      if (error) throw error;
-    }
-
     const { data, error } = await admin
       .from("inquiries")
       .update(INQUIRY_PII_NULLS)
