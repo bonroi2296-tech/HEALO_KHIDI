@@ -44,22 +44,28 @@ REPLACEMENTS = {
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        # 「/app/api/email/*」 에 걸리면 「…sendEmail.ts/*」 라는 없는 경로가 된다. 별표형을 먼저 처리한다.
+        ("src/lib/email/sendEmail.ts/*", "src/lib/email/*"),
+        ("/app/api/email/*", "src/lib/email/*"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
-        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)",
          "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
-        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)", "migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
     "02_기능명세서.docx": [
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        # 「/app/api/email/*」 에 걸리면 「…sendEmail.ts/*」 라는 없는 경로가 된다. 별표형을 먼저 처리한다.
+        ("src/lib/email/sendEmail.ts/*", "src/lib/email/*"),
+        ("/app/api/email/*", "src/lib/email/*"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
-        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)",
          "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
-        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)", "migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
     "08_테스트결과서.docx": [
@@ -737,12 +743,14 @@ def move_page_breaks(doc):
     return n
 
 
-def keep_short_tables_together(doc, max_rows=8):
+def keep_short_tables_together(doc, max_rows=16):
     """짧은 표가 쪽 경계에 걸려 «머리행 없는 조각»만 다음 쪽에 남는 것을 막는다.
 
-    2026-08-20 실측: 08 테스트결과서 5쪽이 화상상담 표의 마지막 한 줄만 있는 쪽이었다.
+    2026-08-20 실측: 08 테스트결과서 5쪽이 화상상담 표의 마지막 한 줄만 있는 쪽이었고,
+    02 기능명세서 21쪽도 시나리오 표(14줄)의 마지막 줄 하나뿐이었다.
     머리행 반복(repeat_table_headers)은 12행 이상 긴 표만 다루므로 짧은 표는 여기서 막는다.
     """
+    from docx.text.paragraph import Paragraph
     n = 0
     for t in doc.tables:
         if len(t.rows) > max_rows:
@@ -753,6 +761,20 @@ def keep_short_tables_together(doc, max_rows=8):
                     if not par.paragraph_format.keep_with_next:
                         par.paragraph_format.keep_with_next = True
                         n += 1
+        # 표 «바로 앞»의 제목·안내 줄도 함께 묶는다. 안 그러면 제목만 앞 쪽에 홀로 남는다
+        # (2026-08-20 실측: EVAL_MATRIX 4쪽이 「3. HEALO 평가 매트릭스」 두 줄뿐이었다).
+        prev = t._tbl.getprevious()
+        kept = 0
+        while prev is not None and prev.tag == qn("w:p") and kept < 2:
+            par = Paragraph(prev, doc)
+            # 사이에 낀 빈 문단도 함께 묶어야 한다 — 하나라도 빠지면 거기서 사슬이 끊겨
+            # 제목만 앞 쪽에 남는다.
+            if not par.paragraph_format.keep_with_next:
+                par.paragraph_format.keep_with_next = True
+                n += 1
+            if par.text.strip():
+                kept += 1
+            prev = prev.getprevious()
     return 1 if n else 0
 
 
@@ -930,6 +952,45 @@ def strip_trailing_blanks(doc):
     return n
 
 
+def drop_blanks_before_page_break(doc):
+    """쪽 나눔 문단 «바로 앞»의 빈 문단을 없앤다.
+
+    2026-08-20 실측: 02 기능명세서 21쪽이 빈 문단 하나만 있는 쪽이었다.
+    앞 표가 쪽을 딱 채우면 그 빈 문단이 다음 쪽으로 넘어가고, 그 뒤 문단은
+    「쪽 나눔으로 시작」이라 또 다음 쪽으로 가버려 가운데 쪽이 통째로 빈다.
+    """
+    from docx.text.paragraph import Paragraph
+    body = doc.element.body
+    n = 0
+    for el in list(body.iterchildren()):
+        if el.tag != qn("w:p"):
+            continue
+        if not Paragraph(el, doc).paragraph_format.page_break_before:
+            continue
+        prev = el.getprevious()
+        while prev is not None and prev.tag == qn("w:p") and not Paragraph(prev, doc).text.strip():
+            drop, prev = prev, prev.getprevious()
+            body.remove(drop)
+            n += 1
+    return n
+
+
+def no_row_split(doc):
+    """표의 «한 줄»이 쪽 경계에서 반으로 잘리지 않게 한다.
+
+    2026-08-20 실측: 02 기능명세서 21쪽이 앞 줄에서 흘러넘친 한 줄뿐이었다.
+    줄 통째로 다음 쪽에 넘어가게 하면 어느 칸의 내용인지 알아볼 수 있다.
+    """
+    n = 0
+    for t in doc.tables:
+        for row in t.rows:
+            trPr = row._tr.get_or_add_trPr()
+            if trPr.find(qn("w:cantSplit")) is None:
+                trPr.append(OxmlElement("w:cantSplit"))
+                n += 1
+    return 1 if n else 0
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -980,7 +1041,9 @@ def main():
         n += fix_em_dash(doc)
         n += ensure_footer(doc)
         n += repeat_table_headers(doc)
+        n += no_row_split(doc)
         n += move_page_breaks(doc)
+        n += drop_blanks_before_page_break(doc)
         n += keep_short_tables_together(doc)
         n += widen_id_columns(doc)
         n += restart_numbered_lists(doc)
