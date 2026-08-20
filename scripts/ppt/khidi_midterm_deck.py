@@ -263,7 +263,7 @@ band(s, "▶ 부진 원인은 기능 미비가 아니라 현지 신뢰 확보에
 
 # ── SWOT
 s = content(prs, "2부 · 3. 수익모델", "사업진출 SWOT 분석", "카자흐스탄 시장 · 2026-08 기준")
-picture(s, os.path.join(SHOT, "swot.png"), (W - 438) / 2, 130, w=438, border=False)
+picture(s, os.path.join(SHOT, "swot.png"), (W - 548) / 2, 126, w=548, border=False)
 
 # ── 수익모델
 s = content(prs, "2부 · 3. 수익모델", "수익모델 및 매출계획", "현장 협의로 확정된 수수료 조건 반영")
