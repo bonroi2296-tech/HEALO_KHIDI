@@ -42,6 +42,7 @@ export type AdminAuditAction =
   // partner portals (agency / overseas medical institution)
   | "PARTNER_VIEW_CASES"
   // patient data-subject rights (GDPR Art.17 / PIPA)
+  | "PATIENT_ACCOUNT_DELETED"
   | "PATIENT_DELETION_REQUEST"
   | "PROCESS_DELETION_REQUEST"
   // consultations (원격협진) — 2026-07-24 권한 감사 C 보완: 발급 격리 대신 추적성

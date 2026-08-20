@@ -114,6 +114,20 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
               <KeyRound size={15} className="text-teal-700" />
               <span>{CHANGE_PW_LABEL[langCode] || CHANGE_PW_LABEL.en}</span>
             </a>
+            {/* 계정·개인정보(= 계정 탈퇴). PC 에서는 여기가 «유일한» 경로다 —
+                모바일에만 있던 하단 「더보기」 탭 때문에 2026-08-20 까지 PC 사용자는
+                탈퇴 화면에 도달할 길이 아예 없었다(PO 제보). 지우지 마라.
+                환자 계정에만 보인다. 업무용 계정(관리자·코디·병원·에이전시)은 서버가 거부한다. */}
+            {myPageHref === '/patient' && (
+              <a
+                href="/patient/account"
+                onClick={() => setIsOpen(false)}
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 transition-colors flex items-center gap-2.5 text-gray-700 font-medium border-b border-gray-100"
+              >
+                <ShieldCheck size={15} className="text-teal-700" />
+                <span>{t("patientAccount.title", langCode)}</span>
+              </a>
+            )}
             <button
               onClick={() => { setIsOpen(false); onLogout(); }}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-700 font-medium"

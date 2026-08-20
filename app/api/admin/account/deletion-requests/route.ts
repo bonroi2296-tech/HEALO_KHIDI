@@ -5,7 +5,11 @@
  * PATCH /api/admin/account/deletion-requests        — 요청 상태 변경(처리)
  *
  * 환자가 낸 삭제요청을 관리자가 보고 처리(pending→processing→completed/rejected).
- * 실제 데이터 파기·익명화는 관리자가 소프트삭제로 수행하고, 그 사실을 note 로 남긴다.
+ * ⚠️ 2026-08-20 이전에는 「완료」가 «상태 글자만» 바꿨다 — 계정을 지우는 코드가 0줄이라
+ *    관리자가 눌러도 실제로는 아무것도 안 지워졌다(PO 지적). 지금은 completed 로 바꾸면
+ *    그 자리에서 실제 파기가 돈다.
+ * 환자는 /patient/account 에서 스스로 탈퇴할 수 있다 — 이 화면은 그 이전에 쌓인 요청과
+ * 업무용 계정(스스로 못 지운다)을 위한 창구다.
  */
 
 export const runtime = "nodejs";
@@ -13,6 +17,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { deleteAccountCompletely } from "@/lib/account/deleteAccount";
 import {
   logAdminAction,
   getIpFromRequest,
@@ -67,6 +72,25 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
+    // 🛑 「완료」는 «실제로 지운 뒤»에만 찍는다. 지우기가 실패했는데 완료로 적으면
+    //    관리자 화면이 거짓말을 하게 된다(그게 이 화면이 여태 하던 일이다).
+    let purge: Awaited<ReturnType<typeof deleteAccountCompletely>> | null = null;
+    if (status === "completed") {
+      const { data: row } = await (supabaseAdmin as any)
+        .from("account_deletion_requests")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (!row?.user_id) {
+        return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+      }
+      purge = await deleteAccountCompletely(row.user_id);
+      if (!purge.ok) {
+        console.error("[admin/deletion-requests] purge failed:", purge.failedSteps.join(","));
+        return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+      }
+    }
+
     const payload: Record<string, any> = { status };
     if (status === "completed" || status === "rejected") {
       payload.processed_at = new Date().toISOString();
@@ -95,7 +119,7 @@ export async function PATCH(request: NextRequest) {
       metadata: { request_id: id, new_status: status },
     });
 
-    return NextResponse.json({ ok: true, request: data });
+    return NextResponse.json({ ok: true, request: data, purged: purge });
   } catch (err: any) {
     console.error("[admin/deletion-requests] patch:", err?.message?.slice(0, 200));
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
