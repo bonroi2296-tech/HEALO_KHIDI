@@ -114,7 +114,7 @@ async function _fetchKpiInRange(
   // 「영상통화」가 아니다. 자체 측정명세가 K-02 를 「LiveKit 5분 이상」으로 좁혀 놓아
   // 병원에서 검토해 환자에게 전달한 소견이 한 건도 안 세어지고 있었다(2026-08-06 PO 지시로 정정).
   // 세는 기준 = 환자에게 실제로 전달된 것(released_at)만. 작성만 하고 안 보낸 초안은 제외.
-  let opinionQ = supabase
+  const opinionQ = supabase
     .from("case_opinions")
     .select("inquiry_id", { count: "exact" })
     .not("released_at", "is", null)
