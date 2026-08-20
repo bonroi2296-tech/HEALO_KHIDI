@@ -69,6 +69,10 @@ jobs:
         run: npm run check:migrations
       - name: 스키마 참조 (존재하지 않는 테이블 .from() 차단 — 조용한 빈데이터 방지 #35-S2)
         run: npm run check:schema-refs
+      # 위가 「테이블·컬럼 이름」이면 이건 「그 컬럼에 넣는 값」. 2026-08-20 하루에 두 번 터졌다
+      # (symptom_reports.report_type="self" → 환자 증상 제출 전부 저장 실패 · playbook_patterns.auto_status="auto_extracted")
+      - name: DB 검사규칙 값 (CHECK 목록에 없는 값 차단 — 조용한 저장실패 방지)
+        run: npm run check:enum-values
       - name: 비자 데이터 프레시니스 (기한 지난 비자·K-ETA 규정 자동 차단 — POSTMORTEMS #57)
         run: npm run check:visa-freshness
       - name: PDF 톤 (초청장·견적서·동의서 Premium 톤 복귀 차단 — serif·gold·외부폰트)
