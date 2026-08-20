@@ -63,6 +63,8 @@ REPLACEMENTS = {
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
     "08_테스트결과서.docx": [
+        ('5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역)',
+         "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-20 해소 내역)"),
         ("«수동 확인»", "수동 확인"),
         ("SEC-01~08 모두 통과 (2026-04-30 기준)", "SEC-01~08 모두 통과 (2026-08-19 기준)"),
         ("2026년 4월 30일", "2026년 8월 19일"),
@@ -78,7 +80,7 @@ REPLACEMENTS = {
          "[해소됨 2026-08-19] Playwright E2E 스크립트 도입 완료: 45개 파일 164건. 매 변경 시 스모크, 매일 밤 전체 실행."),
         ("단위 테스트(Jest) 케이스 부재: requireAdminAuth.test.ts 등 추가 필요",
          "[해소됨 2026-08-19] 단위 테스트 110개 파일 1,002건 도입 완료(전건 통과)."),
-        ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역)"),
+        ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-20 해소 내역)"),
         ("27건 | 27/27 (100%) | 현재 시점 전체 통과", "27건 | 27/27 | 2026-04 수동 확인 기준"),
         ("27/27 (100%)", "27/27 (2026-04 수동 확인 기준)"),
         ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막: 실서비스 가동, 통번역 3,542건"),
@@ -88,6 +90,23 @@ REPLACEMENTS = {
         ("name_encrypted 컬럼 암호문 확인, 평문 없음",
          "성명·이메일·전화 암호문 확인(2026-08-19 재확인: 이메일 109건·전화 22건 전건 암호문). 문의 본문·의료진 소견은 검색·번역 목적으로 평문 보관"),
         ("PII 평문 저장 없음", "식별정보 평문 저장 없음"),
+        # 시험 환경 표기가 사실과 달랐다. 프리뷰는 2026-07-31 이후 닫혀 있고
+        # 별도 Staging DB 도 없다(로컬·자동검사 모두 운영DB 를 본다).
+        ("Vercel Preview + Supabase Staging",
+         "로컬 개발 서버 + 운영 Supabase (별도 Staging DB 없음)"),
+        ("파일 위치: src/lib/auth/requireAdminAuth.test.ts (예정: 현재 수동 검증)",
+         "파일 위치: src/lib/auth/requireAdminAuth.test.ts (자동 시험 도입 완료)"),
+        ("Jest / Vitest", "Vitest"),
+        ("Jest + Supabase Test", "Vitest + 운영 Supabase"),
+        ("Jest", "Vitest"),
+        ("2026년 8월 19일", "2026년 8월 20일"),
+        ("현재 (8월 19일)", "현재 (8월 20일)"),
+        ("통번역 3,542건", "통번역 3,543건(시험 방 제외 3,277건)"),
+        ("원인 규명 완료, 수정 반영 예정",
+         "원인 규명 및 수정 완료(본판 반영). 실서비스 배포 후 재측정 예정"),
+        ("Step 1~5 전체 입력 후 제출", "1단계 접수 후 2단계 추가 정보까지 입력·제출"),
+        ("5-Step 인테이크 완료", "문의 접수(1단계+2단계) 완료"),
+        ("Step 3에서 PDF 파일 첨부", "2단계에서 PDF 파일 첨부"),
     ],
     "09_산출물목록.docx": [
         ("Phase A 산출물은 사업 착수 및 KHIDI 신청 단계에서 작성된 문서이다. 2026년 4월 30일 완료.",
@@ -96,6 +115,22 @@ REPLACEMENTS = {
         ("구현 현황(완료74%/부분26%)", "구현 현황(완료96%/부분4%)"),
         ("진척률 74%, KPI 진행", "진척률 96%, KPI 진행"),
         ("2026-04-30 전체 완료", "2026-08-19 기준 갱신 완료"),
+        ("2026-08-19", "2026-08-20"),
+        ("Phase A 4건 + Phase B 7건 + 기타 docs 6건 = 17건",
+         "Phase A 5건 + Phase B 4건 + 기술·운영 문서 6건 = 15건"),
+        ("7건 | 5건 완료 / 2건 초안", "4건 | 4건 완료 (100%)"),
+        ("04·05 보고서는 운영 후 갱신 예정",
+         "중간·최종 보고서는 KHIDI 지정 양식이라 본 목록에서 제외"),
+        ("17건 | 13건 완료", "15건 | 15건 완료"),
+        ("완성도 76%", "완성도 100%"),
+        ("migrations/ (37개 파일)", "migrations/ (154개 파일)"),
+        ("docs/ (예정)", "docs/"),
+        ("배포 전 안전장치 체크리스트 [예정]", "배포 전 안전장치 체크리스트"),
+        ("M4. 중간점검 (9월)", "M4. 중간평가 (8월 27일)"),
+        ("2026년 5~7월", "2026년 5~8월"),
+        ("월별 진행 요약 (이메일 등)", "월간 업무 보고서 (KHIDI 제출)"),
+        ("KHIDI 형식 확인 필요 [진행 중]", "7월분부터 작성·제출 중"),
+        ("KPI 중간 달성률 포함, 8월 제출 예정", "성과지표 중간 달성률 포함. 8월 27일 중간평가 수검"),
     ],
     "06_사용자매뉴얼.docx": [
         ("healo.kr/intake", "healo.kr/inquiry"),
@@ -113,11 +148,75 @@ REPLACEMENTS = {
          "[화면: /opinion/[token]: 전문의 소견 작성]"),
         ("HEALO v1.0 (2026년 4월 기준)", "HEALO (2026년 8월 19일 기준)"),
         ("2026-04-30", "2026-08-19"),
+        # ↓ 아래는 실제 배포 코드·화면과 대조해 바로잡은 것들(2026-08-20).
+        ("[화면: /auth 페이지: 회원가입 폼]", "[화면: /signup 페이지: 회원가입 양식]"),
+        ("소셜 로그인(Google, Kakao)으로도 가입 가능하다.",
+         "소셜 로그인(Google, Apple)으로도 가입 가능하다."),
+        ("[화면: /coordinator/intakes 페이지]", "[화면: /coordinator/inbox 페이지: 문의함]"),
+        ("[화면: /coordinator/patients/[id] 페이지]",
+         "[화면: /coordinator/inbox/[번호] 페이지: 케이스 상세]"),
+        ("[화면: /coordinator/sessions/[id] 페이지]",
+         "[화면: /coordinator/consultations 페이지: 상담 일정]"),
+        ("[화면: /telemedicine/[room] 페이지: 화상상담 화면]",
+         "[화면: /consultation/[id] 페이지: 화상 상담방(초대링크로 입장)]"),
+        ("[화면: /opinion/[token]: 전문의 소견 작성]",
+         "[화면: /opinion/<토큰>: 환자가 소견을 확인하는 화면]"),
+        ("좌측 사이드바 [환자 관리] 클릭", "좌측 사이드바 [문의함] 클릭"),
+        ("[인테이크 관리] 메뉴에서 신규 접수 건 확인", "[문의함] 메뉴에서 신규 접수 건 확인"),
+        ("환자 목록에서 이름 또는 인테이크 ID로 검색", "문의 목록에서 이름 또는 문의 번호로 검색"),
+        # 파일 상한: 화면이 실제로 안내하는 값은 200MB 다.
+        ("CT/MRI/혈액검사 등 파일 첨부 (PDF·JPEG·PNG, 최대 50MB)",
+         "CT/MRI/혈액검사 등 파일 첨부 (PDF·JPEG·PNG, 최대 10개·건당 200MB)"),
+        ("지원 형식: DICOM, JPEG, PNG, PDF (파일당 최대 50MB)",
+         "지원 형식: DICOM, JPEG, PNG, PDF (파일당 최대 200MB)"),
+        # 접수 구조: 5단계 폼은 옛 구조다. 지금은 1단계 접수 뒤 2단계 추가 정보다.
+        ("인테이크 폼은 암환자가 상담을 신청하기 위해 작성하는 5단계 정보 입력 양식이다.",
+         "문의 접수는 두 단계로 나뉜다. 1단계에서 연락에 필요한 최소 정보만 받아 접수를 마치고, "
+         "2단계(/inquiry/intake)에서 대학병원 의뢰에 필요한 자료를 추가로 받는다. "
+         "자료가 없어 접수 자체를 못 하는 일을 없애기 위한 구조다."),
+        ("Step 도중 저장된 진행 내용은 자동 저장된다. 브라우저를 닫아도 이어서 작성 가능하다 "
+         "[TODO: 자동 저장 기능 구현 예정].",
+         "1단계만 채워도 접수가 완료되며, 2단계는 접수 번호와 접근 토큰으로 나중에 이어서 작성할 수 있다."),
+        # 지나간 「예정」: 자막·다국어·리마인더는 이미 실서비스에서 돌고 있다.
+        ("화상 중 번역 자막 기능은 현재 개발 중이며 2026년 5월 적용 예정이다 [진행 중].",
+         "화상 중 실시간 번역 자막은 실서비스에서 가동 중이다(자막 켜기 단추를 누를 때만 켜진다)."),
+        ("실시간 번역 자막 [2026년 5월 예정: 진행 중]",
+         "상대 발화를 내 언어로 표시. 자막 단추를 누를 때만 켜진다"),
+        ("러시아어(/ru)와 카자흐어(/kk) 번역은 현재 일부 완성 상태이다. 2026년 6월 전면 완성 예정 [진행 중].",
+         "러시아어(/ru)·카자흐어(/kz) 번역은 전 문구 완성 상태이며, 누락 여부를 자동 검사로 상시 확인한다."),
+        ("예약 D-1 리마인더 [2026년 6월 예정: 진행 중]", "예약 리마인더: 정기 자동 발송"),
+        ("한국어 (ru/kk 번역본 추후 제공 예정)", "한국어 (러시아어·카자흐어 번역본 추후 제공 예정)"),
+        ("HEALO (2026년 8월 19일 기준)", "HEALO (2026년 8월 20일 기준)"),
+        ("2026-08-19", "2026-08-20"),
     ],
     "07_관리자매뉴얼.docx": [
         ("/admin/intake/[id] 에서", "/admin/inquiries 에서"),
         ("HEALO v1.0 (2026년 4월 기준)", "HEALO (2026년 8월 19일 기준)"),
         ("2026-04-30", "2026-08-19"),
+        # ↓ 실제 배포 코드와 대조해 바로잡은 것들(2026-08-20).
+        ("/admin/patients 접속", "/admin/inquiries 접속"),
+        ("[화면: /admin/patients 페이지]", "[화면: /admin/inquiries 페이지: 문의 관리]"),
+        ("/admin/sessions 접속", "/admin/consultations 접속"),
+        ("[화면: /admin/sessions 페이지]", "[화면: /admin/consultations 페이지: 상담 관리]"),
+        ("/admin/statistics 접속", "/admin/khidi/conversion 접속"),
+        ("[화면: /admin/statistics 페이지]", "[화면: /admin/khidi/conversion 페이지: 유치 전환 대시보드]"),
+        ("/admin/reports 접속", "/admin/khidi 접속"),
+        ("2FA 인증 [추후 적용 예정] 또는 이메일 인증 확인", "이메일 인증 확인"),
+        ("다운로드한 데이터로 04_중간보고서 및 05_최종보고서 실적 수치 갱신",
+         "내려받은 데이터로 중간·최종 보고서(KHIDI 지정 양식) 실적 수치를 갱신한다"),
+        ("역할: patient / coordinator / admin / partner_hospital",
+         "역할: 환자 / 코디네이터 / 관리자 (국내 의료기관·해외 에이전시·해외 의료기관은 "
+         "hospital_users·agency_users 표에서 따로 관리한다)"),
+        # 요금제: 우리는 Pro 플랜이다(같은 문서 6.1 항목과 어긋나 있었다).
+        ("Supabase 무료 플랜 한도 초과 시 서비스 중단 위험. 월 1회 Usage 점검 필수.",
+         "Supabase Pro 플랜 사용 중. 지출 상한을 넘기면 업로드부터 막히므로 월 1회 Usage 점검 필수."),
+        # 배포: main 에 밀면 바로 나가지 않는다. 하루 한 번 배포 창구가 production 으로 민다.
+        ("Vercel 배포 트리거: main 브랜치 push 시 자동. 수동 재배포: [Redeploy] 버튼.",
+         "Vercel 배포 트리거: 하루 한 번(KST 15시) Daily Deploy 창구가 main 을 production 브랜치로 "
+         "밀 때만 빌드된다. main 에 합쳤다고 바로 실서비스에 나가지 않는다."),
+        ("git revert HEAD", "git revert <되돌릴 커밋>"),
+        ("HEALO (2026년 8월 19일 기준)", "HEALO (2026년 8월 20일 기준)"),
+        ("2026-08-19", "2026-08-20"),
     ],
 }
 
@@ -474,6 +573,77 @@ def repeat_table_headers(doc, min_rows=12):
     return n
 
 
+def move_page_breaks(doc):
+    """빈 문단에 든 쪽 나눔을 «다음 문단의 쪽 나눔 속성»으로 옮긴다.
+
+    쪽이 딱 찬 직후에 쪽 나눔 문단이 오면 워드가 아무것도 없는 쪽을 한 장 만든다
+    (2026-08-20 실측: 09_산출물목록 6쪽이 머리말·꼬리말만 있는 빈 쪽이었다).
+    속성으로 옮기면 「다음 쪽부터 시작」이라는 뜻만 남아 빈 쪽이 생기지 않는다.
+    """
+    from docx.text.paragraph import Paragraph
+    body = doc.element.body
+    n = 0
+    for el in list(body.iterchildren()):
+        if el.tag != qn("w:p"):
+            continue
+        par = Paragraph(el, doc)
+        if par.text.strip():
+            continue
+        brks = el.findall(".//" + qn("w:br"))
+        if not any(b.get(qn("w:type")) == "page" for b in brks):
+            continue
+        nxt = el.getnext()
+        if nxt is None or nxt.tag != qn("w:p"):
+            continue                      # 다음이 표면 속성으로 못 옮긴다 — 그대로 둔다
+        Paragraph(nxt, doc).paragraph_format.page_break_before = True
+        body.remove(el)
+        n += 1
+    return n
+
+
+def keep_short_tables_together(doc, max_rows=8):
+    """짧은 표가 쪽 경계에 걸려 «머리행 없는 조각»만 다음 쪽에 남는 것을 막는다.
+
+    2026-08-20 실측: 08 테스트결과서 5쪽이 화상상담 표의 마지막 한 줄만 있는 쪽이었다.
+    머리행 반복(repeat_table_headers)은 12행 이상 긴 표만 다루므로 짧은 표는 여기서 막는다.
+    """
+    n = 0
+    for t in doc.tables:
+        if len(t.rows) > max_rows:
+            continue
+        for row in t.rows[:-1]:
+            for c in row.cells:
+                for par in c.paragraphs:
+                    if not par.paragraph_format.keep_with_next:
+                        par.paragraph_format.keep_with_next = True
+                        n += 1
+    return 1 if n else 0
+
+
+def widen_id_columns(doc, min_in=1.0):
+    """머리글이 「ID」인 첫 칸이 너무 좁아 식별자가 여러 줄로 쪼개지는 것을 막는다.
+
+    2026-08-20 실측: 08 테스트결과서의 ID 칸이 0.42인치라 「E2E-INT-04」가 세 줄로 갈렸다.
+    모자란 폭은 가장 넓은 칸에서 덜어 온다(표 전체 폭은 그대로 둔다).
+    """
+    from docx.shared import Inches
+    n = 0
+    for t in doc.tables:
+        cells = t.rows[0].cells
+        if len(cells) < 2 or cells[0].text.strip() != "ID":
+            continue
+        w0 = cells[0].width
+        if w0 is None or w0.inches >= min_in:
+            continue
+        need = Inches(min_in) - w0
+        widest = max(range(1, len(cells)), key=lambda i: cells[i].width.emu if cells[i].width else 0)
+        for row in t.rows:
+            row.cells[0].width = Inches(min_in)
+            row.cells[widest].width = row.cells[widest].width - need
+        n += 1
+    return n
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -524,6 +694,9 @@ def main():
         n += fix_em_dash(doc)
         n += ensure_footer(doc)
         n += repeat_table_headers(doc)
+        n += move_page_breaks(doc)
+        n += keep_short_tables_together(doc)
+        n += widen_id_columns(doc)
         if n:
             doc.save(str(path))
             changed.append(f"{path.name}: 공통 정리 {n}곳(꼬리말·머리행 포함)")
