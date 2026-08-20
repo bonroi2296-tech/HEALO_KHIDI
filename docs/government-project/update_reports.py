@@ -135,6 +135,9 @@ REPLACEMENTS = {
         ("Step 3에서 PDF 파일 첨부", "2단계에서 PDF 파일 첨부"),
     ],
     "09_산출물목록.docx": [
+        # ↓ 파일 실재·내용을 직접 확인해 정정(2026-08-20)
+        ('AI_ARCHITECTURE_REPORT_2026_04.md', 'archive/AI_ARCHITECTURE_REPORT_2026_04.md'),
+        ('Vercel 배포 설정: crons, rewrites, headers', 'Vercel 배포 설정: 정기 실행 9종 · 보안 머리값 2종 · 빌드 창구 판정'),
         ("Phase A 산출물은 사업 착수 및 KHIDI 신청 단계에서 작성된 문서이다. 2026년 4월 30일 완료.",
          "Phase A 산출물은 사업 착수 및 KHIDI 신청 단계에서 작성되었으며, 2026년 8월 19일 현행 실측 기준으로 갱신하였다."),
         ("2026년 4월 30일", "2026년 8월 19일"),
