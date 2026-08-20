@@ -41,7 +41,23 @@ export type CostAccessResult =
     }
   | { success: false; response: Response };
 
-async function isCoordinatorUser(userId: string): Promise<boolean> {
+/**
+ * 코디네이터 판정.
+ *
+ * 🛑 2026-08-20 실측: user_roles 만 보면 «항상 false» 다. 그 테이블의 검사규칙
+ * (user_roles_role_check)이 받는 값은 patient/korean_hospital/local_clinic/agent/admin 뿐이라
+ * 'coordinator' 는 애초에 저장할 수 없다(실측: patient 29건 · admin 1건 · coordinator 0건).
+ * 그래서 코디가 견적 목록에서 환자로 취급돼(scope=patient) 환자 요청을 한 건도 못 봤다.
+ * 비자(requireVisaAccess)도 같은 원인이었고 같은 방식으로 고쳤다(신청서 #1434).
+ *
+ * 프로젝트 표준은 app_metadata.role 이다(CLAUDE.md 보안 규칙).
+ */
+function isCoordinatorRole(appRole?: string): boolean {
+  return appRole === "coordinator";
+}
+
+/** 배정 흐름 보조: user_roles 에 coordinator 가 적힌 경우도 인정(현재 스키마에선 저장 불가). */
+async function isCoordinatorInUserRoles(userId: string): Promise<boolean> {
   // 오류를 아예 안 받아서 DB 삐끗 = 「코디 아님」 = 403 이었다 → 1회 더 물어본다(retryTransient.ts).
   const res = await askOnceMoreOnError(() =>
     supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).maybeSingle()
@@ -121,7 +137,7 @@ export async function requireCostEstimateAccess(
     role = "admin";
   } else if (estimate.coordinator_user_id === uid) {
     role = "coordinator";
-  } else if (await isCoordinatorUser(uid)) {
+  } else if (isCoordinatorRole(auth.appRole) || (await isCoordinatorInUserRoles(uid))) {
     role = "coordinator";
   } else if (estimate.patient_user_id === uid) {
     role = "patient";
@@ -183,7 +199,7 @@ export async function requireCostEstimateUser(
 
   const isCoordinator = auth.isAdmin
     ? true
-    : await isCoordinatorUser(auth.userId);
+    : isCoordinatorRole(auth.appRole) || (await isCoordinatorInUserRoles(auth.userId));
 
   return {
     success: true,
