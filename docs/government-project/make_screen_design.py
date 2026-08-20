@@ -367,7 +367,7 @@ def main():
 
     # ── 3. 화면별 상세 ──────────────────────────────────────────────────
     heading(doc, "3. 화면별 상세")
-    for x in SCREENS:
+    for i, x in enumerate(SCREENS):
         heading(doc, "%s. %s" % (x["no"], x["name"]), size=12)
         table(doc, ["구분", "내용"], [
             ("6대 ICT", x["ict"]),
@@ -386,13 +386,17 @@ def main():
         para(doc, f"다루는 데이터 ({F.AS_OF} 실측)", size=10)
         for it in x["data"]:
             para(doc, "· " + it, size=9, indent=0.5)
-        para(doc, "다음 화면 연결", size=10)
-        para(doc, x["nexts"], size=9, indent=0.5)
+        # 흐름도(P-10)처럼 이어질 화면이 없는 칸은 「—」만 두 줄 먹으므로 통째로 뺀다.
+        if x["nexts"].strip() != "—":
+            para(doc, "다음 화면 연결", size=10)
+            para(doc, x["nexts"], size=9, indent=0.5)
         if x.get("notes"):
             para(doc, "설계 메모", size=10)
             for it in x["notes"]:
                 para(doc, "※ " + it, size=9, indent=0.5, color=(110, 110, 110))
-        doc.add_page_break()
+        # 마지막 화면 뒤에 넣으면 빈 쪽 한 장이 남는다.
+        if i < len(SCREENS) - 1:
+            doc.add_page_break()
 
     # ── 3. 권한별 접근 범위 ────────────────────────────────────────────
     heading(doc, "4. 권한별 화면 접근 범위")
