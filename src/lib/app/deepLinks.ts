@@ -68,12 +68,15 @@ let registered = false;
 export async function registerDeepLinks(): Promise<void> {
   if (typeof window === "undefined") return;
   if (registered) return;
+  // ⚠️ 도장은 «기다리기 전에» 찍는다. 부품을 불러오는 동안(await) 이 함수가 한 번 더 불리면
+  //    위 검사를 둘 다 통과해 받는 자리가 두 개 붙고, 링크 한 번에 화면을 두 번 옮긴다.
+  //    같은 함정을 뒤로가기에서 실제로 밟았다(androidBackButton.ts 주석 — 한 번 누른 게 두 번 처리됐다).
+  registered = true;
 
   try {
     const { Capacitor } = await import("@capacitor/core");
     if (!Capacitor.isNativePlatform()) return; // 브라우저면 종료 — 주소창이 이미 그 일을 한다
     const { App } = await import("@capacitor/app");
-    registered = true;
 
     // ① 앱이 켜져 있는 동안 링크를 누른 경우
     await App.addListener("appUrlOpen", ({ url }) => {
