@@ -246,7 +246,10 @@ async function 검사_미배포() {
 //    → 새 항목을 추가할 땐 «작업이 돌면 «무조건» 한 줄 남는 표»를 골라라.
 const 예약작업 = [
   { 이름: "일별 점수판", 표: "kpi_snapshots", 날짜칸: "snapshot_date", 주기일: 1 },
-  { 이름: "AI 자가시험", 표: "ai_regression_runs", 날짜칸: "run_date", 주기일: 1 },
+  // ⚠️ 주기일은 vercel.json 의 crons 와 맞춰라. AI 자가시험은 «매일»이 아니라 월·목이다
+  //    (`/api/cron/run-regression-tests`, `0 18 * * 1,4`) → 목→월 사이가 4일.
+  //    1 로 두면 정상인데도 매주 「볼 것」이 떠서 훑기가 늑대소년이 된다(2026-08-20 실제 오탐).
+  { 이름: "AI 자가시험", 표: "ai_regression_runs", 날짜칸: "run_date", 주기일: 4 },
   { 이름: "자동 개선작업", 표: "auto_jobs", 날짜칸: "started_at", 주기일: 1 },
 ];
 
