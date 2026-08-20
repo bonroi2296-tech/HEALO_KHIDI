@@ -439,7 +439,7 @@ add_scenario(doc, {
     '기본 흐름': '① 음성 → STT 변환\n② /api/translate-text로 번역 요청\n③ 자막 형태로 화면 표시',
     '예외 흐름': '• STT 인식률 저하 → 텍스트 입력 전환 안내',
     '화면 경로': '/app/telemedicine/ (자막 오버레이)',
-    '현재 구현 상태': '부분구현: translate API 완성\n화상 내 실시간 자막 통합은 추가 개발 필요\n(Phase B 개발 예정)',
+    '현재 구현 상태': '완료: 번역 API + 상담방 실시간 자막 가동\n화상 내 실시간 자막 통합은 추가 개발 필요\n(Phase B 개발 예정)',
 })
 
 doc.add_page_break()
@@ -459,7 +459,7 @@ add_scenario(doc, {
     '예외 흐름': '• 선택 날짜 의료진 부재 → 대안 일정 제시\n• 초대 링크 만료: 상담 시각 +12시간(최소 72시간) — 만료 시 재발급',
     '화면 경로': '/app/patient/calendar',
     'DB 테이블/컬럼': 'consultation_sessions (scheduled_at, status)\nmigrations/20260403_add_consultation_sessions',
-    '현재 구현 상태': '부분구현: /app/patient/calendar UI 있음\n자동 리마인더·의료진 일정 연동 추가 개발 필요',
+    '현재 구현 상태': '부분구현: /app/patient/calendar\n리마인더 자동 발송은 가동 중. 의료진 일정 연동만 남음',
 })
 
 add_heading(doc, '8.2 비자 발급 안내 (FN-SCHED-02)', 2)
@@ -494,7 +494,7 @@ add_scenario(doc, {
     '출력': '경과 기록, 의료진 알림',
     '화면 경로': '/app/patient/symptoms',
     'DB 테이블/컬럼': 'followup_schedules (사후관리 차수·상태를 별도 표로 관리)\nconsultation_sessions (notes, notes_encrypted)',
-    '현재 구현 상태': '부분구현: /app/patient/symptoms UI 있음\nAI 자동 이상징후 감지 미구현 (Phase B)',
+    '현재 구현 상태': '완료: /app/patient/symptoms + /app/api/khidi/followup\n증상 기록 접수와 이상 징후 자동 분석·담당자 알림이 가동 중',
 })
 
 add_heading(doc, '9.2 건강관리 교육 콘텐츠 (FN-POST-02)', 2)
@@ -506,7 +506,7 @@ add_scenario(doc, {
     '기본 흐름': '① 환자 암 유형에 따른 콘텐츠 필터링\n② 식이요법, 운동가이드, 복약안내, 면역력 관리 콘텐츠\n③ 러시아어·카자흐어 콘텐츠 제공\n④ 영상·카드뉴스·텍스트 형태',
     '화면 경로': '/app/patient/education, /app/education',
     'DB 테이블/컬럼': 'education_contents (암종·단계·범주별 교육 콘텐츠, 다국어)\nmigrations/20260406_education_visa_rebooking',
-    '현재 구현 상태': '부분구현: /app/patient/education UI 있음\n러시아어 콘텐츠 일부 번역 완료, 전체 완성 필요',
+    '현재 구현 상태': '부분구현: /app/education\n콘텐츠 18건·러시아어 전건 발행 완료. 단계별 자동 발송의 화면 연결만 남음',
 })
 
 add_heading(doc, '9.3 재방문 예약 (Rebooking) (FN-POST-03)', 2)
@@ -641,7 +641,7 @@ add_scenario(doc, {
     '트리거': '신규 메시지, AI 이관, 의료진 회신',
     '기본 흐름': '① Supabase Realtime 채널 구독\n② DB 변경 감지 시 클라이언트에 push\n③ 알림 뱃지·토스트 표시',
     '화면 경로': '/app/patient/messages, /app/coordinator/*',
-    '현재 구현 상태': '부분구현: 메시지 화면 있음\n실시간 푸시 Supabase Realtime 통합 일부',
+    '현재 구현 상태': '완료: src/hooks/useNotifications.ts + src/lib/push/fcm.ts\nSupabase Realtime 구독과 FCM 푸시가 함께 돈다',
 })
 
 doc.add_page_break()
