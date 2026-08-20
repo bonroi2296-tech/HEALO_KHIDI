@@ -19,3 +19,18 @@ describe("confirmMatchesEmail", () => {
     expect(confirmMatchesEmail("anything", "")).toBe(false);
   });
 });
+
+
+// 빈 userId 가 들어오면 «주인 없는 문의 전부»를 건드리게 된다. 반드시 막혀야 한다.
+describe("deleteAccountCompletely 빈 값 방어", () => {
+  it("userId 가 비면 아무것도 건드리지 않고 실패로 끝난다", async () => {
+    const { deleteAccountCompletely } = await import("./deleteAccount");
+    for (const bad of ["", "   ", null, undefined]) {
+      const r = await deleteAccountCompletely(bad as unknown as string);
+      expect(r.ok).toBe(false);
+      expect(r.failedSteps).toContain("invalid_user_id");
+      expect(r.anonymizedInquiries).toBe(0);
+      expect(r.purgedRows).toBe(0);
+    }
+  });
+});

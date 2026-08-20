@@ -25,6 +25,7 @@ import crypto from "crypto";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFailed } from "@/lib/operationalLog";
 import { evaluateLeadQuality } from "@/lib/leadQuality/scoring";
+import { after } from "next/server";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkEncryptionFailures, alertHighPriorityLead } from "@/lib/alerts/operationalAlerts";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
@@ -468,7 +469,9 @@ export async function POST(request: Request) {
     }
 
     // ✅ P2: 퍼널 이벤트 추적
-    trackFunnelEvent({
+    // after(): 응답을 보낸 뒤에도 함수를 살려 둔다. 안 감싸면 서버리스가 그대로 얼어서
+    // 기록이 «조용히 사라진다» (2026-08-20 실측: 문의 145건에 퍼널 이벤트 1건뿐이었다).
+    after(() => trackFunnelEvent({
       stage: 'form_complete',
       sessionId: sessionId ?? undefined,
       page: page ?? undefined,
@@ -476,7 +479,7 @@ export async function POST(request: Request) {
       language: language,
       country: inquiryRow?.nationality ?? undefined,
       treatmentType: inquiryRow?.treatment_type ?? undefined,
-    });
+    }));
 
     // ✅ 운영 로그: 정규화 성공
     logOperational('info', {

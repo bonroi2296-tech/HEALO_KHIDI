@@ -17,6 +17,18 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
  *   법정 기록이 없어진다. 그래서 **사람을 식별하는 칸만 지우고 통계용 칸은 남긴다.**
  *   이 방침은 화면 안내 문구(patientAccount.delDesc)와 짝이다 — 한쪽만 바꾸지 마라.
  *
+ * 🚫 **첨부파일 이름은 «일부러» 안 건드린다** (2026-08-20 PO 판단으로 되돌림).
+ *    한 번 지우는 코드를 넣었다가 뺐다. 이유:
+ *      ① 파일 «안»에 환자 이름이 그대로 적혀 있다. 이름표만 바꿔선 익명이 안 된다(효과 0에 가깝다).
+ *      ② 한 문의에 첨부가 5개 넘는 경우가 있다(#93). 전부 "첨부파일.pdf" 가 되면
+ *         어느 게 MRI 이고 어느 게 퇴원기록인지 구분이 안 된다.
+ *      ③ 그 서류는 법으로 «남겨야 하는» 진료기록이다. 알아볼 수 없게 만드는 것은 보존이 아니라 훼손이다.
+ *    → 고칠 것은 코드가 아니라 «우리가 화면에 적은 문장»이다. 지금 문구는 실제 동작 그대로 적혀 있다.
+ *    PO: *«오히려 문서명을 바꾸는게 문제 아님?»*
+ *
+ * 📜 개인정보처리방침(§보관기간)이 「원격협진 자막·대화 기록: 삭제 요청 시 파기」라고 적고 있다.
+ *    그래서 ③단계에서 자막·대화를 지운다. 방침 문구를 바꾸면 여기도 같이 바꿔라.
+ *
  * ⚠️ 되돌릴 수 없다. 부르기 «전»에 반드시 ①본인 로그인 세션 확인 ②화면에서 확인 절차를 거칠 것.
  */
 
@@ -70,6 +82,13 @@ export function confirmMatchesEmail(typed: unknown, email: string | null | undef
 }
 
 export async function deleteAccountCompletely(userId: string): Promise<DeleteAccountResult> {
+  // 🛑 빈 값 방어. userId 가 비면 아래 .eq("user_id", userId) 가 «user_id 가 비어 있는 줄 전부»를
+  //    고르게 되어, 로그인 없이 들어온 문의를 통째로 익명화한다. 되돌릴 수 없으므로 여기서 멈춘다.
+  //    (지금 부르는 곳은 모두 로그인 세션에서 온 값이라 이런 일이 없지만, 값싼 예방을 둔다.)
+  if (!userId || typeof userId !== "string" || !userId.trim()) {
+    return { ok: false, anonymizedInquiries: 0, purgedRows: 0, failedSteps: ["invalid_user_id"] };
+  }
+
   const failedSteps: string[] = [];
   let anonymizedInquiries = 0;
   let purgedRows = 0;
@@ -100,7 +119,35 @@ export async function deleteAccountCompletely(userId: string): Promise<DeleteAcc
     failedSteps.push("chat_threads");
   }
 
-  // ③ 통째로 지워도 되는 것들
+  // ③ 원격협진 자막·대화 기록: 개인정보처리방침이 「삭제 요청 시 파기」라고 «이미 약속»한 것이다.
+  //    (2026-08-20 실측으로 발견: 약속만 있고 지우는 코드가 없었다.)
+  //    회의 «건수»는 consultation_sessions 로 세므로 자막을 지워도 KHIDI 실적은 안 깎인다.
+  //    그래서 세션 행은 남기고 그 안의 말·자막만 지운다.
+  try {
+    const { data: sessions, error: sErr } = await admin
+      .from("consultation_sessions")
+      .select("id")
+      .eq("patient_user_id", userId);
+    if (sErr) throw sErr;
+    const ids = (sessions ?? []).map((r: { id: string }) => r.id);
+    if (ids.length) {
+      for (const table of ["consultation_translations", "consultation_messages"] as const) {
+        const { data, error } = await admin.from(table).delete().in("session_id", ids).select("id");
+        if (error) throw error;
+        purgedRows += data?.length ?? 0;
+      }
+      // 세션 행은 남기되(실적 근거) 사람과의 연결은 끊는다.
+      const { error: uErr } = await admin
+        .from("consultation_sessions")
+        .update({ patient_user_id: null })
+        .eq("patient_user_id", userId);
+      if (uErr) throw uErr;
+    }
+  } catch {
+    failedSteps.push("consultation");
+  }
+
+  // ④ 통째로 지워도 되는 것들
   for (const table of PURGE_TABLES) {
     try {
       const { data, error } = await admin.from(table).delete().eq("user_id", userId).select("user_id");
@@ -111,7 +158,7 @@ export async function deleteAccountCompletely(userId: string): Promise<DeleteAcc
     }
   }
 
-  // ④ 로그인 계정 자체. **이게 진짜 탈퇴다** — 앞 단계가 일부 실패해도 여기는 시도한다.
+  // ⑤ 로그인 계정 자체. **이게 진짜 탈퇴다** — 앞 단계가 일부 실패해도 여기는 시도한다.
   //    (계정이 남아 있으면 사용자는 「탈퇴했는데 로그인이 된다」를 겪는다. 그게 제일 나쁘다.)
   try {
     const { error } = await admin.auth.admin.deleteUser(userId);
