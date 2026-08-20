@@ -47,7 +47,36 @@ export const SURGERY_RANGES: Record<string, SurgeryRange[]> = {
   breast: [
     { methodKey: "costRange.method.breastSln", minKrw: 8_000_000, maxKrw: 18_000_000 },
   ],
+  // 환자 요청 폼의 암종 선택지에는 없다(DB 검사규칙이 받는 값이 아니다).
+  // AI 상담 안내자료(careReference)에는 들어가므로 여기 남긴다.
+  uterine_ovarian: [
+    { methodKey: "costRange.method.laparoRobot", minKrw: 10_000_000, maxKrw: 20_000_000 },
+  ],
 };
+
+/** AI 안내자료에 쓸 영문 암종명. 화면용 라벨(i18n)과 별개다. */
+export const CANCER_EN: Record<string, string> = {
+  thyroid: "Thyroid cancer (갑상선암)",
+  stomach: "Stomach cancer (위암)",
+  colorectal: "Colorectal cancer (대장암)",
+  lung: "Lung cancer (폐암)",
+  liver: "Liver cancer (간암)",
+  breast: "Breast cancer (유방암)",
+  uterine_ovarian: "Uterine/ovarian (자궁·난소암)",
+};
+
+/** 안내자료 표기 순서 — 기존 문구와 같은 순서를 유지한다(AI 프롬프트 안정성). */
+export const CANCER_ORDER = [
+  "thyroid", "stomach", "colorectal", "lung", "liver", "breast", "uterine_ovarian",
+];
+
+/** 환율. 원본 자료가 1 USD ≈ 1,350 KRW 로 환산했다. */
+export const USD_RATE = 1350;
+
+/** 달러는 500 단위로 반올림한다(원본 자료의 표기 방식). */
+export function toUsd(krw: number): number {
+  return Math.round(krw / USD_RATE / 500) * 500;
+}
 
 /** 해당 암종의 전체 범위(가장 낮은 최소 ~ 가장 높은 최대). 없으면 null. */
 export function overallRange(cancerType: string): { minKrw: number; maxKrw: number } | null {
