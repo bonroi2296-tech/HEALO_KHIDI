@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from beyondk_style import (  # noqa: E402
     deck, cover, chapter, statement, content, table, band, note, highlight,
     text, line, panel, picture, caption, stat, step, arrow, box, MARGIN, W,
-    BLACK, BODY, MUTED, PANEL, LIME, GREEN_L, GREEN_M, HEAVY, XBOLD, MED, REG, LIGHT,
+    BLACK, WHITE, BODY, MUTED, PANEL, BRAND, BRAND_PALE, GREEN_L, GREEN_M, HEAVY, XBOLD, MED, REG, LIGHT,
 )
 from pptx.enum.text import PP_ALIGN  # noqa: E402
 
@@ -327,7 +327,7 @@ s = content(prs, "2부 · 4. 향후 계획", "정책 방향과 우리 서비스�
             "현행법 안에서 운영 중이며, 정책은 같은 방향으로 넓어지고 있습니다")
 YY = 152
 step(s, MARGIN, YY, 250, 96, "지금  운영 중",
-     ["의료해외진출법 제16조", "외국인환자 사전ㆍ사후관리 (상담·교육)"], LIME)
+     ["의료해외진출법 제16조", "외국인환자 사전ㆍ사후관리 (상담·교육)"], BRAND)
 step(s, MARGIN + 282, YY, 250, 96, "2026. 7. 30  발주",
      ["KHIDI 「비대면진료 기반", "사전·사후관리 표준 운영체계」"], GREEN_L)
 step(s, MARGIN + 564, YY, 252, 96, "2027. 5. 27  범위 확대",
