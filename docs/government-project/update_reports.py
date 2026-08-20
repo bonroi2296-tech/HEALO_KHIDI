@@ -22,6 +22,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 import _facts as F
 
@@ -220,15 +221,29 @@ def table(doc, headers, rows):
     return t
 
 
-def iter_paragraphs(doc):
-    """본문 문단 + 모든 표 안의 문단까지 훑는다(표 안에 옛 경로가 많다)."""
-    for p in doc.paragraphs:
-        yield p
-    for t in doc.tables:
-        for row in t.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    yield p
+def iter_paragraphs(doc, with_furniture=True):
+    """본문 문단 + 표 안 문단 + 머리말·꼬리말까지 훑는다.
+
+    ⚠️ 머리말·꼬리말을 빼먹지 마라. 2026-08-20 실측: 본문에서 「(주)본로이」를 다 지웠는데
+       꼬리말에 남아 06·07·08·09 의 «매 쪽 하단»에 그대로 인쇄되고 있었다.
+    """
+    def walk(container):
+        for p in container.paragraphs:
+            yield p
+        for t in container.tables:
+            for row in t.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        yield p
+    yield from walk(doc)
+    if with_furniture:
+        for sec in doc.sections:
+            for part in (sec.header, sec.footer, sec.first_page_header, sec.first_page_footer,
+                         sec.even_page_header, sec.even_page_footer):
+                try:
+                    yield from walk(part)
+                except Exception:
+                    continue
 
 
 def replace_in_paragraph(p, old, new):
@@ -373,6 +388,61 @@ def fill_cwv(doc):
     return False
 
 
+FOOTER_LEFT = "본로이  |  기밀문서, 무단 배포 금지"
+
+
+def _field(par, instr):
+    """워드 필드(쪽번호 등)를 문단에 넣는다. 글자로 «PAGE» 라고 쓰면 숫자가 안 나온다."""
+    r = par.add_run()
+    fc = OxmlElement("w:fldChar"); fc.set(qn("w:fldCharType"), "begin"); r._r.append(fc)
+    r2 = par.add_run()
+    it = OxmlElement("w:instrText"); it.set(qn("xml:space"), "preserve"); it.text = f" {instr} "
+    r2._r.append(it)
+    r3 = par.add_run()
+    fe = OxmlElement("w:fldChar"); fe.set(qn("w:fldCharType"), "end"); r3._r.append(fe)
+    for run in (r, r2, r3):
+        set_font(run, size=8, color=(120, 120, 120))
+
+
+def ensure_footer(doc):
+    """모든 구역에 같은 꼬리말을 둔다. 제출 묶음인데 문서마다 있거나 없으면 티가 난다."""
+    n = 0
+    for sec in doc.sections:
+        f = sec.footer
+        f.is_linked_to_previous = False
+        for par in list(f.paragraphs)[1:]:
+            par._p.getparent().remove(par._p)
+        par = f.paragraphs[0] if f.paragraphs else f.add_paragraph()
+        for r in list(par.runs):
+            r._r.getparent().remove(r._r)
+        par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_font(par.add_run(FOOTER_LEFT + "     "), size=8, color=(120, 120, 120))
+        _field(par, "PAGE")
+        set_font(par.add_run(" / "), size=8, color=(120, 120, 120))
+        _field(par, "NUMPAGES")
+        n += 1
+    return n
+
+
+def repeat_table_headers(doc, min_rows=12):
+    """쪽을 넘어가는 긴 표의 머리행을 다음 쪽에도 반복시킨다.
+
+    안 하면 두 번째 쪽 표가 «무슨 열인지» 알 수 없다. 2026-08-20 실측: 12행 넘는 표가
+    21개인데 반복 설정이 하나도 없었다.
+    """
+    n = 0
+    for t in doc.tables:
+        if len(t.rows) < min_rows:
+            continue
+        tr = t.rows[0]._tr
+        trPr = tr.get_or_add_trPr()
+        if trPr.find(qn("w:tblHeader")) is None:
+            el = OxmlElement("w:tblHeader"); el.set(qn("w:val"), "true")
+            trPr.append(el)
+            n += 1
+    return n
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -420,9 +490,11 @@ def main():
         doc = Document(str(path))
         n = sum(1 for p in iter_paragraphs(doc) for old, new in GLOBAL
                 if replace_in_paragraph(p, old, new))
+        n += ensure_footer(doc)
+        n += repeat_table_headers(doc)
         if n:
             doc.save(str(path))
-            changed.append(f"{path.name}: 공통 교체 {n}곳")
+            changed.append(f"{path.name}: 공통 정리 {n}곳(꼬리말·머리행 포함)")
 
     # 0-1) 09 산출물목록에서 폐기 문서 흔적 제거
     #      03 착수보고서: KHIDI 가 요구한 적 없는데 이전 세션이 만든 것(PO 결정 2026-08-20).
