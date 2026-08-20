@@ -269,10 +269,13 @@ picture(s, os.path.join(SHOT, "swot.png"), (W - 548) / 2, 126, w=548, border=Fal
 s = content(prs, "2부 · 3. 수익모델", "수익모델 및 매출계획", "현장 협의로 확정된 수수료 조건 반영")
 tf = text(s, MARGIN, 146, 420, 190)
 line(tf, "수익 모델", 12, BLACK, XBOLD, first=True)
-for t in ["① 유치 수수료  치료비의 15~30% (법정 상한 내)",
-          "② 플랫폼 이용료  월 50~100만원 / 기관",
-          "③ 의료관광 패키지  건당 100~200만원"]:
-    line(tf, t, 10.5, BODY, REG, before=7)
+line(tf, "① 유치 수수료  상급종합병원 15% (검진 20%) · 참여 한방병원 별도 협의",
+     10.5, BODY, REG, before=7)
+line(tf, "     연결한 환자가 실제로 치료를 받으면 병원에서 받습니다. 지금 유일한 매출원입니다.",
+     9.5, MUTED, LIGHT, before=2)
+line(tf, "② 플랫폼 이용료  향후 검토 (지금은 받지 않음)", 10.5, MUTED, REG, before=7)
+line(tf, "     제휴 의료기관이 늘어난 뒤 월 구독형 도입 여부를 2027년에 판단합니다.",
+     9.5, MUTED, LIGHT, before=2)
 line(tf, "현장 협의로 확정된 조건", 12, BLACK, XBOLD, before=16)
 for t in ["· 에이전시 지급 수수료 15% (MedicaTour 계약) · 20% (MedVoyage)",
           "· 지급은 「치료를 실제로 받은 환자」에 한정",

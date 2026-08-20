@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
-"""비즈니스모델 체계도 그림 — BeyondK 깔(docs/rules/PPT_STYLE.md) 기준.
+"""비즈니스모델 체계도 그림. BeyondK 깔(docs/rules/PPT_STYLE.md) 기준.
 
 규격 : 흰 바탕 · 브랜드 색(teal-700 #0f766e)은 한 곳만(가운데 healwith 상자) · 에스코어 드림 글꼴.
 쓰는 곳 : 중간보고서 2부 「수익모델」 / 발표자료.
 내용 고치는 곳 : 01. 작업본/비즈니스모델_내용_편집용.txt
 
-⚠️ 에스코어 드림에는 겹화살괄호(« »)와 엠대시(—)가 없다. 넣으면 «빈칸»으로 빠진다.
+구조 (2026-08-20 대표 정정)
+  · 환자가 직접 오든 에이전시가 소개하든 «유입 경로»만 다르고 그 뒤는 똑같다.
+  · 플랫폼이 환자 상태를 보고 상급종합병원이든 한방병원이든 연결한다. 둘은 갈라진 길이 아니다.
+  · 유치 수수료는 «양쪽 병원 모두»에서 받는다. 한쪽만 받는 게 아니다.
+  · 플랫폼 이용료는 지금 받지 않는다. 향후 검토 항목이므로 흐름도에서 빼고 아래에만 적는다.
+
+⚠️ 에스코어 드림에는 겹화살괄호(« »)와 엠대시가 없다. 넣으면 빈칸으로 빠진다.
    낫표(「」)와 가운뎃점(·)만 쓴다.
 
 쓰는 법:  python scripts/hwp/make_bm_image.py <나올.png>
@@ -14,7 +20,7 @@ import sys, os
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'bm.png'
-W, H = 1800, 1250
+W, H = 1800, 1240
 
 BLACK = (0, 0, 0)
 INK = (26, 26, 26)
@@ -39,34 +45,27 @@ d = ImageDraw.Draw(img)
 
 
 def mid(x, y, text, font, fill):
-    """가운데 정렬로 한 줄 쓴다."""
     d.text((x - d.textlength(text, font=font) / 2, y), text, font=font, fill=fill)
 
 
-def card(x, y, w, h, title, sub=None, strong=False):
-    """상자 하나. strong 이면 브랜드 색 바탕(가운데 healwith 만)."""
-    d.rectangle([x, y, x + w, y + h], fill=BRAND if strong else PANEL,
-                outline=BRAND_D if strong else LINE, width=3 if strong else 2)
+def card(x, y, w, h, title, sub):
+    d.rectangle([x, y, x + w, y + h], fill=PANEL, outline=LINE, width=2)
     cx = x + w / 2
-    if sub:
-        mid(cx, y + h / 2 - 34, title, f(7, 28), 'white' if strong else BLACK)
-        mid(cx, y + h / 2 + 8, sub, f(4, 21), PALE if strong else BODY)
-    else:
-        mid(cx, y + h / 2 - 16, title, f(7, 28), BLACK)
+    mid(cx, y + h / 2 - 32, title, f(7, 27), BLACK)
+    mid(cx, y + h / 2 + 8, sub, f(4, 20), BODY)
 
 
 def arrow(x1, y, x2, label, money=False):
     """가로 화살표. money 면 굵은 검정(돈이 들어오는 쪽)."""
     col = BLACK if money else MUTED
-    wd = 3 if money else 2
-    d.line([x1, y, x2, y], fill=col, width=wd)
+    d.line([x1, y, x2, y], fill=col, width=3 if money else 2)
     s = 1 if x2 > x1 else -1
-    d.polygon([(x2, y), (x2 - s * 16, y - 8), (x2 - s * 16, y + 8)], fill=col)
-    fnt = f(6, 20) if money else f(4, 19)
+    d.polygon([(x2, y), (x2 - s * 15, y - 8), (x2 - s * 15, y + 8)], fill=col)
+    fnt = f(6, 19) if money else f(4, 18)
     tw = d.textlength(label, font=fnt)
     cx = (x1 + x2) / 2
-    d.rectangle([cx - tw / 2 - 8, y - 32, cx + tw / 2 + 8, y - 6], fill='white')
-    d.text((cx - tw / 2, y - 30), label, font=fnt, fill=BLACK if money else BODY)
+    d.rectangle([cx - tw / 2 - 8, y - 30, cx + tw / 2 + 8, y - 5], fill='white')
+    d.text((cx - tw / 2, y - 28), label, font=fnt, fill=BLACK if money else BODY)
 
 
 # ─────────────────────────── 머리말
@@ -74,80 +73,97 @@ d.text((70, 56), '비즈니스모델 체계도 및 연도별 매출계획(안)',
 d.line([70, 136, W - 70, 136], fill=BLACK, width=3)
 
 # ─────────────────────────── 체계도
-CW, CH = 300, 116
-LX, MX, RX = 132, 740, 1368
-MW = 320
-TOP, BOT = 196, 392
+CW, CH = 296, 118
+LX, RX = 132, 1372
+MX, MW = 706, 388
+TOP, BOT = 200, 384
+MY, MH = 200, 302
 
-card(LX, TOP, CW, CH, '카자흐스탄 등 CIS', '암환자')
+# 기둥 이름
+mid(LX + CW / 2, 168, '유 입 경 로', f(6, 19), MUTED)
+mid(RX + CW / 2, 168, '연 결 병 원', f(6, 19), MUTED)
+
+card(LX, TOP, CW, CH, '카자흐스탄 등 CIS', '암환자 · 보호자')
 card(LX, BOT, CW, CH, '현지 에이전시', '협력 의료기관')
-card(MX, TOP, MW, CH, 'healwith 플랫폼', '본로이', strong=True)
 card(RX, TOP, CW, CH, '국내 협진', '상급종합병원')
 card(RX, BOT, CW, CH, '참여 한방병원', '면역 · 회복기 재활')
 
-# 가운데 아래: 플랫폼이 하는 일
-d.rectangle([MX, BOT - 8, MX + MW, BOT + CH + 26], fill='white', outline=LINE, width=2)
-mid(MX + MW / 2, BOT + 8, '원격협진 · AI 사전상담', f(5, 21), BODY)
-mid(MX + MW / 2, BOT + 44, '다국어 · 사후관리 자동안내', f(5, 21), BODY)
-mid(MX + MW / 2, BOT + 80, '성과지표 자동집계', f(5, 21), BODY)
+# 가운데: 플랫폼
+d.rectangle([MX, MY, MX + MW, MY + MH], fill=BRAND, outline=BRAND_D, width=3)
+cx = MX + MW / 2
+mid(cx, MY + 30, 'healwith 플랫폼', f(7, 31), 'white')
+mid(cx, MY + 76, '본로이', f(4, 21), PALE)
+d.line([MX + 48, MY + 120, MX + MW - 48, MY + 120], fill=BRAND_D, width=2)
+for i, t in enumerate(['AI 사전상담 · 원격협진',
+                       '다국어 · 사후관리 자동안내',
+                       '성과지표 자동집계']):
+    mid(cx, MY + 146 + i * 44, t, f(5, 20), PALE)
 
-arrow(LX + CW, TOP + 40, MX, '상담 접수 · 의료정보')
-arrow(MX + MW, TOP + 36, RX, '의뢰서 · 협진')
-arrow(RX, TOP + 90, MX + MW, '① 유치 수수료', money=True)
-arrow(MX + MW, BOT + 36, RX, '재활 · 사후관리 연계')
-arrow(RX, BOT + 90, MX + MW, '② 플랫폼 이용료', money=True)
-arrow(LX + CW, BOT + 62, MX, '환자 발굴 · 현지 경과')
+# 유입: 두 경로 모두 같은 곳으로 들어온다
+arrow(LX + CW, TOP + 59, MX, '직접 문의')
+arrow(LX + CW, BOT + 59, MX, '환자 소개')
 
-# ─────────────────────────── 수익 계산식
-FY = 580
+# 연결: 환자 상태에 따라 어느 쪽으로든. 수수료는 양쪽 모두에서 받는다
+arrow(MX + MW, TOP + 32, RX, '의뢰서 · 협진')
+arrow(RX, TOP + 88, MX + MW, '① 유치 수수료', money=True)
+arrow(MX + MW, BOT + 32, RX, '면역치료 · 재활 · 사후관리')
+arrow(RX, BOT + 88, MX + MW, '① 유치 수수료', money=True)
+
+d.text((MX - 4, MY + MH + 16), '환자 상태와 진료과에 따라 연결처를 정한다. 두 병원은 갈라진 길이 아니라 하나의 흐름이다.',
+       font=f(4, 19), fill=MUTED)
+
+# ─────────────────────────── 수익 구조
+FY = 566
 d.line([70, FY, W - 70, FY], fill=LINE, width=2)
-d.text((132, FY + 26), '① 원격진료 매출', font=f(7, 24), fill=BLACK)
-d.text((400, FY + 28), '진료비 × 병원 지급 수수료율 15%   (지출: 에이전시 수수료 15~20%)',
-       font=f(4, 22), fill=INK)
-d.text((132, FY + 74), '② 솔루션 매출', font=f(7, 24), fill=BLACK)
-d.text((400, FY + 76), '플랫폼 이용 의료기관 수 × 월 이용료 50~100만원 (구독형)',
-       font=f(4, 22), fill=INK)
+d.text((132, FY + 26), '① 유치 수수료', font=f(7, 24), fill=BLACK)
+d.text((400, FY + 22), '현재 유일한 매출원. 연결한 환자가 실제로 치료를 받으면 병원에서 받는다.', font=f(4, 21), fill=INK)
+d.text((400, FY + 52), '상급종합병원 15% (검진 20%) · 참여 한방병원 별도 협의   /   지출: 에이전시 소개 건은 15~20% 지급',
+       font=f(4, 21), fill=BODY)
+d.text((132, FY + 100), '② 플랫폼 이용료', font=f(7, 24), fill=MUTED)
+d.text((400, FY + 96), '향후 검토. 지금은 받지 않는다.', font=f(4, 21), fill=INK)
+d.text((400, FY + 126), '제휴 의료기관이 늘어난 뒤 월 구독형(50~100만원)으로 도입할지 판단한다.', font=f(4, 21), fill=BODY)
 
 # ─────────────────────────── 연도별 매출계획표
-TY = 740
+TY = 754
 cols = [132, 560, 860, 1120, 1380, W - 70]
-rows = [TY + i * 56 for i in range(7)]
+rows = [TY + i * 54 for i in range(7)]
 head = ['구  분', '2026년 (하반기)', '2027년', '2028년', '비  고']
 body = [
-    ['① 원격진료  유치 건수', '12 건 (목표)', '30 건', '60 건', '월 1.5건 → 2.5건 → 5건'],
-    ['① 원격진료  매출', '건수 × 진료비 × 15%', '〃', '〃', '진료비 단가 확정 중'],
-    ['② 솔루션  이용 기관', '2 개 (참여병원)', '5 개', '12 개', '제휴 의료기관 확대'],
-    ['② 솔루션  매출', '-', '3,000 만원', '7,200 만원', '월 50만원 × 12개월'],
+    ['① 유치 건수', '12 건 (목표)', '30 건', '60 건', '월 1.5건 → 2.5건 → 5건'],
+    ['① 유치 수수료 매출', '건수 × 진료비 × 15%', '〃', '〃', '진료비 단가 확정 중'],
     ['사후관리 연계 건수', '120 건 (목표)', '300 건', '600 건', '유치 1건당 10회'],
+    ['② 이용료 도입 기관', '없음', '5 개 (검토)', '12 개 (검토)', '도입 여부는 2027년 판단'],
+    ['② 이용료 매출', '없음', '3,000 만원', '7,200 만원', '도입 시 월 50만원 기준'],
 ]
 
 d.rectangle([cols[0], rows[0], cols[-1], rows[1]], fill=HEAD, outline=LINE, width=2)
 for i, t in enumerate(head):
     if i == 0:
-        d.text((cols[0] + 20, rows[0] + 16), t, font=f(7, 22), fill=BLACK)
+        d.text((cols[0] + 20, rows[0] + 15), t, font=f(7, 21), fill=BLACK)
     else:
-        mid((cols[i] + cols[i + 1]) / 2, rows[0] + 16, t, f(7, 22), BLACK)
+        mid((cols[i] + cols[i + 1]) / 2, rows[0] + 15, t, f(7, 21), BLACK)
 
 for r, row in enumerate(body):
     y0, y1 = rows[r + 1], rows[r + 2]
     d.rectangle([cols[0], y0, cols[-1], y1], fill='white', outline=LINE, width=1)
+    grey = row[0].startswith('②')          # 아직 시행 안 하는 항목은 옅게
     for c, t in enumerate(row):
         if c == 0:
-            d.text((cols[0] + 20, y0 + 17), t, font=f(6, 21), fill=BLACK)
+            d.text((cols[0] + 20, y0 + 16), t, font=f(6, 20), fill=MUTED if grey else BLACK)
         else:
-            mid((cols[c] + cols[c + 1]) / 2, y0 + 17, t, f(4, 21), INK)
+            mid((cols[c] + cols[c + 1]) / 2, y0 + 16, t, f(4, 20), MUTED if grey else INK)
 for c in cols[1:-1]:
     d.line([c, rows[0], c, rows[-1]], fill=LINE, width=1)
 
 # ─────────────────────────── 각주
-NY = rows[-1] + 26
+NY = rows[-1] + 24
 for i, t in enumerate([
     '※ 2026년 하반기는 유치 실적 확보 단계로, 매출보다 「사례 · 데이터 축적」을 우선한다.',
-    '※ 솔루션 매출은 2027년부터 참여병원 · 제휴 의료기관을 대상으로 적용하며, 이용료는 월 단위 구독형이다.',
+    '※ ② 플랫폼 이용료는 아직 받지 않는다. 참여병원 두 곳은 무상으로 쓰고 있으며, 도입 여부는 2027년에 판단한다.',
     '※ 해외 에이전시 지급 수수료는 계약서로 확정: MedicaTour(러시아) 15% · MedVoyage(영국) 20%.',
     '     「치료를 실제로 받은 환자」에 한해 지급한다.',
 ]):
-    d.text((132, NY + i * 32), t, font=f(4, 20), fill=MUTED)
+    d.text((132, NY + i * 30), t, font=f(4, 19), fill=MUTED)
 
 img.save(OUT)
 print('만듦 :', OUT, img.size)
