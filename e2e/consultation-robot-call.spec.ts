@@ -337,24 +337,31 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       }
 
       // ── 통역 자막이 «실제로» 떴는가 — 봇을 내보내기 «전»에 본다 ────────────
-      //   로봇A(ko)가 한국어 WAV 를 말하고 로봇B(ru)가 듣는 조합이므로, 봇이 일하고 있다면
-      //   로봇B 자막 스택에 **키릴 문자**가 떠야 한다. 방 UI 자체가 러시아어라 본문 전체에서
+      //   로봇A(ko)가 한국어를 말하고 로봇B(en)가 듣는 조합이므로, 봇이 일하고 있다면
+      //   로봇B 자막 스택에 **라틴 문자로 된 영어 문장**이 떠야 한다. 본문 전체에서
       //   찾으면 UI 문구에 걸려 늘 «찾음»이 되므로 **자막 스택 안에서만** 본다.
+      //
+      //   2026-08-20 바뀐 점: 그 전에는 로봇B 가 러시아어였고 **키릴 문자**를 찾았다.
+      //   로봇B 를 영어 화자로 바꾸면서 이 판정도 같이 바꿨다. 안 바꿨으면 키릴 문자가
+      //   영영 안 떠서 이 관측이 매일 밤 «자막 못 봄» 으로 굳었을 것이다.
       //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로 이 관측은 반드시 «끄기» 앞이어야 한다.
       //   ⚠️ 아직 하드 실패로 걸지 않는다 — 합성음(piper) 인식률이 미검증이라 첫날부터
       //      expect 로 올리면 «봇은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 될 수 있다.
       let captionText = "(관측 안 함 — 봇 미입장)";
       if (botPresent) {
-        // 자막 «본문»만 읽는다 — 같은 줄의 이름·언어 라벨(«Русский»)과 옆의 AI 면책 배너도
-        // 러시아어라, 스택 전체 텍스트로 보면 봇이 아무 말도 안 해도 «자막 있음»이 된다
+        // 자막 «본문»만 읽는다 — 같은 줄의 이름·언어 라벨과 옆의 AI 면책 배너도
+        // 같은 언어라, 스택 전체 텍스트로 보면 봇이 아무 말도 안 해도 «자막 있음»이 된다
         // (2026-07-28 실측: 라벨만 잡고 통과할 뻔했다).
         const lines = robotB.getByTestId("subtitle-text");
-        const cyrillic = /[Ѐ-ӿ]{3,}/;
+        // 영어 «문장»을 찾는다. 낱말 하나(이름·라벨)로는 안 걸리도록 «띄어쓰기로 나뉜
+        // 낱말 세 개 이상»을 요구한다. 한글이 섞여 있으면 통역 «전» 원문이므로 제외한다.
+        const englishSentence = (t: string) =>
+          !/[가-힣]/.test(t) && /(?:[A-Za-z]{2,}[ ,.'-]+){2,}[A-Za-z]{2,}/.test(t);
         const deadline = Date.now() + 60_000;
         captionText = "자막 못 봄";
         while (Date.now() < deadline) {
           const texts = await lines.allInnerTexts().catch(() => [] as string[]);
-          const hit = texts.find((t) => cyrillic.test(t));
+          const hit = texts.find(englishSentence);
           if (hit) {
             captionText = "자막 뜸: " + hit.slice(0, 120);
             break;
@@ -362,10 +369,10 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
           await robotB.waitForTimeout(3_000);
         }
       }
-      console.log(`[robot-call] 통역자막(러시아어) = ${captionText}`);
+      console.log(`[robot-call] 통역자막(영어) = ${captionText}`);
       test.info().annotations.push({
         type: "interpreter-caption",
-        description: `${captionText} (ko 화자 → ru 청취자, 합성음 STT)`,
+        description: `${captionText} (ko 화자 → en 화자, 양쪽 다 합성음. 러시아어 경로는 말소리 파일이 없어 안 잼)`,
       });
 
       // 끄면 나가는가 — PO 요구사항의 나머지 절반(2026-07-28). 봇이 들어온 경우에만 의미.
