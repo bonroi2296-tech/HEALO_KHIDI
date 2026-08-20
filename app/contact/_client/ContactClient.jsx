@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SITE_INFO } from "@/lib/siteSettings";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 
 export default function ContactClient() {
   const langCode = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
@@ -56,14 +57,14 @@ export default function ContactClient() {
             <p className="mt-2 text-gray-600">
               {t("contact.privacyTermsDesc", langCode)}{" "}
               <Link
-                href="/privacy"
+                href={localeHref("/privacy", langCode)}
                 className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("nav.privacy", langCode)}
               </Link>
               {" "}
               <Link
-                href="/terms"
+                href={localeHref("/terms", langCode)}
                 className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("nav.terms", langCode)}

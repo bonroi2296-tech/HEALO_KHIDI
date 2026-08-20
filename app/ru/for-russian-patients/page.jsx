@@ -140,7 +140,7 @@ export default function ForRussianPatientsPage() {
               Второе мнение бесплатно · WhatsApp
             </a>
             <Link
-              href="/inquiry"
+              href="/ru/inquiry"
               className="border border-teal-600 text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
               Оставить заявку
@@ -270,7 +270,7 @@ export default function ForRussianPatientsPage() {
                 <li>• Документы: паспорт, письмо клиники, страховка</li>
                 <li>• healwith готовит пакет документов</li>
               </ul>
-              <Link href="/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/ru/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Подробнее о визе →
               </Link>
             </div>
@@ -287,7 +287,7 @@ export default function ForRussianPatientsPage() {
               <p className="text-[11px] text-gray-400 mt-3">
                 Диапазоны ориентировочные, а не фиксированные цены. Точная стоимость — после изучения медицинских документов; предварительный расчёт бесплатен.
               </p>
-              <Link href="/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/ru/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Получить точный расчёт →
               </Link>
             </div>
@@ -326,7 +326,7 @@ export default function ForRussianPatientsPage() {
               Написать в WhatsApp
             </a>
             <Link
-              href="/inquiry"
+              href="/ru/inquiry"
               className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Оставить заявку
@@ -337,12 +337,12 @@ export default function ForRussianPatientsPage() {
         {/* ── Internal links ─────────────────────────────── */}
         <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
           <Link href="/ru" className="hover:text-teal-700">Главная (RU)</Link>
-          <Link href="/treatments" className="hover:text-teal-700">Виды лечения</Link>
-          <Link href="/hospitals" className="hover:text-teal-700">Больницы</Link>
+          <Link href="/ru/treatments" className="hover:text-teal-700">Виды лечения</Link>
+          <Link href="/ru/hospitals" className="hover:text-teal-700">Больницы</Link>
           {/* Immune Hospital 직링크 제거 — 광고 심사 경로에서 「세포 치료」를 떼어내기 위함.
               병원 목록(/hospitals)을 통해서는 그대로 갈 수 있다. */}
-          <Link href="/visa" className="hover:text-teal-700">Виза</Link>
-          <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
+          <Link href="/ru/visa" className="hover:text-teal-700">Виза</Link>
+          <Link href="/ru/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>
       </main>
     </>

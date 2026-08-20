@@ -18,6 +18,7 @@ import { useState } from "react";
 import { event as gaEvent, GA_EVENTS } from "@/lib/ga";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { getAllCancerCosts, getDisclaimer, getSourceLabel, formatKRW } from "@/lib/data/hiraCancerCosts";
 
@@ -171,10 +172,10 @@ export default function CostCalculatorClient() {
       </section>
 
       <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
-        <Link href="/care-journey" className="hover:text-teal-700">{t("costCalc.navCare", lang)}</Link>
-        <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
-        <Link href="/inquiry" className="hover:text-teal-700">{t("costCalc.navConsult", lang)}</Link>
-        <Link href="/visa" className="hover:text-teal-700">{t("costCalc.navVisa", lang)}</Link>
+        <Link href={localeHref("/care-journey", lang)} className="hover:text-teal-700">{t("costCalc.navCare", lang)}</Link>
+        <Link href={localeHref("/hospitals/immune", lang)} className="hover:text-teal-700">Immune Hospital</Link>
+        <Link href={localeHref("/inquiry", lang)} className="hover:text-teal-700">{t("costCalc.navConsult", lang)}</Link>
+        <Link href={localeHref("/visa", lang)} className="hover:text-teal-700">{t("costCalc.navVisa", lang)}</Link>
       </nav>
     </main>
   );
