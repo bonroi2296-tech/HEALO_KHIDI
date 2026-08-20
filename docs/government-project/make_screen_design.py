@@ -338,8 +338,22 @@ def main():
           widths=[1.6, 4.4, 4.0, 3.2, 3.0])
     doc.add_page_break()
 
-    # ── 2. 화면별 상세 ──────────────────────────────────────────────────
-    heading(doc, "2. 화면별 상세")
+    # ── 2. 시스템 구성도 ────────────────────────────────────────────────
+    # 사업계획서(2026-05-14 제출본) 마일스톤 M1 이 「요구사항 정의서 · UI/UX 설계서 ·
+    # 시스템 구성도」를 결과물로 약속했다. 앞 둘은 실물이 있었는데 구성도만 없어서
+    # 이 문서 안에 넣는다(2026-08-20). 별도 문서를 새로 만들지 않는 이유는 M1 결과물
+    # 둘이 한 문서에 담기는 편이 대조하는 사람에게 낫기 때문이다.
+    heading(doc, "2. 시스템 구성도")
+    para(doc, "이용자부터 데이터 보관까지 플랫폼 전체가 어떻게 이어지는지 한 장으로 보인다. "
+              "점선 상자는 바깥 서비스이고 나머지는 직접 만들어 운영한다.")
+    arch = os.path.join(WF_DIR, "S-01_architecture.png")
+    if os.path.exists(arch):
+        doc.add_picture(arch, width=Inches(6.3))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_page_break()
+
+    # ── 3. 화면별 상세 ──────────────────────────────────────────────────
+    heading(doc, "3. 화면별 상세")
     for x in SCREENS:
         heading(doc, "%s. %s" % (x["no"], x["name"]), size=12)
         table(doc, ["구분", "내용"], [
