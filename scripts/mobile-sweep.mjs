@@ -13,6 +13,9 @@
  *   4. 콘솔 오류
  *
  * 쓰는 법: node scripts/mobile-sweep.mjs [기준주소]   (기본 http://localhost:3000)
+ *
+ * ⚠️ 사진이 필요하면 scripts/mobile-sweep-v2.mjs 를 써라. 이 v1 은 재려고 맨 아래로
+ *    내린 «그 상태»로 찍어서 사진이 죄다 푸터만 나온다(2026-07-31 PO 지적).
  */
 import { chromium } from "playwright";
 import fs from "node:fs";

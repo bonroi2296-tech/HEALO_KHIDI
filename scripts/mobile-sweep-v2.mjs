@@ -6,7 +6,9 @@
  * → 이제 ①맨 위로 올려 «화면 전체»(fullPage)를 찍고 ②그 다음 맨 아래로 내려 «가림»을 잰다.
  *
  * 쓰는 법:
- *   node sweep-all.mjs <기준주소> <저장폴더> <주소목록파일> [세션파일]
+ *   node scripts/mobile-sweep-v2.mjs <기준주소> <저장폴더> <주소목록파일> [세션파일]
+ *
+ * v1 은 scripts/mobile-sweep.mjs 에 그대로 남겨 뒀다. 사진이 필요하면 이 v2 를 써라.
  */
 import { chromium } from "playwright";
 import fs from "node:fs";

@@ -68,6 +68,16 @@ def arrow(x1, y, x2, label, money=False):
     d.text((cx - tw / 2, y - 28), label, font=fnt, fill=BLACK if money else BODY)
 
 
+def varrow(x, y1, y2, label):
+    """세로 화살표. 오른쪽 기둥 안에서 병원끼리 이어지는 흐름."""
+    d.line([x, y1, x, y2], fill=BODY, width=2)
+    d.polygon([(x, y2), (x - 8, y2 - 15), (x + 8, y2 - 15)], fill=BODY)
+    fnt = f(5, 18)
+    tw = d.textlength(label, font=fnt)
+    d.rectangle([x + 14, (y1 + y2) / 2 - 14, x + 22 + tw, (y1 + y2) / 2 + 12], fill='white')
+    d.text((x + 18, (y1 + y2) / 2 - 12), label, font=fnt, fill=BODY)
+
+
 # ─────────────────────────── 머리말
 d.text((70, 56), '비즈니스모델 체계도 및 연도별 매출계획(안)', font=f(8, 50), fill=BLACK)
 d.line([70, 136, W - 70, 136], fill=BLACK, width=3)
@@ -83,10 +93,10 @@ MY, MH = 200, 302
 mid(LX + CW / 2, 168, '유 입 경 로', f(6, 19), MUTED)
 mid(RX + CW / 2, 168, '연 결 병 원', f(6, 19), MUTED)
 
-card(LX, TOP, CW, CH, '카자흐스탄 등 CIS', '암환자 · 보호자')
-card(LX, BOT, CW, CH, '현지 에이전시', '협력 의료기관')
-card(RX, TOP, CW, CH, '국내 협진', '상급종합병원')
-card(RX, BOT, CW, CH, '참여 한방병원', '면역 · 회복기 재활')
+card(LX, TOP, CW, CH, '외국인 환자', '암환자 · 보호자')
+card(LX, BOT, CW, CH, '해외 파트너십', '협력 의료기관 · 에이전시')
+card(RX, TOP, CW, CH, '상급 종합병원', '정밀검진 · 수술 · 항암치료')
+card(RX, BOT, CW, CH, '협력 병·의원', '면역치료 · 회복기 재활 · 사후관리')
 
 # 가운데: 플랫폼
 d.rectangle([MX, MY, MX + MW, MY + MH], fill=BRAND, outline=BRAND_D, width=3)
@@ -94,34 +104,37 @@ cx = MX + MW / 2
 mid(cx, MY + 30, 'healwith 플랫폼', f(7, 31), 'white')
 mid(cx, MY + 76, '본로이', f(4, 21), PALE)
 d.line([MX + 48, MY + 120, MX + MW - 48, MY + 120], fill=BRAND_D, width=2)
-for i, t in enumerate(['AI 사전상담 · 원격협진',
-                       '다국어 · 사후관리 자동안내',
-                       '성과지표 자동집계']):
-    mid(cx, MY + 146 + i * 44, t, f(5, 20), PALE)
+for i, t in enumerate(['사전상담 · 원격협진',
+                       '다국어 · 사후관리 자동안내']):
+    mid(cx, MY + 156 + i * 46, t, f(5, 20), PALE)
 
 # 유입: 두 경로 모두 같은 곳으로 들어온다
 arrow(LX + CW, TOP + 59, MX, '직접 문의')
 arrow(LX + CW, BOT + 59, MX, '환자 소개')
 
 # 연결: 환자 상태에 따라 어느 쪽으로든. 수수료는 양쪽 모두에서 받는다
-arrow(MX + MW, TOP + 32, RX, '의뢰서 · 협진')
+arrow(MX + MW, TOP + 32, RX, '의뢰서 · 환자 유치')
 arrow(RX, TOP + 88, MX + MW, '① 유치 수수료', money=True)
-arrow(MX + MW, BOT + 32, RX, '면역치료 · 재활 · 사후관리')
+arrow(MX + MW, BOT + 32, RX, '의뢰서 · 환자 유치')
 arrow(RX, BOT + 88, MX + MW, '① 유치 수수료', money=True)
 
-d.text((MX - 4, MY + MH + 16), '환자 상태와 진료과에 따라 연결처를 정한다. 두 병원은 갈라진 길이 아니라 하나의 흐름이다.',
+# 수술·항암을 마친 환자가 호텔에 머무는 대신 회복기 치료로 이어지는 흐름
+varrow(RX + CW / 2, TOP + CH + 4, BOT - 4, '퇴원 후 회복기 연계')
+
+d.text((MX - 4, MY + MH + 18),
+       '환자 상태와 진료과에 따라 연결처를 정한다. 수술·항암을 마친 환자는 그대로 회복기 치료로 이어진다.',
        font=f(4, 19), fill=MUTED)
 
 # ─────────────────────────── 수익 구조
 FY = 566
 d.line([70, FY, W - 70, FY], fill=LINE, width=2)
 d.text((132, FY + 26), '① 유치 수수료', font=f(7, 24), fill=BLACK)
-d.text((400, FY + 22), '현재 유일한 매출원. 연결한 환자가 실제로 치료를 받으면 병원에서 받는다.', font=f(4, 21), fill=INK)
-d.text((400, FY + 52), '상급종합병원 15% (검진 20%) · 참여 한방병원 별도 협의   /   지출: 에이전시 소개 건은 15~20% 지급',
+d.text((400, FY + 22), '외국인 환자를 유치할 경우 병원으로부터 수수료 발생', font=f(4, 21), fill=INK)
+d.text((400, FY + 52), '상급 종합병원 진료 15% · 검진 20% · 협력 병·의원 별도 협의   /   지출: 에이전시 소개 건은 15~20% 지급',
        font=f(4, 21), fill=BODY)
 d.text((132, FY + 100), '② 플랫폼 이용료', font=f(7, 24), fill=MUTED)
-d.text((400, FY + 96), '향후 검토. 지금은 받지 않는다.', font=f(4, 21), fill=INK)
-d.text((400, FY + 126), '제휴 의료기관이 늘어난 뒤 월 구독형(50~100만원)으로 도입할지 판단한다.', font=f(4, 21), fill=BODY)
+d.text((400, FY + 96), '월 구독형 비즈니스 모델 확장', font=f(4, 21), fill=INK)
+d.text((400, FY + 126), '제휴 의료기관에서 필요한 편의 기능을 추가하여 월 구독형 수익성 극대화', font=f(4, 21), fill=BODY)
 
 # ─────────────────────────── 연도별 매출계획표
 TY = 754
