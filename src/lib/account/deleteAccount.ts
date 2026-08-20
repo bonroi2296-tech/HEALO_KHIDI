@@ -69,6 +69,15 @@ export function confirmMatchesEmail(typed: unknown, email: string | null | undef
   return typeof typed === "string" && typed.trim().toLowerCase() === want;
 }
 
+/**
+ * 첨부파일 이름을 확장자만 남긴 이름표로 바꾼다("...Татепбаева Айгерим.pdf" → "첨부파일.pdf").
+ * 파일을 찾는 데 쓰는 건 path 이지 name 이 아니므로, 이름을 지워도 진료기록은 그대로 열린다.
+ */
+export function fileLabel(name: string | null | undefined): string {
+  const m = typeof name === "string" ? name.match(/[.]([A-Za-z0-9]{1,8})$/) : null;
+  return m ? `첨부파일.${m[1].toLowerCase()}` : "첨부파일";
+}
+
 export async function deleteAccountCompletely(userId: string): Promise<DeleteAccountResult> {
   const failedSteps: string[] = [];
   let anonymizedInquiries = 0;
@@ -78,6 +87,29 @@ export async function deleteAccountCompletely(userId: string): Promise<DeleteAcc
 
   // ① 진료성 기록: 사람만 지우고 기록은 남긴다
   try {
+    // 먼저 첨부 목록을 읽는다 — 파일 «이름»에 환자 실명이 그대로 박혀 있다.
+    // (2026-08-20 실측: 문의 #93 의 attachments[].name = "Заключение ... Татепбаева Айгерим ... .pdf")
+    // 파일 자체는 진료기록이라 남기지만, 이름 글자는 지운다. path 는 이미 이름이 지워진 형태라 그대로 둔다.
+    const { data: rows, error: readErr } = await admin
+      .from("inquiries")
+      .select("id, attachments")
+      .eq("user_id", userId);
+    if (readErr) throw readErr;
+
+    for (const row of rows ?? []) {
+      if (!Array.isArray(row.attachments) || row.attachments.length === 0) continue;
+      const scrubbed = row.attachments.map((a: Record<string, unknown>) => ({
+        ...a,
+        name: fileLabel(typeof a?.name === "string" ? a.name : null),
+        note: null, // 코디가 적은 메모에도 이름이 들어갈 수 있다
+      }));
+      const { error } = await admin
+        .from("inquiries")
+        .update({ attachments: scrubbed })
+        .eq("id", row.id);
+      if (error) throw error;
+    }
+
     const { data, error } = await admin
       .from("inquiries")
       .update(INQUIRY_PII_NULLS)
