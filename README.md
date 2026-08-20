@@ -1,4 +1,4 @@
-# healwith — 암환자 의료관광 컨시어지 (KHIDI HEALO)
+# healwith — 암환자 의료관광 컨시어지 (KHIDI healwith)
 
 **Stage**: 운영 중 (연속 케어 컨시어지) · **Last Updated**: 2026-06-19
 

@@ -1,7 +1,7 @@
 # RAG·에이전트 개선 노트 (책 2권 정독 증류, 2026-06-18)
 
 > 출처: 위키독스 #2155 "딥러닝 NLP 입문(RAG·파인튜닝)" + #19414 "Hermes Agent 실전 가이드".
-> 에이전트 2대가 정독 → HEALO 적용점만 추림. **이건 학습 노트/백로그**일 뿐, 적용은 PO 승인 후.
+> 에이전트 2대가 정독 → healwith 적용점만 추림. **이건 학습 노트/백로그**일 뿐, 적용은 PO 승인 후.
 
 ## 우리 현 상태 (에이전트가 코드 확인)
 - 임베딩 `gemini-embedding-001`(`getEmbedding`) / 청킹 `src/lib/rag/chunker.ts`(문장경계+800자, **overlap 0, semantic 아님**) / 검색 pgvector RPC `rag_search_chunks_v1_1` **단일 단계, 리랭킹 없음** / 3-Tier = 자체DB + HIRA·네이버·구글.

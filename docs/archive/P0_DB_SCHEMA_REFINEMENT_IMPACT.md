@@ -576,5 +576,5 @@ WHERE attachment IS NOT NULL
 
 ---
 
-**작성자**: HEALO Engineering  
+**작성자**: healwith Engineering  
 **검토 필요**: ✅ 마이그레이션 실행 전 백업 권장

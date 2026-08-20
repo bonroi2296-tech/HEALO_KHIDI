@@ -1,4 +1,4 @@
-# SEO Audit — HEALO KHIDI (2026-04-21)
+# SEO Audit — healwith KHIDI (2026-04-21)
 
 ## 1. 감사 범위
 

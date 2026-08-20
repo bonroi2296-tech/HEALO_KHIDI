@@ -49,7 +49,7 @@ npx tsx scripts/set-admin.ts --email you@domain.com --role admin
 
 **출력 예시**:
 ```
-🔐 HEALO 관리자 Role 설정 도구
+🔐 healwith 관리자 Role 설정 도구
 
 ✅ 유저 발견: you@domain.com (ID: abc123...)
 ✅ Role 업데이트 완료: you@domain.com → admin

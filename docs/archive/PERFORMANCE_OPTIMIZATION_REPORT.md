@@ -1,4 +1,4 @@
-# 📊 HEALO 메인 페이지 성능 최적화 보고서
+# 📊 healwith 메인 페이지 성능 최적화 보고서
 
 **날짜**: 2026-02-05  
 **대상**: 메인 페이지 (`app/page.jsx` → `app/home/HomeClient.jsx`)  

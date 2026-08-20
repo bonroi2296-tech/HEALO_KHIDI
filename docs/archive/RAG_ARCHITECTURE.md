@@ -1,7 +1,7 @@
-# RAG Architecture (HEALO)
+# RAG Architecture (healwith)
 
 ## 1) Why Platformization
-HEALO receives inquiries from multiple channels (AI agent text, inquiry form, and external human touchpoints). These inputs vary in structure and quality. Platformization means unifying all inbound inquiries into a single canonical schema so they can be:
+healwith receives inquiries from multiple channels (AI agent text, inquiry form, and external human touchpoints). These inputs vary in structure and quality. Platformization means unifying all inbound inquiries into a single canonical schema so they can be:
 - audited consistently,
 - processed by the same rules,
 - and connected to downstream retrieval and matching systems.

@@ -143,14 +143,14 @@ console.log(email.plainText);
 - 예상 상담 가능 일정
 
 감사합니다.
-HEALO 팀
+healwith 팀
 ```
 
 ### 💬 카카오톡 전송
 
 간략 버전 사용:
 ```
-[HEALO] 새 환자 문의
+[healwith] 새 환자 문의
 
 리드 #123
 시술: 코 성형

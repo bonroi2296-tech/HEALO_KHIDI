@@ -1,4 +1,4 @@
-# HEALO 성능 개선 작업 보고서
+# healwith 성능 개선 작업 보고서
 
 **목표**: Lighthouse Performance 71 → 85+  
 **작업 일자**: 2026-01-26

@@ -1,6 +1,6 @@
 # 보안 사고 대응 절차 (Incident Response Plan)
 
-> HEALO 플랫폼 보안 사고 발생 시 대응 매뉴얼
+> healwith 플랫폼 보안 사고 발생 시 대응 매뉴얼
 
 ## 법적 의무
 

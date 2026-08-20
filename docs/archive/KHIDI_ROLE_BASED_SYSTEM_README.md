@@ -178,13 +178,13 @@ curl -X POST \
 4. **Active status** allows soft-delete of roles without data removal
 5. **Organization context** stored for multi-hospital scenarios
 
-## Integration with Existing HEALO Components
+## Integration with Existing healwith Components
 
-This system is designed to coexist with existing HEALO features:
+This system is designed to coexist with existing healwith features:
 - Uses same Supabase client patterns (getSupabaseServerClient)
 - Uses same authentication flow (checkAdminAuth)
 - Follows same API response format ({ok: bool, data: ..., error: ...})
-- No modifications to HEALO tables required
+- No modifications to healwith tables required
 - Separate khidi namespace (/app/api/khidi/*)
 
 ## File Locations

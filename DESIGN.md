@@ -1,4 +1,4 @@
-# HEALO KHIDI — DESIGN.md
+# healwith KHIDI — DESIGN.md
 
 > AI 에이전트(Claude Code, Cursor 등)가 신규 UI 코드를 작성할 때 자동으로 참고하는 디자인 가이드. **읽지 않고 만든 UI는 PR 머지 거부.**
 
@@ -32,7 +32,7 @@ change_authority:
 # 2. 서비스 본질 (왜 이 톤인가)
 # ============================================================
 context:
-  service: "KHIDI HEALO — 카자흐스탄·러시아 암환자를 한국 종양 병원으로 매칭"
+  service: "KHIDI healwith — 카자흐스탄·러시아 암환자를 한국 종양 병원으로 매칭"
   audience: "불안 상태의 암환자 + 보호자 (CIS·러시아 우선, 6개 언어)"
   emotional_state: "정보 갈증 + 신뢰 욕구 — 차분함과 전문성 필수"
   funding: "KHIDI 정부지원과제 — 공공의료 신뢰 톤"

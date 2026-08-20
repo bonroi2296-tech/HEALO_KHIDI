@@ -1,4 +1,4 @@
-# HEALO 개발자 검토 명세 (Developer Review Spec)
+# healwith 개발자 검토 명세 (Developer Review Spec)
 
 > **목적:** 실제 구현된 소스 구조, DB 구조, 인증/API 설계를 개발자가 검토·검증할 수 있도록 기술 문서로 정리한다.  
 > **대상:** 신규 합류 개발자, 코드 리뷰어, 아키텍처 검토자.
@@ -30,7 +30,7 @@
 ### 2.1 디렉터리 레이아웃
 
 ```
-HEALO_Demo/
+healwith_Demo/
 ├── app/                    # Next.js App Router
 │   ├── layout.jsx          # Root layout (metadata, ClientShell)
 │   ├── page.jsx            # Public home

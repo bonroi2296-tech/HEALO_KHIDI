@@ -1,4 +1,4 @@
-# HEALO 플랫폼 매각 타당성 분석 (2026-07-11)
+# healwith 플랫폼 매각 타당성 분석 (2026-07-11)
 
 > PO 질문: "완성했는데 리소스 부족으로 운영이 힘들다. 매각하면 시장에서 얼마 줄까?" → "싹다분석해줘"에 대한 조사 결과.
 > 조사 방법: 웹 리서치 2갈래 병렬 수행 — ①실거래 시세(comps) ②정부지원과제 매각 제약 법령. 모든 수치에 출처 URL 병기. **법률 자문이 아닌 조사 자료** — 실제 매각 전 협약서 확인 + 필요 시 전문가 자문 필수.
@@ -23,7 +23,7 @@
 
 - Acquire.com은 **무수익 매물을 호가 $25K 미만 칸에 가둠** ([Seller FAQs](https://help.acquire.com/seller-faqs-1)). 수익 있는 소형 SaaS 실거래 중간값은 **순이익의 3.9배** ([Acquire.com 2025 리포트](https://blog.acquire.com/annual-saas-report-2025/)), Flippa 소액 구간은 **1.68배** ([Flippa 배수 가이드](https://flippa.com/blog/business-valuation-multipliers-by-industry/)).
 - **AI 코딩 확산으로 표준 스택 앱의 코드 프리미엄이 소멸 중**: SaaS 밸류에이션 지수 ARR 7.0배(2025초) → 3.8배(2026.3) 급락, MVP 구축 비용 $25K → $7K 붕괴 ([Micro-SaaS Reckoning](https://chyshkala.com/blog/micro-saas-reckoning-ai-changed-everything-2025), [SaaS Capital](https://www.saas-capital.com/blog-posts/four-early-2026-saas-trends/)). 바이어가 "사느니 만든다"를 계산에 넣음 ([Oliver Wyman](https://www.oliverwyman.com/our-expertise/insights/2026/apr/how-agentic-ai-reshaping-saas-valuations.html)).
-- → HEALO의 Next.js+Supabase+Gemini+LiveKit 스택 자체는 복제 비용이 낮게 평가됨. **가치는 코드가 아니라 병원 계약·KHIDI 실적·RAG 지식베이스·6개 언어 콘텐츠·CIS 채널에서 나온다.**
+- → healwith의 Next.js+Supabase+Gemini+LiveKit 스택 자체는 복제 비용이 낮게 평가됨. **가치는 코드가 아니라 병원 계약·KHIDI 실적·RAG 지식베이스·6개 언어 콘텐츠·CIS 채널에서 나온다.**
 
 ### 가장 직접적인 비교 매물 (SMERGERS 의료관광 실매물)
 
@@ -36,7 +36,7 @@
 | 멕시코시티 치과관광 | 연 1,500명, 매출 $480K | $250K |
 | 이스탄불 에이전시 | 매출 $1.07M, 병원 10곳+ | $450K |
 
-- 패턴: **소형 의료관광 중개업 = 연매출의 0.3~1.7배 호가, 무매출이면 $10K~90K대.** 첫 줄이 뼈아픈 기준점 — HEALO KPI(연 12건)보다 전환이 훨씬 많은 플랫폼이 ₩1,700만 호가.
+- 패턴: **소형 의료관광 중개업 = 연매출의 0.3~1.7배 호가, 무매출이면 $10K~90K대.** 첫 줄이 뼈아픈 기준점 — healwith KPI(연 12건)보다 전환이 훨씬 많은 플랫폼이 ₩1,700만 호가.
 - ※ 호가(asking)이지 성사가(sold) 아님 — 실거래는 보통 더 낮음.
 
 ### 의료관광 M&A 사례 (방향성 참고)

@@ -1,4 +1,4 @@
-# HEALO Admin Audit DB 검증 체크리스트
+# healwith Admin Audit DB 검증 체크리스트
 
 **작성일**: 2026-01-30  
 **목적**: `admin_audit_logs.inquiry_ids`를 INT4[]로 변경 후 UUID 관련 잔재 확인

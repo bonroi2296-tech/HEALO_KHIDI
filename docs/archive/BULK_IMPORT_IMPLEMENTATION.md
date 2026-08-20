@@ -2,7 +2,7 @@
 
 ## 개요
 
-HEALO 시스템에 국내 공개 의료 데이터를 대량으로 수집하고 관리할 수 있는 시스템이 구현되었습니다.
+healwith 시스템에 국내 공개 의료 데이터를 대량으로 수집하고 관리할 수 있는 시스템이 구현되었습니다.
 
 ## 구현된 기능
 
@@ -232,4 +232,4 @@ npm run collect:hospitals
 ---
 
 **구현 완료일**: 2026-02-09  
-**작성자**: HEALO Development Team
+**작성자**: healwith Development Team

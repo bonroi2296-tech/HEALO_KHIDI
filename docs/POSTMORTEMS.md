@@ -1506,7 +1506,7 @@ Guarantee Insurance / Address / Contact Email / Personal Information Protection 
 1. **가드가 한 방향만 본다.** 한글누출 가드(§7·축 C)는 *"비한국어 화면에 한글이 있나"* 만 검사한다. 이번 건은 정확히 **반대 방향** — *한국어 화면에 영어가 있나* — 이고, 그 방향 검사는 **하나도 없었다.** 그래서 `check:content` 를 3개월간 매 PR 통과했다.
 2. **i18n 키가 아예 없어서 키 패리티 검사에도 안 걸렸다.** 패리티 검사는 "6개 언어가 같은 키 집합을 갖는가"를 본다 — **키가 0개면 0개끼리 일치**라 통과다. "번역해야 할 텍스트인데 키가 없다"는 상태는 이 검사의 정의상 검출 불가.
 3. **#39 의 전수 점검이 이 블록을 건너뛰었다.** #39 는 "쿠키창·공개배지·환자화면"을 훑어 14곳을 고쳤는데, **푸터 하단 법적 고지 블록은 목록에 없었다.** 사람이 눈으로 훑는 전수 점검은 "안 본 곳"을 남기고, 그게 뭔지 사후에 알 방법이 없다(#81 의 "폴더 경계 밖" 과 같은 부류 — 이번엔 폴더가 아니라 **주의(attention)의 경계**였다).
-4. **출신이 `initial commit from HEALO_Demo base`.** 데모 베이스에서 통째로 넘어온 블록이라 **한 번도 다국어 작업의 대상으로 인식된 적이 없었다.**
+4. **출신이 `initial commit from healwith_Demo base`.** 데모 베이스에서 통째로 넘어온 블록이라 **한 번도 다국어 작업의 대상으로 인식된 적이 없었다.**
 
 **어떻게 고쳤나**
 - `footer.biz.*` 키 **12개 × 6개 언어** 신설. 라벨 10개 + 값 2개(`soleProprietor`, `insuranceScope` — 분류·설명이라 번역 대상. 회사명·등록번호는 고유명사라 유지).
@@ -2852,7 +2852,7 @@ PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러�
 **어떻게 고쳤나**
 - **`lighthouse/` → `.gitignore` 등록**: 재생성 가능한 리포트. ignore되면 `git clean -fd`(비-x)가 건드리지 않고, 잡파일로 커밋에도 안 섞임.
 - **`logo/` → git 추적(커밋)으로 전환 예정**: 재생성 불가 자산이라 ignore가 아니라 **커밋**해야 영구 안전. (PO가 휴지통/재발급으로 파일 복원 후 `public/logo/`에 넣어 커밋.)
-- 유사 스캔: 루트의 다른 산출물 폴더(`output`·`test-results`·`playwright-report`·`design-system-export`·`HEALO_full_snapshot`·`dist`)는 **이미 ignore됨(안전)**, `coo`·`archive`는 **추적중(안전)**. 노출돼 있던 건 `logo`·`lighthouse` 둘뿐이었음.
+- 유사 스캔: 루트의 다른 산출물 폴더(`output`·`test-results`·`playwright-report`·`design-system-export`·`healwith_full_snapshot`·`dist`)는 **이미 ignore됨(안전)**, `coo`·`archive`는 **추적중(안전)**. 노출돼 있던 건 `logo`·`lighthouse` 둘뿐이었음.
 
 **재발 방지 (시스템 적용)**
 - **원칙**: 메인(공유) 폴더의 모든 폴더는 둘 중 하나여야 한다 — **git 추적(가치 자산)** 또는 **.gitignore(재생성 산출물)**. "추적도 ignore도 안 된" 상태 = 사고 예약. 새 산출물 폴더 만들면 즉시 .gitignore에, 가치 자산은 즉시 커밋.
@@ -2938,7 +2938,7 @@ PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러�
 ## #1 — 옛 모델 콘텐츠 잔재가 PO가 찾을 때까지 남음 (2026-06-16)
 
 **무슨 일**
-리브랜딩(HEALO→healwith) 후에도 옛 모델이 만든 콘텐츠 오류가 곳곳에 남아, PO가 스크린샷으로 하나씩 발견해 지시해야 했음:
+리브랜딩(healwith→healwith) 후에도 옛 모델이 만든 콘텐츠 오류가 곳곳에 남아, PO가 스크린샷으로 하나씩 발견해 지시해야 했음:
 - About/FAQ "지원 언어"가 4개(영·한·일·중)만 — 핵심 타겟 **러시아어·카자흐어 누락**
 - 연락 이메일이 옛 도메인(immunelab / healo.com)으로 분산
 - specialty `<title>`에 옛 브랜드 `HEALO-KHIDI`
@@ -3024,7 +3024,7 @@ PO가 /treatments에서 "제목은 영어인데 칩은 한국어" 섞임을 또 
 
 **왜 못 잡았나 (근본원인)**
 - `check:content`의 금지토큰에 `@healo.com`·`healo.com`만 있고 **`@healo.kr`이 없었음.** `.com`만 막고 `.kr` 변형은 안 막은 구멍 → 검사 통과.
-- 리브랜드 일괄치환(HEALO→healwith)이 "이메일 도메인" 변형(`healo.kr`)까지는 안 훑음.
+- 리브랜드 일괄치환(healwith→healwith)이 "이메일 도메인" 변형(`healo.kr`)까지는 안 훑음.
 
 **어떻게 고쳤나**
 - `app/home/HomeClient.jsx` 2곳 `contact@healo.kr` → `admin@healwith.co.kr`(siteSettings.contactEmail과 일치).

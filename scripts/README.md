@@ -1,6 +1,6 @@
 # Evaluation Script
 
-HEALO RAG 시스템의 성능 검증을 위한 평가 스크립트입니다.
+healwith RAG 시스템의 성능 검증을 위한 평가 스크립트입니다.
 
 ## 사용법
 

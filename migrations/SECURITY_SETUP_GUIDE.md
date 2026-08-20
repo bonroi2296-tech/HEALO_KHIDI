@@ -1,8 +1,8 @@
-# HEALO 보안 설정 가이드
+# healwith 보안 설정 가이드
 
 ## 개요
 
-HEALO의 inquiries/normalized_inquiries를 의료 민감 데이터로 취급하여 보안을 강화합니다.
+healwith의 inquiries/normalized_inquiries를 의료 민감 데이터로 취급하여 보안을 강화합니다.
 
 ## 적용 항목
 

@@ -1,6 +1,6 @@
-# HEALO N-Dimensional Audit Log
+# healwith N-Dimensional Audit Log
 
-> 종합 감사 기록 — HEALO 플랫폼 운영 전 전방위 리스크 점검
+> 종합 감사 기록 — healwith 플랫폼 운영 전 전방위 리스크 점검
 
 ## 감사 개요
 

@@ -1,4 +1,4 @@
-# HEALO 2단계: RLS + 단건 복호화 완료
+# healwith 2단계: RLS + 단건 복호화 완료
 
 **작성일**: 2026-01-30  
 **목표**: decrypt 봉인 + RLS 정책 + 단건 복호화 UX
@@ -430,7 +430,7 @@ const { data } = await supabaseAdmin.from('inquiries').select('*');
 
 ## 🎯 핵심 원칙 (불변)
 
-### HEALO 보안 3원칙:
+### healwith 보안 3원칙:
 
 ```
 1️⃣ DB에는 항상 암호화 (1차 방어선)

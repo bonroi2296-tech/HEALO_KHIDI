@@ -39,8 +39,8 @@ ignores: [
 **After**:
 ```javascript
 ignores: [
-  'HEALO_full_snapshot/**',
-  'HEALO_REVIEW/**',
+  'healwith_full_snapshot/**',
+  'healwith_REVIEW/**',
   '.next/**',
   '**/.next/**',
   'node_modules/**',

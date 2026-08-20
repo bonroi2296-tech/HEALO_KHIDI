@@ -2,7 +2,7 @@
 
 ## 개요
 
-HEALO는 문의 접수 시 관리자에게 이메일 알림을 발송합니다.
+healwith는 문의 접수 시 관리자에게 이메일 알림을 발송합니다.
 - **SMS**: 아직 실제 발송하지 않음 (Console log만, 나중에 Provider 연동 예정)
 - **Email**: AWS SES로 실제 발송 ✅
 
@@ -114,7 +114,7 @@ LIMIT 10;
 
 ### Subject
 ```
-[HEALO] 🔥 New inquiry received #123
+[healwith] 🔥 New inquiry received #123
 ```
 
 ### Body (HTML)

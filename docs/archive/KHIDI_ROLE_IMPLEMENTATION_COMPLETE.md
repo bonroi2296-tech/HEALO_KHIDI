@@ -95,17 +95,17 @@ Policies: 2 (Users read own, Admins manage all)
 
 ## Integration Points
 
-### Uses Existing HEALO Patterns ✅
+### Uses Existing healwith Patterns ✅
 - `getSupabaseServerClient()` for DB access
 - `checkAdminAuth()` for authorization checks
 - Standard API response format: `{ ok: bool, data?, error? }`
 - Node.js runtime export in route.ts
 
-### No Modifications to HEALO ✅
+### No Modifications to healwith ✅
 - All new code in KHIDI namespace
 - Separate API routes: `/api/khidi/roles/*`
 - Separate modules: `/src/lib/auth/roles.ts`
-- No changes to existing HEALO tables or routes
+- No changes to existing healwith tables or routes
 
 ## Role Definitions
 

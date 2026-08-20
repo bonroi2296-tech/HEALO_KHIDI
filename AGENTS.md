@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**HEALO** — Medical concierge platform connecting foreign patients with Korean medical services.
+**healwith** — Medical concierge platform connecting foreign patients with Korean medical services.
 
 - **Stack:** Next.js 16 + React 18 + Supabase + Tailwind CSS
 - **Language:** TypeScript / JavaScript (mixed, `strict: false`)

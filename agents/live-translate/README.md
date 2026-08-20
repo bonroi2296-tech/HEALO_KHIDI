@@ -1,4 +1,4 @@
-# HEALO 실시간 통역 에이전트 (Gemini 3.5 Live Translate)
+# healwith 실시간 통역 에이전트 (Gemini 3.5 Live Translate)
 
 원격협진방에서 환자↔의사 말을 **실시간 양방향 통역**(음성+자막)하는 LiveKit Agents
 워커. 방마다 워커 1개가 붙어, 참가자가 알린 언어(`lang` 속성)를 보고 필요한

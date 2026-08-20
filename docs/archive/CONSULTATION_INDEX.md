@@ -112,7 +112,7 @@ CONSULTATION_SUMMARY.txt
 ### Participants
 - Patient (Kazakhstan)
 - Doctor (Korean hospital)
-- Coordinator (HEALO agent)
+- Coordinator (healwith agent)
 - Translator (optional, for live translation)
 
 ---
@@ -147,7 +147,7 @@ Key columns:
 - `id` - Primary key
 - `patient_id` - References cancer_patient_intakes
 - `doctor_id` - Doctor email/ID
-- `coordinator_id` - HEALO agent
+- `coordinator_id` - healwith agent
 - `session_type` - pre_consultation | follow_up | emergency | diagnostic
 - `scheduled_at` - When consultation is scheduled
 - `status` - scheduled | active | completed | cancelled | no_show

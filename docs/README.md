@@ -12,7 +12,7 @@
 
 ## 🎯 KHIDI (정부과제)
 - [`KHIDI_중간보고_베이스.md`](./KHIDI_중간보고_베이스.md) — 8/27 중간평가 준비 (상시 기준)
-- [`유치사업자_사업계획서_HEALO.md`](./유치사업자_사업계획서_HEALO.md)
+- [`유치사업자_사업계획서_healwith.md`](./유치사업자_사업계획서_healwith.md)
 
 ## 🔒 보안·운영 (런북)
 - [`SECURITY_CHECKLIST.md`](./SECURITY_CHECKLIST.md) · [`SECURITY_ACTION_ITEMS.md`](./SECURITY_ACTION_ITEMS.md)
@@ -22,7 +22,7 @@
 - `runbooks/` (관리자·배포 절차서)
 
 ## 🏷️ 리브랜딩 / 도메인 (진행 중 TODO)
-- [`REBRAND_HEALWITH_PLAN.md`](./REBRAND_HEALWITH_PLAN.md) — HEALO→healwith
+- [`REBRAND_HEALWITH_PLAN.md`](./REBRAND_HEALWITH_PLAN.md) — healwith→healwith
 - [`DOMAIN_CUTOVER_healwith.md`](./DOMAIN_CUTOVER_healwith.md) — healwith.co.kr 전환 절차
 - [`IMAGE_APPLY_TODO.md`](./IMAGE_APPLY_TODO.md) — 병원 이미지 적용
 

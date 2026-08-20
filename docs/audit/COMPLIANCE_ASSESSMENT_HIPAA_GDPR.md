@@ -1,4 +1,4 @@
-# HEALO / healwith — 의료정보 국제표준 준수 점검 (HIPAA · GDPR · 국내법)
+# healwith / healwith — 의료정보 국제표준 준수 점검 (HIPAA · GDPR · 국내법)
 
 > 작성: 2026-06-29 · 상태: **초안(법률자문 전)** · 단일출처와의 관계: 사실(등록번호·처리자·보관기간)은 처리방침(`src/lib/legal/privacyPolicy.js`)·RoPA(`docs/RECORDS_OF_PROCESSING.md`)를 따른다.
 > 목적: "우리 서비스가 HIPAA인지 GDPR인지 의료 국제표준을 지키냐"는 질문에 **솔직하게** 답하고, 해외 파트너 계약서(`docs/marketing/agency-*`, `overseas-clinic-*`)의 컴플라이언스 근거를 제공한다.

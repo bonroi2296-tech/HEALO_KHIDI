@@ -108,7 +108,7 @@ git push origin main
 ### ⚠️ 지금 바로 설정하세요:
 
 1. https://vercel.com/dashboard 접속
-2. HEALO 프로젝트
+2. healwith 프로젝트
 3. Settings → Environment Variables
 4. 다음 5개 추가:
 

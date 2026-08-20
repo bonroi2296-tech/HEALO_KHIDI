@@ -8,7 +8,7 @@
 
 ### 2단계: 프로젝트 폴더로 이동
 ```bash
-cd C:\Users\user\Desktop\HEALO_Demo
+cd C:\Users\user\Desktop\healwith_Demo
 ```
 
 ### 3단계: 서비스 실행

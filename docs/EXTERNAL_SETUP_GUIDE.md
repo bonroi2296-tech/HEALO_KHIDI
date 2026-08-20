@@ -1,4 +1,4 @@
-# HEALO 외부 계정 · 키 등록 가이드
+# healwith 외부 계정 · 키 등록 가이드
 
 > 대상: 프로덕트 오너 (본인)
 > 목적: 내일 하루 안에 모든 외부 계정을 세팅하고 env 에 키를 채워 배포 가능 상태로.
@@ -249,7 +249,7 @@ NAVER_CLIENT_SECRET=<새_시크릿>
 
 1. [LiveKit Cloud](https://cloud.livekit.io) 접속 → **Sign up**
 2. GitHub 또는 Google 로그인 권장 (빠름)
-3. 조직명: `HEALO` 또는 `KHIDI` (원하는 대로)
+3. 조직명: `healwith` 또는 `KHIDI` (원하는 대로)
 4. 가입 후 **Free tier** 시작 (월 10,000 분 무료 — 환자 수십 명 커버)
 
 ### 7-2. 프로젝트 생성

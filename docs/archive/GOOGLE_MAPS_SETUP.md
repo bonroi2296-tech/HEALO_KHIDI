@@ -26,7 +26,7 @@ VITE_GOOGLE_MAPS_API_KEY=<YOUR_GOOGLE_MAPS_BROWSER_KEY>
 
 ### .env 파일이 없다면?
 
-프로젝트 루트(`C:\Users\user\Desktop\HEALO_Demo`)에 `.env` 파일을 생성하세요.
+프로젝트 루트(`C:\Users\user\Desktop\healwith_Demo`)에 `.env` 파일을 생성하세요.
 
 **Windows에서 파일 생성 방법:**
 1. 메모장 열기

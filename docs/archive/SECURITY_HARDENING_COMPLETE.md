@@ -1,4 +1,4 @@
-# HEALO Admin 보안 고도화 완료
+# healwith Admin 보안 고도화 완료
 
 ## 🎯 목표
 
@@ -538,7 +538,7 @@ ORDER BY created_at DESC;
 
 ## 🎯 핵심 원칙 (불변)
 
-### HEALO 보안 3원칙:
+### healwith 보안 3원칙:
 
 ```
 1️⃣ DB에는 항상 암호화

@@ -13,7 +13,7 @@
 ### Vercel Dashboard에서 설정:
 
 1. https://vercel.com/dashboard 접속
-2. HEALO 프로젝트 선택
+2. healwith 프로젝트 선택
 3. **Settings** → **Environment Variables**
 
 ---

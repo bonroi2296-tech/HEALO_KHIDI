@@ -702,7 +702,7 @@
 | 막힌 이유 재판정 + 누를 수 있는 주소로 (`ab986c23`·`fc585de1`) | ✅ |
 | 재발 방지: `.claude/commands/trend.md` 절차 추가 · 반성문 `#168` | ✅ |
 
-**바뀐 파일**: `docs/WHY_US_EVIDENCE.md`(시장 통계 **원장** 교정) · `docs/KHIDI_중간보고_베이스.md` · `docs/유치사업자_사업계획서_HEALO.md` · `docs/PROJECT_CONTEXT.md` · `docs/POSTMORTEMS.md` · `.claude/commands/trend.md`
+**바뀐 파일**: `docs/WHY_US_EVIDENCE.md`(시장 통계 **원장** 교정) · `docs/KHIDI_중간보고_베이스.md` · `docs/유치사업자_사업계획서_healwith.md` · `docs/PROJECT_CONTEXT.md` · `docs/POSTMORTEMS.md` · `.claude/commands/trend.md`
 
 ### 2. 왜 그렇게 했는지 (커밋에 안 남는 배경)
 
@@ -1686,7 +1686,7 @@
 
 ### 2. 왜 그렇게 했는지
 
-- **집계를 넓힌 근거**: 진흥원 제출 정의(`KHIDI_중간보고_베이스.md` §2 · 협약 확정본 계획서)의 **증빙 방법이 「HEALO 로그, 상담일지」**이지 영상통화가 아니다. 우리 «자체» 측정명세가 매체를 영상으로 좁혀 놓은 것이 원인이었다. 게다가 옛 조건 「5분 이상」의 근거 칸 `actual_duration_minutes` 는 **존재하지도 않았고** 대체 칸도 전 건 `null` 이라 애초에 잴 수 없었다.
+- **집계를 넓힌 근거**: 진흥원 제출 정의(`KHIDI_중간보고_베이스.md` §2 · 협약 확정본 계획서)의 **증빙 방법이 「healwith 로그, 상담일지」**이지 영상통화가 아니다. 우리 «자체» 측정명세가 매체를 영상으로 좁혀 놓은 것이 원인이었다. 게다가 옛 조건 「5분 이상」의 근거 칸 `actual_duration_minutes` 는 **존재하지도 않았고** 대체 칸도 전 건 `null` 이라 애초에 잴 수 없었다.
 - **목표 120 의 근거(원문 확인)**: 협약 확정본 계획서 — *"사전상담·사후관리 120건: 유치환자 12건 × 평균 10회(사전상담 5회 + 사후관리 5회) = 120건"*. 진흥원 보완요청 대응문서에도 같은 산출근거가 제출돼 있다.
 - **관리지침에는 성과지표 「정의」가 없다**(V2.0, 93쪽 전문 검색). 중간보고서 양식에 `성과지표1/2 | 목표(A) | 달성(B) | 달성률` 빈 표만 있다 → **기준은 사업계획서다.**
 - **PO 가 「물 타서 많이 한 걸로 얘기할까」라고 물었고 「안 한다」로 정리됐다.** 대신 나온 답이 접점 대장이다 — 부풀리는 게 아니라 **명세가 애초에 세라고 한 「1인당 10회」 방식으로 제대로 세는 것**. 이 구분을 잃지 마라.
@@ -2976,7 +2976,7 @@ PO 질문 *"버셀에 이런거 있는데 이거 하면 좋은거임?"* (방문 
 - 문의 폼 실제 1건 제출 → `inquiries.id=54` · `is_test=true` (KHIDI 실적에서 자동 제외되는 것 DB 로 확인).
 - 문서 안내가 **실제 화면과 5곳 달라** 교정됨(보관 경로는 「데이터 표시」가 아니라 **「데이터 수집 및 수정」** / 스위치가 아니라 **별표(★)** / 별표는 **지난 28일 안에 실제 발생한 이벤트에만** 달린다 / healwith 속성은 Probelle 계정이 아니라 **별도 계정 `healwith`(398660521)** / AdGuard 끈 직후엔 **크롬 주소 캐시**를 비워야 한다 — `chrome://net-internals/#dns`).
 
-**B. 프로벨르(자사몰 — HEALO 와 별건) — 숫자가 두 군데서 거짓말하고 있었다**
+**B. 프로벨르(자사몰 — healwith 와 별건) — 숫자가 두 군데서 거짓말하고 있었다**
 **B. 🔸[별건·프로벨르] 자사몰 — 우리 과제가 아니다. 다만 GA4 함정은 우리한테도 온다(→ `docs/reference/GA4_실전기록_프로벨르.md`) — 숫자가 두 군데서 거짓말하고 있었다**
 - 🔴 **취소·환불이 통째로 안 잡힌다** — 지난 28일 이벤트에 `refund` 가 **0건**(지연 아니라 미구현). 구조적 이유: **취소는 카페24 관리자 화면에서 일어나 손님 브라우저가 관여하지 않는다** → 태그로는 원천적으로 불가, **서버가 GA 로 직접 보내는 방식(측정 프로토콜)** 만 길. 설계 문서 = `docs/PROBELLE_MEASUREMENT.md`(**[#1202] 안에만 있다**).
 - 🔴 **방문자 93명 중 49명(53%)이 메타(페북) 데이터센터 봇** — PO 가 *"미국·스웨덴 접속이 왜 이렇게 많냐"* 고 짚어 확인됐다. 평균 참여 0~1초·매출 0원, 도시가 Prineville·Forest City·Luleå 등 메타 데이터센터 소재지. **전환율이 실제의 절반으로 보이는 상태.** GA4 데이터 필터엔 **국가·도시 제외가 존재하지 않는다**(개발자/내부/호스트이름 3종뿐) → 태그(GTM) 쪽에서 막아야 한다.
@@ -3341,7 +3341,7 @@ PO 질문 *"버셀에 이런거 있는데 이거 하면 좋은거임?"* (방문 
 
 | 항목 | 실측 결과 |
 |---|---|
-| 저장소 접근 | ❌ **Probelle 코드는 이 세션에 안 붙어 있다.** 접근 가능한 저장소는 `HEALO_KHIDI`·`bonroi-erp`·`HEALO` **3개뿐**(`list_repos` 실측). PO 가 말한 「계정에 붙어있다」는 **구글 계정** 얘기였다(`src/lib/ga.ts` 주석: *"정식 속성: healwith-cb0cb (Probelle 계정)"*) |
+| 저장소 접근 | ❌ **Probelle 코드는 이 세션에 안 붙어 있다.** 접근 가능한 저장소는 `HEALO_KHIDI`·`bonroi-erp`·`healwith` **3개뿐**(`list_repos` 실측). PO 가 말한 「계정에 붙어있다」는 **구글 계정** 얘기였다(`src/lib/ga.ts` 주석: *"정식 속성: healwith-cb0cb (Probelle 계정)"*) |
 | 쇼핑몰 플랫폼 | **카페24(Cafe24)** |
 | 태그 관리자 | ✅ 설치됨 — `GTM-5NV3J8PK` (4개 화면 전부) |
 | 컨테이너 설정 | 태그 **16개** / 변수 22개 / 조건 17개. **종류는 `__html`(직접 넣은 코드) 9개 + 클릭감지류가 전부** |
@@ -3369,7 +3369,7 @@ PO 질문 *"버셀에 이런거 있는데 이거 하면 좋은거임?"* (방문 
 
 1. **PO 가 「Probelle 하자」고 할 때만 착수.** 보류 상태다(다른 일 하다 이 블록을 봤다면 건드리지 마라).
 2. 착수하면 **위 3번의 정보 4개를 버튼으로 요청** — 특히 **①결제 완료 화면**부터.
-3. 그 전엔 **HEALO 쪽 미검증 1건**(`?ga_debug=1` + GA4 DebugView)이 우선이다 — 아래 [GA4 측정 정비] 블록 참조.
+3. 그 전엔 **healwith 쪽 미검증 1건**(`?ga_debug=1` + GA4 DebugView)이 우선이다 — 아래 [GA4 측정 정비] 블록 참조.
 
 **6. 검증 상태**
 
@@ -3380,7 +3380,7 @@ PO 질문 *"버셀에 이런거 있는데 이거 하면 좋은거임?"* (방문 
 
 **7. 다음 세션 첫 프롬프트**
 
-> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프를 읽어라. **Probelle(카페24 쇼핑몰) 측정 정비는 PO 결정으로 보류 중**이니 PO 가 먼저 꺼내기 전엔 착수하지 마라. 꺼내면 **결제 완료 화면부터** 요청해 매출이 잡히는지 확인하는 게 1순위다. 그 전에 **HEALO 쪽 미검증 1건**(`healwith.co.kr/?ga_debug=1` + GA4 DebugView 로 진짜 데이터가 들어오는지)을 먼저 끝내라.
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프를 읽어라. **Probelle(카페24 쇼핑몰) 측정 정비는 PO 결정으로 보류 중**이니 PO 가 먼저 꺼내기 전엔 착수하지 마라. 꺼내면 **결제 완료 화면부터** 요청해 매출이 잡히는지 확인하는 게 1순위다. 그 전에 **healwith 쪽 미검증 1건**(`healwith.co.kr/?ga_debug=1` + GA4 DebugView 로 진짜 데이터가 들어오는지)을 먼저 끝내라.
 
 ---
 
@@ -3519,7 +3519,7 @@ PO 질문 *"버셀에 이런거 있는데 이거 하면 좋은거임?"* (방문 
 ---
 
 > **📌 중간 저장 (2026-07-29 — [광고 착지] [#1128] 머지 + PO 결정 2건)** — 작업본 `feat/ru-ads-landing`(삭제됨), 본판 커밋 `cd8c32ab`.
-> · **한 일**: 15시간 멈춰 있던 [#1128](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1128) 을 격리 폴더(`HEALO_ruads`)에서 본판 최신 17커밋 반영(**충돌 0건**) 후 합침. 자동 검사 `ci` ✅ · `Smoke Tests` ✅. 내용 = **러·카 착지에 왓츠앱 바로가기**(첫 메시지에 `[RU-ADS]`·`[KZ-ADS]` 출처 표식 사전입력) + **세포치료 페이지 직링크 3곳씩 제거** + 첫 제안을 「무료 2차 소견」으로.
+> · **한 일**: 15시간 멈춰 있던 [#1128](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1128) 을 격리 폴더(`healwith_ruads`)에서 본판 최신 17커밋 반영(**충돌 0건**) 후 합침. 자동 검사 `ci` ✅ · `Smoke Tests` ✅. 내용 = **러·카 착지에 왓츠앱 바로가기**(첫 메시지에 `[RU-ADS]`·`[KZ-ADS]` 출처 표식 사전입력) + **세포치료 페이지 직링크 3곳씩 제거** + 첫 제안을 「무료 2차 소견」으로.
 > · **왜 급했나**: 광고가 이미 돌고 있는데 ①카자흐스탄은 왓츠앱 이용률 83%인데 착지가 웹폼만 내밀고 있었고 ②세포치료 직링크는 구글 의료광고 심사 반려 사유였다.
 > · ⚠️ **딸려온 것 정리**: `next-env.d.ts` 가 dev 서버 때문에 `.next/dev/types` 로 바뀌어 있었다 — 자동생성 파일이라 본판 값으로 되돌리고 합쳤다.
 > · ✅ **PO 결정 ① NK세포치료 러시아어 표기 = 「걸리면 그때 고친다」** — 미리 안 지운다. 근거: 구글 정책 원문상 **계정 정지 전 최소 7일 경고**가 오므로 최악이 「계정 사망」이 아니라 「광고 며칠 멈춤」. 고칠 위치 4곳은 `KNOWN_ISSUES` 에 박아뒀다(다시 뒤지지 말 것).
@@ -4636,7 +4636,7 @@ PO *"야 이거 벌써 다 써간다는데 실화임? 어딛서 누수되고 있
 
 - **센트리 「소스맵 안 올라감」 종결** — 어시가 `SENTRY_ORG=bonroi`·`SENTRY_PROJECT=javascript-nextjs` 를 Vercel(production)에 REST API 로 입력(11:22), PO 가 `SENTRY_AUTH_TOKEN`(Sentry **Organization Token**, 스코프 고정 = Source Map Upload·Release Creation·Code Mappings)을 입력(11:41). → **그 뒤 프로덕션 배포 2건이 실제로 소스맵을 올린 것을 Sentry 화면에서 확인**(릴리스 `8b0857f5`·`59f044de`, 배포마다 번들 2개 = 927 files + 479 files).
 - **센트리↔GitHub 연동 개통** — 설치 ID `149496915` · 연동 `475691` · 계정 `bonroi2296-tech`. **2026-07-27 밤에 막혔던 원인은 「팝업 차단」이 맞았다**(허용하니 한 번에 통과).
-- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `HEALO` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
+- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `healwith` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
 - **업타임 감시 개통(7/24 「55분 무경보 장애」 봉인)** — PO 가 UptimeRobot 무료 모니터 등록(`/api/health`·5분·메일). 어시가 설정 열어 확인 + 주소를 `www` 빼고 apex 로 정리 + **`Test Notification` 실행 → 지메일 기본함에 `TEST: Monitor is DOWN` · `TEST: Monitor is UP` 2통 도착 확인**(스팸 아님). = 경보 경로가 끝까지 살아있는 것이 실증됨.
 - **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082) 머지**(main `c6270c2b`) — 센트리 종결 기록 + 「빌드 로그로는 확인 못 하는 함정」 박제.
 - **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085) 머지**(main `89e6630a`) — `KNOWN_ISSUES.md` 의 🔴 「프로덕션 장애를 제때 알 방법이 없음」을 **해결**로 정리 + 「왜 홈이 아니라 `/api/health` 인가」 근거 박제.
@@ -5106,7 +5106,7 @@ PO *"야 이거 벌써 다 써간다는데 실화임? 어딛서 누수되고 있
 
 - **센트리 「소스맵 안 올라감」 종결** — 어시가 `SENTRY_ORG=bonroi`·`SENTRY_PROJECT=javascript-nextjs` 를 Vercel(production)에 REST API 로 입력(11:22), PO 가 `SENTRY_AUTH_TOKEN`(Sentry **Organization Token**, 스코프 고정 = Source Map Upload·Release Creation·Code Mappings)을 입력(11:41). → **그 뒤 프로덕션 배포 2건이 실제로 소스맵을 올린 것을 Sentry 화면에서 확인**(릴리스 `8b0857f5`·`59f044de`, 배포마다 번들 2개 = 927 files + 479 files).
 - **센트리↔GitHub 연동 개통** — 설치 ID `149496915` · 연동 `475691` · 계정 `bonroi2296-tech`. **2026-07-27 밤에 막혔던 원인은 「팝업 차단」이 맞았다**(허용하니 한 번에 통과).
-- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `HEALO` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
+- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `healwith` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
 - **업타임 감시 개통(7/24 「55분 무경보 장애」 봉인)** — PO 가 UptimeRobot 무료 모니터 등록(`/api/health`·5분·메일). 어시가 설정 열어 확인 + 주소를 `www` 빼고 apex 로 정리 + **`Test Notification` 실행 → 지메일 기본함에 `TEST: Monitor is DOWN` · `TEST: Monitor is UP` 2통 도착 확인**(스팸 아님). = 경보 경로가 끝까지 살아있는 것이 실증됨.
 - **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082) 머지**(main `c6270c2b`) — 센트리 종결 기록 + 「빌드 로그로는 확인 못 하는 함정」 박제.
 - **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085) 머지**(main `89e6630a`) — `KNOWN_ISSUES.md` 의 🔴 「프로덕션 장애를 제때 알 방법이 없음」을 **해결**로 정리 + 「왜 홈이 아니라 `/api/health` 인가」 근거 박제.
@@ -6733,7 +6733,7 @@ PO *"야 이거 벌써 다 써간다는데 실화임? 어딛서 누수되고 있
 
 **4. 주의·함정** ⚠️
 
-- **메인 폴더(`HEALO_KHIDI`)가 detached HEAD** — 로컬 자동싱크 훅(HEALO_AutoSync, 매일 09시)이 `checkout origin/main`으로 만든 것. `docs/handoff-0722-marketing` 브랜치는 자동싱크가 정리(손실 0, origin/main에 다 있음). 다음 세션은 origin/main 기준으로.
+- **메인 폴더(`HEALO_KHIDI`)가 detached HEAD** — 로컬 자동싱크 훅(healwith_AutoSync, 매일 09시)이 `checkout origin/main`으로 만든 것. `docs/handoff-0722-marketing` 브랜치는 자동싱크가 정리(손실 0, origin/main에 다 있음). 다음 세션은 origin/main 기준으로.
 - **새 worktree엔 node_modules 없음** — 빌드하려면 메인 것 정션(`cmd //c mklink /J node_modules ..\..\HEALO_KHIDI\node_modules`). 제거 시 **정션부터 `rmdir`**(target 보호) 후 worktree remove — 안 그러면 메인 node_modules 삭제 위험.
 - 약관·FAQ의 병원 명칭은 **언어별로 다름**(en=Immune Hospital·ru/kz=Myeonryeok/Мёллёк·zh=免疫韩方医院·ja=韓方病院). 건드릴 때 각 언어 기존 명칭 유지(zh 免疫≠면력이지만 확정된 zh 표기).
 
@@ -6947,7 +6947,7 @@ PO *"야 이거 벌써 다 써간다는데 실화임? 어딛서 누수되고 있
 PO 지시: *"푸터에 러시아어 페이지 링크 말고 다른 언어에도 이상한 거 있나 훑어봐."*
 
 - **대부분 깨끗했다**(실측): 링크 라벨 6개어 정상 · 링크 **24/24 200**(죽은 링크 0) · 언어 유지 정상 · 비한국어 5개어에 **한글 0** · 태그라인 6개어 고유 번역.
-- **발견 1건**: 맨 아래 **사업자 정보 10줄이 6개 언어 전부 영어 하드코딩**. 한국어 화면에서도 `Service Name:`, 주소도 로마자. 「외국인환자 유치업 등록번호」는 **8/27 KHIDI 평가에서 한국 심사위원이 볼 수 있는 항목**이다. 잔재 근거 2가지 — ①i18n 키가 **아예 없었다** ②`initial commit from HEALO_Demo base` 출신.
+- **발견 1건**: 맨 아래 **사업자 정보 10줄이 6개 언어 전부 영어 하드코딩**. 한국어 화면에서도 `Service Name:`, 주소도 로마자. 「외국인환자 유치업 등록번호」는 **8/27 KHIDI 평가에서 한국 심사위원이 볼 수 있는 항목**이다. 잔재 근거 2가지 — ①i18n 키가 **아예 없었다** ②`initial commit from healwith_Demo base` 출신.
 - **수정(#877 머지·배포)**: `footer.biz.*` **12키 × 6개어**. 값 2개(`soleProprietor`·`insuranceScope`)는 고유명사가 아니라 분류·설명이라 번역 대상. `guaranteeInsurance` 를 보험사명 + 담보범위로 분리. 한국어 전용 값 4개(`addressKo`·`representativeKo`·`privacyOfficerKo`·`guaranteeInsurerKo`).
 - **⚠️ "6개 언어니까 전부 번역"이 정답이 아닌 자리가 있다**: **주소는 외국어 화면에서 로마자를 유지**했다. 러·카 환자에겐 한글 주소가 읽히지도 않고 서류·택시에 쓸 수도 없어 로마자가 실제로 쓸모 있다. PO 지시를 글자대로 따르면 오히려 나빠지는 지점 — 다음 세션도 되돌리지 마라.
 - **가드**: `check:content` **§27** — `ClientShell`(전역 공개 껍데기)에 `영문 라벨:` 리터럴 금지. **기존 i18n 가드가 전부 "비-ko 화면의 한글"만 보던 방향 사각을 처음 메움**(키 패리티도 못 잡는다 — **키가 0개면 0개끼리 일치**라 통과다). 루브릭(`rubric.js` DoD-1)·`DEFINITION_OF_DONE.md` 에 이 사각을 등재.
@@ -7020,7 +7020,7 @@ PO 지시: *"푸터에 러시아어 페이지 링크 말고 다른 언어에도 
 PO 지시: *"푸터에 러시아어 페이지 링크 말고 다른 언어에도 이상한 거 있나 훑어봐."*
 
 - **대부분 깨끗했다**(실측): 링크 라벨 6개어 정상 · 링크 **24/24 200**(죽은 링크 0) · 언어 유지 정상 · 비한국어 5개어에 **한글 0** · 태그라인 6개어 고유 번역.
-- **발견 1건**: 맨 아래 **사업자 정보 10줄이 6개 언어 전부 영어 하드코딩**. 한국어 화면에서도 `Service Name:`, 주소도 로마자. 「외국인환자 유치업 등록번호」는 **8/27 KHIDI 평가에서 한국 심사위원이 볼 수 있는 항목**이다. 잔재 근거 2가지 — ①i18n 키가 **아예 없었다** ②`initial commit from HEALO_Demo base` 출신.
+- **발견 1건**: 맨 아래 **사업자 정보 10줄이 6개 언어 전부 영어 하드코딩**. 한국어 화면에서도 `Service Name:`, 주소도 로마자. 「외국인환자 유치업 등록번호」는 **8/27 KHIDI 평가에서 한국 심사위원이 볼 수 있는 항목**이다. 잔재 근거 2가지 — ①i18n 키가 **아예 없었다** ②`initial commit from healwith_Demo base` 출신.
 - **수정(#877 머지·배포)**: `footer.biz.*` **12키 × 6개어**. 값 2개(`soleProprietor`·`insuranceScope`)는 고유명사가 아니라 분류·설명이라 번역 대상. `guaranteeInsurance` 를 보험사명 + 담보범위로 분리. 한국어 전용 값 4개(`addressKo`·`representativeKo`·`privacyOfficerKo`·`guaranteeInsurerKo`).
 - **⚠️ "6개 언어니까 전부 번역"이 정답이 아닌 자리가 있다**: **주소는 외국어 화면에서 로마자를 유지**했다. 러·카 환자에겐 한글 주소가 읽히지도 않고 서류·택시에 쓸 수도 없어 로마자가 실제로 쓸모 있다. PO 지시를 글자대로 따르면 오히려 나빠지는 지점 — 다음 세션도 되돌리지 마라.
 - **가드**: `check:content` **§27** — `ClientShell`(전역 공개 껍데기)에 `영문 라벨:` 리터럴 금지. **기존 i18n 가드가 전부 "비-ko 화면의 한글"만 보던 방향 사각을 처음 메움**(키 패리티도 못 잡는다 — **키가 0개면 0개끼리 일치**라 통과다). 루브릭(`rubric.js` DoD-1)·`DEFINITION_OF_DONE.md` 에 이 사각을 등재.
@@ -7770,7 +7770,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 **3. 안 끝났거나 보류**
 - **coordinator@ 실제 송수신 테스트 안 함** — 메일 한 통 안 쏴봄(아래 6번). PO가 폰에서 보내보면 끝나는 2분짜리.
 - **첫 로그인 안 함** — 로그인 이력 0. PO가 첫 로그인하면 비번변경 프롬프트 뜰 것.
-- **HEALO 앱 쪽 코디 계정과는 무관** — 이번 건은 **메일함만**. 앱 `/admin/staff`의 role=coordinator 계정 발급은 별개이며 이 세션은 손 안 댔음(PO가 요청 안 함). 헷갈리지 마라.
+- **healwith 앱 쪽 코디 계정과는 무관** — 이번 건은 **메일함만**. 앱 `/admin/staff`의 role=coordinator 계정 발급은 별개이며 이 세션은 손 안 댔음(PO가 요청 안 함). 헷갈리지 마라.
 
 **4. 주의·함정** (⭐ 다음 세션이 같은 데서 또 헤맴 방지 — 상세는 기억파일 `zoho-admin-gotchas`)
 - ⭐ **Zoho 민감작업은 관리자 비번 재인증 요구 → 어시가 대신 못 함.** 계정 삭제·로그인 기준주소(별표) 변경을 누르면 **버튼이 무한 스피너로 멈추고** 에러 토스트만 뜸("Unable to complete re-authorization. Please try again."). **실패 이유가 화면에 안 떠서 "Zoho 제한"으로 오진하기 쉬움** — 실제론 재인증 문제. 이런 건 **PO가 직접**. (계정 *생성*은 PO가 비번 치니 통과.)
@@ -7848,7 +7848,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 **1. 이번 세션 한 일** (전부 PC 로컬 실행·검증)
 - **미커밋 5파일 백업 push 완료** → `rescue/local-uncommitted-20260716`(origin 확인). = 소견 수동재번역 라우트·통번역 공유함수·소견 `auto_translated_text`·다중첨부 `files jsonb`·설문 followup 트리거. `.env`·키는 gitignore로 스테이징 제외 확인, 카톡사진/잡파일은 개인정보·용량 이유로 제외(로컬 보존).
 - **main 워크트리(hospital-info) 최신화** — origin/main으로 15커밋 fast-forward(충돌 0).
-- **자동동기화 수리** — 기존 `HEALO_AutoSync` 예약작업이 **매일 실패만 하고 있었음**(이 폴더서 `git checkout main` 시도 → 워크트리 충돌 `already used by worktree`, 로그 실측). 원인=이 폴더는 main을 못 잡음. 고침: main이 실제 있는 **hospital-info 워크트리에서 `pull --ff-only`** 하는 `healoautosync.ps1`로 교체(미커밋 있으면 skip). 예약작업 재등록 → **실제 실행 테스트 성공(Last Result 0)**. `sync-now.bat`=수동 "차이확인+당기기"(실행 순간 #787 드리프트를 실시간 잡아 당김=실증). `StartWhenAvailable`+배터리무시 설정(9시에 PC 꺼져있으면 다음 부팅때 따라잡기).
+- **자동동기화 수리** — 기존 `healwith_AutoSync` 예약작업이 **매일 실패만 하고 있었음**(이 폴더서 `git checkout main` 시도 → 워크트리 충돌 `already used by worktree`, 로그 실측). 원인=이 폴더는 main을 못 잡음. 고침: main이 실제 있는 **hospital-info 워크트리에서 `pull --ff-only`** 하는 `healoautosync.ps1`로 교체(미커밋 있으면 skip). 예약작업 재등록 → **실제 실행 테스트 성공(Last Result 0)**. `sync-now.bat`=수동 "차이확인+당기기"(실행 순간 #787 드리프트를 실시간 잡아 당김=실증). `StartWhenAvailable`+배터리무시 설정(9시에 PC 꺼져있으면 다음 부팅때 따라잡기).
 - 로컬 운영파일(ps1/bat/log/test-image)은 `.git/info/exclude`에 로컬무시 등록(저장소 안 더럽힘).
 
 **2. 왜 그렇게 했는지**
@@ -10317,7 +10317,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 - **테스트문의를 curl로 만들면 한글이 깨짐**: Windows Git Bash curl이 한글을 UTF-8로 안 보내 DB에 깨진 바이트 저장(#27·#30). **제품 버그 아님** — 브라우저 폼은 UTF-8이라 정상(PO가 #31 폼제출로 한글 멀쩡 확인). curl 테스트 시 `--data-binary @파일`(UTF-8 파일)로.
 - **`git checkout main`/머지 시 "failed to run git: main is already used by worktree" 경고는 무해** — main이 worktree `HEALO_worktrees/known-issues-bugfix`에 잡혀있어서. PR 원격 머지는 성공함(MERGED 확인).
 - **2분 자동저장 훅**이 멀티파일 작업 중 변경을 generic 메시지로 가로채 커밋함(이번에도 카피 수정이 `chore: 작업 자동 저장`으로 먼저 커밋됨) → squash 머지면 PR 제목으로 정리돼 무해하나, 커밋 단위 작업 시 유의.
-- **죽은 라우트 `/api/email/send`**(HEALO_EMAIL_FROM 폴백=옛 onboarding@resend.dev) — 아무도 안 부름. 지금 버그와 무관, 나중에 지워도 됨.
+- **죽은 라우트 `/api/email/send`**(healwith_EMAIL_FROM 폴백=옛 onboarding@resend.dev) — 아무도 안 부름. 지금 버그와 무관, 나중에 지워도 됨.
 
 **5. 다음 세션이 먼저 할 일** (우선순위)
 1. **⚠️ 직전 미검증분 먼저**: ①**텔레그램** — PO가 봇 토큰·chat_id를 Vercel env에 넣고 재배포했으면, 테스트문의 쏴서 PO 텔레그램에 새 문의 알림 뜨는지 검증. ②(선택) KST 시각·새 카피가 실제 새 메일/화면에 맞게 나오는지 PO가 다음 문의 때 눈으로 확인(배포는 됨, 정적 교체라 거의 확실).
@@ -10594,7 +10594,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 - **테스트문의를 curl로 만들면 한글이 깨짐**: Windows Git Bash curl이 한글을 UTF-8로 안 보내 DB에 깨진 바이트 저장(#27·#30). **제품 버그 아님** — 브라우저 폼은 UTF-8이라 정상(PO가 #31 폼제출로 한글 멀쩡 확인). curl 테스트 시 `--data-binary @파일`(UTF-8 파일)로.
 - **`git checkout main`/머지 시 "failed to run git: main is already used by worktree" 경고는 무해** — main이 worktree `HEALO_worktrees/known-issues-bugfix`에 잡혀있어서. PR 원격 머지는 성공함(MERGED 확인).
 - **2분 자동저장 훅**이 멀티파일 작업 중 변경을 generic 메시지로 가로채 커밋함(이번에도 카피 수정이 `chore: 작업 자동 저장`으로 먼저 커밋됨) → squash 머지면 PR 제목으로 정리돼 무해하나, 커밋 단위 작업 시 유의.
-- **죽은 라우트 `/api/email/send`**(HEALO_EMAIL_FROM 폴백=옛 onboarding@resend.dev) — 아무도 안 부름. 지금 버그와 무관, 나중에 지워도 됨.
+- **죽은 라우트 `/api/email/send`**(healwith_EMAIL_FROM 폴백=옛 onboarding@resend.dev) — 아무도 안 부름. 지금 버그와 무관, 나중에 지워도 됨.
 
 **5. 다음 세션이 먼저 할 일** (우선순위)
 1. **⚠️ 직전 미검증분 먼저**: ①**텔레그램** — PO가 봇 토큰·chat_id를 Vercel env에 넣고 재배포했으면, 테스트문의 쏴서 PO 텔레그램에 새 문의 알림 뜨는지 검증. ②(선택) KST 시각·새 카피가 실제 새 메일/화면에 맞게 나오는지 PO가 다음 문의 때 눈으로 확인(배포는 됨, 정적 교체라 거의 확실).
@@ -10848,7 +10848,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 - **운영 구글로그인은 Supabase 대행** — 코드는 `supabase.auth.signInWithOAuth({provider:'google'})`만, env에 구글 클라이언트키 없음. 실제 client_id/secret은 **Supabase 대시보드 Auth>Providers>Google**에 박혀있음.
 - **실 운영 client_id = `935081849817-7ojif7o7vgi8tve50t51vb4qa1gi092m`** (healwith.co.kr 로그인 클릭 시 실제로 이 ID로 감, redirect→`hvwwlkawaxabhtumjhrg.supabase.co`). 이 client가 사는 프로젝트 = **"Medical consumables"(`medical-consumables-491407`, 프로젝트번호 935081849817)**. ⚠️**이름은 의료소모품 ERP인데 healwith 구글로그인이 여기 붙어있음**(초기개발 잔재).
 - 그 프로젝트 동의화면 **게시 상태 = "테스트 중"** → 즉 **주인 계정만 되고 일반 환자 구글로그인은 막혀있음**(주인 계정으론 돼서 작동처럼 보임).
-- 혼동주의 잔재(안 씀): bonroi계정 My First Project(`aerobic-gantry-477208-v5`,#519633655469)의 `HEALO` 클라이언트는 **옛 Supabase `xppnvkuahlrdyfvabzur`+옛도메인 `healo-nu.vercel.app`** 가리킴 / 문석민계정 `healo-480207`(#762921926380)도 별개.
+- 혼동주의 잔재(안 씀): bonroi계정 My First Project(`aerobic-gantry-477208-v5`,#519633655469)의 `healwith` 클라이언트는 **옛 Supabase `xppnvkuahlrdyfvabzur`+옛도메인 `healo-nu.vercel.app`** 가리킴 / 문석민계정 `healo-480207`(#762921926380)도 별개.
 
 **2. 왜 그렇게 했는지**
 - **버그 3건 각각 독립 PR**: 파일 겹침 없는 무관한 수정이라 PO 요청대로 따로 머지(리뷰·롤백 쉽게). worktree로 격리(병렬 세션 규칙).
@@ -11571,7 +11571,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 
 **4. 주의·함정:**
 - ⚠️ **legacy/premium 헷갈리지 마라**: `components/healo/`가 프리미엄 디자인시스템, `PageShell`이 프리미엄 Nav 래퍼였음. 이번에 대부분 제거. **premium은 추가 개발 안 함**(PO). 활성 화면=legacy 단일. (자세히: `design_mode_premium_legacy` 메모리)
-- ⚠️ **변경 적용할 때 불필요한 것(서비스 이름·브랜드 등) 건드리지 마라** — PO가 "서비스 이름도 바꿨냐"고 추궁(실제론 안 바꿈, HEALO→healwith는 2026-06-17 #43). 요청 범위만 정확히.
+- ⚠️ **변경 적용할 때 불필요한 것(서비스 이름·브랜드 등) 건드리지 마라** — PO가 "서비스 이름도 바꿨냐"고 추궁(실제론 안 바꿈, healwith→healwith는 2026-06-17 #43). 요청 범위만 정확히.
 - ⚠️ **단정 전에 실제 코드·실DB로 확인** — `information_schema`로 컬럼 존재 확인(rebooking_source 유령 컬럼 사례). 코드가 X를 쓴다고 X가 있는 건 아님.
 - **자동저장 훅 2분마다 `git add -A` 커밋** — 멀티파일 작업 시 무관 파일 섞임. 깨끗한 새 브랜치(origin/main 기준)에 내 파일만 모아 PR, `git diff origin/main...HEAD` net으로 확인.
 
@@ -12888,7 +12888,7 @@ PO가 *"뭐 물어볼 때마다 뭐가 계속 파도파도 나오냐? 설정 꼬
 **왜 그렇게 했는지:**
 - **회의록 유료 게이트**: 무료 Gemini는 입력을 모델 학습·사람검수에 사용(약관이 PII 금지 명시) → 환자 상담 PII엔 부적합. PO가 빌링 켜고 env `GEMINI_PII_BILLING_CONFIRMED=true` 추가하면 즉시 활성(딸깍). 메인 챗은 이미 Gemini라 이건 신규 PII 흐름만 차단.
 - **카드 사진 회복톤**: 면력한방 치료제 제품샷(주사기로 암세포 찌르는 3D 등)은 (a)한 병원 광고처럼 (b)"면역치료=암치료" 오해/의료광고 리스크 → 의도 배제, 회복 프로그램 사진으로.
-- **ITCRN 전면 강등**: ITCRN은 면력한방 자사 브랜드 모델(immunehospital.com 출처). HEALO는 다병원 중립 컨시어지 + 한방은 보조케어 → 전면 헤드라인 부적합. 통계 라벨만 평이하게, 약자는 설명섹션에.
+- **ITCRN 전면 강등**: ITCRN은 면력한방 자사 브랜드 모델(immunehospital.com 출처). healwith는 다병원 중립 컨시어지 + 한방은 보조케어 → 전면 헤드라인 부적합. 통계 라벨만 평이하게, 약자는 설명섹션에.
 - **자동검사 구멍**: `@healo.kr` 잔재가 통과한 건 검사기가 `.com`만 막아서 → 가드 추가로 영구 차단.
 
 **안 끝났거나 보류:**
@@ -13063,7 +13063,7 @@ OJECT_CONTEXT 핸드오프 아카이브
 - **케이스 진행상황 추적**: 코디가 단계 설정(접수→사전상담→병원검토중→일정조율→비자→치료→사후관리) → 환자·에이전시가 확인. `/admin/khidi/cases`.
 - **보험 입력칸**: 보험사·증권번호(암호화)·보장범위·상태 (보험사 연동 자체는 PO 컨택 대기).
 - **에이전시 전용 포털** `/agency`: 의뢰 환자 진행 단계바·메모·타임라인. 계정 발급 `/admin/khidi/agencies`.
-- ⏳ **서비스명**: HEALO 상표 문제 → healwith 등 후보 리서치 + 결정 후 코드 일괄 리네임(미착수, PO 결정 대기).
+- ⏳ **서비스명**: healwith 상표 문제 → healwith 등 후보 리서치 + 결정 후 코드 일괄 리네임(미착수, PO 결정 대기).
 - ⚠️ **데모 테스트 시드 삭제**: `scripts/cleanup_test_seed_20260615.sql` (실보고 전 필수).
 
 **한글 문서 도구**: kordoc(HWP/PDF→MD, `kordoc fill`로 양식 채우기) + poppler + olefile 설치됨. 8월에 베이스→양식 `.hwp` 출력에 사용.

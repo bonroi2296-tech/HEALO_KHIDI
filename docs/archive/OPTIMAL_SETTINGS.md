@@ -1,4 +1,4 @@
-# 🚀 HEALO 상용화를 위한 최적 설정 가이드
+# 🚀 healwith 상용화를 위한 최적 설정 가이드
 
 ## 📋 목차
 1. [Cursor AI 설정](#cursor-ai-설정)

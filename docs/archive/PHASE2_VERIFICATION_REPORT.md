@@ -498,7 +498,7 @@ WITH CHECK (false);  -- ❌ 모든 클라이언트 insert 차단
 
 ```typescript
 /**
- * HEALO: 문의 생성 API (서버 전용)
+ * healwith: 문의 생성 API (서버 전용)
  * 
  * 경로: /api/inquiries/create
  * 권한: 공개 (Rate limited)

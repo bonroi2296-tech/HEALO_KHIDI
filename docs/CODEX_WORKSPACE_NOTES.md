@@ -4,7 +4,7 @@ Last checked: 2026-04-20
 
 ## What This Project Is
 
-HEALO is a Next.js 16 medical concierge platform for foreign patients using Korean medical services. It uses React 18, Supabase, Tailwind CSS, mixed JavaScript/TypeScript, and App Router.
+healwith is a Next.js 16 medical concierge platform for foreign patients using Korean medical services. It uses React 18, Supabase, Tailwind CSS, mixed JavaScript/TypeScript, and App Router.
 
 ## Useful Commands
 

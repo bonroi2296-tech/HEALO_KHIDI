@@ -48,7 +48,7 @@ const card = generateLeadCardFull(summary, '병원명');
 
 #### 간결 버전 (카톡)
 ```
-🔥 HEALO 환자 문의 #123
+🔥 healwith 환자 문의 #123
 
 👤 환자 정보
 국적: KR

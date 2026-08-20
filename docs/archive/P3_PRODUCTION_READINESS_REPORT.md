@@ -124,7 +124,7 @@ This template provides a minimal setup...
 
 #### After
 ```markdown
-# HEALO - Medical Tourism Platform
+# healwith - Medical Tourism Platform
 ...
 ```
 (450+ 줄, 완전한 프로젝트 문서)

@@ -7,7 +7,7 @@
 
 1. 텔레그램에서 `@BotFather` 검색 → 대화 시작
 2. `/newbot` 입력
-3. 봇 이름 입력 (예: `HEALO — Cancer Care Korea`)
+3. 봇 이름 입력 (예: `healwith — Cancer Care Korea`)
 4. 봇 아이디 입력 — 끝이 `bot`이어야 함 (예: `healwith_bot`)
 5. BotFather가 주는 **토큰**(`123456:ABC-...`)을 복사
 6. (권장) `/setuserpic`으로 프로필 사진, `/setdescription`으로 소개문 설정

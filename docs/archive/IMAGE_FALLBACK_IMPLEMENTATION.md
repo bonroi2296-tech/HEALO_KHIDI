@@ -18,7 +18,7 @@
 ### Supabase Dashboard에서 실행
 
 1. **https://supabase.com/dashboard** 접속
-2. HEALO 프로젝트 선택
+2. healwith 프로젝트 선택
 3. 좌측 메뉴에서 **SQL Editor** 클릭
 4. 아래 파일의 **전체 내용**을 복사해서 실행:
 

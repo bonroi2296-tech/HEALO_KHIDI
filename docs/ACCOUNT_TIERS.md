@@ -1,4 +1,4 @@
-# 계정 계층 (Account Tiers) — HEALO / KHIDI
+# 계정 계층 (Account Tiers) — healwith / KHIDI
 
 > **단일 표준(SoR): `src/lib/auth/accountTiers.ts`**
 > 역할 목록을 다른 곳에 하드코딩하지 말고 이 모듈을 import 해서 쓴다.

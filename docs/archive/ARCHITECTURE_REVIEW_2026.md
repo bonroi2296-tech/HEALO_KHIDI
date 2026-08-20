@@ -1,7 +1,7 @@
-# HEALO 프로젝트 전체 아키텍처 리뷰 및 개발 진척도 분석
+# healwith 프로젝트 전체 아키텍처 리뷰 및 개발 진척도 분석
 
 **작성일**: 2026-02-20  
-**프로젝트**: HEALO (Medical Tourism Platform)  
+**프로젝트**: healwith (Medical Tourism Platform)  
 **버전**: Phase 4 완료 시점  
 **분석 범위**: 전체 시스템 아키텍처, 데이터베이스, 보안, 기능 구현 현황
 
@@ -25,7 +25,7 @@
 
 ### 1.1 프로젝트 정의
 
-**HEALO**는 의료 관광 플랫폼으로, 환자와 병원을 연결하는 B2C 서비스입니다.
+**healwith**는 의료 관광 플랫폼으로, 환자와 병원을 연결하는 B2C 서비스입니다.
 
 **현재 개발 단계**: **운영자 주도 수동 매칭형 MVP**
 
@@ -142,7 +142,7 @@ DNS/도메인: (설정 필요)
 ### 3.1 디렉토리 구조
 
 ```
-HEALO_Demo/
+healwith_Demo/
 ├── app/                          # Next.js App Router (75개 하위 디렉토리)
 │   ├── page.jsx                  # 메인 페이지 (병원/시술 목록)
 │   ├── layout.jsx                # 루트 레이아웃 (lang="ko", Pretendard 폰트)
@@ -289,7 +289,7 @@ HEALO_Demo/
 │   └── SAFE_MIGRATION_APPLY.sql  # 안전 실행 스크립트
 │
 ├── docs/                         # 문서 (25개 MD 파일)
-│   ├── HEALO_DEV_STAGE.md        # ✅ 현재 개발 단계 정의 (필수 읽기)
+│   ├── healwith_DEV_STAGE.md        # ✅ 현재 개발 단계 정의 (필수 읽기)
 │   ├── ADMIN_NOTIFICATION_IMPLEMENTATION.md
 │   ├── BRANDING_SETTINGS_IMPLEMENTATION.md
 │   ├── BULK_IMPORT_IMPLEMENTATION.md
@@ -525,7 +525,7 @@ HEALO_Demo/
 - ✅ API: `/api/admin/leads/*` (3개 엔드포인트)
 - ✅ UI: `/admin/leads/page.jsx` (350줄)
 - ❌ 실제 사용: 운영자가 `human_touchpoints`로 수동 기록
-- 📝 참고: `docs/HEALO_DEV_STAGE.md` 섹션 4.2
+- 📝 참고: `docs/healwith_DEV_STAGE.md` 섹션 4.2
 
 ### 5.3 AI 기능
 
@@ -707,7 +707,7 @@ npm run build
 **문서 파일 수**: 25개 MD 파일 (docs/ 디렉토리)
 
 **주요 문서**:
-- ✅ `HEALO_DEV_STAGE.md` - 현재 개발 단계 정의 (필수 읽기)
+- ✅ `healwith_DEV_STAGE.md` - 현재 개발 단계 정의 (필수 읽기)
 - ✅ `OPERATIONAL_GUIDE.md` - 운영 가이드
 - ✅ `QUICK_START.md` - 빠른 시작 가이드
 - ✅ `ADMIN_NOTIFICATION_IMPLEMENTATION.md` - 알림 시스템
@@ -1257,7 +1257,7 @@ HospitalDetailClient.jsx (100줄)
 
 ### A. 주요 기술 문서 링크
 
-- [개발 단계 정의](docs/HEALO_DEV_STAGE.md) - **필수 읽기**
+- [개발 단계 정의](docs/healwith_DEV_STAGE.md) - **필수 읽기**
 - [운영 가이드](docs/OPERATIONAL_GUIDE.md)
 - [보안 강화 보고서](SECURITY_LOCKDOWN_REPORT.md)
 - [DB 스키마 영향 분석](P0_DB_SCHEMA_REFINEMENT_IMPACT.md)
@@ -1291,7 +1291,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=AIzaxxx
 
 ### C. 연락처
 
-**프로젝트 관리**: HEALO Engineering Team  
+**프로젝트 관리**: healwith Engineering Team  
 **작성자**: AI Architecture Analyst  
 **최종 업데이트**: 2026-02-20  
 **다음 리뷰**: 2026-03-20 (월간 리뷰)

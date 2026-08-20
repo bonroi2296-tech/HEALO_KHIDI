@@ -89,8 +89,8 @@ Cmd+Shift+P (Mac)
 1. 브라우저 우측 상단 프로필 아이콘 클릭
 2. **"Add"** 또는 **"프로필 추가"**
 3. 프로필 이름:
-   - **"HEALO Admin"** (관리자용)
-   - **"HEALO User"** (사용자 테스트용)
+   - **"healwith Admin"** (관리자용)
+   - **"healwith User"** (사용자 테스트용)
 
 **장점**:
 - ✅ 완전히 분리된 환경
@@ -99,8 +99,8 @@ Cmd+Shift+P (Mac)
 - ✅ 프로필별로 확장 프로그램도 분리
 
 **사용법**:
-- **관리자 작업**: "HEALO Admin" 프로필
-- **사용자 테스트**: "HEALO User" 프로필
+- **관리자 작업**: "healwith Admin" 프로필
+- **사용자 테스트**: "healwith User" 프로필
 - 동시에 2개 창 열어서 비교 가능!
 
 ---
@@ -256,8 +256,8 @@ https://healo-nu.vercel.app
 
 ### **개발 환경 설정**:
 
-- [ ] Chrome: "HEALO Admin" 프로필 생성
-- [ ] Chrome: "HEALO User" 프로필 생성
+- [ ] Chrome: "healwith Admin" 프로필 생성
+- [ ] Chrome: "healwith User" 프로필 생성
 - [ ] 시크릿 모드 단축키 숙지 (Ctrl+Shift+N)
 - [ ] 개발자 도구 단축키 숙지 (F12)
 

@@ -413,4 +413,4 @@ await supabase.auth.signOut()
 ---
 
 **작성일**: 2026-01-29
-**작성자**: HEALO Admin Auth Engineer
+**작성자**: healwith Admin Auth Engineer

@@ -1,6 +1,6 @@
-# HEALO 파트너 병원 제안서
+# healwith 파트너 병원 제안서
 
-# HEALO Partner Hospital Proposal
+# healwith Partner Hospital Proposal
 
 ---
 
@@ -10,14 +10,14 @@
 
 ---
 
-## 1. HEALO 소개 | About HEALO
+## 1. healwith 소개 | About healwith
 
-HEALO는 **한국 의료관광을 원하는 외국인 환자**와 **한국 병원**을 연결하는 **AI 기반 의료 컨시어지 플랫폼**입니다.  
+healwith는 **한국 의료관광을 원하는 외국인 환자**와 **한국 병원**을 연결하는 **AI 기반 의료 컨시어지 플랫폼**입니다.  
 외국인 환자가 한국에서 양질의 의료 서비스를 받을 수 있도록, 상담부터 예약까지의 전 과정을 원스톱으로 지원합니다.
 
-> HEALO is an **AI-powered medical concierge platform** that connects **international patients** seeking medical care in Korea with **Korean hospitals and clinics**. We provide end-to-end support — from initial consultation to appointment booking — so patients can access world-class Korean healthcare with confidence.
+> healwith is an **AI-powered medical concierge platform** that connects **international patients** seeking medical care in Korea with **Korean hospitals and clinics**. We provide end-to-end support — from initial consultation to appointment booking — so patients can access world-class Korean healthcare with confidence.
 
-### 왜 HEALO인가? | Why HEALO?
+### 왜 healwith인가? | Why healwith?
 
 | 기능 | 설명 |
 |---|---|
@@ -46,9 +46,9 @@ HEALO는 **한국 의료관광을 원하는 외국인 환자**와 **한국 병�
 | 주요 국가 | 일본 (30%), 중국 (20%), 미국 (10%), 동남아 (15%), 중동 (10%) |
 | 주요 인기 시술 | 성형외과, 피부과, 건강검진, 치과, 한방의학, 안과 |
 
-> The Korean medical tourism market is growing rapidly, with approximately **600,000 foreign patients** annually. Top source countries include Japan, China, the US, and Southeast Asia. HEALO is positioned to capture this growth through technology-driven patient acquisition.
+> The Korean medical tourism market is growing rapidly, with approximately **600,000 foreign patients** annually. Top source countries include Japan, China, the US, and Southeast Asia. healwith is positioned to capture this growth through technology-driven patient acquisition.
 
-### HEALO 타겟 환자 | Target Patients
+### healwith 타겟 환자 | Target Patients
 
 - **1차 타겟:** 미국, 영국, 캐나다, 호주 등 영어권 환자
 - **2차 타겟:** 일본 환자 (한국 의료관광 최대 시장)
@@ -70,12 +70,12 @@ HEALO는 **한국 의료관광을 원하는 외국인 환자**와 **한국 병�
 
 | 포함 사항 | 설명 |
 |---|---|
-| 병원 프로필 등록 | HEALO 플랫폼에 병원 정보, 위치, 주요 시술 게시 |
+| 병원 프로필 등록 | healwith 플랫폼에 병원 정보, 위치, 주요 시술 게시 |
 | 환자 문의 수신 | AI 매칭을 통한 환자 문의 자동 전달 |
 | 기본 매칭 대상 | 환자 검색 결과에 포함 |
 | 기본 분석 | 월별 문의 건수 확인 |
 
-> **Free tier** — Hospital profile listed on HEALO, receive patient inquiries through AI matching, and appear in patient search results.
+> **Free tier** — Hospital profile listed on healwith, receive patient inquiries through AI matching, and appear in patient search results.
 
 ### 🔵 프리미엄 파트너 (Premium Partner)
 
@@ -87,17 +87,17 @@ HEALO는 **한국 의료관광을 원하는 외국인 환자**와 **한국 병�
 | **우선 매칭** | 높은 품질의 리드(HOT/WARM) 우선 전달 |
 | **상세 병원 프로필** | 의료진 소개, 시설 사진/동영상, 환자 리뷰 게시 |
 | **월간 성과 리포트** | 문의 수, 전환율, 환자 만족도 등 상세 분석 |
-| **전담 컨시어지** | HEALO 전담 매니저가 환자-병원 간 커뮤니케이션 지원 |
+| **전담 컨시어지** | healwith 전담 매니저가 환자-병원 간 커뮤니케이션 지원 |
 | **다국어 콘텐츠 제작** | 병원 소개 콘텐츠를 영어/일본어/중국어로 제작 |
-| **프로모션 지원** | HEALO 마케팅 채널(SNS, 블로그)에 병원 홍보 |
+| **프로모션 지원** | healwith 마케팅 채널(SNS, 블로그)에 병원 홍보 |
 
-> **Premium tier** — Priority placement in search & AI recommendations, dedicated concierge support, detailed performance reports, multilingual content creation, and promotional support through HEALO's marketing channels.
+> **Premium tier** — Priority placement in search & AI recommendations, dedicated concierge support, detailed performance reports, multilingual content creation, and promotional support through healwith's marketing channels.
 
 ---
 
 ## 4. 수수료 구조 (협의 가능) | Fee Structure (Negotiable)
 
-HEALO는 병원의 상황에 맞는 유연한 수수료 모델을 제공합니다.
+healwith는 병원의 상황에 맞는 유연한 수수료 모델을 제공합니다.
 
 | 옵션 | 구조 | 설명 |
 |---|---|---|
@@ -122,14 +122,14 @@ HEALO는 병원의 상황에 맞는 유연한 수수료 모델을 제공합니�
 ## 5. 병원이 얻는 가치 | Benefits for Your Hospital
 
 ### 💰 추가 매출 확보
-마케팅 비용 없이 외국인 환자를 확보할 수 있습니다. HEALO가 환자 획득(Acquisition)을 담당하므로 병원은 진료에만 집중하면 됩니다.
+마케팅 비용 없이 외국인 환자를 확보할 수 있습니다. healwith가 환자 획득(Acquisition)을 담당하므로 병원은 진료에만 집중하면 됩니다.
 
-> **Additional Revenue** — Acquire international patients without marketing spend. HEALO handles patient acquisition so you can focus on providing excellent care.
+> **Additional Revenue** — Acquire international patients without marketing spend. healwith handles patient acquisition so you can focus on providing excellent care.
 
 ### 🌐 언어 장벽 해소
-HEALO가 환자-병원 간 모든 커뮤니케이션을 중개합니다. 영어, 일본어, 중국어 환자와의 소통을 직접 할 필요가 없습니다.
+healwith가 환자-병원 간 모든 커뮤니케이션을 중개합니다. 영어, 일본어, 중국어 환자와의 소통을 직접 할 필요가 없습니다.
 
-> **No Language Barrier** — HEALO mediates all patient-hospital communication. No need to hire multilingual staff.
+> **No Language Barrier** — healwith mediates all patient-hospital communication. No need to hire multilingual staff.
 
 ### ✅ 환자 품질 검증
 AI 기반 리드 스코어링 시스템으로 스팸, 장난 문의를 사전에 필터링합니다. 병원에는 실제 시술 의향이 있는 환자만 전달됩니다.
@@ -142,9 +142,9 @@ AI 기반 리드 스코어링 시스템으로 스팸, 장난 문의를 사전에
 > **Real-time Dashboard** — Track inquiry status, conversion rates, and revenue contribution through your dedicated hospital dashboard.
 
 ### 📈 브랜드 글로벌 노출
-HEALO 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 높아집니다. 영어/일본어 SEO 최적화된 병원 프로필을 통해 해외 검색에서도 노출됩니다.
+healwith 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 높아집니다. 영어/일본어 SEO 최적화된 병원 프로필을 통해 해외 검색에서도 노출됩니다.
 
-> **Global Brand Exposure** — Increase your hospital's international visibility through HEALO's platform and SEO-optimized multilingual profiles.
+> **Global Brand Exposure** — Increase your hospital's international visibility through healwith's platform and SEO-optimized multilingual profiles.
 
 ---
 
@@ -172,7 +172,7 @@ HEALO 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 �
 
 ---
 
-## 7. HEALO 플랫폼 미리보기 | Platform Preview
+## 7. healwith 플랫폼 미리보기 | Platform Preview
 
 현재 플랫폼에서 제공하는 주요 기능:
 
@@ -192,7 +192,7 @@ HEALO 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 �
 
 | 항목 | 내용 |
 |---|---|
-| **회사명** | HEALO |
+| **회사명** | healwith |
 | **대표** | 강주영 |
 | **서비스** | AI 의료 컨시어지 플랫폼 |
 | **기술 스택** | Next.js, Supabase, OpenAI/Gemini AI, Vercel |
@@ -204,7 +204,7 @@ HEALO 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 �
 
 파트너십에 관심이 있으시면 아래로 연락 주시기 바랍니다.
 
-> If you are interested in partnering with HEALO, please reach out through any of the channels below.
+> If you are interested in partnering with healwith, please reach out through any of the channels below.
 
 | 채널 | 정보 |
 |---|---|
@@ -217,4 +217,4 @@ HEALO 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도가 �
 > *본 제안서는 파트너 병원 모집을 위해 작성되었으며, 세부 조건은 협의를 통해 조정 가능합니다.*  
 > *This proposal is prepared for hospital partnership recruitment. Specific terms are negotiable.*
 
-**© 2026 HEALO. All rights reserved.**
+**© 2026 healwith. All rights reserved.**

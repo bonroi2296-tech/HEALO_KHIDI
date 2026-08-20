@@ -44,7 +44,7 @@
 
 | 항목 | 값 |
 |------|----|
-| **Title** | `HEALO dispatch-reminders` |
+| **Title** | `healwith dispatch-reminders` |
 | **URL** | `https://healo-khidi.vercel.app/api/cron/dispatch-reminders` |
 | **Schedule** | `*/5 * * * *` (5분마다) |
 | **Request method** | `POST` |

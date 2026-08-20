@@ -1,6 +1,6 @@
-# HEALO — AI Project Map
+# healwith — AI Project Map
 
-> **One-liner:** HEALO는 해외 환자(미국·일본·중화권 중심)의 **시술/수술 기반 문의(Lead)** 를 받아 한국 병원과 매칭하는 의료관광 컨시어지 플랫폼. **예약·결제 기능 없음**, 병원 직접연락 유도 대신 **HEALO 문의 유도**가 핵심 목표.
+> **One-liner:** healwith는 해외 환자(미국·일본·중화권 중심)의 **시술/수술 기반 문의(Lead)** 를 받아 한국 병원과 매칭하는 의료관광 컨시어지 플랫폼. **예약·결제 기능 없음**, 병원 직접연락 유도 대신 **healwith 문의 유도**가 핵심 목표.
 
 ---
 
@@ -23,7 +23,7 @@
 ## 2. Directory Map
 
 ```
-HEALO_Demo/
+healwith_Demo/
 ├── app/                          # Next.js App Router (라우트 + API)
 │   ├── layout.jsx                # 루트 레이아웃
 │   ├── page.jsx                  # 홈페이지
@@ -100,7 +100,7 @@ HEALO_Demo/
 ├── docs/                         # 문서
 ├── output/                       # 스크립트 출력물
 ├── public/                       # 정적 파일
-└── HEALO_full_snapshot/          # 스냅샷 참조용
+└── healwith_full_snapshot/          # 스냅샷 참조용
 ```
 
 ---
@@ -223,9 +223,9 @@ HEALO_Demo/
 ## 6. Guardrails (절대 위반 금지)
 
 1. **예약·결제 기능 없음** — 리드 생성(문의 수집)만 수행
-2. **병원 직접연락 유도 금지** — 반드시 HEALO 문의 폼으로 유도
+2. **병원 직접연락 유도 금지** — 반드시 healwith 문의 폼으로 유도
 3. **근거 없는 의료정보 생성 금지** — evidence 기반만 허용
-4. **"HEALO = 병원/의료기관" 오인 유발 금지** — HEALO는 플랫폼/컨시어지
+4. **"healwith = 병원/의료기관" 오인 유발 금지** — healwith는 플랫폼/컨시어지
 5. **Supabase가 단일 진실 원천(Single Source of Truth)** — 프론트엔드 mock data·fallback 상수 사용 금지
 6. **상세 페이지는 반드시 URL param(id/slug)으로 DB 직접 조회** — 클라이언트 캐시 의존 금지
 

@@ -18,7 +18,7 @@
 ### 제목 (Subject Line)
 
 ```
-[병원명] × HEALO — 외국인 환자 유치 파트너십 제안
+[병원명] × healwith — 외국인 환자 유치 파트너십 제안
 ```
 
 ### 본문
@@ -26,20 +26,20 @@
 ```
 [담당자명] 님께,
 
-안녕하세요, AI 의료 컨시어지 플랫폼 HEALO의 강주영 대표입니다.
+안녕하세요, AI 의료 컨시어지 플랫폼 healwith의 강주영 대표입니다.
 
 [병원명]의 우수한 [시술 분야] 서비스에 대해 잘 알고 있으며,
 외국인 환자 유치를 위한 파트너십을 제안드리고자 연락드립니다.
 
-■ HEALO 소개
-HEALO는 한국에서 의료 서비스를 받고자 하는 외국인 환자와
+■ healwith 소개
+healwith는 한국에서 의료 서비스를 받고자 하는 외국인 환자와
 한국 병원을 연결하는 AI 기반 플랫폼입니다.
 현재 영어·일본어·중국어 환자를 대상으로 서비스 중이며,
 미국, 일본, 동남아 등에서 환자 문의가 들어오고 있습니다.
 
 ■ 제안 내용
 - 추가 마케팅 비용 없이 외국인 환자 확보
-- HEALO가 언어 장벽 해소 (통역/조율 전담)
+- healwith가 언어 장벽 해소 (통역/조율 전담)
 - AI 기반 리드 품질 평가로 실제 시술 의향 환자만 전달
 - 초기 파트너 병원 대상 3개월 무료 프리미엄 체험
 
@@ -49,14 +49,14 @@ HEALO는 한국에서 의료 서비스를 받고자 하는 외국인 환자와
 초기에는 비용 부담 없이 시작하실 수 있습니다.
 
 10~15분 정도 미팅이 가능하시면, 상세한 제안서와 함께
-HEALO 플랫폼을 직접 보여드리겠습니다.
+healwith 플랫폼을 직접 보여드리겠습니다.
 
 편하신 시간을 알려주시면 감사하겠습니다.
 
 감사합니다.
 
 강주영 드림
-HEALO 대표
+healwith 대표
 📧 contact@healo.com
 🌐 healo-nu.vercel.app
 ```
@@ -68,7 +68,7 @@ HEALO 대표
 ### Subject Line
 
 ```
-[Hospital Name] × HEALO — International Patient Acquisition Partnership
+[Hospital Name] × healwith — International Patient Acquisition Partnership
 ```
 
 ### Body
@@ -76,7 +76,7 @@ HEALO 대표
 ```
 Dear [Contact Name],
 
-My name is Juyoung Kang, Founder & CEO of HEALO — an AI-powered
+My name is Juyoung Kang, Founder & CEO of healwith — an AI-powered
 medical concierge platform connecting international patients with
 Korean hospitals.
 
@@ -84,8 +84,8 @@ I'm reaching out because [Hospital Name] is renowned for its
 excellent [specialty] services, and I believe a partnership could
 bring significant value to your hospital.
 
-WHAT IS HEALO?
-HEALO helps international patients (primarily from the US, Japan,
+WHAT IS healwith?
+healwith helps international patients (primarily from the US, Japan,
 and Southeast Asia) find and book medical procedures in Korea.
 Our AI concierge handles everything from initial inquiry to
 appointment booking — in the patient's native language.
@@ -109,7 +109,7 @@ Would any time this week or next work for a brief call?
 Best regards,
 
 Juyoung Kang
-Founder & CEO, HEALO
+Founder & CEO, healwith
 📧 contact@healo.com
 🌐 healo-nu.vercel.app
 ```
@@ -121,7 +121,7 @@ Founder & CEO, HEALO
 ### 제목
 
 ```
-Re: [병원명] × HEALO — 외국인 환자 유치 파트너십 제안
+Re: [병원명] × healwith — 외국인 환자 유치 파트너십 제안
 ```
 
 ### 본문
@@ -132,7 +132,7 @@ Re: [병원명] × HEALO — 외국인 환자 유치 파트너십 제안
 지난번 보내드린 파트너십 제안에 대해 다시 연락드립니다.
 바쁘신 것 잘 알고 있어 간단히 요점만 말씀드리겠습니다.
 
-현재 HEALO에는 [시술 분야]에 관심 있는 외국인 환자 문의가
+현재 healwith에는 [시술 분야]에 관심 있는 외국인 환자 문의가
 지속적으로 들어오고 있습니다.
 [병원명]이 파트너로 등록되시면 이러한 환자분들을
 바로 연결해 드릴 수 있습니다.
@@ -146,7 +146,7 @@ Re: [병원명] × HEALO — 외국인 환자 유치 파트너십 제안
 감사합니다.
 
 강주영 드림
-HEALO 대표
+healwith 대표
 📧 contact@healo.com
 ```
 
@@ -157,7 +157,7 @@ HEALO 대표
 ### 제목
 
 ```
-[병원명] — HEALO 파트너십 마지막 안내
+[병원명] — healwith 파트너십 마지막 안내
 ```
 
 ### 본문
@@ -177,7 +177,7 @@ HEALO 대표
 감사합니다.
 
 강주영 드림
-HEALO 대표
+healwith 대표
 📧 contact@healo.com
 🌐 healo-nu.vercel.app
 ```
@@ -197,4 +197,4 @@ HEALO 대표
 
 ---
 
-**© 2026 HEALO. All rights reserved.**
+**© 2026 healwith. All rights reserved.**

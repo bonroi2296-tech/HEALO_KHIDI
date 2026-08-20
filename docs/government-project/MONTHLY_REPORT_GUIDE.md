@@ -76,7 +76,7 @@
 
 ---
 
-## HEALO 시스템에서 데이터 추출 방법
+## healwith 시스템에서 데이터 추출 방법
 
 ### 사전상담 건수
 **Source:** Supabase `consultation_sessions` 테이블

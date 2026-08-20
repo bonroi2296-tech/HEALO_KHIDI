@@ -1,4 +1,4 @@
-## HEALO 암호화 가이드 (AES-256-GCM)
+## healwith 암호화 가이드 (AES-256-GCM)
 
 > 작성일: 2026-01-29  
 > 알고리즘: AES-256-GCM  

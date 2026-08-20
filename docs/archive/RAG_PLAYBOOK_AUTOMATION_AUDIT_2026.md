@@ -1,4 +1,4 @@
-# HEALO RAG/Playbook/Automation/Public Chat 파이프라인 정밀 감사 보고서
+# healwith RAG/Playbook/Automation/Public Chat 파이프라인 정밀 감사 보고서
 
 **기준**: 마이그레이션 DDL + 소스코드 전수 검토  
 **범위**: Public Chat, RAG, Playbook, Auto-Improvement V2, 운영 감사/이력

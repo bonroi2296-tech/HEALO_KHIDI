@@ -542,4 +542,4 @@ NODE_ENV=production npm run build && npm start
 
 **작성자**: AI Assistant  
 **최종 업데이트**: 2026-02-04  
-**문의**: HEALO 개발팀
+**문의**: healwith 개발팀
