@@ -18,6 +18,7 @@
 | 버그·누락·오류·반성문·재발·가드 룰·문서 건강검진·사용자 제보·**파생 파손(A 고쳤는데 B 고장)** | `docs/rules/BUG_ROUTINE.md` |
 | AI 품질·환각·안전 위반·응답시간 P95·flag·품질 지표 | `docs/rules/AI_QUALITY.md` |
 | 백오피스·사용설명서·매뉴얼·새 계층(role) 추가 | `docs/rules/MANUALS.md` |
+| 번역·다국어 문구·「외국어가 이상하대」·용어 통일·코디 교정 | `docs/rules/I18N_QUALITY.md` (용어집 = `src/lib/i18n/glossary.js`) |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
 | PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`docs/rules/PPT_STYLE.md`** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
