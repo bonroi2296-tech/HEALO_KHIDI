@@ -74,7 +74,7 @@ const doc = new Document({
       border: { top: { style: BorderStyle.SINGLE, size: 6, color: BLUE, space: 1 } },
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({ text: "(주)본로이 | 기밀문서  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
+        new TextRun({ text: "본로이 | 기밀문서  |  ", size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ text: " / ", size: 16, color: "666666", font: "맑은 고딕" }),
         new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: "666666", font: "맑은 고딕" }),
