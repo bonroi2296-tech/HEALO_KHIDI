@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
     if (!thread_id || !message_id || !public_token) {
       return Response.json({ ok: false, error: "missing_fields" }, { status: 400 });
     }
+    // message_id 가 uuid 가 아니면 «평가를 버리지 말고» 번호만 비운다.
+    // 화면이 임시 번호(`ai_<시각>`)를 보내던 시절에는 여기서 500 이 나 평가가 통째로 유실됐다
+    // (2026-08-20 실측: 챗 메시지 1,068건 대비 평가 0건). 평가 자체는 스레드 단위로도 쓸 수 있다.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const messageId = UUID_RE.test(String(message_id)) ? String(message_id) : null;
     if (rating !== 1 && rating !== -1) {
       return Response.json({ ok: false, error: "invalid_rating" }, { status: 400 });
     }
@@ -57,12 +62,16 @@ export async function POST(request: NextRequest) {
     // 중복 피드백 확인 (같은 message_id + public_token)
     // ⚠️ error 를 반드시 받는다 — supabase-js 는 오류에 reject 하지 않아, 안 받으면 조회 실패가
     // "중복 없음"으로 둔갑해 가드를 그냥 통과한다(POSTMORTEMS #105 부류).
-    const { data: existingRows, error: dupErr } = await (supabaseAdmin as any)
+    // 번호를 못 붙인 평가(messageId=null)는 메시지 단위 중복검사를 건너뛴다(스레드 전체를
+    // 한 건으로 묶어버리면 두 번째 평가부터 «이미 제출됨»으로 막힌다).
+    const dupQuery = (supabaseAdmin as any)
       .from("chat_feedback")
       .select("id")
-      .eq("message_id", message_id)
       .eq("thread_id", thread_id)
       .limit(1);
+    const { data: existingRows, error: dupErr } = messageId
+      ? await dupQuery.eq("message_id", messageId)
+      : { data: null, error: null };
 
     if (dupErr) {
       console.error("[chat/feedback] 중복검사 실패:", dupErr.message);
@@ -77,7 +86,7 @@ export async function POST(request: NextRequest) {
       .from("chat_feedback")
       .insert({
         thread_id,
-        message_id,
+        message_id: messageId,
         rating,
         reason_category: reason_category || null,
         comment: comment?.trim() || null,
