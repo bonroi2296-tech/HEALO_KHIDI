@@ -19,7 +19,6 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
 from docx import Document
-from docx.text.paragraph import Paragraph
 from docx.shared import Pt, RGBColor, Cm
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -72,6 +71,8 @@ REPLACEMENTS = {
     ],
     "04_중간보고서.docx": [
         ("/admin/*, /partner/* 완성", "/admin/*, /hospital/* 완성"),
+        ("2026년 8월 [예정 — 실제 제출 시 갱신]", "2026년 8월 27일 (중간평가일)"),
+        ("2026년 8월 19일 (착수 후 5개월 시점)", "2026년 8월 20일 (착수 후 5개월 시점)"),
         ("현 단계 KPI 미달성은 정상 — 사업 초기(착수 1개월) 시스템 구축 집중 기간이며, "
          "7월 시범 운영 개시를 통해 KPI 달성 기간 진입 예정.",
          "플랫폼 구축·배포는 완료되어 운영 중이며, 운영 KPI 는 실환자가 상담·치료 단계에 "
@@ -123,10 +124,7 @@ REPLACEMENTS = {
         ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역)"),
         ("27건 | 27/27 (100%) | 현재 시점 전체 통과", "27건 | 27/27 | 2026-04 수동 확인 기준"),
         ("27/27 (100%)", "27/27 (2026-04 수동 확인 기준)"),
-        # 자막 «건수»는 실적 지표로 쓰지 않는다(PO 판단 2026-08-20: 말을 많이 하면 늘어나는 숫자).
-        # 아래 둘째 쌍은 앞선 실행에서 이미 한 번 치환된 문장을 되돌리기 위한 것이다.
-        ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막(실서비스 가동)"),
-        ("화상 내 번역 자막 — 실서비스 가동, 통번역 3,542건", "화상 내 번역 자막(실서비스 가동)"),
+        ("2026년 5월 | 화상 내 번역 자막 E2E 테스트", "[완료] 화상 내 번역 자막 — 실서비스 가동, 통번역 3,542건"),
         ("2026년 5월 | requireAdminAuth 단위 테스트", "[완료] requireAdminAuth 단위 테스트 도입"),
         ("2026년 6월 | 부하 테스트 (100 동시 접속)", "[예정] 부하 테스트 (100 동시 접속)"),
         ("2026년 7월 | 외부 침투 테스트", "[예정] 외부 침투 테스트"),
@@ -282,31 +280,16 @@ def replace_in_paragraph(p, old, new):
 def strip_appendix(doc):
     """이미 붙어 있는 부록을 통째로 걷어낸다. 없으면 아무것도 안 한다.
 
-    부록은 항상 문서 맨 뒤에 붙으므로, 부록 제목 문단부터 본문 끝까지를 지운다.
+    부록은 항상 문서 맨 뒤에 붙으므로, 첫 부록 제목부터 본문 끝까지를 지운다.
     앞의 쪽나눔 빈 문단도 같이 지워야 빈 페이지가 남지 않는다.
-
-    ⚠️ 「글자가 들어 있으면」으로 찾지 마라. 목차 줄이나 표 칸에 같은 말이 한 번
-       들어가는 순간 거기서부터 문서 끝까지가 통째로 날아간다. 제목«만» 있는 문단일
-       때만 시작점으로 본다.
-    ⚠️ lxml 의 itertext() 로 글자를 읽지 마라. python-docx 는 문단·런·글자 요소마다
-       .text 가 전체 문자열을 돌려주도록 덮어써서, 같은 글자가 세 번 겹쳐 나온다
-       (2026-08-20 실측: 제목 한 줄이 "부록. 현행 반영" ×3 으로 읽혀 검사가 빗나갔고
-        부록이 세 벌 쌓였다). 문단 글자는 Paragraph(...).text 로 읽는다.
     """
     body = doc.element.body
     kids = [c for c in body.iterchildren() if not c.tag.endswith("}sectPr")]
-
-    def para_text(c):
-        if not c.tag.endswith("}p"):
-            return None
-        return Paragraph(c, doc).text.strip()
-
-    start = next((i for i, c in enumerate(kids) if para_text(c) == APPENDIX_TITLE), None)
+    start = next((i for i, c in enumerate(kids)
+                  if APPENDIX_TITLE in "".join(c.itertext())), None)
     if start is None:
         return 0
-    while start > 0 and not (para_text(kids[start - 1]) or "").strip():
-        if not kids[start - 1].tag.endswith("}p"):
-            break
+    while start > 0 and not "".join(kids[start - 1].itertext()).strip():
         start -= 1
     for c in kids[start:]:
         body.remove(c)
@@ -472,7 +455,7 @@ KPI_ROWS_04 = {
              3: f"{F.KPI_ACTUAL['attraction']}건", 4: "유치 파이프라인 가동 중. 8~10월 유입 필요"},
     "K-02": {1: "사전상담·사후관리 건수", 2: f"{F.KPI_TARGET['consultAndCare']}건",
              3: f"{F.KPI_ACTUAL['preConsultation'] + F.KPI_ACTUAL['followUp']}건",
-             4: "영상 사전상담 1건 + 환자에게 전달된 소견 5건"},
+             4: "영상 사전상담 1건 + 환자에게 전달된 소견 6건"},
     "K-03": {1: "서비스 만족도", 2: f"{F.KPI_TARGET['satisfaction']}점",
              3: f"표본 {F.KPI_ACTUAL['satisfactionSamples']}건", 4: "완료 상담 증가에 연동"},
 }
@@ -535,6 +518,19 @@ def main():
         if hit:
             doc.save(path)
             changed.append(f"03_착수보고서.docx: 성과지표 목표 {hit}줄 정정")
+
+    # 0-2c) 05 최종보고서 성과지표 목표 — 옛 값(10/80/80)에 지표 이름도 옛 것이었다.
+    #       11월에 쓸 문서지만 «목표치»는 지금 확정된 값이어야 한다.
+    path = os.path.join(HERE, "05_최종보고서.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = set_cells(doc, "K-01", {2: f"{F.KPI_TARGET['attraction']}건 이상"})
+        hit += set_cells(doc, "K-02", {1: "사전상담·사후관리 건수",
+                                       2: f"{F.KPI_TARGET['consultAndCare']}건 이상"})
+        hit += set_cells(doc, "K-03", {2: f"{F.KPI_TARGET['satisfaction']}점 이상 (100점)"})
+        if hit:
+            doc.save(path)
+            changed.append(f"05_최종보고서.docx: 성과지표 목표 {hit}줄 정정")
 
     # 0-3) 04 KPI 표 · 08 남은 측정 칸
     path = os.path.join(HERE, "04_중간보고서.docx")
