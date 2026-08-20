@@ -253,12 +253,12 @@ line(tf, "문제점 · 애로사항", 11, BLACK, XBOLD, first=True)
 for t in ["· 파트너가 방한 병원 실사 후 송출을 요구",
           "· 현지 수요가 튀르키예·중국에 선점됨"]:
     line(tf, t, 10, BODY, REG, before=6)
-box(s, 500, 278, 388, CH, LIME)
+box(s, 500, 278, 388, CH, BRAND)
 tf = text(s, 516, 290, 356, CH - 20)
-line(tf, "자체 발전방안", 11, BLACK, XBOLD, first=True)
+line(tf, "자체 발전방안", 11, WHITE, XBOLD, first=True)
 for t in ["· 8월 현지 검색광고로 직접 유입 병행",
           "· 파트너 방한 병원 투어 8월 중 실시"]:
-    line(tf, t, 10, BLACK, REG, before=6)
+    line(tf, t, 10, BRAND_PALE, REG, before=6)
 band(s, "▶ 부진 원인은 기능 미비가 아니라 현지 신뢰 확보에 걸리는 시간이며, 대책은 광고와 실사 투어입니다.", y=430)
 
 # ── SWOT

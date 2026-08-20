@@ -15,9 +15,11 @@ PANEL = RGBColor(0xF2, 0xF2, 0xF2)
 LINE = RGBColor(0xDC, 0xDD, 0xDD)
 BODY = RGBColor(0x76, 0x71, 0x71)
 MUTED = RGBColor(0x7F, 0x7F, 0x7F)
-LIME = RGBColor(0xD9, 0xFE, 0x55)
-GREEN_L = RGBColor(0xE2, 0xF0, 0xD9)
-GREEN_M = RGBColor(0xC5, 0xE0, 0xB4)
+BRAND = RGBColor(0x0F, 0x76, 0x6E)       # teal-700 · 브랜드 색 (DESIGN.md 영구 고정)
+BRAND_PALE = RGBColor(0xCC, 0xFB, 0xF1)  # teal-100 · 짙은 바탕 위 작은 글씨
+GREEN_L = RGBColor(0xF0, 0xFD, 0xFA)     # teal-50  · 흐름도 옅은 칸
+GREEN_M = RGBColor(0xCC, 0xFB, 0xF1)     # teal-100 · 흐름도 중간 칸
+LIME = BRAND                             # 옛 이름. 쓰던 곳이 남아 있어 별칭만 둔다
 
 # ── 글꼴 (무게마다 이름이 따로)
 HEAVY = "에스코어 드림 8 Heavy"
@@ -104,10 +106,11 @@ def panel(s, x=MARGIN, y=140, w=W - MARGIN * 2, h=300):
 def step(s, x, y, w, h, title, lines, fill=PANEL, title_color=BLACK):
     """흐름도 한 칸."""
     box(s, x, y, w, h, fill, MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.12)
+    dark = (fill == BRAND)          # 짙은 바탕이면 글씨를 뒤집는다
     tf = text(s, x + 10, y + 12, w - 20, h - 20, PP_ALIGN.CENTER)
-    line(tf, title, 11, title_color, XBOLD, first=True, align=PP_ALIGN.CENTER)
+    line(tf, title, 11, WHITE if dark else title_color, XBOLD, first=True, align=PP_ALIGN.CENTER)
     for t in lines:
-        line(tf, t, 9, BODY, REG, before=3, align=PP_ALIGN.CENTER)
+        line(tf, t, 9, BRAND_PALE if dark else BODY, REG, before=3, align=PP_ALIGN.CENTER)
 
 
 def arrow(s, x, y, w=22, h=12):
@@ -152,10 +155,10 @@ def statement(prs, title, body_lines, accent=None):
              first=(i == 0), before=(6 if strong else 0), align=PP_ALIGN.CENTER)
     if accent:
         wpx = text_width(accent, 11)
-        box(s, W / 2 - wpx / 2, 400, wpx, 24, LIME)
+        box(s, W / 2 - wpx / 2, 400, wpx, 24, BRAND)
         tf = text(s, W / 2 - wpx / 2, 400, wpx, 24, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
         tf.word_wrap = False
-        line(tf, accent, 11, BLACK, XBOLD, first=True, align=PP_ALIGN.CENTER)
+        line(tf, accent, 11, WHITE, XBOLD, first=True, align=PP_ALIGN.CENTER)
     return s
 
 
@@ -223,12 +226,13 @@ def caption(s, txt, x, y, w, size=9.5, align=PP_ALIGN.LEFT):
 
 def stat(s, x, y, w, value, label, sub=None, accent=False):
     """숫자 카드 — 큰 숫자 + 설명. 텍스트 나열 대신 쓸 것."""
-    box(s, x, y, w, 92, LIME if accent else PANEL)
+    box(s, x, y, w, 92, BRAND if accent else PANEL)
+    ink = WHITE if accent else BLACK
     tf = text(s, x + 14, y + 12, w - 28, 40)
-    line(tf, value, 24, BLACK, HEAVY, first=True)
-    line(tf, label, 10.5, BLACK, MED, before=2)
+    line(tf, value, 24, ink, HEAVY, first=True)
+    line(tf, label, 10.5, ink, MED, before=2)
     if sub:
-        line(tf, sub, 9, BODY if not accent else BLACK, LIGHT, before=1)
+        line(tf, sub, 9, BRAND_PALE if accent else BODY, LIGHT, before=1)
 
 
 def band(s, txt, y=468, size=11):
@@ -245,7 +249,7 @@ def note(s, txt, y=505):
 def highlight(s, txt, x, y, size=11):
     wpx = text_width(txt, size)
     h = size * 2.1
-    box(s, x, y, wpx, h, LIME)
+    box(s, x, y, wpx, h, BRAND)
     tf = text(s, x + 6, y, wpx, h, anchor=MSO_ANCHOR.MIDDLE)
     tf.word_wrap = False
-    line(tf, txt, size, BLACK, XBOLD, first=True)
+    line(tf, txt, size, WHITE, XBOLD, first=True)
