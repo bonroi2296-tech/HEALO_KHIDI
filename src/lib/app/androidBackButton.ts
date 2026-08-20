@@ -13,7 +13,8 @@
  * 🛑 **이 파일만 고쳐서는 폰에 반영되지 않는다.** `@capacitor/app` 은 «네이티브 부품»이라
  *    앱 파일(AAB)을 새로 구워 스토어에 올려야 들어간다. 웹 배포로는 안 간다.
  *    실제로 2026-08-19 PO 제보 시점의 스토어 판(빌드 7 / 1.0.6, 8/4 소스)에는 이 부품이
- *    아예 없었다 — 그래서 8/5 에 고쳤는데도 폰에서는 그대로 꺼졌다.
+ *    아예 없었다 — 그래서 8/5 에 고쳤는데도 폰에서는 그대로 꺼졌다
+ *    (실측: 그 시점 `capacitor.build.gradle` 부품 4개 ↔ 지금 5개).
  *    ⚠️ 「앱에 안 들어간 네이티브 고침」은 이제 `npm run sweep` 의 «앱» 칸이 매번 알린다.
  *
  * 하는 일:
@@ -29,22 +30,39 @@
  */
 "use client";
 
-import { t } from "@/lib/i18n";
+import { t, getLangCodeFromCookie } from "@/lib/i18n";
 
 /** 「한 번 더 누르면 종료」가 유효한 시간. 안드로이드 관행이 2초다. */
 const EXIT_WINDOW_MS = 2000;
 const HINT_ID = "healo-back-exit-hint";
 
 let registered = false;
-/** 마지막으로 「첫 화면에서 뒤로」를 누른 시각. 0 = 대기 없음. */
-let exitArmedAt = 0;
+/** 「첫 화면에서 뒤로」를 누른 시각. null = 대기 없음(0 도 유효한 시각이라 falsy 검사 금지). */
+let exitArmedAt: number | null = null;
 let hintTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** 이 페이지가 실제로 보고 있는 언어(우리 내부 코드). 사전을 심는 스크립트가 넣어 둔 값. */
+/**
+ * 이 화면이 실제로 «보이고 있는» 언어.
+ * ⚠️ `__I18N__.__primary` 는 «주소의 언어»다. 쿠키로 다른 언어를 골라 둔 사람은 화면이 쿠키
+ *    언어로 그려지므로(`LangContext` 가 쿠키를 본다) 안내만 딴 언어로 뜬다 → 쿠키를 먼저 본다.
+ */
 function pageLang(): string {
   if (typeof window === "undefined") return "en";
+  if (typeof document !== "undefined" && document.cookie.includes("healo_lang=")) {
+    return getLangCodeFromCookie();
+  }
   const reg = (window as unknown as { __I18N__?: { __primary?: string } }).__I18N__;
   return reg?.__primary || "en";
+}
+
+/** 떠 있는 안내를 지운다(대기가 풀리거나 화면이 바뀌면 남아 있으면 안 된다). */
+function dismissExitHint(): void {
+  if (hintTimer) {
+    clearTimeout(hintTimer);
+    hintTimer = null;
+  }
+  if (typeof document === "undefined") return;
+  document.getElementById(HINT_ID)?.remove();
 }
 
 /** 화면 아래에 잠깐 뜨는 안내 알약. 앱 안에서만 뜨므로 웹 화면에는 영향이 없다. */
@@ -57,48 +75,63 @@ function showExitHint(): void {
     el.id = HINT_ID;
     el.setAttribute("role", "status");
     // 색·모서리는 DESIGN.md 토큰 안에서 고른다(중립 회색 900 + 흰 글씨 = 대비 충분).
+    // 아래 위치는 하단 고정 요소의 사이트 공통 규칙 그대로 — 하단 내비 + «쿠키 동의 띠» + 안전영역.
+    // (띠를 빼먹어 첫 방문자 화면이 덮인 사고가 2026-08-19 에 있었다 — ClientShell 주석 참고.)
     el.className =
-      "fixed left-1/2 z-[9999] -translate-x-1/2 rounded-full bg-gray-900 px-4 py-2 text-sm text-white shadow-lg";
-    // 하단 고정 내비 위로 띄운다(안전영역 포함).
-    el.style.bottom = "calc(var(--healo-safe-bottom, 0px) + 5.5rem)";
+      "fixed left-1/2 z-[9999] -translate-x-1/2 rounded-full bg-gray-900 px-4 py-2 text-sm text-white shadow-lg " +
+      "bottom-[calc(5rem+var(--cookie-banner-h,0px)+var(--healo-safe-bottom))]";
     el.style.pointerEvents = "none";
     document.body.appendChild(el);
   }
   el.textContent = text;
   if (hintTimer) clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    document.getElementById(HINT_ID)?.remove();
     hintTimer = null;
+    document.getElementById(HINT_ID)?.remove();
   }, EXIT_WINDOW_MS);
 }
+
+export type BackPressActions = {
+  goBack: () => void;
+  exitApp: () => void;
+  /** 안내 띄우기·지우기. 기본값은 화면에 알약을 그린다(시험에서는 갈아끼운다). */
+  showHint?: () => void;
+  hideHint?: () => void;
+  now?: () => number;
+};
 
 /**
  * 뒤로가기 한 번을 처리한다. 시험에서 직접 부를 수 있게 떼어 놨다
  * (캡시터 없이도 「두 번 눌러야 꺼진다」를 기계가 잰다).
  */
-export function handleBackPress(
-  canGoBack: boolean,
-  actions: { goBack: () => void; exitApp: () => void; now?: () => number },
-): void {
+export function handleBackPress(canGoBack: boolean, actions: BackPressActions): void {
   const now = actions.now ? actions.now() : Date.now();
+  const show = actions.showHint || showExitHint;
+  const hide = actions.hideHint || dismissExitHint;
+
   if (canGoBack) {
-    exitArmedAt = 0;
+    // 화면이 바뀌므로 대기·안내를 모두 거둔다(안 거두면 다음 화면에 «한 번 더 누르면 종료»가 남는다).
+    exitArmedAt = null;
+    hide();
     actions.goBack();
     return;
   }
-  if (exitArmedAt && now - exitArmedAt <= EXIT_WINDOW_MS) {
-    exitArmedAt = 0;
+  // 안내가 «떠 있는 동안»만 유효하다. 경계에서 «안내는 사라졌는데 꺼지는» 일이 없게 < 로 잰다.
+  if (exitArmedAt !== null && now - exitArmedAt < EXIT_WINDOW_MS) {
+    exitArmedAt = null;
+    hide();
     actions.exitApp();
     return;
   }
   exitArmedAt = now;
-  showExitHint();
+  show();
 }
 
-/** 시험용 — 모듈에 남은 「종료 대기」 상태를 지운다. */
+/** 시험용 — 모듈에 남은 「종료 대기」 상태와 안내를 지운다. (`registered` 는 건드리지 않는다:
+ *  되돌리면 뒤로가기 받는 자리가 두 개가 되어 한 번 눌러도 두 번 처리된다.) */
 export function __resetBackButtonState(): void {
-  exitArmedAt = 0;
-  registered = false;
+  exitArmedAt = null;
+  dismissExitHint();
 }
 
 export async function registerAndroidBackButton(): Promise<void> {
@@ -111,7 +144,6 @@ export async function registerAndroidBackButton(): Promise<void> {
     if (Capacitor.getPlatform() !== "android") return; // 아이폰엔 이 버튼이 없다
 
     const { App } = await import("@capacitor/app");
-    registered = true;
 
     await App.addListener("backButton", ({ canGoBack }) => {
       handleBackPress(canGoBack, {
@@ -121,6 +153,9 @@ export async function registerAndroidBackButton(): Promise<void> {
         },
       });
     });
+    // ⚠️ 붙는 데 «성공한 뒤»에 표시한다. 먼저 세워 두면 addListener 가 실패했을 때
+    //    다시 시도할 길이 막혀, 뒤로가기가 조용히 안 먹는 상태로 굳는다.
+    registered = true;
   } catch {
     /* 플러그인이 없거나 네이티브가 아님 → 무시(웹에서 정상) */
   }

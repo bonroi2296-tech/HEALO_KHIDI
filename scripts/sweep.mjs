@@ -43,7 +43,7 @@ const only = (process.argv.find((a) => a.startsWith("--only=")) || "").replace("
 const want = (id) => !only || only.split(",").includes(id);
 
 const rows = [];
-const add = (id, 이름, 판정, 근거) => rows.push({ id, 이름, 판정, 근거 });
+const add = (id, 이름, 판정, 근거, 옵션 = {}) => rows.push({ id, 이름, 판정, 근거, 경보: 옵션.경보 !== false });
 
 const sb = () =>
   SUPABASE_URL && SERVICE_KEY
@@ -276,12 +276,24 @@ async function 검사_예약작업() {
 
 // ── 7. 폰 앱에 «안 들어간» 네이티브 고침
 //    왜: 이 앱은 라이브 로드라 «웹은 고치면 즉시 폰에 반영»된다. 그래서 앱 고침도 그럴 거라고
-//    착각하기 쉬운데, 캡시터 플러그인·AndroidManifest·capacitor.config 같은 «네이티브»는
+//    착각하기 쉬운데, 캡시터 부품(플러그인)·AndroidManifest·capacitor.config 같은 «네이티브»는
 //    앱 파일(AAB)을 새로 구워 스토어에 올려야만 폰에 간다.
 //    2026-08-19 PO 제보가 정확히 이것이었다 — 뒤로가기 고침(8/5, `@capacitor/app` 부품 추가)을
 //    합치고 배포까지 했는데 폰은 그대로였다. 스토어 판(빌드 7)이 8/4 소스라 부품 자체가 없었다.
-//    2주간 아무도 «폰에 갔는지»를 안 봤다 — 사람이 볼 자리가 없었기 때문이다. 그래서 여기 만든다.
+//
+//    🛑 «커밋을 세지» 않는다 (2026-08-20 정정 — 첫 판이 그렇게 만들었다가 헛것을 셌다).
+//       이 저장소는 2026-08-10 에 역사가 한 번 정리돼서, 출시본을 구운 커밋이 본판 역사에
+//       «없을 수» 있다. 그러면 `git log 기준..본판` 이 아무것도 안 걸러내고 본판 전체를 센다
+//       (실측: 기준 2c6b555d 와 본판의 공통 조상 0개, 범위 = 본판 53커밋 전부).
+//       버전코드 비교도 안 된다 — 8/5 의 그 뒤로가기 고침은 «버전코드를 안 올리고» 부품만 넣었다.
+//    ✅ 그래서 **출시본에 실린 부품 목록과 지금 부품 목록을 직접 맞대 본다.** 역사가 갈려도,
+//       버전코드를 안 올려도 잡힌다. 실제로 이 방식이면 8/5 그 고침이 그날 바로 걸렸다.
 const 네이티브경로 = ["capacitor.config.ts", "android", "ios"];
+
+/** capacitor.build.gradle 에서 실제로 «앱에 박히는» 부품 이름을 뽑는다. */
+function 부품목록(gradleText) {
+  return [...gradleText.matchAll(/project\(['"]:(capacitor-[a-z0-9-]+)['"]\)/g)].map((m) => m[1]).sort();
+}
 
 async function 검사_앱미반영() {
   let 기준;
@@ -290,38 +302,51 @@ async function 검사_앱미반영() {
   } catch {
     /* 아래에서 「못 잼」 */
   }
-  if (!기준?.versionCode) return add("app", "폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 앱출시 칸이 비었다");
+  if (!기준?.versionCode || !Array.isArray(기준.부품)) {
+    return add("app", "폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시」 칸이 비었거나 부품 목록이 없다");
+  }
 
   const gradle = fs.readFileSync(path.join("android", "app", "build.gradle"), "utf8");
   const 저장소 = Number((gradle.match(/versionCode\s+(\d+)/) || [])[1] || 0);
   const 저장소이름 = (gradle.match(/versionName\s+"([^"]+)"/) || [])[1] || "?";
   const 폰 = `${기준.versionCode}(${기준.versionName}, ${기준.게시일} 게시)`;
 
-  if (저장소 <= 기준.versionCode) {
-    return add("app", "폰 앱에 안 들어간 고침", "통과", `스토어 판 ${폰} = 저장소 ${저장소}(${저장소이름})`);
+  // ① 부품 대조 — 가장 확실한 신호. 저장소엔 있는데 출시본엔 없는 부품 = 폰에서 «그 기능이 죽어 있다».
+  const 현재부품 = 부품목록(fs.readFileSync(path.join("android", "app", "capacitor.build.gradle"), "utf8"));
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+
+  // ② 커밋 목록 — «기준 커밋이 본판 역사에 실제로 있을 때만» 의미가 있다(위 🛑 참고).
+  let 커밋 = null;
+  let 범위못씀 = null;
+  if (기준.빌드한소스) {
+    try {
+      let 끝 = "HEAD";
+      try {
+        끝 = execSync("git rev-parse --verify -q origin/main", { encoding: "utf8" }).trim() || "HEAD";
+      } catch {
+        /* 원격 사본이 없으면 지금 자리 기준 */
+      }
+      execSync(`git merge-base --is-ancestor ${기준.빌드한소스} ${끝}`, { stdio: "ignore" });
+      커밋 = execSync(`git log --oneline ${기준.빌드한소스}..${끝} -- ${네이티브경로.join(" ")}`, { encoding: "utf8" })
+        .trim()
+        .split("\n")
+        .filter(Boolean);
+    } catch {
+      범위못씀 = `기준 커밋 ${String(기준.빌드한소스).slice(0, 8)} 이 본판 역사에 없다 — 커밋 세기는 건너뛴다(부품 대조로만 판정). 다음 판을 구우면 «본판» 커밋으로 다시 잡아라`;
+    }
   }
 
-  let 목록 = [];
-  try {
-    const 끝 = execSync("git rev-parse --verify -q origin/main || git rev-parse HEAD", { encoding: "utf8", shell: "/bin/bash" }).trim();
-    목록 = execSync(`git log --oneline ${기준.빌드한소스}..${끝} -- ${네이티브경로.join(" ")}`, { encoding: "utf8" })
-      .trim()
-      .split("\n")
-      .filter(Boolean);
-  } catch {
-    return add("app", "폰 앱에 안 들어간 고침", "못 잼", `기준 커밋 ${기준.빌드한소스} 를 이 저장소에서 못 찾음`);
-  }
+  const 볼것 = 안실린부품.length > 0 || (커밋 && 커밋.length > 0);
+  const 조각 = [`스토어 판 ${폰} · 저장소 ${저장소}(${저장소이름})`];
+  if (안실린부품.length) 조각.push(`⚠️ 출시본에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 폰에서 죽어 있다`);
+  else 조각.push(`부품 ${현재부품.length}개 전부 출시본에 있음`);
+  if (커밋?.length) 조각.push(`그 뒤 네이티브 고침 ${커밋.length}건: ${커밋.slice(0, 3).join(" / ")}`);
+  if (범위못씀) 조각.push(범위못씀);
+  if (볼것) 조각.push("앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
 
-  add(
-    "app",
-    "폰 앱에 안 들어간 고침",
-    목록.length ? "볼 것" : "통과",
-    목록.length
-      ? `스토어 판 ${폰} · 저장소 ${저장소}(${저장소이름}) · 그 사이 네이티브 고침 ${목록.length}건 → ` +
-        `앱 파일을 새로 굽기 «전»에는 폰에 안 간다. 맨 위 ${Math.min(3, 목록.length)}건: ` +
-        목록.slice(0, 3).join(" / ")
-      : `버전은 앞서 있지만(저장소 ${저장소}) 네이티브 변경은 0건 — 웹 배포만으로 충분`
-  );
+  // 경보에서는 뺀다: 「네이티브 고침이 아직 안 나갔다」는 몇 주씩 이어지는 «정상» 상태라
+  // 매일 메일이 나가면 사람이 검사 전체를 무시하게 된다(같은 이유로 미배포 검사도 안 울린다).
+  add("app", "폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
 }
 
 const 검사들 = [
@@ -353,6 +378,7 @@ console.log(`
  · 화면이 실제로 보이나(지도·잘림·빈 상자) → 브라우저로 눈으로 봐야 한다
  · 번역이 자연스러운가 → 현지 직원 몫
  · 「알림이 진짜 갔나」 → 받은편지함 확인 몫
+ · 아이폰 앱에 안 들어간 고침 → 지금은 «안드로이드 부품 목록»만 대조한다(아이폰 부품은 Podfile 쪽)
 `);
 
 const 볼것 = rows.filter((r) => r.판정 === "볼 것");
@@ -364,7 +390,8 @@ console.log(`볼 것 ${볼것.length}건 / 못 잼 ${못잼.length}건 / 통과 
 //   ⚠️ 「못 잼」도 실패로 친다. 비밀값이 없어 검사가 빠졌는데 초록으로 보이는 것이
 //      2026-08 야간검사 사고(8일간 조용히 실패)의 정확한 형태였다.
 if (process.argv.includes("--alert")) {
-  const 알릴것 = [...볼것, ...못잼];
+  // 경보:false 로 등록한 검사는 «매일 울리면 무시하게 되는» 부류라 메일에서 뺀다(화면엔 그대로 뜬다).
+  const 알릴것 = [...볼것, ...못잼].filter((r) => r.경보 !== false);
   if (알릴것.length) {
     console.log("── 이 창구는 «볼 것 또는 못 잼»이 있으면 일부러 실패로 끝난다(메일이 나가게) ──");
     for (const r of 알릴것) console.log(`  ${r.판정}: ${r.이름} — ${r.근거}`);

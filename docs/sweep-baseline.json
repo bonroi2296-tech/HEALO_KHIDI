@@ -18,9 +18,16 @@
       "versionCode": 7,
       "versionName": "1.0.6",
       "게시일": "2026-08-13",
+      "부품": [
+        "capacitor-keyboard",
+        "capacitor-push-notifications",
+        "capacitor-splash-screen",
+        "capacitor-status-bar"
+      ],
+      "_부품이_판정기준": "검사는 이 목록과 지금 android/app/capacitor.build.gradle 을 맞대 본다. 저장소에만 있는 부품 = 그 기능이 폰에서 죽어 있다는 뜻. 버전코드는 안 믿는다 — 8/5 뒤로가기 고침은 버전코드를 안 올리고 부품만 넣었다.",
       "빌드한소스": "2c6b555d",
-      "_빌드한소스주석": "versionCode 7 을 박은 커밋. 그 다음날 8·9 로 올라갔으므로 실제 빌드 소스는 이 커밋 근처가 맞다(정확한 커밋은 Codemagic 기록에만 있다)."
+      "_빌드한소스주석": "versionCode 7 을 박은 커밋. ⚠️ 2026-08-10 에 저장소 역사가 정리돼서 이 커밋은 «본판 역사에 없다»(공통 조상 0). 그래서 검사는 이 값으로 커밋을 세지 않고 부품 목록만 맞댄다. 다음 판을 구우면 «본판에 있는» 커밋으로 다시 적어라 — 그때부터 커밋 목록도 같이 나온다."
     },
-    "고칠때": "스토어에 새 판을 올렸으면 여기 versionCode·versionName·게시일·빌드한소스를 그 판으로 바꿔라. 안 바꾸면 검사가 계속 「폰에 안 들어갔다」고 알린다."
+    "고칠때": "스토어에 새 판을 올렸으면 여기 versionCode·versionName·게시일·부품·빌드한소스를 그 판으로 바꿔라. 부품 목록은 손으로 적지 말고 그 판을 구운 커밋의 android/app/capacitor.build.gradle 에서 뽑아라."
   }
 }
