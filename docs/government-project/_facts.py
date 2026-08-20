@@ -83,7 +83,7 @@ with open(_os.path.join(_HERE, "retired-terms.json"), encoding="utf-8") as _f:
 # (옛 경로, 현행, 사유) — 검사·비교용(내부)
 ROUTES_RETIRED = [(r["old"], r["now"], r["why"]) for r in _RETIRED["routes"]]
 
-# 문서에 «인쇄»할 때 쓰는 표. 옛 경로를 그대로 찍지 않는다 —
+# 문서에 인쇄할 때 쓰는 표. 옛 경로를 그대로 찍지 않는다 —
 # 평가위원이 살아 있는 화면으로 오해하고, 산출물 검사기(§32)도 자기 문서를 위반으로 잡는다.
 # (실제로 초안 부록이 이 표 때문에 30건 위반으로 잡혔다.)
 ROUTES_RETIRED_PRINTABLE = [(r["now"], r["oldLabel"], r["why"]) for r in _RETIRED["routes"]]
@@ -135,11 +135,11 @@ KPI_TARGET = {
 }
 
 # ⚠️ 추정 금지. 아래는 AS_OF 기준 운영DB 정확 COUNT.
-#    테스트 데이터는 inquiries.is_test 표식으로 제외한 «실건»이다(정직 기준선).
+#    테스트 데이터는 inquiries.is_test 표식으로 제외한 실건이다.
 KPI_ACTUAL = {
     "attraction": 0,          # K-01. 한국 도착·진료 개시 기준 → 아직 0
-    # K-02. 2026-08-06 PO 지시로 «두 매체 합산»으로 정의 확대 — 상세는 KPI_측정방법_명세.md
-    "preConsultation": 6,     # 영상 사전상담 1(문의 #60) + 환자에게 «전달된» 소견 5
+    # K-02. 2026-08-06 PO 지시로 두 매체 합산으로 정의 확대 — 상세는 KPI_측정방법_명세.md
+    "preConsultation": 6,     # 영상 사전상담 1(문의 #60) + 환자에게 전달된 소견 5
     "preConsultationBreakdown": (1, 5),   # (영상, 전달된 소견)
     "followUp": 0,            # K-04. session_type='follow_up' & completed → 0
     "satisfactionSamples": 0, # K-03. 실환자에 연결된 설문 응답 0건

@@ -99,7 +99,7 @@ set_font(run, 12, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('Requirements Definition Document  |  v1.0  |  2026.04.30')
+run = p.add_run('Requirements Definition Document  |  v1.1  |  2026.08.19')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -110,7 +110,7 @@ info_rows = [
     ('문서 번호', 'HEALO-REQ-2026-001'),
     ('작성 기관', '본로이 (Bonroi)'),
     ('작성일', '2026년 8월 19일'),
-    ('버전', 'v1.0'),
+    ('버전', 'v1.1'),
     ('보안 등급', '대외비'),
     ('관련 사업', '2026년 KHIDI ICT 기반 외국인환자 사전상담·사후관리 지원 사업'),
 ]
@@ -270,7 +270,7 @@ doc.add_page_break()
 # ================================================================
 add_heading(doc, '3. 기능 요구사항', 1)
 add_para(doc, '우선순위: H=High(필수) / M=Medium(권장) / L=Low(선택)')
-add_para(doc, '현황: ✅완료 / 🟡부분구현 / ❌미구현')
+add_para(doc, '현황 표기: 완료 / 부분구현 / 미구현')
 doc.add_paragraph()
 
 fr_tbl = doc.add_table(rows=0, cols=5)
@@ -280,118 +280,118 @@ add_header_row(fr_tbl, ['FR-ID', '기능명', '우선순위', '상세 설명', '
 fr_data = [
     ('FR-01', '소셜/이메일 회원가입', 'H',
      '이메일·Google OAuth 기반 회원가입. 환자/코디네이터/관리자 역할 분리. Supabase Auth 사용.',
-     '✅ /app/signup, /app/login, /app/auth'),
+     '완료 · /app/signup, /app/login, /app/auth'),
 
     ('FR-02', '역할 기반 접근 제어(RBAC)', 'H',
      '계정 계층 7종(비회원·환자·코디네이터·관리자·국내 의료기관·해외 에이전시·해외 의료기관)으로 분기. '
      '권한 저장 위치는 계층별로 다름(app_metadata.role / hospital_users / agency_users / 초대링크 토큰). '
      '미들웨어에서 /patient/*, /admin/*, /coordinator/*, /hospital/*, /agency/*, /clinic/* 보호. '
      '※ 의사는 계정 계층이 아니라 상담방 초대링크 게스트 또는 병원 계정으로 참여함.',
-     '✅ middleware.js, src/lib/auth/accountTiers.ts (계층 단일 표준)'),
+     '완료 · middleware.js, src/lib/auth/accountTiers.ts (계층 단일 표준)'),
 
     ('FR-03', '게스트 토큰 발급', 'H',
      '비회원 환자에게 public_token을 발급하여 회원가입 없이 초기 상담 접근 가능.',
-     '✅ migrations/20260125_inquiries_public_token'),
+     '완료 · migrations/20260125_inquiries_public_token'),
 
     ('FR-04', '암환자 인테이크 폼', 'H',
      '환자 기본정보, 암 종류·병기, 의료기록 업로드, 치료 희망 사항 수집. Progressive 단계별 폼. AES-256-GCM 암호화 저장. (사업계획서 p.27)',
-     '✅ /app/inquiry (통합 문의 퍼널), migrations/20260125_inquiries_intake_progressive'),
+     '완료 · /app/inquiry (통합 문의 퍼널), migrations/20260125_inquiries_intake_progressive'),
 
     ('FR-05', '의료문서 업로드·관리', 'H',
      'CT/MRI/검사결과/진단서 업로드. Supabase Storage 저장, 암호화. MIME 타입 검증, 파일 크기 제한.',
-     '✅ /app/api/attachments, migrations/20260406_consultation_documents'),
+     '완료 · /app/api/attachments, migrations/20260406_consultation_documents'),
 
     ('FR-06', 'PDF 생성·다운로드', 'M',
      '상담 요약, 진료 의뢰서, 비용 산출서 PDF 출력. @react-pdf/renderer 활용.',
-     '✅ /app/api/pdf, src/lib/pdf'),
+     '완료 · /app/api/pdf, src/lib/pdf'),
 
     ('FR-07', 'AI 기반 병원·의료진 매칭', 'H',
      '환자 증상·희망 치료·예산 기반 병원 자동 추천. Gemini 2.5 Flash + RAG 3계층(DB/HIRA/Google). 다국어 결과 반환. (사업계획서 p.27)',
-     '✅ /app/api/chat, src/lib/chat/generateReply.ts, src/lib/rag'),
+     '완료 · /app/api/chat, src/lib/chat/generateReply.ts, src/lib/rag'),
 
     ('FR-08', '병원 목록·상세 조회', 'H',
      '병원명·진료과·의료진·시설·가격 정보 다국어(ko/en/ru/kk/zh/ja) 제공. i18n JSONB 컬럼 활용.',
-     '✅ /app/hospitals, migrations/20260223_i18n_jsonb'),
+     '완료 · /app/hospitals, migrations/20260223_i18n_jsonb'),
 
     ('FR-09', '예상 비용 산출', 'M',
      '진료 항목별 예상비용 자동 산출 안내. AI 적정가 판독. 비자·숙박 비용 안내 포함. (사업계획서 p.28)',
-     '🟡 /app/patient/cost-estimates (UI 있음, AI 자동산출 부분구현)'),
+     '부분구현 · /app/patient/cost-estimates (UI 있음, AI 자동산출 부분구현)'),
 
     ('FR-10', 'AI 챗봇 상담 (24시간)', 'H',
      'Gemini 기반 AI Agent. 러시아어·카자흐어·한국어·영어 지원. RAG 기반 병원 정보 응답. Human Agent 이관 로직 포함.',
-     '✅ /app/api/chat, src/lib/chat, src/lib/rag'),
+     '완료 · /app/api/chat, src/lib/chat, src/lib/rag'),
 
     ('FR-11', 'Human Agent 상담 (코디네이터)', 'H',
      '코디네이터가 환자 메시지 수신·응답. AI 이관 케이스 처리. 상담 이력 기록.',
-     '✅ /app/coordinator/messages, migrations/20260225_chat_threads'),
+     '완료 · /app/coordinator/messages, migrations/20260225_chat_threads'),
 
     ('FR-12', 'WebRTC 화상상담 (LiveKit)', 'H',
      '브라우저 기반 화상·음성 상담. LiveKit Cloud 연동. 게스트 토큰으로 비회원 참여. (사업계획서 p.28, 공고문 p.8)',
-     '✅ /app/telemedicine, /app/api/livekit, @livekit/components-react'),
+     '완료 · /app/telemedicine, /app/api/livekit, @livekit/components-react'),
 
     ('FR-13', 'AI 실시간 번역 (상담 중)', 'H',
      '화상상담 및 채팅 중 러시아어↔한국어 실시간 번역. 특허 10-2868334 기반. (사업계획서 p.28)',
-     '🟡 /app/api/translate, /app/api/translate-text (번역 API 완성, 화상 내 실시간 통합 부분구현)'),
+     '부분구현 · /app/api/translate, /app/api/translate-text (번역 API 완성, 화상 내 실시간 통합 부분구현)'),
 
     ('FR-14', '진료 예약·일정 관리', 'H',
      '환자-의료진 일정 조율, 예약 확정, 리마인더 발송. 달력 UI 제공.',
-     '🟡 /app/patient/calendar (UI 있음, 자동 리마인더 부분구현)'),
+     '부분구현 · /app/patient/calendar (UI 있음, 자동 리마인더 부분구현)'),
 
     ('FR-15', '비자 발급 안내', 'M',
      '카자흐스탄→한국 의료비자 신청 절차, 필요 서류, 처리기간 안내. 다국어 제공.',
-     '✅ /app/patient/visa, /app/visa, migrations/20260406_education_visa_rebooking'),
+     '완료 · /app/patient/visa, /app/visa, migrations/20260406_education_visa_rebooking'),
 
     ('FR-16', '경과 모니터링 (f/u)', 'H',
      '귀국 후 환자 건강상태 주기적 체크인. 증상 입력, 검사결과 업로드, AI 이상 감지 알림. (사업계획서 p.29, 공고문 p.8)',
-     '🟡 /app/patient/symptoms (화면 있음, AI 자동감지 부분구현)'),
+     '부분구현 · /app/patient/symptoms (화면 있음, AI 자동감지 부분구현)'),
 
     ('FR-17', '건강관리 교육 콘텐츠', 'M',
      '암 유형별 맞춤 사후관리 가이드, 식이요법, 복약 안내. 러시아어 콘텐츠 제공. (사업계획서 p.30)',
-     '🟡 /app/patient/education, /app/education (화면 있음, 러시아어 콘텐츠 일부)'),
+     '부분구현 · /app/patient/education, /app/education (화면 있음, 러시아어 콘텐츠 일부)'),
 
     ('FR-18', '재방문 예약 (Rebooking)', 'M',
      '경과관리 기반 재방문 필요성 자동 알림. 재진 예약·비자 재발급 안내 원스톱. (사업계획서 p.30)',
-     '✅ /app/patient/rebooking, migrations/20260406_education_visa_rebooking'),
+     '완료 · /app/patient/rebooking, migrations/20260406_education_visa_rebooking'),
 
     ('FR-19', '6개 언어 UI/UX', 'H',
      '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kk 등).',
-     '🟡 /app/ru, /app/kk (라우트 있음, 일부 콘텐츠 번역 진행 중)'),
+     '부분구현 · /app/ru, /app/kk (라우트 있음, 일부 콘텐츠 번역 진행 중)'),
 
     ('FR-20', 'DB 콘텐츠 다국어 자동번역', 'H',
      '병원·치료 정보 i18n JSONB 컬럼 자동번역. Gemini 기반 배치 번역.',
-     '✅ /app/api/rag, migrations/20260223_auto_translate_fields'),
+     '완료 · /app/api/rag, migrations/20260223_auto_translate_fields'),
 
     ('FR-21', '환자 대시보드', 'H',
      '환자 본인 상담 이력, 예약, 문서, 비용, 만족도 조회. 전체 여정 통합 뷰.',
-     '✅ /app/patient/*, PatientDashboardPremium.jsx'),
+     '완료 · /app/patient/*, PatientDashboardPremium.jsx'),
 
     ('FR-22', '코디네이터 포털', 'H',
      '담당 환자 관리, 상담 처리, 실적 현황, 알림 수신.',
-     '✅ /app/coordinator/*'),
+     '완료 · /app/coordinator/*'),
 
     ('FR-23', '국내 의료기관 포털', 'H',
      '병원 정보 관리, 의료진 등록, 협진 의뢰(리드) 수신, 진료 결과 입력.',
-     '✅ /app/hospital/* (구 파트너 경로에서 개명), migrations/20260407_partner_doctors_branches'),
+     '완료 · /app/hospital/* (구 파트너 경로에서 개명), migrations/20260407_partner_doctors_branches'),
 
     ('FR-24', '관리자(Admin) 포털', 'H',
      '사용자·병원·KPI·AI 성능 관리. 성과보고 자료 출력. 감사 로그.',
-     '✅ /app/admin/*, migrations/20260129_add_admin_audit_logs'),
+     '완료 · /app/admin/*, migrations/20260129_add_admin_audit_logs'),
 
     ('FR-25', '이메일 알림·리마인더', 'M',
      '예약 확인, 상담 완료, 경과 체크인 리마인더. Resend API + React Email 템플릿.',
-     '✅ /app/api/email, src/lib/email'),
+     '완료 · /app/api/email, src/lib/email'),
 
     ('FR-26', '실시간 In-app 알림', 'M',
      '상담 이관, 신규 문의, 의료진 회신 실시간 알림. Supabase Realtime 기반.',
-     '🟡 /app/patient/messages (화면 있음, 실시간 푸시 부분구현)'),
+     '부분구현 · /app/patient/messages (화면 있음, 실시간 푸시 부분구현)'),
 
     ('FR-27', '환자 PII 암호화', 'H',
      '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (*_encrypted 컬럼). encryptionV2.ts 활용.',
-     '✅ src/lib/security/encryptionV2.ts, migrations/20260420_drop_*_plaintext'),
+     '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_*_plaintext'),
 
     ('FR-28', 'API Rate Limiting', 'H',
      '공개 POST 엔드포인트 IP 기반 요청 제한. rateLimit.ts 활용.',
-     '✅ src/lib/rateLimit.ts'),
+     '완료 · src/lib/rateLimit.ts'),
 ]
 
 for row in fr_data:

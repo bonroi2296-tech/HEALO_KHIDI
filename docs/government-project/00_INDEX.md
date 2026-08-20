@@ -5,7 +5,7 @@
 **플랫폼:** HEALO
 **파트너 의료기관:** 면력한방병원 (4개 지점)
 **상태:** 플랫폼 구축·배포 완료(6월), 실서비스 운영 중 — 기능 구현 96%(22/23)
-**최종 갱신:** 2026-08-19
+**최종 갱신:** 2026-08-20
 
 
 > ### ⚠️ 2026-08-19 정정 — 다른 문서로 옮기기 전에 읽을 것
@@ -17,7 +17,8 @@
 > 미진사유는 「교육 콘텐츠 미구현」이 아니라 **「단계별 자동 발송 미연결」**로 좁혀 적을 것.
 >
 > **병원 수는 8곳**이다(협진 대학병원 4 + 면력한방병원 4지점). DB `hospitals` 는 9행이지만
-> 1건은 이름·주소가 비어 있는 미발행 빈 행이다.
+> 1건은 `TEST 병원 (국내 의료기관)` 이라는 시험 등록이며 `is_published = false` 다
+> (2026-08-20 재조회 — 「이름·주소가 빈 행」이라던 이전 설명은 틀렸다).
 
 ---
 
@@ -34,7 +35,11 @@
 **화면·계층·기능을 바꾼 PR에서 해야 할 일**
 1. 경로를 폐지·개명했으면 `retired-terms.json` 에 한 줄 추가.
 2. `_facts.py` 의 해당 항목 수정. **실적 수치는 추정 금지 — 운영DB 정확 COUNT 재조회 후 `AS_OF` 갱신.**
-3. 생성기 재실행: `python3 make_req.py && python3 make_func.py && python3 make_eval.py && python3 update_reports.py`
+3. 생성기 재실행 — **순서가 중요하다.** `update_reports.py` 는 생성기가 뽑아낸 문서를 다시 손보므로
+   반드시 마지막이다(먼저 돌리면 생성기가 덮어써 없던 일이 된다):
+   ```
+   python make_req.py && python make_func.py && python make_eval.py      && python make_ict_req.py && python make_backoffice_req.py      && python make_screen_design.py && python update_reports.py
+   ```
 4. `npm run check:content` 통과 확인 — **산출물 .docx 안에 폐지된 경로가 남아 있으면 CI 가 실패한다(§32).**
 
 > **왜 이런 규칙이 생겼나:** 01·02·04·06·07 이 4월 기준으로 3개월간 방치돼 **지금은 없는 화면**

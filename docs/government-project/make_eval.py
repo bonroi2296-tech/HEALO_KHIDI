@@ -98,7 +98,7 @@ set_font(run, 11, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('Evaluation Matrix  |  v1.0  |  2026.04.30')
+run = p.add_run('Evaluation Matrix  |  v1.1  |  2026.08.19')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -237,7 +237,7 @@ for r in eval_data:
     add_data_row(eval_tbl, r, bold_first=True)
 
 doc.add_paragraph()
-add_para(doc, '▶ 본 배점 소계 (가산점 제외): 약 80.5점 / 100점 추정')
+add_para(doc, '○ 본 배점 소계 (가산점 제외): 약 80.5점 / 100점 추정')
 doc.add_paragraph()
 
 # ================================================================
@@ -251,21 +251,21 @@ bonus_data = [
     ('외국인환자 유치의료기관 평가인증',
      '3점',
      '면력한방병원 외국인환자 유치의료기관 등록 완료\n신촌면력한방병원 외국인환자 유치의료기관 등록 완료\n(평가인증과 등록은 구분 — 인증은 별도 절차)',
-     '🟡 등록 완료 (인증은 별도 확인 필요)'),
+     '등록 완료 (인증은 별도 확인 필요)'),
     ('외국인환자 유치사업자 참여',
      '2점',
      '본로이 — 외국인환자 유치사업자 등록 완료 (주관기관)\n(사업계획서 p.4, 사업계획서 붙임 등록증 첨부)',
-     '✅ 충족 — 2점 확보'),
+     '충족 — 2점 확보'),
     ('비수도권 의료기관 참여\n(서울/경기/인천 외)',
      '1점',
      '면력한방병원 (서울 소재): 서울은 수도권에 해당\n신촌면력한방병원 (서울 소재): 마찬가지\n비수도권 참여기관 없음 → 해당 없음',
-     '❌ 미충족 — 서울 소재 병원만 참여'),
+     '미충족 — 서울 소재 병원만 참여'),
 ]
 for r in bonus_data:
     add_data_row(bonus_tbl, r, bold_first=True)
 
 doc.add_paragraph()
-add_para(doc, '▶ 가산점 추정: 2점 (유치사업자 확정) + 3점 (유치의료기관 인증 여부 확인 필요) = 2~5점')
+add_para(doc, '○ 가산점 추정: 2점 (유치사업자 확정) + 3점 (유치의료기관 인증 여부 확인 필요) = 2~5점')
 
 doc.add_page_break()
 
@@ -300,8 +300,8 @@ for r in score_data:
     add_data_row(score_tbl, r, bold_first=True, bg=bg)
 
 doc.add_paragraph()
-add_para(doc, '▶ 선정 기준 70점 이상 충족 — 추정 82.5~85.5점으로 우선협상 대상 가능 범위')
-add_para(doc, '▶ 최대 경쟁 리스크: 유치사업자 수익실현 가능성 점수 편차가 클 수 있음')
+add_para(doc, '○ 선정 기준 70점 이상 충족 — 추정 82.5~85.5점으로 우선협상 대상 가능 범위')
+add_para(doc, '○ 최대 경쟁 리스크: 유치사업자 수익실현 가능성 점수 편차가 클 수 있음')
 
 doc.add_page_break()
 
