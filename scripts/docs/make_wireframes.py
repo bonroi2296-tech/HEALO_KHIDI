@@ -297,40 +297,109 @@ shots.append(('P-10_flow', img))
 # ── S-01. 시스템 구성도 ──────────────────────────────────────────────────────
 # 사업계획서(2026-05-14 제출본) 마일스톤 M1 이 「요구사항 정의서 · UI/UX 설계서 ·
 # 시스템 구성도」를 결과물로 약속했는데 구성도만 실물이 없었다(2026-08-20 확인).
-img, d = new()
-title(d, 'S-01', '시스템 구성도', '플랫폼 전체 구조 — 사업계획서 M1 결과물')
+# ⚠️ 이 한 장만 lo-fi 회색을 벗어난다. 나머지 P-01~P-10 은 「무엇이 어디 있나」를 보이는
+#    화면 설계라 회색이 맞지만, 구성도는 「무엇이 무엇과 이어지나」를 보이는 그림이라
+#    계층이 색으로 갈려야 읽힌다. 색은 DESIGN.md 의 기본 톤(teal-700 계열)을 따른다.
+def architecture():
+    AW, AH = 1180, 900
+    TEAL700, TEAL50, TEAL100 = (15, 118, 110), (240, 253, 250), (204, 251, 241)
+    SLATE, SOFT, EDGE = (51, 65, 85), (248, 250, 252), (203, 213, 225)
+    img = Image.new('RGB', (AW, AH), (255, 255, 255))
+    d = ImageDraw.Draw(img)
 
-box(d, 30, 70, 950, 62, '이용자',
-    '환자(카자흐·러시아) · 코디네이터 · 국내 의료기관 · 해외 에이전시 · 관리자', fill=FILL2)
-arrow(d, 505, 132, 505, 158)
+    d.rectangle([0, 0, AW, 96], fill=TEAL700)
+    d.text((44, 26), '시스템 구성도', font=font(30, True), fill=(255, 255, 255))
+    d.text((46, 64), 'HEALO 플랫폼 전체 구조   ·   사업계획서 M1 결과물', font=font(14), fill=TEAL100)
 
-box(d, 30, 160, 950, 74, '화면 (Next.js · 6개 언어)',
-    '홈 · 문의 · AI 상담 · 원격협진 상담방 · 소견 확인 · 코디 인박스 · 환자 사후관리 · 성과 대시보드')
-arrow(d, 505, 234, 505, 260)
+    def band(y, h, tag, desc):
+        d.rounded_rectangle([40, y, AW - 40, y + h], 10, fill=SOFT, outline=EDGE, width=1)
+        d.rectangle([40, y, 46, y + h], fill=TEAL700)
+        d.text((62, y + 12), tag, font=font(13, True), fill=TEAL700)
+        if desc:
+            d.text((62 + d.textlength(tag, font=font(13, True)) + 14, y + 13), desc,
+                   font=font(12), fill=(100, 116, 139))
 
-box(d, 30, 262, 300, 108, '서버 기능',
-    '문의 접수 · 권한 확인\n소견 전달 · 성과 집계')
-box(d, 355, 262, 300, 108, 'AI 상담',
-    '자체 DB 근거 검색\n6개 언어 자동 감지\n매일 품질 자동 시험')
-box(d, 680, 262, 300, 108, '원격협진',
-    '영상·음성 통화\n실시간 통역 자막\n상담 기록 보관')
+    def dashed_rect(x, y, w, h, color, dash=7, gap=5, width=2):
+        for x0 in range(int(x), int(x + w), dash + gap):
+            x1 = min(x0 + dash, x + w)
+            d.line([x0, y, x1, y], fill=color, width=width)
+            d.line([x0, y + h, x1, y + h], fill=color, width=width)
+        for y0 in range(int(y), int(y + h), dash + gap):
+            y1 = min(y0 + dash, y + h)
+            d.line([x, y0, x, y1], fill=color, width=width)
+            d.line([x + w, y0, x + w, y1], fill=color, width=width)
 
-arrow(d, 180, 370, 180, 398)
-arrow(d, 505, 370, 505, 398)
-arrow(d, 830, 370, 830, 398)
+    def card(x, y, w, h, title, lines, dashed=False):
+        if dashed:
+            d.rectangle([x, y, x + w, y + h], fill=(255, 255, 255))
+            d.rectangle([x + 1, y + 1, x + w - 1, y + 30], fill=(241, 245, 249))
+            dashed_rect(x, y, w, h, (100, 116, 139))
+        else:
+            d.rounded_rectangle([x, y, x + w, y + h], 8, fill=(255, 255, 255),
+                                outline=TEAL700, width=2)
+            d.rounded_rectangle([x, y, x + w, y + 30], 8, fill=TEAL50)
+        d.line([x + 1, y + 30, x + w - 1, y + 30], fill=EDGE, width=1)
+        tw = d.textlength(title, font=font(15, True))
+        d.text((x + (w - tw) / 2, y + 7), title, font=font(15, True), fill=(TEAL700 if not dashed else SLATE))
+        for i, ln in enumerate(lines):
+            lw = d.textlength(ln, font=font(12))
+            d.text((x + (w - lw) / 2, y + 42 + i * 18), ln, font=font(12), fill=(71, 85, 105))
 
-box(d, 30, 400, 300, 96, '운영 데이터베이스',
-    '문의 · 상담 · 소견 · 병원\n식별정보는 암호화 보관')
-box(d, 355, 400, 300, 96, '파일 보관소',
-    '검사 자료 · 소견 문서\n브라우저에서 직행 업로드')
-box(d, 680, 400, 300, 96, '바깥 서비스',
-    '영상통화 · AI 모델\n메신저 · 메일 발송', dash=True)
+    def down(x, y1, y2):
+        d.line([x, y1, x, y2 - 8], fill=TEAL700, width=2)
+        d.polygon([(x - 5, y2 - 9), (x + 5, y2 - 9), (x, y2)], fill=TEAL700)
 
-note(d, 516, '※ 점선 상자는 바깥 서비스다. 나머지는 우리가 만들고 운영한다.')
-note(d, 536, '※ 화면 문구는 전부 6개 언어 사전에서 나온다. 화면에 직접 쓰는 것은 자동 검사로 막는다.')
-note(d, 556, '※ 환자 식별정보는 저장할 때 암호화한다. 상담 본문·소견은 검색과 번역 때문에 평문으로 둔다.')
-note(d, 576, '※ 실적 사건은 모두 성과 대시보드로 자동 모인다. 사람이 옮겨 적지 않는다.')
-shots.append(('S-01_architecture', img))
+    band(120, 74, '이용하는 사람', '5개 계층 · 권한별로 보이는 화면이 다르다')
+    for i, (t, sub) in enumerate([('환자', '카자흐 · 러시아'), ('코디네이터', '내부 스태프'),
+                                  ('국내 의료기관', '협진 병원'), ('해외 에이전시', '현지 파트너'),
+                                  ('관리자', '운영 총괄')]):
+        x = 70 + i * 210
+        d.rounded_rectangle([x, 152, x + 190, 188], 6, fill=TEAL100)
+        tw = d.textlength(t, font=font(13, True))
+        d.text((x + (190 - tw) / 2, 156), t, font=font(13, True), fill=TEAL700)
+        sw = d.textlength(sub, font=font(11))
+        d.text((x + (190 - sw) / 2, 172), sub, font=font(11), fill=(71, 85, 105))
+    down(AW / 2, 194, 232)
+
+    band(232, 92, '화면', 'Next.js · 6개 언어(한 · 영 · 러 · 카자흐 · 중 · 일)')
+    for i, t in enumerate(['홈', '문의', 'AI 상담', '원격협진', '소견 확인',
+                           '코디 인박스', '환자 사후관리', '성과 대시보드']):
+        x = 68 + i * 132
+        d.rounded_rectangle([x, 268, x + 118, 300], 6, fill=(255, 255, 255), outline=TEAL700, width=1)
+        tw = d.textlength(t, font=font(12, True))
+        d.text((x + (118 - tw) / 2, 276), t, font=font(12, True), fill=TEAL700)
+    down(AW / 2, 330, 366)
+
+    band(366, 158, '기능', '우리가 만들고 운영하는 부분')
+    card(70, 400, 330, 106, '서버 기능',
+         ['문의 접수 · 권한 확인', '소견 전달 · 성과 자동 집계'])
+    card(425, 400, 330, 106, 'AI 상담',
+         ['자체 DB 근거 검색 후 답변', '6개 언어 자동 감지', '매일 품질 자동 시험'])
+    card(780, 400, 330, 106, '원격협진',
+         ['영상 · 음성 통화', '실시간 통역 자막', '상담 기록 보관'])
+    down(AW / 2, 524, 562)
+
+    band(562, 158, '보관', '자료가 실제로 쌓이는 곳')
+    card(70, 596, 330, 106, '운영 데이터베이스',
+         ['문의 · 상담 · 소견 · 병원', '식별정보는 암호화 보관'])
+    card(425, 596, 330, 106, '파일 보관소',
+         ['검사 자료 · 소견 문서', '브라우저에서 직행 업로드'])
+    card(780, 596, 330, 106, '바깥 서비스',
+         ['영상통화 · AI 모델', '메신저 · 메일 발송'], dashed=True)
+
+    d.rounded_rectangle([40, 740, AW - 40, 858], 10, fill=TEAL50, outline=TEAL100, width=1)
+    d.text((62, 754), '읽는 법', font=font(13, True), fill=TEAL700)
+    for i, ln in enumerate([
+        '점선 상자는 바깥 서비스다. 나머지는 직접 만들고 운영한다.',
+        '화면 문구는 전부 6개 언어 사전에서 나온다. 화면에 직접 쓰는 것은 자동 검사로 막는다.',
+        '환자 식별정보는 저장할 때 암호화한다. 상담 본문과 소견은 검색·번역 때문에 평문으로 둔다.',
+        '실적 사건은 모두 성과 대시보드로 자동 모인다. 사람이 옮겨 적지 않는다.',
+    ]):
+        d.text((62, 780 + i * 19), '· ' + ln, font=font(12), fill=(51, 65, 85))
+    return img
+
+
+shots.append(('S-01_architecture', architecture()))
 
 for name, im in shots:
     im.save(os.path.join(OUT, name + '.png'))

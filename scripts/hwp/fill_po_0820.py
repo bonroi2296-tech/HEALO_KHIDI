@@ -24,6 +24,15 @@ HH = '{http://www.hancom.co.kr/hwpml/2011/head}'
 
 SRC, DST = sys.argv[1], sys.argv[2]
 
+# 갈아끼울 그림만 지정한다. 여기 없는 그림(대표가 넣은 인스타그램·영상 가편집본)은 그대로 둔다.
+#   image4 : 대표가 넣은 SWOT 이 «형광 라임» 판이라 브랜드 초록 판으로 바꾼다
+#   image5 : 양식에 원래 박혀 있던 «남의 예시 그림»(만성질환 플랫폼 2017~2018 매출계획).
+#            우리 비즈니스모델 체계도로 바꾼다. 안 바꾸면 남의 사업 그림이 그대로 제출된다.
+IMG_SWAP = {}
+for arg in sys.argv[3:]:
+    name, _, path = arg.partition('=')
+    IMG_SWAP['BinData/' + name] = path
+
 CELLS = {}
 
 
@@ -447,6 +456,8 @@ with zipfile.ZipFile(DST, 'w') as out:
     for item in zf.infolist():
         if item.filename == 'Contents/section0.xml':
             data = new
+        elif item.filename in IMG_SWAP:
+            data = open(IMG_SWAP[item.filename], 'rb').read()
         else:
             data = zf.read(item.filename)
         zi = zipfile.ZipInfo(item.filename, date_time=item.date_time)

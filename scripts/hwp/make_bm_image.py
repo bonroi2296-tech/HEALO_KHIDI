@@ -20,7 +20,7 @@ import sys, os
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'bm.png'
-W, H = 1800, 1140
+W, H = 1800, 1245        # 한글 문서 그림 틀 비율(946x654 = 1.446)에 맞춘 크기
 
 BLACK = (0, 0, 0)
 INK = (26, 26, 26)
