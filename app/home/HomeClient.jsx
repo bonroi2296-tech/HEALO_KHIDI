@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
+import { REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
 import { HOME_CONTENT } from "@/lib/content/homeContent";
 import OrganIcon from "../_components/OrganIcon";
 import {
@@ -96,6 +99,12 @@ const DOCTORS_META = [
 // 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
 // 문구(병원명·설명)는 HOME_CONTENT.partners.items — 코디 콘텐츠 편집기에서 수정.
 // 여기엔 slug·배지·이미지 등 비문구 메타만 (HOME_CONTENT.partners.items 와 순서 일치 필수).
+// 면력 지점 4곳은 next.config.js 가 /hospitals/immune 로 영구이동시킨다(REDIRECTED_PARTNER_SLUGS).
+// 카드가 지점 주소를 그대로 걸면 구글이 «리디렉션되는 링크»를 따라가 크롤 예산만 쓴다
+// (GSC 「리디렉션이 포함된 페이지」의 원인) → 도착지를 바로 건다. 사람이 눌러도 결과는 같다.
+const hospitalPath = (slug) =>
+  REDIRECTED_PARTNER_SLUGS.includes(slug) ? "/hospitals/immune" : `/hospitals/${slug}`;
+
 const PARTNERS_META = [
   { slug: "immunehospital-magok", badge: "partner", img: "/images/hospitals/immunehospital-magok/1.jpg?v=3" },
   { slug: "immunehospital-sinchon", badge: "partner", img: "/images/hospitals/immunehospital-sinchon/1.jpg?v=3" },
@@ -148,7 +157,7 @@ export default function HomeClient({ content } = {}) {
               {l(L.hero.subtitle)}
             </p>
             <button
-              onClick={() => router.push("/inquiry")}
+              onClick={() => router.push(localeHref("/inquiry", lang))}
               className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
             >
               {l(L.hero.cta)}
@@ -215,7 +224,7 @@ export default function HomeClient({ content } = {}) {
           </div>
           <div className="text-center mt-5 md:mt-8">
             <button
-              onClick={() => router.push("/hospitals")}
+              onClick={() => router.push(localeHref("/hospitals", lang))}
               className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
             >
               {l(L.doctors.viewAll)} <ChevronRight size={14} />
@@ -291,7 +300,7 @@ export default function HomeClient({ content } = {}) {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12 whitespace-pre-line">{l(L.cancers.title)}</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
-              <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
+              <div key={i} role="button" tabIndex={0} onClick={() => router.push(localeHref("/treatments", lang))} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(localeHref("/treatments", lang)); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="mb-1 md:mb-3 flex justify-center text-teal-600">
                   <OrganIcon name={c.organ} className="w-7 h-7 md:w-10 md:h-10" />
                 </div>
@@ -301,7 +310,7 @@ export default function HomeClient({ content } = {}) {
             ))}
           </div>
           <div className="text-center mt-5 md:mt-8">
-            <button onClick={() => router.push("/treatments")} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
+            <button onClick={() => router.push(localeHref("/treatments", lang))} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
               {l(L.misc.viewTreatments)} <ChevronRight size={14} />
             </button>
           </div>
@@ -333,13 +342,10 @@ export default function HomeClient({ content } = {}) {
                 : "bg-blue-50 text-blue-700";
               const badgeLabel = isPartner ? l(L.misc.badgePartner) : l(L.misc.badgeUniversity);
               return (
-                <div
+                <Link
                   key={i}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(`/hospitals/${meta.slug}`)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${meta.slug}`); } }}
-                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  href={localeHref(hospitalPath(meta.slug), lang)}
+                  className="block bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
                   <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
                     {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
@@ -363,7 +369,7 @@ export default function HomeClient({ content } = {}) {
                     <h3 className="font-bold text-xs md:text-sm text-gray-900 mb-0.5 md:mb-1 group-hover:text-teal-700 transition-colors leading-snug">{l(h.name)}</h3>
                     <p className="text-gray-500 text-[10px] md:text-[11px] leading-snug md:leading-relaxed line-clamp-2 hidden sm:block">{l(h.desc)}</p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -448,7 +454,7 @@ export default function HomeClient({ content } = {}) {
                 </a>
                 ) : null}
                 <button
-                  onClick={() => router.push("/inquiry")}
+                  onClick={() => router.push(localeHref("/inquiry", lang))}
                   className="inline-flex items-center justify-center gap-2 bg-teal-700 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20"
                 >
                   <MessageCircle size={16} />
@@ -496,7 +502,7 @@ export default function HomeClient({ content } = {}) {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6 whitespace-pre-line">{l(L.bottomCta.title)}</h2>
           <p className="text-slate-200 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
           <button
-            onClick={() => router.push("/inquiry")}
+            onClick={() => router.push(localeHref("/inquiry", lang))}
             className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
           >
             {l(L.hero.cta)}
