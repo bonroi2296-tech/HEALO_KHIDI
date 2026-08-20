@@ -957,7 +957,13 @@ export function ThreadChat({ onBack, backLabel } = {}) {
         finalText ||
         (t("chat.aiUnavailable", langCode) ||
           "I'm having trouble generating a response right now. Please try again in a moment.");
-      setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: safeText } : m)));
+      // 말풍선 id 를 서버가 알려준 «진짜» 메시지 번호로 바꾼다.
+      // 임시 번호(`ai_<시각>`)를 그대로 두면 답변 평가가 chat_feedback.message_id(uuid) 에 걸려
+      // 500 으로 죽는다 — 실측(2026-08-20): 챗 메시지 1,068건인데 평가는 0건이었다.
+      const realId = meta?.message_id || null;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === aiId ? { ...m, id: realId || m.id, content: safeText } : m))
+      );
 
       if (meta?.ai_error) {
         console.warn("[ThreadChat] AI returned error reply:", meta.ai_error);

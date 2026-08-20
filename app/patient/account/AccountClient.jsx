@@ -60,7 +60,9 @@ export default function AccountClient() {
         body: JSON.stringify({ reason: reason.trim() || undefined }),
       });
       const j = await res.json();
-      if (j.ok) { setStatus(j.status || "pending"); setFlash({ type: "ok", text: t("patientAccount.pending", lang) }); }
+      // 성공하면 아래 상태 상자(active)가 같은 문구를 띄운다 — 여기서 또 띄우면 «똑같은 안내가
+      // 두 줄» 나온다(2026-08-20 실측). 상태만 올리고 알림은 실패했을 때만 쓴다.
+      if (j.ok) { setStatus(j.status || "pending"); }
       else setFlash({ type: "err", text: t("patientAccount.err", lang) });
     } catch {
       setFlash({ type: "err", text: t("patientAccount.err", lang) });
