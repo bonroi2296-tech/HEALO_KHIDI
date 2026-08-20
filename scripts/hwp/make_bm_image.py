@@ -20,7 +20,7 @@ import sys, os
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'bm.png'
-W, H = 1800, 1240
+W, H = 1800, 1140
 
 BLACK = (0, 0, 0)
 INK = (26, 26, 26)
@@ -186,16 +186,6 @@ for ci, c in enumerate(cols[1:-1], start=1):
         if r == MERGE_ROW + 1 and ci in (2, 3):
             continue
         d.line([c, rows[r], c, rows[r + 1]], fill=LINE, width=1)
-
-# ─────────────────────────── 각주
-NY = rows[-1] + 24
-for i, t in enumerate([
-    '※ 2026년 하반기는 유치 실적 확보 단계로, 매출보다 「사례 · 데이터 축적」을 우선한다.',
-    '※ 플랫폼 이용료는 아직 받지 않는다. 참여병원 두 곳은 무상으로 쓰고 있으며, 유료화 여부는 2027년에 판단한다.',
-    '※ 해외 에이전시 지급 수수료는 계약서로 확정: MedicaTour(러시아) 15% · MedVoyage(영국) 20%.',
-    '     「치료를 실제로 받은 환자」에 한해 지급한다.',
-]):
-    d.text((132, NY + i * 30), t, font=f(4, 19), fill=MUTED)
 
 img.save(OUT)
 print('만듦 :', OUT, img.size)
