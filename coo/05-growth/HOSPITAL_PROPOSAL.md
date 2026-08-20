@@ -184,7 +184,7 @@ healwith 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도�
 
 > Key platform features include: AI concierge chat, comprehensive hospital profiles, treatment guides, real-time inquiry system, and automatic language switching.
 
-**웹사이트:** [healo-nu.vercel.app](https://healo-nu.vercel.app) (정식 도메인 준비 중)
+**웹사이트:** [healwith.co.kr](https://healwith.co.kr) 
 
 ---
 
@@ -208,9 +208,9 @@ healwith 플랫폼과 마케팅 채널을 통해 병원의 글로벌 인지도�
 
 | 채널 | 정보 |
 |---|---|
-| **이메일** | contact@healo.com |
+| **이메일** | admin@healwith.co.kr |
 | **담당자** | 강주영 대표 |
-| **웹사이트** | [healo-nu.vercel.app](https://healo-nu.vercel.app) |
+| **웹사이트** | [healwith.co.kr](https://healwith.co.kr) |
 
 ---
 

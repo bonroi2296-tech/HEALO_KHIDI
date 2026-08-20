@@ -57,8 +57,8 @@ healwith 플랫폼을 직접 보여드리겠습니다.
 
 강주영 드림
 healwith 대표
-📧 contact@healo.com
-🌐 healo-nu.vercel.app
+📧 admin@healwith.co.kr
+🌐 healwith.co.kr
 ```
 
 ---
@@ -110,8 +110,8 @@ Best regards,
 
 Juyoung Kang
 Founder & CEO, healwith
-📧 contact@healo.com
-🌐 healo-nu.vercel.app
+📧 admin@healwith.co.kr
+🌐 healwith.co.kr
 ```
 
 ---
@@ -147,7 +147,7 @@ Re: [병원명] × healwith — 외국인 환자 유치 파트너십 제안
 
 강주영 드림
 healwith 대표
-📧 contact@healo.com
+📧 admin@healwith.co.kr
 ```
 
 ---
@@ -178,8 +178,8 @@ healwith 대표
 
 강주영 드림
 healwith 대표
-📧 contact@healo.com
-🌐 healo-nu.vercel.app
+📧 admin@healwith.co.kr
+🌐 healwith.co.kr
 ```
 
 ---
