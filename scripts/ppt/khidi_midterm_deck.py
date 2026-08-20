@@ -28,7 +28,7 @@ cover(
     prs,
     "2026년 ICT기반 외국인환자 사전상담 · 사후관리 지원 사업",
     ["중간보고"],
-    "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스 구축 (HEALO 플랫폼)",
+    "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스 구축 (healwith 플랫폼)",
     "주관 본로이   ·   참여 면력한방병원 · 신촌면력한방병원   ·   사업기간 2026.04 ~ 11   ·   발표 2026.08.27",
 )
 
@@ -111,7 +111,7 @@ for x in xs[:-1]:
 
 box(s, MARGIN, Y + HH + 22, 812, 26, PANEL)
 tf = text(s, MARGIN, Y + HH + 22, 812, 26, PP_ALIGN.CENTER, )
-line(tf, "전 구간을 HEALO 플랫폼 한 곳에서 기록·추적. 사전상담부터 사후관리까지 끊기지 않음",
+line(tf, "전 구간을 healwith 플랫폼 한 곳에서 기록·추적. 사전상담부터 사후관리까지 끊기지 않음",
      10.5, BLACK, MED, first=True, align=PP_ALIGN.CENTER)
 
 table(s, [
