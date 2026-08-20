@@ -159,12 +159,11 @@ SCREENS = [
         data=[
             "chat_threads 326건 · chat_messages 1,068건",
             "rag_documents 21건(병원·진료 항목) — 검색 근거 원장",
-            "ai_response_evaluations 462건 · ai_regression_runs 2,212회(품질 자동 채점)",
+            "ai_response_evaluations · ai_regression_runs — 품질 자동 시험 기록",
         ],
         nexts="→ 3턴을 넘기면 실제 문의로 자동 승격 → P-06 코디네이터 인박스",
         notes=["동작 : 질문 → 의미 변환 → 자체 DB 검색 → 근거 읽기 → 출처와 함께 답변(2~3초).",
-               "품질은 매일 자동 채점된다 — 최근 30일 1,332회 · 통과 95.5%.",
-               "같은 기간 검출 내역 — 지어냄 5건·완치 표현 1건(개선에 반영)."],
+               "품질은 매일 자동 시험한다 — 의료 레드라인(완치 단정·지어낸 병원) 위반을 검출해 경보한다."],
     ),
     dict(
         no="P-04", file="P-04_consult.png", name="원격협진 상담방",

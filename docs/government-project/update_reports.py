@@ -62,6 +62,10 @@ REPLACEMENTS = {
     ],
     "04_중간보고서.docx": [
         ("/admin/*, /partner/* 완성", "/admin/*, /hospital/* 완성"),
+        ("현 단계 KPI 미달성은 정상 — 사업 초기(착수 1개월) 시스템 구축 집중 기간이며, "
+         "7월 시범 운영 개시를 통해 KPI 달성 기간 진입 예정.",
+         "플랫폼 구축·배포는 완료되어 운영 중이며, 운영 KPI 는 실환자가 상담·치료 단계에 "
+         "도달해야 발생하는 구조다. 잔여 기간(8~10월) 환자 유입이 달성의 관건이다."),
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
@@ -91,6 +95,7 @@ REPLACEMENTS = {
         ("2026-04-30", "2026-08-19"),
     ],
     "08_테스트결과서.docx": [
+        ("«수동 확인»", "수동 확인"),
         ("SEC-01~08 모두 통과 (2026-04-30 기준)", "SEC-01~08 모두 통과 (2026-08-19 기준)"),
         ("2026년 4월 30일", "2026년 8월 19일"),
         ("82개 파일 / 748건", "110개 파일 / 1,002건"),
@@ -242,9 +247,8 @@ def replace_in_paragraph(p, old, new):
     """문단에서 old→new. 글자가 여러 run 으로 쪼개져 있어도 처리한다."""
     if old not in p.text:
         return False
-    # new 가 old 를 품고 있는 쌍(꼬리말 덧붙이기)은 다시 돌리면 꼬리말이 겹쳐 붙는다.
-    # 이미 바뀐 문단은 건너뛴다.
-    if new in p.text:
+    # new 가 old 를 품고 있는 쌍(꼬리말 덧붙이기)만 겹쳐 붙는다. 그 경우에만 건너뛴다.
+    if old in new and new in p.text:
         return False
     # 1) 한 run 안에 통째로 들어 있으면 그 run 만 고친다(서식 보존).
     for run in p.runs:
@@ -414,6 +418,34 @@ def fill_cwv(doc):
     return False
 
 
+def set_cells(doc, first_cell, values):
+    """첫 칸이 first_cell 인 줄을 찾아 {열번호: 값} 으로 덮어쓴다. 없으면 False."""
+    for t in doc.tables:
+        for row in t.rows:
+            if row.cells[0].text.strip() != first_cell:
+                continue
+            for i, v in values.items():
+                if i >= len(row.cells):
+                    continue
+                c = row.cells[i]; c.text = ""
+                set_font(c.paragraphs[0].add_run(v), size=9)
+            return True
+    return False
+
+
+# 04 본문 KPI 표가 옛 목표(10건/80건/80점)에 멈춰 있어 같은 문서의 부록(12/120/90)과
+# 어긋나 있었다. 확정 목표는 협약 기준 12 / 120 / 90 이다.
+KPI_ROWS_04 = {
+    "K-01": {1: "외국인환자 유치 건수", 2: f"{F.KPI_TARGET['attraction']}건",
+             3: f"{F.KPI_ACTUAL['attraction']}건", 4: "유치 파이프라인 가동 중 — 8~10월 유입 필요"},
+    "K-02": {1: "사전상담·사후관리 건수", 2: f"{F.KPI_TARGET['consultAndCare']}건",
+             3: f"{F.KPI_ACTUAL['preConsultation'] + F.KPI_ACTUAL['followUp']}건",
+             4: "영상 사전상담 1건 + 환자에게 전달된 소견 5건"},
+    "K-03": {1: "서비스 만족도", 2: f"{F.KPI_TARGET['satisfaction']}점",
+             3: f"표본 {F.KPI_ACTUAL['satisfactionSamples']}건", 4: "완료 상담 증가에 연동"},
+}
+
+
 def main():
     changed = []
 
@@ -458,6 +490,28 @@ def main():
         if fill_cwv(doc):
             doc.save(path)
             changed.append("08_테스트결과서.docx: 성능 측정 표 실측 반영")
+
+    # 0-3) 04 KPI 표 · 08 남은 측정 칸
+    path = os.path.join(HERE, "04_중간보고서.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = sum(set_cells(doc, k, v) for k, v in KPI_ROWS_04.items())
+        hit += set_cells(doc, "T-01", {2: "레드라인 위반 0건 유지",
+                                       3: "매일 자동 시험 가동 — 위반 자동 검출·경보"})
+        if hit:
+            doc.save(path)
+            changed.append(f"04_중간보고서.docx: KPI·기술지표 {hit}줄 갱신")
+
+    path = os.path.join(HERE, "08_테스트결과서.docx")
+    if os.path.exists(path):
+        doc = Document(path)
+        hit = set_cells(doc, "성능 측정 (Lighthouse)",
+                        {2: "5항목 중 4항목 측정", 3: "2026-08-19 실측 — LCP 미달, 그 외 충족"})
+        hit += set_cells(doc, "npm 의존성 보안",
+                         {2: "1회", 3: "Critical 0건 · High 1건 · Moderate 2건 (2026-08-19)"})
+        if hit:
+            doc.save(path)
+            changed.append(f"08_테스트결과서.docx: 측정 결과 {hit}줄 갱신")
 
     # 1) 제자리 교체
     for fname, pairs in REPLACEMENTS.items():
