@@ -8,8 +8,26 @@
  * 이 상수는 generateReply.buildSystemPrompt 에서 항상 Context로 주입된다.
  * (RAG 벡터 검색에 의존하지 않고 매번 확실히 참고하게 — "서류 뭐 필요?"/"얼마?"는 핵심 질문)
  *
- * 가격 변동·항목 추가는 이 파일만 고치면 전 언어·전 채널에 반영됨 (단일 SoR).
+ * ⚠️ 금액은 이 파일에 «적지 마라». 2026-08-20 부터 숫자의 단일 출처는
+ *   `@/lib/costs/surgeryRanges`(대학병원 수술 범위)와 `@/lib/costs/immuneClinicPrices`(면력 확정가)다.
+ *   화면(환자 견적·코디 견적서)과 AI 안내문이 같은 값을 봐야 하기 때문이다.
+ *   같은 숫자를 두 곳에 적으면 한쪽만 고쳐져 조용히 어긋난다.
+ *   A 블록(대학병원 수술 범위)은 그 자료에서 «만들어진다» — 글자 형태가 예전과 동일함을 대조로 확인했다.
+ *   C·D 블록(면력 치료·검진)은 달러 표기가 원본 자료 그대로라 문자열로 두되,
+ *   `careReference.prices.test.ts` 가 immuneClinicPrices 의 원화값과 어긋나지 않는지 매번 대조한다.
  */
+
+import { CANCER_EN, CANCER_ORDER, toUsd, overallRange } from "@/lib/costs/surgeryRanges";
+
+const usd = (krw: number) => `$${toUsd(krw).toLocaleString("en-US")}`;
+const mil = (krw: number) => `₩${Math.round(krw / 1_000_000)}M`;
+
+/** A) 대학병원 암수술 범위 — surgeryRanges 에서 만든다. */
+const SURGERY_BLOCK = CANCER_ORDER.map((k) => {
+  const r = overallRange(k);
+  if (!r) return "";
+  return `- ${CANCER_EN[k]}: ${usd(r.minKrw)}–${toUsd(r.maxKrw).toLocaleString("en-US")} (≈${mil(r.minKrw)}–${Math.round(r.maxKrw / 1_000_000)}M)`;
+}).filter(Boolean).join(String.fromCharCode(10));
 
 export const CARE_REFERENCE = `
 [healwith 안내자료 | Official | 인테이크 필수서류 & 견적 범위]
@@ -26,13 +44,7 @@ REQUIRED DOCUMENTS — ask the patient for these to prepare an estimate / start 
 → Once these are shared with a healwith coordinator, the hospital prepares a personalized quote, treatment plan and timeline. Preliminary review is free.
 
 A) UNIVERSITY-HOSPITAL CANCER SURGERY (international/uninsured). "from" = minimally invasive; robotic (da Vinci) = upper bound. Includes ~5–10 days hospitalization, basic workup, surgery:
-- Thyroid cancer (갑상선암): $3,000–18,500 (≈₩4M–25M)
-- Stomach cancer (위암): $6,000–18,500 (≈₩8M–25M)
-- Colorectal cancer (대장암): $7,500–13,500 (≈₩10M–18M)
-- Lung cancer (폐암): $9,000–18,500 (≈₩12M–25M)
-- Liver cancer (간암): $9,000–18,500 (≈₩12M–25M)
-- Breast cancer (유방암): $6,000–13,500 (≈₩8M–18M)
-- Uterine/ovarian (자궁·난소암): $7,500–15,000 (≈₩10M–20M)
+${SURGERY_BLOCK}
 
 B) PRE-OP DIAGNOSIS / TESTS (paid separately from surgery):
 - CT: $220–450 · MRI: $600–750 · PET-CT (whole body): $750–1,000
@@ -50,6 +62,24 @@ D) CANCER SCREENING PACKAGES (early detection, for those without a diagnosis yet
 - Basic — tumor-marker focused: $330 (₩450,000). Blood panel + 8 tumor markers (CEA, AFP, CA19-9, CA125, CA15-3, PSA, CA72-4, SCC) + NK activity.
 - Premium — markers + genetics: $730 (₩990,000). Adds cancer-gene test (11 male / 12 female types), hair-mineral test, antioxidant test.
 Note: tumor-marker & genetic tests are SCREENING only; a positive result must be confirmed with imaging (CT/MRI/PET-CT) and biopsy.
+
+E) INTEGRATIVE CANCER CARE — WHAT IT ACTUALLY IS (Immune Hospital, healwith partner). Use this whenever the patient asks about recovery, side effects, immunity, rehabilitation, nutrition, or "what else can be done". It runs ALONGSIDE surgery/chemo/radiation and is SUPPORTIVE only.
+The hospital works on five axes — name the ones that fit what the patient described:
+- Immunity: Thymosin a1, Mistletoe (Iscador/Abnoba), Immucothel (KLH), Immuncell-LC (cultured T-cell therapy), immune-boosting herbal formula
+- Body temperature: RF hyperthermia (Hyperthermia-35 for longer sessions)
+- Circulation: lymphatic drainage, acupuncture and physical therapy — used for post-op lymphedema and stiffness
+- Post-surgical rehabilitation centre (all branches): CRYO cryotherapy + exercise rehab, to restore function and tissue healing at the surgical site. Recommended at least 3x/week. Fits patients recovering from cancer surgery.
+- Resistance: selenium, glutathione, high-dose vitamin C IV, Dipeptiven (glutamine) for mucosal protection during chemo
+- Nutrition: therapeutic diets planned by a dietitian — low-residue diet after colorectal/gastric surgery, post-gastrectomy diet for dumping syndrome
+Delivered as an inpatient course while recovering from surgery or between chemo cycles; rooms available in the rehab ward, immunotherapy ward, or VIP. Interpretation in Russian/Kazakh is arranged by a healwith coordinator.
+
+HOW TO ANSWER RECOVERY / SIDE-EFFECT / IMMUNITY QUESTIONS:
+1. NAME THE PARTNER HOSPITAL — in the user's own language: 면력한방병원 / Immune Hospital / Иммунная клиника (Мёнрёк) / Иммундық клиника. Saying only "a partner clinic" is a failure: connecting the patient to this hospital is the point of the answer.
+2. Name the ACTUAL treatments that match what they described — do not answer with only a vague label like "integrative care" or "immune therapy".
+3. Say plainly that this is SUPPORTIVE care that helps them tolerate and recover from the main treatment; it does not remove the cancer.
+4. Offer ONE next step: a healwith coordinator arranges the referral and a treatment plan.
+The same hospital also runs a nerve centre for shingles and facial palsy (pDRN nerve injection, autologous GFC). That is a DIFFERENT condition — do not fold it into an answer about cancer recovery.
+NEVER claim survival benefit, cure rate, tumor shrinkage, or that it can replace chemotherapy or surgery. If asked "does it cure cancer?" — answer no, clearly, then explain what it does help with.
 `.trim();
 
 
@@ -74,4 +104,5 @@ export const CARE_REFERENCE_MINIMAL = `
 SCOPE: Oncology only. Korea, foreign/uninsured patients. Care journey: precise diagnosis and treatment (surgery/chemo) at partner university hospitals, then supportive immune/rehab care. Integrative/Korean medicine is SUPPORTIVE care only — never a cancer cure.
 REQUIRED DOCUMENTS: a healwith coordinator guides which medical papers are needed (5 standard items). Do NOT enumerate them unless the user asks what to prepare — say the coordinator will walk them through it. Preliminary review is free.
 PRICING: healwith holds verified indicative price ranges, but do NOT quote ANY figure unless the user explicitly asks about cost. If cost comes up unprompted, say a personalized quote follows after the medical team reviews the diagnosis.
+INTEGRATIVE CARE (Immune Hospital, healwith partner) — for recovery / side effects / immunity / rehabilitation questions, name the actual treatments instead of a vague label: Thymosin a1, Mistletoe, Immucothel, Immuncell-LC (T-cell therapy), RF hyperthermia, lymphatic drainage and acupuncture (post-op lymphedema), selenium / glutathione / high-dose vitamin C / Dipeptiven, and dietitian-planned therapeutic diets (low-residue after colorectal or gastric surgery). NAME the hospital in the user's language (면력한방병원 / Immune Hospital / Иммунная клиника / Иммундық клиника) — "a partner clinic" alone is not enough. Always say it is SUPPORTIVE alongside the main treatment, never a cure, and offer ONE next step: a healwith coordinator arranges the referral. NEVER claim survival benefit or tumor shrinkage.
 `.trim();

@@ -8,6 +8,8 @@ import { t } from "@/lib/i18n";
 // 견적 요청 폼에서 고르는 값 — DB 검사규칙(treatment_cost_benchmarks_cancer_type_check /
 // _stage_check)이 받는 값과 «같아야» 한다. 여기 없는 값을 보내면 자동 범위가 안 잡힌다.
 // 표시 문구는 비용 계산기와 같은 사전 키(costCalc.cancers.*)를 그대로 쓴다(중복 번역 방지).
+import { SURGERY_RANGES, SOURCE_DATE } from "@/lib/costs/surgeryRanges";
+
 const CANCER_OPTIONS = [
   { value: "stomach", labelKey: "costCalc.cancers.stomach" },
   { value: "lung", labelKey: "costCalc.cancers.lung" },
@@ -18,6 +20,12 @@ const CANCER_OPTIONS = [
   { value: "other", labelKey: "costCalc.cancers.other" },
 ];
 const STAGE_OPTIONS = ["unknown", "1", "2", "3", "4"];
+
+// 금액은 만원 단위로 끊지 않고 원 단위 그대로 쓴다 — 러시아어·카자흐어에는 「만」 단위가 없어
+// 만원 표기를 그대로 옮기면 자릿수를 잘못 읽는다.
+function fmtKRW(n, locale) {
+  return `${Number(n).toLocaleString(locale)} KRW`;
+}
 
 // 상태 배지 색 — 상태 코드(DB값)는 여기, 표시 라벨은 중앙 사전 costList.status.* 키
 const STATUS_COLORS = {
@@ -152,6 +160,29 @@ export default function CostEstimatesListClient() {
               </select>
             </label>
           </div>
+
+          {/* 고른 암종의 참고 범위. 병원 국제진료센터가 알려준 «외국인 총비용» 이며 견적이 아니다.
+              병기별로는 나뉘지 않는다 — 병원도 병기별 확정가를 주지 못한다. */}
+          {SURGERY_RANGES[cancerType] && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <p className="text-xs font-semibold text-gray-700">{t("costRange.title", lang)}</p>
+              <ul className="mt-2 space-y-1">
+                {SURGERY_RANGES[cancerType].map((r) => (
+                  <li key={r.methodKey} className="text-sm text-gray-800 flex justify-between gap-3">
+                    <span className="text-gray-600">{t(r.methodKey, lang)}</span>
+                    <span className="font-medium tabular-nums">
+                      {fmtKRW(r.minKrw, dateLocale)} ~ {fmtKRW(r.maxKrw, dateLocale)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-gray-500 leading-relaxed">{t("costRange.note", lang)}</p>
+              <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                {t("costRange.source", lang).replace("{date}", SOURCE_DATE)}
+              </p>
+              <p className="mt-1 text-xs text-gray-500 leading-relaxed">{t("costRange.final", lang)}</p>
+            </div>
+          )}
 
           {submitError && (
             <p className="mt-3 text-sm text-red-600">{t("costList.requestErr", lang)}</p>
