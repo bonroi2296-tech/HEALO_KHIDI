@@ -295,42 +295,102 @@ note(d, 580, '※ 모든 화면의 실적 사건은 성과 대시보드(P-09)로
 shots.append(('P-10_flow', img))
 
 # ── S-01. 시스템 구성도 ──────────────────────────────────────────────────────
-# 사업계획서(2026-05-14 제출본) 마일스톤 M1 이 「요구사항 정의서 · UI/UX 설계서 ·
-# 시스템 구성도」를 결과물로 약속했는데 구성도만 실물이 없었다(2026-08-20 확인).
-img, d = new()
-title(d, 'S-01', '시스템 구성도', '플랫폼 전체 구조 — 사업계획서 M1 결과물')
+# 사업계획서(2026-05-14 제출본) M1 이 「요구사항 정의서 · UI/UX 설계서 · 시스템 구성도」를
+# 결과물로 약속했는데 구성도만 실물이 없었다(2026-08-20).
+# ⚠️ 이 한 장만 lo-fi 회색을 벗어난다. 나머지 P-01~P-10 은 화면 «배치»를 보이는 설계라
+#    회색이 맞지만, 구성도는 «무엇이 무엇과 이어지나»라 계층이 색으로 갈려야 읽힌다.
+# 짜임새는 docs/rules/PPT_STYLE.md (BeyondK 깔) 를 따른다 — 16:9, 흰 배경, 넉넉한 여백,
+# 작은 kicker + 얇고 큰 제목, 한 색의 «농담»으로 단계 표현, 강조는 한 곳만.
+# 색만 라임 대신 DESIGN.md 의 기본 톤(teal-700)을 쓴다(PO 지시 2026-08-20).
+def architecture():
+    AW, AH = 1920, 1080                      # 16:9 (960×540 pt 를 2배로)
+    M = 144                                  # 좌우 여백 72pt
+    T700, T600, T100, T50 = (15, 118, 110), (13, 148, 136), (204, 251, 241), (240, 253, 250)
+    INK_, BODY, FAINT, LINE_ = (0, 0, 0), (118, 113, 113), (127, 127, 127), (220, 221, 221)
+    img = Image.new('RGB', (AW, AH), (255, 255, 255))
+    d = ImageDraw.Draw(img)
 
-box(d, 30, 70, 950, 62, '이용자',
-    '환자(카자흐·러시아) · 코디네이터 · 국내 의료기관 · 해외 에이전시 · 관리자', fill=FILL2)
-arrow(d, 505, 132, 505, 158)
+    d.text((M, 62), 'SYSTEM ARCHITECTURE', font=font(20), fill=FAINT)
+    d.text((M - 3, 96), '시스템 구성도', font=font(52, True), fill=INK_)
+    d.text((M, 172), '이용자가 화면을 거쳐 기능에 닿고, 자료가 어디에 쌓이는지까지 한 장으로 본다.',
+           font=font(23), fill=BODY)
+    d.line([M, 222, AW - M, 222], fill=LINE_, width=1)
 
-box(d, 30, 160, 950, 74, '화면 (Next.js · 6개 언어)',
-    '홈 · 문의 · AI 상담 · 원격협진 상담방 · 소견 확인 · 코디 인박스 · 환자 사후관리 · 성과 대시보드')
-arrow(d, 505, 234, 505, 260)
+    # 항목 안의 | 는 줄바꿈이다. 역슬래시 n 을 쓰면 이 파일을 고칠 때마다 깨져서 세로줄로 쓴다.
+    STAGES = [
+        ('01', '이용하는 사람', '권한별로 보이는 화면이 다르다', T50,
+         ['환자|카자흐 · 러시아', '코디네이터|내부 스태프', '국내 의료기관|협진 병원',
+          '해외 에이전시|현지 파트너', '관리자|운영 총괄']),
+        ('02', '화면', 'Next.js · 6개 언어로 같은 화면을 낸다', T100,
+         ['홈', '문의', 'AI 상담', '원격협진', '소견 확인', '코디 인박스', '환자 사후관리', '성과 대시보드']),
+        ('03', '기능', '우리가 만들고 운영하는 부분', (153, 226, 219),
+         ['서버 기능|문의 접수 · 권한 확인 · 소견 전달 · 성과 집계',
+          'AI 상담|자체 DB 근거 검색 · 6개 언어 감지 · 매일 품질 시험',
+          '원격협진|영상 통화 · 실시간 통역 자막 · 기록 보관']),
+        ('04', '보관', '자료가 실제로 쌓이는 곳', (94, 200, 190),
+         ['운영 데이터베이스|문의 · 상담 · 소견 · 병원 (식별정보 암호화)',
+          '파일 보관소|검사 자료 · 소견 문서 (직행 업로드)',
+          '바깥 서비스|영상통화 · AI 모델 · 메신저 · 메일']),
+    ]
+    y = 268
+    for si, (no, name, desc, tone, items) in enumerate(STAGES):
+        d.text((M, y + 4), no, font=font(19, True), fill=T600)
+        d.text((M + 46, y - 2), name, font=font(29, True), fill=INK_)
+        d.text((M + 46, y + 38), desc, font=font(19), fill=FAINT)
 
-box(d, 30, 262, 300, 108, '서버 기능',
-    '문의 접수 · 권한 확인\n소견 전달 · 성과 집계')
-box(d, 355, 262, 300, 108, 'AI 상담',
-    '자체 DB 근거 검색\n6개 언어 자동 감지\n매일 품질 자동 시험')
-box(d, 680, 262, 300, 108, '원격협진',
-    '영상·음성 통화\n실시간 통역 자막\n상담 기록 보관')
+        bx, bw = M + 400, AW - M - (M + 400)
+        n = len(items)
+        gap = 16
+        cw = (bw - gap * (n - 1)) / n
+        ch = 60 if si < 2 else 96
+        for i, it in enumerate(items):
+            x = bx + i * (cw + gap)
+            last = (si == 3 and i == n - 1)          # 바깥 서비스 = 우리 것이 아님
+            if last:
+                for x0 in range(int(x), int(x + cw), 12):
+                    d.line([x0, y, min(x0 + 6, x + cw), y], fill=FAINT, width=2)
+                    d.line([x0, y + ch, min(x0 + 6, x + cw), y + ch], fill=FAINT, width=2)
+                for y0 in range(int(y), int(y + ch), 12):
+                    d.line([x, y0, x, min(y0 + 6, y + ch)], fill=FAINT, width=2)
+                    d.line([x + cw, y0, x + cw, min(y0 + 6, y + ch)], fill=FAINT, width=2)
+            else:
+                d.rectangle([x, y, x + cw, y + ch], fill=tone)
+            head, *rest = it.split(chr(124))
+            # 진한 칸(04단) 위에서는 회색이 대비 미달이다(DESIGN.md 4-b). 흰 글씨로 바꾼다.
+            dark = (si == 3 and not last)
+            head_col = (255, 255, 255) if dark else INK_
+            body_col = (236, 254, 255) if dark else BODY
+            hf = font(23, True) if si >= 2 else font(21, True)
+            hw = d.textlength(head, font=hf)
+            ty = y + (14 if rest else (ch - 26) / 2)
+            d.text((x + (cw - hw) / 2, ty), head, font=hf, fill=head_col)
+            for j, ln in enumerate(rest):
+                # 칸을 넘치면 글자를 한 단계씩 줄인다. 넘친 채 인쇄되는 것이 제일 나쁘다.
+                fs = 18
+                while fs > 13 and d.textlength(ln, font=font(fs)) > cw - 24:
+                    fs -= 1
+                lw = d.textlength(ln, font=font(fs))
+                d.text((x + (cw - lw) / 2, ty + 34 + j * 24), ln, font=font(fs), fill=body_col)
+        if si < 3:
+            ay = y + ch + 22
+            d.line([AW / 2, ay, AW / 2, ay + 30], fill=T600, width=2)
+            d.polygon([(AW / 2 - 7, ay + 29), (AW / 2 + 7, ay + 29), (AW / 2, ay + 42)], fill=T600)
+        y += ch + 76
 
-arrow(d, 180, 370, 180, 398)
-arrow(d, 505, 370, 505, 398)
-arrow(d, 830, 370, 830, 398)
+    d.line([M, y - 6, AW - M, y - 6], fill=LINE_, width=1)
+    for i, (k, v) in enumerate([
+        ('점선 상자', '바깥 서비스다. 나머지는 직접 만들고 운영한다.'),
+        ('다국어', '화면 문구는 전부 6개 언어 사전에서 나온다. 화면에 직접 쓰면 자동 검사가 막는다.'),
+        ('개인정보', '환자 식별정보는 저장할 때 암호화한다. 상담 본문과 소견은 검색·번역 때문에 평문이다.'),
+        ('실적 집계', '실적 사건은 모두 성과 대시보드로 자동 모인다. 사람이 옮겨 적지 않는다.'),
+    ]):
+        ly = y + 24 + i * 34
+        d.text((M, ly), k, font=font(19, True), fill=T700)
+        d.text((M + 190, ly), v, font=font(19), fill=BODY)
+    return img
 
-box(d, 30, 400, 300, 96, '운영 데이터베이스',
-    '문의 · 상담 · 소견 · 병원\n식별정보는 암호화 보관')
-box(d, 355, 400, 300, 96, '파일 보관소',
-    '검사 자료 · 소견 문서\n브라우저에서 직행 업로드')
-box(d, 680, 400, 300, 96, '바깥 서비스',
-    '영상통화 · AI 모델\n메신저 · 메일 발송', dash=True)
 
-note(d, 516, '※ 점선 상자는 바깥 서비스다. 나머지는 우리가 만들고 운영한다.')
-note(d, 536, '※ 화면 문구는 전부 6개 언어 사전에서 나온다. 화면에 직접 쓰는 것은 자동 검사로 막는다.')
-note(d, 556, '※ 환자 식별정보는 저장할 때 암호화한다. 상담 본문·소견은 검색과 번역 때문에 평문으로 둔다.')
-note(d, 576, '※ 실적 사건은 모두 성과 대시보드로 자동 모인다. 사람이 옮겨 적지 않는다.')
-shots.append(('S-01_architecture', img))
+shots.append(('S-01_architecture', architecture()))
 
 for name, im in shots:
     im.save(os.path.join(OUT, name + '.png'))
