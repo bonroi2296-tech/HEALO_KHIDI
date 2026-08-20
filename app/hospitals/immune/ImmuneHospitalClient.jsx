@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ArrowRight, ArrowLeft, Phone, MapPin, Clock, Car } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
 
@@ -34,7 +35,7 @@ export default function ImmuneHospitalClient() {
         {/* 병원 목록으로 — 스토어 앱에는 브라우저 뒤로가기가 없다(아이폰은 쓸어넘기기도 꺼져 있음).
             2026-08-04 화면 확인: 이 화면에서 목록으로 돌아갈 수단이 0개였다. */}
         <Link
-          href="/hospitals"
+          href={localeHref("/hospitals", lang)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-4"
         >
           <ArrowLeft size={14} /> {t("partnerHospital.back", lang)}
@@ -56,7 +57,7 @@ export default function ImmuneHospitalClient() {
             </p>
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <Link
-                href="/inquiry"
+                href={localeHref("/inquiry", lang)}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
               >
                 {tr("requestConsult")} <ArrowRight size={18} />
@@ -396,7 +397,7 @@ export default function ImmuneHospitalClient() {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-snug">{tr("ctaTitle")}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{tr("ctaBody")}</p>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
             {tr("requestConsult")} <ArrowRight size={18} />

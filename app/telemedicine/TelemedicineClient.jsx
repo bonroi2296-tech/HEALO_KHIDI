@@ -16,6 +16,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 
 /* features 카드용 lucide 아이콘 (이모지 대체, 순서 고정) */
@@ -49,7 +50,7 @@ export default function TelemedicineClient() {
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
           >
             {tr("ctaPrimary")} <ArrowRight size={18} />
@@ -245,7 +246,7 @@ export default function TelemedicineClient() {
             {tr("ctaSection.body")}
           </p>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
             {tr("ctaSection.btn")} <ArrowRight size={18} />

@@ -22,6 +22,7 @@ import { describeUpload } from "@/lib/uploadPolicy";
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { getArrival } from "@/lib/inquiry/arrival";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
@@ -868,7 +869,7 @@ export default function UnifiedInquiryFunnel() {
           safeEvent(GA_EVENTS.CHOOSE_CHANNEL, { channel: "form" });
           // 폼은 새 의뢰서(/inquiry/referral)로 넘긴다. 이 파일의 step1/step2 는 옛 폼이라
           // 더 이상 안 쓴다 — 새 폼이 확정되면 그 코드는 지운다.
-          router.push("/inquiry/referral");
+          router.push(localeHref("/inquiry/referral", lang));
         },
       },
     ];
@@ -1018,7 +1019,7 @@ export default function UnifiedInquiryFunnel() {
           <p className="text-sm text-gray-500 mb-3">{tl("humanFallbackText", lang)}</p>
           <button
             type="button"
-            onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); router.push("/inquiry/referral"); }}
+            onClick={() => { safeEvent(GA_EVENTS.HUMAN_FALLBACK_TO_FORM); router.push(localeHref("/inquiry/referral", lang)); }}
             className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold text-sm hover:bg-teal-800 transition"
           >
             <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
@@ -1242,7 +1243,7 @@ export default function UnifiedInquiryFunnel() {
             </label>
           ))}
         </div>
-        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="touch-link mt-2 inline-block text-[11.5px] text-teal-700 underline">
+        <a href={localeHref("/privacy", lang)} target="_blank" rel="noopener noreferrer" className="touch-link mt-2 inline-block text-[11.5px] text-teal-700 underline">
           {tl("consentDetails", lang)} · /privacy
         </a>
         <p className="mt-2.5 text-[11px] leading-snug text-gray-400">{tl("consentDisclaimer", lang)}</p>

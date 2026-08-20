@@ -78,6 +78,8 @@ jobs:
       - name: PDF 톤 (초청장·견적서·동의서 Premium 톤 복귀 차단 — serif·gold·외부폰트)
         run: npm run check:pdf-tone
       - run: npm run check:i18n
+      - name: 공개 화면 내부 링크에 언어 접두어 (없으면 쿠키 없는 검색 로봇이 전부 영어로 튕겨 러/카 페이지가 두 달간 미색인이었다)
+        run: npm run check:locale-links
       - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
         run: npm run check:legal
       - name: 법 조문 인용 (환자 노출 문구의 조문 번호가 실제 그 조문인지 — §15 오인용 재발 차단)

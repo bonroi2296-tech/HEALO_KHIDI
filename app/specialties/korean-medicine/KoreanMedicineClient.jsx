@@ -11,6 +11,7 @@ import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { getCurrentLangCode } from "@/lib/language";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 
 export default function KoreanMedicineClient() {
   const router = useRouter();
@@ -89,7 +90,7 @@ export default function KoreanMedicineClient() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
-              onClick={() => router.push("/inquiry")}
+              onClick={() => router.push(localeHref("/inquiry", langCode))}
               className="bg-white text-emerald-800 font-bold px-6 py-3 rounded-full hover:bg-emerald-50 transition shadow-lg flex items-center gap-2"
             >
               <MessageCircle size={18} /> {t("km.cta", langCode)}
@@ -256,7 +257,7 @@ export default function KoreanMedicineClient() {
             {t("km.hero.subtitle", langCode)}
           </p>
           <button
-            onClick={() => router.push("/inquiry")}
+            onClick={() => router.push(localeHref("/inquiry", langCode))}
             className="bg-white text-emerald-800 font-bold px-8 py-3.5 rounded-full hover:bg-emerald-50 transition shadow-lg inline-flex items-center gap-2"
           >
             <MessageCircle size={18} /> {t("km.cta", langCode)}

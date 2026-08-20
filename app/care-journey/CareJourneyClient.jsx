@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import SocialProofSection from "@/components/SocialProofSection";
 
@@ -63,7 +64,7 @@ export default function CareJourneyClient() {
           {tr("heroLede")}
         </p>
         <Link
-          href="/inquiry"
+          href={localeHref("/inquiry", lang)}
           className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
         >
           {tr("heroCta")} <ArrowRight size={18} />
@@ -189,7 +190,7 @@ export default function CareJourneyClient() {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">{tr("closingTitle")}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{tr("closingBody")}</p>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
             {tr("closingCta")} <ArrowRight size={18} />
