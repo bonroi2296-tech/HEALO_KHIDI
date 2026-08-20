@@ -43,7 +43,8 @@ export default function AccountClient() {
     } catch { setAuth(false); } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  // 처음 한 번만 부른다(로그인한 사람의 이메일을 읽어 확인칸에 쓴다).
+  useEffect(() => { load(); }, []);
 
   // 친 글자가 본인 이메일과 같아야 버튼이 살아난다(대소문자·앞뒤 공백만 눈감아 준다).
   const canDelete = !!email && confirmText.trim().toLowerCase() === email.trim().toLowerCase();

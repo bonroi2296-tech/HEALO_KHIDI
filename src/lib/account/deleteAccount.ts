@@ -82,6 +82,13 @@ export function confirmMatchesEmail(typed: unknown, email: string | null | undef
 }
 
 export async function deleteAccountCompletely(userId: string): Promise<DeleteAccountResult> {
+  // 🛑 빈 값 방어. userId 가 비면 아래 .eq("user_id", userId) 가 «user_id 가 비어 있는 줄 전부»를
+  //    고르게 되어, 로그인 없이 들어온 문의를 통째로 익명화한다. 되돌릴 수 없으므로 여기서 멈춘다.
+  //    (지금 부르는 곳은 모두 로그인 세션에서 온 값이라 이런 일이 없지만, 값싼 예방을 둔다.)
+  if (!userId || typeof userId !== "string" || !userId.trim()) {
+    return { ok: false, anonymizedInquiries: 0, purgedRows: 0, failedSteps: ["invalid_user_id"] };
+  }
+
   const failedSteps: string[] = [];
   let anonymizedInquiries = 0;
   let purgedRows = 0;
