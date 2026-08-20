@@ -408,7 +408,7 @@ CWV_ROWS = [
 CWV_NOTE = ("Lighthouse 12.8.2 실측(2026. 8. 20., https://healwith.co.kr/ko). "
             "모바일은 저속 4G·CPU 4배 감속 조건이다. 측정 PC 에 설치된 광고차단 프로그램이 "
             "페이지마다 2.1MB 를 끼워 넣어 값을 왜곡시키므로 해당 주입을 차단하고 측정하였다. "
-            "종합 성능 점수는 모바일 37점, 데스크톱 91점이다.")
+            "종합 점수는 측정 환경에 따라 편차가 크므로 기재하지 않고, 지표값만 기재한다.")
 
 
 def fill_cwv(doc):
@@ -494,8 +494,10 @@ def main():
             txt = para_.text.strip()
             if not para_.runs:
                 continue
-            if txt.startswith("[화면: Lighthouse 리포트 스크린샷") or                txt.startswith("Core Web Vitals는 시범 운영 시작 후"):
-                para_.runs[0].text = CWV_NOTE if txt.startswith("Core Web Vitals는") else ""
+            if txt.startswith("[화면: Lighthouse 리포트 스크린샷"):
+                para_.runs[0].text = ""
+            elif txt.startswith(("Core Web Vitals는 시범 운영 시작 후", "Lighthouse 12.8.2 실측")):
+                para_.runs[0].text = CWV_NOTE
                 for r_ in para_.runs[1:]:
                     r_.text = ""
         if fill_cwv(doc):
@@ -529,7 +531,7 @@ def main():
         doc = Document(path)
         hit = set_cells(doc, "성능 측정 (Lighthouse)",
                         {2: "5항목 중 4항목 측정",
-                         3: "2026-08-20 실측. 데스크톱 91점 전 항목 충족, 모바일 LCP·CLS 미달"})
+                         3: "2026-08-20 실측. 데스크톱 전 항목 충족, 모바일 LCP·CLS 미달"})
         hit += set_cells(doc, "npm 의존성 보안",
                          {2: "1회", 3: "Critical 0건 · High 1건 · Moderate 2건 (2026-08-19)"})
         if hit:
