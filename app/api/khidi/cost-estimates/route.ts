@@ -21,8 +21,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await request.json();
-    const cancer_type = String(payload.cancer_type || "").toLowerCase();
-    const stage = String(payload.stage || "unknown");
+    // 허용 목록 밖 값은 버린다. 검증 없이 두면 아무 문자열이나 저장되고
+    // (2026-08-20 실측: "<script>alert(1)</script>" 가 그대로 들어갔다),
+    // 코디 화면이 그 값으로 사전을 조회해 뜻 없는 글자를 띄운다 = 무슨 암인지 못 읽는다.
+    // 목록은 환자 요청 폼의 선택지(CANCER_OPTIONS)와 같아야 한다.
+    const CANCER_TYPES = new Set([
+      "stomach", "lung", "breast", "liver", "thyroid", "colorectal", "other",
+    ]);
+    const STAGES = new Set(["unknown", "1", "2", "3", "4"]);
+
+    const rawCancer = String(payload.cancer_type || "").toLowerCase();
+    const rawStage = String(payload.stage || "unknown");
+    const cancer_type = CANCER_TYPES.has(rawCancer) ? rawCancer : "";
+    const stage = STAGES.has(rawStage) ? rawStage : "unknown";
 
     // 자동 금액 범위는 내지 않는다.
     // 2026-08-20 실측: 근거로 삼던 treatment_cost_benchmarks 63건이 전부 출처 없는 창작이었다.

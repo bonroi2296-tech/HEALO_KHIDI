@@ -32,18 +32,6 @@ Font.register({
 
 export const SANS = ["NotoSans", "NotoSansKR"];
 
-/**
- * 한글이 들어갈 수 있는 칸은 이걸 써라 — 배열 대체(fontSubstitution)에 맡기지 마라.
- *
- * 2026-08-20 실측: 견적서 2쪽부터 NotoSansKR 이 아예 안 실려 한글이 전부 «?» 로 깨졌다
- * (1쪽은 정상, 항목 개수와 무관 — 비용 내역표는 언제나 2쪽으로 넘어간다).
- * 쪽별 글꼴 목록으로 확인: 1쪽 [NotoSans, NotoSansKR] / 2쪽 [NotoSans, Helvetica].
- * 배열을 주면 글자 단위로 두 번째 글꼴을 «찾아 붙이는데», 그 대체가 첫 쪽 밖에서 동작하지 않았다.
- * 한글 글꼴을 «직접» 지정하면 대체 과정을 안 타므로 어느 쪽에서나 실린다.
- * NotoSansKR 은 라틴 글리프도 갖고 있어 영문·숫자가 같이 있어도 안전하다.
- */
-export const SANS_KR = "NotoSansKR";
-
 // Legacy 팔레트 (DESIGN.md 토큰: teal-600 / gray / white). 키는 보존, 값만 교체.
 export const COLORS = {
   ink0: "#111827", // gray-900
@@ -270,25 +258,25 @@ export const styles = StyleSheet.create({
   },
   costDesc: {
     flex: 3,
-    fontFamily: SANS_KR,
+    fontFamily: SANS,
     fontSize: 10,
     color: COLORS.ink0,
   },
   costNote: {
     flex: 2,
-    fontFamily: SANS_KR,
+    fontFamily: SANS,
     fontSize: 8,
     color: COLORS.fgOnLight3,
   },
   costAmount: {
     flex: 2,
-    fontFamily: SANS_KR,
+    fontFamily: SANS,
     fontSize: 11,
     color: COLORS.ink0,
     textAlign: "right",
   },
   costTotal: {
-    fontFamily: SANS_KR,
+    fontFamily: SANS,
     fontSize: 14,
     fontWeight: 700,
     color: COLORS.teal,
