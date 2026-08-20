@@ -261,6 +261,25 @@ REPLACEMENTS = {
          '도착한 소견은 원문 그대로 케이스 상세에만 쌓인다. AI 가 환자 언어 번역 초안을 만들고, 코디네이터가 교정한 뒤 [에이전시에 공개]를 눌러야 밖으로 나간다'),
         ('[화면: /opinion/<토큰>: 환자가 소견을 확인하는 화면]',
          '[화면: /coordinator/inbox/[번호] 「전문의 소견」 · /opinion/<토큰>(환자가 확인하는 화면)]'),
+        # ↓ 병원 포털: 시험 리드를 하나 만들어 실제 화면을 띄워 확인(2026-08-20). 확인 뒤 그 리드는 지웠다.
+        ('파트너 대시보드로 이동: 배정된 환자 목록, 예정 화상상담, 수신 의뢰 확인',
+         '왼쪽 메뉴는 [대시보드]와 [진료 의뢰(리드)] 둘이다. (「병원 정보」·「시술 카탈로그」는 공개 연동 준비 중이라 아직 비활성)'),
+        ('의료진 계정은 관리자가 발급한다. 계정 신청은 플랫폼 관리자(admin)에게 문의.',
+         '대시보드 카드는 응답 대기 · 전환율 · 평균 첫 응답 · 확정 견적 합계 네 개이고, 그 아래에 전체/오늘/이번 주/이번 달 리드 수와 「응답 필요」 목록이 이어진다. 의료기관 담당자 계정은 관리자가 발급한다.'),
+        ('[배정 환자] 목록에서 환자 선택',
+         '[진료 의뢰(리드)] 메뉴에서 우리 병원으로 배정된 의뢰를 고른다'),
+        ('열람 가능 항목: 인테이크 정보(암종·병기·기왕력), 업로드 의료 기록',
+         '리드에 보이는 항목: 목적 · 시술 · 국가 · 언어 · 배정일 · 문의 내용 · 보험 정보 유무. 환자 이름과 연락처는 병원에 넘기지 않는다'),
+        ('의료 기록 파일 다운로드 후 검토',
+         '상태를 전송됨 → 조회됨 → 응답함 → 치료 확정(또는 거절)으로 갱신하고, 견적 최소·최대와 메모를 남기거나 「코디에게 메시지」를 보낸다. 목록은 [CSV]로 내려받을 수 있다'),
+        ('[화면: /hospital/leads 페이지: 의뢰 환자 상세]',
+         '[화면: /hospital/leads 페이지: 리드 관리]'),
+        ('대시보드 [예정 화상상담] 목록에서 해당 일정 확인',
+         '코디네이터가 보낸 상담 초대링크를 연다(병원 포털 안에는 화상상담 목록이 없다)'),
+        ('상담 시간 5분 전 [입장] 버튼 클릭',
+         '대기실에서 코디네이터가 입장을 승인하면 상담방에 들어간다'),
+        ('의료진 화상 접속은 로그인 후 직접 입장 (게스트 링크 불사용).',
+         '의료진은 계정 없이 초대링크로 참여한다. 병원 담당자 계정으로 로그인해도 상담방은 초대링크로 들어간다.'),
     ],
     "07_관리자매뉴얼.docx": [
         ("/admin/intake/[id] 에서", "/admin/inquiries 에서"),
@@ -876,6 +895,41 @@ def keep_short_procedures_together(doc, max_steps=6):
     return n
 
 
+def strip_trailing_blanks(doc):
+    """문서 끝의 빈 문단을 없애거나, 없앨 수 없으면 «높이를 0에 가깝게» 눌러 둔다.
+
+    2026-08-20 실측: 부록을 갈아 끼우면 끝에 빈 문단이 남아 06·07 매뉴얼의 마지막 쪽이
+    머리말·꼬리말만 있는 빈 쪽이 됐다. 그런데 본문이 표로 끝나면 **워드가 표 뒤 문단을
+    스스로 되살린다** — 지우기만 해서는 빈 쪽이 그대로 남는다.
+    그래서 표로 끝나는 문서는 빈 문단을 한 줄 남기되 글자 크기 1pt·줄간격 0 으로 눌러
+    쪽을 넘기지 못하게 한다.
+    """
+    from docx.text.paragraph import Paragraph
+    body = doc.element.body
+    n = 0
+    for el in reversed(list(body.iterchildren())):
+        if el.tag == qn("w:sectPr"):
+            continue
+        if el.tag != qn("w:p"):
+            break                      # 표를 만나면 거기서 멈춘다
+        if Paragraph(el, doc).text.strip():
+            break
+        body.remove(el)
+        n += 1
+
+    # 표로 끝나면 워드가 문단을 되살리므로, 우리가 먼저 «높이 없는» 문단을 놔둔다.
+    last = [e for e in body.iterchildren() if e.tag in (qn("w:p"), qn("w:tbl"))]
+    if last and last[-1].tag == qn("w:tbl"):
+        par = doc.add_paragraph()
+        pf = par.paragraph_format
+        pf.space_before = pf.space_after = Pt(0)
+        pf.line_spacing = Pt(1)
+        run = par.add_run("")
+        run.font.size = Pt(1)
+        n += 1
+    return n
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -932,6 +986,7 @@ def main():
         n += restart_numbered_lists(doc)
         n += keep_screen_notes_with_steps(doc)
         n += keep_short_procedures_together(doc)
+        n += strip_trailing_blanks(doc)
         if n:
             doc.save(str(path))
             changed.append(f"{path.name}: 공통 정리 {n}곳(꼬리말·머리행 포함)")
@@ -1036,6 +1091,8 @@ def main():
         doc = Document(path)
         removed = strip_appendix(doc)
         add_appendix(doc, kind)
+        # 부록을 붙인 «뒤»에 걷어내야 한다 — 앞서 돌리면 부록이 다시 빈 문단을 남긴다.
+        strip_trailing_blanks(doc)
         doc.save(path)
         changed.append(f"{fname}: 부록 갱신" + (f" (옛 부록 {removed}블록 제거)" if removed else ""))
 
