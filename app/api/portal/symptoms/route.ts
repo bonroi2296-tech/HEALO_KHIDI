@@ -20,6 +20,9 @@ import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
+/** DB 검사규칙 symptom_reports_report_type_check 가 허용하는 값. 여기 없는 값은 저장이 거부된다. */
+const REPORT_TYPES = new Set(["scheduled", "ad_hoc", "emergency"]);
+
 function safeDecrypt(enc: any): string {
   try {
     return decryptStringNullable(enc) || "";
@@ -105,7 +108,11 @@ export async function POST(request: NextRequest) {
     const report: SymptomReport = {
       followupId: "",
       inquiryId: inquiryId != null ? String(inquiryId) : "",
-      reportType: payload.report_type || payload.reportType || "self",
+      // DB 검사규칙이 허용하는 값만 넣는다. 기본값이던 "self" 는 그 목록에 없어
+      // 환자 화면 제출이 «전부» 저장 실패하고 있었다(2026-08-20 실측, 응답은 saved:false).
+      reportType: REPORT_TYPES.has(payload.report_type || payload.reportType)
+        ? (payload.report_type || payload.reportType)
+        : "ad_hoc",
       symptoms: payload.symptoms.map((s: any) => ({
         symptom: s.symptom || s.name || "",
         severity: parseInt(s.severity) || 1,
