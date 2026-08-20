@@ -139,8 +139,8 @@ KPI_TARGET = {
 KPI_ACTUAL = {
     "attraction": 0,          # K-01. 한국 도착·진료 개시 기준 → 아직 0
     # K-02. 2026-08-06 PO 지시로 두 매체 합산으로 정의 확대 — 상세는 KPI_측정방법_명세.md
-    "preConsultation": 6,     # 영상 사전상담 1(문의 #60) + 환자에게 전달된 소견 5
-    "preConsultationBreakdown": (1, 5),   # (영상, 전달된 소견)
+    "preConsultation": 7,     # 영상 사전상담 1(문의 #60) + 환자에게 전달된 소견 6
+    "preConsultationBreakdown": (1, 6),   # (영상, 전달된 소견)
     "followUp": 0,            # K-04. session_type='follow_up' & completed → 0
     "satisfactionSamples": 0, # K-03. 실환자에 연결된 설문 응답 0건
     "inquiriesReal": 8,       # 전체 144건 중 실건 8 (web 6 + 소급등록 2)
