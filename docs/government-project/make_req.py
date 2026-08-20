@@ -99,7 +99,7 @@ set_font(run, 12, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('Requirements Definition Document  |  v1.1  |  2026.08.19')
+run = p.add_run('Requirements Definition Document  |  v1.2  |  2026.08.20')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -109,8 +109,8 @@ tbl_info.style = 'Table Grid'
 info_rows = [
     ('문서 번호', 'HEALO-REQ-2026-001'),
     ('작성 기관', '본로이 (Bonroi)'),
-    ('작성일', '2026년 8월 19일'),
-    ('버전', 'v1.1'),
+    ('작성일', '2026년 8월 20일'),
+    ('버전', 'v1.2'),
     ('보안 등급', '대외비'),
     ('관련 사업', '2026년 KHIDI ICT 기반 외국인환자 사전상담·사후관리 지원 사업'),
 ]
@@ -213,7 +213,7 @@ personas = [
             ('주요 니즈', '한국 상급종합병원 암 치료 정보 비교\n예상 치료비·일정 사전 확인\n러시아어로 의료진 상담\n귀국 후 경과 모니터링 지속'),
             ('고충 (Pain Points)', '한국 의료기관 정보 접근 어려움\n언어 장벽으로 상담 불가\n비용·비자 절차 불투명\n귀국 후 의료진과 연락 단절'),
             ('사용 시나리오', '① HEALO 웹 접속(러시아어 UI)\n② 증상·희망 치료 입력, AI 병원 매칭\n③ 화상상담 예약, 의료문서 업로드\n④ 내원·치료 (면역치료+대학병원 협진)\n⑤ 귀국 후 사후관리 앱 활용'),
-            ('핵심 라우트', '/ru 또는 /kk (다국어 홈), /inquiry (통합 문의 퍼널), /consultation/[id], /patient/*'),
+            ('핵심 라우트', '/ru 또는 /kz (다국어 홈), /inquiry (통합 문의 퍼널), /consultation/[id], /patient/*'),
         ]
     },
     {
@@ -225,7 +225,7 @@ personas = [
             ('주요 니즈', '담당 환자 전체 여정 통합 관리\nAI 이관 상담 처리 및 보완\n의료문서 번역·라우팅\n성과 실적 기록·보고'),
             ('고충', '카카오톡·이메일·전화 분산 채널 통합 어려움\nAI 오답 수정 업무 과부하\n서류 번역·포매팅 반복 작업'),
             ('사용 시나리오', '① 코디네이터 포털 로그인\n② AI 이관 알림 → 상담 처리\n③ 의료문서 업로드·병원 라우팅\n④ 환자 일정·예약 관리\n⑤ 사후관리 상태 모니터링'),
-            ('핵심 라우트', '/coordinator/*, /coordinator/messages, /coordinator/intakes'),
+            ('핵심 라우트', '/coordinator/inbox, /coordinator/messages, /coordinator/consultations'),
         ]
     },
     {
@@ -237,7 +237,7 @@ personas = [
             ('주요 니즈', '환자 의료정보(CT/MRI/검사결과) 사전 검토\nWebRTC 화상상담 수행\n경과 추적 기록 입력\n협진 의뢰서 전송'),
             ('고충', '여러 플랫폼 로그인 분산\n의료문서 형식 불일치\n언어 장벽으로 직접 소통 한계'),
             ('사용 시나리오', '① 상담방 초대링크 수신(계정 발급 불필요)\n② 환자 문서 열람 (사전 검토)\n③ 화상상담 참여 (실시간 자막·통역 지원)\n④ 처방·메모 기록\n⑤ 전문의 소견 전송'),
-            ('핵심 라우트', '/consultation/[id] (초대링크 입장), /opinion/[token] (소견 작성), /hospital/* (병원 담당자 계정)'),
+            ('핵심 라우트', '/consultation/[id] (초대링크 입장), /opinion/[token] (환자가 소견을 확인하는 화면), /hospital/* (병원 담당자 계정)'),
         ]
     },
     {
@@ -280,7 +280,7 @@ add_header_row(fr_tbl, ['FR-ID', '기능명', '우선순위', '상세 설명', '
 fr_data = [
     ('FR-01', '소셜/이메일 회원가입', 'H',
      '이메일·Google OAuth 기반 회원가입. 환자/코디네이터/관리자 역할 분리. Supabase Auth 사용.',
-     '완료 · /app/signup, /app/login, /app/auth'),
+     '완료 · /app/signup, /app/login'),
 
     ('FR-02', '역할 기반 접근 제어(RBAC)', 'H',
      '계정 계층 7종(비회원·환자·코디네이터·관리자·국내 의료기관·해외 에이전시·해외 의료기관)으로 분기. '
@@ -306,11 +306,11 @@ fr_data = [
      '완료 · /app/api/pdf, src/lib/pdf'),
 
     ('FR-07', 'AI 기반 병원·의료진 매칭', 'H',
-     '환자 증상·희망 치료·예산 기반 병원 자동 추천. Gemini 2.5 Flash + RAG 3계층(DB/HIRA/Google). 다국어 결과 반환. (사업계획서 p.27)',
+     '환자 증상·희망 치료·예산 기반 병원 자동 추천. Gemini Flash(최신 별칭) + RAG 3계층(DB/HIRA/Google). 다국어 결과 반환. (사업계획서 p.27)',
      '완료 · /app/api/chat, src/lib/chat/generateReply.ts, src/lib/rag'),
 
     ('FR-08', '병원 목록·상세 조회', 'H',
-     '병원명·진료과·의료진·시설·가격 정보 다국어(ko/en/ru/kk/zh/ja) 제공. i18n JSONB 컬럼 활용.',
+     '병원명·진료과·의료진·시설·가격 정보 다국어(ko/en/ru/kz/zh/ja) 제공. i18n JSONB 컬럼 활용.',
      '완료 · /app/hospitals, migrations/20260223_i18n_jsonb'),
 
     ('FR-09', '예상 비용 산출', 'M',
@@ -327,7 +327,7 @@ fr_data = [
 
     ('FR-12', 'WebRTC 화상상담 (LiveKit)', 'H',
      '브라우저 기반 화상·음성 상담. LiveKit Cloud 연동. 게스트 토큰으로 비회원 참여. (사업계획서 p.28, 공고문 p.8)',
-     '완료 · /app/telemedicine, /app/api/livekit, @livekit/components-react'),
+     '완료 · /app/consultation/[id] (상담방), /app/c/[code] (초대 주소), /app/api/livekit'),
 
     ('FR-13', 'AI 실시간 번역 (상담 중)', 'H',
      '화상상담 및 채팅 중 러시아어↔한국어 실시간 번역. 특허 10-2868334 기반. (사업계획서 p.28)',
@@ -354,8 +354,8 @@ fr_data = [
      '완료 · /app/patient/rebooking, migrations/20260406_education_visa_rebooking'),
 
     ('FR-19', '6개 언어 UI/UX', 'H',
-     '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kk 등).',
-     '부분구현 · /app/ru, /app/kk (라우트 있음, 일부 콘텐츠 번역 진행 중)'),
+     '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kz 등).',
+     '부분구현 · /app/[locale] (ru·kz 포함 6개 언어, 문구 누락은 자동 검사로 상시 확인)'),
 
     ('FR-20', 'DB 콘텐츠 다국어 자동번역', 'H',
      '병원·치료 정보 i18n JSONB 컬럼 자동번역. Gemini 기반 배치 번역.',
@@ -363,7 +363,7 @@ fr_data = [
 
     ('FR-21', '환자 대시보드', 'H',
      '환자 본인 상담 이력, 예약, 문서, 비용, 만족도 조회. 전체 여정 통합 뷰.',
-     '완료 · /app/patient/*, PatientDashboardPremium.jsx'),
+     '완료 · /app/patient/*, PatientDashboardClient.jsx'),
 
     ('FR-22', '코디네이터 포털', 'H',
      '담당 환자 관리, 상담 처리, 실적 현황, 알림 수신.',
@@ -425,7 +425,7 @@ nfr_cats = [
         ('NFR-13', '장애 감지 및 알림 (@sentry/nextjs 연동)'),
     ]),
     ('다국어·접근성 (i18n/a11y)', [
-        ('NFR-14', '6개 언어 UI 지원 (ko/en/ru/kk/zh/ja)'),
+        ('NFR-14', '6개 언어 UI 지원 (ko/en/ru/kz/zh/ja)'),
         ('NFR-15', 'WCAG 2.1 AA 기준 접근성 기본 준수'),
         ('NFR-16', '모바일 반응형 (375px 이상 전 화면 지원)'),
     ]),
@@ -467,7 +467,7 @@ ext_data = [
      'DB, Auth, Storage, Realtime, RLS\n환자 정보·상담·병원 데이터 저장',
      '@supabase/ssr: SSR 쿠키 기반 세션\nservice_role: server-only 모듈',
      'src/lib/supabase/*'),
-    ('Google Gemini 2.5 Flash',
+    ('Google Gemini Flash (최신 별칭)',
      'AI 챗봇, RAG 응답 생성\n다국어 번역, 문서 분석',
      'Vercel AI SDK (@ai-sdk/google)\nstreamText / generateText',
      'src/lib/chat/generateReply.ts'),
@@ -528,7 +528,7 @@ constraints_data = [
         'Turbopack 빌드 금지: npx next build --webpack 전용.',
         'TypeScript strict:false 유지 (점진적 전환 중).',
         'LiveKit Cloud 의존: 화상상담은 LiveKit SaaS 의존. 자체 서버 운영 미계획.',
-        '카자흐스탄 네트워크: 지방 WebRTC 품질은 현지 5G 인프라 구축 완료(2025 말) 이후 개선 예상.',
+        '카자흐스탄 네트워크: 지방 WebRTC 품질은 현지 5G 인프라가 2025년 말 구축 완료되어 개선 추세이나, 지방은 여전히 회선 편차가 있음.',
     ]),
     ('운영적 제약', [
         '사업 기간: 협약체결일 ~ 2026.11.20 (단년도 사업).',
@@ -558,7 +558,7 @@ terms = [
     ('HEALO', '본로이 개발 AI 기반 외국인환자 상담·매칭·사후관리 통합 플랫폼명'),
     ('ICT', 'Information and Communication Technology. 정보통신기술'),
     ('RAG', 'Retrieval-Augmented Generation. 검색 기반 AI 응답 생성. HEALO에서 3계층 구조 운영 (DB→HIRA→Google)'),
-    ('AI Agent', 'AI 기반 자동 상담 봇. Gemini 2.5 Flash 기반. 복잡 케이스 시 Human Agent로 이관'),
+    ('AI Agent', 'AI 기반 자동 상담 봇. Gemini Flash 기반. 복잡 케이스 시 Human Agent로 이관'),
     ('Human Agent', '코디네이터. AI가 처리하지 못한 상담을 직접 수행'),
     ('WebRTC', 'Web Real-Time Communication. 브라우저 기반 실시간 화상·음성 통신 기술'),
     ('LiveKit', 'WebRTC 기반 화상상담 SaaS 플랫폼. 서버/클라이언트 SDK 제공'),
@@ -582,7 +582,7 @@ terms = [
     ('SaaS', 'Software as a Service. 클라우드 기반 소프트웨어 서비스 제공 방식'),
     ('pgvector', 'PostgreSQL 벡터 검색 확장. RAG 임베딩 벡터 저장·검색에 활용'),
     ('i18n', 'Internationalization. 다국어 지원 설계. HEALO는 6개 언어 지원'),
-    ('Gemini 2.5 Flash', 'Google DeepMind의 멀티모달 AI 모델. HEALO AI Agent 기반 모델'),
+    ('Gemini Flash', 'Google DeepMind 의 멀티모달 AI 모델. HEALO 는 최신 별칭(gemini-flash-latest)으로 고정 사용'),
 ]
 for term, defn in terms:
     add_data_row(term_tbl, [term, defn], bold_first=True)

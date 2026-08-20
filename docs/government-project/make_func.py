@@ -110,7 +110,7 @@ set_font(run, 12, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('ICT 기반 외국인환자 사전상담·사후관리 지원 사업  |  v1.1  |  2026.08.19')
+run = p.add_run('ICT 기반 외국인환자 사전상담·사후관리 지원 사업  |  v1.2  |  2026.08.20')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -121,8 +121,8 @@ tbl_info.style = 'Table Grid'
 for label, val in [
     ('문서 번호', 'HEALO-FSD-2026-001'),
     ('작성 기관', '본로이 (Bonroi)'),
-    ('작성일', '2026년 8월 19일'),
-    ('버전', 'v1.1'),
+    ('작성일', '2026년 8월 20일'),
+    ('버전', 'v1.2'),
     ('관련 문서', 'HEALO-REQ-2026-001 요구사항정의서'),
 ]:
     row = tbl_info.add_row()
@@ -149,7 +149,7 @@ for num, title in [
     ('7.', 'AI 실시간 번역'),
     ('8.', '예약·일정·비자 관리'),
     ('9.', '사후관리·모니터링·교육'),
-    ('10.', '다국어 (ko/en/ru/kk/zh/ja)'),
+    ('10.', '다국어 (ko/en/ru/kz/zh/ja)'),
     ('11.', '코디네이터 포털'),
     ('12.', '관리자·파트너·의사 포털'),
     ('13.', '알림·이메일 시스템'),
@@ -176,7 +176,7 @@ tbl = doc.add_table(rows=0, cols=4)
 tbl.style = 'Table Grid'
 add_header_row(tbl, ['그룹', '기능 그룹명', '핵심 라우트', '현황'])
 groups = [
-    ('G-01', '회원·인증·권한', '/signup, /login, /auth', ''),
+    ('G-01', '회원·인증·권한', '/signup, /login', ''),
     ('G-02', '환자 인테이크·문서', '/inquiry, /api/attachments', ''),
     ('G-03', '병원 매칭·정보', '/hospitals, /api/chat', ''),
     ('G-04', '원격 화상상담', '/telemedicine, /api/livekit', ''),
@@ -184,7 +184,7 @@ groups = [
     ('G-06', 'AI 실시간 번역', '/api/translate, /api/translate-text', ''),
     ('G-07', '예약·일정·비자', '/patient/calendar, /patient/visa', ''),
     ('G-08', '사후관리·모니터링', '/patient/symptoms, /patient/education', ''),
-    ('G-09', '다국어 UI', '/ru, /kk, src/lib/i18n', ''),
+    ('G-09', '다국어 UI', '/ru, /kz, src/lib/i18n', ''),
     ('G-10', '코디네이터 포털', '/coordinator/*', ''),
     ('G-11', '관리자·의료기관·파트너', '/admin/*, /hospital/*, /agency/*, /clinic/*', ''),
     ('G-12', '알림·이메일', '/api/email, Supabase Realtime', ''),
@@ -223,9 +223,9 @@ add_scenario(doc, {
     '예외 흐름': '• 이메일 미인증 → 인증 메일 재발송 안내\n• 잘못된 비밀번호 → "인증 실패" 메시지 (error.message 직접 노출 금지)\n• 소셜 OAuth 실패 → fallback 이메일 로그인 안내',
     '입력': '이메일, 비밀번호 (또는 OAuth 토큰)',
     '출력': 'Supabase 세션 쿠키, 리다이렉트',
-    '화면 경로': '/app/signup, /app/login, /app/auth',
+    '화면 경로': '/app/signup, /app/login',
     'DB 테이블': 'auth.users (Supabase 관리)\napp_metadata.role 컬럼',
-    '현재 구현 상태': '완료: middleware.js, src/lib/auth, /app/auth',
+    '현재 구현 상태': '완료: middleware.js, src/lib/auth',
 })
 
 add_heading(doc, '2.2 역할 기반 접근 제어 (FN-AUTH-02)', 2)
@@ -251,7 +251,7 @@ add_scenario(doc, {
     '전제 조건': '회원가입 없이 상담 시작 요청',
     '트리거': '최초 인테이크 폼 제출 또는 채팅 시작',
     '기본 흐름': '① UUID 기반 public_token 생성\n② inquiries 테이블에 token 저장\n③ 쿠키/로컬스토리지에 token 보관\n④ 이후 요청에 token으로 상담 이력 연속성 유지',
-    '예외 흐름': '• 토큰 만료 (30일) → 새 토큰 발급, 이전 이력 연결 불가',
+    '예외 흐름': '• 토큰 만료 → 새 토큰 발급, 이전 이력 연결 불가',
     '화면 경로': '/inquiry (토큰 발급 시작점)',
     'DB 테이블/컬럼': 'inquiries.public_token (migrations/20260125)',
     '현재 구현 상태': '완료: migrations/20260125_inquiries_public_token',
@@ -311,7 +311,7 @@ add_scenario(doc, {
     '액터': '환자 (P-01), AI Agent',
     '전제 조건': '인테이크 정보 또는 채팅 증상 입력 완료',
     '트리거': '상담 시작 또는 "병원 추천" 요청',
-    '기본 흐름': '① 환자 증상·희망 치료·예산·국가 입력\n② AI Agent (Gemini 2.5 Flash) 쿼리 생성\n③ RAG 1계층: HEALO DB에서 병원 벡터 검색\n④ RAG 2계층: HIRA 데이터 보완 검색\n⑤ RAG 3계층: Google Search Grounding\n⑥ 다국어 매칭 결과 반환 (병원명·진료과·의료진·예상비용)',
+    '기본 흐름': '① 환자 증상·희망 치료·예산·국가 입력\n② AI Agent (Gemini Flash) 쿼리 생성\n③ RAG 1계층: HEALO DB에서 병원 벡터 검색\n④ RAG 2계층: HIRA 데이터 보완 검색\n⑤ RAG 3계층: Google Search Grounding\n⑥ 다국어 매칭 결과 반환 (병원명·진료과·의료진·예상비용)',
     '예외 흐름': '• 해당 진료과 병원 미보유 → 유사 병원 추천\n• AI 응답 5초 초과 → 스트리밍 응답으로 부분 표시',
     '입력': '증상 텍스트, 암 종류, 선호 병원 유형, 예산',
     '출력': '병원 목록 (이름·진료과·의료진·특장점·예상비용·위치)',
@@ -351,7 +351,7 @@ add_scenario(doc, {
     '전제 조건': '상담 예약 확정 또는 즉시 상담 요청',
     '트리거': '"화상상담 시작" 버튼 클릭',
     '기본 흐름': '① /api/livekit/route.ts에서 방 이름 기반 Access Token 발급\n② 환자: 게스트 토큰 또는 로그인 토큰으로 참여\n③ 코디네이터/의료진: 로그인 후 참여\n④ @livekit/components-react 기반 UI 렌더링\n⑤ 오디오/비디오/채팅 채널 활성화\n⑥ 상담 종료 → consultation_sessions 테이블에 기록',
-    '예외 흐름': '• 카메라/마이크 권한 거부 → 오디오 전용 모드\n• 네트워크 불안정 → 재연결 시도 3회\n• 참여자 미접속 (5분) → 세션 자동 종료',
+    '예외 흐름': '• 카메라/마이크 권한 거부 → 오디오 전용 모드\n• 네트워크 불안정 → 재연결 시도 3회\n• 참여자 미접속 → 대기 상태 유지(자동 종료하지 않는다)',
     '입력': '방 이름(room_name), 참여자 ID, 역할',
     '출력': 'LiveKit Access Token, 화상 UI',
     '화면 경로': '/app/telemedicine/TelemedicineClient.jsx',
@@ -368,7 +368,7 @@ add_scenario(doc, {
     '전제 조건': '공개 상담 링크 보유 (코디네이터가 발송)',
     '트리거': '상담 링크 클릭',
     '기본 흐름': '① 코디네이터가 환자에게 상담 링크 전송\n② 환자가 링크 접속 (로그인 불필요)\n③ /api/livekit에서 게스트 토큰 발급\n④ 이름 입력 후 화상상담 참여',
-    '예외 흐름': '• 링크 만료 (24시간) → 코디네이터에게 재발급 요청',
+    '예외 흐름': '• 링크 만료 → 코디네이터에게 재발급 요청',
     '화면 경로': '/app/telemedicine/ (게스트 진입)',
     '현재 구현 상태': '완료: /app/api/livekit/route.ts',
 })
@@ -387,7 +387,7 @@ add_scenario(doc, {
     '액터': '환자 (P-01), AI Agent',
     '전제 조건': '채팅 UI 로드, 사용자 언어 감지',
     '트리거': '환자 메시지 입력 및 전송',
-    '기본 흐름': '① 환자가 채팅 입력 (텍스트, 다국어)\n② /api/chat/route.ts 호출\n③ src/lib/chat/generateReply.ts 실행\n  - RAG 검색: rag_documents에서 관련 병원·치료 정보 벡터 검색\n  - Gemini 2.5 Flash로 응답 생성 (스트리밍)\n④ 응답 반환 (병원 정보, 치료 안내, 비용 안내 등)\n⑤ 복잡 케이스 감지 → Human Agent 이관 플래그 설정\n⑥ 대화 내용 chat_threads 테이블 저장',
+    '기본 흐름': '① 환자가 채팅 입력 (텍스트, 다국어)\n② /api/chat/route.ts 호출\n③ src/lib/chat/generateReply.ts 실행\n  - RAG 검색: rag_documents에서 관련 병원·치료 정보 벡터 검색\n  - Gemini Flash 로 응답 생성 (스트리밍)\n④ 응답 반환 (병원 정보, 치료 안내, 비용 안내 등)\n⑤ 복잡 케이스 감지 → Human Agent 이관 플래그 설정\n⑥ 대화 내용 chat_threads 테이블 저장',
     '예외 흐름': '• Gemini API 타임아웃 → "잠시 후 다시 시도" 메시지\n• 의료 진단 요청 → "의료진 상담 연결" 안내',
     '입력': '사용자 메시지 텍스트, 언어 코드, 상담 컨텍스트',
     '출력': '스트리밍 텍스트 응답, 병원 카드, Human 이관 여부',
@@ -526,7 +526,7 @@ doc.add_page_break()
 # ================================================================
 # 10. 다국어
 # ================================================================
-add_heading(doc, '10. 다국어 (ko/en/ru/kk/zh/ja)', 1)
+add_heading(doc, '10. 다국어 (ko/en/ru/kz/zh/ja)', 1)
 
 add_heading(doc, '10.1 다국어 UI 라우팅 (FN-I18N-01)', 2)
 add_scenario(doc, {
@@ -534,10 +534,10 @@ add_scenario(doc, {
     '기능명': '6개 언어 UI 및 언어별 라우팅',
     '액터': '모든 사용자',
     '트리거': '언어 선택 또는 브라우저 언어 감지',
-    '기본 흐름': '① 브라우저 Accept-Language 헤더 감지\n② 또는 /ru, /kk 경로로 직접 접근\n③ src/lib/i18n/index.js에서 언어 메시지 로드\n④ 해당 언어 UI 렌더링',
+    '기본 흐름': '① 브라우저 Accept-Language 헤더 감지\n② 또는 /ru, /kz 경로로 직접 접근\n③ src/lib/i18n/index.js에서 언어 메시지 로드\n④ 해당 언어 UI 렌더링',
     '지원 언어': 'ko (한국어), en (영어), ru (러시아어), kk (카자흐어), zh (중국어), ja (일본어)',
-    '화면 경로': '/app/ru, /app/kk, src/lib/i18n/index.js',
-    '현재 구현 상태': '부분구현: /app/ru, /app/kk 라우트 존재\n러시아어·카자흐어 UI 부분 적용\n전체 번역 완성 필요 (Phase B)',
+    '화면 경로': '/app/[locale] (ru·kz 포함 6개 언어), src/lib/i18n/index.js',
+    '현재 구현 상태': '완료: 6개 언어 라우트 운영(ko·en·ru·kz·zh·ja)\n러시아어·카자흐어 문구 전건 채움\n키 누락은 자동 검사로 상시 확인',
 })
 
 add_heading(doc, '10.2 DB 콘텐츠 자동번역 (FN-I18N-02)', 2)
@@ -567,7 +567,7 @@ add_scenario(doc, {
     '전제 조건': 'coordinator role 로그인',
     '트리거': '/coordinator 접근',
     '기본 흐름': '① 담당 환자 목록 및 상태 확인\n② AI 이관 상담 목록 확인\n③ 환자 메시지 읽기·응답\n④ 의료문서 라우팅 (병원에 전달)\n⑤ 예약·일정 확정\n⑥ 실적 현황 (유치 건수, 상담 건수) 확인',
-    '화면 경로': '/app/coordinator/page.jsx\n/app/coordinator/messages\n/app/coordinator/intakes\n/app/coordinator/consultations',
+    '화면 경로': '/app/coordinator/page.jsx\n/app/coordinator/messages\n/app/coordinator/inbox\n/app/coordinator/consultations',
     'DB 테이블/컬럼': 'inquiries (coordinator_id, status)\nchat_threads (assigned_to)\nconsultation_sessions (coordinator_id)',
     '현재 구현 상태': '완료: /app/coordinator/*',
 })
@@ -712,7 +712,7 @@ add_scenario(doc, {
 # ================================================================
 doc.add_page_break()
 add_heading(doc, '부록 A. 기능 구현 상태 요약', 1)
-add_para(doc, '코드베이스 검증 기반 현황 (2026.08.19 기준)')
+add_para(doc, '코드베이스 검증 기반 현황 (2026.08.20 기준)')
 doc.add_paragraph()
 
 sum_tbl = doc.add_table(rows=0, cols=4)
@@ -720,24 +720,24 @@ sum_tbl.style = 'Table Grid'
 add_header_row(sum_tbl, ['기능 그룹', '구현 상태', '파일 경로', '비고'])
 summary_data = [
     ('회원·인증·RBAC', '완료', '/app/signup, /app/login, middleware.js', '게스트 토큰 포함'),
-    ('인테이크·문서 업로드', '완료', '/app/inquiry, /app/api/attachments', '평문 컬럼 완전 제거'),
+    ('인테이크·문서 업로드', '완료', '/app/inquiry, /app/api/attachments', '인테이크 평문 컬럼 제거 완료'),
     ('병원 매칭 (AI+RAG)', '완료', '/app/api/chat, src/lib/chat/', 'RAG 3계층 운영 중'),
     ('병원 목록·상세', '완료', '/app/hospitals', 'i18n JSONB 완료'),
-    ('화상상담 (LiveKit)', '완료', '/app/telemedicine, /app/api/livekit', '게스트 참여 가능'),
+    ('화상상담 (LiveKit)', '완료', '/app/consultation/[id], /app/api/livekit', '초대링크로 계정 없이 참여'),
     ('번역 API', '완료', '/app/api/translate-text', 'Gemini 기반'),
-    ('화상 내 실시간 자막', '부분', '/app/telemedicine/', 'Phase B 완성 예정'),
-    ('예약·달력 UI', '부분', '/app/patient/calendar', '자동 리마인더 미완'),
+    ('화상 내 실시간 자막', '완료', '/app/consultation/[id]', '실서비스 가동 · 통역 자막 3,277건 축적'),
+    ('예약·달력 UI', '부분', '/app/patient/calendar', '리마인더 자동 발송 가동 · 의료진 일정 연동 남음'),
     ('비자 안내', '완료', '/app/patient/visa', '다국어 포함'),
-    ('경과 모니터링 UI', '부분', '/app/patient/symptoms', 'AI 자동감지 미완'),
-    ('교육 콘텐츠', '부분', '/app/patient/education', '러시아어 콘텐츠 일부'),
+    ('경과 모니터링 UI', '완료', '/app/patient/symptoms', '이상 징후 자동 분석·담당자 알림 가동'),
+    ('교육 콘텐츠', '부분', '/app/education', '18건 발행(러시아어 전건) · 단계별 자동 발송은 화면 연결 남음'),
     ('재방문 예약', '완료', '/app/patient/rebooking', ''),
-    ('6개 언어 UI', '부분', '/app/ru, /app/kk', '전체 번역 진행 중'),
+    ('6개 언어 UI', '완료', '/app/[locale]', '6개 언어 문구 전건 채움 · 자동 검사 통과'),
     ('DB 자동번역', '완료', 'migrations/20260223', '병원·치료 완료'),
     ('코디네이터 포털', '완료', '/app/coordinator/*', ''),
     ('관리자 포털', '완료', '/app/admin/*', '감사 로그 포함'),
     ('국내 의료기관 포털', '완료', '/app/hospital/*', '의료진 등록 포함'),
     ('이메일 알림', '완료', '/app/api/email', 'Resend 연동'),
-    ('실시간 In-app 알림', '부분', 'Supabase Realtime', '부분 통합'),
+    ('실시간 In-app 알림', '완료', 'src/hooks/useNotifications.ts', 'Supabase Realtime 구독 + FCM 푸시'),
     ('RAG 파이프라인', '완료', 'src/lib/rag/*', '3계층 운영'),
     ('PII 암호화', '완료', 'src/lib/security/encryptionV2.ts', 'AES-256-GCM'),
     ('Rate Limiting', '완료', 'src/lib/rateLimit.ts', ''),
@@ -748,10 +748,15 @@ for row in summary_data:
 
 doc.add_paragraph()
 add_para(doc, '구현 비율 집계:')
-add_para(doc, '완료: 22개 기능 (96%): 착수 시 부분구현 6건 중 5건이 완료로 전환(2026-08-19 실측)', indent=1)
-add_para(doc, '부분구현: 1개 기능 (4%): 예약 리마인더의 의료진 일정 연동', indent=1)
-add_para(doc, '미구현: 0개 그룹 (모든 기능 최소 부분 구현 상태)', indent=1)
-add_para(doc, '※ 부분구현 항목은 Phase B에서 완성 예정.')
+add_para(doc, '완료: 21개 기능 (91%). 착수 시 부분구현 6건 중 4건이 완료로 전환(2026-08-20 실측)', indent=1)
+add_para(doc, '부분구현: 2개 기능 (9%). ①단계별 교육 콘텐츠 자동 발송의 화면 연결 ②예약 리마인더의 의료진 일정 연동', indent=1)
+add_para(doc, '미구현: 0개 기능. 모든 기능이 최소 부분 구현 상태다', indent=1)
+add_para(doc, '※ 부분구현 2건은 01-1 화면설계서 「남은 설계 항목」과 같은 항목이며, 2026. 8. 27. 이전 완료를 목표로 한다.')
+
+# 마지막 「※」 한 줄만 다음 쪽으로 떨어져 한 줄짜리 쪽이 생겼다(2026-08-20 실측).
+# 집계 네 줄을 한 덩어리로 묶어 같은 쪽에 남게 한다.
+for _p in doc.paragraphs[-5:-1]:
+    _p.paragraph_format.keep_with_next = True
 
 # 저장
 import os as _os
