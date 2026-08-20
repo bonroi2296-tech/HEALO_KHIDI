@@ -285,13 +285,13 @@ fr_data = [
     ('FR-02', '역할 기반 접근 제어(RBAC)', 'H',
      '계정 계층 7종(비회원·환자·코디네이터·관리자·국내 의료기관·해외 에이전시·해외 의료기관)으로 분기. '
      '권한 저장 위치는 계층별로 다름(app_metadata.role / hospital_users / agency_users / 초대링크 토큰). '
-     '미들웨어에서 /patient/*, /admin/*, /coordinator/*, /hospital/*, /agency/*, /clinic/* 보호. '
+     'proxy.ts 가 서버 단계에서 /admin·/hospital·/patient·/coordinator 를 막고, /agency·/clinic 은 화면 진입 시 세션 확인 + 모든 관련 API 의 checkAgencyAuth 관문으로 막는다. '
      '※ 의사는 계정 계층이 아니라 상담방 초대링크 게스트 또는 병원 계정으로 참여함.',
-     '완료 · middleware.js, src/lib/auth/accountTiers.ts (계층 단일 표준)'),
+     '완료 · proxy.ts (구 middleware — Next.js 16 에서 이름이 바뀌었다), src/lib/auth/accountTiers.ts (계층 단일 표준)'),
 
     ('FR-03', '게스트 토큰 발급', 'H',
      '비회원 환자에게 public_token을 발급하여 회원가입 없이 초기 상담 접근 가능.',
-     '완료 · migrations/20260125_inquiries_public_token'),
+     '완료 · migrations/20260125_inquiries_public_token_and_attachments'),
 
     ('FR-04', '암환자 인테이크 폼', 'H',
      '환자 기본정보, 암 종류·병기, 의료기록 업로드, 치료 희망 사항 수집. Progressive 단계별 폼. AES-256-GCM 암호화 저장. (사업계획서 p.27)',
@@ -355,7 +355,7 @@ fr_data = [
 
     ('FR-19', '6개 언어 UI/UX', 'H',
      '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kz 등).',
-     '부분구현 · /app/[locale] (ru·kz 포함 6개 언어, 문구 누락은 자동 검사로 상시 확인)'),
+     '부분구현 · 언어 접두어는 proxy.ts 가 처리한다(/ru/treatments → 내부 /treatments 로 넘기고 x-locale 머리값으로 언어 전달)'),
 
     ('FR-20', 'DB 콘텐츠 다국어 자동번역', 'H',
      '병원·치료 정보 i18n JSONB 컬럼 자동번역. Gemini 기반 배치 번역.',
@@ -387,7 +387,7 @@ fr_data = [
 
     ('FR-27', '환자 PII 암호화', 'H',
      '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (*_encrypted 컬럼). encryptionV2.ts 활용.',
-     '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_*_plaintext'),
+     '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)'),
 
     ('FR-28', 'API Rate Limiting', 'H',
      '공개 POST 엔드포인트 IP 기반 요청 제한. rateLimit.ts 활용.',

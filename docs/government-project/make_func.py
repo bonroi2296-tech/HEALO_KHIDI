@@ -225,7 +225,7 @@ add_scenario(doc, {
     '출력': 'Supabase 세션 쿠키, 리다이렉트',
     '화면 경로': '/app/signup, /app/login',
     'DB 테이블': 'auth.users (Supabase 관리)\napp_metadata.role 컬럼',
-    '현재 구현 상태': '완료: middleware.js, src/lib/auth',
+    '현재 구현 상태': '완료: proxy.ts, src/lib/auth',
 })
 
 add_heading(doc, '2.2 역할 기반 접근 제어 (FN-AUTH-02)', 2)
@@ -235,12 +235,12 @@ add_scenario(doc, {
     '액터': '시스템 (Next.js 미들웨어)',
     '전제 조건': '사용자 세션 쿠키 존재',
     '트리거': '보호된 라우트 (/patient/*, /admin/*, /coordinator/*) 접근 시',
-    '기본 흐름': '① Next.js middleware.js에서 세션 검증\n② app_metadata.role 확인\n③ 역할 불일치 → /login 리다이렉트\n④ 역할 일치 → 페이지 렌더링 허용',
+    '기본 흐름': '① Next.js proxy.ts(구 middleware)에서 세션 검증\n② app_metadata.role 확인\n③ 역할 불일치 → /login 리다이렉트\n④ 역할 일치 → 페이지 렌더링 허용',
     '예외 흐름': '• 세션 만료 → 재로그인 안내\n• role 미설정 → 기본 환자 권한',
     '역할 정의': '비회원(게스트): 상담방 초대링크 토큰으로만 /consultation/[id] 입장\n환자: /patient/* 접근\ncoordinator: /coordinator/* 접근\nadmin: /admin/* 전체 접근\n국내 의료기관: /hospital/* 접근\n해외 에이전시: /agency/* 접근\n해외 의료기관: /clinic/* 접근\n※ 의사는 계정 계층이 아님: 초대링크 게스트 또는 병원 계정으로 참여',
-    '화면 경로': 'middleware.js (루트 레벨)',
+    '화면 경로': 'proxy.ts (루트 레벨)',
     'DB/컬럼': 'auth.users.app_metadata.role (user_metadata 사용 금지)',
-    '현재 구현 상태': '완료: middleware.js, src/lib/auth/requireAdminAuth',
+    '현재 구현 상태': '완료: proxy.ts, src/lib/auth/requireAdminAuth',
 })
 
 add_heading(doc, '2.3 게스트 토큰 (FN-AUTH-03)', 2)
@@ -253,8 +253,8 @@ add_scenario(doc, {
     '기본 흐름': '① UUID 기반 public_token 생성\n② inquiries 테이블에 token 저장\n③ 쿠키/로컬스토리지에 token 보관\n④ 이후 요청에 token으로 상담 이력 연속성 유지',
     '예외 흐름': '• 토큰 만료 → 새 토큰 발급, 이전 이력 연결 불가',
     '화면 경로': '/inquiry (토큰 발급 시작점)',
-    'DB 테이블/컬럼': 'inquiries.public_token (migrations/20260125)',
-    '현재 구현 상태': '완료: migrations/20260125_inquiries_public_token',
+    'DB 테이블/컬럼': 'inquiries.public_token (migrations/20260125_inquiries_public_token_and_attachments)',
+    '현재 구현 상태': '완료: migrations/20260125_inquiries_public_token_and_attachments',
 })
 
 doc.add_page_break()
@@ -276,7 +276,7 @@ add_scenario(doc, {
     '입력': '성명(암호화), 연락처(암호화), 국가, 암 종류, 병기, 파일, 희망 내용',
     '출력': 'inquiry 레코드 생성, 코디네이터 이메일 알림',
     '화면 경로': '/app/inquiry (통합 문의 퍼널)',
-    'DB 테이블/컬럼': 'inquiries (id, name_encrypted, email_encrypted, cancer_type, stage, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
+    'DB 테이블/컬럼': 'inquiries (id, encrypted_name, encrypted_email, encrypted_contact, encryption_version, cancer_type, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
     '보안': 'AES-256-GCM 암호화 (encryptionV2.ts)\n개인정보보호법 동의 수집',
     '현재 구현 상태': '완료: /app/inquiry (통합 문의 퍼널)\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
 })
@@ -293,7 +293,7 @@ add_scenario(doc, {
     '입력': '의료 파일 (CT DICOM, MRI, 검사결과 PDF, 진단서)',
     '출력': 'Supabase Storage URL, attachments 레코드',
     '화면 경로': '/app/inquiry (업로드), /app/patient/documents (관리)',
-    'DB 테이블/컬럼': 'attachments (id, inquiry_id, file_url, file_type, uploaded_at)\nconsultation_documents (migrations/20260406)',
+    'DB 테이블/컬럼': 'consultation_documents (id, consultation_id, file_name, file_type, file_size, storage_path, document_type, uploaded_by, created_at)\nconsultation_documents (migrations/20260406_consultation_documents)',
     '현재 구현 상태': '완료: /app/api/attachments\nmigrations/20260406_consultation_documents',
 })
 
@@ -316,7 +316,7 @@ add_scenario(doc, {
     '입력': '증상 텍스트, 암 종류, 선호 병원 유형, 예산',
     '출력': '병원 목록 (이름·진료과·의료진·특장점·예상비용·위치)',
     '화면 경로': '/app/hospitals, /app/api/chat',
-    'DB 테이블/컬럼': 'hospitals (id, name, specialty, location, i18n JSONB)\nrag_documents (embedding vector, content)\nmigrations/20260225_rag_vector_v1, 20260223_i18n_jsonb',
+    'DB 테이블/컬럼': 'hospitals (id, name, specialties, location_kr·location_en 등 언어별 칸, i18n JSONB)\nrag_documents (content, trust_tier, source_type, source_url) + rag_chunks (embedding vector)\nmigrations/20260225_rag_vector_v1, 20260223_i18n_jsonb',
     '참조 특허': '특허 10-2745881 (EMR 연동 플랫폼), 특허 10-2868334 (AI 기반 중개)',
     '현재 구현 상태': '완료: src/lib/chat/generateReply.ts\nsrc/lib/rag/*, /app/api/chat/route.ts',
 })
@@ -332,7 +332,7 @@ add_scenario(doc, {
     '입력': '필터 조건 (진료과, 지역, 언어)',
     '출력': '병원 카드 목록, 상세 정보, 지도',
     '화면 경로': '/app/hospitals, /app/treatments',
-    'DB 테이블/컬럼': 'hospitals (id, name, specialty, address, i18n JSONB, is_published)\ntreatments, specialties\nmigrations/20260223_i18n_jsonb, 20260125_add_is_published',
+    'DB 테이블/컬럼': 'hospitals (id, name, specialties, address, i18n JSONB, is_published)\ntreatments, specialties\nmigrations/20260223_i18n_jsonb, 20260125_add_is_published',
     '현재 구현 상태': '완료: /app/hospitals, /app/treatments\nmigrations/20260223_i18n_jsonb',
 })
 
@@ -355,7 +355,7 @@ add_scenario(doc, {
     '입력': '방 이름(room_name), 참여자 ID, 역할',
     '출력': 'LiveKit Access Token, 화상 UI',
     '화면 경로': '/app/telemedicine/TelemedicineClient.jsx',
-    'DB 테이블/컬럼': 'consultation_sessions (id, inquiry_id, room_name, started_at, ended_at, duration_min)\nmigrations/20260403_add_consultation_sessions',
+    'DB 테이블/컬럼': 'consultation_sessions (id, inquiry_id, livekit_room_name, started_at, ended_at, duration_seconds)\nmigrations/20260403_add_consultation_sessions',
     '연동 서비스': 'LiveKit Cloud (livekit-server-sdk)\n@livekit/components-react, livekit-client',
     '현재 구현 상태': '완료: /app/api/livekit/route.ts\n/app/telemedicine/TelemedicineClient.jsx\nmigrations/20260403_add_consultation_sessions',
 })
@@ -392,7 +392,7 @@ add_scenario(doc, {
     '입력': '사용자 메시지 텍스트, 언어 코드, 상담 컨텍스트',
     '출력': '스트리밍 텍스트 응답, 병원 카드, Human 이관 여부',
     '화면 경로': '/app/patient/chat, /app/consult',
-    'DB 테이블/컬럼': 'chat_threads (id, inquiry_id, messages JSONB, created_at)\nrag_documents (embedding, content, trust_tier)\nmigrations/20260225_chat_threads, 20260225_rag_vector_v1',
+    'DB 테이블/컬럼': 'chat_threads (id, inquiry_id, status, channel, created_at) · chat_messages (본문)\nrag_documents (content, trust_tier, lang) · rag_chunks (embedding, chunk_index)\nmigrations/20260225_chat_threads, 20260225_rag_vector_v1',
     '현재 구현 상태': '완료: /app/api/chat/route.ts\nsrc/lib/chat/generateReply.ts\nsrc/lib/rag/*',
 })
 
@@ -406,7 +406,7 @@ add_scenario(doc, {
     '기본 흐름': '① AI가 이관 플래그 설정 → 코디네이터 알림\n② 코디네이터 /coordinator/messages 접속\n③ 환자 대화 이력 전체 확인\n④ 코디네이터가 직접 메시지 작성·전송\n⑤ 상담 완료 후 AI 자동화 재활성화 여부 선택',
     '예외 흐름': '• 코디네이터 비접속 (1시간) → 슈퍼바이저에게 에스컬레이션',
     '화면 경로': '/app/coordinator/messages',
-    'DB 테이블/컬럼': 'chat_threads.assigned_to (coordinator user_id)\nchat_threads.is_escalated',
+    'DB 테이블/컬럼': 'chat_threads.user_id · chat_threads.status\nchat_threads.status (사람 인계 여부)',
     '현재 구현 상태': '완료: /app/coordinator/messages\n/app/coordinator/*',
 })
 
@@ -458,7 +458,7 @@ add_scenario(doc, {
     '기본 흐름': '① 코디네이터가 병원 가능 일정 입력\n② 환자에게 일정 선택 UI 제공\n③ 환자가 선호 날짜 선택\n④ 예약 확정 → 이메일 확인서 발송\n⑤ 달력에 일정 등록',
     '예외 흐름': '• 선택 날짜 의료진 부재 → 대안 일정 제시\n• 예약 취소 요청 → 72시간 전 무료 취소',
     '화면 경로': '/app/patient/calendar',
-    'DB 테이블/컬럼': 'consultation_sessions (scheduled_at, confirmed)\nmigrations/20260403_add_consultation_sessions',
+    'DB 테이블/컬럼': 'consultation_sessions (scheduled_at, status)\nmigrations/20260403_add_consultation_sessions',
     '현재 구현 상태': '부분구현: /app/patient/calendar UI 있음\n자동 리마인더·의료진 일정 연동 추가 개발 필요',
 })
 
@@ -470,7 +470,7 @@ add_scenario(doc, {
     '트리거': '예약 확정 후 또는 비자 정보 메뉴 접근',
     '기본 흐름': '① 비자 종류 안내 (의료비자 C-3-1)\n② 필요 서류 목록 제공 (진단서, 예약 확인서, 재정증명 등)\n③ 처리 기간·수수료 안내\n④ 진단서·예약확인서 PDF 다운로드 연동',
     '화면 경로': '/app/patient/visa, /app/visa',
-    'DB 테이블/컬럼': 'education_visa_rebooking (migrations/20260406)',
+    'DB 테이블/컬럼': 'education_contents (교육 콘텐츠) · visa_applications·visa_status_history (비자 진행)',
     '현재 구현 상태': '완료: /app/patient/visa, /app/visa\nmigrations/20260406_education_visa_rebooking',
 })
 
@@ -493,7 +493,7 @@ add_scenario(doc, {
     '입력': '증상 코드, 통증 점수, 파일, 메모',
     '출력': '경과 기록, 의료진 알림',
     '화면 경로': '/app/patient/symptoms',
-    'DB 테이블/컬럼': 'inquiries (follow_up_status)\nconsultation_sessions (post_care_notes)',
+    'DB 테이블/컬럼': 'followup_schedules (사후관리 차수·상태를 별도 표로 관리)\nconsultation_sessions (notes, notes_encrypted)',
     '현재 구현 상태': '부분구현: /app/patient/symptoms UI 있음\nAI 자동 이상징후 감지 미구현 (Phase B)',
 })
 
@@ -505,7 +505,7 @@ add_scenario(doc, {
     '트리거': '교육 콘텐츠 메뉴 접근 또는 치료 완료 후 자동 제공',
     '기본 흐름': '① 환자 암 유형에 따른 콘텐츠 필터링\n② 식이요법, 운동가이드, 복약안내, 면역력 관리 콘텐츠\n③ 러시아어·카자흐어 콘텐츠 제공\n④ 영상·카드뉴스·텍스트 형태',
     '화면 경로': '/app/patient/education, /app/education',
-    'DB 테이블/컬럼': 'education_visa_rebooking (content_type, language, content)\nmigrations/20260406_education_visa_rebooking',
+    'DB 테이블/컬럼': 'education_contents (암종·단계·범주별 교육 콘텐츠, 다국어)\nmigrations/20260406_education_visa_rebooking',
     '현재 구현 상태': '부분구현: /app/patient/education UI 있음\n러시아어 콘텐츠 일부 번역 완료, 전체 완성 필요',
 })
 
@@ -517,7 +517,7 @@ add_scenario(doc, {
     '트리거': '경과 모니터링 데이터에서 재방문 필요성 감지',
     '기본 흐름': '① AI가 경과 데이터 분석 → 재방문 필요성 판단\n② 환자에게 재방문 알림 발송\n③ 재진 예상비용·일정·비자 재발급 안내\n④ 예약 확정',
     '화면 경로': '/app/patient/rebooking',
-    'DB 테이블/컬럼': 'education_visa_rebooking (rebooking_status, next_visit_date)',
+    'DB 테이블/컬럼': 'visa_applications · visa_status_history (비자 진행) 및 재방문 제안 로직',
     '현재 구현 상태': '완료: /app/patient/rebooking\nmigrations/20260406_education_visa_rebooking',
 })
 
@@ -536,7 +536,7 @@ add_scenario(doc, {
     '트리거': '언어 선택 또는 브라우저 언어 감지',
     '기본 흐름': '① 브라우저 Accept-Language 헤더 감지\n② 또는 /ru, /kz 경로로 직접 접근\n③ src/lib/i18n/index.js에서 언어 메시지 로드\n④ 해당 언어 UI 렌더링',
     '지원 언어': 'ko (한국어), en (영어), ru (러시아어), kk (카자흐어), zh (중국어), ja (일본어)',
-    '화면 경로': '/app/[locale] (ru·kz 포함 6개 언어), src/lib/i18n/index.js',
+    '화면 경로': 'proxy.ts (언어 접두어 처리) · src/lib/i18n/index.js',
     '현재 구현 상태': '완료: 6개 언어 라우트 운영(ko·en·ru·kz·zh·ja)\n러시아어·카자흐어 문구 전건 채움\n키 누락은 자동 검사로 상시 확인',
 })
 
@@ -568,7 +568,7 @@ add_scenario(doc, {
     '트리거': '/coordinator 접근',
     '기본 흐름': '① 담당 환자 목록 및 상태 확인\n② AI 이관 상담 목록 확인\n③ 환자 메시지 읽기·응답\n④ 의료문서 라우팅 (병원에 전달)\n⑤ 예약·일정 확정\n⑥ 실적 현황 (유치 건수, 상담 건수) 확인',
     '화면 경로': '/app/coordinator/page.jsx\n/app/coordinator/messages\n/app/coordinator/inbox\n/app/coordinator/consultations',
-    'DB 테이블/컬럼': 'inquiries (coordinator_id, status)\nchat_threads (assigned_to)\nconsultation_sessions (coordinator_id)',
+    'DB 테이블/컬럼': 'inquiries (status) · 담당자 배정은 별도 표로 관리\nchat_threads (assigned_to)\nconsultation_sessions (coordinator_id, coordinator_user_id)',
     '현재 구현 상태': '완료: /app/coordinator/*',
 })
 
@@ -578,7 +578,7 @@ add_scenario(doc, {
     '기능명': '코디네이터 응답 이력 및 문서 관리',
     '액터': '코디네이터 (P-02)',
     '기본 흐름': '① 상담 응답 내용 기록 (coordinator_responses 테이블)\n② 의료문서 분류·병원 전달\n③ 상담 요약 생성 (AI 보조)',
-    'DB 테이블/컬럼': 'coordinator_responses (id, inquiry_id, response_text, created_at)\nmigrations/20260225_coordinator_responses',
+    'DB 테이블/컬럼': 'coordinator_responses (id, inquiry_id, hospital_id, response_type, content, quoted_price, status, created_at)\nmigrations/20260225_coordinator_responses',
     '현재 구현 상태': '완료: migrations/20260225_coordinator_responses',
 })
 
@@ -597,7 +597,7 @@ add_scenario(doc, {
     '전제 조건': 'admin role 로그인',
     '기본 흐름': '① KPI 대시보드: 유치 건수, 상담 건수, 만족도\n② 사용자 관리: 역할 변경, 활성화/비활성화\n③ 병원·의료진 데이터 관리\n④ AI 성능 모니터링: RAG 응답 품질, 자동응답률\n⑤ 감사 로그 조회\n⑥ 성과보고서 PDF 출력',
     '화면 경로': '/app/admin/page.jsx\n/app/admin/analytics\n/app/admin/consultations\n/app/admin/audit',
-    'DB 테이블/컬럼': 'admin_audit_logs (id, action, user_id, timestamp)\nmigrations/20260129_add_admin_audit_logs',
+    'DB 테이블/컬럼': 'admin_audit_logs (id, admin_user_id, admin_email, action, created_at)\nmigrations/20260129_add_admin_audit_logs',
     '현재 구현 상태': '완료: /app/admin/*',
 })
 
@@ -609,7 +609,7 @@ add_scenario(doc, {
     '전제 조건': 'partner role 로그인',
     '기본 흐름': '① 병원 프로필·의료진 정보 관리\n② 협진 의뢰 수신·처리\n③ 진료 결과 입력\n④ 가용 일정 관리',
     '화면 경로': '/app/hospital/*',
-    'DB 테이블/컬럼': 'hospital_users (hospital_id, user_id, role)\npartner_doctors (doctor_id, hospital_id, specialty)\nmigrations/20260220_hospital_users\nmigrations/20260407_partner_doctors_branches',
+    'DB 테이블/컬럼': 'hospital_users (hospital_id, user_id, role)\npartner_doctors (id, branch_id, name_ko, subspecialty, is_active)\nmigrations/20260220_hospital_users\nmigrations/20260407_partner_doctors_branches',
     '현재 구현 상태': '완료: /app/hospital/*\nmigrations/20260407_partner_doctors_branches',
 })
 
@@ -629,7 +629,7 @@ add_scenario(doc, {
     '기본 흐름': '① 트리거 이벤트 발생\n② /api/email 호출\n③ @react-email/render로 HTML 이메일 생성\n④ Resend API로 발송\n⑤ 발송 로그 기록',
     '이메일 유형': '예약 확인서, 상담 완료 요약, 경과 체크인 리마인더\n관리자 신규 문의 알림, 코디네이터 이관 알림',
     '화면 경로': '/app/api/email/*',
-    'DB 테이블/컬럼': 'admin_notification_logs (id, type, recipient, sent_at)\nmigrations/20260204_add_admin_notification_logs',
+    'DB 테이블/컬럼': 'admin_notification_logs (id, channel, recipient_label, destination, status, created_at)\nmigrations/20260204_add_admin_notification_logs',
     '현재 구현 상태': '완료: /app/api/email, src/lib/email',
 })
 
@@ -658,11 +658,11 @@ add_scenario(doc, {
     '기능명': 'RAG 3계층 기반 AI 응답 생성',
     '개요': '사업계획서(p.31) "현재는 Human, 미래는 AI": Human Agent 상담 데이터 RAG 학습 파이프라인',
     '1계층 (HEALO DB)': 'Supabase pgvector로 병원·치료·FAQ 벡터 저장\nrag_documents 테이블 (embedding, content, trust_tier)\nmigrations/20260225_rag_vector_v1',
-    '2계층 (HIRA 크롤링)': 'HIRA 의료수가·병원 정보 크롤링 및 RAG 인제스트\ncrawl_items, crawl_pipeline 테이블\nmigrations/20260225_crawl_pipeline',
+    '2계층 (HIRA 크롤링)': 'HIRA 의료수가·병원 정보 크롤링 및 RAG 인제스트\ncrawl_raw_items, crawl_jobs 테이블\nmigrations/20260225_crawl_pipeline',
     '3계층 (Google Grounding)': 'Gemini Google Search Grounding\n실시간 최신 의료 정보 보완',
     '학습 파이프라인': '① Human Agent 상담 기록\n② 자동 구조화 (JSON/CSV)\n③ 벡터 임베딩 생성\n④ pgvector 저장\n⑤ RAG 검색으로 AI 응답 품질 향상',
     '화면 경로': 'src/lib/rag/*, src/lib/chat/generateReply.ts',
-    'DB 테이블/컬럼': 'rag_documents (id, content, embedding, trust_tier, source)\nplaybook_patterns, playbook_usage_events\nmigrations/20260225_rag_*, 20260225_playbook_*',
+    'DB 테이블/컬럼': 'rag_documents (id, content, trust_tier, source_type, source_url) · rag_chunks (embedding)\nplaybook_patterns, playbook_usage_events\nmigrations/20260225_rag_*, 20260225_playbook_*',
     '현재 구현 상태': '완료: src/lib/rag/*\nmigrations/20260225_rag_vector_v1\nmigrations/20260225_playbook_patterns',
 })
 
@@ -677,12 +677,12 @@ add_heading(doc, '15.1 환자 PII AES-256-GCM 암호화 (FN-SEC-01)', 2)
 add_scenario(doc, {
     '기능 ID': 'FN-SEC-01',
     '기능명': '환자 PII 암호화 저장',
-    '대상 컬럼': 'name_encrypted, email_encrypted, phone_encrypted\ncancer_intake_encrypted 등 *_encrypted 컬럼',
+    '대상 컬럼': 'inquiries.encrypted_name · encrypted_email · encrypted_contact(연락처)\nconsultation_sessions.notes_encrypted 등 암호화 칸',
     '암호화 방식': 'AES-256-GCM (src/lib/security/encryptionV2.ts)',
-    '암호화 시점': '인테이크 폼 제출 → 서버 측에서 암호화 후 저장\n평문 컬럼은 migrations/20260420_drop_*_plaintext 에서 삭제 완료',
+    '암호화 시점': '인테이크 폼 제출 → 서버 측에서 암호화 후 저장\n평문 컬럼은 migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) 에서 삭제 완료',
     '복호화 권한': 'service_role 키 보유 서버 모듈만 복호화 가능\nimport "server-only" 적용',
-    'DB 테이블/컬럼': 'inquiries (name_encrypted, email_encrypted)\ncancer_intake_encrypted\nmigrations/20260420_drop_cancer_intake_plaintext\nmigrations/20260420_drop_inquiries_plaintext_email',
-    '현재 구현 상태': '완료: src/lib/security/encryptionV2.ts\nmigrations/20260420_drop_*_plaintext (평문 완전 제거)',
+    'DB 테이블/컬럼': 'inquiries (encrypted_name, encrypted_email, encrypted_contact)\ncancer_intake_encrypted\nmigrations/20260420_drop_cancer_intake_plaintext\nmigrations/20260420_drop_inquiries_plaintext_email',
+    '현재 구현 상태': '완료: src/lib/security/encryptionV2.ts\nmigrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)',
 })
 
 add_heading(doc, '15.2 API 보안 헬퍼 및 Rate Limiting (FN-SEC-02)', 2)
@@ -703,7 +703,7 @@ add_scenario(doc, {
     '기능명': '관리자 행동 감사 로그 기록',
     '기록 대상': '관리자 로그인, 사용자 역할 변경, 데이터 수정, 병원 정보 변경 등',
     '화면 경로': '/app/admin/audit',
-    'DB 테이블/컬럼': 'admin_audit_logs (id, action, target_id, user_id, ip, created_at)\nmigrations/20260129_add_admin_audit_logs',
+    'DB 테이블/컬럼': 'admin_audit_logs (id, action, inquiry_ids, admin_user_id, ip_address, user_agent, created_at)\nmigrations/20260129_add_admin_audit_logs',
     '현재 구현 상태': '완료: migrations/20260129_add_admin_audit_logs',
 })
 
@@ -719,7 +719,7 @@ sum_tbl = doc.add_table(rows=0, cols=4)
 sum_tbl.style = 'Table Grid'
 add_header_row(sum_tbl, ['기능 그룹', '구현 상태', '파일 경로', '비고'])
 summary_data = [
-    ('회원·인증·RBAC', '완료', '/app/signup, /app/login, middleware.js', '게스트 토큰 포함'),
+    ('회원·인증·RBAC', '완료', '/app/signup, /app/login, proxy.ts', '게스트 토큰 포함'),
     ('인테이크·문서 업로드', '완료', '/app/inquiry, /app/api/attachments', '인테이크 평문 컬럼 제거 완료'),
     ('병원 매칭 (AI+RAG)', '완료', '/app/api/chat, src/lib/chat/', 'RAG 3계층 운영 중'),
     ('병원 목록·상세', '완료', '/app/hospitals', 'i18n JSONB 완료'),
@@ -731,8 +731,8 @@ summary_data = [
     ('경과 모니터링 UI', '완료', '/app/patient/symptoms', '이상 징후 자동 분석·담당자 알림 가동'),
     ('교육 콘텐츠', '부분', '/app/education', '18건 발행(러시아어 전건) · 단계별 자동 발송은 화면 연결 남음'),
     ('재방문 예약', '완료', '/app/patient/rebooking', ''),
-    ('6개 언어 UI', '완료', '/app/[locale]', '6개 언어 문구 전건 채움 · 자동 검사 통과'),
-    ('DB 자동번역', '완료', 'migrations/20260223', '병원·치료 완료'),
+    ('6개 언어 UI', '완료', 'proxy.ts · src/lib/i18n', '6개 언어 문구 전건 채움 · 자동 검사 통과'),
+    ('DB 자동번역', '완료', 'migrations/20260223_auto_translate_fields', '병원·치료 완료'),
     ('코디네이터 포털', '완료', '/app/coordinator/*', ''),
     ('관리자 포털', '완료', '/app/admin/*', '감사 로그 포함'),
     ('국내 의료기관 포털', '완료', '/app/hospital/*', '의료진 등록 포함'),

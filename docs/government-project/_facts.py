@@ -62,11 +62,11 @@ TIERS = [
     ("admin", "관리자", "app_metadata.role", "/admin",
      "운영자. 전체 권한. 통합 콘솔에서 코디 화면까지 포함."),
     ("domestic_hospital", "국내 의료기관", "hospital_users 테이블", "/hospital",
-     "제휴 한국 병원 담당자(owner/manager/viewer). 리드·프로필·치료정보 관리."),
-    ("overseas_agency", "해외 에이전시", "agency_users + partner_type", "/agency",
-     "해외 환자 유치 파트너. 의뢰 환자 진행상황 조회."),
-    ("overseas_medical", "해외 의료기관", "agency_users + partner_type", "/clinic",
-     "환자를 한국으로 의뢰하는 현지 병원. 경과·검사결과 전송 주체."),
+     "제휴 한국 병원 담당자(owner/manager/viewer). 진료 의뢰(리드) 확인·상태 갱신·견적 회신. 병원 정보·시술 카탈로그 편집은 공개 연동 준비 중이라 아직 비활성이다."),
+    ("overseas_agency", "해외 에이전시", "agency_users + agencies.partner_type", "/agency",
+     "해외 환자 유치 파트너. 환자 의뢰 · 단계별 진행 확인 · 코디네이터와 케이스 메신저."),
+    ("overseas_medical", "해외 의료기관", "agency_users + agencies.partner_type", "/clinic",
+     "환자를 한국으로 의뢰하는 현지 병원. 에이전시와 달리 검사결과·영상·소견을 케이스에 올릴 수 있다(사후관리 ICT)."),
 ]
 
 # ── 폐지·이전된 경로 (문서에서 절대 쓰면 안 되는 것) ─────────────────────────
@@ -151,13 +151,15 @@ KPI_ACTUAL = {
 # ── 품질검증 실적 (AS_OF 기준 실행 결과 — 추정 아님) ─────────────────────────
 # 단위테스트: `npx vitest run` / 통합·E2E: `npx playwright test --list`
 QUALITY = {
-    "unit_files": 110,
-    "unit_tests": 1002,
-    "unit_result": "전건 통과 (2026-08-19 실행, 15.8초)",
-    "e2e_files": 45,
-    "e2e_tests": 164,
+    "unit_files": 146,
+    "unit_tests": 1289,
+    "unit_result": "전건 통과 (2026-08-20 실행, 32.7초)",
+    "e2e_files": 48,
+    "e2e_tests": 152,
     "ci_gates": [
-        ("타입·빌드", "TypeScript 검사 및 프로덕션 빌드", "매 변경 자동 실행"),
+        ("타입·빌드", "TypeScript 검사(tsc --noEmit)·린트·프로덕션 빌드", "매 변경 자동 실행"),
+        ("단위 테스트", "vitest 전건 실행 — 로직 퇴행 차단", "매 변경 자동 실행"),
+        ("스키마 참조", "없는 표·칸 조회와 마이그레이션 재실행 충돌 차단", "매 변경 자동 실행"),
         ("콘텐츠 일관성", "폐지된 경로·용어, 6개 언어 키 누락 검사", "매 변경 자동 실행"),
         ("보안 의존성", "취약점 공고 단위 판정(기한부 예외 관리)", "매 변경 자동 실행"),
         ("스모크 E2E", "주요 화면·흐름 자동 클릭 검증", "매 변경 자동 실행"),

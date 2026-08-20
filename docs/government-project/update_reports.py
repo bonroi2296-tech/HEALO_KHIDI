@@ -44,40 +44,56 @@ REPLACEMENTS = {
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        # 「/app/api/email/*」 에 걸리면 「…sendEmail.ts/*」 라는 없는 경로가 된다. 별표형을 먼저 처리한다.
+        ("src/lib/email/sendEmail.ts/*", "src/lib/email/*"),
+        ("/app/api/email/*", "src/lib/email/*"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
-        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)",
          "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
-        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)", "migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
     "02_기능명세서.docx": [
         # ── 2026-08-19 : 실제로 없는 경로 → 배포 코드의 실제 주소로
         ("/app/api/chat/route.ts", "/app/api/public/chat/message, /app/api/patient/chat"),
         ("/app/api/livekit/route.ts", "/app/api/khidi/consultation/token (+ /app/api/livekit/webhook)"),
+        # 「/app/api/email/*」 에 걸리면 「…sendEmail.ts/*」 라는 없는 경로가 된다. 별표형을 먼저 처리한다.
+        ("src/lib/email/sendEmail.ts/*", "src/lib/email/*"),
+        ("/app/api/email/*", "src/lib/email/*"),
         ("/app/api/email", "src/lib/email/sendEmail.ts"),
-        ("migrations/20260420_drop_*_plaintext (평문 완전 제거)",
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (평문 완전 제거)",
          "식별정보 암호화 적용: 이메일 109건·전화 22건 전건 암호문(2026-08-19 실측). "
          "평문 컬럼 삭제 마이그레이션은 보류(검색·번역에 쓰이는 본문 때문)"),
-        ("migrations/20260420_drop_*_plaintext", "migrations/20260420_drop_*_plaintext (작성 완료·미실행)"),
+        ("migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)", "migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류) (작성 완료·미실행)"),
         ("평문 완전 제거", "식별정보 암호화 완료 / 본문·소견은 평문 보관"),
     ],
     "08_테스트결과서.docx": [
+        # ↓ 2026-08-20 실측 재측정값(npm run test:run · playwright --list · npm audit --omit=dev)
+        ("45개 파일 164건", "48개 파일 152건"),
+        ("110개 파일 1,002건", "146개 파일 1,289건"),
+        ("110개 파일 / 1,002건", "146개 파일 / 1,289건"),
+        ("45개 파일 / 164건", "48개 파일 / 152건"),
+        ("Critical: 0건, High: 1건, Moderate: 2건 (운영 의존성 기준, 2026-08-19 실행)", "Critical: 0건, High: 0건, Moderate: 2건 (운영 의존성 기준, 2026-08-20 실행)"),
+        ("Critical 0건 · High 1건 · Moderate 2건 (2026-08-19)", "Critical 0건 · High 0건 · Moderate 2건 (2026-08-20)"),
+        ("2026-08-19 현재는 e2e 폴더에", "2026-08-20 현재는 e2e 폴더에"),
+        ("[해소됨 2026-08-19]", "[해소됨 2026-08-20]"),
+        ("전건 통과 (2026-08-19 실행, 15.8초)", "전건 통과 (2026-08-20 실행, 32.7초)"),
         ('5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역) (2026-04 지적 → 2026-08-19 해소 내역)',
          "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-20 해소 내역)"),
         ("«수동 확인»", "수동 확인"),
         ("SEC-01~08 모두 통과 (2026-04-30 기준)", "SEC-01~08 모두 통과 (2026-08-19 기준)"),
         ("2026년 4월 30일", "2026년 8월 19일"),
-        ("82개 파일 / 748건", "110개 파일 / 1,002건"),
-        ("40개 파일 / 108건", "45개 파일 / 164건"),
+        ("82개 파일 / 748건", "146개 파일 / 1,289건"),
+        ("40개 파일 / 108건", "48개 파일 / 152건"),
         ("현재 (4월 30일)", "현재 (8월 19일)"),
         ("Critical: 0건, High: 0건, Moderate: [확인 필요. TBD]",
-         "Critical: 0건, High: 1건, Moderate: 2건 (운영 의존성 기준, 2026-08-19 실행)"),
+         "Critical: 0건, High: 0건, Moderate: 2건 (운영 의존성 기준, 2026-08-20 실행)"),
         ("2026-04-30", "2026-08-19"),
         ("(e2e/ 디렉토리 예정)",
-         "(아래 표는 2026-04 시점 수동 확인 시나리오다. 2026-08-20 현재는 자동화 스크립트 45개 파일 164건으로 대체되어 자동 실행된다.)"),
+         "(아래 표는 2026-04 시점 수동 확인 시나리오다. 2026-08-20 현재는 자동화 스크립트 48개 파일 152건으로 대체되어 자동 실행된다.)"),
         ("Playwright E2E 스크립트 코드베이스 내 미포함. 현재 수동 시나리오 기반 (e2e/ 디렉토리 추가 예정)",
-         "[해소됨 2026-08-19] Playwright E2E 스크립트 도입 완료: 45개 파일 164건. 매 변경 시 스모크, 매일 밤 전체 실행."),
+         "[해소됨 2026-08-20] Playwright E2E 스크립트 도입 완료: 48개 파일 152건. 매 변경 시 스모크, 매일 밤 전체 실행."),
         ("단위 테스트(Jest) 케이스 부재: requireAdminAuth.test.ts 등 추가 필요",
          "[해소됨 2026-08-19] 단위 테스트 110개 파일 1,002건 도입 완료(전건 통과)."),
         ("5.2 자동화 테스트 미흡 영역", "5.2 자동화 테스트 미흡 영역 (2026-04 지적 → 2026-08-20 해소 내역)"),
@@ -261,6 +277,25 @@ REPLACEMENTS = {
          '도착한 소견은 원문 그대로 케이스 상세에만 쌓인다. AI 가 환자 언어 번역 초안을 만들고, 코디네이터가 교정한 뒤 [에이전시에 공개]를 눌러야 밖으로 나간다'),
         ('[화면: /opinion/<토큰>: 환자가 소견을 확인하는 화면]',
          '[화면: /coordinator/inbox/[번호] 「전문의 소견」 · /opinion/<토큰>(환자가 확인하는 화면)]'),
+        # ↓ 병원 포털: 시험 리드를 하나 만들어 실제 화면을 띄워 확인(2026-08-20). 확인 뒤 그 리드는 지웠다.
+        ('파트너 대시보드로 이동: 배정된 환자 목록, 예정 화상상담, 수신 의뢰 확인',
+         '왼쪽 메뉴는 [대시보드]와 [진료 의뢰(리드)] 둘이다. (「병원 정보」·「시술 카탈로그」는 공개 연동 준비 중이라 아직 비활성)'),
+        ('의료진 계정은 관리자가 발급한다. 계정 신청은 플랫폼 관리자(admin)에게 문의.',
+         '대시보드 카드는 응답 대기 · 전환율 · 평균 첫 응답 · 확정 견적 합계 네 개이고, 그 아래에 전체/오늘/이번 주/이번 달 리드 수와 「응답 필요」 목록이 이어진다. 의료기관 담당자 계정은 관리자가 발급한다.'),
+        ('[배정 환자] 목록에서 환자 선택',
+         '[진료 의뢰(리드)] 메뉴에서 우리 병원으로 배정된 의뢰를 고른다'),
+        ('열람 가능 항목: 인테이크 정보(암종·병기·기왕력), 업로드 의료 기록',
+         '리드에 보이는 항목: 목적 · 시술 · 국가 · 언어 · 배정일 · 문의 내용 · 보험 정보 유무. 환자 이름과 연락처는 병원에 넘기지 않는다'),
+        ('의료 기록 파일 다운로드 후 검토',
+         '상태를 전송됨 → 조회됨 → 응답함 → 치료 확정(또는 거절)으로 갱신하고, 견적 최소·최대와 메모를 남기거나 「코디에게 메시지」를 보낸다. 목록은 [CSV]로 내려받을 수 있다'),
+        ('[화면: /hospital/leads 페이지: 의뢰 환자 상세]',
+         '[화면: /hospital/leads 페이지: 리드 관리]'),
+        ('대시보드 [예정 화상상담] 목록에서 해당 일정 확인',
+         '코디네이터가 보낸 상담 초대링크를 연다(병원 포털 안에는 화상상담 목록이 없다)'),
+        ('상담 시간 5분 전 [입장] 버튼 클릭',
+         '대기실에서 코디네이터가 입장을 승인하면 상담방에 들어간다'),
+        ('의료진 화상 접속은 로그인 후 직접 입장 (게스트 링크 불사용).',
+         '의료진은 계정 없이 초대링크로 참여한다. 병원 담당자 계정으로 로그인해도 상담방은 초대링크로 들어간다.'),
     ],
     "07_관리자매뉴얼.docx": [
         ("/admin/intake/[id] 에서", "/admin/inquiries 에서"),
@@ -554,7 +589,7 @@ def add_appendix(doc, kind):
     if kind == "test":
         sec("품질검증 현황")
         table(doc, ["구분", "규모", "결과"], [
-            ("단위 테스트", f"{F.QUALITY['unit_files']}개 파일 / {F.QUALITY['unit_tests']}건",
+            ("단위 테스트", f"{F.QUALITY['unit_files']}개 파일 / {F.QUALITY['unit_tests']:,}건",
              F.QUALITY["unit_result"]),
             ("통합·E2E 테스트", f"{F.QUALITY['e2e_files']}개 파일 / {F.QUALITY['e2e_tests']}건",
              "자동 실행"),
@@ -718,12 +753,14 @@ def move_page_breaks(doc):
     return n
 
 
-def keep_short_tables_together(doc, max_rows=8):
+def keep_short_tables_together(doc, max_rows=16):
     """짧은 표가 쪽 경계에 걸려 «머리행 없는 조각»만 다음 쪽에 남는 것을 막는다.
 
-    2026-08-20 실측: 08 테스트결과서 5쪽이 화상상담 표의 마지막 한 줄만 있는 쪽이었다.
+    2026-08-20 실측: 08 테스트결과서 5쪽이 화상상담 표의 마지막 한 줄만 있는 쪽이었고,
+    02 기능명세서 21쪽도 시나리오 표(14줄)의 마지막 줄 하나뿐이었다.
     머리행 반복(repeat_table_headers)은 12행 이상 긴 표만 다루므로 짧은 표는 여기서 막는다.
     """
+    from docx.text.paragraph import Paragraph
     n = 0
     for t in doc.tables:
         if len(t.rows) > max_rows:
@@ -734,6 +771,20 @@ def keep_short_tables_together(doc, max_rows=8):
                     if not par.paragraph_format.keep_with_next:
                         par.paragraph_format.keep_with_next = True
                         n += 1
+        # 표 «바로 앞»의 제목·안내 줄도 함께 묶는다. 안 그러면 제목만 앞 쪽에 홀로 남는다
+        # (2026-08-20 실측: EVAL_MATRIX 4쪽이 「3. HEALO 평가 매트릭스」 두 줄뿐이었다).
+        prev = t._tbl.getprevious()
+        kept = 0
+        while prev is not None and prev.tag == qn("w:p") and kept < 2:
+            par = Paragraph(prev, doc)
+            # 사이에 낀 빈 문단도 함께 묶어야 한다 — 하나라도 빠지면 거기서 사슬이 끊겨
+            # 제목만 앞 쪽에 남는다.
+            if not par.paragraph_format.keep_with_next:
+                par.paragraph_format.keep_with_next = True
+                n += 1
+            if par.text.strip():
+                kept += 1
+            prev = prev.getprevious()
     return 1 if n else 0
 
 
@@ -876,6 +927,80 @@ def keep_short_procedures_together(doc, max_steps=6):
     return n
 
 
+def strip_trailing_blanks(doc):
+    """문서 끝의 빈 문단을 없애거나, 없앨 수 없으면 «높이를 0에 가깝게» 눌러 둔다.
+
+    2026-08-20 실측: 부록을 갈아 끼우면 끝에 빈 문단이 남아 06·07 매뉴얼의 마지막 쪽이
+    머리말·꼬리말만 있는 빈 쪽이 됐다. 그런데 본문이 표로 끝나면 **워드가 표 뒤 문단을
+    스스로 되살린다** — 지우기만 해서는 빈 쪽이 그대로 남는다.
+    그래서 표로 끝나는 문서는 빈 문단을 한 줄 남기되 글자 크기 1pt·줄간격 0 으로 눌러
+    쪽을 넘기지 못하게 한다.
+    """
+    from docx.text.paragraph import Paragraph
+    body = doc.element.body
+    n = 0
+    for el in reversed(list(body.iterchildren())):
+        if el.tag == qn("w:sectPr"):
+            continue
+        if el.tag != qn("w:p"):
+            break                      # 표를 만나면 거기서 멈춘다
+        if Paragraph(el, doc).text.strip():
+            break
+        body.remove(el)
+        n += 1
+
+    # 표로 끝나면 워드가 문단을 되살리므로, 우리가 먼저 «높이 없는» 문단을 놔둔다.
+    last = [e for e in body.iterchildren() if e.tag in (qn("w:p"), qn("w:tbl"))]
+    if last and last[-1].tag == qn("w:tbl"):
+        par = doc.add_paragraph()
+        pf = par.paragraph_format
+        pf.space_before = pf.space_after = Pt(0)
+        pf.line_spacing = Pt(1)
+        run = par.add_run("")
+        run.font.size = Pt(1)
+        n += 1
+    return n
+
+
+def drop_blanks_before_page_break(doc):
+    """쪽 나눔 문단 «바로 앞»의 빈 문단을 없앤다.
+
+    2026-08-20 실측: 02 기능명세서 21쪽이 빈 문단 하나만 있는 쪽이었다.
+    앞 표가 쪽을 딱 채우면 그 빈 문단이 다음 쪽으로 넘어가고, 그 뒤 문단은
+    「쪽 나눔으로 시작」이라 또 다음 쪽으로 가버려 가운데 쪽이 통째로 빈다.
+    """
+    from docx.text.paragraph import Paragraph
+    body = doc.element.body
+    n = 0
+    for el in list(body.iterchildren()):
+        if el.tag != qn("w:p"):
+            continue
+        if not Paragraph(el, doc).paragraph_format.page_break_before:
+            continue
+        prev = el.getprevious()
+        while prev is not None and prev.tag == qn("w:p") and not Paragraph(prev, doc).text.strip():
+            drop, prev = prev, prev.getprevious()
+            body.remove(drop)
+            n += 1
+    return n
+
+
+def no_row_split(doc):
+    """표의 «한 줄»이 쪽 경계에서 반으로 잘리지 않게 한다.
+
+    2026-08-20 실측: 02 기능명세서 21쪽이 앞 줄에서 흘러넘친 한 줄뿐이었다.
+    줄 통째로 다음 쪽에 넘어가게 하면 어느 칸의 내용인지 알아볼 수 있다.
+    """
+    n = 0
+    for t in doc.tables:
+        for row in t.rows:
+            trPr = row._tr.get_or_add_trPr()
+            if trPr.find(qn("w:cantSplit")) is None:
+                trPr.append(OxmlElement("w:cantSplit"))
+                n += 1
+    return 1 if n else 0
+
+
 def drop_rows_containing(doc, needle, only_table_with=None):
     """어느 칸에든 needle 이 든 줄을 표에서 통째로 뺀다. 지운 줄 수를 돌려준다.
 
@@ -926,12 +1051,15 @@ def main():
         n += fix_em_dash(doc)
         n += ensure_footer(doc)
         n += repeat_table_headers(doc)
+        n += no_row_split(doc)
         n += move_page_breaks(doc)
+        n += drop_blanks_before_page_break(doc)
         n += keep_short_tables_together(doc)
         n += widen_id_columns(doc)
         n += restart_numbered_lists(doc)
         n += keep_screen_notes_with_steps(doc)
         n += keep_short_procedures_together(doc)
+        n += strip_trailing_blanks(doc)
         if n:
             doc.save(str(path))
             changed.append(f"{path.name}: 공통 정리 {n}곳(꼬리말·머리행 포함)")
@@ -1000,7 +1128,7 @@ def main():
                         {2: "5항목 중 4항목 측정",
                          3: "2026-08-20 실측(모바일·데스크톱 각 5회). LCP 는 데스크톱만 충족, CLS 는 간헐 발생"})
         hit += set_cells(doc, "npm 의존성 보안",
-                         {2: "1회", 3: "Critical 0건 · High 1건 · Moderate 2건 (2026-08-19)"})
+                         {2: "1회", 3: "Critical 0건 · High 0건 · Moderate 2건 (2026-08-20)"})
         if hit:
             doc.save(path)
             changed.append(f"08_테스트결과서.docx: 측정 결과 {hit}줄 갱신")
@@ -1036,6 +1164,8 @@ def main():
         doc = Document(path)
         removed = strip_appendix(doc)
         add_appendix(doc, kind)
+        # 부록을 붙인 «뒤»에 걷어내야 한다 — 앞서 돌리면 부록이 다시 빈 문단을 남긴다.
+        strip_trailing_blanks(doc)
         doc.save(path)
         changed.append(f"{fname}: 부록 갱신" + (f" (옛 부록 {removed}블록 제거)" if removed else ""))
 
