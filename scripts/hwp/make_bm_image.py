@@ -48,11 +48,17 @@ def mid(x, y, text, font, fill):
     d.text((x - d.textlength(text, font=font) / 2, y), text, font=font, fill=fill)
 
 
-def card(x, y, w, h, title, sub):
+def card(x, y, w, h, title, subs):
+    """subs 는 문자열 하나이거나 여러 줄 목록. 글 뭉치를 상자 세로 가운데에 놓는다."""
+    if isinstance(subs, str):
+        subs = [subs]
     d.rectangle([x, y, x + w, y + h], fill=PANEL, outline=LINE, width=2)
     cx = x + w / 2
-    mid(cx, y + h / 2 - 32, title, f(7, 27), BLACK)
-    mid(cx, y + h / 2 + 8, sub, f(4, 20), BODY)
+    block = 36 + 8 + len(subs) * 28 + (len(subs) - 1) * 4
+    top = y + (h - block) / 2
+    mid(cx, top, title, f(7, 27), BLACK)
+    for i, t in enumerate(subs):
+        mid(cx, top + 44 + i * 32, t, f(4, 20), BODY)
 
 
 def arrow(x1, y, x2, label, money=False):
@@ -83,11 +89,11 @@ d.text((70, 56), '비즈니스모델 체계도 및 연도별 매출계획(안)',
 d.line([70, 136, W - 70, 136], fill=BLACK, width=3)
 
 # ─────────────────────────── 체계도
-CW, CH = 296, 118
+CW, CH = 296, 138
 LX, RX = 132, 1372
 MX, MW = 706, 388
 TOP, BOT = 200, 384
-MY, MH = 200, 302
+MY, MH = 200, 322          # 아래끝을 오른쪽 아래 상자(BOT+CH)에 맞춘다
 
 # 기둥 이름
 mid(LX + CW / 2, 168, '유 입 경 로', f(6, 19), MUTED)
@@ -96,17 +102,19 @@ mid(RX + CW / 2, 168, '연 결 병 원', f(6, 19), MUTED)
 card(LX, TOP, CW, CH, '외국인 환자', '암환자 · 보호자')
 card(LX, BOT, CW, CH, '해외 파트너십', '협력 의료기관 · 에이전시')
 card(RX, TOP, CW, CH, '상급 종합병원', '정밀검진 · 수술 · 항암치료')
-card(RX, BOT, CW, CH, '협력 병·의원', '면역치료 · 회복기 재활 · 사후관리')
+card(RX, BOT, CW, CH, '협력 병·의원', ['면역치료 · 회복기 재활', '사후관리'])
 
 # 가운데: 플랫폼
 d.rectangle([MX, MY, MX + MW, MY + MH], fill=BRAND, outline=BRAND_D, width=3)
 cx = MX + MW / 2
-mid(cx, MY + 30, 'healwith 플랫폼', f(7, 31), 'white')
-mid(cx, MY + 76, '본로이', f(4, 21), PALE)
-d.line([MX + 48, MY + 120, MX + MW - 48, MY + 120], fill=BRAND_D, width=2)
-for i, t in enumerate(['사전상담 · 원격협진',
-                       '다국어 · 사후관리 자동안내']):
-    mid(cx, MY + 156 + i * 46, t, f(5, 20), PALE)
+PLAT = ['사전상담 · 원격협진', '다국어 · 사후관리 자동안내']
+_block = 40 + 8 + 28 + 26 + 2 + 26 + len(PLAT) * 26 + (len(PLAT) - 1) * 16
+_top = MY + (MH - _block) / 2
+mid(cx, _top, 'healwith 플랫폼', f(7, 31), 'white')
+mid(cx, _top + 48, '본로이', f(4, 21), PALE)
+d.line([MX + 48, _top + 102, MX + MW - 48, _top + 102], fill=BRAND_D, width=2)
+for i, t in enumerate(PLAT):
+    mid(cx, _top + 130 + i * 42, t, f(5, 20), PALE)
 
 # 유입: 두 경로 모두 같은 곳으로 들어온다
 arrow(LX + CW, TOP + 59, MX, '직접 문의')
@@ -143,13 +151,13 @@ rows = [TY + i * 54 for i in range(7)]
 head = ['구  분', '2026년 (하반기)', '2027년', '2028년', '비  고']
 body = [
     ['1.  유치 건수', '12 건 (목표)', '30 건', '60 건', '월 1.5건 → 2.5건 → 5건'],
-    ['2.  매출액', '건수 × 진료비 × 유치 수수료', '상    동', None, '환자별 치료 구성에 따라 변동'],
+    ['2.  매출액', '건수 × 진료비 × 유치 수수료', None, None, '환자별 치료 구성에 따라 변동'],
     ['3.  사후관리 연계 건수', '120 건 (목표)', '300 건', '600 건', '유치 1건당 10회 (예상치)'],
     ['4.  이용료 도입 기관', '없음', '5 개', '12 개', '유료화 여부는 2027년 판단'],
     ['5.  이용료 매출', '없음', '3,000 만원', '7,200 만원', '월 50만원 기준'],
 ]
 GREY = (3, 4)          # 아직 시행 안 하는 줄은 옅게
-MERGE_ROW = 1          # 2번 줄은 2027·2028 을 한 칸으로 합친다
+MERGE_ROW = 1          # 2번 줄은 연도 세 칸을 한 칸으로 합쳐 가운데 정렬한다
 
 d.rectangle([cols[0], rows[0], cols[-1], rows[1]], fill=HEAD, outline=LINE, width=2)
 for i, t in enumerate(head):
@@ -167,15 +175,15 @@ for r, row in enumerate(body):
             continue
         if c == 0:
             d.text((cols[0] + 20, y0 + 16), t, font=f(6, 20), fill=MUTED if r in GREY else BLACK)
-        elif r == MERGE_ROW and c == 2:
-            mid((cols[2] + cols[4]) / 2, y0 + 16, t, f(4, 20), ink)
+        elif r == MERGE_ROW and c == 1:
+            mid((cols[1] + cols[4]) / 2, y0 + 16, t, f(4, 20), ink)
         else:
             mid((cols[c] + cols[c + 1]) / 2, y0 + 16, t, f(4, 20), ink)
 
 # 세로선. 합친 칸 가운데 선은 긋지 않는다
 for ci, c in enumerate(cols[1:-1], start=1):
     for r in range(len(body) + 1):
-        if r == MERGE_ROW + 1 and ci == 3:
+        if r == MERGE_ROW + 1 and ci in (2, 3):
             continue
         d.line([c, rows[r], c, rows[r + 1]], fill=LINE, width=1)
 

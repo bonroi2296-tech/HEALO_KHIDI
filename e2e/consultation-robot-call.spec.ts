@@ -32,6 +32,20 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
   // 퇴장 확인(45s) 만 150초다. 예산이 모자라면 «페이지가 닫혔다»는 엉뚱한 에러로 끝난다.
   test.setTimeout(360_000);
 
+  // ── 두 로봇의 언어와 말소리 ──────────────────────────────────────────────
+  //   여기 한 곳만 고치면 어떤 언어 짝으로 잴지 바뀐다.
+  //   🔑 규칙: **신고한 언어(locale) 와 실제 내는 소리(wav) 가 반드시 같아야 한다.**
+  //      통역봇은 소리를 듣고 언어를 가려내지 않고 참가자가 신고한 `lang` 을 그대로 믿는다.
+  //      어긋나면 봇이 «한국어 소리를 러시아어로 알고» 받아쓴다(2026-08-20 이전의 실제 상태).
+  //   기본값을 한국어와 러시아어로 두는 이유: 러시아·카자흐 환자가 주 고객이라
+  //      이 짝이 실제로 돈이 걸린 길이다.
+  //   영어로 재고 싶으면 B 를 아래 주석 줄로 갈아라(말소리 파일은 이미 저장소에 있다):
+  //      B: { locale: "en-US", wav: "en-coordinator-speech.wav", script: "latin" }
+  const PAIR = {
+    A: { locale: "ko-KR", wav: "ko-patient-speech.wav", script: "hangul" },
+    B: { locale: "ru-RU", wav: "ru-patient-speech.wav", script: "cyrillic" },
+  } as const;
+
   let fakeMediaBrowser: Browser | null = null;
   // 로봇 B 전용 브라우저. 가짜 마이크 파일이 브라우저 단위로 고정되기 때문에
   // 「로봇마다 다른 말」을 시키려면 브라우저를 따로 띄우는 수밖에 없다(아래 주석 참고).
@@ -123,8 +137,8 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
           `--use-file-for-fake-audio-capture=${path.join(audioDir, wav)}`,
         ],
       });
-    fakeMediaBrowser = await launchWithVoice("ko-patient-speech.wav");
-    fakeMediaBrowserB = await launchWithVoice("en-coordinator-speech.wav");
+    fakeMediaBrowser = await launchWithVoice(PAIR.A.wav);
+    fakeMediaBrowserB = await launchWithVoice(PAIR.B.wav);
 
     // 로봇마다 «다른 언어»로 붙는다 (2026-07-28 PO 지시: 통역까지 확인).
     //   방 UI 언어 = Accept-Language(= 컨텍스트 locale) 이고, 그 언어가 그대로 LiveKit
@@ -179,18 +193,16 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       return robot;
     };
 
-    // A=한국어 화자(한국어 WAV) / B=영어 화자(영어 WAV). 둘 다 «말을 한다».
+    // 둘 다 «말을 한다». 언어와 말소리는 파일 위쪽 PAIR 한 곳에서 정한다.
     //
-    // 2026-08-20 바뀐 점과 그 대가:
+    // 2026-08-20 바뀐 점:
     //   전: A=한국어 화자 / B=러시아어 «청취자». 그런데 B 도 마이크가 켜져 있었고
     //       한국어 WAV 를 같이 물고 있어서, 실제로는 「러시아어라고 신고하고 한국어를
-    //       내는 참가자」였다. 한 방향(한국어에서 러시아어로)만, 그것도 어긋난 재료로 쟀다.
-    //   후: 두 사람이 각자 제 언어로 말한다 → **양방향 통역**이 처음으로 검사 대상이 된다.
-    //   🔴 대가: **러시아어 경로는 이제 안 재진다.** 러시아어 말소리 파일이 없기 때문이다.
-    //      되살리려면 `e2e/fixtures/audio/README.md` 의 절차대로 `ru-patient-speech.wav` 를
-    //      만들어 로봇을 하나 더 붙이면 된다(브라우저도 하나 더 띄워야 한다).
-    const robotA = await joinAsRobot("E2E-ROBOT-A", "ko-KR", fakeMediaBrowser!);
-    const robotB = await joinAsRobot("E2E-ROBOT-B", "en-US", fakeMediaBrowserB!);
+    //       내는 참가자」였다. 한 방향만, 그것도 어긋난 재료로 쟀다.
+    //   후: 브라우저를 둘로 나눠 각자 제 언어로 말한다 → **양방향 통역**이 처음으로
+    //       진짜 검사 대상이 되고, 신고한 언어와 실제 소리도 맞는다.
+    const robotA = await joinAsRobot("E2E-ROBOT-A", PAIR.A.locale, fakeMediaBrowser!);
+    const robotB = await joinAsRobot("E2E-ROBOT-B", PAIR.B.locale, fakeMediaBrowserB!);
 
     // 3) 상호 확인 — 각 로봇 화면에 '상대' 이름 타일이 보여야 진짜 연결
     await expect(
@@ -337,13 +349,14 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       }
 
       // ── 통역 자막이 «실제로» 떴는가 — 봇을 내보내기 «전»에 본다 ────────────
-      //   로봇A(ko)가 한국어를 말하고 로봇B(en)가 듣는 조합이므로, 봇이 일하고 있다면
-      //   로봇B 자막 스택에 **라틴 문자로 된 영어 문장**이 떠야 한다. 본문 전체에서
-      //   찾으면 UI 문구에 걸려 늘 «찾음»이 되므로 **자막 스택 안에서만** 본다.
+      //   로봇A 가 제 언어로 말하므로, 봇이 일하고 있다면 로봇B 자막 스택에
+      //   **B 의 언어로 옮겨진 문장**이 떠야 한다. 본문 전체에서 찾으면 UI 문구에 걸려
+      //   늘 «찾음»이 되므로 **자막 스택 안에서만** 본다.
       //
-      //   2026-08-20 바뀐 점: 그 전에는 로봇B 가 러시아어였고 **키릴 문자**를 찾았다.
-      //   로봇B 를 영어 화자로 바꾸면서 이 판정도 같이 바꿨다. 안 바꿨으면 키릴 문자가
-      //   영영 안 떠서 이 관측이 매일 밤 «자막 못 봄» 으로 굳었을 것이다.
+      //   ⚠️ 판정 글자는 PAIR.B.script 를 따라 «자동으로» 고른다. 예전에는 키릴 문자를
+      //   찾는 코드가 박혀 있어서, 로봇B 의 언어를 바꾸면 그 글자가 영영 안 떠
+      //   매일 밤 «자막 못 봄» 으로 굳는 함정이 있었다(2026-08-20 실제로 밟을 뻔했다).
+      //   PAIR 만 고치면 판정도 같이 따라오도록 묶어 뒀다.
       //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로 이 관측은 반드시 «끄기» 앞이어야 한다.
       //   ⚠️ 아직 하드 실패로 걸지 않는다 — 합성음(piper) 인식률이 미검증이라 첫날부터
       //      expect 로 올리면 «봇은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 될 수 있다.
@@ -353,15 +366,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         // 같은 언어라, 스택 전체 텍스트로 보면 봇이 아무 말도 안 해도 «자막 있음»이 된다
         // (2026-07-28 실측: 라벨만 잡고 통과할 뻔했다).
         const lines = robotB.getByTestId("subtitle-text");
-        // 영어 «문장»을 찾는다. 낱말 하나(이름·라벨)로는 안 걸리도록 «띄어쓰기로 나뉜
-        // 낱말 세 개 이상»을 요구한다. 한글이 섞여 있으면 통역 «전» 원문이므로 제외한다.
-        const englishSentence = (t: string) =>
-          !/[가-힣]/.test(t) && /(?:[A-Za-z]{2,}[ ,.'-]+){2,}[A-Za-z]{2,}/.test(t);
+        const translated = translatedInto(PAIR.B.script);
         const deadline = Date.now() + 60_000;
         captionText = "자막 못 봄";
         while (Date.now() < deadline) {
           const texts = await lines.allInnerTexts().catch(() => [] as string[]);
-          const hit = texts.find(englishSentence);
+          const hit = texts.find(translated);
           if (hit) {
             captionText = "자막 뜸: " + hit.slice(0, 120);
             break;
