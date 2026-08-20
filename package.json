@@ -24,6 +24,8 @@
     "check:env": "node scripts/check-env.js",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:i18n-quality": "node scripts/check-i18n-quality.mjs --selftest --strict",
+    "i18n:backport": "node scripts/i18n-backport-overrides.mjs",
+    "check:i18n-backport": "node scripts/i18n-backport-overrides.mjs --check",
     "check:locale-links": "node scripts/check-locale-links.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
     "check:legal-citations": "node scripts/check-legal-citations.mjs --selftest && node scripts/check-legal-citations.mjs",

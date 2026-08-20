@@ -34,7 +34,9 @@ describe("인테이크 선택지 라벨 이관 (2026-07-27) — 편집기에서 
 
   it("optLabel / labelOf 이 사전에서 라벨을 해석한다", () => {
     const breast = CANCER_TYPES.find((c) => c.value === "breast")!;
-    expect(optLabel(breast, "ru")).toBe("Грудь");
+    // 2026-08-20: 「Грудь」(«가슴») 였던 것을 코디네이터 교정본 «Рак молочной железы»(유방암, 의학 표준)로
+    // 되돌렸다. 구어체 신체 부위 이름이 암종 선택지에 나가고 있었다.
+    expect(optLabel(breast, "ru")).toBe("Рак молочной железы");
     expect(optLabel(breast, "ko")).toBe("유방암");
     expect(labelOf(TREATMENT_STATES, "pre_surgery", "ko")).toBe("수술 전");
     // 목록에 없는 값은 원래 값 그대로(안전 폴백)

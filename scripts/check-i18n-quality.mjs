@@ -70,6 +70,13 @@ const TRANSLITERATED_PROPER = [
   "Сеул", "Кёнги", "Ихва", "Мокдон", "Куро", "Северанс", "Мёнрёк",
 ];
 
+// 원어민이 「숫자 대신 말」로 옮긴 것 — 뜻이 같으면 사실 유실이 아니다.
+// 예: 「24시간」 → круглосуточно / тәулік бойы. 이걸 막으면 검사가 «자연스러운 번역»을 방해한다.
+const FACT_EQUIVALENTS = [
+  { token: "num:24", any: [/круглосуточн/i, /тәулік бойы/i, /24\/7/, /round[- ]the[- ]clock/i, /全天候/, /24時間/] },
+  { token: "num:100", any: [/почти\s+все/i, /барлығына жуық/i] },
+];
+
 const isNumericOnly = (s) => !/[\p{L}]/u.test(s);
 /** 「2,01 млн+」 「Макс. 200МБ」처럼 숫자와 단위뿐인 짧은 값 — 두 언어가 같아도 정상. */
 const isNumberWithUnit = (s) =>
@@ -130,7 +137,12 @@ function detectLostFacts(ko, translated) {
   if (!ko || !translated) return [];
   const want = factTokens(ko);
   const have = new Set(factTokens(translated));
-  return want.filter((t) => !have.has(t));
+  return want.filter((t) => {
+    if (have.has(t)) return false;
+    const eq = FACT_EQUIVALENTS.find((e) => e.token === t);
+    if (eq && eq.any.some((re) => re.test(translated))) return false; // 말로 옮긴 것 — 통과
+    return true;
+  });
 }
 
 function detectPlaceholderMismatch(ko, translated) {
@@ -202,6 +214,7 @@ function selftest() {
     ["사실 유실", () => detectLostFacts("등록번호 A-2026-01-02-06761 입니다", "Зарегистрированный посредник").length > 0],
     ["사실 유실 — 구분자만 다른 건 통과", () => detectLostFacts("누적 50,000+ 사례", "более 50 000 случаев").length === 0],
     ["사실 유실 — 90일 빠짐", () => detectLostFacts("C-3-3 90일 이내", "C-3-3 қысқа мерзім").length > 0],
+    ["사실 — 숫자를 말로 옮긴 것은 통과", () => detectLostFacts("24시간 답변", "тәулік бойы жауап береміз").length === 0],
     ["항목 유실 검출", () => detectDroppedItems("• 하나\n• 둘\n• 셋\n• 넷", "• бір\n• екі") !== null],
     ["항목 수가 같으면 통과", () => detectDroppedItems("• 하나\n• 둘\n• 셋", "• бір\n• екі\n• үш") === null],
     ["짧은 목록은 안 본다", () => detectDroppedItems("• 하나\n• 둘", "• бір") === null],
