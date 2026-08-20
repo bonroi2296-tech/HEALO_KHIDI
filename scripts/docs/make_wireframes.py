@@ -356,13 +356,21 @@ def architecture():
             else:
                 d.rectangle([x, y, x + cw, y + ch], fill=tone)
             head, *rest = it.split(chr(124))
+            # 진한 칸(04단) 위에서는 회색이 대비 미달이다(DESIGN.md 4-b). 흰 글씨로 바꾼다.
+            dark = (si == 3 and not last)
+            head_col = (255, 255, 255) if dark else INK_
+            body_col = (236, 254, 255) if dark else BODY
             hf = font(23, True) if si >= 2 else font(21, True)
             hw = d.textlength(head, font=hf)
             ty = y + (14 if rest else (ch - 26) / 2)
-            d.text((x + (cw - hw) / 2, ty), head, font=hf, fill=INK_)
+            d.text((x + (cw - hw) / 2, ty), head, font=hf, fill=head_col)
             for j, ln in enumerate(rest):
-                lw = d.textlength(ln, font=font(18))
-                d.text((x + (cw - lw) / 2, ty + 34 + j * 24), ln, font=font(18), fill=BODY)
+                # 칸을 넘치면 글자를 한 단계씩 줄인다. 넘친 채 인쇄되는 것이 제일 나쁘다.
+                fs = 18
+                while fs > 13 and d.textlength(ln, font=font(fs)) > cw - 24:
+                    fs -= 1
+                lw = d.textlength(ln, font=font(fs))
+                d.text((x + (cw - lw) / 2, ty + 34 + j * 24), ln, font=font(fs), fill=body_col)
         if si < 3:
             ay = y + ch + 22
             d.line([AW / 2, ay, AW / 2, ay + 30], fill=T600, width=2)

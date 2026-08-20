@@ -444,39 +444,11 @@ for (ti, ri, ci), val in CELLS.items():
     if not set_cell_text(tc, val):
         miss.append(('cell-run', ti, ri, ci))
 
-# ── 그림 틀 넓히기: 비즈니스모델 그림이 본문 폭의 84% 로만 들어가 글자가 작았다.
-#    SWOT 은 48190(본문 폭)에 꽉 차 있어 그대로 두고, 좁은 것만 같은 폭으로 늘린다.
-BODY_W = 48190
-for pic in root.iter(HP + 'pic'):
-    cont = pic.getparent()
-    sz = (cont.find('./' + HP + 'sz') if cont is not None else None) or pic.find('./' + HP + 'sz')
-    if sz is None:
-        continue
-    w, h = int(sz.get('width')), int(sz.get('height'))
-    if w >= BODY_W or w < BODY_W * 0.5:      # 이미 꽉 찼거나 작은 삽화면 손대지 않는다
-        continue
-    # 표 «안»에 있는 그림은 건드리지 않는다. 칸을 넘쳐버린다(대표가 넣은 인스타그램 사진 표).
-    anc = pic
-    in_table = False
-    while anc is not None:
-        if anc.tag == HP + 'tbl':
-            in_table = True
-            break
-        anc = anc.getparent()
-    if in_table:
-        continue
-    k = BODY_W / w
-    for node in [sz] + [x for x in pic.iter() if x.tag.endswith('}sz') or x.tag.endswith('}curSz')]:
-        if node.get('width'):
-            node.set('width', str(int(int(node.get('width')) * k)))
-        if node.get('height'):
-            node.set('height', str(int(int(node.get('height')) * k)))
-    for r in pic.iter(HP + 'imgRect'):
-        for pt in r:
-            for k2 in ('x', 'y'):
-                if pt.get(k2):
-                    pt.set(k2, str(int(int(pt.get(k2)) * k)))
-    print('  그림 틀 %d x %d → %d x %d' % (w, h, int(w * k), int(h * k)))
+# ── 그림 틀은 건드리지 않는다 (2026-08-20 시도했다가 되돌림)
+#    비즈니스모델 그림이 본문 폭의 84% 로만 들어가 글자가 작길래 48190 으로 키워봤다.
+#    그런데 «시작 위치는 그대로»여서 오른쪽이 쪽 밖으로 잘려 나갔다.
+#    폭만 바꾸면 안 되고 위치(offset)도 같이 옮겨야 하는데, 그러다 그림이 깨지는 편이
+#    글자가 조금 작은 것보다 나쁘다. 크기를 키우려면 한글에서 손으로 끌어 늘리는 편이 안전하다.
 
 BODY_H = 60000
 for t in tbls:
