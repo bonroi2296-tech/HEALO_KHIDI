@@ -20,6 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test, expect, chromium, type Browser } from "@playwright/test";
 import { loginAs } from "./fixtures/auth";
+import { translatedInto } from "./fixtures/translatedInto";
 
 test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
   test.skip(!process.env.E2E_ADMIN_EMAIL, "E2E_ADMIN_EMAIL 미설정 — 스킵");
