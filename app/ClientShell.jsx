@@ -181,14 +181,19 @@ export default function ClientShell({ children, initialLang = "en" }) {
   };
 
   const handleGlobalInquiry = () => {
-    router.push("/inquiry");
+    const loc = splitLocale(pathname)[0];
+    router.push(loc ? localeHref("/inquiry", loc) : "/inquiry");
     setIsMobileMenuOpen(false);
   };
 
   const getCurrentView = useMemo(() => {
-    if (pathname === "/") return "home";
-    if (pathname.startsWith("/treatments")) return "list_treatment";
-    if (pathname.startsWith("/hospitals")) return "list_hospital";
+    // 주소에 언어가 붙은 뒤로(/kz/treatments) 이 판정이 전부 빗나가 **메뉴의 현재 위치 표시가
+    // 죽어 있었다**(2026-08-20 실서비스 실측: /kz/treatments 에 bg-teal-200 이 0개).
+    // 언어를 떼고 비교한다.
+    const [, bare] = splitLocale(pathname);
+    if (bare === "/") return "home";
+    if (bare.startsWith("/treatments")) return "list_treatment";
+    if (bare.startsWith("/hospitals")) return "list_hospital";
     return "";
   }, [pathname]);
 
