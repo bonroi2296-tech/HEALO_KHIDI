@@ -13,6 +13,7 @@ const CANCER_ICONS = {
   etc: Microscope,
 };
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import {
   CANCER_DETAILS,
@@ -148,7 +149,7 @@ export default function CancerDetailClient({ slug }) {
         )}
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
           >
             {tr("cta.consult")} <ArrowRight size={18} />
@@ -184,7 +185,7 @@ export default function CancerDetailClient({ slug }) {
           </p>
           <div className="mt-5 grid sm:grid-cols-2 gap-4">
             <Link
-              href="/cost-calculator"
+              href={localeHref("/cost-calculator", lang)}
               className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm hover:shadow-md transition-all"
             >
               <span className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
@@ -197,7 +198,7 @@ export default function CancerDetailClient({ slug }) {
               <ArrowRight size={18} className="ml-auto text-teal-700 shrink-0" />
             </Link>
             <Link
-              href="/visa"
+              href={localeHref("/visa", lang)}
               className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm hover:shadow-md transition-all"
             >
               <span className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
@@ -515,7 +516,7 @@ export default function CancerDetailClient({ slug }) {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/inquiry"
+              href={localeHref("/inquiry", lang)}
               className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
             >
               {tr("cta.consult")} <ArrowRight size={18} />
@@ -529,7 +530,7 @@ export default function CancerDetailClient({ slug }) {
           </div>
           <div className="mt-8">
             <Link
-              href="/treatments"
+              href={localeHref("/treatments", lang)}
               className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-teal-100 hover:text-white transition-colors"
             >
               {tr("section.allTypes")} <ArrowRight size={14} />

@@ -13,6 +13,7 @@ const loadSupabase = () => import("@/lib/data/supabaseClient").then((m) => m.sup
 import { SITE_INFO } from "@/lib/siteSettings";
 import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
+import { localeHref, splitLocale } from "@/lib/i18n/config";
 import {
   Header,
   MobileBottomNav,
@@ -135,21 +136,26 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
   const handleSetView = (viewName) => {
     setIsMobileMenuOpen(false);
+    // 지금 보고 있는 주소에 언어가 붙어 있으면(/kz/…) 그 언어를 유지한 주소로 보낸다.
+    // 안 붙이면 proxy 가 «맨 주소 → 감지 언어» 308 을 한 번 더 태운다(공개경로 전부).
+    // 언어 없는 주소(/admin·/login 등)에서는 예전처럼 맨 주소 그대로 — 감지 로직을 건드리지 않는다.
+    const loc = splitLocale(pathname)[0];
+    const go = (p) => router.push(loc ? localeHref(p, loc) : p);
     switch (viewName) {
       case "home":
-        router.push("/");
+        go("/");
         break;
       case "admin":
         router.push("/admin");
         break;
       case "list_treatment":
-        router.push("/treatments");
+        go("/treatments");
         break;
       case "list_hospital":
-        router.push("/hospitals");
+        go("/hospitals");
         break;
       case "inquiry":
-        router.push("/inquiry");
+        go("/inquiry");
         break;
       case "login":
         router.push("/login");
@@ -158,10 +164,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
         router.push("/signup");
         break;
       case "success":
-        router.push("/success");
+        go("/success");
         break;
       default:
-        router.push("/");
+        go("/");
     }
   };
 
@@ -359,7 +365,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.company.map((item) => (
                   <li key={item.href}>
-                    <a className="touch-link hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={localeHref(item.href, langCode)}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>
@@ -386,7 +392,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.legal.map((item) => (
                   <li key={item.href}>
-                    <a className="touch-link hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={localeHref(item.href, langCode)}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>

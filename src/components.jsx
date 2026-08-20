@@ -12,7 +12,7 @@ import {
 import { setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 import { event as gaEvent, GA_EVENTS } from "./lib/ga";
 import { useLang } from "./lib/i18n/LangContext";
-import { localeSwitchTarget } from "./lib/i18n/config";
+import { localeSwitchTarget, localeHref } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";
 
 /**
@@ -188,38 +188,38 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
             {/* 자리가 모자라면 «덮는» 대신 «옆으로 흐른다» — 메뉴 항목은 하나도 안 사라진다. */}
             <nav className={`hidden xl:flex items-center ${navGap} min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
               <a
-                href="/telemedicine"
+                href={localeHref("/telemedicine", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap`}
               >
                 {t("nav.telemedicine", langCode)}
                 <span className="text-[9px] font-extrabold bg-teal-700 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               </a>
-              <button
-                onClick={() => onNavClick('list_treatment')}
+              <a
+                href={localeHref("/treatments", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.treatments", langCode)}
-              </button>
-              <button
-                onClick={() => onNavClick('list_hospital')}
+              </a>
+              <a
+                href={localeHref("/hospitals", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.hospitals", langCode)}
-              </button>
+              </a>
               <a
-                href="/care-journey"
+                href={localeHref("/care-journey", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.careJourney", langCode)}
               </a>
               <a
-                href="/visa"
+                href={localeHref("/visa", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.visa", langCode)}
               </a>
               <a
-                href="/insurance"
+                href={localeHref("/insurance", langCode)}
                 className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.insurance", langCode)}
@@ -385,27 +385,27 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {/* Navigation */}
               <div className="px-5 py-3">
                 <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">{t("nav.menu", langCode)}</div>
-                <a href="/telemedicine" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                <a href={localeHref("/telemedicine", langCode)} onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><Video size={16} className="text-teal-700 shrink-0" /> {t("nav.telemedicine", langCode)} <span className="text-[9px] font-extrabold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full leading-none">NEW</span></span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
-                <button onClick={() => onNavClick('list_treatment')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('treatment') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <a href={localeHref("/treatments", langCode)} onClick={() => setIsMobileMenuOpen(false)} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('treatment') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
                   <span className="flex items-center gap-2.5"><Stethoscope size={16} className="text-gray-400 shrink-0" /> {t("nav.treatments", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
-                </button>
-                <button onClick={() => onNavClick('list_hospital')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('hospital') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                </a>
+                <a href={localeHref("/hospitals", langCode)} onClick={() => setIsMobileMenuOpen(false)} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('hospital') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
                   <span className="flex items-center gap-2.5"><Building2 size={16} className="text-gray-400 shrink-0" /> {t("nav.hospitals", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
-                </button>
-                <a href="/care-journey" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                </a>
+                <a href={localeHref("/care-journey", langCode)} onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><MapPin size={16} className="text-gray-400 shrink-0" /> {t("nav.careJourney", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
-                <a href="/visa" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                <a href={localeHref("/visa", langCode)} onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><Globe size={16} className="text-gray-400 shrink-0" /> {t("nav.visa", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
-                <a href="/insurance" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                <a href={localeHref("/insurance", langCode)} onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><ShieldCheck size={16} className="text-gray-400 shrink-0" /> {t("nav.insurance", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>

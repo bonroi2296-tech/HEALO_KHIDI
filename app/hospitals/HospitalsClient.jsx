@@ -677,7 +677,7 @@ export default function HospitalsClient() {
         {/* 면력 대표 페이지 입구. 이게 없어서 /hospitals/immune 이 목록에서 도달 불가한
             고아였다(2026-07-22 실측: 목록·홈에서 링크 0). 목록 → 대표 페이지 동선을 만든다. */}
         <Link
-          href="/hospitals/immune"
+          href={localeHref("/hospitals/immune", lang)}
           className="touch-link inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 mb-8"
         >
           {t('hospitalsPage.immuneOverview', lang)} <ArrowRight size={15} />
