@@ -50,9 +50,23 @@ export type VisaAccessResult =
   | { success: false; response: Response };
 
 /**
- * user_roles 테이블에서 coordinator 권한 확인 (현재 스키마 기준).
+ * 코디네이터 판정.
+ *
+ * 🛑 2026-08-20 실측 사고: 예전엔 user_roles 테이블만 봤는데, 그 테이블의 검사규칙
+ * (user_roles_role_check)이 받는 값은 patient/korean_hospital/local_clinic/agent/admin 뿐이라
+ * **'coordinator' 는 애초에 들어갈 수 없는 값**이었다. 그래서 이 함수는 «항상 false» 였고,
+ * 코디가 비자 목록 API 에서 환자로 취급돼(scope=patient) 자기 것만 찾다가 0건이 나왔다.
+ * 실제 직원 계정(assel@healwith.co.kr)도 user_roles 에는 'patient' 로 적혀 있었다.
+ *
+ * 프로젝트 표준은 app_metadata.role 이다(CLAUDE.md 보안 규칙 · followup·cases·cost-estimates
+ * 전부 appRole 로 판정). 여기만 다른 기준을 보고 있었다.
  */
-async function isCoordinatorUser(userId: string): Promise<boolean> {
+function isCoordinatorRole(appRole?: string): boolean {
+  return appRole === "coordinator";
+}
+
+/** 배정 흐름 보조: user_roles 에 coordinator 가 적힌 경우도 인정(현재 스키마에선 저장 불가라 사실상 미사용). */
+async function isCoordinatorInUserRoles(userId: string): Promise<boolean> {
   // 오류를 아예 안 받아서 DB 삐끗 = 「코디 아님」 = 403 이었다 → 1회 더 물어본다(retryTransient.ts).
   const res = await askOnceMoreOnError(() =>
     supabaseAdmin
@@ -145,8 +159,8 @@ export async function requireVisaAccess(
     role = "admin";
   } else if (application.coordinator_user_id === uid) {
     role = "coordinator";
-  } else if (await isCoordinatorUser(uid)) {
-    // coordinator role 인 사용자는 미배정 건도 볼 수 있도록 허용 (배정 흐름 고려)
+  } else if (isCoordinatorRole(auth.appRole) || (await isCoordinatorInUserRoles(uid))) {
+    // coordinator 인 사용자는 미배정 건도 볼 수 있도록 허용 (배정 흐름 고려)
     role = "coordinator";
   } else if (application.patient_user_id === uid) {
     role = "patient";
@@ -220,7 +234,9 @@ export async function requireVisaAuthenticatedUser(
     };
   }
 
-  const isCoordinator = auth.isAdmin ? true : await isCoordinatorUser(auth.userId);
+  const isCoordinator = auth.isAdmin
+    ? true
+    : isCoordinatorRole(auth.appRole) || (await isCoordinatorInUserRoles(auth.userId));
 
   return {
     success: true,
