@@ -315,10 +315,10 @@ fr_data = [
 
     ('FR-09', '예상 비용 산출', 'M',
      '진료 항목별 예상비용 자동 산출 안내. AI 적정가 판독. 비자·숙박 비용 안내 포함. (사업계획서 p.28)',
-     '부분구현 · /app/patient/cost-estimates (UI 있음, AI 자동산출 부분구현)'),
+     '부분구현 · /app/coordinator/cost-estimates (견적 작성·이력 관리 가동. AI 적정가 자동 산출은 남음)'),
 
     ('FR-10', 'AI 챗봇 상담 (24시간)', 'H',
-     'Gemini 기반 AI Agent. 러시아어·카자흐어·한국어·영어 지원. RAG 기반 병원 정보 응답. Human Agent 이관 로직 포함.',
+     'Gemini 기반 AI Agent. 러시아어·카자흐어·한국어·영어 지원. RAG 기반 병원 정보 응답. 사람 상담원 이관 로직 포함.',
      '완료 · /app/api/chat, src/lib/chat, src/lib/rag'),
 
     ('FR-11', 'Human Agent 상담 (코디네이터)', 'H',
@@ -331,11 +331,11 @@ fr_data = [
 
     ('FR-13', 'AI 실시간 번역 (상담 중)', 'H',
      '화상상담 및 채팅 중 러시아어↔한국어 실시간 번역. 특허 10-2868334 기반. (사업계획서 p.28)',
-     '부분구현 · /app/api/translate, /app/api/translate-text (번역 API 완성, 화상 내 실시간 통합 부분구현)'),
+     '완료 · /app/api/translate-text, /app/consultation/[id] (상담방 실시간 자막 가동 — 통역 자막 3,277건 축적)'),
 
     ('FR-14', '진료 예약·일정 관리', 'H',
      '환자-의료진 일정 조율, 예약 확정, 리마인더 발송. 달력 UI 제공.',
-     '부분구현 · /app/patient/calendar (UI 있음, 자동 리마인더 부분구현)'),
+     '부분구현 · /app/patient/calendar (리마인더 자동 발송 가동. 의료진 일정 연동만 남음)'),
 
     ('FR-15', '비자 발급 안내', 'M',
      '카자흐스탄→한국 의료비자 신청 절차, 필요 서류, 처리기간 안내. 다국어 제공.',
@@ -343,11 +343,11 @@ fr_data = [
 
     ('FR-16', '경과 모니터링 (f/u)', 'H',
      '귀국 후 환자 건강상태 주기적 체크인. 증상 입력, 검사결과 업로드, AI 이상 감지 알림. (사업계획서 p.29, 공고문 p.8)',
-     '부분구현 · /app/patient/symptoms (화면 있음, AI 자동감지 부분구현)'),
+     '완료 · /app/patient/symptoms, /app/api/khidi/followup (증상 기록 + 이상 징후 자동 분석·담당자 알림)'),
 
     ('FR-17', '건강관리 교육 콘텐츠', 'M',
      '암 유형별 맞춤 사후관리 가이드, 식이요법, 복약 안내. 러시아어 콘텐츠 제공. (사업계획서 p.30)',
-     '부분구현 · /app/patient/education, /app/education (화면 있음, 러시아어 콘텐츠 일부)'),
+     '부분구현 · /app/education (콘텐츠 18건·러시아어 전건 발행 완료. 단계별 자동 발송의 화면 연결만 남음)'),
 
     ('FR-18', '재방문 예약 (Rebooking)', 'M',
      '경과관리 기반 재방문 필요성 자동 알림. 재진 예약·비자 재발급 안내 원스톱. (사업계획서 p.30)',
@@ -355,7 +355,7 @@ fr_data = [
 
     ('FR-19', '6개 언어 UI/UX', 'H',
      '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kz 등).',
-     '부분구현 · 언어 접두어는 proxy.ts 가 처리한다(/ru/treatments → 내부 /treatments 로 넘기고 x-locale 머리값으로 언어 전달)'),
+     '완료 · 언어 접두어는 proxy.ts 가 처리한다(/ru/treatments → 내부 /treatments 로 넘기고 x-locale 머리값으로 언어 전달)'),
 
     ('FR-20', 'DB 콘텐츠 다국어 자동번역', 'H',
      '병원·치료 정보 i18n JSONB 컬럼 자동번역. Gemini 기반 배치 번역.',
@@ -383,10 +383,10 @@ fr_data = [
 
     ('FR-26', '실시간 In-app 알림', 'M',
      '상담 이관, 신규 문의, 의료진 회신 실시간 알림. Supabase Realtime 기반.',
-     '부분구현 · /app/patient/messages (화면 있음, 실시간 푸시 부분구현)'),
+     '완료 · src/hooks/useNotifications.ts, src/lib/push/fcm.ts (Supabase Realtime 구독 + FCM 푸시)'),
 
     ('FR-27', '환자 PII 암호화', 'H',
-     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (*_encrypted 컬럼). encryptionV2.ts 활용.',
+     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (암호화 칸 20개(*_encrypted) + inquiries 의 first_name·last_name·email·phone). encryptionV2.ts 활용.',
      '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)'),
 
     ('FR-28', 'API Rate Limiting', 'H',
@@ -403,6 +403,33 @@ doc.add_page_break()
 # 4. 비기능 요구사항
 # ================================================================
 add_heading(doc, '4. 비기능 요구사항', 1)
+
+# 2026-08-20 실측 — 어떻게 쟀는지까지 적는다. 못 잰 것은 왜 못 쟀는지 적는다.
+NFR_VERDICT = {
+ 'NFR-01': '미달(모바일) / 충족(데스크톱) — 라이트하우스 5회 중앙값: 모바일 6.96초 · 데스크톱 1.47초',
+ 'NFR-02': '미달 — AI 회귀 시험 기록 2,212건 중앙값 5.7초(목표 5초). 개선 과제',
+ 'NFR-03': '미검증 — 카자흐스탄 현지에서 재야 한다. 국내에서는 왕복 지연을 잴 수 없다',
+ 'NFR-04': '충족(부분) — 실서비스 상태 확인 주소로 동시 100건 요청: 100/100 성공, 응답 중앙값 417ms · 상위 5% 1,650ms. 다만 이는 읽기 전용 가벼운 요청이며, 화면 렌더·DB 쓰기를 포함한 본격 부하 시험은 실사용자에게 영향이 가므로 유치 확대 시점에 별도 진행',
+ 'NFR-05': '충족 — 운영DB 조회: 성명(first_name·last_name)·이메일·전화 값이 있는 행 전부 암호문, 평문 0건',
+ 'NFR-06': '충족 — 자동 검사 check:err-exposure 통과(매 변경 실행)',
+ 'NFR-07': '충족 — API 라우트 223개 전수 확인. 관문 흔적이 없던 10개는 모두 정당(공개 조회·상태 확인·서명 검증·폐쇄된 라우트)',
+ 'NFR-08': '충족 — 권한 판정에 user_metadata 를 쓰는 곳 0건(전수 검색). app_metadata.role 기준',
+ 'NFR-09': '충족 — 자동 검사 check:ratelimit-scope 통과',
+ 'NFR-10': '충족 — 실서비스 머리값 확인: Strict-Transport-Security(2년·하위도메인·preload) · CSP · X-Content-Type-Options · X-Frame-Options',
+ 'NFR-11': '충족 — 가동 감시가 10분마다 돈다. 최근 100회(2026-08-17~20) 전건 성공(100%). 같은 시각 실서비스 상태 확인 20회 연속 200 응답. 실서비스 빌드 최근 100건 중 실패 0건' ,
+ 'NFR-12': '충족 — Supabase Pro 플랜 자동 백업(7일 보관). 플랜 상태는 콘솔에서 확인',
+ 'NFR-13': '충족 — sentry.client·server·edge.config.js 세 개 모두 존재',
+ 'NFR-14': '충족 — 화면이 쓰는 문구 1,941개를 6개 언어에 전건 채움. 러시아어·카자흐어는 자동 검사가 매 변경마다 100% 확인',
+ 'NFR-15': '대체로 충족 — 라이트하우스 접근성 97점. 미달 1건(글자와 배경 대비). 개선 과제',
+ 'NFR-16': '충족 — 375px 폭 기준 글자 잘림·겹침 자동 검사 상시 실행(content-clip-sweep · header-no-overlap)',
+ 'NFR-17': "충족 — tsconfig paths: {'@/*': ['src/*']}",
+ 'NFR-18': '충족 — strict:false 유지, Zod 런타임 검증 사용',
+ 'NFR-19': '충족 — package.json build 가 next build --webpack',
+ 'NFR-20': '충족 — /api/rag/ingest 로 코드 수정 없이 올린다. 현재 문서 21건·조각 21개',
+ 'NFR-21': '충족 — 웹 접수 6건 전부 동의 기록과 동의 판번호 보존. 나머지 2건은 플랫폼 밖에서 받아 소급 등록한 건이라 화면 동의 기록이 없다(별도 서면 보관)',
+ 'NFR-22': '유지 — 문구·화면 모두 정보 제공·연결 서비스로 표기. 법률 판단은 외부 검토 대상',
+ 'NFR-23': '진행 중 — 유치 0/12 · 사전상담+사후관리 7/120 · 만족도 표본 1건. 잔여 기간 유입에 달려 있다',
+}
 
 nfr_cats = [
     ('성능 (Performance)', [
@@ -444,11 +471,11 @@ nfr_cats = [
 
 for cat_name, items in nfr_cats:
     add_heading(doc, cat_name, 2)
-    ntbl = doc.add_table(rows=0, cols=2)
+    ntbl = doc.add_table(rows=0, cols=3)
     ntbl.style = 'Table Grid'
-    add_header_row(ntbl, ['NFR-ID', '요구사항 내용'])
+    add_header_row(ntbl, ['NFR-ID', '요구사항 내용', '검증 결과 (2026. 8. 20. 실측)'])
     for nfr_id, nfr_desc in items:
-        add_data_row(ntbl, [nfr_id, nfr_desc], bold_first=True)
+        add_data_row(ntbl, [nfr_id, nfr_desc, NFR_VERDICT.get(nfr_id, '미검증')], bold_first=True)
     doc.add_paragraph()
 
 doc.add_page_break()
@@ -474,11 +501,11 @@ ext_data = [
     ('LiveKit Cloud',
      'WebRTC 화상상담 서버\n오디오/비디오/화면공유',
      'livekit-server-sdk (토큰 발급)\n@livekit/components-react (UI)',
-     '/app/api/livekit/route.ts\n/app/telemedicine/'),
+     '/app/api/khidi/consultation/token\n/app/api/livekit/webhook\n/app/consultation/[id]'),
     ('Resend',
      '이메일 발송\n예약 확인, 리마인더, 관리자 알림',
      'Resend Node.js SDK\n@react-email/render 템플릿',
-     '/app/api/email/*\nsrc/lib/email/*'),
+     'src/lib/email/*'),
     ('Google Maps API',
      '병원 위치 지도 표시\n병원 주변 정보',
      '@react-google-maps/api\nClient-side 렌더링',
@@ -486,7 +513,7 @@ ext_data = [
     ('Sentry',
      '오류 추적·성능 모니터링\n배포 후 장애 감지',
      '@sentry/nextjs + withSentryConfig',
-     'sentry.*.config.ts'),
+     'sentry.client·server·edge.config.js'),
     ('Capacitor (iOS/Android)',
      '웹→모바일 앱 래핑\n푸시 알림, 딥링크',
      '@capacitor/core\n@capacitor/push-notifications',
@@ -496,7 +523,7 @@ ext_data = [
      'HTTP REST 크롤링 + RAG 인제스트',
      'src/lib/rag/*\nmigrations/20260225_crawl_*'),
     ('AES-256-GCM (자체 구현)',
-     '환자 PII 암호화·복호화\n*_encrypted 컬럼 데이터 보호',
+     '환자 PII 암호화·복호화\n암호화 칸 데이터 보호(*_encrypted 20개 + inquiries 의 성명·이메일·전화)',
      'Web Crypto API 기반 자체 구현',
      'src/lib/security/encryptionV2.ts'),
 ]
@@ -513,7 +540,7 @@ add_heading(doc, '6. 제약사항', 1)
 constraints_data = [
     ('법적 제약', [
         '개인정보보호법(PIPA): 환자 개인정보 수집·이용 시 명시적 동의 필수. 수집 최소화 원칙. 보관 기간 이후 파기 의무.',
-        '의료법: 국내 원격 진료 규제를 고려하여 사전상담·사후상담은 "의료 정보 제공 및 연결 서비스"로 포지셔닝. 실제 진료·처방은 면허 의사와 협약 기반 별도 수행.',
+        '의료법: 국내 원격 진료 규제를 고려하여 사전상담·사후상담은 「의료 정보 제공 및 연결 서비스」로 포지셔닝. 실제 진료·처방은 면허 의사와 협약 기반 별도 수행.',
         '카자흐스탄 개인정보보호법(2013): 카자흐스탄 국민 개인정보 처리 시 현지 법령 준거.',
         '의료기기법: AI 진단 기능이 아닌 정보 제공·매칭·상담 플랫폼으로 설계 (의료기기 해당 없음).',
     ]),
