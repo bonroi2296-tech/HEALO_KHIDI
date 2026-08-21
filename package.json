@@ -83,7 +83,8 @@
     "blast": "node scripts/blast-radius.mjs",
     "blast:verify": "node scripts/blast-verify.mjs",
     "sweep": "node scripts/sweep.mjs",
-    "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs"
+    "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
+    "check:docs": "python docs/government-project/audit_docs.py"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
