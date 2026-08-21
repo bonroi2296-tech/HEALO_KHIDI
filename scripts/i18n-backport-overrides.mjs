@@ -42,11 +42,24 @@ if (!URL_ || !KEY) {
 }
 
 async function fetchOverrides() {
-  const res = await fetch(`${URL_}/rest/v1/content_overrides?select=content_key,lang,value`, {
-    headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
-  });
-  if (!res.ok) throw new Error(`content_overrides 조회 실패: ${res.status}`);
-  return res.json();
+  // PostgREST 는 db-max-rows(기본 1000)에서 «에러 없이» 잘린다 — 잘린 줄 모르고
+  // 「어긋남 N건」을 보고하면 나머지는 영영 역류되지 않는다. 끝까지 페이지로 읽는다.
+  const PAGE = 500;
+  const all = [];
+  for (let from = 0; ; from += PAGE) {
+    const res = await fetch(`${URL_}/rest/v1/content_overrides?select=content_key,lang,value`, {
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        Range: `${from}-${from + PAGE - 1}`,
+        "Range-Unit": "items",
+      },
+    });
+    if (!res.ok && res.status !== 206) throw new Error(`content_overrides 조회 실패: ${res.status}`);
+    const page = await res.json();
+    all.push(...page);
+    if (page.length < PAGE) return all;
+  }
 }
 
 const escapeKey = (k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -86,22 +99,42 @@ async function main() {
       console.log("\n→ 반영하려면 --check 없이 다시 돌려라. 코디 값이 우선이다.");
       console.log("→ 다만 코드 쪽에만 있는 «사실»(글자수 제한·등록번호 등)이 코디 값에서 빠졌는지 눈으로 한 번 봐라.");
     }
-    process.exit(0);
+    // 어긋남이 있으면 실패로 끝낸다 — 그래야 자동 검사가 «코디 교정이 코드로 안 돌아온 상태»를 막는다.
+    process.exit(stale.length ? 1 : 0);
   }
 
   let applied = 0;
+  const skipped = [];
   for (const s of stale) {
     const range = dictBlockRange(dict, s.lang);
-    if (!range) continue;
+    if (!range) { skipped.push({ ...s, why: "언어 블록을 못 찾음" }); continue; }
     const [from, to] = range;
     const block = dict.slice(from, to);
-    const m = block.match(new RegExp(`^(    "${escapeKey(s.content_key)}": )(".*?")(,?)$`, "m"));
-    if (!m) continue;
-    dict = dict.slice(0, from) + block.replace(m[0], `${m[1]}${JSON.stringify(s.value)}${m[3]}`) + dict.slice(to);
+    // `\s*` 로 개행까지 먹는다 — prettier 가 긴 값을 다음 줄로 내린 키(27개)를 건너뛰던 원인.
+    const m = block.match(
+      new RegExp(`(    "${escapeKey(s.content_key)}":\\s*)("(?:[^"\\\\]|\\\\.)*")(,?)`),
+    );
+    if (!m) { skipped.push({ ...s, why: "사전에서 그 줄을 못 찾음" }); continue; }
+    // 앞뒤 공백은 코디 의도가 아니라 편집창에서 딸려온 것 — 메타 설명·버튼에 그대로 들어가면 지저분하다.
+    // 다만 「숫자+단위」처럼 «이어붙이는 조각»은 공백이 의미가 있으므로 원문(코드)이 이미 그런 모양이면 둔다.
+    const codeVal = (() => { try { return JSON.parse(m[2]); } catch { return ""; } })();
+    const keepEdges = /^\s|\s$/.test(codeVal);
+    const value = keepEdges ? s.value : s.value.trim();
+    // 함수형 replace — 코디 값에 $& · $` · $' 가 들어가면 문자열형 replace 는 사전을 통째로 망가뜨린다.
+    dict =
+      dict.slice(0, from) +
+      block.replace(m[0], () => `${m[1]}${JSON.stringify(value)}${m[3]}`) +
+      dict.slice(to);
     applied++;
   }
   fs.writeFileSync(dictPath, dict);
   console.log(`[i18n-backport] 사전 파일에 ${applied}건 반영.`);
+  if (skipped.length) {
+    // 조용히 건너뛰면 「반영 끝」으로 읽히고, 코디는 다음 주에 같은 문장을 또 고친다.
+    console.log(`⚠️ 반영 못 한 ${skipped.length}건 — 손으로 확인해라:`);
+    for (const s of skipped.slice(0, 15)) console.log(`   [${s.lang}] ${s.content_key} (${s.why})`);
+    if (skipped.length > 15) console.log(`   … 외 ${skipped.length - 15}건`);
+  }
   if (missing.length) {
     console.log(`⚠️ 사전에 없는 ${missing.length}건은 다른 파일(예: src/lib/content/homeContent.js) 소관 — 손으로 확인해라:`);
     for (const r of [...new Set(missing.map((r) => r.content_key))].slice(0, 15)) console.log(`   ${r}`);
