@@ -32,26 +32,29 @@ test.describe("인테이크 카자흐어 UI", () => {
     // 옛 주소 /intake 는 통합 퍼널로 넘어간다(2026-05 통폐합). 「넘어가는지」는 응답 코드로 «따로»
     // 확인한다 — 화면을 띄워놓고 「intake 링크」를 찾아 누르던 예전 방식은 링크가 보이냐 마느냐로
     // 결과가 갈렸고, 안 보이면 /intake 를 직접 열다가 이동이 끊겨(ERR_ABORTED) 빨간불이 났다.
-    const old = await page.request.get("/intake", { maxRedirects: 0 });
-    expect([301, 302, 307, 308]).toContain(old.status());
-    expect(old.headers()["location"] || "").toContain("/inquiry");
+    // 🛑 첫 한 칸만 보지 마라 — 실서비스에선 www→맨주소로 먼저 한 번 튕겨서
+    //    첫 Location 이 아직 /intake 다. 끝까지 따라간 «최종 주소»로 판정한다.
+    const old = await page.request.get("/intake");
+    expect(old.ok()).toBeTruthy();
+    expect(old.url()).toContain("/inquiry");
 
-    // 카자흐어로 퍼널을 연다 — 여기부터가 이 검사의 본론이다.
-    await page.goto("/kz/inquiry");
+    // 카자흐어 문의서를 연다. 갈림길 ①(퍼널에서 「문의서」 고르기)은 «누르지 않는다» —
+    // 카자흐 화면엔 영어 글자가 없어 옛 실서비스에서 고를 방법이 없다(야간 검사가 하루 늦다).
+    // 그 클릭은 영어 검사(chat-identification-form)가 대신 본다.
+    await page.goto("/kz/inquiry/referral");
     await page.waitForLoadState("domcontentloaded");
-
-    // 갈림길 ①: 「문의서」를 고른다. «글자»가 아니라 정체로 고른다 — 「Inquiry Form」으로 찾으면
-    // 카자흐·러시아 화면에서 못 찾고 그냥 지나친다.
-    const formChoice = page.getByTestId("channel-form");
-    await formChoice.waitFor({ state: "visible", timeout: 15000 });
-    await formChoice.click();
-    await page.waitForURL(/\/inquiry\/referral/, { timeout: 15000 }).catch(() => {});
 
     // 갈림길 ②: /inquiry/referral 은 폼 «전»에 「연락처만 / 진단까지」를 한 번 더 고르게 한다
     // (2026-08 개편). 안 고르면 화면에 입력칸이 하나도 없다 — 8/20부터 빨간불이던 진짜 이유.
-    const pickQuick = page.getByTestId("pick-quick");
-    await pickQuick.waitFor({ state: "visible", timeout: 10000 });
-    await pickQuick.click();
+    // .first() — 화면이 새로 그려지는 «찰나»에 옛 것과 새 것이 잠깐 같이 잡힌다
+    //   (실서비스에서 2개로 잡혀 검사가 멈췄다. 서버가 보낸 HTML 안에는 1개뿐 — 진짜 중복 아님).
+    const pickQuick = page.getByTestId("pick-quick").first();
+    await pickQuick.waitFor({ state: "visible", timeout: 45000 });
+    // 화면이 다 그려지기 전에 누르면 그 누름이 버려진다 → 폼이 뜰 때까지 다시 누른다.
+    await expect(async () => {
+      await pickQuick.click();
+      await expect(page.locator("input, textarea, select").first()).toBeVisible({ timeout: 5000 });
+    }).toPass({ timeout: 60000 });
 
     // 폼 요소가 있어야 함
     await expect(
