@@ -277,6 +277,11 @@ export interface ChatSession {
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
+  // 이 호출이 «사람의 상담»이 아니라 AI 자가시험(회귀 테스트)인가.
+  // true 면 ①실서비스 Judge(ai_response_evaluations 적재 + 코디 긴급알림)를 건너뛰고
+  // ②AI 비용을 public_chat 이 아니라 regression_generate 표면으로 기록한다.
+  // 시험 트래픽이 실서비스 품질지표·알림에 섞이면 KPI 가 오염된다(2026-08-21).
+  isRegressionTest?: boolean;
 }
 
 
@@ -1122,7 +1127,7 @@ export async function generateChatReply(
 
     // 💰 사용량·비용 계측 (fire-and-forget — 실패해도 응답 무관). 어드민 '외부 서비스 사용량' 화면 데이터.
     logAiUsage({
-      surface: "public_chat",
+      surface: session.isRegressionTest ? "regression_generate" : "public_chat",
       model: getModelName(),
       usage: (result as any)?.usage,
       meta: { mode: "generate", structured: injectedPatternIds.length > 0 },
@@ -1185,7 +1190,7 @@ export async function generateChatReply(
     };
 
     // Judge: 메인 응답 흐름 차단 없이 백그라운드 평가
-    runJudgeInBackground({
+    if (!session.isRegressionTest) runJudgeInBackground({
       query: safeQuery,
       response: finalReply,
       context: allContext || undefined,
@@ -1405,14 +1410,14 @@ export async function streamChatReply(
 
     // 💰 사용량·비용 계측 (fire-and-forget). 스트림 usage 가 없으면 토큰 미상으로 기록(호출 수만 집계).
     logAiUsage({
-      surface: "public_chat",
+      surface: session.isRegressionTest ? "regression_generate" : "public_chat",
       model: getModelName(),
       usage: usageForLog,
       meta: { mode: "stream" },
     });
 
     // Judge: 메인 흐름 차단 없이 백그라운드 평가
-    runJudgeInBackground({
+    if (!session.isRegressionTest) runJudgeInBackground({
       query: safeQuery,
       response: fullText,
       context: allContext || undefined,

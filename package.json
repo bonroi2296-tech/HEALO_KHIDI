@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:regression": "tsx --conditions=react-server scripts/run-regression-tests.ts",
     "test:coverage": "vitest run --coverage",
     "check:content": "node scripts/check-content-consistency.mjs",
     "check:completeness": "node scripts/check-completeness.mjs",

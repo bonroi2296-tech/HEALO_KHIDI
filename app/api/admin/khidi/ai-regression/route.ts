@@ -24,10 +24,14 @@ export async function GET(request: NextRequest) {
     const { data, error } = await (supabaseAdmin as any)
       .from("ai_regression_runs")
       .select(
-        "run_date, overall_score, passed, flags, latency_ms, test_id, id, ai_regression_tests(scenario_id, scenario_category)"
+        "run_date, overall_score, passed, flags, latency_ms, first_token_ms, rag_chunk_count, test_id, id, ai_regression_tests(scenario_id, scenario_category)"
       )
       .gte("run_date", since)
-      .order("run_date", { ascending: true });
+      // ⚠️ 내림차순 + 명시 limit — 오름차순이면 PostgREST 기본 상한(1,000행)에 «최신»이 잘린다.
+      //    2026-08-21 실측: 30일 창에 1,344행이라 화면이 10일 전(8/11) 실행을 「최근 실행」으로
+      //    보여주고 있었다(그날 것도 50건 중 6건만 왔다). 최신부터 받아야 잘려도 최신이 남는다.
+      .order("run_date", { ascending: false })
+      .limit(5000);
 
     if (error) {
       console.error("[admin/khidi/ai-regression] query error:", error.message);
