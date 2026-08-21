@@ -8,6 +8,7 @@
 """
 import glob
 import os
+import pathlib
 import re
 from collections import Counter, defaultdict
 
@@ -251,6 +252,49 @@ def 검사_중복문구(f, doc):
             알림(f, "문구 중복", f"같은 문장이 두 번 ▸ {겹문[0][:60]}")
 
 
+# ── 10. 워드판 ↔ 웹판 대조 ───────────────────────────────────────
+# 웹판(.html)은 손으로 만든 시각화판이라 «자동 생성이 안 된다». 2026-08-21 실제로
+# 워드판은 90.9% 인데 웹판은 86.4% 로 조용히 어긋나 있었다(같은 산출물, 다른 말).
+def 검사_웹판대조():
+    for hp in sorted(glob.glob(os.path.join(HERE, "*.html"))):
+        dp = hp[:-5] + ".docx"
+        if not os.path.exists(dp):
+            continue
+        이름 = os.path.basename(hp)
+        html = pathlib.Path(hp).read_text(encoding="utf-8", errors="ignore")
+        doc = Document(dp)
+        # 요구항목 판정 개수를 양쪽에서 세어 맞대 본다
+        웹 = Counter(v for _, v in re.findall(
+            r'class="rid mono">([A-Z]+-[A-Z]+-\d+)</span>.*?class="verdict [a-z]+">([^<]+)</span>', html))
+        워드 = Counter()
+        후보 = []
+        for t in doc.tables:
+            머리 = [c.text.strip() for c in t.rows[0].cells] if t.rows else []
+            if "정의" in 머리 or not any(h in ("ID", "요구 ID") for h in 머리):
+                continue
+            c = Counter()
+            for r in t.rows[1:]:
+                for v in [x.text.strip() for x in r.cells]:
+                    if v in 판정어:
+                        c[v] += 1
+                        break
+            if c:
+                후보.append(c)
+        if 후보:
+            워드 = max(후보, key=lambda c: sum(c.values()))
+        if 웹 and 워드 and 웹 != 워드:
+            알림(이름, "웹판 어긋남", f"판정 개수 웹 {dict(웹)} != 워드 {dict(워드)}")
+        # 백분율 값도 맞대 본다 — 단, style="width:..%" 같은 «화면 꾸밈값»은 뺀다.
+        # 막대 그래프 너비는 워드판에 있을 수가 없어 그대로 두면 영원히 오탐이 난다.
+        본문만 = re.sub(r"<[^>]*>", " ", html)
+        웹률 = set(re.findall(r"(\d{1,3}\.\d)%", 본문만))
+        워드글 = 전체글(doc)
+        워드률 = set(re.findall(r"(\d{1,3}\.\d)%", 워드글))
+        빠진 = 웹률 - 워드률
+        if 빠진:
+            알림(이름, "웹판 어긋남", f"웹판에만 있는 비율값 {sorted(빠진)} — 워드판 갱신 누락 의심")
+
+
 def main():
     통 = defaultdict(set)
     파일 = sorted(glob.glob(os.path.join(HERE, "*.docx")))
@@ -261,6 +305,8 @@ def main():
                    검사_날짜, 검사_내부용어, 검사_빈칸, 검사_중복문구):
             fn(f, doc)
         수집_꼬리표(f, doc, 통)
+
+    검사_웹판대조()
 
     for 이름, 값들 in 통.items():
         if len({v for v, _ in 값들}) > 1:
