@@ -39,10 +39,23 @@ test.describe("채팅 신원 확인 폼", () => {
       // 선택지를 클릭해야 입력 폼이 나타남 (2026-05 피벗 구조)
       await page.goto("/inquiry");
       await page.waitForLoadState("domcontentloaded");
-      const formChoice = page.getByText(/Inquiry Form/i).first();
+      // 언어 붙은 주소(/en/inquiry)로 한 번 튕긴다 — 그게 끝나기 «전»에 물어보면
+      // 갈림길 카드가 아직 없어서 그냥 지나쳤다(8/20부터 이 검사가 빨간불이던 이유).
+      const formChoice = page.getByTestId("channel-form");
+      await formChoice.waitFor({ state: "visible", timeout: 15000 }).catch(() => {});
       if (await formChoice.isVisible().catch(() => false)) {
         await formChoice.click();
+        await page.waitForURL(/\/inquiry\/referral/, { timeout: 15000 }).catch(() => {});
       }
+    }
+
+    // 「문의서」를 고르면 /inquiry/referral 로 가는데, 거기서 «갈림길이 한 칸 더» 뜬다
+    // (2026-08 개편: 15칸을 바로 들이대지 않고 「연락처만 / 진단까지」를 먼저 고르게 함).
+    // 안 고르면 화면에 입력칸이 하나도 없다 — 8/20부터 이 검사가 빨간불이던 진짜 이유다.
+    const pickQuick = page.getByTestId("pick-quick");
+    await pickQuick.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+    if (await pickQuick.isVisible().catch(() => false)) {
+      await pickQuick.click();
     }
 
     // 필수 필드가 최소 하나라도 있어야 함
