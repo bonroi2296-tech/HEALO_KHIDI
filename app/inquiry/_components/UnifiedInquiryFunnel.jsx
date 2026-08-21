@@ -888,6 +888,9 @@ export default function UnifiedInquiryFunnel() {
               <button
                 key={c.key}
                 type="button"
+                // 자동 검사가 «글자» 대신 이걸로 고른다 — 「Inquiry Form」으로 찾으면
+                // 카자흐·러시아 화면에서 못 찾아 검사가 조용히 지나친다(2026-08-21).
+                data-testid={`channel-${c.key}`}
                 onClick={c.onClick}
                 className={`bg-white border border-gray-200 rounded-xl p-4 md:p-6 text-left flex md:block items-center gap-4 md:gap-0 ${c.hoverBorder} hover:shadow-md transition-all`}
               >
