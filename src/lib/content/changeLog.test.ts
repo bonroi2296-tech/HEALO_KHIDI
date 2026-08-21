@@ -16,7 +16,11 @@ describe("withOldValueDefaults — 이력의 「이전 값」 보정", () => {
       [{ content_key: "intakeLabels.cancer.lung", lang: "ru", old_value: null }],
       D
     );
-    expect(row.old_value).toBe("Лёгкое"); // 사전 원문 = 화면에 실제로 떠 있던 문구
+    // 사전 원문 = 화면에 실제로 떠 있던 문구.
+    // 2026-08-20: 「Лёгкое」(장기 이름 «폐») 였던 것을 코디네이터 교정본으로 되돌렸다 —
+    // 암종을 고르는 화면인데 «폐암»이 아니라 «폐»라고 적혀 있었다. 값을 여기 고정해 두는 이유는
+    // 이 자리가 다시 장기 이름으로 퇴행하면 시험이 깨지게 하려는 것이다.
+    expect(row.old_value).toBe("Рак лёгких");
     expect(row.from_default).toBe(true);
   });
 

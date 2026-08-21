@@ -352,8 +352,41 @@ async function 검사_앱미반영() {
   add("app", "폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
 }
 
+/**
+ * 코디네이터가 화면에서 고친 문구가 «코드로 돌아왔나».
+ * 안 돌아오면 다음에 그 화면을 손대는 순간 코드 값이 이겨서 교정이 통째로 되돌아간다
+ * (2026-08-20 실측: 262건 중 259건이 그 상태로 몇 달 쌓여 있었다).
+ * CI 에는 못 붙인다 — 이 검사는 service_role 열쇠가 필요한데 그걸 자동 검사에 두면 안 된다.
+ */
+async function 검사_번역역류() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "이 상자에 DB 열쇠가 없다(.env.local 있는 곳에서 돌려라)");
+    return;
+  }
+  let out = "";
+  let 어긋남 = 0;
+  try {
+    out = execSync("node scripts/i18n-backport-overrides.mjs --check", { encoding: "utf8" });
+  } catch (e) {
+    out = String(e.stdout || "") + String(e.stderr || "");
+  }
+  const m = out.match(/코드와 어긋남 (\d+)건/);
+  if (m) 어긋남 = Number(m[1]);
+  const 밖 = (out.match(/사전 밖 키 (\d+)건/) || [])[1];
+  add(
+    "i18nback",
+    "코디 교정이 코드에 반영됐나",
+    어긋남 > 0 ? "볼 것" : "통과",
+    어긋남 > 0
+      ? `코디가 고쳤는데 코드엔 안 온 문구 ${어긋남}건 → \`node scripts/i18n-backport-overrides.mjs\` 로 되돌려라` +
+        (밖 && Number(밖) > 0 ? ` · 사전 밖 키 ${밖}건은 손으로` : "")
+      : `어긋남 0건${밖 ? ` · 사전 밖 키 ${밖}건은 다른 파일 소관` : ""}`,
+  );
+}
+
 const 검사들 = [
   ["pii", 검사_평문개인정보],
+  ["i18nback", 검사_번역역류],
   ["rls", 검사_익명읽기],
   ["keys", 검사_화면에박힌열쇠],
   ["env", 검사_환경변수이름],
