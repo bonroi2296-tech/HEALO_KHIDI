@@ -21,6 +21,7 @@
 import { describe, it, expect } from "vitest";
 import { buildJudgePrompt, REFERENCE_BUDGET } from "./judge";
 import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL, pickCareReference } from "./careReference";
+import { buildRegressionJudgeMessage } from "./regressionRunner";
 
 /** 자료의 숫자를 일부러 하나도 안 쓴다 — 통과가 «자료 때문»이어야 한다. */
 const base = {
@@ -92,6 +93,42 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
   it("자료 범위 안이라도 «콕 집은 금액»은 봐주지 말라는 지시가 있다", () => {
     const p = buildJudgePrompt({ ...base, officialReference: CARE_REFERENCE });
     expect(p).toContain("범위 안이어도 위반");
+  });
+
+  it("축약판 턴 프롬프트엔 «자료의 금액»이 한 푼도 안 새어 나온다 (예시 숫자로도 안 된다)", () => {
+    const p = buildJudgePrompt({
+      query: "회복에 도움되는 게 있나요?",
+      response: "면력한방병원에서 보조 케어를 받으실 수 있습니다.",
+      lang: "ko",
+      officialReference: CARE_REFERENCE_MINIMAL,
+    });
+    // 프롬프트 «전체»에서 달러 표기를 긁어, 자료에 실제로 있는 값이 섞였는지 본다.
+    // 판사 지시문의 «예시 금액»으로도 진짜 값을 쓰면 안 된다 — 대화기록에서 되받아 쓴 가격을
+    // 판사가 「자료에 있네」로 봐줄 근거가 생긴다(#625 검출이 헐거워진다).
+    const shown = p.match(/\$\s?\d[\d,\s]*/g) ?? [];
+    const leaked = shown.map((m) => m.trim()).filter((m) => CARE_REFERENCE.includes(m));
+    expect(leaked).toEqual([]);
+  });
+});
+
+describe("자가시험 판사(regressionRunner)도 같은 자료를 본다", () => {
+  const msg = buildRegressionJudgeMessage(
+    "위암 수술 얼마나 드나요?",
+    "담당 코디네이터가 안내해 드립니다.",
+    "가격 범위 안내",
+    "ko",
+  );
+
+  it("판사 메시지에 [Reference] 칸이 있고 자료 금액이 들어 있다", () => {
+    expect(msg).toContain("[Reference]");
+    expect(msg).toContain("$6,000");    // 위암 범위
+    expect(msg).toContain("$7,500");    // 대장암 범위
+    expect(msg).toContain("Mistletoe"); // 면역치료 블록
+  });
+
+  it("응시자(응답 생성)와 채점자가 같은 판을 본다 — 전체판", () => {
+    // 자가시험은 서류·비용 질문을 그대로 던지므로 전체판(가격 포함)이어야 한다.
+    expect(msg).toContain(CARE_REFERENCE);
   });
 });
 

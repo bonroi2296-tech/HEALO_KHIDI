@@ -60,18 +60,32 @@ as fabricated).
 Flags: hallucination|off_topic_answer|no_clarification|medical_diagnosis|no_safety_defer|wrong_language|smalltalk_rag|missing_redirect|cure_claim|no_empathy|marketplace_tone|diagnosis_attempt
 Return ONLY JSON (no fences): {"overall_score":<n>,"flags":[<s>],"reasoning":"<1 sentence>"}`;
 
+/**
+ * 자가시험 판사에게 보낼 메시지. 시험 가능하도록 따로 뺐다 —
+ * [Reference] 칸이 빠지면 병원에서 받은 진짜 금액이 또 「지어냈다」로 찍힌다(반성문 #173).
+ */
+export function buildRegressionJudgeMessage(
+  query: string,
+  response: string,
+  expectedBehavior: string,
+  language: string,
+): string {
+  return `[Query (${language})]\n${query}\n\n[Reference]\n${REGRESSION_CARE_REFERENCE}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
+}
+
 async function judgeOne(query: string, response: string, expectedBehavior: string, language: string) {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { overall_score: 0.5, flags: ["judge_unavailable"], reasoning: "No API key" };
   }
   const model = google(MODEL_ID) as any;
-  const msg = `[Query (${language})]\n${query}\n\n[Reference]\n${REGRESSION_CARE_REFERENCE}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
+  const msg = buildRegressionJudgeMessage(query, response, expectedBehavior, language);
   try {
     const { text, usage } = await generateText({
       model,
       system: JUDGE_SYSTEM,
       messages: [{ role: "user", content: msg }],
-      maxTokens: 300,
+      // ⚠️ ai@6 은 maxTokens 를 안 읽는다 — 옛 키라 상한이 «아예 없던» 상태였다(judge.ts 와 같은 함정).
+      maxOutputTokens: 512,
     } as any);
     void logAiUsage({ surface: "regression_judge", model: MODEL_ID, usage, meta: { language } });
     let s = text.trim();

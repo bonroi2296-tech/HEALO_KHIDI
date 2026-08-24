@@ -938,7 +938,6 @@ interface PreparedGeneration {
   ragChunks: any[];
   injectedPatternIds: string[];
   retrievedPatternIds: string[];
-  allContext: string;
   /**
    * 판사에게 넘길 컨텍스트. 비용을 안 물은 턴엔 모델도 가격 줄이 빠진 컨텍스트를 보므로
    * 판사에게도 같은 걸 준다 — 안 그러면 모델이 못 본 가격 줄을 판사가 「근거 있음」으로 봐서
@@ -1027,7 +1026,6 @@ async function prepareGeneration(
     ragChunks,
     injectedPatternIds,
     retrievedPatternIds,
-    allContext,
     judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
     careReference: pickCareReference(docListAllowed),
