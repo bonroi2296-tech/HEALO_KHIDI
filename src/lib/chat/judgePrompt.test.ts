@@ -21,7 +21,8 @@
 import { describe, it, expect } from "vitest";
 import { buildJudgePrompt, REFERENCE_BUDGET } from "./judge";
 import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL, pickCareReference } from "./careReference";
-import { buildRegressionJudgeMessage } from "./regressionRunner";
+import { buildRegressionJudgeMessage, REGRESSION_DOC_LIST_ALLOWED } from "./regressionRunner";
+import { buildSystemPrompt } from "./generateReply";
 
 /** 자료의 숫자를 일부러 하나도 안 쓴다 — 통과가 «자료 때문»이어야 한다. */
 const base = {
@@ -102,11 +103,16 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
       lang: "ko",
       officialReference: CARE_REFERENCE_MINIMAL,
     });
-    // 프롬프트 «전체»에서 달러 표기를 긁어, 자료에 실제로 있는 값이 섞였는지 본다.
+    // 자료에 실제로 있는 «돈 표기»를 전부 뽑아, 그중 하나라도 프롬프트에 나오면 실패.
+    // ⚠️ 「$ 붙은 것만」 보면 안 된다 — 자료는 범위 윗값에 $ 를 안 붙인다($6,000–18,500).
+    //    그래서 「6,000~18,500」 으로 되돌려 넣어도 안 걸리던 구멍이 있었다(리뷰 3차 실증).
     // 판사 지시문의 «예시 금액»으로도 진짜 값을 쓰면 안 된다 — 대화기록에서 되받아 쓴 가격을
     // 판사가 「자료에 있네」로 봐줄 근거가 생긴다(#625 검출이 헐거워진다).
-    const shown = p.match(/\$\s?\d[\d,\s]*/g) ?? [];
-    const leaked = shown.map((m) => m.trim()).filter((m) => CARE_REFERENCE.includes(m));
+    const moneyInReference = [
+      ...new Set(CARE_REFERENCE.match(/\d{1,3}(?:,\d{3})+|₩\d+M/g) ?? []),
+    ].filter((t) => t !== "1,350"); // 환율 설명값(1 USD ≈ 1,350 KRW)은 금액이 아니다
+    expect(moneyInReference.length).toBeGreaterThan(5); // 뽑기 자체가 망가지면 여기서 터진다
+    const leaked = moneyInReference.filter((t) => p.includes(t));
     expect(leaked).toEqual([]);
   });
 });
@@ -126,9 +132,14 @@ describe("자가시험 판사(regressionRunner)도 같은 자료를 본다", () 
     expect(msg).toContain("Mistletoe"); // 면역치료 블록
   });
 
-  it("응시자(응답 생성)와 채점자가 같은 판을 본다 — 전체판", () => {
+  it("응시자(응답 생성)와 채점자가 같은 판을 본다 — 양쪽 다 확인", () => {
     // 자가시험은 서류·비용 질문을 그대로 던지므로 전체판(가격 포함)이어야 한다.
+    // 채점자 쪽
     expect(msg).toContain(CARE_REFERENCE);
+    // 응시자 쪽 — regressionRunner.generateReply 가 부르는 그 인자 그대로.
+    // 한쪽만 검사하면 응시자 인자를 false 로 바꿔도 시험이 초록으로 남는다(리뷰 3차 실증).
+    const system = buildSystemPrompt("", false, false, [], {}, true, {}, "en", REGRESSION_DOC_LIST_ALLOWED);
+    expect(system).toContain(CARE_REFERENCE);
   });
 });
 

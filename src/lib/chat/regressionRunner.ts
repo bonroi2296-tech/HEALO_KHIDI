@@ -38,7 +38,7 @@ const MODEL_ID = "gemini-flash-latest";
  * ⚠️ 채점자가 응시자보다 적게 보면 정답이 오답이 된다 — 2026-08-24 반성문 #173 의 부류다.
  *   본채널 판사(judge.ts)만 고치고 여기를 놔두면 월·목 자가시험은 계속 오탐을 낸다.
  */
-const REGRESSION_DOC_LIST_ALLOWED = true;
+export const REGRESSION_DOC_LIST_ALLOWED = true;
 const REGRESSION_CARE_REFERENCE = pickCareReference(REGRESSION_DOC_LIST_ALLOWED);
 
 const JUDGE_SYSTEM = `You are a strict AI quality judge for healwith, a Korean medical tourism platform.
@@ -85,7 +85,12 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
       system: JUDGE_SYSTEM,
       messages: [{ role: "user", content: msg }],
       // ⚠️ ai@6 은 maxTokens 를 안 읽는다 — 옛 키라 상한이 «아예 없던» 상태였다(judge.ts 와 같은 함정).
-      maxOutputTokens: 512,
+      // 답(JSON)은 55~89 토큰이면 되는데 «생각 토큰»이 이 예산을 같이 먹는다. 실측 최악 424,
+      // 이 저장소 기록엔 631 도 있다(geminiThinkingCompat.ts) → 512 로 조이면 잘려서 JSON 파싱이 깨지고
+      // 그 시나리오가 통째로 0점 + 「긴급」 알림이 울린다. 넉넉히 준다.
+      // ⚠️ judge.ts 처럼 thinkingLevel:"minimal" 을 그냥 붙이지 마라 — 이 모델이 거절한다.
+      //    judge.ts 는 callGeminiWithCompat 사다리가 받아줘서 사는 것이다(여긴 사다리가 없다).
+      maxOutputTokens: 2048,
     } as any);
     void logAiUsage({ surface: "regression_judge", model: MODEL_ID, usage, meta: { language } });
     let s = text.trim();
