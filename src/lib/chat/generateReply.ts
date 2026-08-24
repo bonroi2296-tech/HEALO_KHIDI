@@ -19,7 +19,7 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
-import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL } from "./careReference";
+import { pickCareReference } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
 import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking, stripPriceLines } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
@@ -441,9 +441,7 @@ export function buildSystemPrompt(
     "",
     // 서류 5종 나열 가드(코드 강제, 2026-07-04): 사용자가 서류/절차/비용을 묻지 않은 턴엔
     // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
-    docListAllowed
-      ? CARE_REFERENCE
-      : CARE_REFERENCE_MINIMAL,
+    pickCareReference(docListAllowed),
     docListAllowed
       ? ""
       : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
@@ -940,8 +938,15 @@ interface PreparedGeneration {
   ragChunks: any[];
   injectedPatternIds: string[];
   retrievedPatternIds: string[];
-  allContext: string;
+  /**
+   * 판사에게 넘길 컨텍스트. 비용을 안 물은 턴엔 모델도 가격 줄이 빠진 컨텍스트를 보므로
+   * 판사에게도 같은 걸 준다 — 안 그러면 모델이 못 본 가격 줄을 판사가 「근거 있음」으로 봐서
+   * 「안 물었는데 가격 흘림」 검출이 헐거워진다.
+   */
+  judgeContext: string;
   ragScoring: string;
+  /** 이 턴에 실제 주입된 안내자료 판(전체 or 가격 뺀 축약). 품질 판사에게 같은 걸 보여준다. */
+  careReference: string;
 }
 
 async function prepareGeneration(
@@ -993,11 +998,14 @@ async function prepareGeneration(
 
   const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
   const useWebSearch = !allContext && !hospitalGuardActive;
+  // 안내자료 판 선택은 여기서 «한 번만» 한다 — buildSystemPrompt 와 품질 판사가 같은 판을 봐야 한다.
+  // (두 곳에서 따로 고르면 한쪽만 바뀌어 판사가 엉뚱한 자료로 채점한다.)
+  const docListAllowed = asksDocsOrProcess(query);
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
     hospitalRankingAsk: asksHospitalRanking(query),
-  }, mentionsCancerType(query), session, lang, asksDocsOrProcess(query));
+  }, mentionsCancerType(query), session, lang, docListAllowed);
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
@@ -1018,8 +1026,9 @@ async function prepareGeneration(
     ragChunks,
     injectedPatternIds,
     retrievedPatternIds,
-    allContext,
+    judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
+    careReference: pickCareReference(docListAllowed),
   };
 }
 
@@ -1070,7 +1079,7 @@ export async function generateChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
 
     if (!prep.model) {
       return {
@@ -1188,7 +1197,8 @@ export async function generateChatReply(
     runJudgeInBackground({
       query: safeQuery,
       response: finalReply,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
+      officialReference: careReference,
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
       threadId: threadId ?? null,
@@ -1273,7 +1283,7 @@ export async function streamChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
 
     if (!prep.model) {
       const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
@@ -1415,7 +1425,8 @@ export async function streamChatReply(
     runJudgeInBackground({
       query: safeQuery,
       response: fullText,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
+      officialReference: careReference,
       lang,
       messageId: null,
       threadId: threadId ?? null,

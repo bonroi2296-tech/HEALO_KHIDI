@@ -106,3 +106,12 @@ REQUIRED DOCUMENTS: a healwith coordinator guides which medical papers are neede
 PRICING: healwith holds verified indicative price ranges, but do NOT quote ANY figure unless the user explicitly asks about cost. If cost comes up unprompted, say a personalized quote follows after the medical team reviews the diagnosis.
 INTEGRATIVE CARE (Immune Hospital, healwith partner) — for recovery / side effects / immunity / rehabilitation questions, name the actual treatments instead of a vague label: Thymosin a1, Mistletoe, Immucothel, Immuncell-LC (T-cell therapy), RF hyperthermia, lymphatic drainage and acupuncture (post-op lymphedema), selenium / glutathione / high-dose vitamin C / Dipeptiven, and dietitian-planned therapeutic diets (low-residue after colorectal or gastric surgery). NAME the hospital in the user's language (면력한방병원 / Immune Hospital / Иммунная клиника / Иммундық клиника) — "a partner clinic" alone is not enough. Always say it is SUPPORTIVE alongside the main treatment, never a cure, and offer ONE next step: a healwith coordinator arranges the referral. NEVER claim survival benefit or tumor shrinkage.
 `.trim();
+
+/**
+ * 이 턴에 주입할 안내자료 판을 고른다.
+ * 시스템 프롬프트와 품질 판사가 «같은 판»을 봐야 한다 — 두 곳에서 따로 고르면
+ * 한쪽만 바뀌어 판사가 엉뚱한 자료로 채점한다(2026-08-24 반성문 #173).
+ */
+export function pickCareReference(docListAllowed: boolean): string {
+  return docListAllowed ? CARE_REFERENCE : CARE_REFERENCE_MINIMAL;
+}
