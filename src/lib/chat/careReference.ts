@@ -110,7 +110,7 @@ INTEGRATIVE CARE (Immune Hospital, healwith partner) — for recovery / side eff
 /**
  * 이 턴에 주입할 안내자료 판을 고른다.
  * 시스템 프롬프트와 품질 판사가 «같은 판»을 봐야 한다 — 두 곳에서 따로 고르면
- * 한쪽만 바뀌어 판사가 엉뚱한 자료로 채점한다(2026-08-24 반성문 #172).
+ * 한쪽만 바뀌어 판사가 엉뚱한 자료로 채점한다(2026-08-24 반성문 #173).
  */
 export function pickCareReference(docListAllowed: boolean): string {
   return docListAllowed ? CARE_REFERENCE : CARE_REFERENCE_MINIMAL;

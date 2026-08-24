@@ -939,6 +939,12 @@ interface PreparedGeneration {
   injectedPatternIds: string[];
   retrievedPatternIds: string[];
   allContext: string;
+  /**
+   * 판사에게 넘길 컨텍스트. 비용을 안 물은 턴엔 모델도 가격 줄이 빠진 컨텍스트를 보므로
+   * 판사에게도 같은 걸 준다 — 안 그러면 모델이 못 본 가격 줄을 판사가 「근거 있음」으로 봐서
+   * 「안 물었는데 가격 흘림」 검출이 헐거워진다.
+   */
+  judgeContext: string;
   ragScoring: string;
   /** 이 턴에 실제 주입된 안내자료 판(전체 or 가격 뺀 축약). 품질 판사에게 같은 걸 보여준다. */
   careReference: string;
@@ -1022,6 +1028,7 @@ async function prepareGeneration(
     injectedPatternIds,
     retrievedPatternIds,
     allContext,
+    judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
     careReference: pickCareReference(docListAllowed),
   };
@@ -1074,7 +1081,7 @@ export async function generateChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
 
     if (!prep.model) {
       return {
@@ -1192,7 +1199,7 @@ export async function generateChatReply(
     runJudgeInBackground({
       query: safeQuery,
       response: finalReply,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
       officialReference: careReference,
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
@@ -1278,7 +1285,7 @@ export async function streamChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
 
     if (!prep.model) {
       const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
@@ -1420,7 +1427,7 @@ export async function streamChatReply(
     runJudgeInBackground({
       query: safeQuery,
       response: fullText,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
       officialReference: careReference,
       lang,
       messageId: null,
