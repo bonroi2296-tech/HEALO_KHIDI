@@ -31,6 +31,15 @@ export interface JudgeInput {
   response: string;
   /** RAG 컨텍스트 텍스트 (있으면 환각 감지 정확도 향상) */
   context?: string;
+  /**
+   * 이 턴에 실제로 시스템 프롬프트에 주입된 healwith 안내자료(careReference).
+   * 판사는 여태 RAG 컨텍스트만 봤는데, 검증된 가격·면역치료 항목은 전부 이 자료에만 있다
+   * → 모델이 «자료 그대로» 인용해도 "컨텍스트에 없다"며 hallucination/fabricated_price 로 깎였다
+   *   (2026-08-20 자가시험 19건 중 11건이 이 오탐, 반성문 #172).
+   * ⚠️ 주입된 «그 판»을 그대로 넘겨야 한다 — 값 안 물은 턴엔 가격 뺀 축약판이 들어가므로,
+   *   전체판을 항상 넘기면 "안 물었는데 가격 흘림" 을 판사가 못 잡는다.
+   */
+  officialReference?: string;
   lang: string;
   messageId?: string | null;
   threadId?: string | null;
@@ -54,19 +63,39 @@ export interface JudgeResult extends JudgeScores {
 // Judge 프롬프트
 // ─────────────────────────────────────────────
 
-function buildJudgePrompt(input: JudgeInput): string {
+/**
+ * 안내자료 잘림 한도. 자료 전체(2026-08-24 기준 5,370자)가 통째로 들어가야 한다 —
+ * 잘리면 뒷부분(검진 가격·「완치 아니다」 안내)을 인용한 응답이 또 환각으로 찍힌다.
+ * `judgePrompt.test.ts` 가 자료 길이 < 이 값을 매번 대조한다(자료가 늘면 시험이 먼저 터진다).
+ */
+export const REFERENCE_BUDGET = 8000;
+
+export function buildJudgePrompt(input: JudgeInput): string {
   const contextSection = input.context
     ? `\n\n[RETRIEVED CONTEXT]\n${input.context.slice(0, 3000)}`
     : "\n\n[RETRIEVED CONTEXT]\n(없음 — 컨텍스트 없이 생성된 응답)";
+
+  // 안내자료는 RETRIEVED CONTEXT 와 «칸을 따로» 쓴다. 같은 3000자를 나눠 쓰면
+  // 자료가 길어 RAG 청크를 밀어내고, 그러면 이번엔 RAG 인용이 환각으로 찍힌다.
+  const referenceSection = input.officialReference
+    ? `\n\n[OFFICIAL REFERENCE — healwith 안내자료]\n${input.officialReference.slice(0, REFERENCE_BUDGET)}`
+    : "";
 
   return `당신은 healwith 의료관광 AI 챗봇의 품질 심사 판사입니다. 아래 사용자 질의와 AI 응답을 평가해 JSON을 반환하세요.
 
 [사용자 질의]
 ${input.query}
-${contextSection}
+${contextSection}${referenceSection}
 
 [AI 응답]
 ${input.response}
+
+⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT «와» OFFICIAL REFERENCE 둘 다다.
+OFFICIAL REFERENCE 는 병원에서 받아 검증한 healwith 공식 자료다 — 거기 있는 금액·검사비·병원명·
+보조치료 항목(온열·미슬토·싸이모신·고용량 비타민C 등)을 응답이 그대로 인용했다면 **환각이 아니다**.
+hallucination / fabricated_price 로 찍지 마라. 자료의 범위를 «벗어난» 수치를 만들어낸 경우에만 찍는다.
+반대로 위 두 칸 «어디에도 없는» 금액을 응답이 제시했다면 그건 fabricated_price 다. 특히 사용자가 비용을
+묻지 않은 턴에는 가격이 빠진 축약판 자료가 들어간다 — 그 턴에 금액이 나왔다면 자료 밖에서 지어낸 것이다.
 
 평가 기준 (각 0.0~1.0, 소수점 둘째 자리):
 1. hallucination_score: 컨텍스트에 없는 병원명·의사명·수치·사실을 만들어냈으면 낮음. 1.0=완전 정확, 0.0=심각한 환각
