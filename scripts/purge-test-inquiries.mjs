@@ -16,6 +16,7 @@
  *   node scripts/purge-test-inquiries.mjs                 # 맛보기(아무것도 안 지움)
  *   node scripts/purge-test-inquiries.mjs --live          # 백업 후 실제 삭제
  *   node scripts/purge-test-inquiries.mjs --live --older-than 30   # 30일 지난 것만
+ *   node scripts/purge-test-inquiries.mjs --live --no-backup       # 자동 검사(CI)가 통과 직후 자기 자취 청소
  *
  * 필요한 환경변수: NEXT_PUBLIC_SUPABASE_URL(또는 SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, ENCRYPTION_KEY_V1
  */
@@ -45,6 +46,7 @@ const argv = process.argv.slice(2);
 const LIVE = argv.includes("--live");
 const olderIdx = argv.indexOf("--older-than");
 const OLDER_THAN_DAYS = olderIdx >= 0 ? Number(argv[olderIdx + 1]) : null;
+const NO_BACKUP = argv.includes("--no-backup"); // 자동 검사(CI)용 — 사라질 디스크에 백업해봐야 의미 없다
 const backupIdx = argv.indexOf("--backup");
 const BACKUP_PATH =
   backupIdx >= 0
@@ -117,8 +119,12 @@ async function main() {
     return;
   }
 
-  fs.writeFileSync(BACKUP_PATH, JSON.stringify(backup, null, 2), "utf8");
-  console.log(`  백업 저장: ${BACKUP_PATH} (${(fs.statSync(BACKUP_PATH).size / 1024).toFixed(0)}KB)`);
+  if (NO_BACKUP) {
+    console.log("  백업 안 함(--no-backup) — 자동 검사가 방금 만든 자취를 지우는 용도");
+  } else {
+    fs.writeFileSync(BACKUP_PATH, JSON.stringify(backup, null, 2), "utf8");
+    console.log(`  백업 저장: ${BACKUP_PATH} (${(fs.statSync(BACKUP_PATH).size / 1024).toFixed(0)}KB)`);
+  }
 
   // ── 삭제 순서 ────────────────────────────────────────────────
   // ⚠️ 2026-08-25 실패에서 배운 순서: 대화(chat_threads)를 «먼저» 지우면 실패한다 —
@@ -165,7 +171,7 @@ async function main() {
 
   const { error: delErr, count } = await db.from("inquiries").delete({ count: "exact" }).in("id", ids);
   if (delErr) fail("문의", delErr);
-  removed = count ?? ids.length;
+  const removed = count ?? ids.length;
 
   // 주인이 없어진 대화 — 메시지를 붙잡고 있는 「추천 답장 사용기록」부터 푼다.
   const threadIds = (backup.children.chat_threads || []).map((t) => t.id);
@@ -183,7 +189,11 @@ async function main() {
     console.log(`  대화 ${threadIds.length}건(메시지 ${msgIds.length}건) 삭제`);
   }
 
-  console.log(`\n[정리] 문의 ${removed}건 삭제 완료. 되돌리려면 백업 파일을 쓴다: ${BACKUP_PATH}`);
+  console.log(
+    `
+[정리] 문의 ${removed}건 삭제 완료.` +
+      (NO_BACKUP ? " (백업 안 함 — 자동 검사용 실행)" : ` 되돌리려면 백업 파일을 쓴다: ${BACKUP_PATH}`)
+  );
 }
 
 main().catch((e) => {
