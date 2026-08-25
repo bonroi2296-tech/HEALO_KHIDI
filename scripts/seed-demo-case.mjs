@@ -215,7 +215,9 @@ async function main() {
       patient_user_id: patient.id,
       visa_type: "C-3-3",
       nationality: "KZ",
-      purpose: "의료관광 (위암 수술 후 면역치료)",
+      // ⚠️ visa_applications · cost_estimates 에는 is_test 칸이 없다 — 나중에 세는 사람이
+      //    가려낼 수 있게 「[시연용]」 표식과 DEMO- 번호를 값 안에 넣는다.
+      purpose: "[시연용] 의료관광 (위암 수술 후 면역치료)",
       duration_days: 60,
       planned_arrival_date: new Date(now - 72 * DAY).toISOString().slice(0, 10),
       planned_departure_date: new Date(now - 46 * DAY).toISOString().slice(0, 10),
