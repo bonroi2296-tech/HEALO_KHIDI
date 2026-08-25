@@ -139,7 +139,7 @@ async function main() {
       spoken_language: "ru",
       contact_method: "email",
       cancer_type: "stomach",
-      message: "[시연용 견본] 위암 2기 진단 후 한국 치료 문의 (알마티)",
+      message: "[Демо] Рак желудка II стадии — вопрос о лечении в Корее (Алматы)",
       source: SOURCE_TAG,
       status: "completed",
       case_status: "follow_up",
@@ -236,7 +236,7 @@ async function main() {
         inquiry_id: inquiryId,
         uploader_role: "medical_institution",
         record_type: "test_result",
-        note: "[시연용] 알마티 현지 혈액검사 — CEA 2.1 ng/mL(정상), 헤모글로빈 11.8 g/dL. 특이 소견 없음.",
+        note: "[Демо] Анализ крови в Алматы — РЭА 2,1 нг/мл (норма), гемоглобин 11,8 г/дл. Особенностей нет.",
         created_at: ago(20),
       },
       {
@@ -244,7 +244,7 @@ async function main() {
         uploader_user_id: patient.id,
         uploader_role: "patient",
         record_type: "progress",
-        note: "[시연용] 식사량이 수술 전의 70% 정도까지 돌아왔습니다. 저녁에 가벼운 복통이 있습니다.",
+        note: "[Демо] Аппетит вернулся примерно на 70% от уровня до операции. По вечерам бывает лёгкая боль в животе.",
         created_at: ago(12),
       },
     ])
@@ -258,8 +258,8 @@ async function main() {
       patient_user_id: patient.id,
       report_type: "ad_hoc",
       symptoms: [
-        { symptom: "복통", severity: 4, duration: "3일", language: "ru" },
-        { symptom: "식욕 저하", severity: 3, duration: "1주", language: "ru" },
+        { symptom: "Боль в животе", severity: 4, duration: "3 дня", language: "ru" },
+        { symptom: "Снижение аппетита", severity: 3, duration: "1 неделя", language: "ru" },
       ],
       ai_risk_score: 0.42,
       ai_assessment: "[시연용] 수술 후 흔한 경과 범위. 통증이 6 이상으로 오르거나 발열이 동반되면 즉시 연락 필요.",
