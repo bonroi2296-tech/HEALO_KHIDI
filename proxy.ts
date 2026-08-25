@@ -370,6 +370,23 @@ export async function proxy(request: NextRequest) {
   }
 
   // ========================================
+  // /agency · /clinic 경로 보호 (로그인 여부 체크, 세부 권한은 API 가 checkAgencyAuth 로)
+  // ========================================
+  // 2026-08-25: 다섯 포털 중 여기만 서버 단계 확인이 «아예 없었다». 자료가 새는 건 아니지만
+  //   (조회 창구가 checkAgencyAuth 로 막는다) 미로그인 파트너가 로그인 화면으로 안 가고
+  //   화면 안에서 「로그인이 필요합니다」만 보고 멈췄다 — 나머지 넷과 동작이 달랐다.
+  //   ⚠️ 「기능이 없다」가 아니라 「길안내가 없었다」는 뜻이다. 판정은 여전히 API 가 한다.
+  if (pathname.startsWith("/agency") || pathname.startsWith("/clinic")) {
+    const { hasSession, response: partnerPortalResponse } = await checkSessionInMiddleware(request);
+    if (!hasSession) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return partnerPortalResponse;
+  }
+
+  // ========================================
   // /coordinator 경로 보호 (로그인 여부 체크, 세부 권한은 페이지에서)
   // ========================================
   if (pathname.startsWith("/coordinator")) {

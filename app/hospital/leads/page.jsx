@@ -1,26 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
+import { MessageSquare, Filter, X, ChevronDown, ChevronUp, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText, Send } from "lucide-react";
+import { LEAD_STATUS_FILTERS, leadStatusLabel, leadStatusBadge, leadStatusIcon } from "@/lib/leads/leadStatus";
 
-const STATUS_CONFIG = {
-  queued: { label: "대기", color: "bg-gray-100 text-gray-700", icon: Clock },
-  sent: { label: "전송됨", color: "bg-blue-100 text-blue-700", icon: Send },
-  viewed: { label: "조회됨", color: "bg-yellow-100 text-yellow-700", icon: Eye },
-  replied: { label: "응답함", color: "bg-green-100 text-green-700", icon: Reply },
-  converted: { label: "치료 확정", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
-  rejected: { label: "거절", color: "bg-red-100 text-red-700", icon: XCircle },
-  expired: { label: "만료", color: "bg-gray-100 text-gray-600", icon: Clock },
-};
-
-const STATUS_FILTERS = [
-  { value: "", label: "전체" },
-  { value: "sent", label: "전송됨" },
-  { value: "viewed", label: "조회됨" },
-  { value: "replied", label: "응답함" },
-  { value: "converted", label: "치료 확정" },
-  { value: "rejected", label: "거절" },
-];
+// 상태 라벨·색·아이콘은 어드민 화면과 «같은 사전»을 본다(src/lib/leads/leadStatus.js).
+// 2026-08-25 이전엔 여기 따로 있어서 어드민과 말이 달랐다(전송됨/발송됨 · 거절/거부됨) —
+// 코디가 「거부됨 상태예요」라고 말해도 병원 화면엔 그런 말이 없었다.
+const STATUS_FILTERS = [{ value: "", label: "전체" }, ...LEAD_STATUS_FILTERS.filter((f) => f.value !== "expired")];
 
 function fetchWithAuth(url, options = {}) {
   return import("@/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
@@ -112,7 +99,7 @@ export default function HospitalLeadsPage() {
       const i = lead.normalized_inquiries || {};
       return [
         new Date(lead.assigned_at).toLocaleString("ko-KR"),
-        STATUS_CONFIG[lead.status]?.label || lead.status,
+        leadStatusLabel(lead.status),
         i.objective, i.treatment_slug, i.country, i.language,
         lead.quoted_price_min, lead.quoted_price_max, lead.notes,
       ].map(esc).join(",");
@@ -226,8 +213,7 @@ export default function HospitalLeadsPage() {
 
 function LeadCard({ lead, onClick }) {
   const inquiry = lead.normalized_inquiries;
-  const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.queued;
-  const Icon = sc.icon;
+  const Icon = leadStatusIcon(lead.status);
 
   return (
     <button
@@ -237,9 +223,9 @@ function LeadCard({ lead, onClick }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${sc.color}`}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${leadStatusBadge(lead.status)}`}>
               <Icon size={12} />
-              {sc.label}
+              {leadStatusLabel(lead.status)}
             </span>
             {inquiry?.treatment_slug && (
               <span className="text-xs text-gray-500 truncate">{inquiry.treatment_slug}</span>
@@ -269,8 +255,7 @@ function isoToLocalInput(iso) {
 }
 
 function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
-  const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.queued;
-  const Icon = sc.icon;
+  const Icon = leadStatusIcon(lead.status);
   const [detail, setDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [notes, setNotes] = useState(lead.notes || "");
@@ -335,9 +320,9 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
       <div className="relative bg-white w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white px-5 py-4 border-b border-gray-100 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${sc.color}`}>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${leadStatusBadge(lead.status)}`}>
               <Icon size={14} />
-              {sc.label}
+              {leadStatusLabel(lead.status)}
             </span>
           </div>
           <div className="flex items-center gap-1.5">

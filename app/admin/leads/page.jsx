@@ -5,31 +5,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
 import { RefreshCw, ChevronDown } from "lucide-react";
+import { leadStatusLabel, leadStatusBadge, LEAD_STATUS_ORDER } from "@/lib/leads/leadStatus";
 
 // ✅ Supabase는 세션 확인용으로만 사용
 const supabase = createSupabaseBrowserClient();
 
-// Status 한글 매핑
-const STATUS_LABELS = {
-  queued: "대기",
-  sent: "발송됨",
-  viewed: "조회됨",
-  replied: "응답함",
-  converted: "치료 확정",
-  rejected: "거부됨",
-  expired: "만료됨",
-};
-
-// Status 색상
-const STATUS_COLORS = {
-  queued: "bg-gray-100 text-gray-700 border-gray-200",
-  sent: "bg-blue-100 text-blue-700 border-blue-200",
-  viewed: "bg-purple-100 text-purple-700 border-purple-200",
-  replied: "bg-green-100 text-green-700 border-green-200",
-  converted: "bg-teal-100 text-teal-700 border-teal-200",
-  rejected: "bg-red-100 text-red-700 border-red-200",
-  expired: "bg-orange-100 text-orange-700 border-orange-200",
-};
+// 상태 라벨·색은 병원 포털과 «같은 사전»을 본다(src/lib/leads/leadStatus.js).
+// 2026-08-25 이전엔 여기 따로 있어서 병원 화면과 말이 달랐다(발송됨/전송됨 · 거부됨/거절).
 
 export default function LeadsPage() {
   const toast = useToast();
@@ -231,9 +213,9 @@ export default function LeadsPage() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
             >
               <option value="">전체</option>
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              {LEAD_STATUS_ORDER.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {leadStatusLabel(value)}
                 </option>
               ))}
             </select>
@@ -297,8 +279,8 @@ export default function LeadsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[lead.status]}`}>
-                        {STATUS_LABELS[lead.status] || lead.status}
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${leadStatusBadge(lead.status)}`}>
+                        {leadStatusLabel(lead.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
@@ -317,8 +299,8 @@ export default function LeadsPage() {
                         disabled={updatingLeadId === lead.id}
                         className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-teal-500 outline-none disabled:opacity-50"
                       >
-                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
+                        {LEAD_STATUS_ORDER.map((value) => (
+                          <option key={value} value={value}>{leadStatusLabel(value)}</option>
                         ))}
                       </select>
                     </td>
@@ -344,8 +326,8 @@ export default function LeadsPage() {
                   <div className="font-medium text-gray-900 text-sm">{lead.hospital?.name || '알 수 없음'}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{lead.inquiry?.treatment_slug || '-'}</div>
                 </div>
-                <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-medium border ${STATUS_COLORS[lead.status]}`}>
-                  {STATUS_LABELS[lead.status] || lead.status}
+                <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-medium border ${leadStatusBadge(lead.status)}`}>
+                  {leadStatusLabel(lead.status)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500">
@@ -360,8 +342,8 @@ export default function LeadsPage() {
                 disabled={updatingLeadId === lead.id}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-teal-500 outline-none disabled:opacity-50"
               >
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                {LEAD_STATUS_ORDER.map((value) => (
+                  <option key={value} value={value}>{leadStatusLabel(value)}</option>
                 ))}
               </select>
             </div>
@@ -374,14 +356,14 @@ export default function LeadsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">상태 요약</h3>
           <div className="grid grid-cols-4 lg:grid-cols-7 gap-3">
-            {Object.entries(STATUS_LABELS).map(([status, label]) => {
+            {LEAD_STATUS_ORDER.map((status) => {
               const count = leads.filter(l => l.status === status).length;
               return (
                 <div key={status} className="text-center">
                   <div className={`text-lg lg:text-2xl font-bold ${count > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                     {count}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">{label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{leadStatusLabel(status)}</div>
                 </div>
               );
             })}

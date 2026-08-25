@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
-import StaffPortalGate from '../_components/StaffPortalGate';
+import PortalGate from '../_components/PortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 import PushOptInBanner from '../_components/PushOptInBanner';
 
@@ -61,7 +61,7 @@ export default function CoordinatorLayout({ children }) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
               <ClipboardList size={18} className="text-white" />
             </div>
             <div>
@@ -84,10 +84,10 @@ export default function CoordinatorLayout({ children }) {
               key={item.id}
               href={item.href}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                active ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-700 hover:bg-gray-50'
+                active ? 'bg-teal-50 text-teal-700 shadow-sm' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-500'} />
+              <Icon size={18} className={active ? 'text-teal-700' : 'text-gray-500'} />
               <span>{L[item.labelKey] || item.label}</span>
             </Link>
           );
@@ -120,13 +120,19 @@ export default function CoordinatorLayout({ children }) {
     </>
   );
 
+  // 2026-08-25: 전용 문지기(StaffPortalGate) → 포털 공용 문지기(PortalGate)로 교체.
+  //   판정 기준은 그대로 — /api/me 의 app_metadata.role 이 coordinator 이거나 admin 이면 통과.
   return (
-    <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
+    <PortalGate
+      endpoint="/api/me"
+      verify={(json) => (json?.ok && (json.isAdmin || json.appRole === 'coordinator') ? { ok: true } : { ok: false, who: json?.email || null })}
+      redirect="/coordinator"
+    >
     <div className="flex min-h-screen bg-gray-50 healo-portal-offset">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
           </div>
           <span className="font-bold text-gray-900">{L.brandRole}</span>
@@ -192,6 +198,6 @@ export default function CoordinatorLayout({ children }) {
       )}
       <ManualDrawer role="coordinator" />
     </div>
-    </StaffPortalGate>
+    </PortalGate>
   );
 }

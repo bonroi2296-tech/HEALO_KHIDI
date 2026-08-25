@@ -2,7 +2,7 @@
  * E2E: 어드민 사이드바 메뉴 렌더 + 접힘 동작 @smoke
  *
  * 왜 이 테스트가 있나:
- *   /admin 은 로그인 게이트(AdminGateClient) 뒤라, 일반 빌드·babel 파싱·비인증 HTTP 200
+ *   /admin 은 로그인 게이트(PortalGate) 뒤라, 일반 빌드·babel 파싱·비인증 HTTP 200
  *   으로는 AdminNav 의 새 렌더 로직(접힘 그룹·중첩 children·라벨)이 한 번도 실행되지 않는다.
  *   메뉴 재편(#479·#482·#484·#487) 같은 변경의 회귀를 "머지 전(PR smoke)"에 잡으려고 @smoke 로 단다.
  *
@@ -31,7 +31,7 @@ test.describe("어드민 사이드바 메뉴 @smoke", () => {
     await page.goto("/admin");
     await page.waitForLoadState("domcontentloaded");
 
-    // 게이트(AdminGateClient) 통과 후 사이드바가 마운트될 때까지 web-first 재시도
+    // 게이트(PortalGate) 통과 후 사이드바가 마운트될 때까지 web-first 재시도
     await expect(
       page.getByRole("link", { name: "KHIDI 리포트" })
     ).toBeVisible({ timeout: 20_000 });

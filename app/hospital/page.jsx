@@ -6,7 +6,7 @@ import {
   MessageSquare, Clock, Eye, Reply, CheckCircle, XCircle, Send,
   ArrowRight, TrendingUp, Timer, Wallet, AlertCircle,
 } from "lucide-react";
-import { useHospitalContext } from "./_components/HospitalGateClient";
+import { usePortalContext } from "../_components/PortalGate";
 
 const STATUS_CONFIG = {
   queued: { label: "대기", color: "text-gray-600", icon: Clock },
@@ -45,7 +45,7 @@ function waitedSince(assignedAt) {
 }
 
 export default function HospitalDashboardPage() {
-  const hospitalInfo = useHospitalContext();
+  const hospitalInfo = usePortalContext();
   const [stats, setStats] = useState(null);
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -6,7 +6,7 @@
  *   핸드오프에는 "계정 접근 불가로 못 봄" 으로 반복 기록됐는데, 원인은 계정을 몰라서가
  *   아니라 «목록에 없어서» 였다. 다른 역할(agency·clinic)과 같은 수준으로 맞춘다.
  *
- * 무엇을 잠그나: 병원 계정이 문지기(HospitalGateClient → /api/partner/whoami)를 통과해
+ * 무엇을 잠그나: 병원 계정이 문지기(PortalGate → /api/partner/whoami)를 통과해
  *   포털 안쪽 화면(프로필·진료항목)까지 실제로 들어가진다.
  *
  * 활성: E2E_HOSPITAL_EMAIL/PASSWORD Secrets 등록 시 (없으면 skip). docs/E2E_SECRETS_SETUP.md 참고.

@@ -82,7 +82,7 @@ const navGroups = [
       { id: "referrals", label: "협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "reminders", label: "후속 리마인더", icon: Bell, href: "/admin/reminders" },
       // ↓ 리뉴얼 5단계(2026-07-24): 코디 전용이던 실무 화면을 어드민 메뉴에서도 연다(§2 "어드민 = 통합 콘솔").
-      //   화면 자체는 코디 포털(StaffPortalGate가 admin 통과) — 신설 아님, 링크 연결만.
+      //   화면 자체는 코디 포털(공용 문지기 PortalGate 가 admin 을 통과시킴) — 신설 아님, 링크 연결만.
       // 2026-08-25 추가: 환자↔코디 메신저. 5단계에서 4개만 연결하고 이것만 빠져 있었다.
       { id: "patient-messages", label: "환자 대화", icon: MessageSquare, href: "/coordinator/messages" },
       { id: "cost-estimates", label: "견적 관리", icon: Calculator, href: "/coordinator/cost-estimates" },
