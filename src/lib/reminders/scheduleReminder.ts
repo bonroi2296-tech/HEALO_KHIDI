@@ -16,6 +16,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 import { defaultLangForRole } from "@/lib/consultation/inviteRole";
 
 // ── 타입 ─────────────────────────────────────────────────────
@@ -173,7 +174,9 @@ function buildRow(opts: {
     fire_at: opts.fireAt,
     channel: opts.channel,
     recipient_user_id: opts.userId ?? null,
-    recipient_address: opts.address,
+    // 수신자 주소는 «환자 개인정보»다 — 평문으로 쌓으면 DB 사본이 새는 순간 그대로 읽힌다.
+    // 보내는 쪽(cron/dispatch-reminders)이 decryptMaybe 로 풀어 쓴다(옛 평문 행도 그대로 통과).
+    recipient_address: encryptStringNullable(opts.address),
     payload: {
       role: opts.role,
       name: opts.name ?? null,
