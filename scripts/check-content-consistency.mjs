@@ -370,6 +370,7 @@ const SCRIPT_ALLOW = new Set([
   "inquiry.messenger",
   "inquiryFunnel.emailPlaceholder", // 이메일 예시
   "patientDocs.formats", // "PDF, JPEG, PNG, WebP"
+  "patientProgress.allowed", // "PDF·JPG·PNG·DICOM" — 파일 형식 이름은 전 언어 공통
   "inquiryFunnel.aiAgent", // 원본부터 전 언어 "AI Agent"
   "inquiryFunnel.humanAgent",
   "inquiryFunnel.inquiryForm",

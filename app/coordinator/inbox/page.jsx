@@ -37,10 +37,12 @@ export default function CoordinatorInboxPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
+  // 시연·점검용. 기본은 꺼짐 = 평소 화면 그대로(시험 문의는 안 보인다).
+  const [showTest, setShowTest] = useState(false);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [showTest]);
 
   async function load() {
     setLoading(true);
@@ -50,7 +52,7 @@ export default function CoordinatorInboxPage() {
 
     try {
       // inquiries 는 service_role 전용 RLS → 서버 API 경유 (이름은 복호화+마스킹돼서 옴)
-      const res = await fetch("/api/portal/inbox", {
+      const res = await fetch(`/api/portal/inbox${showTest ? "?includeTest=1" : ""}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const result = await res.json();
@@ -80,12 +82,24 @@ export default function CoordinatorInboxPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">{L.inboxSubtitle}</p>
         </div>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
-        >
-          <RefreshCw size={16} /> {L.refresh}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 시연·점검용 — 켜면 시험 문의도 함께 보인다(각 줄에 「시험」 표가 붙는다). */}
+          <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showTest}
+              onChange={(e) => setShowTest(e.target.checked)}
+              className="accent-teal-700"
+            />
+            시험 문의 보기
+          </label>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
+          >
+            <RefreshCw size={16} /> {L.refresh}
+          </button>
+        </div>
       </div>
 
       {/* 필터 탭 */}
@@ -180,6 +194,11 @@ export default function CoordinatorInboxPage() {
                           {item.name || "—"}
                         </span>
                         {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
+                        {item.is_test && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 shrink-0">
+                            시험
+                          </span>
+                        )}
                         {item.agency_id && (
                           <span
                             title={item.agency_name || L.agencyReferral}

@@ -9,6 +9,7 @@ import {
   cadenceStepKey,
   cadenceSurveyType,
   buildSentSurveyTypes,
+  duePhases,
   STALE_PENDING_MS,
 } from "./cadencePlan";
 
@@ -78,6 +79,25 @@ describe("computeCadencePlan", () => {
   it("키 헬퍼 계약: fu_<phase> / phase:action", () => {
     expect(cadenceSurveyType("month_6")).toBe("fu_month_6");
     expect(cadenceStepKey({ phase: "month_1", type: "video_call" })).toBe("month_1:video_call");
+  });
+});
+
+describe("duePhases (교육 발송 단위)", () => {
+  const steps = createFollowupSchedule("1", "stomach", anchorIso).schedule;
+
+  it("D+0 엔 아직 도래한 단계가 없다", () => {
+    expect(duePhases(steps, T0, T0)).toEqual([]);
+  });
+
+  it("D+7 엔 1주차만, D+40 엔 그 앞 단계들이 모두 나온다", () => {
+    expect(duePhases(steps, T0, T0 + 7 * DAY)).toEqual(["week_1"]);
+    const d40 = duePhases(steps, T0, T0 + 40 * DAY);
+    expect(d40).toEqual(["week_1", "week_2", "month_1"]);
+  });
+
+  it("같은 단계에 여러 일정이 있어도 단계는 한 번만 나온다", () => {
+    const dup = [...steps, ...steps];
+    expect(duePhases(dup, T0, T0 + 400 * DAY)).toEqual(duePhases(steps, T0, T0 + 400 * DAY));
   });
 });
 
