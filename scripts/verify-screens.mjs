@@ -352,50 +352,131 @@ const consoleErrs = results.reduce((a, r) => a + r.errs.length, 0);
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
 const groups = [...new Set(results.map((r) => r.group))];
 const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+// 사진은 파일 안에 그대로 담는다(data URI). 그래야 이 html 한 개만 열어도 사진이 다 보이고,
+// 웹에 올려 공유할 때도 사진이 따로 안 따라다닌다.
+function inline(rel) {
+  try {
+    const b = fs.readFileSync(path.join(OUT, rel));
+    return `data:image/png;base64,${b.toString("base64")}`;
+  } catch { return null; }
+}
 
-const html = `<meta charset="utf-8"><title>화면 확인표</title>
+const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만든다 -->
+<title>백오피스 화면 확인표</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
- *{box-sizing:border-box} body{margin:0;background:#fff;font-family:'Malgun Gothic',sans-serif;color:#111827;width:1360px}
- .w{padding:32px 36px 40px} h1{font-size:27px;margin:0 0 4px} .sub{font-size:14px;color:#6b7280;margin:0 0 20px}
- .big{display:flex;gap:12px;margin-bottom:22px}
- .stat{flex:1;border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center}
- .stat .n{font-size:26px;font-weight:800} .stat .l{font-size:12.5px;color:#6b7280;margin-top:2px}
- h2{font-size:18px;margin:26px 0 8px;padding-left:10px;border-left:5px solid #0f766e}
- .row{display:flex;gap:14px;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin-bottom:10px;align-items:flex-start}
- .row.bad{border-color:#fca5a5;background:#fef2f2}
- .mark{font-size:20px;line-height:1.2;width:26px;flex:none}
- .body{flex:1;min-width:0}
- .t{font-size:14.5px;font-weight:700} .why{font-size:12.5px;color:#6b7280;margin-top:2px}
- .note{font-size:12.5px;color:#374151;margin-top:6px;background:#f9fafb;border-radius:8px;padding:6px 9px;word-break:break-all}
- .err{font-size:12px;color:#b91c1c;margin-top:5px}
- img{width:290px;border:1px solid #e5e7eb;border-radius:8px;flex:none}
- .foot{font-size:12.5px;color:#6b7280;margin-top:22px;border-top:1px solid #e5e7eb;padding-top:12px;line-height:1.8}
+  /* 색은 제품이 쓰는 teal 을 그대로 가져온다 — 확인표가 확인 대상과 같은 세계에 있게. */
+  :root{
+    --paper:#FBFCFB; --surface:#FFFFFF; --ink:#12211F; --ink-soft:#5B6B69;
+    --line:#DDE5E3; --line-soft:#EDF2F1;
+    --brand:#0F766E; --brand-soft:#E6F4F2;
+    --pass:#0F766E; --fail:#B4232A; --fail-soft:#FDECEC;
+    --shadow:0 1px 2px rgba(18,33,31,.05), 0 8px 24px rgba(18,33,31,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0E1614; --surface:#152220; --ink:#E6EEEC; --ink-soft:#9DB0AD;
+      --line:#263835; --line-soft:#1C2A28;
+      --brand:#5EEAD4; --brand-soft:#12302C;
+      --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0E1614; --surface:#152220; --ink:#E6EEEC; --ink-soft:#9DB0AD;
+    --line:#263835; --line-soft:#1C2A28;
+    --brand:#5EEAD4; --brand-soft:#12302C;
+    --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+       line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:clamp(28px,5vw,56px) clamp(18px,4vw,34px) 72px}
+  .eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.14em;
+           text-transform:uppercase;color:var(--brand);margin:0 0 10px}
+  h1{font-family:"Gothic A1","Noto Sans KR",sans-serif;font-weight:900;letter-spacing:-.03em;
+     font-size:clamp(30px,5vw,44px);line-height:1.12;margin:0 0 12px;text-wrap:balance}
+  .lede{font-size:clamp(15px,1.6vw,17px);color:var(--ink-soft);margin:0 0 32px;max-width:62ch}
+  .scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
+  .score{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .score .n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+            font-size:30px;font-weight:500;letter-spacing:-.02em;line-height:1.1}
+  .score .l{font-size:13px;color:var(--ink-soft);margin-top:4px}
+  .meta{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin:0 0 40px}
+  h2{font-family:"Gothic A1","Noto Sans KR",sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em;
+     margin:44px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+  .row{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+       padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);
+       display:grid;grid-template-columns:26px 1fr;gap:0 14px;align-items:start}
+  .row.bad{border-color:var(--fail);background:var(--fail-soft)}
+  .mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;margin-top:2px;
+        background:var(--brand-soft);color:var(--pass);font-size:13px;font-weight:700}
+  .row.bad .mark{background:transparent;color:var(--fail)}
+  .t{font-weight:700;font-size:15.5px;letter-spacing:-.01em}
+  .why{font-size:13px;color:var(--ink-soft);margin-top:3px}
+  .note{grid-column:2;margin-top:11px;padding:9px 12px;border-radius:9px;background:var(--line-soft);
+        font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;color:var(--ink);
+        overflow-x:auto;word-break:break-word}
+  .err{grid-column:2;margin-top:8px;font-size:12.5px;color:var(--fail)}
+  figure{grid-column:2;margin:13px 0 0}
+  figure img{width:100%;display:block;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:zoom-in}
+  figcaption{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  dialog{border:none;background:transparent;padding:0;max-width:96vw;max-height:96vh}
+  dialog::backdrop{background:rgba(6,14,13,.82)}
+  dialog img{max-width:96vw;max-height:96vh;border-radius:10px;display:block;cursor:zoom-out}
+  a{color:var(--brand)}
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+        font-size:13px;color:var(--ink-soft);line-height:1.9}
+  .foot code{font-family:"IBM Plex Mono",monospace;background:var(--line-soft);
+             padding:1px 6px;border-radius:5px;color:var(--ink);font-size:12.5px}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:4px}
+  @media (prefers-reduced-motion:no-preference){ .row{transition:border-color .15s ease} }
 </style>
-<div class="w">
-<h1>화면 확인표</h1>
-<p class="sub">실제 시험 계정으로 로그인해 실제 화면을 눌러본 결과입니다. 사진은 «눌러본 뒤» 찍은 것. ${esc(stamp)} · ${esc(BASE)}</p>
-<div class="big">
- <div class="stat"><div class="n" style="color:${passed === results.length ? "#0f766e" : "#b91c1c"}">${passed}/${results.length}</div><div class="l">통과</div></div>
- <div class="stat"><div class="n" style="color:${consoleErrs ? "#b91c1c" : "#0f766e"}">${consoleErrs}</div><div class="l">화면 오류(콘솔)</div></div>
- <div class="stat"><div class="n" style="color:#0f766e">${results.filter((r) => r.shot).length}</div><div class="l">증거 사진</div></div>
-</div>
-${groups.map((g) => `<h2>${esc(g)}</h2>` + results.filter((r) => r.group === g).map((r) => `
- <div class="row${r.ok ? "" : " bad"}">
-  <div class="mark">${r.ok ? "✅" : "❌"}</div>
-  <div class="body">
-   <div class="t">${esc(r.title)}</div>
-   ${r.why ? `<div class="why">${esc(r.why)}</div>` : ""}
-   ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
-   ${r.errs.length ? `<div class="err">화면 오류 ${r.errs.length}건: ${esc(r.errs[0])}</div>` : ""}
+<div class="wrap">
+  <p class="eyebrow">healwith · 백오피스</p>
+  <h1>화면 확인표</h1>
+  <p class="lede">실제 시험 계정으로 로그인해 실제 화면을 눌러본 결과입니다. 사진은 «눌러본 뒤» 찍은 것이라, 통과 표시와 사진이 같은 순간을 가리킵니다. 사진을 누르면 크게 볼 수 있습니다.</p>
+
+  <div class="scores">
+    <div class="score"><div class="n" style="color:${passed === results.length ? "var(--pass)" : "var(--fail)"}">${passed}/${results.length}</div><div class="l">통과</div></div>
+    <div class="score"><div class="n" style="color:${consoleErrs ? "var(--fail)" : "var(--pass)"}">${consoleErrs}</div><div class="l">화면 오류</div></div>
+    <div class="score"><div class="n">${results.filter((r) => r.shot).length}</div><div class="l">증거 사진</div></div>
   </div>
-  ${r.shot ? `<img src="${r.shot}" alt="">` : ""}
- </div>`).join("")).join("")}
-<p class="foot">
- 이 표는 <b>npm run verify:screens</b> 로 언제든 다시 만듭니다(개발 서버가 떠 있어야 함).<br>
- 재는 항목을 늘리려면 <b>scripts/verify-screens.mjs</b> 의 CHECKS 에 한 줄 추가하면 됩니다 —
- 「눈으로 봤다」는 여기 못 들어옵니다. 기계가 확인할 수 있는 것만 올라갑니다.
-</p>
-</div>`;
+  <p class="meta">${esc(stamp)} · ${esc(BASE)}</p>
+
+${groups.map((g) => `  <h2>${esc(g)}</h2>\n` + results.filter((r) => r.group === g).map((r) => {
+  const src = r.shot ? inline(r.shot) : null;
+  return `  <div class="row${r.ok ? "" : " bad"}">
+    <div class="mark" aria-hidden="true">${r.ok ? "✓" : "✕"}</div>
+    <div>
+      <div class="t">${esc(r.title)}</div>
+      ${r.why ? `<div class="why">${esc(r.why)}</div>` : ""}
+    </div>
+    ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
+    ${r.errs.length ? `<div class="err">화면 오류 ${r.errs.length}건 — ${esc(r.errs[0])}</div>` : ""}
+    ${src ? `<figure><img src="${src}" alt="${esc(r.title)} 확인 화면" loading="lazy"><figcaption>눌러본 뒤 찍은 화면</figcaption></figure>` : ""}
+  </div>`;
+}).join("\n")).join("\n")}
+
+  <p class="foot">
+    이 표는 <code>npm run verify:screens</code> 로 언제든 다시 만듭니다(개발 서버가 떠 있어야 합니다).<br>
+    재는 항목을 늘리려면 <code>scripts/verify-screens.mjs</code> 의 CHECKS 에 한 줄 추가합니다 —
+    「눈으로 봤다」는 여기 못 들어옵니다. <strong>기계가 확인할 수 있는 것만</strong> 올라갑니다.
+  </p>
+</div>
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+  // 사진 크게 보기 — 누르면 열리고, 다시 누르거나 Esc 로 닫힌다.
+  const dlg = document.getElementById("zoom");
+  const big = dlg.querySelector("img");
+  document.querySelectorAll("figure img").forEach((img) => {
+    img.addEventListener("click", () => { big.src = img.src; big.alt = img.alt; dlg.showModal(); });
+  });
+  dlg.addEventListener("click", () => dlg.close());
+</script>`;
 
 fs.writeFileSync(path.join(OUT, "report.html"), html, "utf8");
 console.log(`\n📋 확인표: ${path.resolve(OUT, "report.html")}  (통과 ${passed}/${results.length} · 화면 오류 ${consoleErrs})`);
