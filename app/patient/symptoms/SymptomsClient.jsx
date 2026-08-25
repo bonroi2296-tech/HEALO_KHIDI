@@ -10,6 +10,7 @@ import {
   CheckCircle, Clock, ChevronDown,
 } from 'lucide-react';
 import EmergencyNumbers from '@/components/EmergencyNumbers';
+import ProgressUploadCard from './ProgressUploadCard';
 
 // DB urgency_level 코드 → 표시 라벨 키(중앙 사전) + 색상 클래스
 const URGENCY_STYLE = {
@@ -324,6 +325,9 @@ export default function SymptomsClient() {
           </div>
         </div>
       )}
+
+      {/* 검사결과·경과 올리기 (ICT ④) — 증상 기록과 같은 사후관리 화면에 둔다 */}
+      <ProgressUploadCard />
 
       {/* Previous Reports toggle */}
       <button
