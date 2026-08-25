@@ -41,6 +41,7 @@
     "check:talk": "node scripts/check-plain-korean.mjs",
     "check:ask": "node scripts/check-ask-streak.mjs --selftest",
     "check:handoff": "node scripts/check-handoff.mjs",
+    "check:dead-screens": "node scripts/check-dead-screens.mjs --selftest && node scripts/check-dead-screens.mjs",
     "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:live-meetings": "node scripts/check-live-meetings.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
