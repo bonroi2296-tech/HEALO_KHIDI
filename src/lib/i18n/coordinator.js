@@ -440,8 +440,13 @@ const CT = {
   ibNameUnknown: { ko: "(이름 미상)", en: "(Name unknown)", ru: "(Имя неизвестно)", kz: "(Аты белгісіз)", zh: "(姓名不详)", ja: "(氏名不明)" },
   ibPatientDirect: { ko: "환자 직접", en: "Patient direct", ru: "Напрямую от пациента", kz: "Пациенттен тікелей", zh: "患者直接", ja: "患者直接" },
   ibInquiryNo: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
-  ibClaimCopy: { ko: "환자 연결 링크 복사", en: "Copy patient link", ru: "Копировать ссылку пациента", kz: "Науқас сілтемесін көшіру", zh: "复制患者链接", ja: "患者リンクをコピー" },
+  // 2026-08-25: 예전엔 「환자 연결 링크」였고 계정 없는 케이스에만 떴다. 이제 모든 케이스에 뜨고,
+  //   하는 일도 «계정 연결»이 아니라 «진행상황·서류를 보여줄 주소를 건네주기»라 이름을 바꿨다.
+  //   (PO: «왓츠앱이나 다른 경로로 문서 접수 받은거도 임시 링크 줄 수 있게 해줘»)
+  ibClaimCopy: { ko: "링크 복사", en: "Copy link", ru: "Копировать ссылку", kz: "Сілтемені көшіру", zh: "复制链接", ja: "リンクをコピー" },
   ibClaimCopied: { ko: "복사됨!", en: "Copied!", ru: "Скопировано!", kz: "Көшірілді!", zh: "已复制！", ja: "コピーしました！" },
+  ibShareWhatsapp: { ko: "왓츠앱으로 보내기", en: "Send via WhatsApp", ru: "Отправить в WhatsApp", kz: "WhatsApp арқылы жіберу", zh: "通过 WhatsApp 发送", ja: "WhatsAppで送る" },
+  ibShareHint: { ko: "환자·보호자에게 주는 주소입니다. 가입·로그인 없이 진행상황과 공유 서류를 봅니다.", en: "A link for the patient or family. They can see progress and shared documents without signing up.", ru: "Ссылка для пациента или родственника. Прогресс и документы видны без регистрации.", kz: "Науқасқа немесе жақынына арналған сілтеме. Тіркелусіз барысы мен құжаттарды көреді.", zh: "给患者或家属的链接。无需注册即可查看进度和共享文件。", ja: "患者・ご家族に渡すリンクです。登録なしで進捗と共有書類を見られます。" },
   ibReceivedLabel: { ko: "접수", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "接收", ja: "受付" },
   ibStepBothDone: { ko: "Step 1+2 완료", en: "Step 1+2 done", ru: "Этапы 1+2 завершены", kz: "1+2 кезең аяқталды", zh: "步骤 1+2 完成", ja: "ステップ1+2 完了" },
   ibStepOneNeedInfo: { ko: "Step 1만 (추가 정보 필요)", en: "Step 1 only (needs more info)", ru: "Только этап 1 (нужна доп. информация)", kz: "Тек 1-кезең (қосымша ақпарат қажет)", zh: "仅步骤 1（需补充信息）", ja: "ステップ1のみ（追加情報が必要）" },
