@@ -73,6 +73,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/plain-korean.sh"
+          }
+        ]
+      }
     ]
   }
 }
