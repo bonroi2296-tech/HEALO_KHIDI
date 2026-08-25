@@ -162,9 +162,16 @@ const CHECKS = [
       await first.click();
       await p.waitForTimeout(1200);
       const editorOpen = await p.getByText("자료 수정").isVisible().catch(() => false);
+      const ko = await p.locator("input").first().inputValue().catch(() => "");
       await p.getByRole("button", { name: "Русский" }).click().catch(() => {});
-      await p.waitForTimeout(600);
-      const ru = await p.locator("input").first().inputValue().catch(() => "");
+      // 탭을 누른 «직후»에 읽으면 한국어 값이 그대로 잡힌다(빈칸으로도 보인다). 값이 실제로
+      // 바뀔 때까지 기다린다 — 눈대중 0.6초로 두었더니 결과가 흔들렸다(2026-08-25).
+      let ru = "";
+      for (let i = 0; i < 15; i++) {
+        ru = await p.locator("input").first().inputValue().catch(() => "");
+        if (ru && ru !== ko) break;
+        await p.waitForTimeout(500);
+      }
       return { ok: editorOpen && /[А-Яа-я]/.test(ru), note: `자료 ${rows}건 · 러시아어 제목 「${ru.slice(0, 26)}」` };
     },
   },
@@ -251,6 +258,198 @@ const CHECKS = [
     as: "patient@test.com", url: "/patient", shot: "patient", ready: /안녕하세요|진료|문서/,
     async run(p) { return portalOk(p, /안녕하세요|진료|문서/); },
   },
+  // ───────────── 환자 여정: 시연 대본 그대로 ─────────────
+  // PO 지시(2026-08-25): *"환자가 본인이 접수 하면 … 접수 잘 됐는지 어케 진행되고 있는지 그리고
+  //   방문전에 뭐 이것저것 하고 넘어 오면 치료 받고 뭐 자료 올리고 또 돌아가서 사후관리 하고
+  //   그런게 기능적으로 보여줘야 하는거잖아"*
+  // ⚠️ 여기서는 «아무것도 제출하지 않는다». 로컬도 실서비스 DB 를 쓰기 때문에 시험 삼아 넣은
+  //    문의가 진짜 실적에 섞인다. 그래서 「낼 수 있는 상태인가」까지만 재고, 실제 제출은 안 한다.
+  {
+    group: "환자 여정 ① 접수",
+    title: "환자가 스스로 문의를 넣는 칸이 열린다",
+    why: "시연의 출발점 — 공개 문의 폼",
+    as: null,
+    url: "/inquiry",
+    shot: "j1-inquiry",
+    ready: /어떻게 도와드릴까요|Inquiry Form/,
+    async run(p) {
+      // 접수는 «두 번 고르고» 폼이 나온다 — 실제 제품 흐름 그대로 눌러본다.
+      //   ① /inquiry  「어떻게 도와드릴까요?」 → AI 상담 / 사람 연결 / 문의서
+      //   ② /inquiry/referral 「먼저 상담만 신청할게요(6칸·1분)」 / 「진단과 치료 방향을 빨리 알고 싶어요」
+      //   ③ 그제서야 입력칸이 나온다
+      // ⚠️ 제출은 하지 않는다 — 로컬도 실서비스 DB 라 시험 문의가 진짜 실적에 섞인다.
+      const steps = [];
+      const entry = await p.locator("body").innerText();
+      if (!/어떻게 도와드릴까요|Inquiry Form/.test(entry)) return { ok: false, note: "첫 화면이 안 그려졌다" };
+      steps.push("길 고르기");
+
+      const form1 = p.getByRole("button", { name: /Inquiry Form/ }).first();
+      if (!(await form1.count())) return { ok: false, note: "「Inquiry Form」 단추가 없다" };
+      await form1.click().catch(() => {});
+      const ok2 = await waitReady(p, /먼저 상담만|진단과 치료 방향/, 30000);
+      if (!ok2) return { ok: false, note: "문의서를 눌렀는데 다음 화면이 안 나왔다 · " + new URL(p.url()).pathname };
+      steps.push("방식 고르기");
+
+      const quick = p.getByRole("button", { name: /먼저 상담만/ }).first();
+      const quickN = await quick.count();
+      if (quickN) await quick.click().catch(() => {});
+      let fields = 0;
+      for (let i = 0; i < 30; i++) {
+        fields = await p.locator("input, textarea, select").count();
+        if (fields > 0) break;
+        await p.waitForTimeout(700);
+      }
+      if (fields > 0) steps.push("입력칸 " + fields + "개");
+      return {
+        ok: fields > 0,
+        note: steps.join(" → ") + " · 주소 " + new URL(p.url()).pathname + " (제출은 안 함)",
+      };
+    },
+  },
+  {
+    group: "환자 여정 ② 접수 확인·진행상황",
+    title: "환자가 «가입 없이» 자기 진행상황을 단계별로 본다",
+    why: "왓츠앱·메일로 온 사람도 봐야 한다",
+    as: "coordinator@test.com",
+    url: "/coordinator/inbox/94",
+    shot: "j2-progress",
+    ready: /링크 복사/,
+    shotFromExtra: true,
+    async run(p, { browser, shotPath }) {
+      const wa = p.getByRole("link", { name: "왓츠앱으로 보내기" }).first();
+      if (!(await wa.count())) return { ok: false, note: "줄 링크를 못 찾음" };
+      const href = await wa.getAttribute("href");
+      const url = decodeURIComponent((href || "").split("text=")[1] || "").match(/https?:\/\/\S+/)?.[0];
+      const anon = await browser.newContext({ viewport: { width: 1100, height: 950 }, locale: "ko-KR" });
+      const ap = await anon.newPage();
+      const r = await ap.goto(url, { waitUntil: "domcontentloaded" }).catch(() => null);
+      await ap.waitForTimeout(9000);
+      const t = await ap.locator("body").innerText();
+      if (shotPath) { await settleForShot(ap); await ap.screenshot({ path: shotPath }); }
+      await anon.close();
+      // 단계 줄(접수 → 상담 → 비자 → 입국·치료 → 사후관리 → 완료)이 그려졌나
+      const steps = ["접수", "상담", "비자", "치료", "사후", "완료", "Заявка", "Консульт", "визы", "лечение", "наблюдение", "Завершено"]
+        .filter((w) => t.includes(w));
+      return { ok: r?.status() === 200 && steps.length >= 4, note: `보이는 단계 글자 ${steps.length}개: ${steps.slice(0, 6).join(" · ")}` };
+    },
+  },
+  {
+    group: "환자 여정 ③ 방문 전 준비",
+    title: "코디가 화상 상담을 잡는 칸이 있다",
+    why: "방문 전 원격 상담",
+    as: "coordinator@test.com",
+    url: "/coordinator/consultations",
+    shot: "j3-consult",
+    ready: /새 상담 생성/,
+    async run(p) {
+      const btn = await p.getByRole("button", { name: /새 상담 생성/ }).count();
+      const t = await p.locator("body").innerText();
+      return { ok: btn > 0, note: `「새 상담 생성」 ${btn ? "있음" : "없음"} · ${t.replace(/\s+/g, " ").slice(0, 45)}…` };
+    },
+  },
+  {
+    group: "환자 여정 ③ 방문 전 준비",
+    title: "비자·견적이 실제 건을 들고 있다",
+    why: "방문 전에 처리하는 두 가지",
+    as: "coordinator@test.com",
+    url: "/coordinator/visa",
+    shot: "j3-visa",
+    ready: /전체/,
+    async run(p, { browser }) {
+      const vt = await p.locator("body").innerText();
+      const visa = (vt.match(/전체\s*(\d+)/) || [])[1];
+      const s = login("coordinator@test.com");
+      const c2 = await browser.newContext({ viewport: { width: 1440, height: 950 }, locale: "ko-KR" });
+      await c2.addCookies(cookiesFor(s));
+      const p2 = await c2.newPage();
+      await p2.goto(BASE + "/coordinator/cost-estimates", { waitUntil: "domcontentloaded" }).catch(() => {});
+      await p2.waitForTimeout(9000);
+      const ct = await p2.locator("body").innerText();
+      const cost = (ct.match(/전체\s*(\d+)/) || [])[1];
+      await c2.close();
+      return { ok: visa !== undefined && cost !== undefined, note: `비자 ${visa ?? "?"}건 · 견적 ${cost ?? "?"}건` };
+    },
+  },
+  {
+    group: "환자 여정 ④ 내 진료 관리",
+    title: "환자가 로그인해 자기 케이스와 단계를 본다",
+    why: "환자 쪽 화면",
+    as: "patient@test.com",
+    url: "/patient",
+    shot: "j4-patient",
+    ready: /안녕하세요|접수됨|완료/,
+    async run(p) {
+      const t = await p.locator("body").innerText();
+      const cases = (t.match(/접수됨|진행|완료/g) || []).length;
+      return { ok: cases > 0, note: `내 케이스 단계 표시 ${cases}곳` };
+    },
+  },
+  {
+    group: "환자 여정 ⑤ 자료 올리기",
+    title: "환자가 진단서·검사결과를 올리는 칸이 있다",
+    why: "치료 전후로 자료를 주고받는다",
+    as: "patient@test.com",
+    url: "/patient/documents",
+    shot: "j5-docs",
+    ready: /의료 문서|업로드|드래그/,
+    async run(p) {
+      const t = await p.locator("body").innerText();
+      const fileInput = await p.locator('input[type=file]').count();
+      const hasDrop = /드래그하거나 클릭/.test(t);
+      const hasTypes = /진단서/.test(t) && /검사 결과/.test(t);
+      const mine = /내 문서/.test(t);
+      return { ok: (fileInput > 0 || hasDrop) && hasTypes, note: `올리는 칸 ${hasDrop ? "있음" : fileInput ? "있음(파일칸)" : "없음"} · 문서 유형 ${hasTypes ? "있음" : "없음"} · 내 문서 목록 ${mine ? "있음" : "없음"}` };
+    },
+  },
+  {
+    group: "환자 여정 ⑥ 사후관리",
+    title: "귀국 후 증상을 보고하고 자료를 올린다",
+    why: "사후관리 — KHIDI 정량지표에 들어가는 부분",
+    as: "patient@test.com",
+    url: "/patient/symptoms",
+    shot: "j6-symptoms",
+    ready: /증상/,
+    async run(p) {
+      const add = await p.getByRole("button", { name: /증상 추가/ }).count();
+      const submit = await p.getByRole("button", { name: /증상 제출/ }).count();
+      const file = await p.locator('input[type=file]').count();
+      return { ok: add > 0 && submit > 0, note: `증상 추가 ${add ? "있음" : "없음"} · 제출 ${submit ? "있음" : "없음"} · 자료 올리기 ${file ? "있음" : "없음"}` };
+    },
+  },
+  {
+    group: "환자 여정 ⑥ 사후관리",
+    title: "재진(다시 방문) 예약을 잡는 칸이 있다",
+    why: "사후관리 흐름의 마지막",
+    as: "patient@test.com",
+    url: "/patient/rebooking",
+    shot: "j6-rebooking",
+    ready: /예약 확정|무시/,  // ⚠️ 「예약」만 두면 화면 제목에 걸려 추천 카드가 오기 «전»에 잰다
+    async run(p) {
+      const ok1 = await p.getByRole("button", { name: /예약 확정/ }).count();
+      const t = await p.locator("body").innerText();
+      return { ok: ok1 > 0, note: `「예약 확정」 ${ok1 ? "있음" : "없음"} · ${t.replace(/\s+/g, " ").slice(0, 45)}…` };
+    },
+  },
+  {
+    group: "환자 여정 ⑦ 성과 집계",
+    title: "여정 결과가 KHIDI 지표로 자동 집계된다",
+    why: "평가위원이 보는 숫자 — 사람이 세지 않는다",
+    as: "admin@test.com",
+    url: "/admin/khidi/conversion",
+    shot: "j7-kpi",
+    ready: /유치 깔때기/,  // ⚠️ 「유치」만 두면 옆 메뉴 글자에 걸려 자료가 오기 «전»에 재게 된다
+    async run(p) {
+      const t = (await p.locator("body").innerText()).replace(/\s+/g, " ");
+      // 화면은 「문의 접수 7 · 사전상담 완료 1」처럼 «건» 없이 숫자만 적는다.
+      const steps = ["문의 접수", "사전상담 완료", "견적·비자 진행", "유치 확정", "사후관리 완료"];
+      const found = steps.map((k) => {
+        const after = t.split(k)[1];                 // 라벨 바로 뒤 글자
+        const m = after ? after.trim().match(/^[0-9]+/) : null;  // 그 앞머리 숫자
+        return m ? `${k} ${m[0]}` : null;
+      }).filter(Boolean);
+      return { ok: found.length >= 4, note: found.join(" · ") || "집계 숫자를 못 찾음" };
+    },
+  },
   {
     group: "정리한 것이 제자리에 있나",
     title: "안 쓰는 화면 3개가 메뉴에서 내려갔다 (주소로는 그대로 열린다)",
@@ -269,8 +468,14 @@ const CHECKS = [
       pauseErrors();
       const dead = [];
       for (const u of ["/admin/treatments", "/admin/doctors", "/admin/khidi/ai-feedback"]) {
-        const r = await p.goto(BASE + u, { waitUntil: "domcontentloaded" });
-        if (r?.status() !== 200) dead.push(`${u}(${r?.status()})`);
+        // 앞 화면이 아직 뜨는 중에 다음 주소로 옮기면 브라우저가 ERR_ABORTED 를 낸다.
+        // 화면 잘못이 아니라 «내가 급하게 옮긴 것»이라, 한 번 더 차분히 열어본다.
+        let r = await p.goto(BASE + u, { waitUntil: "load" }).catch(() => null);
+        if (!r) {
+          await p.waitForTimeout(1500);
+          r = await p.goto(BASE + u, { waitUntil: "load" }).catch(() => null);
+        }
+        if (r?.status() !== 200) dead.push(u + "(" + (r?.status() ?? "못 열림") + ")");
       }
       return {
         ok: gone.length === 0 && dead.length === 0,
@@ -372,6 +577,24 @@ const browser = await chromium.launch();
  *  실서비스는 화면을 미리 다 지어두므로 이 현상 자체가 없다.)
  * 그래서 «재기 전에» 같은 주소를 한 번 열어 두고, 그 판은 세지 않는다.
  */
+/**
+ * 개발 서버가 «지금» 멀쩡한지 물어본다.
+ *
+ * 왜: 오류 글자만으로는 「화면이 고장났다」와 「개발 서버가 지쳤다」를 못 가른다.
+ *   연속으로 여러 판 돌리면 Next 개발 서버가 느려지다 60초도 못 버티는데, 그때 나온 실패를
+ *   ❌ 고장으로 적으면 확인표가 통째로 거짓말이 된다(2026-08-25 실측: 8판째 18/24).
+ *   ⚠️ 이건 개발 서버 사정이다 — 실서비스는 화면을 미리 다 지어놓고 배포하므로 해당 없다.
+ */
+async function serverHealthy() {
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 8000);
+    const r = await fetch(BASE + "/api/health", { signal: ac.signal });
+    clearTimeout(t);
+    return r.ok;
+  } catch { return false; }
+}
+
 const warmed = new Set();
 async function warmUp(ctx, url) {
   if (warmed.has(url)) return;
@@ -382,7 +605,11 @@ async function warmUp(ctx, url) {
   await w.close();
 }
 
-for (const c of CHECKS.filter((c) => !ONLY || c.title.includes(ONLY))) {
+/**
+ * 한 항목을 «한 판» 돌린다. 창을 새로 열고, 재고, 사진 찍고, 창을 닫는다.
+ * 실패하면 그대로 던진다 — 다시 할지 말지는 부르는 쪽이 정한다.
+ */
+async function runOnce(c, shotPath) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, deviceScaleFactor: 1, locale: "ko-KR" });
   if (c.as) await ctx.addCookies(cookiesFor(login(c.as)));
   await warmUp(ctx, c.url);
@@ -393,36 +620,53 @@ for (const c of CHECKS.filter((c) => !ONLY || c.title.includes(ONLY))) {
   let watching = true;
   const pauseErrors = () => { watching = false; };
   page.on("console", (m) => { if (watching && m.type() === "error") errs.push(m.text().slice(0, 120)); });
-
-  const shotPath = c.shot ? path.join(SHOTS, `${c.shot}.png`) : null;
-  let out;
   try {
     // 개발 서버는 화면을 «처음 열 때» 지어낸다 — 기본 30초로는 모자랄 때가 있다.
     page.setDefaultTimeout(60_000);
     await page.goto(BASE + c.url, { waitUntil: "networkidle", timeout: 60_000 });
     const ready = await waitReady(page, c.ready);
-    out = await c.run(page, { browser, shotPath, pauseErrors });
-    if (!ready && out.ok === false) out = { ...out, note: `${out.note || ""} (화면이 45초 안에 안 그려졌다 — 서버가 느린 것일 수 있다)`.trim() };
+    let out = await c.run(page, { browser, shotPath, pauseErrors });
+    if (!ready && out.ok === false) out = { ...out, note: (out.note || "") + " (화면이 45초 안에 안 그려졌다 — 서버가 느린 것일 수 있다)" };
     // 사진은 «판정이 끝난 뒤»에, 그리고 «다 그려진 뒤»에 찍는다 — 둘 다 아니면 근거가 못 된다.
     if (shotPath && !c.shotFromExtra) {
       const settled = await settleForShot(page);
       await page.screenshot({ path: shotPath });
-      if (!settled) out = { ...out, note: `${out.note || ""} ⚠️사진 찍을 때 화면이 아직 그려지는 중이었다`.trim() };
+      if (!settled) out = { ...out, note: (out.note || "") + " ⚠️사진 찍을 때 화면이 아직 그려지는 중이었다" };
     }
-  } catch (e) {
-    const msg = String(e);
-    // 개발 서버가 죽으면 «화면이 고장났다»가 아니라 «확인을 못 했다»다.
-    // 이 둘을 같은 ❌ 로 적으면 PO 가 앱 잘못으로 읽는다 — 실제로 3회 연속 돌리다
-    // 서버가 메모리 부족으로 죽었는데 표엔 「화면이 안 열린다」로 찍혔다(2026-08-25).
-    const serverDown = /ERR_CONNECTION_REFUSED|ECONNREFUSED|ERR_EMPTY_RESPONSE/.test(msg);
-    out = serverDown
-      ? { ok: false, skipped: true, note: "확인 못 함 — 개발 서버가 응답하지 않았다(화면 잘못이 아니다). 서버를 다시 띄우고 재실행." }
-      : { ok: false, note: `실행 중 오류: ${msg.slice(0, 110)}` };
+    return { out, errs };
+  } finally {
+    await ctx.close().catch(() => {});
   }
-  await ctx.close();
+}
 
-  results.push({ ...c, ...out, errs, shot: c.shot && fs.existsSync(shotPath) ? path.relative(OUT, shotPath).replace(/\\/g, "/") : null });
-  console.log(`${out.ok ? "✅" : "❌"} ${c.title}${out.note ? ` — ${out.note}` : ""}`);
+for (const c of CHECKS.filter((c) => !ONLY || c.title.includes(ONLY))) {
+  const shotPath = c.shot ? path.join(SHOTS, `${c.shot}.png`) : null;
+  let out, errs = [];
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      ({ out, errs } = await runOnce(c, shotPath));
+      break;
+    } catch (e) {
+      const msg = String(e);
+      // 개발 서버가 죽으면 «화면이 고장났다»가 아니라 «확인을 못 했다»다 — 둘을 같은 ❌ 로
+      // 적으면 앱 잘못으로 읽힌다(2026-08-25 실제로 그렇게 찍혔다).
+      const serverDown = /ERR_CONNECTION_REFUSED|ECONNREFUSED|ERR_EMPTY_RESPONSE/.test(msg);
+      // 느려서 한 번 삐끗한 건 «한 번 더» 해본다. 두 번 다 안 되면 그때 진짜 고장이다.
+      const slow = /Timeout|ERR_ABORTED/.test(msg);
+      if (!serverDown && slow && attempt === 1) continue;
+      // 실패로 적기 «전»에 서버가 멀쩡한지 물어본다. 서버가 헐떡이면 「고장」이 아니라 「확인 못 함」이다.
+      const healthy = await serverHealthy();
+      out = (serverDown || !healthy)
+        ? { ok: false, skipped: true, note: "확인 못 함 — 개발 서버가 지쳤다(응답 없음). 화면 잘못이 아니다. 서버를 다시 띄우고 재실행." }
+        : serverDown
+        ? { ok: false, skipped: true, note: "확인 못 함 — 개발 서버가 응답하지 않았다(화면 잘못이 아니다). 서버를 다시 띄우고 재실행." }
+        : { ok: false, note: "실행 중 오류(두 번 시도): " + msg.slice(0, 100) };
+      break;
+    }
+  }
+  const rel = shotPath && fs.existsSync(shotPath) ? path.relative(OUT, shotPath).split("\\").join("/") : null;
+  results.push({ ...c, ...out, errs, shot: rel });
+  console.log(`${out.ok ? "✅" : out.skipped ? "?" : "❌"} ${c.title}${out.note ? " — " + out.note : ""}`);
 }
 await browser.close();
 
