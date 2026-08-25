@@ -26,6 +26,9 @@ import { chromium } from "playwright";
 
 const argBase = process.argv.indexOf("--base");
 const BASE = argBase !== -1 ? process.argv[argBase + 1] : "http://localhost:3310";
+// --only "글자" 로 그 글자가 든 항목만 돌린다(한 항목만 다시 재볼 때. 확인표는 그때도 덮어쓴다).
+const argOnly = process.argv.indexOf("--only");
+const ONLY = argOnly !== -1 ? process.argv[argOnly + 1] : null;
 const OUT = "verify-report";
 const SHOTS = path.join(OUT, "shots");
 
@@ -50,6 +53,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/admin",
     shot: "admin-home",
+    ready: 'aside a[href="/coordinator/inbox"]',
     async run(p) {
       const link = p.getByRole("link", { name: "문의 · 케이스 받은함", exact: true }).first();
       if (!(await link.count())) return { ok: false, note: "메뉴에 그 항목이 없다" };
@@ -67,7 +71,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/coordinator/inbox",
     shot: "admin-case-detail",
-    wait: 11_000,
+    ready: "tbody tr",
     async run(p) {
       const row = p.locator("tbody tr").first();
       if (!(await row.count())) return { ok: false, note: "받은함에 케이스가 없다" };
@@ -86,7 +90,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/coordinator/inbox/94",
     shot: "admin-label",
-    wait: 11_000,
+    ready: /관리자 · 코디 화면|코디네이터/,
     async run(p) {
       const t = await p.locator("body").innerText();
       const back = await p.getByRole("link", { name: "어드민 화면으로" }).count();
@@ -103,7 +107,7 @@ const CHECKS = [
     as: "coordinator@test.com",
     url: "/coordinator/inbox/94",
     shot: "share-buttons",
-    wait: 11_000,
+    ready: /링크 복사/,
     async run(p) {
       const copy = await p.getByRole("button", { name: "링크 복사" }).count();
       const wa = p.getByRole("link", { name: "왓츠앱으로 보내기" }).first();
@@ -123,7 +127,7 @@ const CHECKS = [
     as: "coordinator@test.com",
     url: "/coordinator/inbox/94",
     shot: "claim-anon",
-    wait: 11_000,
+    ready: /링크 복사/,
     shotFromExtra: true, // 사진은 아래에서 연 «익명 창» 쪽을 찍는다
     async run(p, { browser, shotPath }) {
       const wa = p.getByRole("link", { name: "왓츠앱으로 보내기" }).first();
@@ -136,7 +140,7 @@ const CHECKS = [
       const r = await ap.goto(url, { waitUntil: "networkidle" }).catch(() => null);
       await ap.waitForTimeout(8000);
       const t = await ap.locator("body").innerText();
-      if (shotPath) await ap.screenshot({ path: shotPath });
+      if (shotPath) { await settleForShot(ap); await ap.screenshot({ path: shotPath }); }
       await anon.close();
       // 「로그인」 화면으로 튕기지 않고 본문이 그려졌나
       const ok = r?.status() === 200 && t.length > 150 && !/로그인이 필요|Sign in to/.test(t);
@@ -150,7 +154,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/admin/education",
     shot: "education",
-    wait: 7000,
+    ready: "section button",
     async run(p) {
       const rows = await p.locator("section button").count();
       const first = p.locator("section button").first();
@@ -171,7 +175,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/admin/automation/playbook",
     shot: "automation",
-    wait: 8000,
+    ready: /daily_eval|ab_finalize|auto_improve/,
     async run(p) {
       const t = await p.locator("body").innerText();
       return { ok: /daily_eval|ab_finalize|auto_improve/.test(t), note: t.replace(/\s+/g, " ").slice(0, 60) + "…" };
@@ -184,7 +188,7 @@ const CHECKS = [
     as: "admin@test.com",
     url: "/admin/leads",
     shot: "leads-admin",
-    wait: 9000,
+    ready: /발송됨|조회됨|응답함|치료 확정|거절됨|만료됨/,
     async run(p, { browser }) {
       const at = await p.locator("body").innerText();
       const adminLabels = [...new Set(at.match(/발송됨|조회됨|응답함|치료 확정|거절됨|만료됨/g) || [])];
@@ -211,7 +215,7 @@ const CHECKS = [
     as: "coordinator@test.com",
     url: "/coordinator",
     shot: "coordinator",
-    wait: 7000,
+    ready: 'aside a[href="/coordinator"]',
     async run(p) {
       const c = await p.evaluate(() => {
         const a = [...document.querySelectorAll("aside a")].find((x) => x.getAttribute("href") === "/coordinator");
@@ -226,25 +230,25 @@ const CHECKS = [
   {
     group: "다섯 포털이 다 열리나",
     title: "해외 에이전시 포털",
-    as: "agency@test.com", url: "/agency", shot: "agency", wait: 8000,
+    as: "agency@test.com", url: "/agency", shot: "agency", ready: /환자|진행|의뢰/,
     async run(p) { return portalOk(p, /환자|진행|의뢰/); },
   },
   {
     group: "다섯 포털이 다 열리나",
     title: "해외 의료기관 포털",
-    as: "clinic@test.com", url: "/clinic", shot: "clinic", wait: 8000,
+    as: "clinic@test.com", url: "/clinic", shot: "clinic", ready: /환자|진행|의뢰/,
     async run(p) { return portalOk(p, /환자|진행|의뢰/); },
   },
   {
     group: "다섯 포털이 다 열리나",
     title: "국내 병원 포털",
-    as: "hospital@test.com", url: "/hospital", shot: "hospital", wait: 8000,
+    as: "hospital@test.com", url: "/hospital", shot: "hospital", ready: /안녕하세요/,
     async run(p) { return portalOk(p, /안녕하세요/); },
   },
   {
     group: "다섯 포털이 다 열리나",
     title: "환자 화면",
-    as: "patient@test.com", url: "/patient", shot: "patient", wait: 8000,
+    as: "patient@test.com", url: "/patient", shot: "patient", ready: /안녕하세요|진료|문서/,
     async run(p) { return portalOk(p, /안녕하세요|진료|문서/); },
   },
   {
@@ -253,7 +257,7 @@ const CHECKS = [
     why: "지운 게 아니라 숨긴 것 — 되살리기 쉬워야 한다",
     as: "admin@test.com",
     url: "/admin",
-    wait: 6000,
+    ready: "aside a",
     async run(p, { pauseErrors }) {
       const gone = [];
       for (const name of ["치료·암종", "의료진·지점", "AI 피드백"]) {
@@ -280,7 +284,7 @@ const CHECKS = [
     why: "다섯 중 여기만 서버가 안 막고 있었다",
     as: null, // 로그인 없이
     url: "/agency",
-    wait: 3000,
+    ready: /로그인|Sign in|Войти/,
     async run(p) {
       const path_ = new URL(p.url()).pathname;
       return { ok: path_ === "/login", note: `도착한 주소 ${path_}` };
@@ -293,6 +297,51 @@ function portalOk(p, must) {
     ok: must.test(t),
     note: t.replace(/\s+/g, " ").slice(0, 60) + "…",
   }));
+}
+
+/**
+ * 사진을 찍기 «전»에 화면이 다 그려질 때까지 기다린다.
+ *
+ * 왜 필요한가: 처음 만든 확인표의 첫 사진이 문지기의 「접속 확인 중…」 로딩 화면이었다.
+ *   판정은 통과였는데(주소가 옮겨진 건 맞다) **사진은 빈 화면**이라 근거가 못 됐다.
+ *   ✅ 옆에 로딩 화면이 붙으면 표 전체를 못 믿게 된다 — 그게 이 표의 가장 큰 위험이다.
+ */
+/**
+ * 「몇 초 기다린다」가 아니라 «내가 볼 것이 나왔나»를 보고 기다린다.
+ *
+ * 왜 바꿨나: 처음엔 항목마다 6~11초를 눈대중으로 기다렸다. 혼자 돌리면 통과하는데
+ *   연달아 돌리면 3개가 빨개졌다(개발 서버가 화면을 처음 지을 때 더 걸린다).
+ *   **앱은 그대로인데 결과가 흔들리는 확인표**는 있으나 마나다 — 곧 빨간불을 무시하게 된다.
+ *   그래서 각 항목이 «무엇이 보이면 준비된 것인가»를 스스로 적고, 그게 나올 때까지 기다린다.
+ *
+ * ready: 정규식(본문 글자에서 찾음) | 문자열(화면 요소 선택자) | 함수(page => boolean)
+ */
+async function waitReady(page, ready, ms = 45_000) {
+  if (!ready) return true;
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    try {
+      if (typeof ready === "function") { if (await ready(page)) return true; }
+      else if (ready instanceof RegExp) {
+        if (ready.test(await page.locator("body").innerText())) return true;
+      } else if (await page.locator(ready).count()) return true;
+    } catch { /* 화면이 아직 바뀌는 중 — 다시 본다 */ }
+    await page.waitForTimeout(700);
+  }
+  return false;
+}
+
+async function settleForShot(page) {
+  const LOADING = ["접속 확인 중", "Verifying access", "불러오는 중", "Loading"];
+  const deadline = Date.now() + 25_000;
+  while (Date.now() < deadline) {
+    const t = await page.locator("body").innerText().catch(() => "");
+    const stillLoading = LOADING.some((w) => t.includes(w));
+    // 글자가 넉넉히 그려졌고 로딩 문구가 사라졌으면 다 그려진 것으로 본다.
+    if (!stillLoading && t.replace(/\s/g, "").length > 200) return true;
+    await page.waitForTimeout(1000);
+  }
+  return false; // 끝내 안 끝나면 그대로 찍는다 — 「덜 그려졌다」는 사실도 근거다.
 }
 
 function cookiesFor(s) {
@@ -316,9 +365,27 @@ fs.mkdirSync(SHOTS, { recursive: true });
 const results = [];
 const browser = await chromium.launch();
 
-for (const c of CHECKS) {
+/**
+ * «처음 여는 화면»은 개발 서버가 그 자리에서 지어낸다. 그동안 화면이 먼저 자료를 부르면
+ * 「Failed to fetch」가 한두 개 남는다 — **화면 잘못이 아니라 아직 안 지어진 것**이다.
+ * (실측 2026-08-25: 서버를 새로 띄운 직후 /coordinator 에서 2건, 데워진 뒤 3회 연속 0건.
+ *  실서비스는 화면을 미리 다 지어두므로 이 현상 자체가 없다.)
+ * 그래서 «재기 전에» 같은 주소를 한 번 열어 두고, 그 판은 세지 않는다.
+ */
+const warmed = new Set();
+async function warmUp(ctx, url) {
+  if (warmed.has(url)) return;
+  warmed.add(url);
+  const w = await ctx.newPage();
+  await w.goto(BASE + url, { waitUntil: "networkidle", timeout: 60_000 }).catch(() => {});
+  await w.waitForTimeout(2500);
+  await w.close();
+}
+
+for (const c of CHECKS.filter((c) => !ONLY || c.title.includes(ONLY))) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, deviceScaleFactor: 1, locale: "ko-KR" });
   if (c.as) await ctx.addCookies(cookiesFor(login(c.as)));
+  await warmUp(ctx, c.url);
   const page = await ctx.newPage();
   const errs = [];
   // 화면 오류는 «그 화면에 머무는 동안»만 센다. 검사가 스스로 주소를 옮기는 구간은
@@ -330,13 +397,27 @@ for (const c of CHECKS) {
   const shotPath = c.shot ? path.join(SHOTS, `${c.shot}.png`) : null;
   let out;
   try {
-    await page.goto(BASE + c.url, { waitUntil: "networkidle" });
-    await page.waitForTimeout(c.wait ?? 6000);
+    // 개발 서버는 화면을 «처음 열 때» 지어낸다 — 기본 30초로는 모자랄 때가 있다.
+    page.setDefaultTimeout(60_000);
+    await page.goto(BASE + c.url, { waitUntil: "networkidle", timeout: 60_000 });
+    const ready = await waitReady(page, c.ready);
     out = await c.run(page, { browser, shotPath, pauseErrors });
-    // 사진은 «판정이 끝난 뒤»에 찍는다 — 눌러본 결과가 담겨야 근거가 된다.
-    if (shotPath && !c.shotFromExtra) await page.screenshot({ path: shotPath });
+    if (!ready && out.ok === false) out = { ...out, note: `${out.note || ""} (화면이 45초 안에 안 그려졌다 — 서버가 느린 것일 수 있다)`.trim() };
+    // 사진은 «판정이 끝난 뒤»에, 그리고 «다 그려진 뒤»에 찍는다 — 둘 다 아니면 근거가 못 된다.
+    if (shotPath && !c.shotFromExtra) {
+      const settled = await settleForShot(page);
+      await page.screenshot({ path: shotPath });
+      if (!settled) out = { ...out, note: `${out.note || ""} ⚠️사진 찍을 때 화면이 아직 그려지는 중이었다`.trim() };
+    }
   } catch (e) {
-    out = { ok: false, note: `실행 중 오류: ${String(e).slice(0, 110)}` };
+    const msg = String(e);
+    // 개발 서버가 죽으면 «화면이 고장났다»가 아니라 «확인을 못 했다»다.
+    // 이 둘을 같은 ❌ 로 적으면 PO 가 앱 잘못으로 읽는다 — 실제로 3회 연속 돌리다
+    // 서버가 메모리 부족으로 죽었는데 표엔 「화면이 안 열린다」로 찍혔다(2026-08-25).
+    const serverDown = /ERR_CONNECTION_REFUSED|ECONNREFUSED|ERR_EMPTY_RESPONSE/.test(msg);
+    out = serverDown
+      ? { ok: false, skipped: true, note: "확인 못 함 — 개발 서버가 응답하지 않았다(화면 잘못이 아니다). 서버를 다시 띄우고 재실행." }
+      : { ok: false, note: `실행 중 오류: ${msg.slice(0, 110)}` };
   }
   await ctx.close();
 
@@ -346,6 +427,8 @@ for (const c of CHECKS) {
 await browser.close();
 
 const passed = results.filter((r) => r.ok).length;
+const skipped = results.filter((r) => r.skipped).length;
+const failed = results.filter((r) => !r.ok && !r.skipped).length;
 const consoleErrs = results.reduce((a, r) => a + r.errs.length, 0);
 
 // ── 한 장짜리 확인표 ──
@@ -371,7 +454,7 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
     --paper:#FBFCFB; --surface:#FFFFFF; --ink:#12211F; --ink-soft:#5B6B69;
     --line:#DDE5E3; --line-soft:#EDF2F1;
     --brand:#0F766E; --brand-soft:#E6F4F2;
-    --pass:#0F766E; --fail:#B4232A; --fail-soft:#FDECEC;
+    --pass:#0F766E; --fail:#B4232A; --fail-soft:#FDECEC; --warn:#8A6410; --warn-soft:#FDF6E3;
     --shadow:0 1px 2px rgba(18,33,31,.05), 0 8px 24px rgba(18,33,31,.05);
   }
   @media (prefers-color-scheme: dark){
@@ -379,7 +462,7 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
       --paper:#0E1614; --surface:#152220; --ink:#E6EEEC; --ink-soft:#9DB0AD;
       --line:#263835; --line-soft:#1C2A28;
       --brand:#5EEAD4; --brand-soft:#12302C;
-      --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A;
+      --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A; --warn:#E8C468; --warn-soft:#2A2413;
       --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
     }
   }
@@ -387,7 +470,7 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
     --paper:#0E1614; --surface:#152220; --ink:#E6EEEC; --ink-soft:#9DB0AD;
     --line:#263835; --line-soft:#1C2A28;
     --brand:#5EEAD4; --brand-soft:#12302C;
-    --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A;
+    --pass:#5EEAD4; --fail:#FF9A93; --fail-soft:#2E1A1A; --warn:#E8C468; --warn-soft:#2A2413;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box}
@@ -412,6 +495,9 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
        padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);
        display:grid;grid-template-columns:26px 1fr;gap:0 14px;align-items:start}
   .row.bad{border-color:var(--fail);background:var(--fail-soft)}
+  /* 「확인 못 함」은 고장과 다른 색 — 서버가 죽어서 못 잰 것을 화면 잘못으로 읽으면 안 된다 */
+  .row.skip{border-color:var(--warn);background:var(--warn-soft)}
+  .row.skip .mark{background:transparent;color:var(--warn)}
   .mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;margin-top:2px;
         background:var(--brand-soft);color:var(--pass);font-size:13px;font-weight:700}
   .row.bad .mark{background:transparent;color:var(--fail)}
@@ -442,6 +528,8 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
 
   <div class="scores">
     <div class="score"><div class="n" style="color:${passed === results.length ? "var(--pass)" : "var(--fail)"}">${passed}/${results.length}</div><div class="l">통과</div></div>
+    <div class="score"><div class="n" style="color:${failed ? "var(--fail)" : "var(--pass)"}">${failed}</div><div class="l">고장</div></div>
+    <div class="score"><div class="n" style="color:${skipped ? "var(--fail)" : "var(--pass)"}">${skipped}</div><div class="l">확인 못 함</div></div>
     <div class="score"><div class="n" style="color:${consoleErrs ? "var(--fail)" : "var(--pass)"}">${consoleErrs}</div><div class="l">화면 오류</div></div>
     <div class="score"><div class="n">${results.filter((r) => r.shot).length}</div><div class="l">증거 사진</div></div>
   </div>
@@ -449,8 +537,8 @@ const html = `<!-- healwith 화면 확인표 — npm run verify:screens 가 만�
 
 ${groups.map((g) => `  <h2>${esc(g)}</h2>\n` + results.filter((r) => r.group === g).map((r) => {
   const src = r.shot ? inline(r.shot) : null;
-  return `  <div class="row${r.ok ? "" : " bad"}">
-    <div class="mark" aria-hidden="true">${r.ok ? "✓" : "✕"}</div>
+  return `  <div class="row${r.ok ? "" : r.skipped ? " skip" : " bad"}">
+    <div class="mark" aria-hidden="true">${r.ok ? "✓" : r.skipped ? "?" : "✕"}</div>
     <div>
       <div class="t">${esc(r.title)}</div>
       ${r.why ? `<div class="why">${esc(r.why)}</div>` : ""}
