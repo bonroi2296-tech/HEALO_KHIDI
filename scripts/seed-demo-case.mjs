@@ -378,9 +378,11 @@ async function main() {
         cancer_type: "stomach",
         treatment_completed_at: ago(45).slice(0, 10),
         status: "proposed",
-        current_phase: "month_3",
+        current_phase: null,
         next_action_at: new Date(now + 45 * DAY).toISOString(),
-        schedule: { kind: "rebooking", phase: "month_3", action: "lab_review", title_ko: "3개월 재방문 검사 상담", title_ru: "Повторный визит через 3 месяца", days_from_treatment: 90, reason: "[시연용] 사후관리 경과 기반 재방문 제안" },
+        // 재방문 제안은 재진 엔진(/api/khidi/rebooking/create)이 쓰는 모양 그대로 — schedule.source.
+        // current_phase 를 비우는 것도 같다(화면 배지는 source 로 그린다).
+        schedule: { source: "followup", reason: "[Демо] 사후관리 경과 기반 재방문 제안", session_type: "follow_up", days_from_now: 45 },
       },
     ])
   );
