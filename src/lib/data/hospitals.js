@@ -7,6 +7,11 @@ import { logError } from "../logger";
 const HOSPITAL_SELECT =
   "id, slug, name, location_en, location_kr, address_detail, description, tags, rating, reviews_count, images, latitude, longitude, operating_hours, doctor_profile";
 const HOSPITAL_LIST_SELECT = "id, slug, created_at, updated_at";
+// 상세페이지 전용 — 목록보다 칸이 많다. 상세는 서버가 첫 화면을 «글자까지» 그려서 보내야 하고
+// (안 그러면 JS 안 돌리는 검색·AI 로봇이 「불러오는 중」만 읽고 간다),
+// 언어별 이름·설명은 i18n 칸이 있어야 나온다. 목록 조회는 가볍게 두려고 일부러 나눠 놨다.
+const HOSPITAL_DETAIL_SELECT =
+  "id, slug, name, location_kr, location_en, address_detail, website, description, images, thumbnail_image, gallery_images, tags, rating, reviews_count, doctor_profile, latitude, longitude, operating_hours, certifications, medical_equipment, insurance_accepted, insurance_details, annual_surgery_count, establishment_date, doctor_count, external_ratings, specialties, amenities, supported_languages, faq, i18n, is_partner";
 
 export const getFeaturedHospitals = async (limit = 6) => {
   const { data, error } = await supabaseServer
@@ -57,10 +62,12 @@ export const getHospitalList = async ({ limit = 1000 } = {}) => {
   return data || [];
 };
 
-export const getHospitalById = cache(async (id) => {
+// lang 을 받는 이유: 이 결과가 상세페이지의 «서버가 미리 그려주는 첫 화면»으로도 쓰인다.
+// 언어를 안 넘기면 러시아어 주소로 들어와도 기본 언어로 그려져 봇이 그걸 읽는다.
+export const getHospitalById = cache(async (id, lang) => {
   const { data, error } = await supabaseServer
     .from("hospitals")
-    .select(HOSPITAL_SELECT)
+    .select(HOSPITAL_DETAIL_SELECT)
     .eq("id", id)
     .single();
 
@@ -73,14 +80,14 @@ export const getHospitalById = cache(async (id) => {
     throw new Error("hospital_lookup_failed");
   }
 
-  return mapHospitalRow(data);
+  return mapHospitalRow(data, lang);
 });
 
-export const getHospitalBySlug = cache(async (slug) => {
+export const getHospitalBySlug = cache(async (slug, lang) => {
   if (!slug) return null;
   const { data, error } = await supabaseServer
     .from("hospitals")
-    .select(HOSPITAL_SELECT)
+    .select(HOSPITAL_DETAIL_SELECT)
     .eq("slug", slug)
     .eq("is_published", true)
     .maybeSingle();
@@ -92,7 +99,7 @@ export const getHospitalBySlug = cache(async (slug) => {
     throw new Error("hospital_lookup_failed");
   }
 
-  return mapHospitalRow(data);
+  return mapHospitalRow(data, lang);
 });
 
 export const getHospitalSlugById = async (id) => {

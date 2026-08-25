@@ -165,10 +165,17 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
 
   useEffect(() => {
     const run = async () => {
-      if (initialData) return; // Skip fetch for partner hospitals with pre-loaded data
+      // 파트너 병원(정적 자료)만 조회를 건너뛴다 — 그쪽은 DB에 행이 없다.
+      // DB 병원은 서버가 넘긴 초기자료로 첫 화면을 그린 «뒤에도» 조회를 돌려야
+      // 치료 목록·리뷰·언어 재매핑이 살아 있다.
+      if (initialData?._i18n) return;
       if (!selectedId) return;
-      setLoading(true);
-      setHospital(null);
+      // 서버가 미리 그려준 화면이 있으면 지우지 않는다(지우면 로딩 문구로 깜빡인다).
+      const hasSeed = Boolean(initialData);
+      if (!hasSeed) {
+        setLoading(true);
+        setHospital(null);
+      }
       setHospitalTreatments([]);
       setRawHospital(null);
       setRawTreatments([]);
@@ -418,7 +425,9 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center text-gray-500 font-bold">{t("status.loadingHospital", langCode)}</div>;
   }
-  if (error || !hospital) {
+  // 서버가 넘긴 자료로 이미 화면을 그렸으면, 뒤이은 조회가 실패해도 「병원 없음」으로
+  // 되돌리지 않는다(보여줄 게 있는데 없다고 말하면 안 된다).
+  if (!hospital) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
         <div className="text-teal-700 font-extrabold text-lg mb-2">{t("status.hospitalNotFound", langCode)}</div>
