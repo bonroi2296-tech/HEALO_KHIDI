@@ -6,11 +6,11 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
-  Settings, MessageSquarePlus,
+  Settings, MessageSquarePlus, ArrowLeft,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
-import PortalGate from '../_components/PortalGate';
+import PortalGate, { usePortalContext } from '../_components/PortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 import PushOptInBanner from '../_components/PushOptInBanner';
 
@@ -35,12 +35,37 @@ const NAV_ITEMS = [
   { id: 'requests', labelKey: 'navRequests', icon: MessageSquarePlus, href: '/coordinator/requests' },
 ];
 
+// 껍데기를 따로 뺀 이유: usePortalContext() 는 PortalGate «안쪽»에서만 값이 잡힌다.
+// 한 컴포넌트에서 문지기를 그리면서 동시에 그 값을 읽을 수는 없다.
 export default function CoordinatorLayout({ children }) {
+  return (
+    // 2026-08-25: 전용 문지기(StaffPortalGate) → 포털 공용 문지기(PortalGate)로 교체.
+    //   판정 기준은 그대로 — /api/me 의 app_metadata.role 이 coordinator 이거나 admin 이면 통과.
+    <PortalGate
+      endpoint="/api/me"
+      verify={(json) =>
+        json?.ok && (json.isAdmin || json.appRole === 'coordinator')
+          // 통과시키면서 «관리자로 들어왔는지»를 화면에 같이 넘긴다 — 이름표를 그에 맞게 바꾸려고.
+          ? { ok: true, context: { isAdmin: !!json.isAdmin, appRole: json.appRole || null } }
+          : { ok: false, who: json?.email || null }
+      }
+      redirect="/coordinator"
+    >
+      <CoordinatorShell>{children}</CoordinatorShell>
+    </PortalGate>
+  );
+}
+
+function CoordinatorShell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const L = useCoordinatorL();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // 관리자 계정으로 이 화면을 보고 있나. 화면은 코디 것이지만 «지금 나는 관리자»를 이름표에 밝힌다.
+  const me = usePortalContext();
+  const adminView = !!me?.isAdmin;
+  const roleLabel = adminView ? L.brandRoleAdminView : L.brandRole;
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
@@ -66,7 +91,7 @@ export default function CoordinatorLayout({ children }) {
             </div>
             <div>
               <h1 className="text-base font-bold text-gray-900">healwith</h1>
-              <p className="text-[10px] text-gray-500">{L.brandRole}</p>
+              <p className="text-[10px] text-gray-500">{roleLabel}</p>
             </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg">
@@ -95,6 +120,16 @@ export default function CoordinatorLayout({ children }) {
       </nav>
 
       <div className="p-3 border-t border-gray-200 space-y-1">
+        {/* 관리자가 코디 화면에 들어와 있을 때만 — 돌아갈 길이 없으면 「계정이 바뀌었나」 싶어진다 */}
+        {adminView && (
+          <Link
+            href="/admin"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-teal-800 bg-teal-50 hover:bg-teal-100 transition-all min-h-[44px]"
+          >
+            <ArrowLeft size={18} />
+            <span>{L.backToAdmin}</span>
+          </Link>
+        )}
         <Link
           href="/coordinator/settings"
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
@@ -120,14 +155,7 @@ export default function CoordinatorLayout({ children }) {
     </>
   );
 
-  // 2026-08-25: 전용 문지기(StaffPortalGate) → 포털 공용 문지기(PortalGate)로 교체.
-  //   판정 기준은 그대로 — /api/me 의 app_metadata.role 이 coordinator 이거나 admin 이면 통과.
   return (
-    <PortalGate
-      endpoint="/api/me"
-      verify={(json) => (json?.ok && (json.isAdmin || json.appRole === 'coordinator') ? { ok: true } : { ok: false, who: json?.email || null })}
-      redirect="/coordinator"
-    >
     <div className="flex min-h-screen bg-gray-50 healo-portal-offset">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
@@ -135,7 +163,7 @@ export default function CoordinatorLayout({ children }) {
           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900">{L.brandRole}</span>
+          <span className="font-bold text-gray-900">{roleLabel}</span>
         </div>
         <button onClick={() => setMobileOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
           <Menu size={22} />
@@ -198,6 +226,5 @@ export default function CoordinatorLayout({ children }) {
       )}
       <ManualDrawer role="coordinator" />
     </div>
-    </PortalGate>
   );
 }
