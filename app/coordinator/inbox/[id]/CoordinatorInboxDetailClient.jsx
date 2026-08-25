@@ -28,6 +28,7 @@ import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
 import ProgressSection from "./ProgressSection";
+import HospitalMatchSection from "./HospitalMatchSection";
 import ReferralSection from "./ReferralSection";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
@@ -1432,6 +1433,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         inquiryId={inquiryId}
         patientLang={inquiry?.preferred_language || inquiry?.spoken_language || null}
       />
+
+      {/* 이 암종을 진료하는 병원 — 병원 등록 정보 기준(공고 ICT ① 매칭). 순위는 안 매긴다. */}
+      <HospitalMatchSection cancerType={inquiry?.cancer_type || null} />
 
       {/* 사후관리 경과 — 해외 의료기관·환자가 올린 검사결과·영상·소견(읽기 전용, 공고 ICT ④). */}
       <ProgressSection inquiryId={inquiryId} />
