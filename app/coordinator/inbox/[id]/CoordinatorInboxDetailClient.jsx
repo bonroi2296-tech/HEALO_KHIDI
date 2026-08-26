@@ -18,7 +18,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
 import { describeUpload } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
-import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
@@ -69,6 +69,78 @@ function Row({ icon: Icon, label, value }) {
       </div>
       <div className="w-28 shrink-0 text-sm text-gray-500">{label}</div>
       <div className="flex-1 text-sm text-gray-900 break-words">{value || "—"}</div>
+    </div>
+  );
+}
+
+/**
+ * 진단코드 줄 — 코디가 직접 넣고 고친다(Row 와 같은 모양이되 값이 입력칸이다).
+ *
+ * 환자가 의뢰서에 적은 코드와는 «다른 칸»이다(inquiries.icd_code). 환자 자가 신고를 코디 확정으로
+ * 덮어쓰지 않으려고 갈라 뒀다. 암종을 고른 케이스면 그 부위 코드를 권하되 자동으로 넣지는 않는다.
+ */
+function IcdCodeRow({ inquiryId, initial, cancerType, L, lang }) {
+  const [code, setCode] = useState(initial || "");
+  // 저장에 성공한 «마지막 값». 처음 값(initial)을 계속 기준으로 삼으면 저장한 뒤에도 저장 단추가
+  // 남아 있어 「저장이 된 건지」를 알 수 없다(2026-08-26 화면 확인에서 실제로 그랬다).
+  const [saved, setSaved] = useState(initial || "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const sugg = icd10SuggestionFor(cancerType);
+  const dirty = (code || "").trim().toUpperCase() !== saved;
+
+  const save = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/icd-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ code }),
+      });
+      const r = await res.json();
+      if (!res.ok || !r.ok) throw new Error(r.error || "save_failed");
+      setCode(r.code || "");
+      setSaved(r.code || "");
+      setMsg({ ok: true, text: L.coSaveDone });
+    } catch {
+      setMsg({ ok: false, text: L.coSaveFail });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="w-6 shrink-0 text-gray-500 pt-0.5"><FileText size={16} /></div>
+      <div className="w-28 shrink-0 text-sm text-gray-500">{L.ibIcdCode}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={code}
+            onChange={(e) => { setCode(e.target.value); setMsg(null); }}
+            placeholder={sugg ? sugg.code : "C18.2"}
+            className="w-32 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm uppercase outline-none focus:border-teal-700"
+          />
+          {dirty && (
+            <button type="button" onClick={save} disabled={saving}
+                    className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-50">
+              {saving ? L.coSaving : L.ibIcdSave}
+            </button>
+          )}
+          {sugg && code.trim().toUpperCase() !== sugg.code && (
+            <button type="button" onClick={() => { setCode(sugg.code); setMsg(null); }}
+                    className="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100">
+              {L.ibIcdSuggest}: {sugg.code} · {cancerTypeLabelL(cancerType, lang)}
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-gray-500">{L.ibIcdNote}</p>
+        {msg && (
+          <p className={`mt-1 text-xs font-semibold ${msg.ok ? "text-emerald-700" : "text-red-600"}`}>{msg.text}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -1048,6 +1120,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <Card title={L.ibMedicalCard}>
           <Row icon={Globe} label={L.nationality} value={nationality} />
           <Row icon={Stethoscope} label={L.cancerType} value={cancer} />
+          <IcdCodeRow
+            inquiryId={inquiryId}
+            initial={inquiry.icd_code || ""}
+            cancerType={inquiry.cancer_type || null}
+            L={L}
+            lang={lang}
+          />
           <Row
             icon={Calendar}
             label={L.ibPreferredDate}

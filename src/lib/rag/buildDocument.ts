@@ -5,7 +5,8 @@ type SourceType =
   | "normalized_inquiry"
   | "policy"
   | "faq"
-  | "center_menu";
+  | "center_menu"
+  | "cancer_info";
 
 type BuildInput = {
   source_type: SourceType;
@@ -163,6 +164,25 @@ export const buildDocument = (sourceType: SourceType, row: any): BuildInput => {
         source_type: sourceType,
         source_id: `${row?.center_slug}:${row?.category_ko}`,
         lang: "ko",
+        title,
+        content,
+      };
+    }
+    case "cancer_info": {
+      // row = fetchSourceRows 가 (암종 또는 치료축) × 언어로 펼쳐 만든 합성 행.
+      // 원본(immuneCancerDetails.js)은 언어별 값이 한 객체에 섞여 있어 그대로는 문서가 안 된다.
+      // ponytail: 갈래별 분기 대신 fetchSourceRows 에서 { title, lines[] } 로 평평하게 만들어 넘긴다.
+      const title: string = row?.title || "";
+      const content = joinLines([
+        `[${title}]`,
+        ...(row?.lines || []),
+        // 치료 내용을 개별 환자 처방으로 읽지 않게 못 박는다. center_menu 의 금액 경고와 같은 역할.
+        `출처: 면력한방병원 공식 안내(${row?.source_url || "immunehospital.com"}). 일반 안내이며 개별 환자의 치료 계획은 진료 후 의료진이 결정한다. General information, not a treatment plan for an individual patient.`,
+      ]);
+      return {
+        source_type: sourceType,
+        source_id: `${row?.slug}:${row?.lang}`,
+        lang: row?.lang || "ko",
         title,
         content,
       };
