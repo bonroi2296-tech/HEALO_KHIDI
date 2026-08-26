@@ -2251,16 +2251,13 @@ const TEAL600_BASELINE = {
 {
   const FROZEN = {
     "admin-feedback-list.spec.ts": 1,
-    "chat-feedback-thumbs-down.spec.ts": 2,
     "chat-identification-form.spec.ts": 1,
     "chat-multilingual.spec.ts": 2,
-    "chat-resume-cookie.spec.ts": 1,
     "hospital-detail.spec.ts": 1,
     "hospitals-list.spec.ts": 1,
-    "intake-file-upload.spec.ts": 1,
-    "intake-form-submit.spec.ts": 1,
+    // intake-file-upload → chat-file-upload 로 옮기며 부채 갚음(2026-08-25).
+    // intake-form-submit·intake-validation-required 는 죽은 주소(/intake)를 보고 있어 삭제.
     "intake-language-fallback.spec.ts": 1,
-    "intake-validation-required.spec.ts": 1,
     "patient-dashboard-auth.spec.ts": 1,
     "patient-survey-response.spec.ts": 1,
     "telemedicine-booking-cta.spec.ts": 1,
