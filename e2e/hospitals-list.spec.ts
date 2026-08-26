@@ -13,13 +13,16 @@ test.describe("병원 목록 페이지 @smoke", () => {
     await page.waitForLoadState("domcontentloaded");
 
     // 병원 카드 요소 찾기 (다양한 selector 시도)
+    // /hospitals 는 언어 주소(/ko/hospitals)로 옮겨간다. 예전엔 화면이 옮겨가기 «전» 순간에
+    // 한 번 읽고 판단해서 「없다」로 찍혔다. 될 때까지 기다리는 expect 로 본 뒤에 값을 읽는다.
+    // (2026-08-25: 이 시험 때문에 야간 검사가 며칠째 빨간불이었다. 실서비스 화면은 멀쩡했다.)
     const hospitalCards = page.locator(
       '[data-testid*="hospital-card"], [class*="hospital-card"], article, .card'
     );
 
     // 최소 1개 이상
-    const count = await hospitalCards.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+    await expect(hospitalCards.first()).toBeVisible({ timeout: 20000 });
+    expect(await hospitalCards.count()).toBeGreaterThanOrEqual(1);
   });
 
   test("병원 카드에 병원명 텍스트가 있다", async ({ page }) => {
@@ -27,12 +30,13 @@ test.describe("병원 목록 페이지 @smoke", () => {
     await page.waitForLoadState("domcontentloaded");
 
     // h2, h3 등 제목 요소가 카드 안에 있어야 함
-    const headings = page.locator("h2, h3, h4").first();
-    const hasHeading = await headings.isVisible().catch(() => false);
-    expect(hasHeading).toBeTruthy();
-
-    const headingText = await headings.innerText().catch(() => "");
-    expect(headingText.length).toBeGreaterThan(0);
+    // /hospitals 는 언어 주소(/ko/hospitals)로 옮겨간다. 예전엔 화면이 옮겨가기 «전» 순간에
+    // 한 번 읽고 판단해서 「없다」로 찍혔다. 될 때까지 기다리는 expect 로 본 뒤에 값을 읽는다.
+    // (2026-08-25: 이 시험 때문에 야간 검사가 며칠째 빨간불이었다. 실서비스 화면은 멀쩡했다.)
+    const headings = page.locator("h1, h2, h3, h4").first();
+    await expect(headings).toBeVisible({ timeout: 20000 });
+    const headingText = await headings.innerText();
+    expect(headingText.trim().length).toBeGreaterThan(0);
   });
 
   test("의료진 카드가 가로로 넘치지 않는다 (flex min-w-0 회귀 가드)", async ({ page }) => {

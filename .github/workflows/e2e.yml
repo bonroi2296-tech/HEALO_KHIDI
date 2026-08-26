@@ -479,6 +479,20 @@ jobs:
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          # 2026-08-25 추가: 여기에 «환자·어드민 둘만» 넘기고 있었다. 열쇠는 저장소에 다 등록돼
+          # 있는데 이 일감만 안 넘겨서, 실서비스 야간 검사에서 코디·에이전시·클리닉·병원 화면이
+          # 매일 26개씩 «건너뜀»으로 빠졌다. 게다가 loginAs 를 직접 부르는 의뢰서 스펙 하나는
+          # 건너뛰지도 못하고 UI 로그인으로 빠져 30초 시간초과가 났다: 6일 연속 빨간불(8/20~8/25).
+          # 즉 「실서비스 코디 화면이 고장」이 아니라 「아예 안 보고 있었다」였다.
+          # ⚠️ 이 스펙들은 전부 읽기 전용이다(쓰기·발송 0건, 2026-08-25 전수 확인).
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
+          E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
+          E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
 
       - name: 프로덕션 리포트 저장
         if: always()
