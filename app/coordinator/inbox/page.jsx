@@ -147,12 +147,12 @@ export default function CoordinatorInboxPage() {
           <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-xl">
+        <div data-testid="inbox-empty" className="text-center py-16 bg-gray-50 rounded-xl">
           <Inbox size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500">{L.inboxEmpty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <div data-testid="inbox-table" className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
           {/* overflow-x-auto: 표가 6칸이라 폰(412px)에서는 874px 까지 벌어진다.
               예전에는 `overflow-hidden` 이라 넘친 칸(연락 방법·접수일 등)을 **옆으로 밀 수도 없어
               영영 못 봤다**(2026-08-04 실측). 이제 옆으로 밀어서 볼 수 있다. */}

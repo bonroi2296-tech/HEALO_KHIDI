@@ -44,15 +44,24 @@ test.describe("코디 추가 정보 요청 @smoke", () => {
     // 「load」까지 — 문지기가 인증을 확인하고 화면을 다시 그리는 동안 읽으면 목록이 0건으로 보인다.
     await page.waitForLoadState("load");
 
-    // 받은함이 안 열리거나 문의가 하나도 없으면 «실패»다 — 코디의 일이 여기서 시작한다.
+    // 받은함 «화면»이 안 열리면 실패다 — 코디의 일이 여기서 시작한다.
+    // 다만 문의가 0건인 것과는 갈라야 한다: 검사 전용 DB 에는 문의가 아예 없다.
+    const table = page.locator('[data-testid="inbox-table"]');
+    const empty = page.locator('[data-testid="inbox-empty"]');
     await expect
-      .poll(async () => (await inboxLinks(page)).length, {
+      .poll(async () => (await table.count()) + (await empty.count()), {
         timeout: 30_000,
-        message: "코디 받은함에 문의가 하나도 안 뜬다",
+        message: "코디 받은함 화면이 안 그려진다(표도 빈칸 안내도 없다)",
       })
       .toBeGreaterThan(0);
 
+    if ((await empty.count()) > 0) {
+      test.skip(true, "이 DB 에는 문의가 0건이라 볼 상세가 없다(검사 전용 DB 에서는 정상)");
+    }
+
     const links = (await inboxLinks(page)).slice(0, 8);
+    // 표는 떴는데 줄을 하나도 못 읽었다 = 줄에 붙은 표식이 사라진 것이다. 이건 고장이다.
+    expect(links.length, "받은함 표는 떴는데 문의 줄을 하나도 못 읽었다").toBeGreaterThan(0);
     let checked = 0;
 
     for (const href of links) {
