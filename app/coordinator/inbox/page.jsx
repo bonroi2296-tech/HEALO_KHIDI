@@ -182,6 +182,10 @@ export default function CoordinatorInboxPage() {
                 return (
                   <tr
                     key={item.id}
+                    // 자동 검사가 «글자» 대신 이걸로 고른다 — 이 줄은 링크가 아니라 행 클릭이라
+                    // a[href] 로 찾으면 0건이 나와 검사가 조용히 지나친다(2026-08-25).
+                    data-testid="inbox-row"
+                    data-inquiry-id={item.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
                     onClick={() => router.push(`/coordinator/inbox/${item.id}`)}
                   >

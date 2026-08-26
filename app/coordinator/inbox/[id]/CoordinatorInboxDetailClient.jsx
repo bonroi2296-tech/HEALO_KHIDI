@@ -971,6 +971,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </div>
         <div className="flex items-center gap-2">
           <span
+            // 상세가 «다 그려졌는지»를 자동 검사가 이걸로 판정한다 — 이 딱지가 뜨기 전에 재면
+            // 아직 안 그려진 화면을 「없다」로 읽는다(2026-08-25 실제로 그랬다).
+            data-testid="inquiry-step-badge"
+            data-step2-done={step2Done ? "1" : "0"}
             className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
               step2Done ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-700"
             }`}
@@ -1527,7 +1531,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       </Card>
 
       {/* 추가 정보 요청 — 환자에게 Step2 상세폼 링크 발송(이메일) + 코디용 복사/왓츠앱 */}
+      {/* 자동 검사가 «글자» 대신 이 표식으로 고른다 — 코디 화면 언어가 한국어가 아니면
+          「추가 정보 요청」으로 못 찾아 검사가 조용히 지나친다(2026-08-25). */}
       {!step2Done && (
+        <div data-testid="request-info-card">
         <Card title={L.ibReqCard}>
           <p className="text-sm text-gray-600 mb-3 leading-relaxed">
             {L.ibReqDesc1}
@@ -1537,6 +1544,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           {!reqResult ? (
             <div className="flex flex-wrap items-center gap-3">
               <button
+                data-testid="request-info-button"
                 onClick={requestInfo}
                 disabled={reqLoading}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
@@ -1599,6 +1607,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             </div>
           )}
         </Card>
+        </div>
       )}
 
       {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}

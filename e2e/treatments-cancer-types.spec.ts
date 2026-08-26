@@ -38,22 +38,10 @@ test.describe("/treatments 암종 페이지", () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
-  test("치료 항목 클릭 → 상세 페이지 진입", async ({ page }) => {
-    await page.goto("/treatments");
-    await page.waitForLoadState("domcontentloaded");
-
-    const firstLink = page.locator('a[href*="/treatments/"]').first();
-    const hasLink = await firstLink.isVisible().catch(() => false);
-
-    if (!hasLink) {
-      test.skip(true, "/treatments 링크 없음");
-    }
-
-    await firstLink.click();
-    // networkidle 은 클라이언트 라우팅 전에 즉시 통과하는 레이스가 있어 자동 대기로 교체
-    await expect(page).toHaveURL(/\/treatments\/.+/, { timeout: 15000 });
-
-    const bodyText = await page.locator("body").innerText().catch(() => "");
-    expect(bodyText.length).toBeGreaterThan(100);
-  });
+  // ⚠️ 「치료 항목 클릭 → 상세 진입」 시험은 2026-08-25 삭제했다.
+  //    /treatments 는 «암종 펼침 카드 + 사전상담 CTA» 설계라 목록에서 상세로 가는 링크가 없다
+  //    (바로 위 시험의 주석이 이미 그렇게 적고 있었고, 실서비스 실측에서도 상세 링크 0개).
+  //    있지도 않은 링크를 찾다 «건너뜀»으로 빠져 만들어진 뒤 한 번도 돈 적이 없었다.
+  //    ※ /treatments/[slug] 화면 «자체»는 빌드에 남아 있다 — 목록에서 갈 길이 없을 뿐이라,
+  //      그 화면을 살릴지 지울지는 이 검사가 아니라 제품 판단이다(여기서 정하지 않는다).
 });
