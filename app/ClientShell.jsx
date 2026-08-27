@@ -13,6 +13,7 @@ const loadSupabase = () => import("@/lib/data/supabaseClient").then((m) => m.sup
 import { SITE_INFO } from "@/lib/siteSettings";
 import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import { localeHref, splitLocale } from "@/lib/i18n/config";
 import {
   Header,
@@ -320,6 +321,15 @@ export default function ClientShell({ children, initialLang = "en" }) {
   );
 }
 
+// 직원 화면(어드민·코디·병원) = 공개 사이트 언어가 아니라 «백오피스 언어 설정»을 따르는 곳.
+// 에이전시·의료기관·환자 포털은 공개 언어(healo_lang)를 그대로 쓰므로 여기 넣지 않는다.
+// 직원 화면 상단 띠의 「로그아웃」. t() 사전을 안 타는 이유는 PortalTopBar 주석에.
+// 코디 사전을 통째로 import 하면 공개 페이지 번들에도 800줄짜리 사전이 딸려 온다.
+const BO_LOGOUT = { ko: "로그아웃", en: "Log out", ru: "Выйти", kz: "Шығу", zh: "退出", ja: "ログアウト" };
+
+const isBackofficePath = (p) =>
+  p.startsWith("/admin") || p.startsWith("/coordinator") || p.startsWith("/hospital");
+
 function ClientShellContent({
   isPortalPage,
   session,
@@ -335,8 +345,12 @@ function ClientShellContent({
   hideBottomNav,
   children,
 }) {
-  const langCode = useLang();
+  const publicLang = useLang();
+  const backofficeLang = useBackofficeLang();
   const pathname = usePathname() || "/";
+  // 본문(코디·어드민)은 useBackofficeLang 을 쓰는데 껍데기만 공개 언어를 따라가면
+  // 「본문은 한국어인데 상단 띠·로그아웃만 영어」가 된다(2026-08-27 PO 지적).
+  const langCode = isBackofficePath(pathname) ? backofficeLang : publicLang;
   // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
   // 크롬(헤더·푸터·하단탭) 없이 내용만 렌더하는 **단일 작업 페이지**.
   // - /consultation/ : 화상상담방
@@ -527,6 +541,11 @@ function ClientShellContent({
    Portal Top Bar — 메인과 동일한 teal 톤, 좌측 로고로 메인 이동
    ────────────────────────────────────────────── */
 function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
+  // 껍데기 문구는 t() 사전을 타는데, 브라우저에는 «서버가 심은 언어» 사전 1개만 실린다.
+  // 직원 화면 언어는 그 사전과 별개라 t() 가 영어로 폴백해 「Log Out」이 남았다.
+  // 코디 사전(CT)은 6개 언어를 코드에 들고 있어 사전 적재와 무관하게 바로 나온다.
+  const isBackoffice = isBackofficePath(usePathname() || "/");
+  const logoutLabel = isBackoffice ? (BO_LOGOUT[langCode] || BO_LOGOUT.en) : t("auth.logout", langCode);
   return (
     // ⚠️ 안전영역 여백(pt-safe-area)은 «바깥», 바 높이(h-14)는 «안쪽» 이어야 한다.
     //    한 칸에 같이 걸면 padding 이 height 안으로 먹혀(border-box) 바가 안 내려가고
@@ -558,7 +577,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
           className="flex items-center gap-1 text-slate-600 hover:text-teal-700 transition-colors ml-1"
         >
           <LogOut size={15} />
-          <span className="hidden sm:inline">{t("auth.logout", langCode)}</span>
+          <span className="hidden sm:inline">{logoutLabel}</span>
         </button>
       </div>
      </div>
@@ -574,6 +593,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
 function PortalLangSwitcher({ langCode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const pathname = usePathname() || "/";
   useEffect(() => {
     const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", onDoc);
@@ -584,8 +604,10 @@ function PortalLangSwitcher({ langCode }) {
     setOpen(false);
     // 어느 언어에서 어느 언어로 갈아탔나 — 번역 보강 우선순위의 근거.
     if (code !== langCode) { try { event(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {} }
-    setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
-    setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
+    // 두 쿠키를 같이 심던 것을 갈랐다: 직원 화면에서 고른 언어가 공개 사이트 언어까지
+    // 바꿔 버리면 안 된다(2026-08-27 PO 지적). 자기 쪽 설정만 바꾼다.
+    if (isBackofficePath(pathname)) setBackofficeLangCookie(code);  // 어드민·코디·병원 (healo_bo_lang)
+    else setLangCookie(code);                                       // 공개·에이전시·의료기관·환자 (healo_lang)
     // 새로 불러와야 layout 이 «그 언어» 사전을 심는다(위 주석). 같은 언어면 굳이 안 한다.
     if (typeof window !== "undefined") {
       if (code !== langCode) window.location.reload();
