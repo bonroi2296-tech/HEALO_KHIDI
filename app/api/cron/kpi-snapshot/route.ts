@@ -172,14 +172,21 @@ export async function GET(request: NextRequest) {
       }
 
       const rows = list.map((r) => ({ id: r.id, accountEmail: emailByUser.get(r.user_id) ?? null }));
-      const ignore = new Set(
-        (process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
+      // 「진짜 케이스인데 시험 계정으로 접수된 것」은 실적에서 빼면 안 된다 — 예외로 둔다.
+      //   #37 첫 실고객(agency@test.com · 2026-07-07) · #60 세브란스 소견 요청(patient@test.com · 2026-08-01)
+      //   2026-08-27 실DB 전수 조회: 이 조건(is_test=false + 계정이 시험 도메인)에 걸리는 문의는 이 둘뿐이다.
+      //   왜 env 가 아니라 여기 적나: env 값은 콘솔에서 암호화돼 보이지 않아 «왜 예외인지»가 사라진다.
+      //   #60 이 env 에 빠져 있어 같은 경보가 9일간 매일 울렸다(2026-08-27 확인). env 로도 더 넣을 수 있다(합집합).
+      const KNOWN_INTENTIONAL_IDS = [37, 60];
+      const ignore = new Set([
+        ...KNOWN_INTENTIONAL_IDS,
+        ...(process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean) // 빈 env → [""] → Number("")=0 오염 방지(빈 문자열 먼저 제거)
           .map(Number)
-          .filter((n) => Number.isFinite(n))
-      );
+          .filter((n) => Number.isFinite(n)),
+      ]);
       const polluted = findTestPollutedInquiryIds(rows, resolveTestDomains()).filter((id) => !ignore.has(id));
 
       if (polluted.length > 0) {
