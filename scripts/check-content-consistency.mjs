@@ -62,6 +62,18 @@ const FORBIDDEN = [
   //   → 누가 다시 넣으면 이 검사가 잡는다(시험 파일은 EXCLUDE 로 애초에 안 훑는다).
   { re: /khidi\.healo\.kr/i, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr) — 없는 주소이고 healo.kr 은 남의 도메인" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
+  // ── 폐기된 premium 톤 토큰 재유입 차단 (2026-08-27 신설) ─────────────────────────
+  // 왜: DESIGN.md 는 2026-06 에 premium(cream/gold/ink) 톤을 폐기했다고 적어 놓았는데도
+  //     정의 파일 app/styles/healo-tokens.css 가 살아서 app/layout.jsx 를 통해 «전 페이지»에
+  //     실리고 있었다. 그래서 새 화면을 만들 때마다 그 파일이 본보기가 돼 폐기된 톤이 계속
+  //     되살아났다 (2026-08-26 PO: «왜 아직도 예전에 테스트 했던 톤이 남아있는거야»).
+  //     2026-08-27 에 정의 파일·부품을 삭제해 철거를 끝냈다.
+  // 왜 기계로 막나: 철거 «직후에» 일부러 var(--gold-2) 를 app/ 에 심고 이 검사를 돌려 봤더니
+  //     그냥 통과했다. 즉 옛 코드를 복사해 오는 것만으로 그대로 재발하는 상태였다.
+  //     (그때 있던 premium 가드는 src/lib/email/templates/ 에만 걸려 있었다 — 아래 8) 참고.)
+  // 오탐이 없는 이유: 이제 이 토큰들은 «정의처가 없다». 쓰면 값이 비어 화면이 조용히 깨지므로
+  //     걸리는 건 전부 진짜 결함이다. 되살리려면 DESIGN.md §1 변경 권한부터 다시 받아라.
+  { re: /var\(\s*--(?:cream-|gold-|ink-|paper|fg-on-light-|fg-on-dark-|font-serif)/, msg: "폐기된 premium 톤 토큰(cream/gold/ink/paper/fg-on-*/font-serif) — 2026-08-27 철거로 «정의처가 없어» 값이 비고 화면이 깨진다. 기본 톤으로 쓸 것: 색 teal-700·gray-*, 글꼴은 Tailwind 기본 (DESIGN.md §3·§4·§6 premium_drift)" },
   // 면력한방병원 브랜드명 발명 음역 차단 — AI 번역이 지어낸 이름(2026-07-06 /insurance 카피 검증에서 발견).
   // 공식 표기: en/ru/kz "Immune Hospital", ja "免疫病院", zh "免疫(韩方)医院" (seo.immune.* · immuneCancerDetails.js 기준).
   { re: /Myunghyuk|Мённёк|ミョンニョク/i, msg: "면력한방병원 브랜드명 오표기(발명 음역) — 공식: Immune Hospital / 免疫病院" },
@@ -2565,6 +2577,36 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── §35-b) 정규식에 «제어문자»가 박히는 사고 차단 (2026-08-27 신설) ──────────────
+// 왜 (실측): 이 파일의 비밀키 검출 정규식 4개가 \bsb_secret_… 를 의도했는데 백슬래시가 풀려
+//     «백스페이스 문자(0x08)»가 박혀 있었다 → /(0x08)sb_secret_…/ 가 되어 Supabase secret ·
+//     GitHub 토큰 · OpenAI 키 · 구글 API 키를 «절대 못 잡는» 상태였다(이 저장소는 PUBLIC 이고
+//     2분마다 git add -A 자동저장이 돈다). 같은 사고가 src/lib/chat/topicGuards.ts 의 병원
+//     랭킹 가드에도 있어 영어 "best hospital" 질문에 하드가드가 안 켜졌다(한국어·러시아어는 정상).
+//     둘 다 **눈으로는 안 보인다** — grep 출력에도 안 나타나서 오래 살아남았다.
+// 왜 0x08 계열만 잡나: 정규식에서 흔한 \b(단어경계)·\0·\v·\f 가 풀릴 때 생기는 문자만 골랐다.
+//     정당한 쓰임이 있는 0x1b(ESC 색상코드)·0x1e(레코드 구분자)·0x03·0x1a(파일 매직바이트)는
+//     «일부러» 뺐다 — 넣으면 오탐 6건이 나고, 예외 목록이 늘면 결국 아무도 안 본다.
+//     신설 시점 저장소 기준 이 규칙의 오탐은 0건이다.
+{
+  const CTRL_CHARS = /[\x00\x08\x0B\x0C]/;
+  const codeFiles = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => /\.(?:js|mjs|cjs|jsx|ts|tsx|css|json)$/i.test(f));
+  for (const f of codeFiles) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
+    if (!CTRL_CHARS.test(src)) continue;
+    src.split(/\r?\n/).forEach((line, i) => {
+      const m = line.match(CTRL_CHARS);
+      if (!m) return;
+      const code = "0x" + m[0].charCodeAt(0).toString(16).padStart(2, "0");
+      errors.push(`[제어문자] ${f}:${i + 1} — 소스에 제어문자 ${code} 가 박혀 있다. 정규식의 백슬래시-b/0/v/f 가 «풀려서» 실제 제어문자가 된 경우가 대부분이고, 그러면 그 규칙은 조용히 아무것도 안 잡는다(2026-08-27 실측: 비밀키 검출 4종·병원 랭킹 가드가 이 이유로 죽어 있었다). 백슬래시를 두 개로 쓸 것.`);
+    });
+  }
+}
+
 // ── §36) 공개 저장소에 «진짜 열쇠»가 들어오지 않게 (2026-07-28) ────────────────
 // 왜: 이 저장소는 PUBLIC 이고 2분마다 도는 자동저장 훅이 `git add -A` 라, 열쇠 파일이 폴더에
 //     들어오면 다음 사이클에 그대로 공개된다(2026-07-27 Firebase 키가 실제로 그럴 뻔했다).
@@ -2575,10 +2617,10 @@ const TEAL600_BASELINE = {
   const SECRET_PATTERNS = [
     [/-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, "개인키(PEM)"],
     [/"private_key"\s*:\s*"-----BEGIN/, "구글 서비스계정 JSON"],
-    [/sb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
-    [/gh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
-    [/sk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
-    [/AIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
+    [/sb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
+    [/gh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
+    [/sk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
+    [/AIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
   ];
   // 저장소가 추적하는 «코드/설정» 파일만 본다(문서·바이너리는 제외 — 오탐만 늘린다).
   const files = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
@@ -2590,6 +2632,18 @@ const TEAL600_BASELINE = {
     try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
     if (src.length > 2_000_000) continue;
     for (const [re, label] of SECRET_PATTERNS) {
+      // Firebase 클라이언트 설정 파일의 «구글 API 키»만 면제한다 (2026-08-27).
+      // 왜: google-services.json / GoogleService-Info.plist 안의 API_KEY 는 설계상 앱 번들에
+      //     담겨 배포되는 «식별자»다 — 구글 공식 안내도 이 파일을 앱에 포함하라고 한다.
+      //     비밀이 아니므로 여기서 잡으면 영원히 빨간불이고, 그러면 사람이 검사를 꺼 버린다.
+      // ⚠️ 면제는 «이 패턴 하나»로 좁힌다. 같은 파일에 PEM 개인키·구글 서비스계정 JSON·
+      //     GitHub 토큰·OpenAI 키·Supabase secret 이 들어오면 그대로 잡힌다 — 파일을 통째로
+      //     빼면 그 구멍으로 진짜 비밀이 들어온다.
+      // 🔴 대신 «다른 자리»에서 지켜야 한다: 이 키는 노출돼도 되지만 **제한이 없으면** 남이
+      //     그 키로 다른 구글 API(지도·번역 등)를 호출해 요금을 물릴 수 있다. 구글 클라우드
+      //     콘솔에서 이 키에 «앱 제한»(안드로이드 패키지명+SHA-1 / iOS 번들ID)과 «API 제한»이
+      //     걸려 있는지 확인할 것. 이건 코드가 아니라 콘솔 설정이라 기계가 못 잰다.
+      if (label === "구글 API 키" && (f.endsWith("google-services.json") || f.endsWith("GoogleService-Info.plist"))) continue;
       if (re.test(src)) {
         errors.push(
           `[열쇠유출] ${f} 에 ${label} 로 보이는 값이 있다 — 이 저장소는 공개다. ` +
