@@ -87,7 +87,14 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 
 ### 8. 개인정보처리방침 보강 (PIPA 대응) — **🟡 부분 완료 + 법무 리뷰 필요**
 
-**가입 플로우에 PIPA §28조의8 별도 동의 UI 추가됨** (`app/signup/SignupPremium.jsx`):
+> ⚠️ **경로 정정 (2026-08-27)** — 아래 「추가됨」이 가리키는 `app/signup/SignupPremium.jsx` 는 **없는 파일**이다
+> (폐기된 premium 가입 화면. 프리미엄 전면 폐기 커밋 `825d61e3` / PR #288 에서 화면째 삭제).
+> **현재 국외이전 동의는 문의 폼**(`app/inquiry/_components/UnifiedInquiryFunnel.jsx`, `crossBorder` 필수)**에서 받는다.**
+> 가입 화면이 그걸 안 받는 것은 **누락이 아니라 의도된 설계**다(`src/lib/legal/consentForms.js` 「문 앞 마찰 0 유지」).
+> 🔎 **이 §8 항목 전체가 낡았다.** 국외이전·제3자 제공의 최신 판단은 `src/lib/legal/privacyPolicy.js` 머리 주석에 있고
+> (2026-08-20 실측으로 진짜 문의 6건 전부에 `cross_border_kr` 동의 기록 확인), 남은 행동은 **에이전시 데이터 공유 계약 서명** 하나다.
+
+**(이하는 삭제된 화면의 당시 구현 기록 — 이력):**
 - 이전 목적, 이전 항목, 수탁자/국가/목적, 이전 방법, 보유·이용 기간, 거부권 6가지 항목
 - 체크박스 + 세부 내용 펼침 모달
 - 한국어/영어 기본 제공 (다른 언어 추가 필요)

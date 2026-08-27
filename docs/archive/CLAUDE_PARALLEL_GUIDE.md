@@ -1,3 +1,8 @@
+> 🗄 **보관됨 (2026-08-27). 정본은 `docs/PARALLEL_SESSIONS.md` 다.**
+> 이 문서는 2026-04-21 기준이라 담당 영역표가 **지금은 존재하지 않는 파일**을 가리킨다
+> (`app/home/HomeClientPremium.jsx`·`components/healo/Nav.jsx`·`Footer.jsx` — 폐기된 premium 톤 잔재로 전부 삭제됨).
+> **그 표를 보고 파일을 찾아가지 마라.** 병렬 세션 운영 규칙은 `docs/PARALLEL_SESSIONS.md` 를 읽는다.
+
 # HEALO — Claude 병렬 세션 운영 지침서
 
 > **대상**: 여러 Claude Code 세션을 동시에 돌리는 프로덕트 오너 (본인)
