@@ -959,24 +959,34 @@ for (const dir of SCAN_DIRS) {
   }
 }
 
-// ── 15) 백오피스 raw h1/h2/h3 에 글자크기 클래스 누락 (마케팅 히어로 크기 유출) ──────
-// 왜: app/styles/healo-tokens.css 는 공개 마케팅 페이지용 h1~h3 를 전역 태그 선택자로 정의한다
-//     (예: h2 { font-size: clamp(36px, 4.5vw, 64px) }). 백오피스(coordinator/admin/agency/
-//     hospital/clinic) 화면에서 <h2 className="font-bold ...">처럼 명시적 text-size 유틸리티
-//     없이 raw 헤딩 태그를 쓰면 이 마케팅 히어로 크기가 그대로 새어 들어와 화면이 깨진다
-//     (2026-07-08 코디 "AI 상담 리드" — "검토 대기 22건"이 히어로 크기로 렌더, PO 리포트).
-//     같은 패턴이 admin 등 12곳에서 동시 발견됨 — 개별 수정이 아니라 검사기로 부류 자체를 차단.
+// ── 15) raw h1/h2/h3 에 글자크기 클래스 누락 ─────────────────────────────────
+// 왜(2026-07-08): 그때는 app/styles/healo-tokens.css 가 전역 태그 선택자로 h1~h3 를 크게
+//     정의하고 있어서(h2 = clamp(36px,4.5vw,64px)), 백오피스에서 크기 유틸리티 없이 raw
+//     헤딩을 쓰면 «마케팅 히어로 크기가 새어 들어왔다»
+//     (코디 "AI 상담 리드" — "검토 대기 22건"이 히어로 크기로 렌더, PO 리포트).
+//
+// ⚠️ 2026-08-27 그 파일을 폐기하면서 «위험이 뒤집혔다». 이제 전역 크기가 없으므로
+//     preflight 의 font-size:inherit 이 드러나, 크기 유틸리티 없는 제목은 반대로
+//     «본문 크기(15px)로 주저앉는다». 실측: /ru/for-russian-patients 의 H3 가 32px → 15px.
+//     크든 작든 «명시하지 않으면 깨진다»는 규칙 자체는 그대로 옳다.
+//
+// ⚠️ 그리고 이 검사는 그때 백오피스 5개 폴더만 봤기 때문에 «공개 화면·환자 포털이 사각지대»였고,
+//     위 회귀 15곳을 하나도 못 잡았다. → 2026-08-27 범위를 app/·src/·components/ 전체로 넓혔다.
+//     (className 이 «아예 없는» raw <h2> 는 안 본다 — 인쇄용 팝업처럼 자체 <style> 을 쓰는
+//      생성 HTML 이 걸리기 때문이다. 아래 정규식이 className 을 요구한다.)
+// ※ BACKOFFICE_DIRS 는 아래 15-b) 저대비회색 검사도 쓰므로 그대로 둔다.
 const BACKOFFICE_DIRS = ["app/coordinator", "app/admin", "app/agency", "app/hospital", "app/clinic"];
+const HEADING_SCAN_DIRS = ["app", "src", "components"];
 const HEADING_RE = /<h[123]\s+className="([^"]*)"/g;
 const HEADING_SIZE_RE = /text-(xs|sm|base|lg|\d?xl|\[)/;
-for (const dir of BACKOFFICE_DIRS) {
+for (const dir of HEADING_SCAN_DIRS) {
   for (const file of walk(dir)) {
     if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
     const text = readFileSync(join(ROOT, file), "utf8");
     let m;
     while ((m = HEADING_RE.exec(text)) !== null) {
       if (!HEADING_SIZE_RE.test(m[1])) {
-        errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 마케팅 히어로 크기(h2 최대 64px) 유출 위험. text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류).`);
+        errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 전역 h1~h3 크기가 없어진 뒤(2026-08-27 healo-tokens.css 폐기)라 이 제목은 «본문 크기 15px 로 주저앉는다». text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류 · 2026-08-27 실측 회귀 15곳).`);
       }
     }
   }
