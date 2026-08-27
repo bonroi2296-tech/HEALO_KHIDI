@@ -23,8 +23,11 @@
 > · ⚠️ **다시 뒤지지 마라**: `.claude/skills/`·`src/lib/manuals/`·`docs/rules/`·`AGENTS.md`·`README.md` 는 **원래 0건**이었다.
 >   낱말만 걸리는 것도 전부 무관 — `serif` 37건=`sans-serif` 선언 · `concierge` 9건=서비스 설명 ·
 >   `Premium` 3건=클라우드하스피탈 요금제 등급명 · 정부과제 대비표의 `--ink`=자체 남색 팔레트(`#101c28`).
-> · **코드 잔재 2개는 다른 세션 몫**(8/27 오전 기준 둘 다 진행 중): `app/styles/healo-tokens.css`(`app/layout.jsx:3` 전역 import) ·
->   `components/healo/Primitives.jsx`(마지막 사용처 = `app/patient/calendar/CalendarClient.jsx` 의 `ButtonGold`).
+> · **코드 잔재 2개**(8/27 낮 갱신): ①`components/healo/Primitives.jsx` — 마지막 사용처였던
+>   `app/patient/calendar/CalendarClient.jsx` 가 기본 톤으로 교체되며 **사용처 0건**이 됐고(#1481, 본판 반영),
+>   그 파일 삭제는 **#1483 에서 대기 중**(합쳐지면 이 줄도 지워라). ②`app/styles/healo-tokens.css` — **아직 살아 있다.**
+>   `app/layout.jsx:3` 이 전역으로 불러오므로 **폐기 토큰(cream/gold/ink)이 화면에 진짜로 그려진다**
+>   («정의가 없어 무시된다»고 적힌 옛 메모가 있는데 틀렸다 — 8/27 화면을 띄워 확인).
 
 > **📌 중간 저장 (2026-08-26: 마다네스 보험사 1차 회신 도착. PO 전달, 문서에 반영)**
 > · **한 줄**: 우리가 보낸 질의 6개에 답이 왔고, **「치료 전 선지급」이 열렸다.** 그리고 **9월 말 방문 예정 피보험자 2명**이 있다.
