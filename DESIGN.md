@@ -41,10 +41,12 @@ context:
 # ============================================================
 # 3. 표준 (기본 톤 = 우리의 유일한 디자인)
 # ============================================================
-# ⚠️ 옛 모드 이름("legacy" / "premium")은 버렸다. "legacy"가 '옛날꺼'처럼 들려서
-#    "레거시→프리미엄으로 업그레이드해야지"라는 정반대 오해를 계속 유발했음(드리프트의 원인).
-#    과거 premium(고급/호텔 톤)은 A/B 실험용이었고 폐기됨(PREMIUM_TEARDOWN, 2026-06 — 토글 designMode.js 삭제).
-#    → 이제 디자인은 하나뿐 = 아래 "기본 톤(teal)". 모드 토글 없음.
+# ⚠️ 디자인은 «하나»뿐이다 = 아래 "기본 톤(teal)". 고를 수 있는 다른 톤은 없다.
+#    옛 모드 이름("legacy" / "premium")은 2026-07-01 에 버렸다 — "legacy"가 '옛날꺼'처럼 들려
+#    "레거시→프리미엄으로 업그레이드해야지"라는 정반대 오해를 반복 유발했기 때문이다(드리프트의 근본원인).
+# 🚫 premium 은 2026-06 에 **완전히 폐기**됐다. 토글(designMode.js)·컴포넌트·페이지가 전부 삭제됐고,
+#    되살리는 것도 «참고본으로 여는 것»도 금지다. 지나간 실험이지 대안이 아니다.
+#    경위만 필요하면 보관 문서(docs/archive/PREMIUM_TEARDOWN_PLAN.md)를 보되, 거기 적힌 값은 «금지 목록»으로 읽어라.
 #    (파일명에 남은 "*Legacy*" 접미사는 그때의 정식본이란 뜻일 뿐 — 새 이름은 "기본 톤".)
 standard:
   framework: "Next.js 16 + Tailwind CSS"
@@ -186,9 +188,10 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    - "src/legacy-pages/** 신규 import (ESLint 룰 있음)"
-    - "components/healo/Nav.jsx, Footer.jsx, Primitives.jsx — Premium 컴포넌트"
+    # 아래 둘은 아직 코드에 남아 있는 premium 잔재다. 신규 사용 금지 + 철거 대상(§8).
+    - "components/healo/Primitives.jsx — Premium 컴포넌트(ButtonGold·Eyebrow 등)"
     - "app/styles/healo-tokens.css 토큰 (cream/gold/ink)"
+    # Nav.jsx·Footer.jsx·src/legacy-pages/** 는 삭제 완료(2026-06~08) — 없는 파일이니 찾지 마라.
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -212,15 +215,21 @@ medical_ui:
     - "'완치 보장' '100% 성공' 등 의료 광고법 위반 카피"
 
 # ============================================================
-# 8. 미사용 (코드 보존, 신규 import 금지)
+# 8. 폐기된 premium 잔재 — 되살리지 마라
 # ============================================================
-deprecated:
-  - "components/healo/Nav.jsx"          # Premium Nav
-  - "components/healo/Footer.jsx"       # Premium Footer
-  - "components/healo/Primitives.jsx"   # Eyebrow / Rule / ButtonGold
-  - "app/styles/healo-tokens.css"       # cream/ink/gold 토큰 전체
+# 🚫 "나중에 쓸지 모르니 보존"이 아니다. 아래는 이미 지웠거나 지우는 중인 것들이고,
+#    신규 import 는 물론 «디자인 참고본으로 여는 것»도 금지다.
+removed:            # 삭제 완료 — 없는 파일이다. 되살리지도, 찾지도 마라.
+  - "src/lib/designMode.js"                    # 톤 토글 (2026-06)
+  - "components/healo/Nav.jsx"                 # Premium Nav
+  - "components/healo/Footer.jsx"              # Premium Footer
+  - "src/legacy-pages/**"
   - "app/intake/_archive/IntakePremium.jsx"
-  - "app/inquiry/_archive/InquiryClient.jsx"   # 참고용으로만, import X
+  - "app/inquiry/_archive/InquiryClient.jsx"
+  - "app/**/*Premium.jsx"                      # 홈·가입·문의 등 16개
+pending_removal:    # 아직 코드에 남음 — 철거 대상. 새로 쓰지 마라.
+  - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰. app/layout.jsx 에서 전역 import 중
+  - "components/healo/Primitives.jsx"          # ButtonGold 등. app/patient/calendar 가 마지막 사용처
 ```
 
 ---
