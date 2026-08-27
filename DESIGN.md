@@ -188,10 +188,9 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    # 아래 둘은 아직 코드에 남아 있는 premium 잔재다. 신규 사용 금지 + 철거 대상(§8).
-    - "components/healo/Primitives.jsx — Premium 컴포넌트(ButtonGold·Eyebrow 등)"
+    # 아래 하나가 아직 코드에 남아 있는 premium 잔재다. 신규 사용 금지 + 철거 대상(§8).
     - "app/styles/healo-tokens.css 토큰 (cream/gold/ink)"
-    # Nav.jsx·Footer.jsx·src/legacy-pages/** 는 삭제 완료(2026-06~08) — 없는 파일이니 찾지 마라.
+    # Nav.jsx·Footer.jsx·Primitives.jsx·src/legacy-pages/** 는 삭제 완료(2026-06~08) — 없는 파일이니 찾지 마라.
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -227,9 +226,9 @@ removed:            # 삭제 완료 — 없는 파일이다. 되살리지도, �
   - "app/intake/_archive/IntakePremium.jsx"
   - "app/inquiry/_archive/InquiryClient.jsx"
   - "app/**/*Premium.jsx"                      # 홈·가입·문의 등 16개
+  - "components/healo/Primitives.jsx"          # ButtonGold 등. 2026-08-27 삭제: 마지막 사용처 app/patient/calendar 가 기본 톤으로 바뀌어 0건이 됐다
 pending_removal:    # 아직 코드에 남음 — 철거 대상. 새로 쓰지 마라.
   - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰. app/layout.jsx 에서 전역 import 중
-  - "components/healo/Primitives.jsx"          # ButtonGold 등. app/patient/calendar 가 마지막 사용처
 ```
 
 ---
