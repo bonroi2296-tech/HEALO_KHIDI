@@ -99,6 +99,7 @@ import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/use
 import { shouldSwitchToServerStt, createSpokenClock } from "@/lib/consultation/sttWatchdog";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
+import { shouldStitch, stitch } from "@/lib/consultation/transcriptStitch";
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { isPatientSideRole } from "@/lib/consultation/inviteRole";
@@ -1314,8 +1315,29 @@ export default function ConsultationRoomPage() {
 
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
+  // 문장 중간에서 잘린 자막을 앞줄에 도로 붙인다 (판정은 transcriptStitch).
+  //   왜: 2026-08-27 실측 — 실서비스 자막의 31% 가 말이 끝나기 전에 잘려 있었다.
+  //   ⚠️ «내 화면과 내 기록»에만 적용한다. 상대에게 보내는 자막과 서버 저장은 안 건드린다
+  //      (상대 화면에서 이미 뜬 줄을 교체할 방법이 없어, 붙여 보내면 중복으로 보인다).
+  const lastShownRef = useRef(null);
+
   const applyTranslation = useCallback(
     (original, translated, srcLangOverride, utter, spokenAt) => {
+      const at = spokenAt || Date.now();
+      const incoming = {
+        source: original,
+        translated,
+        speaker: myNameRef.current || "",
+        lang: srcLangOverride || myLang,
+        at,
+      };
+      const merged = shouldStitch({ prev: lastShownRef.current, next: incoming });
+      if (merged) {
+        const j = stitch({ prev: lastShownRef.current, next: incoming });
+        original = j.source;
+        translated = j.translated;
+      }
+
       const entry = {
         id: Date.now(),
         original_text: original,
@@ -1327,11 +1349,22 @@ export default function ConsultationRoomPage() {
         // ⚠️ «말한 시각»으로 찍는다. 도착 시각으로 찍으면 내 줄만 번역 왕복(1~2초)만큼 뒤로
         //    밀리는데, 상대 줄은 이미 말한 시각으로 찍혀 있어 기록 순서가 서로 어긋난다
         //    (2026-07-29 PO «자막 순서도 좀 꼬이는거 같고»). 두 줄이 같은 시계를 쓰게 맞춘다.
-        created_at: new Date(spokenAt || Date.now()).toISOString(),
+        created_at: new Date(merged ? lastShownRef.current.at : at).toISOString(),
       };
 
       // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
-      setTranslations((prev) => [...prev.slice(-1999), entry]);
+      //   붙인 경우엔 새 줄을 «추가»하지 않고 마지막 줄을 통째로 갈아끼운다.
+      setTranslations((prev) =>
+        merged && prev.length
+          ? [...prev.slice(0, -1), entry]
+          : [...prev.slice(-1999), entry]
+      );
+      lastShownRef.current = {
+        ...incoming,
+        source: original,
+        translated,
+        at: merged ? lastShownRef.current.at : at,
+      };
 
       // 다음 번역의 문맥으로 축적
       pushConvoContext("self", srcLangOverride || myLang, original);
@@ -1344,7 +1377,8 @@ export default function ConsultationRoomPage() {
       // utter(발화 세대) 동봉 — 큐 밀림으로 이전 발화의 확정 자막이 다음 발화의 부분 자막을
       // 덮는 순서 역전을 수신측이 걸러낼 근거(독립리뷰 #1).
       if (publishSubtitleRef.current) {
-        publishSubtitleRef.current(translated, targetLang, myRole, { utter });
+        // ⚠️ 상대에겐 «이번 조각»만 보낸다 — 합친 문장을 보내면 상대 화면에 앞부분이 두 번 뜬다.
+        publishSubtitleRef.current(incoming.translated, targetLang, myRole, { utter });
       }
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
