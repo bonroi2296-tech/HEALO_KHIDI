@@ -683,6 +683,49 @@ for (const file of EMAIL_TEMPLATE_FILES) {
   });
 }
 
+// ── 8-b) 화면 코드 premium 톤 재유입 가드 (2026-08-27 신설) ──────────────
+// 왜: 위 8) 은 «이메일만» 본다. 화면(app/·src/·components/)에 옛 premium 색·글꼴을 그대로 넣어도
+//     CI 가 통과하는 것을 2026-08-27 에 시험 파일로 «실제로 확인»했다(check:content·eslint 둘 다 초록).
+//     PO 2026-08-26: «왜 아직도 예전에 테스트 했던 톤이 남아있는거야? 뭘 만들라고 하면 자꾸 그걸로 만드네».
+//     문서만 고쳐선 안 막힌다 — 사고 이력이 전부 「옛 파일을 복사해 옴」이라 정확한 문자열이 그대로 들어온다:
+//     POSTMORTEMS #56(이메일 3종) · #873(설문지 금색 8곳) · app/patient/messages(cream/gold/ink+serif) ·
+//     환자 캘린더 ButtonGold(PR #1481). 위 5개 토큰이면 그 사고들이 전부 잡힌다.
+//     ※ 동작 확인 방법: 아무 page.jsx 에 color:"#c8a96a" 를 넣으면 빨간불.
+//     제외 = Primitives.jsx 자기 자신(철거 대기 중인 원본이라 자기 색을 갖고 있다).
+//     문서(DESIGN.md 등)는 애초에 대상이 아니다 — 금지 목록에는 그 색값이 «적혀 있어야» 하기 때문.
+// 🧊 기준선: 2026-08-27 실측으로 «이미 있던» 잔재. 여기 적힌 개수까지는 통과시키고 «늘어나면» 막는다.
+//    통째로 빨간불로 만들면 지금 돌아가는 다른 세션의 신청서까지 다 막힌다 — 그건 가드가 아니라 사고다.
+//    (XSS_INNERHTML_BASELINE 과 같은 방식.) 고칠 때마다 이 숫자를 내려라. 0 이 되면 그 줄을 지워라.
+const UI_PREMIUM_BASELINE = {
+  // 2026-08-27 현재 «비어 있다» = 화면 코드에 premium 잔재 0건.
+  // 새 잔재를 여기 추가하지 마라 — 이 표는 「고치는 중인 것」의 임시 통행증이지 면제권이 아니다.
+};
+{
+  const UI_PREMIUM_SKIP = /healo[\\/]Primitives\.jsx$/;
+  const UI_PREMIUM_IMPORT = /from\s+["'][^"']*healo\/Primitives["']/;
+  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
+    if (UI_PREMIUM_SKIP.test(file)) continue;
+    let lines;
+    try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
+    const rel = file.replace(/\\/g, "/");
+    const hits = [];
+    lines.forEach((line, i) => {
+      for (const t of EMAIL_PREMIUM_TOKENS) {
+        if (t.re.test(line)) hits.push({ i, name: t.name, line });
+      }
+      if (UI_PREMIUM_IMPORT.test(line)) {
+        errors.push(`[화면premium] ${rel}:${i + 1} — 폐기된 premium 부품(components/healo/Primitives.jsx — ButtonGold·Eyebrow 등)을 새로 가져다 쓴다. 2026-08-27 기준 사용처 0곳이라 곧 삭제될 파일이다(DESIGN.md §8 pending_removal). 기본 톤 부품으로 대체할 것.\n    ${line.trim().slice(0, 120)}`);
+      }
+    });
+    const allowed = UI_PREMIUM_BASELINE[rel] ?? 0;
+    if (hits.length > allowed) {
+      for (const h of hits.slice(allowed)) {
+        errors.push(`[화면premium] ${rel}:${h.i + 1} — 폐기된 premium 톤(${h.name})이 화면 코드에 들어왔다(이 파일 ${hits.length}건 / 기준선 ${allowed}건). 우리 디자인은 기본 톤(teal) «하나»뿐이고 premium 은 2026-06 에 완전히 폐기됐다(DESIGN.md §3·§8). 되살리지 말고 teal 기본 톤으로 만들 것.\n    ${h.line.trim().slice(0, 120)}`);
+      }
+    }
+  }
+}
+
 // ── 9) 글로벌 t() 미정의 키 가드 (2026-07-02 전수 감사) ──
 // 왜: t()는 미정의 키에 키 원문("chat.back")을 그대로 반환(truthy) → `t(...) || "폴백"` 의
 //     폴백이 절대 실행되지 않는 착시가 코드에 깔림. 미정의 키를 쓰는 컴포넌트가 노출되는 순간

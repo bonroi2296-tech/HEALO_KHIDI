@@ -227,6 +227,11 @@ removed:            # 삭제 완료 — 없는 파일이다. 되살리지도, �
   - "app/inquiry/_archive/InquiryClient.jsx"
   - "app/**/*Premium.jsx"                      # 홈·가입·문의 등 16개
   - "components/healo/Primitives.jsx"          # ButtonGold 등. 2026-08-27 삭제: 마지막 사용처 app/patient/calendar 가 기본 톤으로 바뀌어 0건이 됐다
+# 🤖 이 절은 «기계가 지킨다» (2026-08-27): check-content-consistency.mjs §8-b 가
+#    app/·src/·components/ 전체에서 Playfair·#c8a96a·#f5f0e8·#0a0a0a·#c7c2b8 와
+#    healo/Primitives 신규 import 를 잡는다(삭제된 뒤에도 되살아나지 못하게 남겨 둔다).
+#    이미 있던 잔재는 UI_PREMIUM_BASELINE 에 개수로 적혀 있고 «늘어나면» CI 가 막는다.
+#    고칠 때마다 그 숫자를 내리고, 0 이 되면 그 줄을 지워라.
 pending_removal:    # 아직 코드에 남음 — 철거 대상. 새로 쓰지 마라.
   - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰. app/layout.jsx 에서 전역 import 중
 ```
