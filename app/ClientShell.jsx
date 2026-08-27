@@ -13,7 +13,7 @@ const loadSupabase = () => import("@/lib/data/supabaseClient").then((m) => m.sup
 import { SITE_INFO } from "@/lib/siteSettings";
 import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
-import { useBackofficeLang, coordinatorL } from "@/lib/i18n/coordinator";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import { localeHref, splitLocale } from "@/lib/i18n/config";
 import {
   Header,
@@ -323,6 +323,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
 // 직원 화면(어드민·코디·병원) = 공개 사이트 언어가 아니라 «백오피스 언어 설정»을 따르는 곳.
 // 에이전시·의료기관·환자 포털은 공개 언어(healo_lang)를 그대로 쓰므로 여기 넣지 않는다.
+// 직원 화면 상단 띠의 「로그아웃」. t() 사전을 안 타는 이유는 PortalTopBar 주석에.
+// 코디 사전을 통째로 import 하면 공개 페이지 번들에도 800줄짜리 사전이 딸려 온다.
+const BO_LOGOUT = { ko: "로그아웃", en: "Log out", ru: "Выйти", kz: "Шығу", zh: "退出", ja: "ログアウト" };
+
 const isBackofficePath = (p) =>
   p.startsWith("/admin") || p.startsWith("/coordinator") || p.startsWith("/hospital");
 
@@ -541,7 +545,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
   // 직원 화면 언어는 그 사전과 별개라 t() 가 영어로 폴백해 「Log Out」이 남았다.
   // 코디 사전(CT)은 6개 언어를 코드에 들고 있어 사전 적재와 무관하게 바로 나온다.
   const isBackoffice = isBackofficePath(usePathname() || "/");
-  const logoutLabel = isBackoffice ? coordinatorL(langCode).logout : t("auth.logout", langCode);
+  const logoutLabel = isBackoffice ? (BO_LOGOUT[langCode] || BO_LOGOUT.en) : t("auth.logout", langCode);
   return (
     // ⚠️ 안전영역 여백(pt-safe-area)은 «바깥», 바 높이(h-14)는 «안쪽» 이어야 한다.
     //    한 칸에 같이 걸면 padding 이 height 안으로 먹혀(border-box) 바가 안 내려가고
