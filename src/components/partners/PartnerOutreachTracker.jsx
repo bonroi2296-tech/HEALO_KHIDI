@@ -584,7 +584,7 @@ function EditModal({ initial, accent, saving, t, onClose, onSave }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="font-bold text-gray-900">{isNew ? t.modalAdd : t.modalEdit}</h2>
+          <h2 className="text-[clamp(36px,4.5vw,64px)] font-bold text-gray-900">{isNew ? t.modalAdd : t.modalEdit}</h2>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
         </div>
         <div className="p-4 space-y-3">

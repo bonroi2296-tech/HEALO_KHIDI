@@ -216,7 +216,7 @@ function DermatologyContent() {
                     <item.icon size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-1">
+                    <h3 className="text-[clamp(24px,2.5vw,32px)] font-bold text-gray-900 mb-1">
                       {item.title}
                     </h3>
                     <p className="text-sm text-gray-600">{item.description}</p>

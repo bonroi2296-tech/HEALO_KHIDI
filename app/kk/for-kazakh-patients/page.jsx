@@ -181,7 +181,7 @@ export default function ForKazakhPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -249,7 +249,7 @@ export default function ForKazakhPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Виза</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Виза</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• C-3-3 медициналық виза (90 күнге дейін)</li>
                 <li>• Рәсімдеу мерзімі: 5–7 жұмыс күні</li>
@@ -261,7 +261,7 @@ export default function ForKazakhPatientsPage() {
               </Link>
             </div>
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Рейстер</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Рейстер</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Алматы — Сеул: тікелей рейс (6 сағат)</li>
                 <li>• Нұр-Сұлтан — Сеул: транзитпен (8–10 сағат)</li>
