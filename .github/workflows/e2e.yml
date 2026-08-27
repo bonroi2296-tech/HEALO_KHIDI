@@ -479,6 +479,18 @@ jobs:
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          # 2026-08-27: 이 네 역할이 여기에만 빠져 있어서 야간 검사가 매일 빨간불이었다.
+          # 준비 단계가 조용히 건너뛰고(코디·에이전시·의료기관·병원), 의뢰서 스펙만
+          # 폴백 UI 로그인으로 30초를 기다리다 실패 → 매일 [URGENT] 메일.
+          # 낮에 도는 Smoke·Full 잡에는 원래 다 있었다(122·238·298줄 근처).
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
+          E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
+          E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
 
       # 검사가 «통과했을 때만» 자기가 만든 시험 문의를 치운다 (PO 지시 2026-08-25:
       # 「테스트하고 이상 없으면 정리해, 너무 지저분해진다」).
