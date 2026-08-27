@@ -186,11 +186,11 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    # ⚠️ 2026-08-27 전수 확인. 여기 적혀 있던 것 중 «실재하는 파일»만 남겼다 —
-    #    Nav.jsx·Footer.jsx·src/legacy-pages/ 는 이미 삭제돼 없었다(죽은 참조 + 근거로 든
-    #    "ESLint 룰 있음"도 설정에서 사라진 지 오래였다). 없는 것을 금지해 봐야 아무도 안 막힌다.
-    - "components/healo/Primitives.jsx — Premium 부품(Eyebrow/Rule/Chip/ButtonGold/LinkArrow)"
-    - "app/styles/healo-tokens.css 토큰 (cream/gold/ink) — 철거 중, 새 코드에서 쓰지 마라"
+    # ⚠️ 2026-08-27: 여기 적혀 있던 파일은 이제 «하나도 없다» — premium 톤 철거가 끝나
+    #    healo-tokens.css·Primitives.jsx 를 삭제했고, Nav.jsx·Footer.jsx·src/legacy-pages/ 는
+    #    그 전에 이미 사라져 있었다. 없는 파일을 금지해 봐야 아무도 안 막히므로 목록을 비운다.
+    #    금지해야 할 것은 파일이 아니라 «값»이다 → 바로 위 premium_drift 를 봐라.
+    - "(없음 — premium_drift 의 색·글꼴·모서리 규칙으로 갈음한다)"
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -214,21 +214,20 @@ medical_ui:
     - "'완치 보장' '100% 성공' 등 의료 광고법 위반 카피"
 
 # ============================================================
-# 8. 철거 중 / 미사용 (신규 import 금지)
+# 8. 폐기 완료 — premium 톤 철거 끝 (2026-08-27)
 # ============================================================
-# ⚠️ 2026-08-27 현행화. 예전엔 여기 적힌 것이 전부 「아무도 안 쓰는 코드 보존물」이라고 돼
-#    있었는데 «사실이 아니었다» — healo-tokens.css 는 app/layout.jsx 를 통해 전 페이지에
-#    실리고 있었고, 그래서 새 화면을 만들 때마다 폐기된 톤이 본보기로 되살아났다
-#    (2026-08-26 PO 지적). 그래서 「보존」과 「아직 살아 있음」을 갈라 적는다.
-teardown_in_progress:                       # 아직 화면에 실린다. 마지막 사용처가 사라지면 파일째 삭제
-  - "app/styles/healo-tokens.css"           # 토큰 101 → 22개로 축소(2026-08-27). 남은 사용처는 아래 둘뿐
-  - "components/healo/Primitives.jsx"       # Eyebrow/Rule/Chip/ButtonGold/LinkArrow — 달력 화면 전용
-  last_users:
-    - "app/patient/calendar/CalendarClient.jsx"   # 이 화면을 기본 톤으로 고치면 위 둘을 같이 지운다
-# deprecated: (비었다) — 2026-08-27 전수 확인 결과 여기 적혀 있던 IntakePremium.jsx ·
-#   InquiryClient.jsx 는 **파일도 _archive 폴더도 이미 없었다.** 죽은 참조라 지웠다.
-# (components/healo/Nav.jsx·Footer.jsx 도 마찬가지로 이미 삭제된 상태였다)
-# (components/healo/Photos.js 는 톤이 아니라 병원 사진 데이터다 — 철거 대상 아님)
+# 예전엔 이 칸이 「아무도 안 쓰는 코드 보존물」 목록이었는데 «사실이 아니었다» —
+# healo-tokens.css 는 app/layout.jsx 를 통해 전 페이지에 실리고 있었고, 그래서 새 화면을
+# 만들 때마다 폐기된 톤이 본보기로 되살아났다 (2026-08-26 PO 지적). 2026-08-27 에 끝냈다:
+#   ✅ app/notifications/page.jsx · app/patient/calendar/CalendarClient.jsx → 기본 톤 전환
+#   ✅ app/styles/healo-tokens.css · components/healo/Primitives.jsx → 삭제
+#   ✅ app/layout.jsx 의 import 한 줄 → 제거
+#   ✅ 톤과 무관한 전역 규칙(포털 본문 여백 등) → src/index.css 로 이사
+#   ✅ 철거 계획서 → docs/archive/PREMIUM_TEARDOWN_PLAN.md
+# 즉 cream/ink/gold 토큰은 **코드에 한 글자도 없다.** 되살리지 마라 — 되살리려면 §1 의
+# 변경 권한부터 다시 받아야 한다. (Nav.jsx·Footer.jsx·IntakePremium.jsx·InquiryClient.jsx ·
+# src/legacy-pages/ 는 전수 확인 결과 그 전에 이미 삭제돼 있던 죽은 참조라 목록에서 뺐다.)
+# (components/healo/Photos.js 는 톤이 아니라 병원 사진 데이터다 — 철거 대상 아니었다)
 ```
 
 ---
