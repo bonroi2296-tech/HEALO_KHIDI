@@ -188,9 +188,9 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    # 아래 하나가 아직 코드에 남아 있는 premium 잔재다. 신규 사용 금지 + 철거 대상(§8).
-    - "app/styles/healo-tokens.css 토큰 (cream/gold/ink)"
-    # Nav.jsx·Footer.jsx·Primitives.jsx·src/legacy-pages/** 는 삭제 완료(2026-06~08) — 없는 파일이니 찾지 마라.
+    # 2026-08-27 로 premium 잔재는 «코드에서 0개»가 됐다. 아래는 전부 없는 파일이니 찾지 마라 —
+    # Nav.jsx · Footer.jsx · Primitives.jsx · healo-tokens.css · src/legacy-pages/** (2026-06~08 삭제).
+    # 전역 CSS 는 이제 src/index.css 하나뿐이다. 새 전역 스타일 파일을 또 만들지 마라.
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -227,13 +227,14 @@ removed:            # 삭제 완료 — 없는 파일이다. 되살리지도, �
   - "app/inquiry/_archive/InquiryClient.jsx"
   - "app/**/*Premium.jsx"                      # 홈·가입·문의 등 16개
   - "components/healo/Primitives.jsx"          # ButtonGold 등. 2026-08-27 삭제: 마지막 사용처 app/patient/calendar 가 기본 톤으로 바뀌어 0건이 됐다
+  - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰 + serif. 2026-08-27 삭제: 아직 쓰이던 전역 규칙 7개(본문 15px/1.7 · overflow-x:clip · tap-highlight · .healo-portal-offset · 폰 입력칸 16px · 인쇄 · safe-bottom)는 src/index.css 로 옮겼다
 # 🤖 이 절은 «기계가 지킨다» (2026-08-27): check-content-consistency.mjs §8-b 가
 #    app/·src/·components/ 전체에서 Playfair·#c8a96a·#f5f0e8·#0a0a0a·#c7c2b8 와
 #    healo/Primitives 신규 import 를 잡는다(삭제된 뒤에도 되살아나지 못하게 남겨 둔다).
 #    이미 있던 잔재는 UI_PREMIUM_BASELINE 에 개수로 적혀 있고 «늘어나면» CI 가 막는다.
 #    고칠 때마다 그 숫자를 내리고, 0 이 되면 그 줄을 지워라.
-pending_removal:    # 아직 코드에 남음 — 철거 대상. 새로 쓰지 마라.
-  - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰. app/layout.jsx 에서 전역 import 중
+# ✅ pending_removal 은 «비었다» — 코드에 남은 premium 잔재는 0개다(2026-08-27, healo-tokens.css 철거로 닫힘).
+#    칸을 지우지 마라: 다시 생기면 여기에 적고 위 기계 검사의 기준선도 같이 올려라.
 ```
 
 ---
