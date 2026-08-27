@@ -697,8 +697,8 @@ for (const file of EMAIL_TEMPLATE_FILES) {
 //    통째로 빨간불로 만들면 지금 돌아가는 다른 세션의 신청서까지 다 막힌다 — 그건 가드가 아니라 사고다.
 //    (XSS_INNERHTML_BASELINE 과 같은 방식.) 고칠 때마다 이 숫자를 내려라. 0 이 되면 그 줄을 지워라.
 const UI_PREMIUM_BASELINE = {
-  "app/admin/khidi/satisfaction/page.jsx": 1,   // KHIDI 만족도 화면 — 금색 잔재
-  "app/notifications/page.jsx": 2,              // 알림 화면 — 금색·크림 잔재 (2026-08-27 별도 세션이 정리 중)
+  // 2026-08-27 현재 «비어 있다» = 화면 코드에 premium 잔재 0건.
+  // 새 잔재를 여기 추가하지 마라 — 이 표는 「고치는 중인 것」의 임시 통행증이지 면제권이 아니다.
 };
 {
   const UI_PREMIUM_SKIP = /healo[\\/]Primitives\.jsx$/;

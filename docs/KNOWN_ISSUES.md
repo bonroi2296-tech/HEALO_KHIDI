@@ -1,18 +1,14 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
-## 🟡 화면 3곳에 폐기된 premium 금색·크림이 남아 있다 — **기계가 「더 늘지는 못하게」 막아 둠** (2026-08-27)
+## ✅ 화면 코드의 premium 잔재 0건 — **기계가 지킨다** (2026-08-27 닫힘)
 
-**한 줄**: 옛 톤 철거가 화면 단위로는 안 끝났다. 아래 3곳이 아직 금색(`#c8a96a`)·크림(`--cream-2`)을 쓴다.
+**한 줄**: 옛 톤이 화면에 다시 들어오면 이제 **CI 가 막는다.** 잔재도 0건이 됐다.
 
-| 화면 | 자리 | 지금 되나 |
-|---|---|---|
-| **KHIDI 만족도** `app/admin/khidi/satisfaction/page.jsx:141` | 금색 1곳 | **아무도 안 잡고 있다** — 시키면 바로 |
-| **알림** `app/notifications/page.jsx:277,300` | 금색·크림 2곳 | 별도 세션이 2026-08-27 오전 정리 중 |
-
-- **왜 이제야 보였나**: 옛 톤을 잡는 자동검사가 **이메일 템플릿과 PDF 만** 보고 있었다. 화면 코드(`app/`·`src/`·`components/`)는 **아무도 안 봤다** — 2026-08-27 에 옛 색을 넣은 시험 화면을 만들어 돌려 보니 `check:content` 도 eslint 도 **둘 다 초록으로 통과**시켰다.
-- **막은 방법**: `check-content-consistency.mjs` **§8-b** 신설 — 화면 코드 전체에서 premium 색 5종 + `healo/Primitives` 신규 import 를 잡는다. 위 3건은 `UI_PREMIUM_BASELINE` 에 **개수로 등록**해 통과시키고, **늘어나면 CI 가 막는다**(통째로 빨간불로 만들면 지금 돌아가는 다른 세션 신청서까지 다 막히므로).
-- **고칠 때**: 그 파일을 teal 기본 톤으로 바꾸고 `UI_PREMIUM_BASELINE` 의 숫자를 내려라. 0 이 되면 그 줄을 지운다.
-- **아직 남은 더 큰 것**: `app/styles/healo-tokens.css` 가 `app/layout.jsx:3` 에서 **전 페이지에 실린다**(cream/gold/ink 정의 원본). 별도 세션이 철거 중.
+- **왜 문제였나**: 옛 톤을 잡는 자동검사가 **이메일 템플릿과 PDF 만** 보고 있었다. 화면 코드(`app/`·`src/`·`components/`)는 **아무도 안 봤다** — 옛 색을 넣은 시험 화면을 만들어 돌려 보니 `check:content` 도 eslint 도 **둘 다 초록으로 통과**시켰다. PO 2026-08-26: *«뭘 만들라고 하면 자꾸 그걸로 만드네»* 의 기계 쪽 원인이 이것이다.
+- **막은 방법**: `check-content-consistency.mjs` **§8-b** — 화면 코드 전체에서 premium 색 5종(`Playfair`·`#c8a96a`·`#f5f0e8`·`#0a0a0a`·`#c7c2b8`)과 `healo/Primitives` 신규 import 를 잡는다.
+- **같은 날 닫힌 잔재 3곳**: 알림 화면 2곳·`Primitives.jsx` 삭제(#1483, 별도 세션) · **KHIDI 만족도 화면**의 자유 의견 세로줄 금색 → `border-teal-700`(#1487).
+- ⚠️ **`UI_PREMIUM_BASELINE` 은 지금 비어 있다.** 새 잔재를 거기 적어 통과시키지 마라 — 그 표는 「고치는 중인 것」의 임시 통행증이지 면제권이 아니다.
+- **아직 남은 것**: `app/styles/healo-tokens.css` 가 `app/layout.jsx:3` 에서 전 페이지에 실린다(cream/gold/ink 정의 원본). 별도 세션 몫.
 
 ---
 
