@@ -186,8 +186,9 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    - "src/legacy-pages/** 신규 import (ESLint 룰 있음)"
-    # ⚠️ 2026-08-27 현행화: Nav.jsx·Footer.jsx 는 이미 삭제돼 없다(죽은 참조였음).
+    # ⚠️ 2026-08-27 전수 확인. 여기 적혀 있던 것 중 «실재하는 파일»만 남겼다 —
+    #    Nav.jsx·Footer.jsx·src/legacy-pages/ 는 이미 삭제돼 없었다(죽은 참조 + 근거로 든
+    #    "ESLint 룰 있음"도 설정에서 사라진 지 오래였다). 없는 것을 금지해 봐야 아무도 안 막힌다.
     - "components/healo/Primitives.jsx — Premium 부품(Eyebrow/Rule/Chip/ButtonGold/LinkArrow)"
     - "app/styles/healo-tokens.css 토큰 (cream/gold/ink) — 철거 중, 새 코드에서 쓰지 마라"
 
@@ -224,10 +225,9 @@ teardown_in_progress:                       # 아직 화면에 실린다. 마지
   - "components/healo/Primitives.jsx"       # Eyebrow/Rule/Chip/ButtonGold/LinkArrow — 달력 화면 전용
   last_users:
     - "app/patient/calendar/CalendarClient.jsx"   # 이 화면을 기본 톤으로 고치면 위 둘을 같이 지운다
-deprecated:                                  # 실제로 아무 데서도 안 실린다
-  - "app/intake/_archive/IntakePremium.jsx"
-  - "app/inquiry/_archive/InquiryClient.jsx"   # 참고용으로만, import X
-# (components/healo/Nav.jsx·Footer.jsx 는 이미 삭제됐다 — 목록에 남아 있던 죽은 참조였음)
+# deprecated: (비었다) — 2026-08-27 전수 확인 결과 여기 적혀 있던 IntakePremium.jsx ·
+#   InquiryClient.jsx 는 **파일도 _archive 폴더도 이미 없었다.** 죽은 참조라 지웠다.
+# (components/healo/Nav.jsx·Footer.jsx 도 마찬가지로 이미 삭제된 상태였다)
 # (components/healo/Photos.js 는 톤이 아니라 병원 사진 데이터다 — 철거 대상 아님)
 ```
 
