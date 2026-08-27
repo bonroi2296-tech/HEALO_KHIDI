@@ -2618,6 +2618,36 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── §35-b) 정규식에 «제어문자»가 박히는 사고 차단 (2026-08-27 신설) ──────────────
+// 왜 (실측): 바로 아래 §36 의 비밀키 검출 정규식 4개가 \bsb_secret_… 를 의도했는데 백슬래시가
+//     풀려 «백스페이스 문자(0x08)»가 박혀 있었다 → /(0x08)sb_secret_…/ 가 되어 Supabase secret ·
+//     GitHub 토큰 · OpenAI 키 · 구글 API 키를 **절대 못 잡는** 상태였다. 이 저장소는 PUBLIC 이고
+//     2분마다 git add -A 자동저장이 돈다. 같은 사고가 src/lib/chat/topicGuards.ts 의 병원 랭킹
+//     가드에도 있어 영어 "best hospital" 질문에 하드가드가 안 켜졌다(한국어·러시아어는 정상).
+//     둘 다 **눈으로는 안 보인다** — grep 출력에도 안 나타나서 오래 살아남았다. cat -A 로만 보인다.
+// 왜 0x08 계열만 잡나: 정규식에서 흔한 \b(단어경계)·\0·\v·\f 가 풀릴 때 생기는 문자만 골랐다.
+//     정당한 쓰임이 있는 0x1b(ESC 색상코드)·0x1e(레코드 구분자)·0x03·0x1a(파일 매직바이트)는
+//     «일부러» 뺐다 — 넣으면 오탐 6건이 나고, 예외 목록이 늘면 결국 아무도 안 본다.
+//     신설 시점 저장소 기준 이 규칙의 오탐은 0건이다.
+{
+  const CTRL_CHARS = /[\x00\x08\x0B\x0C]/;
+  const codeFiles = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => /\.(?:js|mjs|cjs|jsx|ts|tsx|css|json)$/i.test(f));
+  for (const f of codeFiles) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
+    if (!CTRL_CHARS.test(src)) continue;
+    src.split(/\r?\n/).forEach((line, i) => {
+      const m = line.match(CTRL_CHARS);
+      if (!m) return;
+      const code = "0x" + m[0].charCodeAt(0).toString(16).padStart(2, "0");
+      errors.push(`[제어문자] ${f}:${i + 1} — 소스에 제어문자 ${code} 가 박혀 있다. 정규식의 백슬래시-b/0/v/f 가 «풀려서» 실제 제어문자가 된 경우가 대부분이고, 그러면 그 규칙은 조용히 아무것도 안 잡는다(2026-08-27 실측: 비밀키 검출 4종·병원 랭킹 가드가 이 이유로 죽어 있었다). 백슬래시를 두 개로 쓸 것.`);
+    });
+  }
+}
+
 // ── §36) 공개 저장소에 «진짜 열쇠»가 들어오지 않게 (2026-07-28) ────────────────
 // 왜: 이 저장소는 PUBLIC 이고 2분마다 도는 자동저장 훅이 `git add -A` 라, 열쇠 파일이 폴더에
 //     들어오면 다음 사이클에 그대로 공개된다(2026-07-27 Firebase 키가 실제로 그럴 뻔했다).
@@ -2628,10 +2658,10 @@ const TEAL600_BASELINE = {
   const SECRET_PATTERNS = [
     [/-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, "개인키(PEM)"],
     [/"private_key"\s*:\s*"-----BEGIN/, "구글 서비스계정 JSON"],
-    [/sb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
-    [/gh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
-    [/sk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
-    [/AIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
+    [/\bsb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
+    [/\bgh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
+    [/\bsk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
+    [/\bAIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
   ];
   // 저장소가 추적하는 «코드/설정» 파일만 본다(문서·바이너리는 제외 — 오탐만 늘린다).
   const files = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
@@ -2643,6 +2673,17 @@ const TEAL600_BASELINE = {
     try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
     if (src.length > 2_000_000) continue;
     for (const [re, label] of SECRET_PATTERNS) {
+      // Firebase 클라이언트 설정 파일의 «구글 API 키»만 면제한다 (2026-08-27).
+      // 왜: google-services.json / GoogleService-Info.plist 안의 API_KEY 는 설계상 앱 번들에
+      //     담겨 배포되는 «식별자»다 — 구글 공식 안내도 이 파일을 앱에 포함하라고 한다.
+      //     비밀이 아니므로 여기서 잡으면 영원히 빨간불이고, 그러면 사람이 검사를 꺼 버린다.
+      // ⚠️ 면제는 «이 패턴 하나»로 좁힌다. 같은 파일에 PEM 개인키·구글 서비스계정 JSON·
+      //     GitHub 토큰·OpenAI 키·Supabase secret 이 들어오면 그대로 잡힌다(실측 확인).
+      //     파일을 통째로 빼면 그 구멍으로 진짜 비밀이 들어온다.
+      // 🔴 대신 «콘솔»에서 지켜야 한다: 이 키는 노출돼도 되지만 제한이 없으면 남이 그 키로
+      //     다른 구글 API 요금을 물릴 수 있다 → 2026-08-27 에 두 키 모두 앱 제한을 걸었다
+      //     (Android: 패키지+SHA-1 3개 / iOS: 번들ID). 메모리 google-api-key-app-restrictions.
+      if (label === "구글 API 키" && (f.endsWith("google-services.json") || f.endsWith("GoogleService-Info.plist"))) continue;
       if (re.test(src)) {
         errors.push(
           `[열쇠유출] ${f} 에 ${label} 로 보이는 값이 있다 — 이 저장소는 공개다. ` +
