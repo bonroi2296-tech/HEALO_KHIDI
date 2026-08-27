@@ -130,7 +130,9 @@ export default function VisaApplicationsClient() {
           onSubmit={handleCreate}
           className="border border-gray-200 rounded-lg p-6 mb-8 bg-white shadow-sm"
         >
-          <h2 className="font-medium mb-4">{t("visaApps.newApplication", lang)}</h2>
+          {/* 크기를 클래스로 못 박는다 — 예전엔 폐기된 premium 톤 파일의 전역 h2 규칙
+              (clamp 36~64px 세리프)이 몰래 먹어서 카드 안 소제목이 거대하게 그려졌다. */}
+          <h2 className="text-lg font-bold text-gray-900 mb-4">{t("visaApps.newApplication", lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-sm text-gray-700">{t("visaApps.visaType", lang)}</span>

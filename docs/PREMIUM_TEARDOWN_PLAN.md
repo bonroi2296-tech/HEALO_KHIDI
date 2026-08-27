@@ -1,5 +1,34 @@
 # 프리미엄 디자인 폐기 — 범위·단계 계획 (2026-06-23)
 
+> ## 📍 2026-08-27 현재 — 남은 건 화면 «한 개»뿐
+>
+> | 단계 | 상태 |
+> |---|---|
+> | 1~4 (죽은 코드·이중 헤더·토글 고정) | ✅ 끝 |
+> | 5 (고아 컴포넌트·디자인시스템 제거) | 🔄 **거의 끝** — 아래 셋만 남음 |
+>
+> **왜 아직 안 끝났나:** 이 계획서가 「폐기」를 선언한 뒤에도 `app/styles/healo-tokens.css` 가
+> `app/layout.jsx` 에서 전 페이지에 실리고 있었다. 그래서 새 화면을 만들 때마다 그 파일이
+> 본보기가 돼 폐기된 톤이 되살아났다 (2026-08-26 PO 지적:
+> *«왜 아직도 예전에 테스트 했던 톤이 남아있는거야»*).
+>
+> **2026-08-27 에 한 것**
+> - `app/notifications/page.jsx` → 기본 톤(teal)으로 전환 완료. `var(--)` 참조 0건.
+> - `healo-tokens.css` 토큰 101 → 22개. 톤과 무관한 규칙(포털 본문 여백 `.healo-portal-offset` ·
+>   `.healo-safe-bottom` · 가로 스크롤 방지 · tap highlight · 입력칸 16px · 프린트)은
+>   **`src/index.css` 로 이사**했다. 파일 첫 줄의 "Direction: D. Premium" 헤더도 제거.
+> - 곁가지 1건: `app/patient/visa/applications` 의 카드 소제목이 전역 h2 규칙(clamp 36~64px
+>   세리프)에 얹혀 거대하게 그려지고 있었다 → 크기를 클래스로 못 박아 정상화.
+>
+> **남은 것 (다른 세션이 진행 중 — 중복 작업 금지)**
+> 1. `app/patient/calendar/CalendarClient.jsx` 를 기본 톤으로 (토큰 참조 48곳)
+> 2. 그게 끝나면 `app/styles/healo-tokens.css` + `app/layout.jsx` 의 import 한 줄 삭제
+> 3. 같이 `components/healo/Primitives.jsx` 삭제 (달력이 유일한 사용처)
+>
+> **이 세 개가 끝나면 이 문서를 `docs/archive/` 로 옮겨라.** 그게 철거 완료 신호다.
+> (다른 문서의 premium 언급은 «이력»이라 남긴다 — POSTMORTEMS·KNOWN_ISSUES 등은 건드리지 마라.)
+
+
 > PO 결정: 프리미엄(A/B 실험용) 안 씀 → 단일 디자인(legacy)으로 통일. 이 문서는 폐기 범위·영향·단계안.
 > 근거: `src/lib/designMode.js`(토글), `components/healo/`(프리미엄 디자인시스템), `PageShell`(프리미엄 Nav 래퍼).
 

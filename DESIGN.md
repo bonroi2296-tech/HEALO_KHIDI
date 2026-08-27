@@ -187,8 +187,9 @@ forbidden:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
     - "src/legacy-pages/** 신규 import (ESLint 룰 있음)"
-    - "components/healo/Nav.jsx, Footer.jsx, Primitives.jsx — Premium 컴포넌트"
-    - "app/styles/healo-tokens.css 토큰 (cream/gold/ink)"
+    # ⚠️ 2026-08-27 현행화: Nav.jsx·Footer.jsx 는 이미 삭제돼 없다(죽은 참조였음).
+    - "components/healo/Primitives.jsx — Premium 부품(Eyebrow/Rule/Chip/ButtonGold/LinkArrow)"
+    - "app/styles/healo-tokens.css 토큰 (cream/gold/ink) — 철거 중, 새 코드에서 쓰지 마라"
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -212,15 +213,22 @@ medical_ui:
     - "'완치 보장' '100% 성공' 등 의료 광고법 위반 카피"
 
 # ============================================================
-# 8. 미사용 (코드 보존, 신규 import 금지)
+# 8. 철거 중 / 미사용 (신규 import 금지)
 # ============================================================
-deprecated:
-  - "components/healo/Nav.jsx"          # Premium Nav
-  - "components/healo/Footer.jsx"       # Premium Footer
-  - "components/healo/Primitives.jsx"   # Eyebrow / Rule / ButtonGold
-  - "app/styles/healo-tokens.css"       # cream/ink/gold 토큰 전체
+# ⚠️ 2026-08-27 현행화. 예전엔 여기 적힌 것이 전부 「아무도 안 쓰는 코드 보존물」이라고 돼
+#    있었는데 «사실이 아니었다» — healo-tokens.css 는 app/layout.jsx 를 통해 전 페이지에
+#    실리고 있었고, 그래서 새 화면을 만들 때마다 폐기된 톤이 본보기로 되살아났다
+#    (2026-08-26 PO 지적). 그래서 「보존」과 「아직 살아 있음」을 갈라 적는다.
+teardown_in_progress:                       # 아직 화면에 실린다. 마지막 사용처가 사라지면 파일째 삭제
+  - "app/styles/healo-tokens.css"           # 토큰 101 → 22개로 축소(2026-08-27). 남은 사용처는 아래 둘뿐
+  - "components/healo/Primitives.jsx"       # Eyebrow/Rule/Chip/ButtonGold/LinkArrow — 달력 화면 전용
+  last_users:
+    - "app/patient/calendar/CalendarClient.jsx"   # 이 화면을 기본 톤으로 고치면 위 둘을 같이 지운다
+deprecated:                                  # 실제로 아무 데서도 안 실린다
   - "app/intake/_archive/IntakePremium.jsx"
   - "app/inquiry/_archive/InquiryClient.jsx"   # 참고용으로만, import X
+# (components/healo/Nav.jsx·Footer.jsx 는 이미 삭제됐다 — 목록에 남아 있던 죽은 참조였음)
+# (components/healo/Photos.js 는 톤이 아니라 병원 사진 데이터다 — 철거 대상 아님)
 ```
 
 ---
