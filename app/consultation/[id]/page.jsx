@@ -976,6 +976,11 @@ export default function ConsultationRoomPage() {
   const [agentPresent, setAgentPresent] = useState(false);
   // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
   const [myIdentity, setMyIdentity] = useState(null);
+  // 「통역을 켜고 싶은데 아직 방에 안 붙었다」를 기억해 두는 자리. 화면을 열자마자 통역을
+  // 누르면 identity 가 아직 없어 서버가 400 으로 거부하고, 토글이 되돌아가 사용자에겐
+  // «눌렀는데 안 켜짐»이 된다(2026-08-28 실측: 12초 뒤엔 실패, 30초 뒤엔 성공).
+  // 그래서 거절하지 않고 기억해 두었다가 identity 가 채워지면 그때 보낸다.
+  const pendingVoiceRef = useRef(false);
   // 내 표시 이름 (MicStateBridge 가 채움) — 서버 STT 에 넘겨 회의록에 화자로 남긴다.
   // ref 로도 들고 있는 이유: STT 녹음 사이클은 effect 안에서 돌아 최신 state 를 못 읽는다.
   const myNameRef = useRef("");
@@ -2394,6 +2399,13 @@ export default function ConsultationRoomPage() {
   // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
   const requestInterpreter = useCallback(
     async (on) => {
+      // 아직 방에 안 붙었으면 보내지 말고 미뤄 둔다. 토글은 켜진 채로 두어 «눌린 것»이
+      // 화면에 남고, 아래 effect 가 identity 가 오는 즉시 대신 보낸다.
+      if (on && !myIdentity) {
+        pendingVoiceRef.current = true;
+        return;
+      }
+      if (!on) pendingVoiceRef.current = false;
       try {
         const res = await fetch(
           `/api/khidi/consultation/${consultationId}/interpreter`,
@@ -2427,6 +2439,26 @@ export default function ConsultationRoomPage() {
     },
     [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
   );
+
+  // 방에 붙는 순간, 미뤄 둔 «통역 켜기»를 대신 보낸다.
+  useEffect(() => {
+    if (!myIdentity || !pendingVoiceRef.current) return;
+    pendingVoiceRef.current = false;
+    requestInterpreter(true);
+  }, [myIdentity, requestInterpreter]);
+
+  // 방에 영영 못 붙으면(회선 문제 등) 켜진 척 두지 않는다. 통역 이전에 통화가 안 되는
+  // 상태이므로, 20초 안에 identity 가 안 오면 토글을 되돌리고 안내한다.
+  useEffect(() => {
+    if (!voiceOn || !pendingVoiceRef.current) return;
+    const t = setTimeout(() => {
+      if (!pendingVoiceRef.current) return;
+      pendingVoiceRef.current = false;
+      setVoiceOn(false);
+      toast.error(c.voiceUnavailableMsg);
+    }, 20000);
+    return () => clearTimeout(t);
+  }, [voiceOn, c]);
 
   // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
   const reportClientEventRef = useRef(null);
