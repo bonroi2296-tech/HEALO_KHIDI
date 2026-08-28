@@ -1307,6 +1307,21 @@ export default function ConsultationRoomPage() {
   //      스스로를 재강화한다(틀린 단어가 계속 되돌아온다).
   // → 중복은 안 넣고, 3분 지난 줄은 버린다. (상한 8은 그대로)
   const CONTEXT_TTL_MS = 180000;
+  /**
+   * 이어 붙인 줄을 문맥에 넣을 때, 방금 넣었던 «붙이기 전 앞줄»을 먼저 뺀다.
+   *
+   * 왜 (2026-08-28): 이어 붙이기는 조각이 올 때마다 «누적된 전체 문장»을 만든다.
+   * 그걸 그대로 쌓으면 「카자흐스탄에서」 → 「카자흐스탄에서 왔습니다」 가 둘 다 남아,
+   * 8줄짜리 문맥 버퍼가 한 문장의 중간 상태로 가득 찬다(다음 번역이 참고할 «앞 대화»가 사라진다).
+   * 마지막 항목이 정확히 그 앞줄일 때만 뺀다 — 그 사이 다른 사람 말이 들어왔으면 안 건드린다.
+   */
+  const replaceConvoContext = useCallback((speaker, lang, prevText, nextText) => {
+    const buf = convoContextRef.current;
+    const last = buf[buf.length - 1];
+    if (last && prevText && last.text === prevText) buf.pop();
+    pushConvoContextRef.current(speaker, lang, nextText);
+  }, []);
+
   const pushConvoContext = useCallback((speaker, lang, text) => {
     if (!text) return;
     const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
@@ -1320,7 +1335,15 @@ export default function ConsultationRoomPage() {
     if (buf.some((b) => b.norm === norm)) return; // 같은 발화가 다른 경로로 또 들어옴
     buf.push({ speaker, lang, text, norm, at: now });
     if (buf.length > 8) buf.splice(0, buf.length - 8);
+    // 시험 도구가 «문맥이 어떻게 쌓였나»를 볼 수 있게 개발 환경에서만 창에 걸어 둔다.
+    if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+      window.__convoContext = buf;
+    }
   }, []);
+  const pushConvoContextRef = useRef(pushConvoContext);
+  useEffect(() => {
+    pushConvoContextRef.current = pushConvoContext;
+  }, [pushConvoContext]);
 
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
@@ -1375,8 +1398,12 @@ export default function ConsultationRoomPage() {
         at: merged ? lastShownRef.current.at : at,
       };
 
-      // 다음 번역의 문맥으로 축적
-      pushConvoContext("self", srcLangOverride || myLang, original);
+      // 다음 번역의 문맥으로 축적 — 붙였으면 앞줄을 갈아끼운다(중간 상태가 겹쳐 쌓이지 않게)
+      if (merged) {
+        replaceConvoContext("self", srcLangOverride || myLang, incoming.source, original);
+      } else {
+        pushConvoContext("self", srcLangOverride || myLang, original);
+      }
 
       // Show subtitle
       setCurrentSubtitle({ original, translated });
@@ -1403,7 +1430,7 @@ export default function ConsultationRoomPage() {
       // Clear interim
       setInterimText("");
     },
-    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext]
+    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext, replaceConvoContext]
   );
 
   // ── Translate (큐 순차처리) ──
@@ -1693,7 +1720,11 @@ export default function ConsultationRoomPage() {
       // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
       // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
       showRemoteSubtitle({ key: speakerKey, text: shown, lang, name });
-      pushConvoContext("other", lang, shown);
+      if (merged) {
+        replaceConvoContext("other", lang, prev.source, shown);
+      } else {
+        pushConvoContext("other", lang, shown);
+      }
       setTranslations((prev2) => {
         const entry = {
           id: Date.now(),
@@ -1712,7 +1743,7 @@ export default function ConsultationRoomPage() {
           : [...prev2.slice(-1999), entry];
       });
     },
-    [pushConvoContext, showRemoteSubtitle, myLang, targetLang, flushBotLine]
+    [pushConvoContext, replaceConvoContext, showRemoteSubtitle, myLang, targetLang, flushBotLine]
   );
 
   // 통화가 끝나거나 화면을 벗어날 때 «아직 안 보낸 마지막 줄»을 남긴다.

@@ -135,6 +135,17 @@ for (const rx of [/^Chat$|^채팅$/i, /^Translation$|^번역$/i]) {
     }
   }
 }
+// 문맥 버퍼가 «붙이는 중간 상태»로 가득 차지 않았는지 본다(2026-08-28).
+const ctx = await b.page.evaluate(() => (window.__convoContext || []).map((x) => x.text));
+if (ctx.length) {
+  console.log(`
+문맥 버퍼 ${ctx.length}줄`);
+  ctx.forEach((t, i) => console.log(`  ${i + 1}. ${String(t).slice(0, 80)}`));
+  const dup = ctx.filter((t, i) => ctx.some((o, j) => j !== i && String(o).startsWith(String(t))));
+  if (dup.length) console.log(`  ⚠️ 다른 줄에 통째로 들어간 줄 ${dup.length}개 (중간 상태가 겹쳐 쌓임)`);
+  else console.log("  ✅ 겹쳐 쌓인 줄 없음");
+}
+
 const logLines = await b.page.evaluate(() => {
   const boxes = Array.from(document.querySelectorAll(".border-gray-700.rounded-lg"));
   return boxes.map((el) => (el.textContent || "").trim()).filter(Boolean);
