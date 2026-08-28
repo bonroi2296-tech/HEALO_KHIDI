@@ -576,6 +576,31 @@ function parseStructuredReply(
  * 비스트리밍 AI 응답 생성 (thread 기반 채팅용)
  * V1.1: 모델에 JSON 출력 강제 → used_pattern_ids 선언 기반 판정
  */
+/**
+ * 「모델을 거치지 않고 코드가 가로챈」 턴의 이름들.
+ *
+ * 왜 목록으로 두나 (2026-08-28): 이 세 갈래는 환자 메시지를 «모델에 보내지도 않고» 정해진 문구로
+ * 답한다. 그런데 여태 그 사실이 **어디에도 안 남았다** — 답변 기록(chat_messages.metadata)에도,
+ * 판사 채점에도 없어서, 잡담 거르개가 환자의 「그래」(연결 동의)를 4번 씹는 동안 아무도 몰랐다.
+ * PO 가 대화 로그를 눈으로 보고서야 드러났다.
+ *
+ * 가로채기 자체는 필요하다(인사에 병원을 추천할 순 없다). 문제는 «몇 번 가로챘는지 셀 수 없던 것»이다.
+ * 정상일 때와 오작동할 때가 똑같이 조용하면 오작동은 영영 안 보인다.
+ * → 두 저장 경로(message·stream)가 이 값을 metadata.bypassed 로 남긴다.
+ */
+export const MODEL_BYPASS_SCORINGS = [
+  "small_talk_bypass", // 짧은 인사·잡담으로 판정 (오작동 시: 환자의 짧은 «대답»을 삼킨다)
+  "topic_correction_reset", // 화제 정정으로 판정
+  "master_key_self_analysis", // PO 디버그용 마스터키
+] as const;
+
+/** 이 턴이 모델을 안 거쳤으면 그 이름을, 거쳤으면 null. 답변 기록에 남길 값. */
+export function modelBypassKind(ragScoring: unknown): string | null {
+  return typeof ragScoring === "string" && (MODEL_BYPASS_SCORINGS as readonly string[]).includes(ragScoring)
+    ? ragScoring
+    : null;
+}
+
 // 짧은 인사·잡담 패턴 — RAG/DB 검색 없이 자연스럽게 응답
 const SMALL_TALK_PATTERNS = [
   /^(안녕|하이|hi|hello|hey|здравств|привет|сәлем|你好|嗨|こんにちは|やあ|halo|hola)[\s!?.,~]*$/i,
