@@ -4311,23 +4311,35 @@ export default function ConsultationRoomPage() {
                               </div>
                             )}
                             <div className="border border-gray-700 rounded-lg p-2.5 hover:border-gray-600 transition">
-                              <div className="mb-2">
-                                <p className="text-xs text-gray-500 mb-0.5">
-                                  {LANG_LABELS[trans.source_language] || trans.source_language}
-                                </p>
-                                <p className="text-sm text-gray-200">{trans.original_text}</p>
-                              </div>
-                              {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
-                                  (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
-                                  같은 언어끼리 회의는 흔하므로 그때는 번역 줄을 숨긴다. */}
+                              {/* 원문이 있을 때만 원문 칸을 그린다. 실시간 통역(live_translate)
+                                  경로는 «번역문만» 주므로, 원문 칸을 늘 그리면 빈 줄이 남는다
+                                  (2026-08-28: 그 상태에서 아래 번역 칸까지 안 그려져 상자가 통째로
+                                  비었다 — 회의록에 내용이 하나도 안 보였다). */}
                               {trans.original_text && (
-                                <div className="pt-2 border-t border-gray-700">
-                                  <p className="text-xs text-teal-700 mb-0.5">
-                                    {LANG_LABELS[trans.target_language] || trans.target_language}
+                                <div className="mb-2">
+                                  <p className="text-xs text-gray-500 mb-0.5">
+                                    {LANG_LABELS[trans.source_language] || trans.source_language}
                                   </p>
-                                  <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                                  <p className="text-sm text-gray-200">{trans.original_text}</p>
                                 </div>
                               )}
+                              {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
+                                  (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
+                                  ⚠️ 그 판정은 «원문 유무»가 아니라 «두 글이 같은가»로 해야 한다 —
+                                  원문으로 판정하면 통역 경로가 통째로 안 그려진다. */}
+                              {trans.translated_text &&
+                                trans.translated_text !== trans.original_text && (
+                                  <div
+                                    className={
+                                      trans.original_text ? "pt-2 border-t border-gray-700" : ""
+                                    }
+                                  >
+                                    <p className="text-xs text-teal-700 mb-0.5">
+                                      {LANG_LABELS[trans.target_language] || trans.target_language}
+                                    </p>
+                                    <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>

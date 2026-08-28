@@ -122,6 +122,30 @@ await b.page.screenshot({ path: (process.env.SHOT || "x.png").replace(".png", "-
 console.log("  자막 확정 타이머(6초)가 돌기를 기다린다...");
 await b.page.waitForTimeout(12000);
 
+// 회의록 칸(Translation)을 열어 «목록»이 어떻게 그려지는지 본다. 통역봇 줄은 원문이 없어서
+// 예전엔 여기가 빈 상자로 남았다(2026-08-28).
+// 옆 칸은 기본으로 닫혀 있다 — Chat 을 눌러 열고, 그 안의 Translation 탭으로 옮긴다.
+for (const rx of [/^Chat$|^채팅$/i, /^Translation$|^번역$/i]) {
+  for (const btn of await b.page.getByRole("button").all()) {
+    const t = ((await btn.textContent()) || "").trim();
+    if (rx.test(t)) {
+      await btn.click().catch(() => {});
+      await b.page.waitForTimeout(2000);
+      break;
+    }
+  }
+}
+const logLines = await b.page.evaluate(() => {
+  const boxes = Array.from(document.querySelectorAll(".border-gray-700.rounded-lg"));
+  return boxes.map((el) => (el.textContent || "").trim()).filter(Boolean);
+});
+console.log(`
+회의록 목록 ${logLines.length}줄`);
+logLines.forEach((t, i) => console.log(`  ${i + 1}. ${t.slice(0, 110)}`));
+const empty = logLines.filter((t) => t.replace(/한국어|русский|Русский|English/gi, "").trim().length < 3);
+if (empty.length) console.log(`  ⚠️ 내용 없이 빈 상자 ${empty.length}개`);
+await b.page.screenshot({ path: (process.env.SHOT || "x.png").replace(".png", "-log.png") });
+
 const shown = await b.page.evaluate(() =>
   Array.from(document.querySelectorAll("[class*='backdrop-blur']"))
     .map((e) => (e.textContent || "").trim())
