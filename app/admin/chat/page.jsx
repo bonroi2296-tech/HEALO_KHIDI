@@ -8,7 +8,7 @@
  * ⚠️ AI는 자료를 판독하지 않음 — 의료진/코디가 직접 검토 후 회신하는 흐름.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   MessageSquare, Paperclip, FileText, Image as ImageIcon,
   Clock, RefreshCw, User, Bot, Headset, Inbox, CheckCircle2, ArrowRight,
@@ -17,7 +17,8 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { guessPatientTimezone, patientLocalTime } from "@/lib/chat/patientLocalTime";
-import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
+import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -233,27 +234,17 @@ export default function AdminChatPage() {
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
 
-  // 딥링크: 품질 경고 알림 등에서 ?thread=<id> 로 들어오면 해당 대화를 바로 연다.
-  // (useSearchParams 대신 window 사용 — Suspense 경계 불필요, 최초 1회만)
-  const deepLinked = useRef(false);
-  useEffect(() => {
-    if (deepLinked.current || loading) return;
-    deepLinked.current = true;
-    const id = new URLSearchParams(window.location.search).get("thread");
-    if (!id) return;
-    // 목록(최근 100개)에 없어도 id 만으로 메시지는 열린다.
-    openThread(threads.find((t) => t.id === id) || { id });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, threads]);
+  // 딥링크: 알림(상담 연결 요청·품질 경고)에서 ?thread=<id> 로 들어오면 그 대화를 바로 연다.
+  // 목록(최근 100개)에 없어도 id 만으로 메시지는 열린다.
+  useDeepLinkParam("thread", (id) => openThread(threads.find((t) => t.id === id) || { id }), {
+    ready: !loading,
+  });
 
   const openThread = async (thread) => {
     setSelected(thread);
     setMessages([]);
     setLoadingMsgs(true);
-    // 폰: 목록을 한참 내려서 눌렀어도 상세는 맨 위에 그려진다 → 화면을 올려줘야 보인다.
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      window.scrollTo({ top: 0, behavior: scrollBehavior() });
-    }
+    scrollToTopOnNarrow(); // 폰: 목록을 한참 내려서 눌렀어도 상세는 맨 위에 그려진다
     try {
       const token = await getToken();
       const res = await fetch(`/api/admin/chat/threads/${thread.id}/messages`, {
@@ -502,9 +493,9 @@ export default function AdminChatPage() {
         </div>
 
         {/* 대화 상세 */}
-        <div className={`lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh] ${
-          selected ? "" : "hidden lg:block"
-        }`}>
+        {/* 상세 칸은 폰에서도 숨기지 않는다 — 아무것도 안 골랐을 땐 여기에 「검토 대기 큐」가
+            그려지고, 그건 폰으로 분류하는 사람이 제일 먼저 봐야 할 것이다(2026-08-28 리뷰 지적). */}
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh]">
           {!selected ? (
             // 빈 화면 → 검토 대기 큐로 공백 활용
             <div className="p-5 h-full">

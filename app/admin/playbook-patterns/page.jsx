@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
-import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
 
 const STATUS_OPTS = ["all", "draft", "approved", "rejected"];
 const SCOPE_LABELS = { treatment: "Treatment", country: "Country", general: "General" };
@@ -23,9 +23,7 @@ export default function PlaybookPatternsPage() {
   // 폰(1단 배치): 상세가 목록 «아래»에 그려져 눌러도 화면이 안 바뀌던 것 — 위로 올려준다.
   const selectPattern = (p) => {
     setSelected(p);
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      window.scrollTo({ top: 0, behavior: scrollBehavior() });
-    }
+    scrollToTopOnNarrow();
   };
   const [mergeSelection, setMergeSelection] = useState(new Set());
   const [merging, setMerging] = useState(false);

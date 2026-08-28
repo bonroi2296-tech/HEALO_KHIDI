@@ -10,7 +10,6 @@
  */
 
 export interface NotificationLinkSource {
-  type?: string | null;
   link?: string | null;
   payload?: Record<string, unknown> | null;
 }

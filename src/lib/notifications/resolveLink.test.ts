@@ -5,7 +5,6 @@ describe("resolveNotificationLink", () => {
   it("옛 chat_handoff 알림(목록 주소 + payload.threadId)을 그 대화로 보낸다", () => {
     expect(
       resolveNotificationLink({
-        type: "chat_handoff",
         link: "/admin/chat",
         payload: { threadId: "ab869ad9-1111-2222-3333-444455556666" },
       })
@@ -37,7 +36,7 @@ describe("resolveNotificationLink", () => {
 
   it("옛 새문의 알림(목록 주소 + payload.inquiryId)을 그 문의로 보낸다", () => {
     expect(
-      resolveNotificationLink({ type: "new_inquiry", link: "/admin/inquiries", payload: { inquiryId: 412 } })
+      resolveNotificationLink({ link: "/admin/inquiries", payload: { inquiryId: 412 } })
     ).toBe("/admin/inquiries?inquiry=412");
   });
 
@@ -54,13 +53,13 @@ describe("resolveNotificationLink", () => {
 
   it("코디 받은함은 상세가 /코디받은함/<번호> 라우트라 «경로»로 붙인다", () => {
     expect(
-      resolveNotificationLink({ type: "new_inquiry", link: "/coordinator/inbox", payload: { inquiryId: 412 } })
+      resolveNotificationLink({ link: "/coordinator/inbox", payload: { inquiryId: 412 } })
     ).toBe("/coordinator/inbox/412");
   });
 
   it("코디 메시지함도 ?thread= 를 읽는다", () => {
     expect(
-      resolveNotificationLink({ type: "hospital_message", link: "/coordinator/messages", payload: { threadId: "t9" } })
+      resolveNotificationLink({ link: "/coordinator/messages", payload: { threadId: "t9" } })
     ).toBe("/coordinator/messages?thread=t9");
   });
 

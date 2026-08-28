@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
-import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -103,10 +103,7 @@ export default function AgentAnalysisPage() {
   const selectThread = (thread) => {
     setSelected(thread);
     setAnalysis("");
-    // 폰(1단 배치): 상세가 목록 «아래»에 그려져 눌러도 화면이 안 바뀌던 것 — 위로 올려준다.
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      window.scrollTo({ top: 0, behavior: scrollBehavior() });
-    }
+    scrollToTopOnNarrow(); // 폰(1단 배치): 상세가 목록 «아래»라 눌러도 화면이 안 바뀌던 것
   };
 
   const copyAnalysis = async () => {

@@ -13,6 +13,7 @@ import { MessageSquare } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
 
 // 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료. 라벨은 컴포넌트에서 L로 해석.
 const STATUS_VALUES = ["open", "waiting_coordinator", "waiting_patient", "resolved"];
@@ -114,16 +115,14 @@ export default function CoordinatorMessagesClient() {
 
   // 딥링크: 알림(AI 부정평가·병원 답신)이 `?thread=<id>` 로 보낸다. 예전엔 이 화면이 그 값을
   // «안 읽어서» 목록만 열렸다 — 주소는 맞는데 아무 데도 안 가는 죽은 링크였다(2026-08-28).
-  // 목록 기본 거름망이 'open' 이라 다른 상태의 스레드면 안 보인다 → 'all' 로 풀고 연다.
-  const deepLinked = useRef(false);
-  useEffect(() => {
-    if (deepLinked.current) return;
-    deepLinked.current = true;
-    const id = new URLSearchParams(window.location.search).get("thread");
-    if (!id) return;
-    setStatusFilter("all");
+  // ⚠️ 목록 기본 거름망이 'open' 이라 다른 상태의 스레드는 목록에 없다. 거름망을 'all' 로
+  //    바꾸는 것만으로는 부족하다 — 첫 로딩이 끝나기 «전»이라 재조회 효과가 건너뛰어져서
+  //    목록이 그대로 'open' 에 머물렀다(리뷰가 잡음). 그래서 여기서 직접 다시 불러온다.
+  useDeepLinkParam("thread", (id) => {
     setSelectedId(id);
-  }, []);
+    setStatusFilter("all");
+    loadThreads("all");
+  });
 
   // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
   async function getAccessToken() {
@@ -157,7 +156,7 @@ export default function CoordinatorMessagesClient() {
       const token = await getAccessToken();
       if (!token || cancelled) return;
       try {
-        const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+        const res = await fetch(`/api/portal/threads/${encodeURIComponent(selectedId)}/messages`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
@@ -203,7 +202,7 @@ export default function CoordinatorMessagesClient() {
       const token = await getAccessToken();
       if (!token || cancelled) return;
       try {
-        const res = await fetch(`/api/portal/reply-suggestions?threadId=${selectedId}`, {
+        const res = await fetch(`/api/portal/reply-suggestions?threadId=${encodeURIComponent(selectedId)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
@@ -235,7 +234,7 @@ export default function CoordinatorMessagesClient() {
     try {
       const token = await getAccessToken();
       if (!token) return;
-      const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+      const res = await fetch(`/api/portal/threads/${encodeURIComponent(selectedId)}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: draft.trim() }),
@@ -266,7 +265,7 @@ export default function CoordinatorMessagesClient() {
     const token = await getAccessToken();
     if (!token) return;
     try {
-      const res = await fetch(`/api/portal/threads/${selectedId}`, {
+      const res = await fetch(`/api/portal/threads/${encodeURIComponent(selectedId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus }),
@@ -364,8 +363,19 @@ export default function CoordinatorMessagesClient() {
         selectedId ? "flex" : "hidden md:flex"
       }`}>
         {!selectedThread ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-            {L.msSelectConversation}
+          // 폰에서 고른 대화가 목록에 없을 수도 있다(딥링크·거름망 변경) → 목록이 접힌 채로
+          // 돌아갈 길이 없는 막다른 화면이 되던 것을 막는다(2026-08-28 리뷰 지적).
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-gray-500">
+            <span>{L.msSelectConversation}</span>
+            {selectedId && (
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="md:hidden rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                ← {L.chBackToList}
+              </button>
+            )}
           </div>
         ) : (
           <>

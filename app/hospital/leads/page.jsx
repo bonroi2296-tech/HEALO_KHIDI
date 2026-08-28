@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
 import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -66,17 +67,19 @@ export default function HospitalLeadsPage() {
 
   // 딥링크: 「📥 새 진료 의뢰」 알림이 `?lead=<id>` 로 보낸다. 예전엔 목록 주소만 줘서
   // 병원 담당자가 어느 건인지 눈으로 찾아야 했다 (2026-08-28).
-  const deepLinked = useRef(false);
-  useEffect(() => {
-    if (deepLinked.current || loading) return;
-    const id = new URLSearchParams(window.location.search).get("lead");
-    if (!id) { deepLinked.current = true; return; }
+  // ⚠️ 목록은 최근 50건만 받는다 — 오래된 알림이면 그 안에 없다. 없으면 «조용히 아무 일도
+  //    안 일어나는» 게 아니라 그 건만 따로 받아 연다(리뷰 지적: 알림의 존재 이유가 사라짐).
+  useDeepLinkParam("lead", async (id) => {
     const found = leads.find((l) => String(l.id) === id);
-    if (!found) return; // 아직 목록이 안 왔거나 거름망 밖 — 다음 로드에서 다시 본다
-    deepLinked.current = true;
-    handleOpenDetail(found);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, leads]);
+    if (found) { handleOpenDetail(found); return; }
+    try {
+      const res = await fetchWithAuth(`/api/partner/leads/${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (data.ok && data.lead) handleOpenDetail(data.lead);
+    } catch (err) {
+      console.error("[Leads] Deep link fetch error:", err);
+    }
+  }, { ready: !loading });
 
   const handleOpenDetail = (lead) => {
     setSelectedLead(lead);
