@@ -9,6 +9,7 @@ import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/part
 import HospitalDetailClient from "./HospitalDetailClient";
 import { localeAlternates, getRequestLocale, pickLocalized } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
+import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,8 +52,8 @@ export async function generateMetadata({ params }) {
 
   // Try DB first
   const hospital = slug
-    ? (await getHospitalBySlug(slug)) ||
-      (isUuid(slug) ? await getHospitalById(slug) : null)
+    ? (await getHospitalBySlug(slug, lc)) ||
+      (isUuid(slug) ? await getHospitalById(slug, lc) : null)
     : null;
 
   // Fallback to static partner data if not in DB
@@ -102,6 +103,31 @@ export async function generateMetadata({ params }) {
   };
 }
 
+/**
+ * 질문-답변 표식(FAQPage) — 화면의 「자주 묻는 질문」 칸에 실제로 뜨는 것과 같은 소스를 쓴다.
+ * (화면도 resolveHospitalFaq 를 부른다 — 한쪽만 고쳐져 표식과 화면이 어긋나는 일을 막으려고 함수를 나눠 뒀다.)
+ */
+function hospitalFaqLd(dbFaq, lang) {
+  const items = resolveHospitalFaq(dbFaq, lang);
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const mapped = items
+    .map((f) => ({
+      q: f?.question ?? f?.q,
+      a: f?.answer ?? f?.a,
+    }))
+    .filter((f) => f.q && f.a);
+  if (mapped.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: mapped.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
+
 export default async function HospitalDetailPage({ params, searchParams }) {
   const { slug } = await params;
 
@@ -117,8 +143,8 @@ export default async function HospitalDetailPage({ params, searchParams }) {
 
   // Try DB first
   const hospital = slug
-    ? (await getHospitalBySlug(slug)) ||
-      (isUuid(slug) ? await getHospitalById(slug) : null)
+    ? (await getHospitalBySlug(slug, lc)) ||
+      (isUuid(slug) ? await getHospitalById(slug, lc) : null)
     : null;
 
   // If in DB → render normally (original flow with full DB data)
@@ -157,9 +183,14 @@ export default async function HospitalDetailPage({ params, searchParams }) {
         <script
           id="hospital-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([jsonLd, breadcrumb, hospitalFaqLd(hospital.faq, lc)].filter(Boolean)),
+          }}
         />
-        <HospitalDetailClient id={slug} />
+        {/* 서버가 이미 조회한 걸 그대로 넘긴다 — 안 넘기면 첫 화면이 「불러오는 중」이라
+            JS 안 돌리는 검색·AI 로봇이 본문을 통째로 못 읽는다. 치료 목록·리뷰는
+            화면 쪽이 이어서 가져온다(초기자료가 있어도 조회를 건너뛰지 않게 고쳤다). */}
+        <HospitalDetailClient id={slug} initialData={hospital} />
       </>
     );
   }
@@ -194,7 +225,11 @@ export default async function HospitalDetailPage({ params, searchParams }) {
         <script
           id="hospital-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([partnerJsonLd, partnerBreadcrumb]) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              [partnerJsonLd, partnerBreadcrumb, hospitalFaqLd(initialData?.faq, lc)].filter(Boolean)
+            ),
+          }}
         />
         <HospitalDetailClient id={slug} initialData={initialData} />
       </>

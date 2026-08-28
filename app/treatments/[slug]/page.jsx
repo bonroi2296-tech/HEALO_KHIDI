@@ -10,6 +10,7 @@ import CancerDetailClient from "./CancerDetailClient";
 import {
   CANCER_DETAILS,
   CANCER_IMAGES,
+  CANCER_FAQ,
 } from "@/lib/data/immuneCancerDetails";
 import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
@@ -150,6 +151,25 @@ export async function generateMetadata({ params }) {
   };
 }
 
+/**
+ * 질문-답변 표식(FAQPage) — 화면의 7번 FAQ 칸에 실제로 뜨는 것과 «같은 소스·같은 언어 해석»을 쓴다.
+ * (CancerDetailClient 의 `CANCER_FAQ[slug] || CANCER_FAQ.etc` + `faq.q[lang] || faq.q.ko` 와 동일)
+ * 화면과 다른 걸 적으면 구글이 리치결과를 안 줄 뿐 아니라 AI 답변에도 안 실린다 — /faq 와 같은 원칙.
+ */
+function cancerFaqLd(slug, lang) {
+  const faqs = CANCER_FAQ[slug] || CANCER_FAQ.etc;
+  if (!Array.isArray(faqs) || faqs.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q?.[lang] || f.q?.ko,
+      acceptedAnswer: { "@type": "Answer", text: f.a?.[lang] || f.a?.ko },
+    })),
+  };
+}
+
 export default async function TreatmentDetailPage({ params, searchParams }) {
   const { slug } = await params;
 
@@ -191,12 +211,17 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
     ]);
 
+    const { locale } = await getRequestLocale();
+    const faqLd = cancerFaqLd(slug, locale || "en");
+
     const content = (
       <>
         <script
           id="cancer-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([jsonLd, breadcrumb, faqLd].filter(Boolean)),
+          }}
         />
         <CancerDetailClient slug={slug} />
       </>
