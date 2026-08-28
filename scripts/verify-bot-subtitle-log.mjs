@@ -155,7 +155,9 @@ const logLines = await b.page.evaluate(() => {
 console.log(`
 회의록 목록 ${logLines.length}줄`);
 logLines.forEach((t, i) => console.log(`  ${i + 1}. ${t.slice(0, 110)}`));
-const empty = logLines.filter((t) => t.replace(/한국어|русский|Русский|English/gi, "").trim().length < 3);
+// ⚠️ 길이로 «빈 상자»를 판정하면 짧은 자막(「저는」)을 빈 것으로 오해한다(2026-08-28 실측).
+//    언어 라벨만 있고 그 뒤가 아예 없는 것만 빈 상자로 센다.
+const empty = logLines.filter((t) => !t.replace(/^(한국어|русский|Русский|English|日本語|中文|Қазақша)+/i, "").trim());
 if (empty.length) console.log(`  ⚠️ 내용 없이 빈 상자 ${empty.length}개`);
 await b.page.screenshot({ path: (process.env.SHOT || "x.png").replace(".png", "-log.png") });
 

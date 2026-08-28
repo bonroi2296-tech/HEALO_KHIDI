@@ -958,10 +958,23 @@ export default function ConsultationRoomPage() {
   // 이 통화(입장)에서 발생한 번역만 패널에 보이게 하는 기준 시각.
   // 예전 통화·반복 테스트의 번역 기록이 상담에 쌓여 재입장 때 섞여 보이던 것 차단(PO 제보).
   // 시계 오차·직전 맥락 대비 15초 버퍼. window 체크로 SSR 시각 오염 회피.
+  // 회의록을 어디서부터 불러올지 정하는 기준 시각.
+  //
+  // ⚠️ 기본값은 «화면을 연 시각 - 15초»다. 그러면 상담 «도중»에 새로고침하거나 회선이
+  //    끊겨 다시 들어왔을 때, 그때까지 쌓인 회의록이 화면에서 통째로 사라진다
+  //    (DB 에는 남아 있는데 안 보인다 — 2026-08-28 실측: 전체 흐름 시험에서 0줄).
+  //    → 세션의 «통화 시작 시각»을 알게 되면 그걸로 갈아끼운다(아래 setCallStartFromSession).
+  //    그러면 같은 상담의 기록은 다 살아나고, 지난 상담 것은 여전히 안 딸려 온다.
   const callStartMsRef = useRef(null);
   if (callStartMsRef.current === null && typeof window !== "undefined") {
     callStartMsRef.current = Date.now() - 15000;
   }
+  const setCallStartFromSession = useCallback((startedAt) => {
+    const t = startedAt ? new Date(startedAt).getTime() : NaN;
+    if (!Number.isFinite(t)) return;
+    // 앞당기기만 한다 — 뒤로 미루면 방금 쌓인 줄이 잘려 나간다.
+    if (t < (callStartMsRef.current ?? 0)) callStartMsRef.current = t;
+  }, []);
   const afterCallStart = useCallback((createdAt) => {
     const t = createdAt ? new Date(createdAt).getTime() : 0;
     return t >= (callStartMsRef.current ?? 0);
@@ -2350,6 +2363,8 @@ export default function ConsultationRoomPage() {
 
         const session = detailResult.data;
         setConsultation(session);
+        // 회의록을 «통화 시작»부터 불러오게 기준을 앞당긴다(재접속해도 안 사라지게).
+        setCallStartFromSession(session.started_at);
 
         // Set language from consultation data
         if (session.patient_language) setTargetLang(session.patient_language);
