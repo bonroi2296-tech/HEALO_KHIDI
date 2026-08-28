@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
 import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
 
@@ -45,13 +45,18 @@ export default function HospitalLeadsPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent"); // recent | oldest
 
+  // ⚠️ 거름망을 연달아 누르면 조회가 겹치고, «늦게 도착한 옛 응답»이 새 결과를 덮어써
+  //    엉뚱한 목록이 남는다. 순번으로 막는다(2026-08-28 같은 부류 전수 점검).
+  const reqSeqRef = useRef(0);
   const loadLeads = useCallback(async () => {
+    const seq = ++reqSeqRef.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: "50" });
       if (statusFilter) params.set("status", statusFilter);
       const res = await fetchWithAuth(`/api/partner/leads?${params}`);
       const data = await res.json();
+      if (seq !== reqSeqRef.current) return; // 이미 지난 조회 — 버린다
       if (data.ok) {
         setLeads(data.leads);
         setTotal(data.total);
@@ -59,7 +64,7 @@ export default function HospitalLeadsPage() {
     } catch (err) {
       console.error("[Leads] Load error:", err);
     } finally {
-      setLoading(false);
+      if (seq === reqSeqRef.current) setLoading(false);
     }
   }, [statusFilter]);
 
