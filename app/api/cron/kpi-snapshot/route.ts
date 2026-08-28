@@ -93,7 +93,11 @@ export async function GET(request: NextRequest) {
       const kstToday = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-      const [snap, sessions, surveys] = await Promise.all([
+      // AI 챗 감시는 30일이 아니라 7일 창으로 본다 — 답변·채점은 매일 수십 건 나오므로
+      // 30일이면 «어제 죽었어도» 옛 건수에 묻혀 경보가 안 뜬다(감시 지연 = 감시 부재).
+      const sinceAi = new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+      const [snap, sessions, surveys, aiReplies, aiEvals, aiFlagged, aiAlerts] = await Promise.all([
         (supabaseAdmin as any)
           .from("kpi_snapshots")
           .select("snapshot_date")
@@ -115,6 +119,32 @@ export async function GET(request: NextRequest) {
           .from("surveys")
           .select("id", { count: "exact", head: true })
           .gte("sent_at", since),
+        // ── AI 챗 파수꾼 3종 (2026-08-28) ──────────────────────────────
+        // ①답변은 나가는데 채점 0 = 판사 죽음  ②표시는 붙는데 알림 0 = 통보 경로 죽음.
+        // 둘 다 화면상 「정상」과 구별이 안 돼 사람 눈으로는 영영 안 보인다.
+        (supabaseAdmin as any)
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("actor_type", "system")
+          // ⚠️ 가로챈 턴(잡담·화제정정·마스터키)은 «빼고» 센다. 그 답변들은 모델을 안 거치므로
+          //    판사도 안 돈다 — 같이 세면 「인사만 잔뜩 들어온 주」에 답변 많음 + 채점 0 이 되어
+          //    판사가 멀쩡한데 critical 경보가 뜬다(오탐). 늑대소년은 감시를 죽인다(#112 근본원인 2).
+          .is("metadata->>bypassed", null)
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("ai_response_evaluations")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("ai_response_evaluations")
+          .select("id", { count: "exact", head: true })
+          .neq("flags", "{}")
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("type", "ai_quality_alert")
+          .gte("created_at", sinceAi),
       ]);
 
       const deadman = evaluateDeadman({
@@ -122,6 +152,10 @@ export async function GET(request: NextRequest) {
         latestSnapshotDate: snap?.data?.snapshot_date ?? null,
         completedSessions: sessions?.count ?? 0,
         surveysSent: surveys?.count ?? 0,
+        aiReplies: aiReplies?.count ?? 0,
+        aiEvaluations: aiEvals?.count ?? 0,
+        aiFlagged: aiFlagged?.count ?? 0,
+        aiQualityAlertsSent: aiAlerts?.count ?? 0,
       });
       if (deadman.length > 0) {
         console.warn(
