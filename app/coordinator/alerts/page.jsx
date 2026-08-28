@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { useDeepLinkParam } from '@/lib/hooks/useDeepLinkParam';
+import { useLatestOnly } from '@/lib/hooks/useLatestOnly';
 import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
 import {
   AlertTriangle,
@@ -100,14 +101,14 @@ export default function AlertsPage() {
   });
 
   // ⚠️ 조회가 겹칠 수 있다(딥링크가 거름망을 바꾸는 순간, 사람이 거름망을 연타할 때).
-  //    그때 «늦게 도착한 옛 응답»이 새 결과를 덮어써서 엉뚱한 목록이 남는다 → 순번으로 막는다.
-  const reqSeqRef = useRef(0);
+  //    그때 «늦게 도착한 옛 응답»이 새 결과를 덮어써서 엉뚱한 목록이 남는다 → useLatestOnly 로 막는다.
+  const beginRequest = useLatestOnly();
   const fetchAlerts = useCallback(async () => {
-    const seq = ++reqSeqRef.current;
+    const isLatest = beginRequest();
     setLoading(true);
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { if (seq === reqSeqRef.current) setLoading(false); return; }
+    if (!session) { if (isLatest()) setLoading(false); return; }
 
     try {
       let url = `/api/symptoms/alerts?status=${filter}&limit=100`;
@@ -117,15 +118,15 @@ export default function AlertsPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
-      if (seq !== reqSeqRef.current) return; // 이미 지난 조회 — 버린다
+      if (!isLatest()) return; // 이미 지난 조회 — 버린다
       if (data.ok) {
         setAlerts(data.data || []);
       }
     } catch (e) {
       console.error(e);
     }
-    if (seq === reqSeqRef.current) setLoading(false);
-  }, [filter, severityFilter]);
+    if (isLatest()) setLoading(false);
+  }, [filter, severityFilter, beginRequest]);
 
   // 미확인 뱃지 카운트 (별도 조회)
   const fetchUnreadCount = useCallback(async () => {
