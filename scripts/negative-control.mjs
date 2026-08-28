@@ -28,6 +28,7 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 
@@ -88,6 +89,17 @@ const PLANTS = [
   ["hook-data", "docs/LAUNCH_GATES_PO.md",
     (s) => s.replace(/^## 🎯 지금 남은 관문/m, "## 🎯 남은 관문(제목 바뀜)"),
     "세션 훅의 관문 보채기 배선이 조용히 끊긴 것"],
+
+  // 문지기 자신도 시험한다. 「시험 없는 새 검사」를 CI 에 몰래 넣는 상황을 흉내낸다:
+  // check:parked 는 package.json 에 있지만 CI 가 안 부르고 견본도 없다 —
+  // 그걸 CI 목록에 끼워 넣으면 guard-coverage 가 빨간불을 내야 한다.
+  // (안 내면 이 문지기 자체가 장식이라는 뜻이고, 그게 제일 해로운 상태다.)
+  ["guard-coverage", ".github/workflows/ci.yml",
+    (s) => s.replace(
+      /(\n\s+- name: 지침 구조[^\n]*\n\s+run: npm run check:rules\n)/,
+      "$1      - run: npm run check:parked\n",
+    ),
+    "「진짜 잡는지 안 재본 검사」가 CI 에 몰래 들어오는 것 — 개선이 증발하던 자리"],
 ];
 
 // 마이그레이션은 «새 파일»을 만들어 심는다(기존 파일을 고치는 게 아니라).
@@ -96,6 +108,18 @@ const MIGRATION_PLANT = {
   body: "CREATE POLICY planted_pol ON public.profiles FOR SELECT USING (true);\nCREATE INDEX planted_idx ON public.profiles(id);\n",
   why: "재실행하면 42710 으로 깨지는 마이그레이션",
 };
+
+/**
+ * 이 장치가 «견본을 가진» 검사 이름 목록 — 단일 출처다.
+ * check:guard-coverage 가 글자 맞추기 대신 이걸 읽는다(정규식으로 훑으면 배열 밖 특수처리를 놓친다 —
+ * 실제로 첫판이 migrations 를 «없다»고 오판했다).
+ */
+export const COVERED_CHECKS = [...PLANTS.map(([c]) => c), "migrations"];
+
+// ⚠️ 아래는 «이 파일을 직접 실행했을 때»만 돈다. check:guard-coverage 가 COVERED_CHECKS 만
+//    가져다 쓸 때 결함 심기가 같이 돌면 안 된다(남의 작업본을 만지게 된다).
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
 
 const run = (cmd) => {
   try {
@@ -177,3 +201,6 @@ if (stale.length) {
   process.exit(1);
 }
 console.log("\n✓ 견본을 심은 검사 전부가 진짜 빨간불을 냈다.");
+
+} // isMain 끝
+

@@ -85,7 +85,8 @@
     "blast:verify": "node scripts/blast-verify.mjs",
     "sweep": "node scripts/sweep.mjs",
     "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
-    "audit:negative-control": "node scripts/negative-control.mjs"
+    "audit:negative-control": "node scripts/negative-control.mjs",
+    "check:guard-coverage": "node scripts/check-guard-coverage.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
