@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from livekit import rtc
 
@@ -28,6 +29,7 @@ from config import (
     TRANSLATION_TEXT_TOPIC,
     GEMINI_RECONNECT_BACKOFF_SEC,
     GEMINI_FAIL_STREAK_TO_REPORT,
+    GEMINI_HEALTHY_RUN_SEC,
     TRANSLATOR_STATUS_ATTR,
     TRANSLATOR_STATUS_FAILING,
     TRANSLATOR_STATUS_OK,
@@ -131,6 +133,7 @@ class GeminiSession:
     async def _run(self) -> None:
         backoff_idx = 0
         while not self._closed:
+            started = time.monotonic()
             try:
                 await self._run_once()
                 backoff_idx = 0
@@ -139,6 +142,12 @@ class GeminiSession:
                 return
             except Exception:
                 logger.exception("gemini session error (%s)", self._track_name)
+                # 오래 «잘 돌다가» 끊긴 것은 연속 실패가 아니다. Gemini Live 세션은
+                # 일정 시간이 지나면 스스로 닫히므로, 그걸 실패로 세면 긴 상담일수록
+                # 재연결이 느려지고(0.5초 → 30초) 멀쩡한데도 「통역 안 됨」 안내가 뜬다.
+                if time.monotonic() - started >= GEMINI_HEALTHY_RUN_SEC:
+                    backoff_idx = 0
+                    await self._report_status(TRANSLATOR_STATUS_OK)
                 delay = GEMINI_RECONNECT_BACKOFF_SEC[
                     min(backoff_idx, len(GEMINI_RECONNECT_BACKOFF_SEC) - 1)
                 ]

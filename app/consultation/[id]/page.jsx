@@ -1715,6 +1715,11 @@ export default function ConsultationRoomPage() {
           ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
         },
         body: JSON.stringify(payload),
+        // 화면이 사라진 뒤에도 요청을 끝까지 보낸다(자막 한 줄은 64KB 상한에 한참 못 미친다).
+        // ⚠️ 정직하게: 2026-08-28 실측에서는 이걸 «꺼도» 탭을 닫을 때 마지막 줄이 저장됐다
+        //    (자동화 브라우저의 탭 닫기 기준). 실제 창 닫기·앱 종료에서도 같은지는 못 쟀다.
+        //    필요 없다고 증명된 것도 아니어서 안전망으로 남긴다 — 유실되는 쪽이 훨씬 해롭다.
+        keepalive: true,
       })
         .then((r) => {
           if (r.ok) return;

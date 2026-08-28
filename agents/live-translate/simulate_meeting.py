@@ -92,12 +92,24 @@ def build_dialog(tmp: Path) -> Path:
     return out
 
 
-async def run_once(room_name: str, ogg: Path, wait: int) -> list[dict]:
+DIALOG_RU = [
+    ("Здравствуйте, доктор. Я приехала из Казахстана.",
+     {"카자흐스탄": ["카자흐스탄", "카자흐"]}),
+    ("В ноябре прошлого года мне поставили диагноз рак желудка третьей стадии, "
+     "и меня прооперировали в Сеуле.",
+     {"위암": ["위암", "위 암"], "3기": ["3기", "삼기", "3 기"], "수술": ["수술", "집도"]}),
+    ("Сейчас я прошла шесть курсов химиотерапии и хочу узнать, сколько ещё нужно.",
+     {"항암치료": ["항암", "화학요법"], "여섯번": ["여섯", "6"]}),
+]
+
+
+async def run_once(room_name: str, ogg: Path, wait: int,
+                   speak_lang: str = "ko", listen_lang: str = "ru") -> list[dict]:
     url = os.environ["LIVEKIT_URL"]
     k, s = os.environ["LIVEKIT_API_KEY"], os.environ["LIVEKIT_API_SECRET"]
     token = (
         api.AccessToken(k, s).with_identity("caption-watcher")
-        .with_attributes({"lang": "ru"})
+        .with_attributes({"lang": listen_lang})
         .with_grants(api.VideoGrants(room_join=True, room=room_name, can_subscribe=True))
         .to_jwt()
     )
@@ -116,8 +128,9 @@ async def run_once(room_name: str, ogg: Path, wait: int) -> list[dict]:
     await asyncio.sleep(10)
 
     proc = await asyncio.create_subprocess_exec(
-        "lk", "room", "join", "--project", "healo", "--identity", "patient-ko",
-        "--attribute", "lang=ko", "--publish", str(ogg), "--exit-after-publish", room_name,
+        "lk", "room", "join", "--project", "healo", "--identity", f"patient-{speak_lang}",
+        "--attribute", f"lang={speak_lang}", "--publish", str(ogg),
+        "--exit-after-publish", room_name,
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
     )
     await proc.wait()
@@ -147,6 +160,10 @@ ENDED = re.compile(r"[.!?…]\s*$")
 async def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--repeat", type=int, default=2)
+    # 지금까지는 «한국어 발화 → 러시아어 자막»만 쟀는데, 코디가 실제로 읽는 것은
+    # 그 반대(«환자 러시아어 → 한국어 자막»)다. --reverse 로 그 방향을 잰다.
+    ap.add_argument("--reverse", action="store_true",
+                    help="환자(러시아어)가 말하고 코디(한국어)가 자막을 읽는 방향")
     ap.add_argument("--wait", type=int, default=25, help="음성이 끝난 뒤 자막을 더 기다리는 초")
     ap.add_argument("--dump", default="captions.json", help="자막 원본을 저장할 파일")
     args = ap.parse_args()
@@ -154,15 +171,22 @@ async def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="meeting-"))
     print(f"대본 {len(DIALOG)}문장 · 앞무음 {LEAD}초 · 문장사이 {GAP}초 · 뒤무음 {TAIL}초")
     print("음성 만드는 중...", flush=True)
+    if args.reverse:
+        globals()["DIALOG"] = DIALOG_RU
     ogg = build_dialog(tmp)
     print(f"만듦 ({ogg.stat().st_size // 1024}KB)\n")
 
-    all_terms = {t: [] for _s, terms in DIALOG for t in terms}
+    dialog = DIALOG_RU if args.reverse else DIALOG
+    all_terms = {t: [] for _s, terms in dialog for t in terms}
     cut_counts = []
     rounds: list[list[dict]] = []
 
     for r in range(1, args.repeat + 1):
-        caps = await run_once(f"mt-{uuid.uuid4().hex[:8]}", ogg, args.wait)
+        caps = await run_once(
+            f"mt-{uuid.uuid4().hex[:8]}", ogg, args.wait,
+            speak_lang="ru" if args.reverse else "ko",
+            listen_lang="ko" if args.reverse else "ru",
+        )
         rounds.append(caps)
         flat = re.sub(r"\s+", " ", " ".join(c["text"] for c in caps)).strip()
         print(f"[{r}회차] 자막 {len(caps)}조각")

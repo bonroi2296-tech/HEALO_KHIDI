@@ -40,6 +40,12 @@ GEMINI_RECONNECT_BACKOFF_SEC = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 30.0]
 #   진짜 고장만 알린다.
 GEMINI_FAIL_STREAK_TO_REPORT = 3
 
+# 세션이 이 시간 이상 «잘 돌다가» 끊겼으면 연속 실패로 세지 않는다.
+# 왜: Gemini Live 세션은 일정 시간이 지나면 스스로 닫힌다. 그걸 실패로 세면
+#     긴 상담일수록 재연결 대기가 0.5초에서 30초까지 늘어나고, 세 번째부터는
+#     멀쩡한데도 화면에 「통역이 안 되고 있다」 안내가 뜬다.
+GEMINI_HEALTHY_RUN_SEC = 60.0
+
 # 통역봇이 «지금 상태»를 적는 참가자 속성. 화면(LiveTranslateBridge)이 이 값을 읽어 알린다.
 TRANSLATOR_STATUS_ATTR = "tx_status"
 TRANSLATOR_STATUS_FAILING = "failing"   # 연결이 계속 실패 중 — 통역이 안 나온다

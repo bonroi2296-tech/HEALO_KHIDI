@@ -42,6 +42,9 @@ async def main() -> int:
     ap.add_argument("--lang", default="ko", help="자막을 받을 사람의 언어(target_lang)")
     ap.add_argument("--speaker", default="patient-ru", help="원래 말한 사람 identity")
     ap.add_argument("--gap", type=float, default=0.8, help="조각 사이 간격(초)")
+    # 순서가 뒤바뀌나 보려면 «번호 붙인» 조각을 촘촘히 보내야 한다. 받는 쪽 핸들러가
+    # 비동기(await readAll)라, 조각이 겹치면 완료 순서가 도착 순서와 달라질 수 있다.
+    ap.add_argument("--numbered", type=int, default=0, help="번호 붙인 조각을 이 개수만큼 보낸다")
     args = ap.parse_args()
 
     # 실환자 방을 실수로 겨누는 것을 막는다(test_guard 머리말 참고)
@@ -57,10 +60,12 @@ async def main() -> int:
     )
     room = rtc.Room()
     await room.connect(url, token)
-    print(f"방 [{args.room}] 에 통역봇 흉내로 들어감. 조각 {len(CHUNKS)}개를 보낸다.")
+    print(f"방 [{args.room}] 에 통역봇 흉내로 들어감.")
     await asyncio.sleep(3)
 
-    for i, text in enumerate(CHUNKS, 1):
+    chunks = ([f"조각{n:02d}" for n in range(1, args.numbered + 1)]
+              if args.numbered else CHUNKS)
+    for i, text in enumerate(chunks, 1):
         await room.local_participant.send_text(
             text,
             topic=TRANSLATION_TEXT_TOPIC,
