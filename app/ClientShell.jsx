@@ -24,6 +24,7 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
+import AppUpdateBanner from "./AppUpdateBanner";
 // 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
 import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode, event, GA_EVENTS } from "@/lib/ga";
@@ -383,6 +384,10 @@ function ClientShellContent({
       >
         {SKIP_LABEL[langCode] || SKIP_LABEL.en}
       </a>
+      {/* 앱이 옛 판이면 「업데이트해 주세요」 띠. 막지 않고 안내만 하며 닫을 수 있다.
+          상담방에서는 띄우지 않는다 — 화면 위쪽을 밀면 통화 화면 배치가 어긋난다
+          (쿠키 배너가 하단 조작바를 덮었던 2026-07-20 사고와 같은 이유). */}
+      {!isConsultationPage && <AppUpdateBanner />}
       {isConsultationPage ? null : isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
       ) : (
