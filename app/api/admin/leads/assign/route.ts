@@ -181,8 +181,14 @@ export async function POST(request: NextRequest) {
     //   ⚠️ coordinator/cases/assign 경로에도 같이 붙임(#85 '한 경로만 배선' 반쪽 방지).
     try {
       const { notifyHospitalNewLead } = await import("@/lib/notifications/inApp");
+      // 병원별 리드 번호를 실어 보낸다 — 알림이 목록이 아니라 «그 의뢰»를 연다.
+      const leadIdByHospital = new Map<string, string>(
+        ((insertedLeads as any[]) || []).map((r) => [String(r.hospital_id), String(r.id)])
+      );
       await Promise.allSettled(
-        foundHospitalIds.map((hid) => notifyHospitalNewLead({ hospitalId: hid }))
+        foundHospitalIds.map((hid) =>
+          notifyHospitalNewLead({ hospitalId: hid, leadId: leadIdByHospital.get(String(hid)) ?? null })
+        )
       );
     } catch {
       /* fail-safe */

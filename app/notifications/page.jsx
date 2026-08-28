@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
+import { resolveNotificationLink } from "@/lib/notifications/resolveLink";
 
 const PAGE_SIZE = 20;
 
@@ -199,7 +200,9 @@ export default function NotificationsPage() {
         .update({ read_at: now })
         .eq("id", item.id);
     }
-    if (item.link) router.push(item.link);
+    // payload 로 주소 보정 (옛 알림은 link 가 목록 주소라 «그 대화»로 못 갔다 — resolveLink.ts)
+    const href = resolveNotificationLink(item);
+    if (href) router.push(href);
   }
 
   async function markAllRead() {

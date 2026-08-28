@@ -128,9 +128,9 @@ export const RUBRIC = [
     ],
     verify: "auto",
     scope: "app/** + src/** router.push·href, src/lib/notifications/** link 조립",
-    guards: ["check:content §동적링크404(app+src)", "check:content §알림link404"],
+    guards: ["check:content §동적링크404(app+src)", "check:content §알림link404", "check:deeplinks (쿼리 딥링크를 그 화면이 실제로 읽는지)"],
     postmortems: [31, 73, 83, 37],
-    gap: "✅ 축 C(2026-07-15): 동적링크 404 검사를 app/ → src/(컴포넌트 내부 네비)까지 확장. #73(notifications link)은 이미 §알림link404로 해소. 잔여 사각: 변수/절대URL(${baseUrl}…)로 조립한 링크·파라미터 미해석 화면은 정적분석 밖(코드리뷰 몫).",
+    gap: "✅ 축 C(2026-07-15): 동적링크 404 검사를 app/ → src/(컴포넌트 내부 네비)까지 확장. #73(notifications link)은 이미 §알림link404로 해소. ✅ 2026-08-28: 「파라미터 미해석 화면」이 더는 코드리뷰 몫이 아니다 — check:deeplinks 가 `link:` 의 쿼리 딥링크를 모아 그 화면이 그 이름을 실제로 읽는지 대조한다(삼항식 포함, 자체시험 8가지). 이 사각은 세 번 터졌다(2026-07-13 옛 대시보드 · 2026-08-28 코디 메시지함 · 같은 날 검사가 스스로 잡은 증상경보). **404 가 아니라 «목록»이 떠서 아무도 고장인 줄 몰랐던 것이 이 부류의 본질**이다. 잔여 사각: 변수/절대URL(${baseUrl}…)로 조립한 링크, 그리고 «읽기는 읽는데 목록을 다시 안 불러» 빈 화면이 되는 것(정적분석 밖 — 코드리뷰 몫).",
   },
 
   // ── 유형 6 · cron/KPI 조용한 0 ──────────────────────────────────────────

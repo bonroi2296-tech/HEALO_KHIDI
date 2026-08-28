@@ -137,6 +137,24 @@ async function 검사_익명읽기() {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !anon) return add("rls", "익명이 환자 표를 읽나", "못 잼", "익명 열쇠 없음");
   const client = createClient(SUPABASE_URL, anon, { auth: { persistSession: false } });
+
+  // ⚠️ 먼저 «열쇠가 살아 있나»를 본다 — 이게 없으면 이 검사가 거짓 초록불이 된다.
+  //    아래 판정은 「읽혔나」만 보므로, 열쇠가 죽어 모든 조회가 오류나면 뚫림이 0건이 되어
+  //    「✅ 표 7개 전부 0건」으로 통과해 버린다. «막혀서 0건»과 «못 물어봐서 0건»은 다른 자리다.
+  //    (2026-08-28: 같은 부류인 「파이프가 실패를 삼키던 것」을 고치다 이 자리도 같이 발견했다.)
+  //    hospitals 는 손님이 읽어야 «정상»인 표다 — 정책 hospitals_public_read = anon SELECT.
+  //    실측(진짜 anon 권한으로 조회): hospitals 8행 보임 / inquiries·profiles 0행.
+  const 미끼 = await client.from("hospitals").select("id").limit(1);
+  if (미끼.error || !미끼.data?.length) {
+    return add(
+      "rls",
+      "익명이 환자 표를 읽나",
+      "못 잼",
+      `손님 열쇠로 «공개 표»조차 못 읽는다 — 열쇠가 죽었거나 막혔다(${미끼.error?.message || "0건"}). ` +
+        "이 상태의 「환자 표 0건」은 «막혔다»는 뜻이 아니다.",
+    );
+  }
+
   const 뚫림 = [];
   for (const t of ANON_MUST_NOT_READ) {
     const { data, error } = await client.from(t).select("*").limit(1);
@@ -356,17 +374,26 @@ async function 검사_앱미반영() {
  * 코디네이터가 화면에서 고친 문구가 «코드로 돌아왔나».
  * 안 돌아오면 다음에 그 화면을 손대는 순간 코드 값이 이겨서 교정이 통째로 되돌아간다
  * (2026-08-20 실측: 262건 중 259건이 그 상태로 몇 달 쌓여 있었다).
- * CI 에는 못 붙인다 — 이 검사는 service_role 열쇠가 필요한데 그걸 자동 검사에 두면 안 된다.
+ *
+ * ⚠️ 2026-08-28 정정: 여기 원래 「CI 에는 못 붙인다」고 적혀 있었는데 사실과 달랐다 —
+ *   매일 도는 창구(.github/workflows/sweep.yml)가 이미 service_role 열쇠를 넣어 이 파일을 돌린다.
+ *   그런데 이 검사만 «주소»를 NEXT_PUBLIC_SUPABASE_URL 에서만 찾았다. 이 저장소의 비밀값은
+ *   그 이름이 «비어 있고» 실제 주소는 SUPABASE_URL 에 있다(sweep.yml 주석에도 적혀 있다).
+ *   그래서 열쇠가 다 있는데도 매일 「못 잼」으로 찍혔다 — 위 38번 줄의 SUPABASE_URL 을 쓴다.
  */
 async function 검사_번역역류() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "이 상자에 DB 열쇠가 없다(.env.local 있는 곳에서 돌려라)");
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "DB 주소·열쇠가 없다(SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)");
     return;
   }
   let out = "";
   let 어긋남 = 0;
   try {
-    out = execSync("node scripts/i18n-backport-overrides.mjs --check", { encoding: "utf8" });
+    // 자식도 주소를 봐야 한다 — 그쪽은 NEXT_PUBLIC_ 이름만 읽으므로 여기서 채워 넘긴다.
+    out = execSync("node scripts/i18n-backport-overrides.mjs --check", {
+      encoding: "utf8",
+      env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL },
+    });
   } catch (e) {
     out = String(e.stdout || "") + String(e.stderr || "");
   }
