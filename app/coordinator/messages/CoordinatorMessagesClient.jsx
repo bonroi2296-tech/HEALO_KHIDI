@@ -115,14 +115,14 @@ export default function CoordinatorMessagesClient() {
 
   // 딥링크: 알림(AI 부정평가·병원 답신)이 `?thread=<id>` 로 보낸다. 예전엔 이 화면이 그 값을
   // «안 읽어서» 목록만 열렸다 — 주소는 맞는데 아무 데도 안 가는 죽은 링크였다(2026-08-28).
-  // ⚠️ 목록 기본 거름망이 'open' 이라 다른 상태의 스레드는 목록에 없다. 거름망을 'all' 로
-  //    바꾸는 것만으로는 부족하다 — 첫 로딩이 끝나기 «전»이라 재조회 효과가 건너뛰어져서
-  //    목록이 그대로 'open' 에 머물렀다(리뷰가 잡음). 그래서 여기서 직접 다시 불러온다.
+  // ⚠️ 목록 기본 거름망이 'open' 이라 다른 상태의 스레드는 목록에 없다. 그런데 첫 로딩이
+  //    «끝나기 전»에 거름망을 바꾸면 재조회 효과가 `if (!loading)` 에 걸려 건너뛰어지고,
+  //    직접 다시 부르면 첫 조회와 경합해 늦게 오는 쪽이 이긴다(리뷰가 둘 다 잡음).
+  //    → 첫 로딩이 끝난 뒤에 바꾼다. 그러면 거름망 효과가 알아서 한 번만 다시 불러온다.
   useDeepLinkParam("thread", (id) => {
     setSelectedId(id);
     setStatusFilter("all");
-    loadThreads("all");
-  });
+  }, { ready: !loading });
 
   // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
   async function getAccessToken() {
@@ -366,7 +366,7 @@ export default function CoordinatorMessagesClient() {
           // 폰에서 고른 대화가 목록에 없을 수도 있다(딥링크·거름망 변경) → 목록이 접힌 채로
           // 돌아갈 길이 없는 막다른 화면이 되던 것을 막는다(2026-08-28 리뷰 지적).
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-gray-500">
-            <span>{L.msSelectConversation}</span>
+            <span>{selectedId ? L.msThreadNotFound : L.msSelectConversation}</span>
             {selectedId && (
               <button
                 type="button"
