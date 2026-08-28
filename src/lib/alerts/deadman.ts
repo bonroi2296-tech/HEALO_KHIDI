@@ -100,7 +100,7 @@ export function evaluateDeadman(input: DeadmanInput): DeadmanAlert[] {
     alerts.push({
       key: "ai_judge_zero",
       severity: "critical",
-      message: `AI 답변 ${replies}건인데 품질 채점 0건 — 판사(LLM-as-judge)가 멈춤. 환각·레드라인이 검사 없이 나가는 중`,
+      message: `AI 답변 ${replies}건인데 품질 채점 0건. 판사(LLM-as-judge)가 멈췄고, 환각·레드라인이 검사 없이 나가는 중입니다`,
       details: { aiReplies: replies, aiEvaluations: evaluations },
     });
   }
@@ -115,7 +115,7 @@ export function evaluateDeadman(input: DeadmanInput): DeadmanAlert[] {
     alerts.push({
       key: "ai_quality_alert_zero",
       severity: "warning",
-      message: `품질 문제 표시 ${flagged}건인데 코디 알림 0건 — 탐지는 되는데 아무에게도 안 가는 중(2026-08-28 부류)`,
+      message: `품질 문제 표시 ${flagged}건인데 코디 알림 0건. 탐지는 되는데 아무에게도 안 가고 있습니다(2026-08-28 부류)`,
       details: { aiFlagged: flagged, aiQualityAlertsSent: alertsSent },
     });
   }
