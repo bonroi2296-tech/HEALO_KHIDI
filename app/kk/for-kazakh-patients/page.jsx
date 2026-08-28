@@ -40,6 +40,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    url: "/kk/for-kazakh-patients",
     title: "Кореядағы рак емдеу | healwith медициналық консьерж",
     description:
       "Оңтүстік Кореядағы онкологиялық емдеу. Immune Hospital: 50 000+ науқас, ITCR хаттамасы. Қазақ тілінде қолдау.",
