@@ -1359,7 +1359,11 @@ export default function ConsultationRoomPage() {
       const incoming = {
         source: original,
         translated,
-        speaker: myNameRef.current || "",
+        // ⚠️ 화자 키는 «이름»이 아니라 고정값이다. 이어 붙이기는 화자가 비어 있으면 안 붙이는데,
+        //    이름은 자주 비어 있다(실측 2026-08-28: 실서비스 자막 3,554줄 중 41%가 이름 없음).
+        //    이 경로는 «언제나 나»이므로 이름으로 가릴 이유가 없다 — 고정 키를 쓴다.
+        //    (통역봇 경로는 다르다: 거긴 여러 사람이 섞이므로 진짜 화자 id 가 있어야 한다)
+        speaker: "self",
         lang: srcLangOverride || myLang,
         at,
       };
