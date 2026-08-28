@@ -18,6 +18,7 @@
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
+import { isIOSApp } from "@/lib/isNativeApp";
 
 export const APPLE_LOGIN_ENABLED =
   process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true";
@@ -39,6 +40,29 @@ export default function AppleSignInButton({
   const start = async () => {
     setBusy(true);
     try {
+      // 🍎 아이폰 «앱 안»에서는 웹 방식이 끝까지 못 간다 — 아이폰이 애플 로그인을 시스템 창으로
+      //    가로채서, 인증은 되는데 그 결과가 우리 서버로 안 돌아온다(2026-08-28 실기기 실측).
+      //    그래서 앱에서는 아이폰이 주는 창을 직접 쓰고 토큰만 받아 온다.
+      //    안드로이드는 웹 방식이 그대로 되므로 건드리지 않는다.
+      if (isIOSApp()) {
+        const { signInWithAppleNative, isAppleCancel } = await import(
+          "@/lib/auth/appleNativeSignIn"
+        );
+        try {
+          await signInWithAppleNative(supabase);
+        } catch (nativeError) {
+          // 사용자가 창을 그냥 닫은 것은 오류가 아니다 — 조용히 버튼만 되살린다.
+          if (isAppleCancel(nativeError)) {
+            setBusy(false);
+            return;
+          }
+          throw nativeError;
+        }
+        // 세션이 이 화면에 바로 생기므로 서버 콜백을 타지 않는다 → 착지만 직접 정한다.
+        window.location.href = redirectTarget || "/";
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/auth/callback${
         redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ""
       }`;
