@@ -1746,6 +1746,32 @@ export default function ConsultationRoomPage() {
     [pushConvoContext, replaceConvoContext, showRemoteSubtitle, myLang, targetLang, flushBotLine]
   );
 
+  // 자막·통역을 «끄면» 이어 붙이기 상태를 비운다.
+  //
+  // 왜 (2026-08-28): 안 비우면 다시 켰을 때 «끄기 전에 끊겨 있던 줄»에 새 말이 붙는다.
+  // 그 사이 대화가 이어졌으면 서로 다른 두 문장이 한 줄이 되고, 뜻이 바뀐다.
+  // 시간 조건(10초)이 대부분 막지만, 자막이 지저분해서 잠깐 껐다 켜는 건 흔한 일이다.
+  // ⚠️ 아직 기록에 안 넣은 통역봇 줄은 «버리지 말고» 넣는다 — 이미 받은 말이다.
+  useEffect(() => {
+    if (translationEnabled) return;
+    lastShownRef.current = null;
+    if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+    if (botPendingRef.current) {
+      flushBotLine(botPendingRef.current);
+      botPendingRef.current = null;
+    }
+  }, [translationEnabled, flushBotLine]);
+
+  // 통역(음성)만 끈 경우도 같다 — 봇 자막이 끊기므로 대기 줄을 확정한다.
+  useEffect(() => {
+    if (voiceOn) return;
+    if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+    if (botPendingRef.current) {
+      flushBotLine(botPendingRef.current);
+      botPendingRef.current = null;
+    }
+  }, [voiceOn, flushBotLine]);
+
   // 통화가 끝나거나 화면을 벗어날 때 «아직 안 보낸 마지막 줄»을 남긴다.
   // 이게 없으면 대화의 마지막 문장이 매번 기록에서 빠진다.
   useEffect(() => {
