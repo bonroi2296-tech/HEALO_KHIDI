@@ -126,6 +126,10 @@ export async function GET(request: NextRequest) {
           .from("chat_messages")
           .select("id", { count: "exact", head: true })
           .eq("actor_type", "system")
+          // ⚠️ 가로챈 턴(잡담·화제정정·마스터키)은 «빼고» 센다. 그 답변들은 모델을 안 거치므로
+          //    판사도 안 돈다 — 같이 세면 「인사만 잔뜩 들어온 주」에 답변 많음 + 채점 0 이 되어
+          //    판사가 멀쩡한데 critical 경보가 뜬다(오탐). 늑대소년은 감시를 죽인다(#112 근본원인 2).
+          .is("metadata->>bypassed", null)
           .gte("created_at", sinceAi),
         (supabaseAdmin as any)
           .from("ai_response_evaluations")
