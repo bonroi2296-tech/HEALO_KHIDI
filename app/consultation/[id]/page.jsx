@@ -1679,6 +1679,9 @@ export default function ConsultationRoomPage() {
           targetLanguage: myLang,
           sttEngine: STT_ENGINES.LIVE_TRANSLATE,
           speakerName: line.speakerName || undefined,
+          // 「말한 시각」 — 붙인 줄은 «첫 조각»의 시각이다. 안 보내면 저장 시각으로 남아
+          // 회의록에서 이 줄만 최대 6초 뒤로 밀린다(확정 타이머만큼).
+          spokenAt: new Date(line.at).toISOString(),
         }),
       })
         .then((r) => {

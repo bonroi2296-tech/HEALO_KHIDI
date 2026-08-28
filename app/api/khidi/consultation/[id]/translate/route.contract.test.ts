@@ -110,4 +110,36 @@ describe("자막 기록 저장 — 통역 경로가 막히면 안 된다", () =>
     expect(inserted[0].translated_text).toBeUndefined();
     expect(inserted[0].speaker_name).toBeUndefined();
   });
+
+  it("「말한 시각」을 주면 그 시각으로 남긴다 (회의록 순서가 안 어긋나게)", async () => {
+    const spoken = new Date(Date.now() - 30_000).toISOString();
+    await call({
+      translatedText: "네",
+      sourceLanguage: "ru",
+      targetLanguage: "ko",
+      sttEngine: "live_translate",
+      spokenAt: spoken,
+    });
+    expect(inserted[0].created_at).toBe(spoken);
+  });
+
+  it("말도 안 되는 시각은 버린다 (클라이언트 값을 그대로 믿지 않는다)", async () => {
+    await call({
+      translatedText: "네",
+      sourceLanguage: "ru",
+      targetLanguage: "ko",
+      spokenAt: "2020-01-01T00:00:00.000Z",
+    });
+    expect(inserted[0].created_at).toBeUndefined();
+
+    inserted.length = 0;
+    await call({
+      translatedText: "네",
+      sourceLanguage: "ru",
+      targetLanguage: "ko",
+      spokenAt: "그냥 글자",
+    });
+    expect(inserted[0].created_at).toBeUndefined();
+  });
+
 });

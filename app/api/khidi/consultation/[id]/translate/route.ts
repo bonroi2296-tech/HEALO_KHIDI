@@ -71,6 +71,15 @@ export async function POST(
           // 「어느 받아쓰기가 만든 줄인가」 — 아는 값만 통과(모르는 값이 섞이면 이 칸으로
           // 재는 숫자가 통째로 못 쓰게 된다). 이 라우트는 맞장구 사전 경로가 기본.
           stt_engine: normalizeSttEngine(payload.sttEngine) ?? STT_ENGINES.BACKCHANNEL,
+          // 「말한 시각」을 받는다. 안 주면 서버 시각(now)으로 남는데, 그러면 줄마다
+          // «저장까지 걸린 시간»만큼 뒤로 밀려 회의록 순서가 어긋난다. 실시간 통역 줄은
+          // 조각이 다 붙기를 기다렸다 저장하므로(최대 6초) 특히 크게 밀린다(2026-08-28).
+          // ⚠️ 클라이언트 값이므로 그대로 믿지 않는다 — 지금 기준 ±10분을 벗어나면 버린다.
+          ...(() => {
+            const t = Date.parse(payload.spokenAt ?? "");
+            const ok = Number.isFinite(t) && Math.abs(Date.now() - t) <= 10 * 60 * 1000;
+            return ok ? { created_at: new Date(t).toISOString() } : {};
+          })(),
           ...encryptTranscriptRow({
             sourceText: payload.originalText || null,
             translatedText: payload.translatedText || null,
