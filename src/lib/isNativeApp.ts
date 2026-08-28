@@ -18,3 +18,18 @@ export function isNativeApp(): boolean {
   const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
   return cap?.isNativePlatform?.() === true;
 }
+
+/**
+ * 지금 «아이폰·아이패드 앱 안»인가. 애플 로그인이 여기서만 다른 길을 탄다
+ * (아이폰은 웹 방식이 끝까지 못 간다 → `src/lib/auth/appleNativeSignIn.ts`).
+ *
+ * ⚠️ 위와 같은 이유로 **화면을 그리는 도중에 부르지 마라**(서버엔 navigator 가 없다).
+ *    버튼을 눌렀을 때처럼 «사용자 동작 뒤»에만 부른다.
+ */
+export function isIOSApp(): boolean {
+  if (!isNativeApp()) return false;
+  const platform = (window as unknown as { Capacitor?: { getPlatform?: () => string } })
+    .Capacitor?.getPlatform?.();
+  if (platform) return platform === "ios";
+  return /iPhone|iPad|iPod/.test(navigator.userAgent);
+}
