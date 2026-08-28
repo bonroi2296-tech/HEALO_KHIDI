@@ -88,3 +88,30 @@ describe("evaluateDeadman — 탐지는 되는데 통보가 안 됨", () => {
     expect(evaluateDeadman(OK)).toHaveLength(0);
   });
 });
+
+// 판사를 «불렀는데» 채점이 안 남는 것 (2026-08-28 2차 훑기에서 발견)
+// 실측: 최근 이틀 판사 호출 77건 · 채점 저장 47건 = 39% 유실. 로그에만 남고 DB엔 흔적이 없었다.
+describe("evaluateDeadman — 부르고도 결과를 잃는 중", () => {
+  it("호출 77건에 저장 47건이면 warning (발견 당시 실측값)", () => {
+    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 77, aiEvaluations: 47 });
+    const hit = a.find((x) => x.key === "ai_judge_save_gap");
+    expect(hit?.severity).toBe("warning");
+    expect(hit?.details.savedPct).toBe(61);
+  });
+  it("저장률이 높으면 조용", () => {
+    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 50, aiEvaluations: 48 });
+    expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
+  });
+  it("호출이 적으면(<20) 안 본다 — 표본 부족에선 비율이 요동친다", () => {
+    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 9, aiEvaluations: 1 });
+    expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
+  });
+  it("채점이 0이면 ai_judge_zero 쪽에 맡기고 여기선 안 울린다 — 중복 경보 방지", () => {
+    const a = evaluateDeadman({ ...OK, aiReplies: 58, aiJudgeCalls: 40, aiEvaluations: 0 });
+    expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
+    expect(a.some((x) => x.key === "ai_judge_zero")).toBe(true);
+  });
+  it("값을 안 넘기면 기존 판정만 돈다", () => {
+    expect(evaluateDeadman(OK)).toHaveLength(0);
+  });
+});

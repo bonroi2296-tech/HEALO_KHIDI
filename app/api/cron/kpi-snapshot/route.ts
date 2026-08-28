@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       // 30일이면 «어제 죽었어도» 옛 건수에 묻혀 경보가 안 뜬다(감시 지연 = 감시 부재).
       const sinceAi = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-      const [snap, sessions, surveys, aiReplies, aiEvals, aiFlagged, aiAlerts] = await Promise.all([
+      const [snap, sessions, surveys, aiReplies, aiEvals, aiFlagged, aiAlerts, aiJudgeCalls] = await Promise.all([
         (supabaseAdmin as any)
           .from("kpi_snapshots")
           .select("snapshot_date")
@@ -145,6 +145,13 @@ export async function GET(request: NextRequest) {
           .select("id", { count: "exact", head: true })
           .eq("type", "ai_quality_alert")
           .gte("created_at", sinceAi),
+        // ③판사를 «불렀는데» 채점이 안 남는다 = 조용한 실패.
+        //    surface='judge' 는 라이브 채점만이다(자가시험은 'regression_judge' 로 따로 기록).
+        (supabaseAdmin as any)
+          .from("ai_usage_events")
+          .select("id", { count: "exact", head: true })
+          .eq("surface", "judge")
+          .gte("created_at", sinceAi),
       ]);
 
       const deadman = evaluateDeadman({
@@ -156,6 +163,7 @@ export async function GET(request: NextRequest) {
         aiEvaluations: aiEvals?.count ?? 0,
         aiFlagged: aiFlagged?.count ?? 0,
         aiQualityAlertsSent: aiAlerts?.count ?? 0,
+        aiJudgeCalls: aiJudgeCalls?.count ?? 0,
       });
       if (deadman.length > 0) {
         console.warn(
