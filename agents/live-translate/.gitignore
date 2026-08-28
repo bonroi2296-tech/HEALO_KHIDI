@@ -8,3 +8,5 @@ dist/
 build/
 .secrets.env
 captions_dup.json
+captions_more.json
+captions_8.json
