@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Paperclip, Eye, X, Loader2, BookOpen } from 'lucide-react';
 import { formatDate } from "@/lib/i18n/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -44,6 +44,16 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
     }
   };
   
+  // 딥링크: 「📬 새 문의 #N」 알림에서 `?inquiry=<id>` 로 들어오면 그 문의 상세를 바로 연다.
+  // (예전엔 목록 주소만 줘서, 알림을 눌러도 «그 문의»를 사람이 눈으로 찾아야 했다 — 2026-08-28)
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    deepLinked.current = true;
+    const id = new URLSearchParams(window.location.search).get('inquiry');
+    if (id) handleViewDetail(id);
+  }, []);
+
   const closeDetailModal = () => {
     setSelectedInquiry(null);
     setTranslationResult(null);

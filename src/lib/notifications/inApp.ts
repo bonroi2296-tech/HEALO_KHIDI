@@ -227,9 +227,9 @@ export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<v
       }),
       broadcastInAppNotification(admins, {
         type: "new_inquiry", title, body, priority: "high",
-        // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크.
-        //    문의번호는 title(#N)에 있음. 이메일 알림(adminNotifier.ts)과 동일 정책(404 방지).
-        link: "/admin/inquiries",
+        // /admin/inquiries 는 목록 페이지지만 `?inquiry=<id>` 로 그 문의 상세를 바로 연다
+        //    (상세 [id] 라우트는 없으므로 404 없이 목록+모달로 열림 — 2026-08-28).
+        link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
         payload: { inquiryId: notice.inquiryId },
       }),
     ]);
@@ -330,7 +330,9 @@ export async function notifyStaffChatHandoff(notice: ChatHandoffNotice): Promise
       title: "🙋 AI 챗 상담 연결 요청",
       body,
       priority: "high",
-      link: "/admin/chat",
+      // ⚠️ 반드시 `?thread=` 로 «그 대화»를 열어라. 목록 주소만 주면 100건짜리 목록이 열리고
+      //    어느 건인지 못 찾는다 (2026-08-28 PO 제보로 드러남). 뷰어가 딥링크를 지원한다.
+      link: `/admin/chat?thread=${notice.threadId}`,
       payload: { threadId: notice.threadId, reason: notice.reason ?? null },
     });
   } catch {

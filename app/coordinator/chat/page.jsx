@@ -180,6 +180,10 @@ export default function CoordinatorChatPage() {
     setSelected(thread);
     setMessages([]);
     setLoadingMsgs(true);
+    // 폰: 목록을 한참 내려서 눌렀어도 상세는 맨 위에 그려진다 → 화면을 올려줘야 보인다.
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     try {
       const token = await getToken();
       const res = await fetch(`/api/admin/chat/threads/${thread.id}/messages`, {
@@ -294,8 +298,12 @@ export default function CoordinatorChatPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 스레드 목록 */}
-        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {/* 스레드 목록
+            폰(1단 배치)에선 대화를 고르면 목록을 접고 상세만 보인다. 예전엔 상세가 목록 «아래»에
+            그려져서, 눌러도 첫 화면이 그대로라 「조회가 안 된다」로 보였다 (2026-08-28 PO 제보). */}
+        <div className={`lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden ${
+          selected ? "hidden lg:block" : ""
+        }`}>
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> {L.chLoading}
@@ -352,7 +360,9 @@ export default function CoordinatorChatPage() {
         </div>
 
         {/* 대화 상세 */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh]">
+        <div className={`lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh] ${
+          selected ? "" : "hidden lg:block"
+        }`}>
           {!selected ? (
             // 빈 화면 → 검토 대기 큐로 공백 활용
             <div className="p-5 h-full">
@@ -426,7 +436,7 @@ export default function CoordinatorChatPage() {
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-xs text-gray-500 hover:text-gray-600 shrink-0"
+                  className="text-xs text-gray-600 hover:text-gray-800 shrink-0 px-2.5 py-2 -my-1 rounded-lg border border-gray-200 lg:border-transparent hover:bg-gray-50"
                 >
                   ← {L.chBackToList}
                 </button>
