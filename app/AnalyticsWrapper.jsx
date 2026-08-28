@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { hasAnalyticsConsent, GA_ID, initDebugMode, maskSecretPath } from "@/lib/ga";
+import { hasAnalyticsConsent, GA_ID, initDebugMode, maskSecretPath, metaPixelPageView } from "@/lib/ga";
 import GaDebugBadge from "./GaDebugBadge";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 
@@ -24,6 +24,7 @@ export default function AnalyticsWrapper() {
   const pathname = usePathname();
   const gaId = GA_ID;
   const ymId = process.env.NEXT_PUBLIC_YANDEX_METRICA_ID;
+  const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const isProduction = process.env.NODE_ENV === "production";
   const isAdminPath = pathname?.startsWith("/admin");
 
@@ -107,13 +108,14 @@ export default function AnalyticsWrapper() {
       console.log("[Analytics] 로드 게이트:", {
         gaId: gaId ? "설정됨" : "미설정",
         ymId: ymId ? "설정됨" : "미설정",
+        metaPixelId: metaPixelId ? "설정됨" : "미설정",
         isProduction,
         isAdminPath,
         consentGranted,
         willLoad: allowAnalytics && interacted,
       });
     }
-  }, [gaId, ymId, isProduction, isAdminPath, consentGranted, allowAnalytics, interacted]);
+  }, [gaId, ymId, metaPixelId, isProduction, isAdminPath, consentGranted, allowAnalytics, interacted]);
 
   // 자가진단 배지(?ga_debug=1)는 **게이트에 막혔을 때도** 떠야 한다 — «왜 안 되는지»가
   // 대부분 이 게이트(쿠키 동의·상호작용 대기)이기 때문이다. 막힌 이유를 화면에 적어준다.
@@ -197,9 +199,33 @@ k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNo
 ym(${ymId}, 'init', { clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:false });`}
         </Script>
       )}
+
+      {/* Meta(페이스북·인스타) 픽셀 — 광고 성과 측정·리타게팅. env 있을 때만.
+
+          ⚠️ 자동 화면조회(`fbq('track','PageView')`)를 **일부러 스니펫에서 뺐다.**
+             픽셀은 발화할 때 현재 주소를 자기가 실어 보내는데 우리는 /treatments/lung 처럼
+             주소가 곧 병명이다. 그대로 두면 첫 진입이 통째로 건강정보가 되어 메타로 나간다
+             (메타 비즈니스 도구 약관이 금지하는 바로 그것 — src/lib/ga.ts 주석 참고).
+             대신 onReady 에서 metaPixelPageView() 를 부른다 — 주소 판정이 거기 한 곳에만 있어야
+             나중에 규칙이 바뀌어도 두 군데를 고치다 한쪽을 빠뜨리는 일이 없다. */}
+      {metaPixelId && (
+        <Script
+          id="meta-pixel"
+          strategy="lazyOnload"
+          onReady={() => metaPixelPageView()}
+        >
+          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${metaPixelId}');`}
+        </Script>
+      )}
     </>
   );
 }
 
 /* TODO(전환태그): 구글애즈/얀덱스 Direct conversion 태그는 실제 conversion ID가 발급된 뒤 추가.
-   ID 없이 스니펫만 넣으면 동작 안 함 → PO가 광고계정 만든 후 env로 주입. (이 파일 게이트 재사용) */
+   ID 없이 스니펫만 넣으면 동작 안 함 → PO가 광고계정 만든 후 env로 주입. (이 파일 게이트 재사용)
+   ※ 메타 픽셀은 2026-08-28 이 방식으로 붙였다 — NEXT_PUBLIC_META_PIXEL_ID 만 넣으면 켜진다. */
