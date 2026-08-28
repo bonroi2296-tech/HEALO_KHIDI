@@ -27,11 +27,18 @@ export async function POST(
     if (!access.success) return access.response;
 
     const payload = await request.json();
-    if (!payload.originalText || !payload.sourceLanguage || !payload.targetLanguage) {
+    // 실시간 통역(agents/live-translate)은 «번역된 자막»만 주고 원문을 안 준다.
+    // 그래서 원문·번역 중 하나만 있어도 받는다 — 2026-08-28 이전엔 원문을 필수로 요구해
+    // 통역봇 자막이 저장 자체를 못 했다(실측: 자막 3,553건 중 이 경로 0건).
+    if (
+      (!payload.originalText && !payload.translatedText) ||
+      !payload.sourceLanguage ||
+      !payload.targetLanguage
+    ) {
       return Response.json(
         {
           ok: false,
-          error: "originalText, sourceLanguage, targetLanguage are required",
+          error: "originalText or translatedText, and sourceLanguage, targetLanguage are required",
         },
         { status: 400 }
       );
@@ -65,7 +72,7 @@ export async function POST(
           // 재는 숫자가 통째로 못 쓰게 된다). 이 라우트는 맞장구 사전 경로가 기본.
           stt_engine: normalizeSttEngine(payload.sttEngine) ?? STT_ENGINES.BACKCHANNEL,
           ...encryptTranscriptRow({
-            sourceText: payload.originalText,
+            sourceText: payload.originalText || null,
             translatedText: payload.translatedText || null,
             speakerName: String(payload.speakerName || "").trim().slice(0, 80) || null,
           }),
@@ -88,7 +95,7 @@ export async function POST(
     delete row.translated_text_encrypted;
     return Response.json({
       ok: true,
-      data: { ...row, source_text: payload.originalText, translated_text: payload.translatedText || null },
+      data: { ...row, source_text: payload.originalText || null, translated_text: payload.translatedText || null },
     });
   } catch (error: any) {
     console.error("[api/khidi/consultation/translate] Exception:", error?.message);

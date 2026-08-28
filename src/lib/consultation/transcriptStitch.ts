@@ -48,12 +48,30 @@ export function looksCut(text: string): boolean {
  * 뒤 조각이 «새 문장의 시작»으로 보이나? 그러면 앞과 붙이지 않는다.
  *
  * · 로마자·키릴 대문자로 시작 = 새 문장(러시아어·영어에서 가장 믿을 만한 신호).
- *   ⚠️ 고유명사도 대문자라 «Антон 은 …» 같은 이어짐을 놓친다 — 붙일 것을 못 붙이는
- *   쪽(안전한 실수)이므로 그대로 둔다.
+ *   ⚠️ 고유명사도 대문자다. 2026-08-28 실측에서 «Я из» + «Казахстана.» 가 이 규칙에
+ *   걸려 안 붙었다(실시간 통역 자막 5회차 중 3회). 그래서 **앞 조각이 전치사·접속사로
+ *   끝날 때만** 이 신호를 무시한다(endsWithConnector). 그 자리는 문장이 끝날 수 없는
+ *   자리라, 뒤에 오는 대문자는 새 문장이 아니라 고유명사다.
  * · 한국어는 대소문자가 없어 이 신호를 못 쓴다 → 인사말·되묻기만 막는다.
  */
 const SENTENCE_OPENERS =
   /^(안녕|여보세요|네[,.\s]|예[,.\s]|아니요|죄송|감사|그럼\s|자[,\s]|Здравствуйте|Привет|Спасибо|Извините|Да[,.\s]|Нет[,.\s]|Hello|Hi[,.\s]|Thanks|Sorry)/;
+
+/**
+ * 앞 조각이 «문장이 끝날 수 없는 낱말»로 끝나나? (전치사·접속사)
+ *
+ * 이 자리에서는 말이 끝날 수 없으므로, 뒤 조각이 대문자로 시작해도 새 문장이 아니라
+ * 고유명사다. 한국어는 조사가 붙어 이 신호가 필요 없다(대소문자도 없다).
+ * ⚠️ 목록을 넓히지 마라 — 넓힐수록 «잘못 붙이기»가 늘고, 그건 뜻을 바꾼다.
+ */
+const CONNECTOR_TAIL =
+  /(^|\s)(из|в|во|на|с|со|к|ко|о|об|по|за|от|до|для|при|под|над|у|про|через|между|и|а|но|что|как|если|чтобы|of|in|on|at|to|for|with|and|but|that|from|by|as|or)\s*$/i;
+
+export function endsWithConnector(text: string): boolean {
+  const t = (text || "").trim();
+  if (!t || hasHangul(t)) return false;
+  return CONNECTOR_TAIL.test(t);
+}
 
 export function startsNewSentence(text: string): boolean {
   const t = (text || "").trim();
@@ -108,6 +126,19 @@ export type StitchOptions = {
  *   ⑥ 양쪽 다 맞장구가 아니다 — "예"+"예"를 "예 예"로 잇는 건 아무 도움이 안 된다.
  *   ⑦ 합쳐도 너무 길지 않다
  */
+/**
+ * 실시간 통역(agents/live-translate) 자막 전용 기본값.
+ *
+ * 왜 따로 두나 (2026-08-28 실측): 통역 모델은 말을 따라가며 몇 글자씩 즉시 내보내
+ * 조각이 아주 잘다("Сейчас" 6자 · "я прохожу" 9자). 기본 minLen 8 로는 그 조각들이
+ * 통째로 걸러져 붙일 것을 못 붙인다(문장 중간 절단 68% → 기본값 20% 에서 멈춤).
+ *
+ * 실측(5회차 74조각): minLen 을 4 로 낮추면 0%. 2·3·4 가 결과가 같아 **가장 보수적인 4**
+ * 를 고른다 — 「Да」(2자)·「Нет」(3자) 같은 맞장구가 앞줄에 붙는 것을 막는다.
+ * ⚠️ 이 값을 더 낮추지 마라. 결과는 안 좋아지고 잘못 붙일 위험만 는다.
+ */
+export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 4 };
+
 export function shouldStitch(
   { prev, next }: StitchInput,
   { maxGapMs = 10000, maxLen = 220, minLen = 8 }: StitchOptions = {},
@@ -123,7 +154,8 @@ export function shouldStitch(
   if ((prev.lang || "") !== (next.lang || "")) return false;         // ③
   const gap = next.at - prev.at;
   if (!(gap >= 0 && gap <= maxGapMs)) return false;                  // ④
-  if (startsNewSentence(b)) return false;                            // ⑤
+  // 앞이 전치사·접속사로 끝났으면 뒤의 대문자는 «새 문장»이 아니라 고유명사다(2026-08-28).
+  if (startsNewSentence(b) && !endsWithConnector(a)) return false;                            // ⑤
   if (a.length < minLen || b.length < minLen) return false;          // ⑥
   if (a.length + b.length + 1 > maxLen) return false;                // ⑦
   return true;

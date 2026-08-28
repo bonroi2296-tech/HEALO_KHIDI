@@ -99,7 +99,11 @@ import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/use
 import { shouldSwitchToServerStt, createSpokenClock } from "@/lib/consultation/sttWatchdog";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
-import { shouldStitch, stitch } from "@/lib/consultation/transcriptStitch";
+import { shouldStitch, stitch, LIVE_TRANSLATE_STITCH } from "@/lib/consultation/transcriptStitch";
+
+// 통역봇 줄이 «더 안 붙는다»고 볼 때까지 기다리는 시간. 이어 붙이기 상한(10초)보다 짧게 잡아
+// 마지막 줄이 기록에서 빠지지 않게 한다.
+const BOT_LINE_SETTLE_MS = 6000;
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { isPatientSideRole } from "@/lib/consultation/inviteRole";
@@ -1601,31 +1605,117 @@ export default function ConsultationRoomPage() {
 
   // ── 통역 봇 자막 수신 (LiveTranslateBridge, lk.translation 스트림) ──
   // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
+  // 아직 «더 붙을 수 있어» 저장을 미뤄 둔 통역봇 줄. 조각이 확정된 뒤에 한 번만 보낸다.
+  const botPendingRef = useRef(null);
+  const botFlushTimerRef = useRef(null);
+
+  // 통역봇 줄 하나를 기록에 남긴다. 2026-08-28 까지 이 경로만 저장이 통째로 빠져 있었다
+  // (실측: 자막 3,553건 중 통역봇 경로 0건) — 화면에는 떴지만 회의록·상담 요약에는 없었다.
+  // ⚠️ 천장: 같은 언어를 쓰는 사람이 방에 둘 이상이면 그 인원수만큼 중복 저장된다.
+  //    지금 상담은 한국어 1명 + 환자 언어 1명이라 안 겹친다. 겹치기 시작하면 통역봇이
+  //    자막마다 고유 번호를 실어 보내고 서버에서 거르는 쪽으로 올려야 한다.
+  const flushBotLine = useCallback(
+    (line) => {
+      if (!line || !consultationId) return;
+      const body = String(line.translated || "").trim();
+      if (!body) return;
+      fetch(`/api/khidi/consultation/${consultationId}/translate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+        },
+        body: JSON.stringify({
+          // 통역봇은 원문을 안 준다(번역된 자막만 온다) — 원문 칸은 비워 둔다.
+          translatedText: body,
+          sourceLanguage: line.lang,
+          targetLanguage: myLang,
+          sttEngine: STT_ENGINES.LIVE_TRANSLATE,
+          speakerName: line.speakerName || undefined,
+        }),
+      }).catch(() => {});
+    },
+    [consultationId, isGuestMode, inviteToken, myLang]
+  );
+
   const handleBotSubtitle = useCallback(
     ({ text, lang, role, speakerId, name }) => {
       // 통역봇은 방에 하나뿐이라 «상대가 통역을 켜면» 내 화면에도 자막이 흘러든다.
       // DC 자막과 같은 이유로 내 스위치를 따른다 (2026-08-07).
       if (!translationEnabledRef.current) return;
+
+      // 통역 모델은 말을 따라가며 몇 글자씩 즉시 내보내 조각이 아주 잘다(2026-08-28 실측:
+      // 문장 중간 절단 68%). 앞줄에 도로 붙여 문장 단위로 되돌린다 — 같은 실측에서 0%.
+      const speakerKey = speakerId || `bot:${role || "interpreter"}`;
+      const incoming = {
+        source: text,
+        translated: text,
+        speaker: speakerKey,
+        lang,
+        at: Date.now(),
+      };
+      const prev = botPendingRef.current;
+      const merged = shouldStitch({ prev, next: incoming }, LIVE_TRANSLATE_STITCH);
+      const line = merged ? stitch({ prev, next: incoming }) : null;
+      const shown = merged ? line.translated : text;
+
+      // 더 못 붙이는 게 확정된 «앞줄»만 기록에 넣는다. 붙는 동안 보내면 조각난 채로 남는다.
+      if (!merged && prev) flushBotLine(prev);
+
+      botPendingRef.current = {
+        ...incoming,
+        source: shown,
+        translated: shown,
+        at: merged ? prev.at : incoming.at,
+        speakerName: name || prev?.speakerName || null,
+      };
+
+      // 다음 조각이 안 오면 시간으로 확정한다. 이게 없으면 «대화의 마지막 줄»이 통째로
+      // 빠진다 — 화면을 닫을 때 도는 정리 함수는 탭을 그냥 닫으면 안 돌기 때문이다
+      // (2026-08-28 실검증에서 8조각 중 뒤 5조각이 안 올라간 것으로 드러났다).
+      if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+      botFlushTimerRef.current = setTimeout(() => {
+        if (botPendingRef.current) {
+          flushBotLine(botPendingRef.current);
+          botPendingRef.current = null;
+        }
+      }, BOT_LINE_SETTLE_MS);
+
       // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
       // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
-      showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
-      pushConvoContext("other", lang, text);
-      setTranslations((prev) => [
-        ...prev.slice(-1999),
-        {
+      showRemoteSubtitle({ key: speakerKey, text: shown, lang, name });
+      pushConvoContext("other", lang, shown);
+      setTranslations((prev2) => {
+        const entry = {
           id: Date.now(),
           original_text: "",
-          translated_text: text,
+          translated_text: shown,
           source_language: lang,
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name || null,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+          created_at: new Date(botPendingRef.current.at).toISOString(),
+        };
+        // 붙인 경우엔 새 줄을 «추가»하지 않고 마지막 줄을 통째로 갈아끼운다.
+        return merged && prev2.length
+          ? [...prev2.slice(0, -1), entry]
+          : [...prev2.slice(-1999), entry];
+      });
     },
-    [pushConvoContext, showRemoteSubtitle, myLang]
+    [pushConvoContext, showRemoteSubtitle, myLang, flushBotLine]
   );
+
+  // 통화가 끝나거나 화면을 벗어날 때 «아직 안 보낸 마지막 줄»을 남긴다.
+  // 이게 없으면 대화의 마지막 문장이 매번 기록에서 빠진다.
+  useEffect(() => {
+    return () => {
+      if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+      if (botPendingRef.current) {
+        flushBotLine(botPendingRef.current);
+        botPendingRef.current = null;
+      }
+    };
+  }, [flushBotLine]);
 
   // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
   // 순서 역전 필터: 조각을 보내자마자 다음 녹음을 시작하므로 응답이 뒤섞여 도착한다.

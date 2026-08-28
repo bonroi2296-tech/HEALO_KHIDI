@@ -3,7 +3,14 @@
  * 각 테스트 = 실서비스 자막에서 실제로 본 모양(2026-08-27 감사).
  */
 import { describe, it, expect } from "vitest";
-import { looksCut, startsNewSentence, shouldStitch, stitch } from "./transcriptStitch";
+import {
+  looksCut,
+  startsNewSentence,
+  endsWithConnector,
+  shouldStitch,
+  stitch,
+  LIVE_TRANSLATE_STITCH,
+} from "./transcriptStitch";
 
 const at = 1_000_000;
 const row = (source: string, t = at, speaker = "코디", lang = "ko") => ({
@@ -158,4 +165,60 @@ describe("stitch — 붙인 결과", () => {
     expect(r.source).toBe("하지만 암 환자들의 경우, 최근에는 많이 옵니다.");
     expect(r.translated).toBe("Но что касается они часто приезжают.");
   });
+
+  // ── 2026-08-28: 실시간 통역 자막으로 실측하다 나온 것 ──
+  // 러시아어는 고유명사도 대문자다. 「대문자 = 새 문장」 규칙이 이어지는 말을 막았다.
+  describe("전치사·접속사로 끝나면 뒤가 대문자여도 붙인다", () => {
+    it("Я из + Казахстана. 를 붙인다 (실제로 못 붙였던 사례)", () => {
+      expect(
+        shouldStitch({
+          prev: { source: "Я из", speaker: "bot", lang: "ru", at: 1000 },
+          next: { source: "Казахстана.", speaker: "bot", lang: "ru", at: 1600 },
+        }, LIVE_TRANSLATE_STITCH)
+      ).toBe(true);
+    });
+
+    it("и я перенес операцию в + Сеуле. 를 붙인다", () => {
+      expect(
+        shouldStitch({
+          prev: { source: "и я перенес операцию в", speaker: "bot", lang: "ru", at: 1000 },
+          next: { source: "Сеуле.", speaker: "bot", lang: "ru", at: 1500 },
+        }, LIVE_TRANSLATE_STITCH)
+      ).toBe(true);
+    });
+
+    it("앞이 끝난 문장이면 전치사가 없으니 그대로 안 붙인다", () => {
+      expect(
+        shouldStitch({
+          prev: { source: "Здравствуйте, доктор.", speaker: "bot", lang: "ru", at: 1000 },
+          next: { source: "Казахстана нет.", speaker: "bot", lang: "ru", at: 1500 },
+        })
+      ).toBe(false);
+    });
+
+    it("전치사로 안 끝나면 대문자를 여전히 새 문장으로 본다", () => {
+      expect(
+        shouldStitch({
+          prev: { source: "мне поставили диагноз", speaker: "bot", lang: "ru", at: 1000 },
+          next: { source: "Сейчас я прохожу", speaker: "bot", lang: "ru", at: 1500 },
+        })
+      ).toBe(false);
+    });
+
+    it("한국어에는 이 완화를 적용하지 않는다", () => {
+      expect(endsWithConnector("수술을 받았고")).toBe(false);
+      expect(endsWithConnector("Я из")).toBe(true);
+      expect(endsWithConnector("Изучение")).toBe(false);
+    });
+
+    it("통역봇 기본값에서도 짧은 맞장구는 안 붙는다", () => {
+      expect(
+        shouldStitch({
+          prev: { source: "Да", speaker: "bot", lang: "ru", at: 1000 },
+          next: { source: "Да", speaker: "bot", lang: "ru", at: 1400 },
+        }, LIVE_TRANSLATE_STITCH)
+      ).toBe(false);
+    });
+  });
+
 });
