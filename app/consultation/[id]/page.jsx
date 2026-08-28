@@ -1633,14 +1633,18 @@ export default function ConsultationRoomPage() {
         body: JSON.stringify({
           // 통역봇은 원문을 안 준다(번역된 자막만 온다) — 원문 칸은 비워 둔다.
           translatedText: body,
-          sourceLanguage: line.lang,
+          // ⚠️ 자막에 실려 오는 lang 은 «번역된 결과» 언어(= 내 언어)다. 그걸 원문 언어 칸에
+          //    넣으면 회의록에 「한국어 → 한국어」로 남는다. 원문 언어는 «상대 언어»(targetLang)다.
+          //    천장: 방에 사람이 셋 이상이고 상대들의 언어가 서로 다르면 부정확해진다.
+          //    그때는 통역봇이 자막에 화자의 원문 언어를 같이 실어 보내야 한다.
+          sourceLanguage: targetLang,
           targetLanguage: myLang,
           sttEngine: STT_ENGINES.LIVE_TRANSLATE,
           speakerName: line.speakerName || undefined,
         }),
       }).catch(() => {});
     },
-    [consultationId, isGuestMode, inviteToken, myLang]
+    [consultationId, isGuestMode, inviteToken, myLang, targetLang]
   );
 
   const handleBotSubtitle = useCallback(
@@ -1695,7 +1699,8 @@ export default function ConsultationRoomPage() {
           id: Date.now(),
           original_text: "",
           translated_text: shown,
-          source_language: lang,
+          // 위와 같은 이유 — lang 은 번역 «결과» 언어라 원문 언어 칸에 못 쓴다.
+          source_language: targetLang,
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name || null,
@@ -1707,7 +1712,7 @@ export default function ConsultationRoomPage() {
           : [...prev2.slice(-1999), entry];
       });
     },
-    [pushConvoContext, showRemoteSubtitle, myLang, flushBotLine]
+    [pushConvoContext, showRemoteSubtitle, myLang, targetLang, flushBotLine]
   );
 
   // 통화가 끝나거나 화면을 벗어날 때 «아직 안 보낸 마지막 줄»을 남긴다.
@@ -2405,7 +2410,13 @@ export default function ConsultationRoomPage() {
         pendingVoiceRef.current = true;
         return;
       }
-      if (!on) pendingVoiceRef.current = false;
+      if (!on) {
+        // 아직 켜지지도 않은 상태(방에 안 붙음)에서 끄면 보낼 게 없다. 그대로 보내면
+        // identity 가 없어 400 이 나고 «끄기»인데도 오류 안내가 뜬다.
+        const wasPending = pendingVoiceRef.current;
+        pendingVoiceRef.current = false;
+        if (wasPending || !myIdentity) return;
+      }
       try {
         const res = await fetch(
           `/api/khidi/consultation/${consultationId}/interpreter`,

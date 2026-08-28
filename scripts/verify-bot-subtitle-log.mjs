@@ -133,7 +133,14 @@ console.log("\n" + "=".repeat(64));
 console.log(`B 화면에 뜬 자막 ${shown.length}줄`);
 shown.forEach((t, i) => console.log(`  ${i + 1}. ${t.slice(0, 130)}`));
 console.log(`\nB 가 기록에 보낸 줄 ${b.saved.length}건 (경로 live_translate)`);
-b.saved.forEach((x, i) => console.log(`  ${i + 1}. ${String(x.translatedText).slice(0, 130)}`));
+b.saved.forEach((x, i) =>
+  console.log(
+    `  ${i + 1}. [${x.sourceLanguage} -> ${x.targetLanguage}] ${String(x.translatedText).slice(0, 100)}`
+  )
+);
+const badLang = b.saved.filter((x) => x.sourceLanguage === x.targetLanguage);
+if (badLang.length) console.log(`
+  ⚠️ 원문 언어와 번역 언어가 같은 줄 ${badLang.length}건 (회의록에 「한국어 → 한국어」로 남는다)`);
 
 await b.page.screenshot({ path: process.env.SHOT || "bot-subtitle-verify.png" });
 await browser.close();
