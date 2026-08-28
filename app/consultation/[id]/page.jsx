@@ -1253,8 +1253,9 @@ export default function ConsultationRoomPage() {
       }
       return next.filter((_, i) => i !== oldest);
     });
-    // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
-    // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
+    // 문장 길이에 비례해 자동 숨김(6~15초). 처음엔 12~30초였는데(«너무 슉슉 넘어가 읽기
+    // 힘들다» PO 제보 2026-07-23), 이번엔 자막이 화면을 너무 오래 가린다는 반대 요구로
+    // #1309 에서 지금 값으로 줄였다. 지난 자막은 「자막 기록」 패널에 남아 다시 읽을 수 있다.
     // 중간(진행 중) 자막은 곧 다음 조각·확정 자막으로 교체되므로 짧게(8초) — 발화 중단 시 잔상 방지.
     const timers = remoteSubtitleTimersRef.current;
     if (timers.has(k)) clearTimeout(timers.get(k));

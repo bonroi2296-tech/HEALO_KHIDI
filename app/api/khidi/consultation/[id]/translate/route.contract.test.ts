@@ -142,4 +142,23 @@ describe("자막 기록 저장 — 통역 경로가 막히면 안 된다", () =>
     expect(inserted[0].created_at).toBeUndefined();
   });
 
+
+  it("게스트(환자)도 자막을 남길 수 있다 — 못 남기면 코디 말의 통역이 기록에서 통째로 빠진다", async () => {
+    const auth = await import("@/lib/auth/requireConsultationAccess");
+    (auth.resolveConsultationActor as any).mockResolvedValueOnce({
+      success: true,
+      role: "patient",
+      isGuest: true,
+      userId: null,
+    });
+    const res = await call({
+      translatedText: "네, 알겠습니다.",
+      sourceLanguage: "ko",
+      targetLanguage: "ru",
+      sttEngine: "live_translate",
+    });
+    expect(res.status).toBe(200);
+    expect(inserted.length).toBe(1);
+  });
+
 });
