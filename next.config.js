@@ -198,11 +198,16 @@ const nextConfig = {
               // 소견 화면의 «미리보기» — 첨부 PDF 를 내려받지 않고 그 자리에서 띄운다(PO 요청 2026-08-04).
               //   frame-src 를 안 적으면 default-src 'self' 로 폴백돼 **우리 저장소 PDF 도 막힌다**
               //   (실측: 미리보기 창은 열리는데 안이 하얗다). 여는 건 우리 저장소 하나뿐 — 외부는 계속 차단.
-              "frame-src 'self' https://*.supabase.co blob:",
+              // www.facebook.com: Meta 픽셀이 «숨은 iframe» 을 띄운다(쿠키 동기화). 2026-08-28 실측 3번째 겹.
+              "frame-src 'self' https://*.supabase.co https://www.facebook.com blob:",
               // 같은 사유 — 편집기 미리보기용. 외부 사이트의 씌우기는 계속 차단.
               "frame-ancestors 'self'",
               "base-uri 'self'",
-              "form-action 'self'",
+              // www.facebook.com: Meta 픽셀은 이벤트를 «form POST» 로도 보낸다 — 2026-08-28 실측 4번째 겹.
+              //   콘솔 원문: Sending form data to 'https://www.facebook.com/tr/' violates … "form-action 'self'"
+              //   ⚠️ img-src 가 `https:` 전체 허용이라 «비콘으로는 나가겠지» 싶었는데 실제로는 0건이었다.
+              //      픽셀이 어느 방식을 고를지는 우리가 못 정한다 → 네 겹을 다 열어야 실제로 돈다.
+              "form-action 'self' https://www.facebook.com",
             ].join('; '),
           },
         ],

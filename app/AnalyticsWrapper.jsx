@@ -102,6 +102,28 @@ export default function AnalyticsWrapper() {
     return () => clearTimeout(tm);
   }, [loadFailed, retried, gaId, allowAnalytics]);
 
+  /**
+   * 픽셀이 실린 뒤 «첫 화면조회» 1회.
+   *
+   * 스니펫에 자동 PageView 를 안 넣었으므로(위 주석) 이게 유일한 통로다. lazyOnload 라
+   * 스크립트가 DOM 에 들어가는 시점이 이 이펙트보다 늦을 수 있어 fbq 가 생길 때까지 잠깐 기다린다.
+   * 2초 안에 안 생기면 포기 — 광고차단기가 막은 경우이고, 그건 우리가 어쩔 수 있는 게 아니다.
+   * 이후 화면 이동은 ClientShell 의 pageview() 가 처리한다(판정은 ga.ts 한 곳).
+   */
+  useEffect(() => {
+    if (!metaPixelId || !allowAnalytics || !interacted) return;
+    let tries = 0;
+    const tm = setInterval(() => {
+      if (typeof window.fbq === "function") {
+        clearInterval(tm);
+        metaPixelPageView();
+      } else if (++tries > 20) {
+        clearInterval(tm);
+      }
+    }, 100);
+    return () => clearInterval(tm);
+  }, [metaPixelId, allowAnalytics, interacted]);
+
   // 디버그 로그 (개발 환경에서만)
   useEffect(() => {
     if (!isProduction) {
@@ -206,14 +228,13 @@ ym(${ymId}, 'init', { clickmap:true, trackLinks:true, accurateTrackBounce:true, 
              픽셀은 발화할 때 현재 주소를 자기가 실어 보내는데 우리는 /treatments/lung 처럼
              주소가 곧 병명이다. 그대로 두면 첫 진입이 통째로 건강정보가 되어 메타로 나간다
              (메타 비즈니스 도구 약관이 금지하는 바로 그것 — src/lib/ga.ts 주석 참고).
-             대신 onReady 에서 metaPixelPageView() 를 부른다 — 주소 판정이 거기 한 곳에만 있어야
-             나중에 규칙이 바뀌어도 두 군데를 고치다 한쪽을 빠뜨리는 일이 없다. */}
+             대신 아래 useEffect 가 metaPixelPageView() 를 부른다 — 주소 판정이 ga.ts 한 곳에만
+             있어야 나중에 규칙이 바뀌어도 두 군데를 고치다 한쪽을 빠뜨리는 일이 없다.
+             ⚠️ 처음엔 <Script onReady> 로 붙였다가 2026-08-28 실측에서 **한 건도 안 나가는 것**을 봤다.
+                인라인 스크립트(children)를 쓰는 <Script> 에서는 onReady 가 불린다는 보장이 없다.
+                「스크립트는 실렸는데 발화 0건」이라 화면·콘솔로는 티가 전혀 안 났다. */}
       {metaPixelId && (
-        <Script
-          id="meta-pixel"
-          strategy="lazyOnload"
-          onReady={() => metaPixelPageView()}
-        >
+        <Script id="meta-pixel" strategy="lazyOnload">
           {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
