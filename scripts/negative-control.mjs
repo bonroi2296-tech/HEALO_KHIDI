@@ -80,6 +80,14 @@ const PLANTS = [
       return m ? s.replace(m[0], m[1]) : s;
     },
     "러시아어 번역 키가 통째로 사라진 것 — 이 견본이 거짓 초록불을 잡아냈다(2026-08-28)"],
+
+  ["completeness", "src/lib/completeness/rubric.js",
+    (s) => s.replace(/verify:\s*"(\w+)"/, 'verify: "PLANTED_BOGUS"'),
+    "「완성이란 무엇인가」 채점표가 조용히 부패한 것"],
+
+  ["hook-data", "docs/LAUNCH_GATES_PO.md",
+    (s) => s.replace(/^## 🎯 지금 남은 관문/m, "## 🎯 남은 관문(제목 바뀜)"),
+    "세션 훅의 관문 보채기 배선이 조용히 끊긴 것"],
 ];
 
 // 마이그레이션은 «새 파일»을 만들어 심는다(기존 파일을 고치는 게 아니라).
