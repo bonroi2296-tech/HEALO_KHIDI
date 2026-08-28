@@ -18,6 +18,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -182,7 +183,7 @@ export default function CoordinatorChatPage() {
     setLoadingMsgs(true);
     // 폰: 목록을 한참 내려서 눌렀어도 상세는 맨 위에 그려진다 → 화면을 올려줘야 보인다.
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: scrollBehavior() });
     }
     try {
       const token = await getToken();
