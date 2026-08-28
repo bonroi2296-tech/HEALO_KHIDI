@@ -149,11 +149,29 @@ export type StitchOptions = {
  * 조각이 아주 잘다("Сейчас" 6자 · "я прохожу" 9자). 기본 minLen 8 로는 그 조각들이
  * 통째로 걸러져 붙일 것을 못 붙인다(문장 중간 절단 68% → 기본값 20% 에서 멈춤).
  *
- * 실측(5회차 74조각): minLen 을 4 로 낮추면 0%. 2·3·4 가 결과가 같아 **가장 보수적인 4**
- * 를 고른다 — 「Да」(2자)·「Нет」(3자) 같은 맞장구가 앞줄에 붙는 것을 막는다.
- * ⚠️ 이 값을 더 낮추지 마라. 결과는 안 좋아지고 잘못 붙일 위험만 는다.
+ * 실측(8회차 131조각): 안 걸면 75%, minLen 4 면 23%, minLen 2·3 이면 8%.
+ * ⚠️ 처음엔 5회차 74조각으로 재서 2·3·4 가 «전부 0%» 로 보여 4 를 골랐다. 표본을 늘리자
+ *    갈렸다 — **작은 표본으로 고른 값은 못 믿는다.** 짧은 맞장구가 붙는 위험은 이제
+ *    repeatsPrev 가 막으므로 3 까지 낮춰도 안전하다(2 와 결과가 같아 보수적인 3).
  */
-export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 4, joinAfterPreposition: true };
+/**
+ * 뒤 조각이 앞 조각을 «되풀이»하고 있나?
+ *
+ * 자막은 같은 말이 두 번 오는 일이 잦다(경로가 둘이거나, 통역이 재전송하거나,
+ * 「말하는 중」 조각이 확정본과 겹치거나). 그걸 이어 붙이면 한 줄 안에서 같은 말이
+ * 두 번 찍힌다: 「카자흐스탄에서 카자흐스탄에서」.
+ *
+ * 2026-08-28 실측: 셋 다 붙고 있었다 — 같은 글 · 앞이 뒤에 통째로 들어간 글 ·
+ * 러시아어 같은 글. 붙이기 판정보다 «먼저» 걸러야 한다.
+ */
+function repeatsPrev(a: string, b: string): boolean {
+  const x = a.trim().toLowerCase().replace(/\s+/g, " ");
+  const y = b.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!x || !y) return false;
+  return y === x || y.startsWith(x) || x.startsWith(y);
+}
+
+export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 3, joinAfterPreposition: true };
 
 export function shouldStitch(
   { prev, next }: StitchInput,
@@ -163,7 +181,9 @@ export function shouldStitch(
   const a = (prev.source || "").trim();
   const b = (next.source || "").trim();
   if (!a || !b) return false;
-  if (!looksCut(a)) return false;                                    // ①
+  if (!looksCut(a)) return false;
+  // 같은 말이 두 번 온 것이면 붙이지 않는다(한 줄에 같은 말이 두 번 찍힌다).
+  if (repeatsPrev(a, b)) return false;                                    // ①
   const sa = (prev.speaker || "").trim();
   const sb = (next.speaker || "").trim();
   if (!sa || !sb || sa !== sb) return false;                         // ②

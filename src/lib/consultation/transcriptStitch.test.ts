@@ -221,4 +221,54 @@ describe("stitch — 붙인 결과", () => {
     });
   });
 
+
+  // ── 2026-08-28: 같은 말이 두 번 오는 경우 ──
+  // 자막 경로가 둘이거나 통역이 재전송하면 같은 말이 두 번 온다. 붙이면 한 줄에 두 번 찍힌다.
+  describe("되풀이된 자막은 붙이지 않는다", () => {
+    const P = { speaker: "p1", lang: "ko", at: 1000 };
+    const N = { speaker: "p1", lang: "ko", at: 1600 };
+
+    it("같은 글이 두 번 오면 안 붙인다", () => {
+      expect(
+        shouldStitch(
+          { prev: { ...P, source: "카자흐스탄에서" }, next: { ...N, source: "카자흐스탄에서" } },
+          LIVE_TRANSLATE_STITCH
+        )
+      ).toBe(false);
+    });
+
+    it("앞 조각이 뒤 조각에 통째로 들어가 있으면 안 붙인다", () => {
+      expect(
+        shouldStitch(
+          {
+            prev: { ...P, source: "위암 3기 진단을" },
+            next: { ...N, source: "위암 3기 진단을 받았고" },
+          },
+          LIVE_TRANSLATE_STITCH
+        )
+      ).toBe(false);
+    });
+
+    it("러시아어에서도 같은 글은 안 붙인다", () => {
+      expect(
+        shouldStitch(
+          {
+            prev: { ...P, source: "рака желудка", lang: "ru" },
+            next: { ...N, source: "рака желудка", lang: "ru" },
+          },
+          LIVE_TRANSLATE_STITCH
+        )
+      ).toBe(false);
+    });
+
+    it("되풀이가 아니면 그대로 붙인다", () => {
+      expect(
+        shouldStitch(
+          { prev: { ...P, source: "카자흐스탄에서" }, next: { ...N, source: "왔습니다." } },
+          LIVE_TRANSLATE_STITCH
+        )
+      ).toBe(true);
+    });
+  });
+
 });
