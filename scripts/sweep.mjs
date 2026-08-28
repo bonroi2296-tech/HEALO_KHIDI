@@ -137,6 +137,24 @@ async function 검사_익명읽기() {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !anon) return add("rls", "익명이 환자 표를 읽나", "못 잼", "익명 열쇠 없음");
   const client = createClient(SUPABASE_URL, anon, { auth: { persistSession: false } });
+
+  // ⚠️ 먼저 «열쇠가 살아 있나»를 본다 — 이게 없으면 이 검사가 거짓 초록불이 된다.
+  //    아래 판정은 「읽혔나」만 보므로, 열쇠가 죽어 모든 조회가 오류나면 뚫림이 0건이 되어
+  //    「✅ 표 7개 전부 0건」으로 통과해 버린다. «막혀서 0건»과 «못 물어봐서 0건»은 다른 자리다.
+  //    (2026-08-28: 같은 부류인 「파이프가 실패를 삼키던 것」을 고치다 이 자리도 같이 발견했다.)
+  //    hospitals 는 손님이 읽어야 «정상»인 표다 — 정책 hospitals_public_read = anon SELECT.
+  //    실측(진짜 anon 권한으로 조회): hospitals 8행 보임 / inquiries·profiles 0행.
+  const 미끼 = await client.from("hospitals").select("id").limit(1);
+  if (미끼.error || !미끼.data?.length) {
+    return add(
+      "rls",
+      "익명이 환자 표를 읽나",
+      "못 잼",
+      `손님 열쇠로 «공개 표»조차 못 읽는다 — 열쇠가 죽었거나 막혔다(${미끼.error?.message || "0건"}). ` +
+        "이 상태의 「환자 표 0건」은 «막혔다»는 뜻이 아니다.",
+    );
+  }
+
   const 뚫림 = [];
   for (const t of ANON_MUST_NOT_READ) {
     const { data, error } = await client.from(t).select("*").limit(1);
