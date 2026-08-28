@@ -64,6 +64,21 @@ await ctx.addCookies([
   { name: login.cookieName, value: login.cookieValue, domain: "localhost", path: "/" },
 ]);
 const page = await ctx.newPage();
+
+// 느린 회선 흉내 (SLOW=1). 카자흐스탄·러시아 현지 회선에서도 «방에 붙기 전 통역 켜기»
+// 고침이 버티는지 보려는 것이다. 20초 상한이 넉넉한지가 질문이다.
+if (process.env.SLOW) {
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.emulateNetworkConditions", {
+    offline: false,
+    downloadThroughput: (400 * 1024) / 8,
+    uploadThroughput: (400 * 1024) / 8,
+    latency: 2000,
+  });
+  console.log("느린 회선 흉내 켬 (내려받기 400kbps · 지연 2초)");
+}
+
 const calls = [];
 page.on("request", (r) => {
   if (r.url().includes("/interpreter")) calls.push(r.method() + " " + (r.postData() || ""));
@@ -83,9 +98,22 @@ const idBefore = await page.evaluate(() => {
 console.log(`통역 켜기 직전 상태: 봇재실=${idBefore}, 기다린 시간=${process.env.WAIT_BEFORE || 12000}ms`);
 
 // 통역을 켠다 (testid 로 확실하게 — 글자로 찾으면 언어 목록의 버튼이 잡힌다)
+// 버튼이 «그려질 때까지»는 상한과 무관하다(그려져야 누를 수 있다). 상한이 세는 것은
+// 「누른 뒤 방에 붙기까지」다. 그래서 버튼을 기다렸다 누르고, 그 순간부터 잰다.
+await page.getByTestId("voice-toggle").waitFor({ timeout: 180000 });
+const t0 = Date.now();
 await page.getByTestId("voice-toggle").click();
-console.log("통역 켬");
-await page.waitForTimeout(9000);
+console.log("통역 켬 (여기서부터 0초)");
+let botAt = null;
+for (let i = 0; i < 12; i++) {
+  await page.waitForTimeout(3000);
+  const ps = await svc.listParticipants(LK_ROOM).catch(() => []);
+  if (ps.some((p) => p.identity.startsWith("agent-"))) {
+    botAt = (Date.now() - t0) / 1000;
+    break;
+  }
+}
+console.log(botAt ? `통역봇이 온 시각: 누른 뒤 ${botAt.toFixed(0)}초` : "통역봇이 36초 안에 안 옴");
 const before = await attrs("언어 바꾸기 «전»");
 
 // 언어를 러시아어로 바꾼다
