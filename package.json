@@ -86,7 +86,8 @@
     "sweep": "node scripts/sweep.mjs",
     "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
     "audit:negative-control": "node scripts/negative-control.mjs",
-    "check:guard-coverage": "node scripts/check-guard-coverage.mjs"
+    "check:guard-coverage": "node scripts/check-guard-coverage.mjs",
+    "check:workflow-pipefail": "node scripts/check-workflow-pipefail.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
