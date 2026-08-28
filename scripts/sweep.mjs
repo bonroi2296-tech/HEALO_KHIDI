@@ -371,6 +371,54 @@ async function 검사_앱미반영() {
 }
 
 /**
+ * 아이폰판도 같은 방식으로 대조한다 (2026-08-28 추가).
+ *
+ * 왜 따로 있나: 이 검사는 오랫동안 «안드로이드만» 봤다. 그래서 2026-08-28 에
+ *   아이폰 빌드 3 에 `@capacitor/app` 이 안 실려 있었는데도 훑기는 「통과」로 나왔고,
+ *   그날 애플 로그인이 실기기에서 죽는 것을 끝내 못 잡았다. 안드로이드와 아이폰은
+ *   **부품이 따로 실린다** — 한쪽이 통과라고 다른 쪽이 통과인 게 아니다.
+ *
+ * ⚠️ 기준을 `ios/App/CapApp-SPM/Package.swift` 로 잡지 마라. 그 파일은 `npx cap sync ios`
+ *    를 돌려야 갱신되는데, 안 돌리면 낡은 채로 남아 **거짓 통과**가 된다.
+ *    `package.json` 은 부품을 넣는 순간 바뀌므로 항상 최신이다.
+ */
+function 아이폰부품목록() {
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const 제외 = new Set(["@capacitor/core", "@capacitor/cli", "@capacitor/android", "@capacitor/ios"]);
+  return Object.keys(pkg.dependencies || {})
+    .filter((n) => (n.startsWith("@capacitor/") || n.startsWith("@capawesome/")) && !제외.has(n))
+    .sort();
+}
+
+async function 검사_아이폰미반영() {
+  let 기준;
+  try {
+    기준 = JSON.parse(fs.readFileSync(path.join("docs", "sweep-baseline.json"), "utf8")).앱출시?.아이폰;
+  } catch {
+    /* 아래에서 「못 잼」 */
+  }
+  if (!기준?.build || !Array.isArray(기준.부품)) {
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시.아이폰」 칸이 비었거나 부품 목록이 없다");
+  }
+
+  const 현재부품 = 아이폰부품목록();
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+  const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
+
+  const 볼것 = 안실린부품.length > 0;
+  const 조각 = [`TestFlight·스토어 판 ${폰}`];
+  if (안실린부품.length) {
+    조각.push(`⚠️ 그 판에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 아이폰에서 죽어 있다`);
+    조각.push("아이폰 앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
+  } else {
+    조각.push(`부품 ${현재부품.length}개 전부 그 판에 있음`);
+  }
+
+  // 안드로이드 쪽과 같은 이유로 경보에서는 뺀다 — 몇 주씩 이어지는 «정상» 상태다.
+  add("app", "아이폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
+}
+
+/**
  * 코디네이터가 화면에서 고친 문구가 «코드로 돌아왔나».
  * 안 돌아오면 다음에 그 화면을 손대는 순간 코드 값이 이겨서 교정이 통째로 되돌아간다
  * (2026-08-20 실측: 262건 중 259건이 그 상태로 몇 달 쌓여 있었다).
@@ -420,6 +468,7 @@ const 검사들 = [
   ["deploy", 검사_미배포],
   ["cron", 검사_예약작업],
   ["app", 검사_앱미반영],
+  ["ios", 검사_아이폰미반영],
 ];
 
 for (const [id, fn] of 검사들) {
@@ -441,7 +490,6 @@ console.log(`
  · 화면이 실제로 보이나(지도·잘림·빈 상자) → 브라우저로 눈으로 봐야 한다
  · 번역이 자연스러운가 → 현지 직원 몫
  · 「알림이 진짜 갔나」 → 받은편지함 확인 몫
- · 아이폰 앱에 안 들어간 고침 → 지금은 «안드로이드 부품 목록»만 대조한다(아이폰 부품은 Podfile 쪽)
 `);
 
 const 볼것 = rows.filter((r) => r.판정 === "볼 것");
