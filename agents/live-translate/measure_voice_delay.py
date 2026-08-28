@@ -29,6 +29,17 @@ from config import TRACK_NAME_PREFIX  # noqa: E402
 LEAD = 5.0  # 앞무음(초) — 이만큼 뒤가 «말 시작»이다
 LINE = "안녕하세요. 작년 십일월에 위암 3기 진단을 받았습니다."
 
+# 긴 대화에서 지연이 «쌓이나»를 보려면 여러 문장을 쉬어 가며 말해야 한다.
+# --long 을 주면 이 대본을 쓰고, 통역 소리가 «몇 번» 나오는지와 각 시작 시각을 낸다.
+LONG_LINES = [
+    "안녕하세요 선생님. 저는 카자흐스탄에서 왔습니다.",
+    "작년 십일월에 위암 3기 진단을 받았습니다.",
+    "지금은 항암치료를 여섯 번 받았습니다.",
+]
+GAP = 1.5
+# 통역 음성이 이만큼 «연속으로» 조용하면 «끊겼다»고 본다(말 사이 쉼과 가르는 자).
+SILENCE_GAP = 1.5
+
 
 def make_audio(tmp: Path) -> Path:
     """앞무음 + 말소리. 앞무음 길이를 알면 «말 시작 시각»을 계산할 수 있다."""
@@ -76,7 +87,9 @@ async def one_run(room_name: str, ogg: Path) -> float | None:
         .to_jwt()
     )
     room = rtc.Room()
-    first_audio: list[float] = []
+    first_audio: list[float] = []  # 통역 소리가 처음 난 시각
+    _last_loud: list[float | None] = [None]
+    _gaps: list[tuple[float, float]] = []  # 소리가 «끊긴» 구간들
     loop = asyncio.get_event_loop()
 
     @room.on("track_subscribed")
@@ -90,9 +103,18 @@ async def one_run(room_name: str, ogg: Path) -> float | None:
                 # ⚠️ frame.data 는 이미 16비트 배열이라 cast("h") 를 부르면 터진다
                 #    («byte 가 아닌 두 형식 사이 변환» 오류). 그대로 훑는다.
                 samples = ev.frame.data
-                if any(abs(x) > 500 for x in samples[:480]):
-                    first_audio.append(loop.time())
-                    break
+                # ⚠️ 프레임 «전체»를 봐야 한다. 앞 480샘플(10ms)만 보면 말 사이의 짧은 쉼이
+                #    «무음»으로 잡혀 한 발화를 여러 개로 잘못 센다(2026-08-28 실측에서 6개로 셌다).
+                loud = any(abs(x) > 500 for x in samples)
+                now = loop.time()
+                if loud:
+                    if not first_audio:
+                        first_audio.append(now)
+                    _last_loud[0] = now
+                elif _last_loud[0] and now - _last_loud[0] > SILENCE_GAP:
+                    # 이만큼 «연속으로» 조용했으면 소리가 끊긴 것으로 본다
+                    _gaps.append((_last_loud[0], now))
+                    _last_loud[0] = None
         asyncio.create_task(_read())
 
     await room.connect(url, tok, options=rtc.RoomOptions(auto_subscribe=True))
@@ -115,8 +137,12 @@ async def one_run(room_name: str, ogg: Path) -> float | None:
 
     if not first_audio:
         return None
-    # 말 시작 = 재생 시작 + 앞무음
-    return first_audio[0] - (publish_at + LEAD)
+    base = publish_at + LEAD
+    starts = [t - base for t in first_audio]
+    if _gaps:
+        print(f"      통역 소리가 {SILENCE_GAP}초 넘게 끊긴 구간: {len(_gaps)}번 "
+              f"({', '.join(f'{b-a:.1f}초' for a, b in _gaps)})")
+    return starts[0]
 
 
 async def main() -> int:
