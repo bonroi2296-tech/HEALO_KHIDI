@@ -7,3 +7,4 @@ uv.lock
 dist/
 build/
 .secrets.env
+captions_dup.json
