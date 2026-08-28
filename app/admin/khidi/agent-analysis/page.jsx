@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -102,6 +103,7 @@ export default function AgentAnalysisPage() {
   const selectThread = (thread) => {
     setSelected(thread);
     setAnalysis("");
+    scrollToTopOnNarrow(); // 폰(1단 배치): 상세가 목록 «아래»라 눌러도 화면이 안 바뀌던 것
   };
 
   const copyAnalysis = async () => {
@@ -137,8 +139,10 @@ export default function AgentAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 스레드 목록 */}
-        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        {/* 스레드 목록 — 폰에선 고르면 접히고 분석 결과만 보인다 */}
+        <div className={`lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm ${
+          selected ? "hidden lg:block" : ""
+        }`}>
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> 불러오는 중...
@@ -183,7 +187,9 @@ export default function AgentAnalysisPage() {
         </div>
 
         {/* 분석 패널 */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh] shadow-sm">
+        <div className={`lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh] shadow-sm ${
+          selected ? "" : "hidden lg:block"
+        }`}>
           {!selected ? (
             <div className="flex items-center justify-center h-full py-24 text-sm text-gray-500">
               왼쪽에서 분석할 대화를 선택하세요.
@@ -191,9 +197,18 @@ export default function AgentAnalysisPage() {
           ) : (
             <div className="p-4 md:p-5">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="text-sm text-gray-600">
-                  스레드 <span className="font-mono text-gray-800">#{String(selected.id).slice(0, 8)}</span>
-                  <span className="text-gray-500"> · {fmtTime(selected.updated_at)}</span>
+                <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="lg:hidden shrink-0 -ml-1 rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  >
+                    ← 목록
+                  </button>
+                  <span className="truncate">
+                    스레드 <span className="font-mono text-gray-800">#{String(selected.id).slice(0, 8)}</span>
+                    <span className="text-gray-500"> · {fmtTime(selected.updated_at)}</span>
+                  </span>
                 </div>
                 {analysis && (
                   <button

@@ -306,6 +306,9 @@ const CT = {
   msInquiry: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
   msNoMessages: { ko: "메시지 없음", en: "No messages", ru: "Нет сообщений", kz: "Хабар жоқ", zh: "无消息", ja: "メッセージなし" },
   msSelectConversation: { ko: "왼쪽에서 대화를 선택하세요.", en: "Select a conversation on the left.", ru: "Выберите диалог слева.", kz: "Сол жақтан әңгімені таңдаңыз.", zh: "请在左侧选择一个对话。", ja: "左側から会話を選択してください。" },
+  // 알림 딥링크로 들어왔는데 그 대화가 목록에 없을 때. 「왼쪽에서 고르세요」는 폰에 왼쪽이
+  // 없어서 틀린 안내가 된다(2026-08-28 완성도 감사).
+  msThreadNotFound: { ko: "그 대화를 찾을 수 없습니다.", en: "That conversation could not be found.", ru: "Этот диалог не найден.", kz: "Бұл әңгіме табылмады.", zh: "未找到该对话。", ja: "その会話が見つかりません。" },
   msGuestBadge: { ko: "게스트(비회원)", en: "Guest (non-member)", ru: "Гость (не участник)", kz: "Қонақ (мүше емес)", zh: "访客（非会员）", ja: "ゲスト（非会員）" },
   msAIChat: { ko: "AI 채팅", en: "AI chat", ru: "AI-чат", kz: "AI чат", zh: "AI 聊天", ja: "AIチャット" },
   msNoMessagesYet: { ko: "아직 메시지가 없습니다.", en: "No messages yet.", ru: "Сообщений пока нет.", kz: "Әзірге хабар жоқ.", zh: "还没有消息。", ja: "まだメッセージがありません。" },

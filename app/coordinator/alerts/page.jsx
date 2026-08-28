@@ -11,6 +11,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
+import { useDeepLinkParam } from '@/lib/hooks/useDeepLinkParam';
+import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
 import {
   AlertTriangle,
   CheckCircle,
@@ -82,6 +84,18 @@ export default function AlertsPage() {
   const [resolveNote, setResolveNote] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // 딥링크: 「증상 이상치」 알림이 `?alert=<id>` 로 보낸다. 이 화면이 그 값을 «안 읽어서»
+  // 눌러도 목록만 열렸다 — 새로 만든 딥링크 검사(check:deeplinks)가 잡아낸 건이다(2026-08-28).
+  // 기본 거름망이 '미확인'이라 이미 확인한 경보면 목록에 없다 → '전체'로 풀고 그 줄을 편다.
+  useDeepLinkParam('alert', (id) => {
+    setFilter('all');
+    setExpandedId(id);
+    // 목록이 다시 그려진 뒤에 그 줄로 데려간다(없으면 아무 일도 안 한다).
+    setTimeout(() => {
+      document.getElementById(`alert-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+    }, 300);
+  });
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
@@ -265,6 +279,7 @@ export default function AlertsPage() {
             return (
               <div
                 key={alert.id}
+                id={`alert-${alert.id}`}
                 className={`bg-white border rounded-xl overflow-hidden transition-shadow hover:shadow-sm ${sStyle.border} ${isResolved ? 'opacity-60' : ''}`}
               >
                 {/* 메인 행 */}
