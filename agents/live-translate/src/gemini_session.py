@@ -27,6 +27,10 @@ from config import (
     TRACK_NAME_PREFIX,
     TRANSLATION_TEXT_TOPIC,
     GEMINI_RECONNECT_BACKOFF_SEC,
+    GEMINI_FAIL_STREAK_TO_REPORT,
+    TRANSLATOR_STATUS_ATTR,
+    TRANSLATOR_STATUS_FAILING,
+    TRANSLATOR_STATUS_OK,
 )
 
 logger = logging.getLogger("translator.session")
@@ -67,6 +71,7 @@ class GeminiSession:
 
         self._track_name = f"{TRACK_NAME_PREFIX}{speaker.identity}:{target_lang}"
         self._closed = False
+        self._reported_status: str | None = None
         self._tasks: list[asyncio.Task] = []
 
         self._audio_source: rtc.AudioSource | None = None
@@ -129,6 +134,7 @@ class GeminiSession:
             try:
                 await self._run_once()
                 backoff_idx = 0
+                await self._report_status(TRANSLATOR_STATUS_OK)
             except asyncio.CancelledError:
                 return
             except Exception:
@@ -137,7 +143,29 @@ class GeminiSession:
                     min(backoff_idx, len(GEMINI_RECONNECT_BACKOFF_SEC) - 1)
                 ]
                 backoff_idx += 1
+                # ⚠️ 여기서 «조용히» 재시도만 하면 통역이 죽은 채로 화면은 「켜짐」이다.
+                #    한두 번은 일시적 끊김이라 넘기고, 계속 실패하면 방에 알린다.
+                if backoff_idx == GEMINI_FAIL_STREAK_TO_REPORT:
+                    await self._report_status(TRANSLATOR_STATUS_FAILING)
                 await asyncio.sleep(delay)
+
+    async def _report_status(self, status: str) -> None:
+        """통역 상태를 참가자 속성에 적는다. 화면이 이 값을 읽어 사용자에게 알린다.
+
+        ⚠️ 기존 속성을 읽어 «합쳐서» 쓴다 — 통째로 덮으면 lk.agent.state 같은 값이 날아간다.
+        같은 값이면 안 쓴다(속성 변경 이벤트가 방 전체에 퍼지므로).
+        """
+        if self._reported_status == status:
+            return
+        self._reported_status = status
+        try:
+            lp = self._room.local_participant
+            attrs = dict(getattr(lp, "attributes", None) or {})
+            attrs[TRANSLATOR_STATUS_ATTR] = status
+            await lp.set_attributes(attrs)
+            logger.info("통역 상태 알림: %s (%s)", status, self._track_name)
+        except Exception as exc:
+            logger.warning("통역 상태 알림 실패: %s", exc)
 
     async def _run_once(self) -> None:
         client = genai.Client(

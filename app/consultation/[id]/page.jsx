@@ -987,6 +987,8 @@ export default function ConsultationRoomPage() {
   // 봇이 방에 없으면(서버 스위치 꺼짐·에이전트 미가동) 켤 수 없고 안내만 띄운다.
   const [voiceOn, setVoiceOn] = useState(false);
   const [agentPresent, setAgentPresent] = useState(false);
+  // 통역봇이 「연결이 계속 실패한다」고 알린 적이 있나 (같은 통화에 한 번만 안내)
+  const translatorFailWarnedRef = useRef(false);
   // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
   const [myIdentity, setMyIdentity] = useState(null);
   // 「통역을 켜고 싶은데 아직 방에 안 붙었다」를 기억해 두는 자리. 화면을 열자마자 통역을
@@ -1664,6 +1666,25 @@ export default function ConsultationRoomPage() {
   //    (2026-08-28 실측: 화면 백지 + "Cannot access before initialization").
   //    그래서 ref 로 받아서 쓴다.
   const reportBotErrRef = useRef(null);
+
+  // 통역봇이 「지금 통역이 안 되고 있다」고 알릴 때.
+  //
+  // 왜 (2026-08-28 실측): 봇은 연결이 끊기면 조용히 재연결만 반복한다 — 30초에 15번 실패해도
+  // 화면은 「통역 켜짐」 그대로였다. 사용자는 봇도 있고 스위치도 켜져 있으니 계속 기다린다.
+  // ⚠️ 한 통화에 한 번만 알린다. 재연결은 몇 초마다 오가므로 매번 띄우면 화면이 안내로 뒤덮인다.
+  const handleTranslatorFailing = useCallback(
+    (failing) => {
+      if (!failing) {
+        translatorFailWarnedRef.current = false;
+        return;
+      }
+      if (translatorFailWarnedRef.current) return;
+      translatorFailWarnedRef.current = true;
+      toast.error(c.voiceFailingMsg || c.voiceUnavailableMsg);
+      reportClientEventRef.current?.("media_failure", "translator reported failing");
+    },
+    [c]
+  );
 
   // 통역봇 줄 하나를 기록에 남긴다. 2026-08-28 까지 이 경로만 저장이 통째로 빠져 있었다
   // (실측: 자막 3,553건 중 통역봇 경로 0건) — 화면에는 떴지만 회의록·상담 요약에는 없었다.
@@ -3918,6 +3939,7 @@ export default function ConsultationRoomPage() {
                 myLang={myLang}
                 myRole={myRole}
                 voiceOn={voiceOn}
+                onTranslatorFailing={handleTranslatorFailing}
                 onAgentPresence={setAgentPresent}
                 onRemoteSubtitle={handleBotSubtitle}
               />

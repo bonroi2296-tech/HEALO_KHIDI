@@ -26,6 +26,8 @@ import {
   NATIVE_LANG,
   TRANSLATION_TRACK_PREFIX,
   TRANSLATION_TEXT_TOPIC,
+  TRANSLATOR_STATUS_ATTR,
+  TRANSLATOR_STATUS_FAILING,
 } from "@/lib/consultation/liveTranslate";
 
 /**
@@ -49,7 +51,14 @@ function parseTxTrackName(name) {
  * @param {function} [props.onAgentPresence] — (boolean) => void 통역 봇 재실 여부 통지(토글 활성화 판단용)
  * @param {function} props.onRemoteSubtitle — ({ text, lang, role }) => void (기존 자막 UI 재사용)
  */
-export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPresence, onRemoteSubtitle }) {
+export function LiveTranslateBridge({
+  myLang,
+  myRole,
+  voiceOn = false,
+  onAgentPresence,
+  onRemoteSubtitle,
+  onTranslatorFailing,
+}) {
   const room = useRoomContext();
   const subtitleCbRef = useRef(onRemoteSubtitle);
   // 내 언어로 통역되고 있는 "원음 화자"들 — 이들은 원음을 음소거(통역과 이중 재생 방지).
@@ -85,6 +94,33 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
     events.forEach((e) => room.on(e, check));
     return () => events.forEach((e) => room.off(e, check));
   }, [enabled, room, onAgentPresence]);
+
+  // ── 0-2) 통역봇이 «지금 통역이 안 된다»고 알리면 그대로 위로 전한다 ──
+  //
+  // 봇은 연결이 끊기면 조용히 재연결만 반복한다(2026-08-28 실측: 30초에 15번 실패해도
+  // 화면은 「켜짐」 그대로였다). 봇이 tx_status 로 알려 주면 그걸 사용자에게 보여준다.
+  useEffect(() => {
+    if (!enabled || !room || !onTranslatorFailing) return;
+    const check = () => {
+      let failing = false;
+      for (const p of room.remoteParticipants?.values?.() ?? []) {
+        if (!p.identity?.startsWith("agent-")) continue;
+        if (p.attributes?.[TRANSLATOR_STATUS_ATTR] === TRANSLATOR_STATUS_FAILING) {
+          failing = true;
+          break;
+        }
+      }
+      onTranslatorFailing(failing);
+    };
+    check();
+    const events = [
+      RoomEvent.ParticipantAttributesChanged,
+      RoomEvent.ParticipantConnected,
+      RoomEvent.ParticipantDisconnected,
+    ];
+    events.forEach((e) => room.on(e, check));
+    return () => events.forEach((e) => room.off(e, check));
+  }, [enabled, room, onTranslatorFailing]);
 
   // ── 1) 내 언어를 방에 알림 (lang 속성) ──
   // ⚠️ 반드시 **연결 완료 후에** 보낼 것. `setAttributes` 는 서버 ack 를 5초 기다리다
