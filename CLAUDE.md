@@ -21,7 +21,7 @@
 | 번역·다국어 문구·「외국어가 이상하대」·용어 통일·코디 교정 | `docs/rules/I18N_QUALITY.md` (용어집 = `src/lib/i18n/glossary.js`) |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
-| PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`docs/rules/PPT_STYLE.md`** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
+| PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`/ppt` 스킬** — 규격은 `docs/rules/PPT_STYLE.md`, 집행은 `scripts/ppt/beyondk_style.py`. **코드 새로 짜지 말고 그 모듈을 import** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
 | 보안 상세 체크리스트 | `docs/SECURITY_CHECKLIST.md` |
@@ -176,7 +176,7 @@ npm run e2e:smoke          # 실제 여정 최소 검증 (playwright @smoke)
 
 - 전용 검사 30여 개(`check:i18n`·`check:err-exposure`·`check:migrations`·`check:schema-refs` 등)는 `npm run` 으로 목록 확인 — **건드린 영역 것만** 골라 돌려라.
 
-- **「머지는 자유, 배포만 하루 한 번」** (2026-07-28 PO 결정). PR은 바로 머지해도 실서비스 빌드가 안 돈다 — KST 오후 3시 `Daily Deploy` 창구가 main을 `production` 브랜치로 밀어 그 한 건만 빌드한다.
+- **「머지는 자유, 배포만 하루 한 번」** (2026-07-28 PO 결정). PR은 바로 머지해도 실서비스 빌드가 안 돈다 — KST 오후 3시 창구(**Vercel 예약**)가 main 최신 커밋으로 그날 것을 한 건에 묶어 빌드한다. ⚠️ `production` 브랜치는 2026-07-31 이후 안 쓰니 **배포 여부 판정에 쓰지 마라**.
 - **머지했다 ≠ 실서비스에 나갔다.** 「배포됐다」고 말하기 전에 창구가 돌았는지 확인해라.
 - 긴급 배포는 커밋 제목에 `[deploy]`. **프리뷰는 완전 차단 — 화면 확인은 로컬 + 화면 사진으로 하고, 프리뷰는 PO가 요청할 때만 연다** (2026-07-31 PO 지시, 여는 절차는 `docs/rules/DEPLOY.md`).
 - OS: Windows 11 / Shell: **PowerShell 이 기본**, bash도 가능 — 문법 섞지 말 것.

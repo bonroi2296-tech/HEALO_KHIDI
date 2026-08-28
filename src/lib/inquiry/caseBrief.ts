@@ -138,7 +138,9 @@ export function briefSig(
 }
 
 // 구조화 인테이크(복호화된 inquiry)에서 브리프에 쓸 비식별 임상 컨텍스트만 뽑아 텍스트로.
-function buildContext(inq: any, lang: BriefLang): string {
+// export 인 이유: 「어떤 값이 모델에게 실제로 전달되는가」는 시험으로 지켜야 한다.
+// 요약문에 그 값이 안 보이는 것과 애초에 «안 넘어간» 것은 다른 문제인데, 요약만 보고는 못 가른다.
+export function buildContext(inq: any, lang: BriefLang): string {
   const intake = inq?.intake && typeof inq.intake === "object" ? inq.intake : {};
   const looksEnc = (s: any) => typeof s === "string" && /^\{"(v|iv|tag|data)"\s*:/.test(s.trim());
   const clean = (v: any) => (looksEnc(v) ? null : v);
@@ -147,6 +149,9 @@ function buildContext(inq: any, lang: BriefLang): string {
   lines.push(`today: ${new Date().toISOString().slice(0, 10)}`);
   if (inq?.nationality) lines.push(`nationality: ${inq.nationality}`);
   if (inq?.cancer_type) lines.push(`cancer_type: ${inq.cancer_type}`);
+  // 코디가 확정한 진단코드(inquiries.icd_code). 아래 referral.icdCode 는 «환자가 적은 값»이라
+  // 둘 다 있으면 나란히 들어간다 — 모델이 어느 쪽이 확정인지 알아야 해서 이름을 갈라 둔다.
+  if (inq?.icd_code) lines.push(`icd_code (confirmed by coordinator): ${inq.icd_code}`);
   if (clean(intake.stage)) lines.push(`stage: ${intake.stage}`);
   if (clean(intake.treatment_state)) lines.push(`treatment_state: ${clean(intake.treatment_state)}`);
   if (clean(intake.diagnosis_date)) lines.push(`diagnosis_date: ${clean(intake.diagnosis_date)}`);

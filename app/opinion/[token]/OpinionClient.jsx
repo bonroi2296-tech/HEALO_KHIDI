@@ -12,7 +12,7 @@ import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/op
 import ImagingPanel from "@/components/ImagingPanel";
 import { uploadDirect } from "@/lib/uploadAttachment";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
-import { CANCER_TYPES, labelOf } from "@/lib/inquiry/intakeLabels";
+import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { normalizeNationality } from "@/lib/khidi/nationality";
 
 /** 화면에서 바로 띄울 수 있는 형식인가. 압축·문서파일은 내려받아야 열린다. */
@@ -206,9 +206,26 @@ export default function OpinionClient({ token }) {
             의료진 화면엔 「신장암 / liver」처럼 같은 말이 두 번, 그것도 코드값으로 뜬다.
             전수 확인 — 두 칸이 같은 건 29건, 25건은 챗봇 라우팅 태그(general_inquiry).
             KHIDI 집계는 계속 이 칸을 폴백으로 읽으므로 «표시»만 빼고 저장값은 그대로 둔다. */}
-        {c.cancer_type && (
+        {/* 암종 이름은 사전(t)이 아니라 정적 표(medicalLabels)에서 가져온다.
+            이 화면은 한국어 전용인데 페이지 자체는 영어로 열려서, 브라우저에 한국어 사전이
+            안 실려 있다 → t(key,"ko") 를 불러도 영어가 나왔다("Colorectal cancer", 2026-08-26 실측).
+            정적 표는 사전 로드와 무관하게 6개 언어를 늘 갖고 있다.
+            폴백(treatment_type)을 두는 이유: 에이전시 의뢰는 암종을 «자유 입력»으로 받는데
+            우리 목록과 정확히 안 맞으면 cancer_type 이 비고 원문만 treatment_type 에 남는다.
+            폴백이 없으면 그 케이스는 원장님 화면에서 암종이 통째로 안 보인다(2026-08-26). */}
+        {(c.cancer_type || c.treatment_type || c.icd_code) && (
           <div className="flex flex-wrap gap-2 mb-3">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{labelOf(CANCER_TYPES, c.cancer_type, "ko")}</span>
+            {(c.cancer_type || c.treatment_type) && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{cancerTypeLabelL(c.cancer_type, "ko") || c.treatment_type}</span>
+            )}
+            {/* 코디가 확정한 진단코드. 요약 본문에 나올지는 모델이 정하므로 여기서 칸으로 못 박는다.
+                「부위 분류」라는 걸 배지에 같이 적는다 — 원장님이 확정 진단코드로 읽으면 안 된다. */}
+            {c.icd_code && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+                ICD-10 {c.icd_code}
+                <span className="text-[10px] font-normal text-gray-500">(부위 분류)</span>
+              </span>
+            )}
           </div>
         )}
         {c.clinical?.length > 0 && (
