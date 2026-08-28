@@ -21,7 +21,7 @@
 | 번역·다국어 문구·「외국어가 이상하대」·용어 통일·코디 교정 | `docs/rules/I18N_QUALITY.md` (용어집 = `src/lib/i18n/glossary.js`) |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
-| PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`docs/rules/PPT_STYLE.md`** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
+| PPT·발표자료·제안서 슬라이드·피치덱 만들기 | **`/ppt` 스킬** — 규격은 `docs/rules/PPT_STYLE.md`, 집행은 `scripts/ppt/beyondk_style.py`. **코드 새로 짜지 말고 그 모듈을 import** (BeyondK 깔 고정 — 2026-07-31 PO 지시) |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
 | 보안 상세 체크리스트 | `docs/SECURITY_CHECKLIST.md` |
