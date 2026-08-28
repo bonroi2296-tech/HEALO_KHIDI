@@ -112,6 +112,15 @@ jobs:
       # 실제로는 «본판에 없는 인수인계»를 품은 작업본이 23개 있었다. 자기시험만 CI 에서 돌린다.
       - name: 작업본 인수인계 탐지기 자체 시험 (셸 따옴표가 깨져 조용히 죽는 것 차단)
         run: npm run check:branch-handoffs -- --selftest
+      # 깃허브 작업의 «기본» 셸은 `bash -e {0}` 라 pipefail 이 꺼져 있다 — 파이프를 쓰면
+      # 종료코드가 «맨 끝 명령»의 것이 되어 앞에서 검사가 죽어도 그 단계가 초록으로 끝난다.
+      # 2026-08-28 실사고: 매일 도는 「훑기 대장」(sweep.yml)이 13번 돌아 13번 다 초록이었는데
+      # 실행 기록엔 매번 «못 잼 2건»으로 exit 1 이 찍혀 있었다. 경보 메일은 한 통도 안 나갔다.
+      # ⚠️ 저장소 문서(uptime.yml 머리말)에 「기본 셸이 bash -eo pipefail」이라는 «틀린 믿음»이
+      #    박혀 있었고 그게 이 코드를 낳았다 — 그래서 문서 정정으로 끝내지 않고 기계로 박는다.
+      # --selftest 로 부른다: 탐지기 자신의 시험(오탐 6종·셸 동작 실측)까지 같이 돈다.
+      - name: 파이프 뒤에서 실패가 삼켜지는 워크플로 차단 (거짓 초록불)
+        run: npm run check:workflow-pipefail -- --selftest
       # 완성도 루브릭(Definition of Done) SoR 무결성 — 골격 단계라 비차단(경고).
       # 안정·오탐 검증 후 continue-on-error 제거해 blocking 으로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
       - name: 완성도 루브릭 SoR 정합성 (판단 기준 채점표가 부패·문서 드리프트하지 않게 — 비차단)
