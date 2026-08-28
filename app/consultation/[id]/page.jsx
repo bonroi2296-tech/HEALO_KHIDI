@@ -1681,7 +1681,9 @@ export default function ConsultationRoomPage() {
           speakerName: line.speakerName || undefined,
           // 「말한 시각」 — 붙인 줄은 «첫 조각»의 시각이다. 안 보내면 저장 시각으로 남아
           // 회의록에서 이 줄만 최대 6초 뒤로 밀린다(확정 타이머만큼).
-          spokenAt: new Date(line.at).toISOString(),
+          // 시각이 없거나 이상하면 아예 안 보낸다(서버가 자기 시각을 쓴다).
+          //    Invalid Date 에 toISOString() 을 부르면 예외가 나 저장이 통째로 날아간다.
+          ...(Number.isFinite(line.at) ? { spokenAt: new Date(line.at).toISOString() } : {}),
         }),
       })
         .then((r) => {
@@ -1735,7 +1737,9 @@ export default function ConsultationRoomPage() {
         source: shown,
         translated: shown,
         at: merged ? prev.at : incoming.at,
-        speakerName: name || prev?.speakerName || null,
+        // ⚠️ 앞줄의 이름은 «붙인 경우에만» 물려받는다. 안 붙은 경우의 앞줄은 다른 사람일 수
+        //    있어서(화자가 달라 안 붙은 것), 그때 물려받으면 회의록에 남의 이름이 찍힌다.
+        speakerName: name || (merged ? prev?.speakerName : null) || null,
       };
 
       // 다음 조각이 안 오면 시간으로 확정한다. 이게 없으면 «대화의 마지막 줄»이 통째로
