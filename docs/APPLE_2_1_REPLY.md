@@ -22,6 +22,23 @@
 
 ---
 
+## 🔴 2026-08-28: 첫 촬영에서 «애플 로그인이 안 넘어가는» 결함이 드러났다
+
+Assel 이 빌드 3 으로 찍은 촬영본(2분 10초)을 서버 기록과 대조한 결과이다.
+
+- **증상**: 「Apple로 계속하기」 → 얼굴 인식 → 「완료 ✓」 까지 간 뒤 **「인터넷에 연결되어 있지 않습니다」** 화면. 세 번 반복, 세 번 다 로그인 안 됨.
+- **진단**: Supabase 기록에 `/auth/v1/authorize` **3건**, `/auth/v1/callback` **0건**.
+  즉 애플이 인증을 마친 뒤 그 결과가 우리 서버로 «돌아오지 않았다». 진짜 통신 장애가 아니다.
+- **원인**: 아이폰은 앱 안 웹뷰의 애플 로그인을 「화면 이동」이 아니라 **「시스템 창」으로 가로채기** 때문에
+  돌아올 길이 끊긴다. 8/20 에 넣은 `allowNavigation` 은 「연결 중」 멈춤만 없앱을 뿐 **문제를 반만 고쳤다**.
+  ⚠️ 빌드 3 에 그 고침은 **들어 있다**(커밋 `d3e26bc`). «낡은 판이라 그런 것»이 아니니 다시 굽는 것만으로는 안 된다.
+- **고침**: 아이폰은 웹뷰를 거치지 않고 **네이티브 창을 직접 쓴다**
+  (`src/lib/auth/appleNativeSignIn.ts` · 빌드 4). Supabase Client IDs 에 번들 ID 를 추가했다.
+- 🛑 **이건 녹화 문제가 아니라 출시를 막는 결함이다.** 심사관도 같은 버튼을 누른다:
+  지금 상태로 내면 **1차 반려 사유였던 4.8 조항으로 또 반려**된다.
+
+---
+
 ## 📹 녹화 대본 (실기기 · 한 번에 끊지 말고 찍기)
 
 > 애플 요구 원문: *"a video of the app in use, captured on a **physical device**"*
@@ -59,10 +76,11 @@ A screen recording captured on a physical iPhone is attached.
 
 1) VIDEO OF THE APP IN USE
 Attached. Recorded on a physical iPhone. It shows: app launch, browsing without an
-account, AI consultation chat (user-generated content), account creation and sign-in
-via Sign in with Apple, uploading a medical document (photo permission prompt),
-joining a video consultation (camera and microphone permission prompts), and full
-in-app account deletion.
+account, AI consultation chat (user-generated content), the push notification
+permission prompt, account creation and sign-in via Sign in with Apple, uploading a
+medical document (photo permission prompt), and full in-app account deletion.
+Camera and microphone are used only for the scheduled video consultation described
+in section 3; that flow is not shown in this recording.
 
 2) DEVICES AND OS VERSIONS TESTED
 - iPhone 16 Pro Max, iOS 18.6.2 (physical device) - used for the attached recording.
