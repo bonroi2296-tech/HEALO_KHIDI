@@ -20,6 +20,7 @@ from livekit import api, rtc
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from config import TRANSLATION_TEXT_TOPIC  # noqa: E402
+from test_guard import refuse_real_room  # noqa: E402
 
 # 실제 통역이 내보내는 조각 모양 그대로: 문장이 여러 토막으로 잘려 온다.
 # (2026-08-28 실측 자막에서 그대로 가져왔다 — 회차 하나의 실물)
@@ -42,6 +43,9 @@ async def main() -> int:
     ap.add_argument("--speaker", default="patient-ru", help="원래 말한 사람 identity")
     ap.add_argument("--gap", type=float, default=0.8, help="조각 사이 간격(초)")
     args = ap.parse_args()
+
+    # 실환자 방을 실수로 겨누는 것을 막는다(test_guard 머리말 참고)
+    refuse_real_room(args.room)
 
     url = os.environ["LIVEKIT_URL"]
     token = (

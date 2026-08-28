@@ -21,6 +21,7 @@ from livekit import api, rtc
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from config import TRANSLATION_TEXT_TOPIC  # noqa: E402
+from test_guard import refuse_real_room  # noqa: E402
 
 
 async def main() -> int:
@@ -30,6 +31,9 @@ async def main() -> int:
     ap.add_argument("--identity", default="caption-watcher")
     ap.add_argument("--seconds", type=int, default=90)
     args = ap.parse_args()
+
+    # 실환자 방을 실수로 겨누는 것을 막는다(test_guard 머리말 참고)
+    refuse_real_room(args.room)
 
     url = os.environ["LIVEKIT_URL"]
     token = (

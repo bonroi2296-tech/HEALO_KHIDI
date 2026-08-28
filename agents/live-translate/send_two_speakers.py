@@ -13,6 +13,7 @@ import argparse, asyncio, os, sys
 from livekit import api, rtc
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from config import TRANSLATION_TEXT_TOPIC  # noqa: E402
+from test_guard import refuse_real_room  # noqa: E402
 
 # (화자 identity, 자막 조각) — 이름 없는 화자와 있는 화자를 섞는다
 TURNS = [
@@ -31,6 +32,9 @@ async def main() -> int:
     ap.add_argument("--lang", default="ko")
     ap.add_argument("--gap", type=float, default=0.8)
     args = ap.parse_args()
+
+    # 실환자 방을 실수로 겨누는 것을 막는다(test_guard 머리말 참고)
+    refuse_real_room(args.room)
 
     token = (
         api.AccessToken(os.environ["LIVEKIT_API_KEY"], os.environ["LIVEKIT_API_SECRET"])
