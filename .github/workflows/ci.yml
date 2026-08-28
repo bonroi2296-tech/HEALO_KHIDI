@@ -114,12 +114,15 @@ jobs:
         run: npm run check:visa-freshness
       - name: PDF 톤 (초청장·견적서·동의서 Premium 톤 복귀 차단 — serif·gold·외부폰트)
         run: npm run check:pdf-tone
-      # ⚠️ `--fail-on-missing` 이 «반드시» 있어야 한다. 2026-08-28 음성 대조로 발각:
-      #    이 줄이 맨몸(`npm run check:i18n`)이던 동안, 러시아어 사전에서 키를 지워도
-      #    검사기는 «✗ MISSING 1» 을 찍고도 **exit 0** 으로 끝나 CI 가 초록불이었다.
-      #    (그 플래그 없이는 보고만 하는 도구다 — scripts/check-i18n-coverage.mjs 의 FAIL_ON_MISSING.)
+      # ⚠️ `--fail-on-missing` 이 «반드시» 있어야 한다. 2026-08-28 음성 대조(`npm run
+      #    audit:negative-control`)로 발각: 이 줄이 맨몸(`npm run check:i18n`)이던 동안,
+      #    러시아어 사전에서 키를 지워도 검사기는 «✗ MISSING 1» 을 찍고도 **exit 0** 으로 끝나
+      #    CI 가 초록불이었다. 그 플래그 없이는 «보고만 하는 도구»다
+      #    (scripts/check-i18n-coverage.mjs 의 FAIL_ON_MISSING).
       #    게다가 2033/2034 는 반올림돼 «100%» 로 찍혀서 로그를 눈으로 봐도 안 걸린다.
       #    실측: 키 1개 삭제 → 맨몸 exit 0 / 플래그 붙이면 exit 1.
+      #    이제 package.json 의 check:i18n 자체가 플래그를 달고 있다. 여기 한 번 더 적는 건
+      #    이중 안전장치다 — 누가 package.json 에서 빼도 이 창구는 계속 막는다. 지우지 마라.
       - name: 번역 커버리지 (ru·kz 키 누락 시 차단 — 플래그 없으면 보고만 하고 통과한다)
         run: npm run check:i18n -- --fail-on-missing
       - name: 공개 화면 내부 링크에 언어 접두어 (없으면 쿠키 없는 검색 로봇이 전부 영어로 튕겨 러/카 페이지가 두 달간 미색인이었다)
