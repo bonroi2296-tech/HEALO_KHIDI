@@ -18,18 +18,10 @@
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
-import { isNativeApp } from "@/lib/isNativeApp";
+import { isIOSApp } from "@/lib/isNativeApp";
 
 export const APPLE_LOGIN_ENABLED =
   process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true";
-
-/** 지금 아이폰·아이패드인가. 캡시터 전역이 있으면 그것이 가장 정확하고, 없으면 브라우저 이름표로 본다. */
-function isIOS() {
-  if (typeof window === "undefined") return false;
-  const platform = window.Capacitor?.getPlatform?.();
-  if (platform) return platform === "ios";
-  return /iPhone|iPad|iPod/.test(navigator.userAgent);
-}
 
 export default function AppleSignInButton({
   supabase,
@@ -52,7 +44,7 @@ export default function AppleSignInButton({
       //    가로채서, 인증은 되는데 그 결과가 우리 서버로 안 돌아온다(2026-08-28 실기기 실측).
       //    그래서 앱에서는 아이폰이 주는 창을 직접 쓰고 토큰만 받아 온다.
       //    안드로이드는 웹 방식이 그대로 되므로 건드리지 않는다.
-      if (isNativeApp() && isIOS()) {
+      if (isIOSApp()) {
         const { signInWithAppleNative, isAppleCancel } = await import(
           "@/lib/auth/appleNativeSignIn"
         );
