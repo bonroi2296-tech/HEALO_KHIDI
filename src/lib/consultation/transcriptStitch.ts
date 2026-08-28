@@ -30,7 +30,10 @@ const ENDED = /[.!?…。？！]["'»）)]?\s*$/;
  *    쪽(안전한 실수)이라 그대로 둔다. 반대 방향 실수는 뜻을 바꾼다.
  */
 const KO_ENDING =
-  /(습니다|읍니다|입니다|합니다|됩니다|세요|어요|아요|에요|예요|지요|나요|가요|까요|는지|은지|ㄴ지|든지|거죠|죠|네요|군요|다|요|까|나|지)\s*$/;
+  // WARN 홑글자 «나» 는 뺐다(2026-08-28 실측): «이제 얼마나» 가 종결로 오인돼
+  //    뒷말이 안 붙었다. 물음 «~나?» 는 물음표를 ENDED 가 잡고 «~나요» 는 목록에
+  //    따로 있어 손해가 없다. 같은 표본에서 한국어가 23줄 -> 19줄로 합쳐졌고 러시아어는 그대로.
+  /(습니다|읍니다|입니다|합니다|됩니다|세요|어요|아요|에요|예요|지요|나요|가요|까요|는지|은지|ㄴ지|든지|거죠|죠|네요|군요|다|요|까|지)\s*$/;
 
 const hasHangul = (s: string) => /[가-힣]/.test(s);
 
@@ -171,7 +174,9 @@ function repeatsPrev(a: string, b: string): boolean {
   return y === x || y.startsWith(x) || x.startsWith(y);
 }
 
-export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 3, joinAfterPreposition: true };
+// minLen 2: 코디가 읽는 한국어 자막은 조각이 더 짧아(「저는」 2자) 3에서 걸러졌다.
+// 2026-08-28 실측 — 한국어 24% -> 17%, 러시아어는 0% 그대로(회귀 없음).
+export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 2, joinAfterPreposition: true };
 
 export function shouldStitch(
   { prev, next }: StitchInput,
