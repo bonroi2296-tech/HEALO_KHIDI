@@ -112,6 +112,19 @@ export default function CoordinatorMessagesClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
+  // 딥링크: 알림(AI 부정평가·병원 답신)이 `?thread=<id>` 로 보낸다. 예전엔 이 화면이 그 값을
+  // «안 읽어서» 목록만 열렸다 — 주소는 맞는데 아무 데도 안 가는 죽은 링크였다(2026-08-28).
+  // 목록 기본 거름망이 'open' 이라 다른 상태의 스레드면 안 보인다 → 'all' 로 풀고 연다.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    deepLinked.current = true;
+    const id = new URLSearchParams(window.location.search).get("thread");
+    if (!id) return;
+    setStatusFilter("all");
+    setSelectedId(id);
+  }, []);
+
   // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
   async function getAccessToken() {
     const supabase = createSupabaseBrowserClient();
@@ -268,9 +281,13 @@ export default function CoordinatorMessagesClient() {
   const selectedThread = threads.find((t) => t.id === selectedId);
 
   return (
-    <div className="grid h-[calc(100vh-6.5rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
-      {/* 좌측 — 스레드 목록 */}
-      <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
+    <div className="grid h-[calc(100vh-6.5rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] grid-cols-1 md:grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
+      {/* 좌측 — 스레드 목록
+          폰에선 목록 칸이 300px 를 통째로 먹어 대화가 112px 로 찌그러졌다(폰 폭 412px 기준).
+          한 칸으로 세우고, 대화를 고르면 목록을 접는다 — /patient/messages 와 같은 방식. */}
+      <aside className={`flex-col overflow-hidden border-r border-gray-200 bg-white ${
+        selectedId ? "hidden md:flex" : "flex"
+      }`}>
         <div className="border-b border-gray-200 px-4 py-3">
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-gray-900">
             <MessageSquare size={16} className="text-teal-700" /> {L.navMessages}
@@ -342,8 +359,10 @@ export default function CoordinatorMessagesClient() {
         </div>
       </aside>
 
-      {/* 우측 — 대화 */}
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      {/* 우측 — 대화 (폰에선 고른 뒤에만 보인다) */}
+      <div className={`h-full min-h-0 flex-col overflow-hidden ${
+        selectedId ? "flex" : "hidden md:flex"
+      }`}>
         {!selectedThread ? (
           <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
             {L.msSelectConversation}
@@ -351,9 +370,18 @@ export default function CoordinatorMessagesClient() {
         ) : (
           <>
             {/* 헤더 */}
-            <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 md:px-6">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
+                  {/* 폰에서만 — 목록이 접혀 있어 되돌아갈 길이 필요하다 */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    aria-label={L.chBackToList}
+                    className="md:hidden shrink-0 -ml-1.5 rounded-lg px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                  >
+                    ← {L.chBackToList}
+                  </button>
                   <span
                     className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
                     style={{ background: CHANNEL_COLOR[selectedThread.channel] || CHANNEL_COLOR.web, ...(selectedThread.channel === "kakao" ? { color: "#3c1e1e" } : {}) }}

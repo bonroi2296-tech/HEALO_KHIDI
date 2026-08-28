@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -63,6 +63,20 @@ export default function HospitalLeadsPage() {
   }, [statusFilter]);
 
   useEffect(() => { loadLeads(); }, [loadLeads]);
+
+  // 딥링크: 「📥 새 진료 의뢰」 알림이 `?lead=<id>` 로 보낸다. 예전엔 목록 주소만 줘서
+  // 병원 담당자가 어느 건인지 눈으로 찾아야 했다 (2026-08-28).
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || loading) return;
+    const id = new URLSearchParams(window.location.search).get("lead");
+    if (!id) { deepLinked.current = true; return; }
+    const found = leads.find((l) => String(l.id) === id);
+    if (!found) return; // 아직 목록이 안 왔거나 거름망 밖 — 다음 로드에서 다시 본다
+    deepLinked.current = true;
+    handleOpenDetail(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, leads]);
 
   const handleOpenDetail = (lead) => {
     setSelectedLead(lead);

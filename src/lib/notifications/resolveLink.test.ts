@@ -43,13 +43,25 @@ describe("resolveNotificationLink", () => {
 
   it("문의 목록이 아닌 주소에는 inquiry 를 붙이지 않는다", () => {
     expect(
-      resolveNotificationLink({ link: "/coordinator/inbox", payload: { inquiryId: 412 } })
-    ).toBe("/coordinator/inbox");
+      resolveNotificationLink({ link: "/admin/consultations", payload: { inquiryId: 412 } })
+    ).toBe("/admin/consultations");
   });
 
   it("링크가 없으면 null (클릭해도 이동 없음)", () => {
     expect(resolveNotificationLink({ link: null })).toBeNull();
     expect(resolveNotificationLink(null)).toBeNull();
+  });
+
+  it("코디 받은함은 상세가 /코디받은함/<번호> 라우트라 «경로»로 붙인다", () => {
+    expect(
+      resolveNotificationLink({ type: "new_inquiry", link: "/coordinator/inbox", payload: { inquiryId: 412 } })
+    ).toBe("/coordinator/inbox/412");
+  });
+
+  it("코디 메시지함도 ?thread= 를 읽는다", () => {
+    expect(
+      resolveNotificationLink({ type: "hospital_message", link: "/coordinator/messages", payload: { threadId: "t9" } })
+    ).toBe("/coordinator/messages?thread=t9");
   });
 
   it("threadId 는 URL 로 안전하게 인코딩한다", () => {
