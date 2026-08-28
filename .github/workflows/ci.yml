@@ -97,6 +97,21 @@ jobs:
       # 왜: 활성 취향을 -86% 로 줄인 날 반나절 만에 +38% 되찼다(2026-07-28). 문서로만 적으면 안 지켜진다.
       - name: 지침 구조 (CLAUDE.md 상한 + 취향 분류 태그 + 죽은 문서 참조 차단)
         run: npm run check:rules
+      # 「검사를 만들었으면 그게 진짜 잡는지 보는 시험도 같이 만들어라」를 강제한다.
+      # 왜: 우리 재발률이 32%(183건 중 58건)인데, 오늘 처음 재보니 검사 12개 중 2개가
+      #     «결함을 심어도 통과하는 가짜»였다(17%). 지금까지 재발 방지는 늘
+      #     「사고 → 반성문 → 검사 추가 → 막았다」였고 그 마지막 칸을 아무도 안 쟀다.
+      #     그래서 「막았다고 믿는 것」만 쌓이고 실제 방지력은 안 쌓였다 = 개선이 증발했다.
+      #     이 줄이 그 증발을 막는다 — 새 검사가 늘면 그 검사의 «시험»도 같이 늘게 강제.
+      - name: 새 검사에 「진짜 잡는지 보는 시험」이 붙었나 (개선이 증발하지 않게)
+        run: npm run check:guard-coverage
+      # 이 탐지기는 «세션 시작 훅»이 부르는 것이라 CI 에선 판정을 안 낸다(항상 종료코드 0).
+      # 그래도 여기 거는 이유: 2026-08-28 실측으로 이게 **13일간 죽어 있었다**는 걸 발견했다 —
+      # `--format=%(refname:short)` 를 따옴표 없이 셸에 넘겨 POSIX 셸에서 구문 오류가 났고,
+      # 오류를 삼키는 코드 때문에 작업본 목록이 0개가 되어 언제나 「✅ 0건」이 찍혔다.
+      # 실제로는 «본판에 없는 인수인계»를 품은 작업본이 23개 있었다. 자기시험만 CI 에서 돌린다.
+      - name: 작업본 인수인계 탐지기 자체 시험 (셸 따옴표가 깨져 조용히 죽는 것 차단)
+        run: npm run check:branch-handoffs -- --selftest
       # 완성도 루브릭(Definition of Done) SoR 무결성 — 골격 단계라 비차단(경고).
       # 안정·오탐 검증 후 continue-on-error 제거해 blocking 으로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
       - name: 완성도 루브릭 SoR 정합성 (판단 기준 채점표가 부패·문서 드리프트하지 않게 — 비차단)
@@ -114,7 +129,17 @@ jobs:
         run: npm run check:visa-freshness
       - name: PDF 톤 (초청장·견적서·동의서 Premium 톤 복귀 차단 — serif·gold·외부폰트)
         run: npm run check:pdf-tone
-      - run: npm run check:i18n
+      # ⚠️ `--fail-on-missing` 이 «반드시» 있어야 한다. 2026-08-28 음성 대조(`npm run
+      #    audit:negative-control`)로 발각: 이 줄이 맨몸(`npm run check:i18n`)이던 동안,
+      #    러시아어 사전에서 키를 지워도 검사기는 «✗ MISSING 1» 을 찍고도 **exit 0** 으로 끝나
+      #    CI 가 초록불이었다. 그 플래그 없이는 «보고만 하는 도구»다
+      #    (scripts/check-i18n-coverage.mjs 의 FAIL_ON_MISSING).
+      #    게다가 2033/2034 는 반올림돼 «100%» 로 찍혀서 로그를 눈으로 봐도 안 걸린다.
+      #    실측: 키 1개 삭제 → 맨몸 exit 0 / 플래그 붙이면 exit 1.
+      #    이제 package.json 의 check:i18n 자체가 플래그를 달고 있다. 여기 한 번 더 적는 건
+      #    이중 안전장치다 — 누가 package.json 에서 빼도 이 창구는 계속 막는다. 지우지 마라.
+      - name: 번역 커버리지 (ru·kz 키 누락 시 차단 — 플래그 없으면 보고만 하고 통과한다)
+        run: npm run check:i18n -- --fail-on-missing
       - name: 공개 화면 내부 링크에 언어 접두어 (없으면 쿠키 없는 검색 로봇이 전부 영어로 튕겨 러/카 페이지가 두 달간 미색인이었다)
         run: npm run check:locale-links
       - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
