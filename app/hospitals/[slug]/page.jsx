@@ -56,6 +56,10 @@ export async function generateMetadata({ params }) {
       (isUuid(slug) ? await getHospitalById(slug, lc) : null)
     : null;
 
+  // canonical·og:url 은 같은 값이어야 한다. localeAlternates() 가 언어 코드(/en/…)를 붙여준다
+  // — 예전엔 og:url 에 언어 없는 상대경로를 써서 canonical 과 어긋났다(2026-08-28 실측).
+  const hospitalAlt = (await localeAlternates()) || { canonical: `/hospitals/${slug}` };
+
   // Fallback to static partner data if not in DB
   if (!hospital) {
     if (partner) {
@@ -65,8 +69,8 @@ export async function generateMetadata({ params }) {
       return {
         title: name,
         description,
-        alternates: (await localeAlternates()) || { canonical: `/hospitals/${slug}` },
-        openGraph: { title: name, description, type: "article", images: ogImages },
+        alternates: hospitalAlt,
+        openGraph: { title: name, description, type: "article", images: ogImages, url: hospitalAlt.canonical },
         twitter: ogImages ? { card: "summary_large_image", title: name, description, images: [ogImg] } : undefined,
       };
     }
@@ -77,6 +81,7 @@ export async function generateMetadata({ params }) {
 
   const { name, description } = localizedHospitalText(hospital, partner, lc);
   const canonical = `/hospitals/${hospital.slug || slug}`;
+  const dbAlt = (await localeAlternates()) || { canonical };
   const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
   const ogImages = folderOg
     ? [{ url: folderOg }]
@@ -86,11 +91,11 @@ export async function generateMetadata({ params }) {
   return {
     title: name,
     description,
-    alternates: (await localeAlternates()) || { canonical },
+    alternates: dbAlt,
     openGraph: {
       title: name,
       description,
-      url: canonical,
+      url: dbAlt.canonical,
       type: "article",
       images: ogImages,
     },

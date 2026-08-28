@@ -39,7 +39,8 @@ export async function generateMetadata() {
   // 언어화 안 된 요청(내부도구 등)은 alternates 생략 — 잘못된 canonical 방지.
   if (!locale) return baseMetadata;
   const alternates = await localeAlternates();
-  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US" };
+  // openGraph 를 따로 정의하지 않는 페이지용 기본 og:url (정의하는 페이지는 각자 넣는다).
+  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US", url: alternates?.canonical };
   return { ...baseMetadata, alternates, openGraph: og };
 }
 

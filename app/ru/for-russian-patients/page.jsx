@@ -51,6 +51,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    url: "/ru/for-russian-patients",
     title: "Лечение рака в Корее | healwith — Медицинский консьерж",
     description:
       "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR, иммунотерапия корейской медицины. Поддержка на русском языке.",

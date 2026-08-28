@@ -75,6 +75,7 @@ export async function generateMetadata({ params }) {
     const ogImg = CANCER_IMAGES.healGraph;
     // 전환 의도 키워드(가격·비자·이동) — GROWTH_PLAN 리서치 기반. 문법 안전한 일반형만
     // (암종명 보간은 러시아어 격변화가 깨질 수 있어 생략). 카자흐=Google, 러시아=Yandex 타겟.
+    const alt = await localeAlternates();
     const keywords = [
       // 암종별 고의도(전환↑) — 시트 §"По типу рака"
       ...(CANCER_KEYWORDS[slug] || []),
@@ -96,11 +97,13 @@ export async function generateMetadata({ params }) {
       title,
       description,
       keywords,
-      alternates: (await localeAlternates()) || undefined,
+      alternates: alt || undefined,
       openGraph: {
         title,
         description,
-        url: `/treatments/${slug}`,
+        // canonical 과 같은 주소를 써야 한다 — 상대경로를 직접 쓰면 언어 코드가 빠진다
+        // (2026-08-28 실측: og:url 만 /treatments/lung 로 나가 canonical 과 어긋났다).
+        url: alt?.canonical || `/treatments/${slug}`,
         type: "article",
         images: [{ url: ogImg }],
       },
