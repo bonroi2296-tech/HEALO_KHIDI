@@ -1640,6 +1640,13 @@ export default function ConsultationRoomPage() {
   // 아직 «더 붙을 수 있어» 저장을 미뤄 둔 통역봇 줄. 조각이 확정된 뒤에 한 번만 보낸다.
   const botPendingRef = useRef(null);
   const botFlushTimerRef = useRef(null);
+  // 기록 실패를 한 통화에 한 번만 알리기 위한 표시(자막마다 알리면 로그·화면이 뒤덮인다)
+  const botSaveFailedRef = useRef(false);
+  // ⚠️ 진단 비콘(reportClientEvent)은 이 아래에서 선언된다. 여기서 «이름으로» 참조하면
+  //    의존성 배열이 렌더 중에 평가돼 ReferenceError 가 나고 상담방이 통째로 안 뜬다
+  //    (2026-08-28 실측: 화면 백지 + "Cannot access before initialization").
+  //    그래서 ref 로 받아서 쓴다.
+  const reportBotErrRef = useRef(null);
 
   // 통역봇 줄 하나를 기록에 남긴다. 2026-08-28 까지 이 경로만 저장이 통째로 빠져 있었다
   // (실측: 자막 3,553건 중 통역봇 경로 0건) — 화면에는 떴지만 회의록·상담 요약에는 없었다.
@@ -1669,7 +1676,21 @@ export default function ConsultationRoomPage() {
           sttEngine: STT_ENGINES.LIVE_TRANSLATE,
           speakerName: line.speakerName || undefined,
         }),
-      }).catch(() => {});
+      })
+        .then((r) => {
+          if (r.ok || botSaveFailedRef.current) return;
+          // 상담 기록이 안 남는 것은 조용히 지나가면 안 된다. 다만 한 통화에 한 번만
+          // 알린다 — 자막마다 보내면 로그가 폭주하고 화면도 안내로 뒤덮인다.
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", r.status);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save failed: ${r.status}`);
+        })
+        .catch((e) => {
+          if (botSaveFailedRef.current) return;
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", e?.message);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save error: ${e?.message}`);
+        });
     },
     [consultationId, isGuestMode, inviteToken, myLang, targetLang]
   );
@@ -1682,6 +1703,9 @@ export default function ConsultationRoomPage() {
 
       // 통역 모델은 말을 따라가며 몇 글자씩 즉시 내보내 조각이 아주 잘다(2026-08-28 실측:
       // 문장 중간 절단 68%). 앞줄에 도로 붙여 문장 단위로 되돌린다 — 같은 실측에서 0%.
+      // ⚠️ 화자를 모르면(통역봇이 speaker 속성을 안 실은 경우) 이어 붙이지 않는다.
+      //    「bot:…」 같은 가짜 키로 묶으면 두 사람의 말이 같은 화자로 취급돼 한 줄로 붙는다.
+      //    자막 자리(슬롯)는 예전처럼 가짜 키를 써도 되지만, 붙이기 판정은 안 된다.
       const speakerKey = speakerId || `bot:${role || "interpreter"}`;
       const incoming = {
         source: text,
@@ -1691,7 +1715,8 @@ export default function ConsultationRoomPage() {
         at: Date.now(),
       };
       const prev = botPendingRef.current;
-      const merged = shouldStitch({ prev, next: incoming }, LIVE_TRANSLATE_STITCH);
+      const merged =
+        !!speakerId && shouldStitch({ prev, next: incoming }, LIVE_TRANSLATE_STITCH);
       const line = merged ? stitch({ prev, next: incoming }) : null;
       const shown = merged ? line.translated : text;
 
@@ -2529,6 +2554,10 @@ export default function ConsultationRoomPage() {
   }, [voiceOn, c]);
 
   // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
+  useEffect(() => {
+    reportBotErrRef.current = reportClientEvent;
+  }, [reportClientEvent]);
+
   const reportClientEventRef = useRef(null);
   useEffect(() => {
     reportClientEventRef.current = reportClientEvent;

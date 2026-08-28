@@ -87,6 +87,8 @@ async function press(page, rx, label) {
 
 // B(러시아어를 듣는 쪽)가 먼저 들어가 통역을 켠다 — 통역쌍은 청취자가 있어야 만들어진다.
 const b = await openRoom("coordinator@test.com", "B 듣는쪽");
+// 화면이 아예 안 그려지면(선언 순서 오류 등) 그 자리에서 멈춘다 — 0건을 «정상»으로 읽지 않게.
+b.page.on("pageerror", (e) => console.log("  [화면 오류]", String(e.message).slice(0, 120)));
 await b.page.waitForTimeout(11000);
 const btns = [];
 for (const x of await b.page.getByRole("button").all()) {
