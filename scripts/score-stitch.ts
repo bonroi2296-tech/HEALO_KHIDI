@@ -11,7 +11,7 @@
  *   npx tsx --conditions=react-server scripts/score-stitch.ts agents/live-translate/captions.json
  */
 import { readFileSync } from "node:fs";
-import { shouldStitch, stitch, type StitchOptions } from "../src/lib/consultation/transcriptStitch";
+import { shouldStitch, stitch, LIVE_TRANSLATE_STITCH, type StitchOptions } from "../src/lib/consultation/transcriptStitch";
 
 type Cap = { at: number; text: string; speaker: string; lang: string };
 
@@ -58,7 +58,7 @@ console.log(`  ${"이어 붙이기 안 걸었을 때".padEnd(30)} ${String(befor
 report("기본값 그대로", rounds, {});
 report("minLen 2", rounds, { minLen: 2 });
 report("minLen 3", rounds, { minLen: 3 });
-report("minLen 4", rounds, { minLen: 4 });
+report("통역봇 기본값(LIVE_TRANSLATE_STITCH)", rounds, LIVE_TRANSLATE_STITCH);
 report("minLen 1", rounds, { minLen: 1 });
 report("  + 길이 상한 500", rounds, { minLen: 1, maxLen: 500 });
 

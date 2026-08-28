@@ -58,14 +58,19 @@ const SENTENCE_OPENERS =
   /^(안녕|여보세요|네[,.\s]|예[,.\s]|아니요|죄송|감사|그럼\s|자[,\s]|Здравствуйте|Привет|Спасибо|Извините|Да[,.\s]|Нет[,.\s]|Hello|Hi[,.\s]|Thanks|Sorry)/;
 
 /**
- * 앞 조각이 «문장이 끝날 수 없는 낱말»로 끝나나? (전치사·접속사)
+ * 앞 조각이 «문장이 끝날 수 없는 낱말»로 끝나나? (전치사만)
  *
- * 이 자리에서는 말이 끝날 수 없으므로, 뒤 조각이 대문자로 시작해도 새 문장이 아니라
+ * 전치사 뒤에는 명사가 «반드시» 온다. 그러니 뒤 조각이 대문자로 시작해도 새 문장이 아니라
  * 고유명사다. 한국어는 조사가 붙어 이 신호가 필요 없다(대소문자도 없다).
+ *
+ * ⚠️ 접속사(что·если·а·но·and·that…)는 **일부러 뺐다.** 2026-08-28 실서비스 자막
+ *    3,554줄로 재보니, 접속사를 넣었을 때 새로 붙는 13건 중 6건이 «잘못» 붙었다:
+ *    말하다 만 「Потом что」 에 다음 사람의 「Что вы хотите сделать?」 가 붙는 식이다.
+ *    접속사 자리에서는 말이 실제로 끊긴다. 전치사 자리에서는 안 끊긴다. 그 차이다.
  * ⚠️ 목록을 넓히지 마라 — 넓힐수록 «잘못 붙이기»가 늘고, 그건 뜻을 바꾼다.
  */
 const CONNECTOR_TAIL =
-  /(^|\s)(из|в|во|на|с|со|к|ко|о|об|по|за|от|до|для|при|под|над|у|про|через|между|и|а|но|что|как|если|чтобы|of|in|on|at|to|for|with|and|but|that|from|by|as|or)\s*$/i;
+  /(^|\s)(из|в|во|на|с|со|к|ко|о|об|по|за|от|до|для|при|под|над|у|про|через|между|of|in|on|at|to|for|with|from|by)\s*$/i;
 
 export function endsWithConnector(text: string): boolean {
   const t = (text || "").trim();
@@ -110,6 +115,17 @@ export type StitchOptions = {
   maxLen?: number;
   /** 양쪽 조각의 최소 길이(자). 이보다 짧으면 맞장구로 보고 안 붙인다. */
   minLen?: number;
+  /**
+   * 전치사로 끝난 앞줄에 «대문자로 시작하는 뒷줄»을 붙일까?
+   *
+   * 실시간 통역 경로에서만 켠다. 통역 모델은 «한 사람의 말»을 몇 글자씩 쪼개 보내므로
+   * 전치사 뒤에 오는 대문자는 거의 고유명사다(「Я из」+「Казахстана.」).
+   *
+   * ⚠️ 기존 자막 경로에서는 끄고 둔다. 거긴 두 사람이 번갈아 말해서, 전치사로 끝나고
+   *    «말하다 만» 줄에 상대의 새 문장이 붙는다. 2026-08-28 실서비스 자막 3,554줄로
+   *    재보니 켰을 때 새로 붙는 3건 중 1건이 그런 오붙임이었다.
+   */
+  joinAfterPreposition?: boolean;
 };
 
 /**
@@ -137,11 +153,11 @@ export type StitchOptions = {
  * 를 고른다 — 「Да」(2자)·「Нет」(3자) 같은 맞장구가 앞줄에 붙는 것을 막는다.
  * ⚠️ 이 값을 더 낮추지 마라. 결과는 안 좋아지고 잘못 붙일 위험만 는다.
  */
-export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 4 };
+export const LIVE_TRANSLATE_STITCH: StitchOptions = { minLen: 4, joinAfterPreposition: true };
 
 export function shouldStitch(
   { prev, next }: StitchInput,
-  { maxGapMs = 10000, maxLen = 220, minLen = 8 }: StitchOptions = {},
+  { maxGapMs = 10000, maxLen = 220, minLen = 8, joinAfterPreposition = false }: StitchOptions = {},
 ): boolean {
   if (!prev) return false;
   const a = (prev.source || "").trim();
@@ -155,7 +171,7 @@ export function shouldStitch(
   const gap = next.at - prev.at;
   if (!(gap >= 0 && gap <= maxGapMs)) return false;                  // ④
   // 앞이 전치사·접속사로 끝났으면 뒤의 대문자는 «새 문장»이 아니라 고유명사다(2026-08-28).
-  if (startsNewSentence(b) && !endsWithConnector(a)) return false;                            // ⑤
+  if (startsNewSentence(b) && !(joinAfterPreposition && endsWithConnector(a))) return false;                            // ⑤
   if (a.length < minLen || b.length < minLen) return false;          // ⑥
   if (a.length + b.length + 1 > maxLen) return false;                // ⑦
   return true;
