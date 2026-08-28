@@ -17,6 +17,14 @@
  *
  * 안드로이드는 이 길을 타지 않는다 — 거기서는 기존 웹 방식이 그대로 동작하고,
  * 플러그인의 안드로이드 구현은 또 다른 흐름이라 바꿀 이유가 없다.
+ *
+ * 🔴 **부품 고를 때 함정 (2026-08-28 빌드 #10 이 여기서 죽었다)**:
+ *    `@capacitor-community/apple-sign-in` 은 npm 쪽 조건이 `@capacitor/core >=7` 이라 통과하는데,
+ *    **Swift 쪽 Package.swift 는 `capacitor-swift-pm` 을 `from: "7.0.0"`(= 8 미만)으로 못 박아** 둔다.
+ *    우리 앱은 `exact: "8.3.0"` 이라 서로 안 맞고, 그러면 xcodebuild 가
+ *    「Failed to show build settings」 한 줄만 남기고 죽는다(원인이 전혀 안 보인다).
+ *    → **캐패시터 부품을 고를 땐 npm 조건 말고 그 부품의 `Package.swift` 를 열어서
+ *      `capacitor-swift-pm` 요구 버전을 직접 확인해라.**
  */
 
 /** 재생 공격 방지용 임의값. 애플에는 «해시»를, Supabase 에는 «원본»을 준다(짝이 맞아야 통과). */
@@ -39,8 +47,8 @@ function toHex(bytes: Uint8Array): string {
 export function isAppleCancel(err: unknown): boolean {
   const e = err as { code?: string | number; message?: string } | null;
   const text = `${e?.code ?? ""} ${e?.message ?? ""}`.toLowerCase();
-  // iOS 는 취소를 1001(ASAuthorizationError.canceled)로 준다.
-  return text.includes("1001") || text.includes("cancel");
+  // 플러그인은 취소를 `SIGN_IN_CANCELED` 로 준다. 1001 은 iOS 원본 오류값(ASAuthorizationError.canceled).
+  return text.includes("sign_in_canceled") || text.includes("1001") || text.includes("cancel");
 }
 
 /**
@@ -50,18 +58,15 @@ export function isAppleCancel(err: unknown): boolean {
 export async function signInWithAppleNative(supabase: {
   auth: { signInWithIdToken: (args: Record<string, unknown>) => Promise<{ error: unknown }> };
 }): Promise<void> {
-  const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
+  const { AppleSignIn, SignInScope } = await import("@capawesome/capacitor-apple-sign-in");
   const rawNonce = makeRawNonce();
-  const result = await SignInWithApple.authorize({
-    // 아래 두 값은 iOS 네이티브 창에서는 쓰이지 않는다(번들 ID 로 자동 결정).
-    // 플러그인이 필수 인자로 요구하므로 웹 기준 값을 그대로 넣어 둔다.
-    clientId: "kr.co.healwith.app.web",
-    redirectURI: `${window.location.origin}/auth/callback`,
-    scopes: "email name",
+  // iOS 는 `initialize()` 가 필요 없다(안드로이드·웹 전용). 번들 ID 로 자동 결정된다.
+  const result = await AppleSignIn.signIn({
+    scopes: [SignInScope.Email, SignInScope.FullName],
     nonce: await sha256Hex(rawNonce),
   });
 
-  const token = result?.response?.identityToken;
+  const token = result?.idToken;
   if (!token) throw new Error("apple_no_identity_token");
 
   const { error } = await supabase.auth.signInWithIdToken({
