@@ -34,7 +34,9 @@ export function useTTS({ language = "en" }) {
       // Try to find a voice for the target language
       const voices = window.speechSynthesis.getVoices();
       const langPrefix = LANG_MAP[language]?.split("-")[0] || "en";
-      const matchingVoice = voices.find((v) => v.lang.startsWith(langPrefix));
+      // ⚠️ getVoices() 는 목록이 «채워지는 도중»에 부르면 lang 이 없는 항목을 줄 수 있다.
+      //    보호가 없으면 여기서 예외가 나 읽어주기가 통째로 죽는다(2026-08-28 실측: 간헐 발생).
+      const matchingVoice = voices.find((v) => v?.lang?.startsWith(langPrefix));
       if (matchingVoice) {
         utterance.voice = matchingVoice;
       }

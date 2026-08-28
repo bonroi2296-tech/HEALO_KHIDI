@@ -1661,6 +1661,10 @@ export default function ConsultationRoomPage() {
   const botFlushTimerRef = useRef(null);
   // 기록 실패를 한 통화에 한 번만 알리기 위한 표시(자막마다 알리면 로그·화면이 뒤덮인다)
   const botSaveFailedRef = useRef(false);
+  // 저장이 «실패한» 줄을 담아 두는 자리. 회선이 잠깐 끊기면 그 사이 확정된 통역 줄이
+  // 영영 사라졌다(2026-08-28 실측: 회선을 14초 끊었더니 4건 중 2건이 기록에 안 남았다).
+  // 회선이 돌아오면 여기 담긴 것을 다시 보낸다.
+  const botRetryRef = useRef([]);
   // ⚠️ 진단 비콘(reportClientEvent)은 이 아래에서 선언된다. 여기서 «이름으로» 참조하면
   //    의존성 배열이 렌더 중에 평가돼 ReferenceError 가 나고 상담방이 통째로 안 뜬다
   //    (2026-08-28 실측: 화면 백지 + "Cannot access before initialization").
@@ -1691,18 +1695,76 @@ export default function ConsultationRoomPage() {
   // ⚠️ 천장: 같은 언어를 쓰는 사람이 방에 둘 이상이면 그 인원수만큼 중복 저장된다.
   //    지금 상담은 한국어 1명 + 환자 언어 1명이라 안 겹친다. 겹치기 시작하면 통역봇이
   //    자막마다 고유 번호를 실어 보내고 서버에서 거르는 쪽으로 올려야 한다.
-  const flushBotLine = useCallback(
-    (line) => {
-      if (!line || !consultationId) return;
-      const body = String(line.translated || "").trim();
-      if (!body) return;
+  // 통역 줄 하나를 실제로 보낸다. 실패하면 대기열에 담아 나중에 다시 보낸다.
+  // item 이 있으면 «재시도»다(횟수가 이어진다).
+  const postBotLine = useCallback(
+    (payload, item) => {
+      const requeue = () => {
+        const q = botRetryRef.current;
+        // 회선이 오래 끊겨도 메모리가 무한히 늘지 않게 상한을 둔다.
+        if (q.length >= 200) return;
+        const it = item || { payload, tries: 0 };
+        // 세 번 실패하면 포기한다(계속 붙잡고 있어도 같은 이유로 실패한다).
+        if (it.tries >= 3) return;
+        q.push(it);
+      };
       fetch(`/api/khidi/consultation/${consultationId}/translate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
         },
-        body: JSON.stringify({
+        body: JSON.stringify(payload),
+      })
+        .then((r) => {
+          if (r.ok) return;
+          // 5xx 는 «지금만» 안 되는 것일 수 있으니 다시 보낸다.
+          // 4xx 는 몸통이 잘못된 것이라 다시 보내도 같은 답이 온다 — 버린다.
+          if (r.status >= 500) requeue();
+          if (botSaveFailedRef.current) return;
+          // 상담 기록이 안 남는 것은 조용히 지나가면 안 된다. 다만 한 통화에 한 번만
+          // 알린다 — 자막마다 보내면 로그가 폭주하고 화면도 안내로 뒤덮인다.
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", r.status);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save failed: ${r.status}`);
+        })
+        .catch((e) => {
+          requeue();
+          if (botSaveFailedRef.current) return;
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", e?.message);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save error: ${e?.message}`);
+        });
+    },
+    [consultationId, isGuestMode, inviteToken]
+  );
+
+  // 회선이 돌아오면(또는 20초마다) 못 보낸 줄을 다시 흘린다.
+  useEffect(() => {
+    if (!consultationId) return undefined;
+    const drain = () => {
+      const q = botRetryRef.current;
+      if (!q.length) return;
+      botRetryRef.current = [];
+      for (const it of q) {
+        it.tries += 1;
+        postBotLine(it.payload, it);
+      }
+    };
+    window.addEventListener("online", drain);
+    const timer = setInterval(drain, 20000);
+    return () => {
+      window.removeEventListener("online", drain);
+      clearInterval(timer);
+    };
+  }, [consultationId, postBotLine]);
+
+  const flushBotLine = useCallback(
+    (line) => {
+      if (!line || !consultationId) return;
+      const body = String(line.translated || "").trim();
+      if (!body) return;
+      postBotLine({
           // 통역봇은 원문을 안 준다(번역된 자막만 온다) — 원문 칸은 비워 둔다.
           translatedText: body,
           // ⚠️ 자막에 실려 오는 lang 은 «번역된 결과» 언어(= 내 언어)다. 그걸 원문 언어 칸에
@@ -1718,24 +1780,9 @@ export default function ConsultationRoomPage() {
           // 시각이 없거나 이상하면 아예 안 보낸다(서버가 자기 시각을 쓴다).
           //    Invalid Date 에 toISOString() 을 부르면 예외가 나 저장이 통째로 날아간다.
           ...(Number.isFinite(line.at) ? { spokenAt: new Date(line.at).toISOString() } : {}),
-        }),
-      })
-        .then((r) => {
-          if (r.ok || botSaveFailedRef.current) return;
-          // 상담 기록이 안 남는 것은 조용히 지나가면 안 된다. 다만 한 통화에 한 번만
-          // 알린다 — 자막마다 보내면 로그가 폭주하고 화면도 안내로 뒤덮인다.
-          botSaveFailedRef.current = true;
-          console.warn("[consultation] 통역 자막 기록 실패:", r.status);
-          reportBotErrRef.current?.("media_failure", `bot subtitle save failed: ${r.status}`);
-        })
-        .catch((e) => {
-          if (botSaveFailedRef.current) return;
-          botSaveFailedRef.current = true;
-          console.warn("[consultation] 통역 자막 기록 실패:", e?.message);
-          reportBotErrRef.current?.("media_failure", `bot subtitle save error: ${e?.message}`);
-        });
+      });
     },
-    [consultationId, isGuestMode, inviteToken, myLang, targetLang]
+    [consultationId, myLang, targetLang, postBotLine]
   );
 
   const handleBotSubtitle = useCallback(
@@ -2586,6 +2633,36 @@ export default function ConsultationRoomPage() {
     pendingVoiceRef.current = false;
     requestInterpreter(true);
   }, [myIdentity, requestInterpreter]);
+
+  // 통화 «중»에 화면을 새로고침해도 통역이 꺼진 채로 돌아오지 않게 한다.
+  // 2026-08-28 실측: 새로고침하면 통역봇은 방에 그대로 남는데 내 통역 표시(voice)만
+  // 지워져서, 화면엔 봇이 보이는데 소리는 안 나오는 「왜 안 들리지」 상태가 됐다.
+  // 켰다는 사실만 기억해 두었다가 위의 «미뤄 둔 켜기» 흐름에 그대로 태운다
+  // (봇 부르기·되돌리기·안내가 이미 그 흐름에 다 들어 있다).
+  const voiceMemoKey = consultationId ? `tx-voice:${consultationId}` : null;
+  useEffect(() => {
+    if (!voiceMemoKey) return;
+    try {
+      if (sessionStorage.getItem(voiceMemoKey) === "1") {
+        pendingVoiceRef.current = true;
+        setVoiceOn(true);
+      }
+    } catch {
+      /* 저장소를 막아 둔 브라우저 — 기억만 못 할 뿐 통화엔 지장 없다 */
+    }
+    // 방이 정해질 때 한 번만 되살린다(이 뒤로는 아래 이펙트가 기록을 맡는다).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMemoKey]);
+
+  useEffect(() => {
+    if (!voiceMemoKey) return;
+    try {
+      if (voiceOn) sessionStorage.setItem(voiceMemoKey, "1");
+      else sessionStorage.removeItem(voiceMemoKey);
+    } catch {
+      /* noop */
+    }
+  }, [voiceMemoKey, voiceOn]);
 
   // 방에 영영 못 붙으면(회선 문제 등) 켜진 척 두지 않는다. 통역 이전에 통화가 안 되는
   // 상태이므로, 20초 안에 identity 가 안 오면 토글을 되돌리고 안내한다.
