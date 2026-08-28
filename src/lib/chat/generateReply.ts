@@ -576,6 +576,31 @@ function parseStructuredReply(
  * 비스트리밍 AI 응답 생성 (thread 기반 채팅용)
  * V1.1: 모델에 JSON 출력 강제 → used_pattern_ids 선언 기반 판정
  */
+/**
+ * 「모델을 거치지 않고 코드가 가로챈」 턴의 이름들.
+ *
+ * 왜 목록으로 두나 (2026-08-28): 이 세 갈래는 환자 메시지를 «모델에 보내지도 않고» 정해진 문구로
+ * 답한다. 그런데 여태 그 사실이 **어디에도 안 남았다** — 답변 기록(chat_messages.metadata)에도,
+ * 판사 채점에도 없어서, 잡담 거르개가 환자의 「그래」(연결 동의)를 4번 씹는 동안 아무도 몰랐다.
+ * PO 가 대화 로그를 눈으로 보고서야 드러났다.
+ *
+ * 가로채기 자체는 필요하다(인사에 병원을 추천할 순 없다). 문제는 «몇 번 가로챘는지 셀 수 없던 것»이다.
+ * 정상일 때와 오작동할 때가 똑같이 조용하면 오작동은 영영 안 보인다.
+ * → 두 저장 경로(message·stream)가 이 값을 metadata.bypassed 로 남긴다.
+ */
+export const MODEL_BYPASS_SCORINGS = [
+  "small_talk_bypass", // 짧은 인사·잡담으로 판정 (오작동 시: 환자의 짧은 «대답»을 삼킨다)
+  "topic_correction_reset", // 화제 정정으로 판정
+  "master_key_self_analysis", // PO 디버그용 마스터키
+] as const;
+
+/** 이 턴이 모델을 안 거쳤으면 그 이름을, 거쳤으면 null. 답변 기록에 남길 값. */
+export function modelBypassKind(ragScoring: unknown): string | null {
+  return typeof ragScoring === "string" && (MODEL_BYPASS_SCORINGS as readonly string[]).includes(ragScoring)
+    ? ragScoring
+    : null;
+}
+
 // 짧은 인사·잡담 패턴 — RAG/DB 검색 없이 자연스럽게 응답
 const SMALL_TALK_PATTERNS = [
   /^(안녕|하이|hi|hello|hey|здравств|привет|сәлем|你好|嗨|こんにちは|やあ|halo|hola)[\s!?.,~]*$/i,
@@ -625,10 +650,42 @@ function detectRepetitiveAssistant(messages: ChatMessage[]): boolean {
   return pairs > 0 && total / pairs >= 0.5;
 }
 
-function isSmallTalk(text: string): boolean {
+// 직전 어시스턴트 발화가 «환자의 대답을 기다리는» 상태인가. 그렇다면 뒤따르는 "네"·"그래"는
+// 잡담이 아니라 그 질문에 대한 «대답»이다. 물음표로만 판정한다(모든 언어 공통, 전각 ？ 포함).
+//
+// ⚠️ «끝이 물음표»가 아니라 «끝 60자 안에 물음표»다. 처음엔 끝 글자만 봤는데 실측에서 틀렸다:
+//    실DB(chat_messages) AI 답변 524건 중 물음표가 있는 건 286건인데 그중 «끝»에 있는 건 174건뿐
+//    (61%)이다. 나머지 112건은 우리 프롬프트가 시킨 대로 「질문? + 알려주시면 안내하겠습니다」로
+//    끝나 맺음말이 물음표 뒤에 붙는다. 끝 글자만 보면 «대답을 기다리는» 답변의 39%를 놓친다.
+//    끝 60자면 286건 중 261건(91%)을 잡고, 「아무 데나 물음표」(286건)와는 25건 차이라 넓히는
+//    비용이 거의 없다. 판정이 넓어서 생기는 최악은 "네"가 모델로 넘어가는 것(=원래 하려던 일)이고,
+//    좁아서 생기는 최악은 환자의 «연결해 달라»는 동의가 통째로 씹히는 것이다. 비대칭이라 넓게 잡는다.
+const QUESTION_TAIL_WINDOW = 60;
+
+function lastAssistantAskedAQuestion(messages: ChatMessage[] | undefined): boolean {
+  if (!messages?.length) return false;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "assistant") continue;
+    const t = (m.content || "").trim();
+    if (!t) continue;
+    return /[?？]/.test(t.slice(-QUESTION_TAIL_WINDOW));
+  }
+  return false;
+}
+
+// ⚠️ messages 를 반드시 같이 넘겨라. 이 판정은 «현재 메시지만» 보면 틀린다.
+//    2026-08-28 PO 제보(#30bfcc04): AI 가 "코디네이터 연결을 도와드릴까요?" 라고 물은 직후
+//    환자가 "그래"(2자) → SMALL_TALK_PATTERNS 의 3자 이하 규칙에 걸려 모델을 거치지도 않고
+//    "더 자세히 말씀해 주시면…" 고정문구가 나갔다. 같은 스레드에서 4번 반복됐고, 그중 3번이
+//    «연결해 달라는 동의»와 «연락처를 주겠다는 동의»였다 — 접수 직전에 대화가 원점으로 돌아갔다.
+//    환자가 "연결해줘요"(5자)라고 길게 다시 쳐서야 넘어갔다.
+export function isSmallTalk(text: string, messages?: ChatMessage[]): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
-  return SMALL_TALK_PATTERNS.some((p) => p.test(trimmed));
+  if (!SMALL_TALK_PATTERNS.some((p) => p.test(trimmed))) return false;
+  // 우리가 방금 물어봤다면 짧은 답도 답이다 → 모델에게 넘긴다.
+  return !lastAssistantAskedAQuestion(messages);
 }
 
 function smallTalkReply(text: string, lang: string): string {
@@ -1049,7 +1106,7 @@ export async function generateChatReply(
   }
 
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답
-  if (isSmallTalk(query)) {
+  if (isSmallTalk(query, messages)) {
     return {
       reply: smallTalkReply(query, lang),
       ragChunks: [],
@@ -1252,7 +1309,7 @@ export async function streamChatReply(
   }
 
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답(한 덩어리로 스트림)
-  if (isSmallTalk(query)) {
+  if (isSmallTalk(query, messages)) {
     const reply = smallTalkReply(query, lang);
     onChunk(reply);
     return {

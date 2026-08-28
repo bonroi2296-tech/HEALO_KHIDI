@@ -19,7 +19,7 @@ import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { sendInAppNotification, getStaffIdsByRole } from "../notifications/inApp";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
-import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
+import { computeOverall, QUALITY_THRESHOLDS, hasAlertAlwaysFlag } from "./qualityStandards";
 import { scanRedlines, applyRedlineFloor } from "./safetyGuard";
 
 // ─────────────────────────────────────────────
@@ -268,8 +268,11 @@ export async function saveEvaluation(
     console.warn("[judge] DB insert 예외:", err.message);
   }
 
-  // 2. 기준 미달 → 코디네이터 알림 (임계값은 qualityStandards 단일 관리)
-  if (judgeResult.overall_score < QUALITY_THRESHOLDS.liveAlert) {
+  // 2. 코디네이터 알림 — 두 갈래(기준·목록 전부 qualityStandards 단일 관리)
+  //    ① 종합점수 미달  ② 점수와 무관하게 즉시 알림 대상 플래그(사실 날조·의료 레드라인)
+  //    ②가 없으면 «판사가 환각을 찍었는데 평균에 희석돼 아무도 안 보는» 구멍이 생긴다
+  //    (2026-08-28 실측: 플래그 265건 중 235건 무알림).
+  if (judgeResult.overall_score < QUALITY_THRESHOLDS.liveAlert || hasAlertAlwaysFlag(judgeResult.flags)) {
     await notifyCoordinators(input, judgeResult);
   }
 }
