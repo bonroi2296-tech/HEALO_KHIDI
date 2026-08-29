@@ -110,6 +110,20 @@ jobs:
           E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
           E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      # 파일 첨부 검사가 «프론트 문제»처럼 보이는 걸 막는다.
+      # 왜 (2026-08-30): chat-file-upload 가 「파일명 칩이 안 뜬다」로 며칠 빨간불이었는데
+      #   진짜 원인은 서버의 `[directUpload] sign error: ... does not exist (404)` 였다.
+      #   원인을 좁히는 데 후보 셋(통 없음·다른 프로젝트·경로 오류)을 반증해야 했다.
+      #   열쇠가 죽으면 «여러 검사가 엉뚱한 이유로» 빨개지므로 여기서 먼저 가린다.
+      # ⚠️ 비밀값은 안 찍는다 — 형식·길이·되나 안 되나만 낸다.
+      # continue-on-error: 진단이지 관문이 아니다. 이것 때문에 나머지 검사를 막지 않는다.
+      - name: 저장소 열쇠가 실제로 먹히나 (첨부 검사 전에 미리)
+        continue-on-error: true
+        run: node scripts/check-e2e-storage.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Smoke E2E 실행 (@smoke 태그만)
         run: npm run e2e:smoke
         env:
@@ -283,6 +297,20 @@ jobs:
 
       - name: Playwright 브라우저 설치
         run: npx playwright install chromium --with-deps
+
+      # 파일 첨부 검사가 «프론트 문제»처럼 보이는 걸 막는다.
+      # 왜 (2026-08-30): chat-file-upload 가 「파일명 칩이 안 뜬다」로 며칠 빨간불이었는데
+      #   진짜 원인은 서버의 `[directUpload] sign error: ... does not exist (404)` 였다.
+      #   원인을 좁히는 데 후보 셋(통 없음·다른 프로젝트·경로 오류)을 반증해야 했다.
+      #   열쇠가 죽으면 «여러 검사가 엉뚱한 이유로» 빨개지므로 여기서 먼저 가린다.
+      # ⚠️ 비밀값은 안 찍는다 — 형식·길이·되나 안 되나만 낸다.
+      # continue-on-error: 진단이지 관문이 아니다. 이것 때문에 나머지 검사를 막지 않는다.
+      - name: 저장소 열쇠가 실제로 먹히나 (첨부 검사 전에 미리)
+        continue-on-error: true
+        run: node scripts/check-e2e-storage.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Full E2E 실행
         run: |
