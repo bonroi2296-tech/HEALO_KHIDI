@@ -12,6 +12,14 @@ export interface ModelPrice {
   outputPer1M: number;
 }
 
+/**
+ * 캐시로 재사용된 입력 토큰의 단가 배수(2026-08-11).
+ * 제미나이는 앞부분이 «글자 하나까지 똑같은» 요청을 자동으로 캐시해, 그 부분의 입력 토큰을
+ * 정가의 약 10% 로 매긴다. 우리 공개 챗은 입력이 전체 토큰의 97% 라 여기가 곧 비용이다.
+ * ⚠️ 이것도 추정이다 — 정산 기준 아님(구글 콘솔이 정본). 감 잡는 용도.
+ */
+export const CACHED_INPUT_RATE = 0.1;
+
 // 기본값 = Gemini **3.6 Flash** 표준 단가(USD/1M): in $1.50 / out $7.50 (+ 캐시입력 $0.15).
 // 출처: https://ai.google.dev/gemini-api/docs/pricing (2026-07-27 확인)
 //
@@ -43,16 +51,28 @@ export function priceForModel(model: string): ModelPrice {
   return MODEL_PRICING["gemini-flash"];
 }
 
-/** 토큰 수 → 추정 비용(USD). 토큰 미상이면 0. numeric(12,6) 정밀도로 반올림. */
+/**
+ * 토큰 수 → 추정 비용(USD). 토큰 미상이면 0. numeric(12,6) 정밀도로 반올림.
+ *
+ * `cachedTokens` 는 «입력 토큰 중 캐시로 재사용된 몫»이다(제미나이 promptTokenCount 에 이미
+ * 포함돼 들어오므로 빼서 따로 싸게 매긴다). 안 넘기면 예전과 완전히 같은 계산이다.
+ */
 export function estimateCostUsd(
   model: string,
   promptTokens: number | null | undefined,
-  completionTokens: number | null | undefined
+  completionTokens: number | null | undefined,
+  cachedTokens: number | null | undefined = null
 ): number {
   const p = priceForModel(model);
   const inTok = promptTokens ?? 0;
   const outTok = completionTokens ?? 0;
-  const cost = (inTok / 1_000_000) * p.inputPer1M + (outTok / 1_000_000) * p.outputPer1M;
+  // 캐시 토큰이 입력보다 크게 보고되는 일은 없어야 하지만, 방어적으로 잘라 음수 단가를 막는다.
+  const cached = Math.min(Math.max(cachedTokens ?? 0, 0), inTok);
+  const freshIn = inTok - cached;
+  const cost =
+    (freshIn / 1_000_000) * p.inputPer1M +
+    (cached / 1_000_000) * p.inputPer1M * CACHED_INPUT_RATE +
+    (outTok / 1_000_000) * p.outputPer1M;
   return Math.round(cost * 1e6) / 1e6;
 }
 
@@ -64,9 +84,11 @@ export function normalizeUsage(usage: unknown): {
   promptTokens: number | null;
   completionTokens: number | null;
   totalTokens: number | null;
+  /** 입력 토큰 중 캐시로 재사용된 몫. 모르면 null(= 아직 못 잼), 0 이면 «캐시가 안 걸렸다». */
+  cachedTokens: number | null;
 } {
   if (!usage || typeof usage !== "object") {
-    return { promptTokens: null, completionTokens: null, totalTokens: null };
+    return { promptTokens: null, completionTokens: null, totalTokens: null, cachedTokens: null };
   }
   const u = usage as Record<string, unknown>;
   const prompt = (u.promptTokens ?? u.inputTokens ?? null) as number | null;
@@ -80,9 +102,22 @@ export function normalizeUsage(usage: unknown): {
   const total =
     (u.totalTokens as number | undefined) ??
     (prompt != null && completion != null ? prompt + completion : null);
+  // 캐시 적중 토큰의 «실제 위치»를 설치된 판으로 확인해 둔 것 (2026-08-11, ai 6.0.168):
+  //   usage.inputTokenDetails.cacheReadTokens  ← 지금 우리가 받는 자리(정답)
+  //   usage.inputTokens                        ← 캐시분을 «포함한» 총 입력 (그래서 아래서 빼야 한다)
+  // ⚠️ 처음엔 `cachedInputTokens` 를 봤는데 **그 이름은 이 판에 없다** → 조용히 0건 기록될 뻔했다.
+  //    (같은 부류의 사고 전례: `useSearchGrounding` 이 없는 키라 웹검색이 한 번도 안 돌았음.)
+  //    옛/새 판 이름도 같이 받아둔다 — 판이 올라가며 자리가 또 바뀌어도 계측이 죽지 않게.
+  const details = (u.inputTokenDetails ?? {}) as Record<string, unknown>;
+  const cached = (details.cacheReadTokens ??
+    u.cachedInputTokens ??
+    u.cachedContentTokenCount ??
+    u.cacheReadInputTokens ??
+    null) as number | null;
   return {
     promptTokens: prompt != null ? Number(prompt) : null,
     completionTokens: completion != null ? Number(completion) : null,
     totalTokens: total != null ? Number(total) : null,
+    cachedTokens: cached != null ? Number(cached) : null,
   };
 }

@@ -52,7 +52,23 @@ export interface LogAiUsageArgs {
   /** usage 가 없을 때 직접 토큰 수 지정(통역/STT 등). */
   promptTokens?: number | null;
   completionTokens?: number | null;
+  /**
+   * AI SDK result.providerMetadata (정규화 전 원본). 캐시 적중 토큰이 usage 가 아니라
+   * 여기(`google.cachedContentTokenCount`)로만 오는 SDK 버전이 있어 둘 다 본다.
+   */
+  providerMetadata?: any;
   meta?: Record<string, unknown>;
+}
+
+/** usage / providerMetadata 어느 쪽에 실려 오든 캐시 적중 토큰을 꺼낸다. 못 찾으면 null. */
+export function readCachedTokens(
+  normCached: number | null,
+  providerMetadata: any
+): number | null {
+  if (normCached != null) return normCached;
+  const raw = providerMetadata?.google?.cachedContentTokenCount;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -68,9 +84,20 @@ export async function logAiUsage(args: LogAiUsageArgs): Promise<void> {
           completionTokens: args.completionTokens ?? null,
           totalTokens:
             (args.promptTokens ?? 0) + (args.completionTokens ?? 0) || null,
+          cachedTokens: null as number | null,
         };
 
-    const est = estimateCostUsd(args.model, norm.promptTokens, norm.completionTokens);
+    const cachedTokens = readCachedTokens(norm.cachedTokens, args.providerMetadata);
+    const est = estimateCostUsd(args.model, norm.promptTokens, norm.completionTokens, cachedTokens);
+
+    // 캐시 적중 토큰은 «칸을 새로 파지 않고» meta 에 담는다(되돌리기 쉬운 쪽).
+    // 왜 기록하나: 제미나이 자동 캐시는 «앞부분이 글자 하나까지 같을 때만» 걸리는데,
+    // 걸렸는지 아닌지를 우리가 지금까지 아예 안 재고 있었다 → 「빨라졌다/싸졌다」를
+    // 추측으로 말하게 된다. 이 숫자가 있어야 실측으로 답할 수 있다(2026-08-11).
+    const meta =
+      cachedTokens != null
+        ? { ...(args.meta ?? {}), cached_tokens: cachedTokens }
+        : args.meta ?? null;
 
     await (supabaseAdmin as any).from("ai_usage_events").insert({
       surface: args.surface,
@@ -79,7 +106,7 @@ export async function logAiUsage(args: LogAiUsageArgs): Promise<void> {
       completion_tokens: norm.completionTokens,
       total_tokens: norm.totalTokens,
       est_cost_usd: est,
-      meta: args.meta ?? null,
+      meta,
     });
   } catch (e) {
     // 계측 실패는 절대 본 흐름에 영향 없게 삼킨다.
