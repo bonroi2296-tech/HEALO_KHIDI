@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleInAppNotice, { useGoogleBlockedInApp } from '@/components/auth/GoogleInAppNotice';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -25,6 +26,8 @@ export const LoginPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
     const [redirectTarget, setRedirectTarget] = useState(null);
+    // 앱(스토어 셸) 안에서는 구글 로그인이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
+    const googleBlockedInApp = useGoogleBlockedInApp();
 
     useEffect(() => {
         // ?redirect= 소비 — proxy(미로그인 보호경로)·환자앱 곳곳이 발급하는데 여기서 안 읽어
@@ -220,7 +223,7 @@ export const LoginPage = ({ setView }) => {
                                     setOauthLoading(false);
                                 }
                             }}
-                            disabled={loading || oauthLoading}
+                            disabled={loading || oauthLoading || googleBlockedInApp}
                             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -234,6 +237,8 @@ export const LoginPage = ({ setView }) => {
                                 {oauthLoading ? t("login.googleConnecting", langCode) : t("login.googleContinue", langCode)}
                             </span>
                         </button>
+
+                        {googleBlockedInApp && <GoogleInAppNotice langCode={langCode} />}
 
                         {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
                             설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}

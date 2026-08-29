@@ -10,6 +10,7 @@ import { PRIVACY_CONTENT, TERMS_CONTENT } from '@/lib/policyContent';
 import { getLangCodeFromCookie, t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleInAppNotice, { useGoogleBlockedInApp } from '@/components/auth/GoogleInAppNotice';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -99,6 +100,8 @@ export const SignUpPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
+    // 앱(스토어 셸) 안에서는 구글 가입이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
+    const googleBlockedInApp = useGoogleBlockedInApp();
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
     const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
     // claim(환자 계정연결) 링크 경유 가입 — /signup?redirect=/claim/[token]. 로그인 화면의
@@ -509,7 +512,7 @@ export const SignUpPage = ({ setView }) => {
                                 setLoading(false);
                             }
                         }}
-                        disabled={loading}
+                        disabled={loading || googleBlockedInApp}
                         className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -523,6 +526,8 @@ export const SignUpPage = ({ setView }) => {
                             {loading ? t("signup.googleConnecting", langCode) : t("signup.googleButton", langCode)}
                         </span>
                     </button>
+
+                    {googleBlockedInApp && <GoogleInAppNotice langCode={langCode} variant="signup" />}
 
                     {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
                         설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}
