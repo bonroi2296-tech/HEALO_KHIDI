@@ -69,8 +69,17 @@ const config: CapacitorConfig = {
     //      실측(실기기 촬영본 + Supabase 기록 대조): 3분 동안 `/auth/v1/authorize` **3건**,
     //      `/auth/v1/callback` **0건**. 화면에는 아래 errorPath(오프라인 안내)가 떴다.
     //    → **아이폰은 이제 웹뷰를 안 거치고 네이티브 창을 직접 쓴다**
-    //      (`src/lib/auth/appleNativeSignIn.ts`). 이 목록은 **안드로이드·예비용으로만 남긴다.**
-    //      지우지 마라: 안드로이드는 여전히 웹 흐름이다.
+    //      (`src/lib/auth/appleNativeSignIn.ts`).
+    //
+    // 🔴 **2026-08-30 정정: 안드로이드 구글도 네이티브로 옮겼다** (`src/lib/auth/googleNativeSignIn.ts`).
+    //    ⚠️ 위 8/28 판에 적혀 있던 「안드로이드는 여전히 웹 흐름이다」는 **이제 틀린 말이다.**
+    //    🛑 **`accounts.google.com` 을 이 목록에 «추가하지 마라» — 넣어도 안 고쳐진다.**
+    //       막힌 곳이 「이동 허용」이 아니라 **PKCE 검증값이 갈리는 것**이기 때문이다: 구글은 앱 웹뷰
+    //       로그인을 정책으로 막아 크롬으로 내보내는데, 돌아오는 `/auth/callback` 도 크롬에서 열린다.
+    //       그런데 code_verifier 는 «앱 웹뷰 쿠키»에 있어 크롬엔 없다 → 교환이 그 자리에서 실패한다.
+    //       실측(2026-08-29): Supabase 는 login 성공(provider=google), Vercel 은
+    //       "PKCE code verifier not found in storage". 같은 24시간 안에 끝까지 간 건 0건.
+    //    지우지도 마라: 네이티브 부품이 없는 **옛 앱 판**은 아직 애플 웹 흐름을 탄다.
     allowNavigation: [
       'appleid.apple.com',
       'hvwwlkawaxabhtumjhrg.supabase.co',

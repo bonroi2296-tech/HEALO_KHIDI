@@ -513,9 +513,9 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 
 | # | 무엇 | 심각도 | 고칠 곳 | 앱 재빌드 |
 |---|---|---|---|---|
-| 1 | 키보드 뜨면 화면 붕괴 → **로그인 자체 불가** | 🔴 막힘 | `capacitor.config.ts:45` | 필요 |
-| 2 | 이메일 끝 `com` 유실 → 로그인 실패 (가설) | 🔴 막힘 | `app/login/LoginClient.jsx` | 불필요 |
-| 3 | 푸시를 **실제로 보내는 코드 0개** (테스트용만) | 🔴 애플 4.2 방어 논리 공백 | 서버/웹 | 불필요 |
+| 1 | 키보드 뜨면 화면 붕괴 → **로그인 자체 불가** | ✅ 고침(7/28) | `capacitor.config.ts` Keyboard 블록 삭제 | 완료 |
+| 2 | 이메일 끝 `com` 유실 → 로그인 실패 | ✅ 고침(8/20) | 진범은 `captureInput` (LoginClient 아님) | 완료 |
+| 3 | 푸시를 **실제로 보내는 코드 0개** (테스트용만) | ✅ 고침 | `push/fcm.ts` → `pushBridge` → `inApp.ts` | 완료 |
 | 4 | 앱 링크 미선언 → 인증메일·초대링크가 크롬으로 | 🟠 앱을 안 쓰게 됨 | `AndroidManifest.xml` | 필요 |
 | 5 | 오프라인 = 하얀 화면 | 🟠 심사 반려 사유 | 네이티브+웹 | 필요 |
 | 6 | 알림 눌러도 해당 화면으로 안 감 | 🟠 | 웹(리스너 추가) | 불필요 |
@@ -527,11 +527,23 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
-| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | `capacitor.config.ts` (`allowNavigation`) | 필요 |
+| 15 | **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🟠 코드는 고침(8/29)·**폰엔 아직** | `src/lib/auth/googleNativeSignIn.ts` | **필요(굽는 중)** |
 | 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
 | 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
 
-**15번 상세 — 캡시터 소스를 직접 읽고 확정(가설 아님)**
+**15번 — 2026-08-29 에 고쳤다. 아래 「상세」는 «진단 기록»이지 현재 상태가 아니다.**
+
+- ✅ **고친 방법: 네이티브 구글 로그인 도입**(`src/lib/auth/googleNativeSignIn.ts`, PR #1529).
+  안드로이드가 주는 창에서 받은 `id_token` 을 `signInWithIdToken` 으로 바로 교환한다.
+- 🛑 **아래에 적힌 「`allowNavigation` 에 OAuth 도메인 추가」는 «틀린 처방»이었다.** 넣어도 안 고쳐진다 —
+  진짜 막힌 곳은 이동 허용이 아니라 **PKCE 검증값이 갈리는 것**이다(구글은 앱 웹뷰 로그인을 정책으로
+  막아 크롬으로 내보내고, code_verifier 는 앱 웹뷰 쿠키에만 있다).
+  실측: Supabase `auth_logs` 는 login 성공, Vercel 은 `PKCE code verifier not found in storage`, 완주 0건.
+- ⏳ **남은 것: 폰에 안 갔다.** 부품은 앱을 새로 구워야 들어간다(웹 배포로는 안 간다).
+  옛 앱에서는 `hasNativeGoogleSignIn()` 이 false 라 기존 「폰 브라우저에서 열어라」 안내가 그대로 뜬다.
+- ⏳ **실기기 미검증** — PO 갤럭시에서 한 번 눌러봐야 「됐다」고 말할 수 있다.
+
+**15번 상세(진단 기록) — 캡시터 소스를 직접 읽고 확정(가설 아님)**
 
 - 안드로이드 `Bridge.java:407-419`: 이동하려는 주소의 **호스트가 `server.url`(=healwith.co.kr)과 다르고 `allowNavigation` 에도 없으면 → `Intent.ACTION_VIEW` 로 «시스템 브라우저»를 열고 웹뷰 이동은 취소**한다.
 - iOS `WebViewDelegationHandler.swift:96-115`: 완전히 동일 — `shouldAllowNavigation` 밖이면 `UIApplication.shared.open` (사파리) + `decisionHandler(.cancel)`.
