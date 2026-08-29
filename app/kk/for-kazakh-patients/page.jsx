@@ -40,6 +40,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    url: "/kk/for-kazakh-patients",
     title: "Кореядағы рак емдеу | healwith медициналық консьерж",
     description:
       "Оңтүстік Кореядағы онкологиялық емдеу. Immune Hospital: 50 000+ науқас, ITCR хаттамасы. Қазақ тілінде қолдау.",
@@ -127,7 +128,7 @@ export default function ForKazakhPatientsPage() {
               Екінші пікір тегін · WhatsApp
             </a>
             <Link
-              href="/inquiry"
+              href="/kz/inquiry"
               className="border border-teal-600 text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
               Өтініш қалдыру
@@ -181,7 +182,7 @@ export default function ForKazakhPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -249,19 +250,19 @@ export default function ForKazakhPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Виза</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Виза</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• C-3-3 медициналық виза (90 күнге дейін)</li>
                 <li>• Рәсімдеу мерзімі: 5–7 жұмыс күні</li>
                 <li>• Алматы консулдығынан немесе онлайн өтінім</li>
                 <li>• healwith құжаттар пакетін дайындайды</li>
               </ul>
-              <Link href="/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/kz/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Виза туралы толығырақ →
               </Link>
             </div>
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Рейстер</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Рейстер</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Алматы — Сеул: тікелей рейс (6 сағат)</li>
                 <li>• Нұр-Сұлтан — Сеул: транзитпен (8–10 сағат)</li>
@@ -304,7 +305,7 @@ export default function ForKazakhPatientsPage() {
               WhatsApp арқылы жазу
             </a>
             <Link
-              href="/inquiry"
+              href="/kz/inquiry"
               className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Өтініш қалдыру
@@ -315,12 +316,12 @@ export default function ForKazakhPatientsPage() {
         {/* ── Internal links ─────────────────────────────── */}
         <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
           <Link href="/ru/for-russian-patients" className="hover:text-teal-700">Орысша нұсқа</Link>
-          <Link href="/treatments" className="hover:text-teal-700">Емдеу түрлері</Link>
-          <Link href="/hospitals" className="hover:text-teal-700">Емханалар</Link>
+          <Link href="/kz/treatments" className="hover:text-teal-700">Емдеу түрлері</Link>
+          <Link href="/kz/hospitals" className="hover:text-teal-700">Емханалар</Link>
           {/* Immune Hospital 직링크 제거 — 광고 심사 경로에서 「세포 치료」를 떼어내기 위함.
               병원 목록(/hospitals)을 통해서는 그대로 갈 수 있다. */}
-          <Link href="/visa" className="hover:text-teal-700">Виза</Link>
-          <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
+          <Link href="/kz/visa" className="hover:text-teal-700">Виза</Link>
+          <Link href="/kz/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>
       </main>
     </>

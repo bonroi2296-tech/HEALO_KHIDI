@@ -22,6 +22,7 @@ import {
   detectHandOff,
   getModelName,
   logPlaybookUsage,
+  modelBypassKind,
 } from "@/lib/chat/generateReply";
 import { generateTriage } from "@/lib/chat/triage";
 import { scanRedlines, redlineCorrectionNotice } from "@/lib/chat/safetyGuard";
@@ -320,6 +321,9 @@ export async function POST(request: NextRequest) {
               // critical 레드라인 적발 — 어드민/코디 검수 큐에서 우선 확인.
               ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
               ...(aiError ? { ai_error: aiError } : {}),
+              // 모델을 «안 거치고» 코드가 가로챈 턴이면 그 이름을 남긴다(잡담·화제정정·마스터키).
+              // 안 남기면 가로채기 오작동이 정상 답변과 구별이 안 된다 — 2026-08-28 사고가 그것이었다.
+              ...(modelBypassKind(analytics?.ragScoring) ? { bypassed: modelBypassKind(analytics?.ragScoring) } : {}),
             },
           })
           .select("id")
@@ -364,8 +368,12 @@ export async function POST(request: NextRequest) {
         }
 
         // 6) 메타 프레임.
+        // message_id 를 반드시 실어 보낸다 — 화면은 말풍선에 임시 번호(`ai_<시각>`)를 붙이는데,
+        // 그 값으로 답변 평가를 보내면 chat_feedback.message_id(uuid) 형식에 걸려 500 이 나고
+        // 평가가 «한 건도» 저장되지 않는다(2026-08-20 실측: 챗 메시지 1,068건 대비 평가 0건).
         const meta = {
           ok: true,
+          message_id: aiMsg?.id || null,
           hand_off: escalate ? { requested: true, reason: escalateReason } : undefined,
           ...(aiError ? { ai_error: aiError } : {}),
         };

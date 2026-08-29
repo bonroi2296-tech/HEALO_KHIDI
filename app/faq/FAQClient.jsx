@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { FAQ_CATEGORIES, FAQS } from "@/lib/faq/faqData";
 
@@ -140,7 +141,7 @@ export default function FAQClient() {
             {t("faqPage.contactBody", lang)}
           </p>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
             {t("faqPage.contactBtn", lang)} <ArrowRight size={18} />

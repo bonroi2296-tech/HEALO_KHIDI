@@ -56,12 +56,20 @@ workflows:
         # ⚠️ 이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조 → pod install/.xcworkspace 없음.
         #    xcodeproj 를 직접 빌드한다. Firebase SDK(FirebaseMessaging)는 첫 클라우드 맥 빌드에서
         #    App 타겟에 SPM 패키지로 추가해야 AppDelegate 가 컴파일된다(APP_STORE_LISTING.md 참고).
+        #
+        # ⚠️ `--disable-xcpretty` 를 지우지 마라 (2026-08-20 추가).
+        #    이게 없으면 xcodebuild 출력이 요약기(xcpretty)를 거치면서 「Failed to archive」 한 줄만
+        #    남고 진짜 컴파일 오류가 통째로 사라진다. 2026-08-20 빌드 #5 가 정확히 그랬다:
+        #    실패 로그가 12줄뿐이라 원인을 추측할 수밖에 없었고, 진단하려고 한 판을 더 구워야 했다.
+        #    아래 artifacts 의 `/tmp/xcodebuild_logs/*.log` 도 같은 목적이다(실패해도 로그는 남긴다).
         script: |
           xcode-project build-ipa \
             --project "ios/App/App.xcodeproj" \
-            --scheme "App"
+            --scheme "App" \
+            --disable-xcpretty
     artifacts:
       - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration

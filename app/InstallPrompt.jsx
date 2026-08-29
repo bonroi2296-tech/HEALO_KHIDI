@@ -101,7 +101,7 @@ export default function InstallPrompt({ lang = "en" }) {
         <div style={card}>
           {icon}
           <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.35 }}>{t.install}</div>
-          <button onClick={doInstall} style={{ flexShrink: 0, background: "#0d9488", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, padding: "8px 16px", cursor: "pointer" }}>{t.cta}</button>
+          <button onClick={doInstall} style={{ flexShrink: 0, background: "#0f766e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, padding: "8px 16px", cursor: "pointer" }}>{t.cta}</button>
           {closeBtn}
         </div>
       </div>

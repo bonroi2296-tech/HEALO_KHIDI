@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 // 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
 // now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
 // ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
-const STATIC_LASTMOD = new Date("2026-07-06");
+const STATIC_LASTMOD = new Date("2026-08-20"); // 2026-08-20: 전 페이지 내부 링크를 언어별 주소로 교체(#1428)
 
 // kz(내부코드) → kk(BCP47). hreflang 표기용.
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };

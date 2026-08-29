@@ -27,7 +27,7 @@
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 
 // ── .env.local 읽기 (dotenv 없이 — 값 끝 개행/따옴표 함정 포함해 직접 처리)
 for (const line of fs.existsSync(".env.local") ? fs.readFileSync(".env.local", "utf8").split("\n") : []) {
@@ -137,6 +137,24 @@ async function 검사_익명읽기() {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !anon) return add("rls", "익명이 환자 표를 읽나", "못 잼", "익명 열쇠 없음");
   const client = createClient(SUPABASE_URL, anon, { auth: { persistSession: false } });
+
+  // ⚠️ 먼저 «열쇠가 살아 있나»를 본다 — 이게 없으면 이 검사가 거짓 초록불이 된다.
+  //    아래 판정은 「읽혔나」만 보므로, 열쇠가 죽어 모든 조회가 오류나면 뚫림이 0건이 되어
+  //    「✅ 표 7개 전부 0건」으로 통과해 버린다. «막혀서 0건»과 «못 물어봐서 0건»은 다른 자리다.
+  //    (2026-08-28: 같은 부류인 「파이프가 실패를 삼키던 것」을 고치다 이 자리도 같이 발견했다.)
+  //    hospitals 는 손님이 읽어야 «정상»인 표다 — 정책 hospitals_public_read = anon SELECT.
+  //    실측(진짜 anon 권한으로 조회): hospitals 8행 보임 / inquiries·profiles 0행.
+  const 미끼 = await client.from("hospitals").select("id").limit(1);
+  if (미끼.error || !미끼.data?.length) {
+    return add(
+      "rls",
+      "익명이 환자 표를 읽나",
+      "못 잼",
+      `손님 열쇠로 «공개 표»조차 못 읽는다 — 열쇠가 죽었거나 막혔다(${미끼.error?.message || "0건"}). ` +
+        "이 상태의 「환자 표 0건」은 «막혔다»는 뜻이 아니다.",
+    );
+  }
+
   const 뚫림 = [];
   for (const t of ANON_MUST_NOT_READ) {
     const { data, error } = await client.from(t).select("*").limit(1);
@@ -246,7 +264,10 @@ async function 검사_미배포() {
 //    → 새 항목을 추가할 땐 «작업이 돌면 «무조건» 한 줄 남는 표»를 골라라.
 const 예약작업 = [
   { 이름: "일별 점수판", 표: "kpi_snapshots", 날짜칸: "snapshot_date", 주기일: 1 },
-  { 이름: "AI 자가시험", 표: "ai_regression_runs", 날짜칸: "run_date", 주기일: 1 },
+  // ⚠️ 주기일은 vercel.json 의 crons 와 맞춰라. AI 자가시험은 «매일»이 아니라 월·목이다
+  //    (`/api/cron/run-regression-tests`, `0 18 * * 1,4`) → 목→월 사이가 4일.
+  //    1 로 두면 정상인데도 매주 「볼 것」이 떠서 훑기가 늑대소년이 된다(2026-08-20 실제 오탐).
+  { 이름: "AI 자가시험", 표: "ai_regression_runs", 날짜칸: "run_date", 주기일: 4 },
   { 이름: "자동 개선작업", 표: "auto_jobs", 날짜칸: "started_at", 주기일: 1 },
 ];
 
@@ -349,14 +370,202 @@ async function 검사_앱미반영() {
   add("app", "폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
 }
 
+/**
+ * 아이폰판도 같은 방식으로 대조한다 (2026-08-28 추가).
+ *
+ * 왜 따로 있나: 이 검사는 오랫동안 «안드로이드만» 봤다. 그래서 2026-08-28 에
+ *   아이폰 빌드 3 에 `@capacitor/app` 이 안 실려 있었는데도 훑기는 「통과」로 나왔고,
+ *   그날 애플 로그인이 실기기에서 죽는 것을 끝내 못 잡았다. 안드로이드와 아이폰은
+ *   **부품이 따로 실린다** — 한쪽이 통과라고 다른 쪽이 통과인 게 아니다.
+ *
+ * ⚠️ 기준을 `ios/App/CapApp-SPM/Package.swift` 로 잡지 마라. 그 파일은 `npx cap sync ios`
+ *    를 돌려야 갱신되는데, 안 돌리면 낡은 채로 남아 **거짓 통과**가 된다.
+ *    `package.json` 은 부품을 넣는 순간 바뀌므로 항상 최신이다.
+ */
+function 아이폰부품목록() {
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const 제외 = new Set(["@capacitor/core", "@capacitor/cli", "@capacitor/android", "@capacitor/ios"]);
+  return Object.keys(pkg.dependencies || {})
+    .filter((n) => (n.startsWith("@capacitor/") || n.startsWith("@capawesome/")) && !제외.has(n))
+    .sort();
+}
+
+async function 검사_아이폰미반영() {
+  let 기준;
+  try {
+    기준 = JSON.parse(fs.readFileSync(path.join("docs", "sweep-baseline.json"), "utf8")).앱출시?.아이폰;
+  } catch {
+    /* 아래에서 「못 잼」 */
+  }
+  if (!기준?.build || !Array.isArray(기준.부품)) {
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시.아이폰」 칸이 비었거나 부품 목록이 없다");
+  }
+
+  const 현재부품 = 아이폰부품목록();
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+  const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
+
+  const 볼것 = 안실린부품.length > 0;
+  const 조각 = [`TestFlight·스토어 판 ${폰}`];
+  if (안실린부품.length) {
+    조각.push(`⚠️ 그 판에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 아이폰에서 죽어 있다`);
+    조각.push("아이폰 앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
+  } else {
+    조각.push(`부품 ${현재부품.length}개 전부 그 판에 있음`);
+  }
+
+  // 안드로이드 쪽과 같은 이유로 경보에서는 뺀다 — 몇 주씩 이어지는 «정상» 상태다.
+  add("app", "아이폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
+}
+
+/**
+ * 코디네이터가 화면에서 고친 문구가 «코드로 돌아왔나».
+ * 안 돌아오면 다음에 그 화면을 손대는 순간 코드 값이 이겨서 교정이 통째로 되돌아간다
+ * (2026-08-20 실측: 262건 중 259건이 그 상태로 몇 달 쌓여 있었다).
+ *
+ * ⚠️ 2026-08-28 정정: 여기 원래 「CI 에는 못 붙인다」고 적혀 있었는데 사실과 달랐다 —
+ *   매일 도는 창구(.github/workflows/sweep.yml)가 이미 service_role 열쇠를 넣어 이 파일을 돌린다.
+ *   그런데 이 검사만 «주소»를 NEXT_PUBLIC_SUPABASE_URL 에서만 찾았다. 이 저장소의 비밀값은
+ *   그 이름이 «비어 있고» 실제 주소는 SUPABASE_URL 에 있다(sweep.yml 주석에도 적혀 있다).
+ *   그래서 열쇠가 다 있는데도 매일 「못 잼」으로 찍혔다 — 위 38번 줄의 SUPABASE_URL 을 쓴다.
+ */
+async function 검사_번역역류() {
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "DB 주소·열쇠가 없다(SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)");
+    return;
+  }
+  let out = "";
+  let 어긋남 = 0;
+  try {
+    // 자식도 주소를 봐야 한다 — 그쪽은 NEXT_PUBLIC_ 이름만 읽으므로 여기서 채워 넘긴다.
+    out = execSync("node scripts/i18n-backport-overrides.mjs --check", {
+      encoding: "utf8",
+      env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL },
+    });
+  } catch (e) {
+    out = String(e.stdout || "") + String(e.stderr || "");
+  }
+  const m = out.match(/코드와 어긋남 (\d+)건/);
+  if (m) 어긋남 = Number(m[1]);
+  const 밖 = (out.match(/사전 밖 키 (\d+)건/) || [])[1];
+  add(
+    "i18nback",
+    "코디 교정이 코드에 반영됐나",
+    어긋남 > 0 ? "볼 것" : "통과",
+    어긋남 > 0
+      ? `코디가 고쳤는데 코드엔 안 온 문구 ${어긋남}건 → \`node scripts/i18n-backport-overrides.mjs\` 로 되돌려라` +
+        (밖 && Number(밖) > 0 ? ` · 사전 밖 키 ${밖}건은 손으로` : "")
+      : `어긋남 0건${밖 ? ` · 사전 밖 키 ${밖}건은 다른 파일 소관` : ""}`,
+  );
+}
+
+/**
+ * 「알고도 방치한 막힘」 — `KNOWN_ISSUES.md` 의 🔴 항목이 오래 안 움직이면 잡는다.
+ *
+ * 왜 만들었나 (2026-08-29, PO: *"아니 이런 실수 안할거냐고"*):
+ *   앱 구글 로그인은 **2026-07-28 에 원인도 해법도 문서에 다 적어 놓고 32일을 방치**했다.
+ *   해법이 «두 개»(allowNavigation / 네이티브 플러그인) 적혀 있었는데 쉬운 쪽만 해보고,
+ *   그게 막힌 것을 확인한 뒤에도(8/04) 나머지로 넘어가지 않았다. 그 사이 아무도
+ *   「이거 아직 빨간불인데?」를 묻지 않았다 — 물어 줄 장치가 없었기 때문이다.
+ *   ⚠️ 만들면서 재보니 **같은 상태가 3건 더 있었다**(1·2·3번, 7/30 이후 30일째).
+ *      사람 기억으로는 못 막는다는 증거다.
+ *
+ * 판정 방법: 표 머리글에서 「심각도/상태」 칸 자리를 찾고, **그 칸이 🔴 로 시작하는 줄**만 센다.
+ *   (제목 칸에 🔴 를 쓴 항목이 있어서 «줄 어디든 🔴» 로 재면 오탐이 난다 — 15번이 실제로 그렇다.)
+ *   각 줄이 마지막으로 바뀐 날은 `git log -S<줄 전체>` 로 잰다 → 상태만 고쳐도 날짜가 갱신된다.
+ *
+ * ⚠️ 이 검사는 «고쳤나»를 재지 않는다. 「빨간불인 채로 오래 서 있나」만 잰다.
+ *    고칠 수 없는 사정이 있으면 그 사정을 문서에 적고 🔴 를 내려라 — 방치와 보류는 다르다.
+ */
+function 검사_묵은막힘() {
+  const 경로 = "docs/KNOWN_ISSUES.md";
+  const 한계일 = 14;
+  let 줄들;
+  try {
+    줄들 = fs.readFileSync(경로, "utf8").split(/\r?\n/);
+  } catch {
+    return add("stale", "알고도 방치한 막힘", "못 잼", 경로 + " 를 못 읽는다");
+  }
+
+  const 막힘 = [];
+  let 상태칸 = -1;
+  for (const 줄 of 줄들) {
+    if (!줄.trim().startsWith("|")) {
+      상태칸 = -1; // 표가 끝나면 초기화 — 다음 표의 칸 배치는 다를 수 있다
+      continue;
+    }
+    const 칸 = 줄.split("|").slice(1, -1).map((c) => c.trim());
+    const i = 칸.findIndex((c) => c === "심각도" || c === "상태");
+    if (i >= 0) {
+      상태칸 = i;
+      continue;
+    }
+    if (칸.every((c) => /^-{2,}$/.test(c))) continue; // 구분선
+    if (상태칸 < 0 || !칸[상태칸]) continue;
+    if (!칸[상태칸].startsWith("🔴")) continue;
+    막힘.push({ 제목: (칸[1] || 칸[0] || "").replace(/[*`]/g, "").slice(0, 40), 원문: 줄 });
+  }
+
+  if (막힘.length === 0) {
+    return add("stale", "알고도 방치한 막힘", "통과", "🔴 로 남은 항목 0건");
+  }
+  if (막힘.length > 20) {
+    return add(
+      "stale",
+      "알고도 방치한 막힘",
+      "볼 것",
+      `🔴 항목이 ${막힘.length}건이다 — 너무 많아 날짜를 안 쟀다. 먼저 정리해라`,
+    );
+  }
+
+  const 지금 = Date.now() / 1000;
+  const 묵은것 = [];
+  for (const m of 막힘) {
+    let 초 = 0;
+    try {
+      초 = Number(
+        execFileSync("git", ["log", "-1", "--format=%ct", "-S", m.원문, "--", 경로], {
+          encoding: "utf8",
+        }).trim(),
+      );
+    } catch {
+      /* 그 줄의 역사를 못 찾으면 건너뛴다(방금 쓴 줄일 수 있다) */
+    }
+    if (!초) continue;
+    const 일 = Math.floor((지금 - 초) / 86400);
+    if (일 >= 한계일) 묵은것.push({ 제목: m.제목, 일 });
+  }
+
+  if (묵은것.length === 0) {
+    return add(
+      "stale",
+      "알고도 방치한 막힘",
+      "통과",
+      `🔴 ${막힘.length}건 전부 ${한계일}일 안에 움직였다`,
+    );
+  }
+  묵은것.sort((a, b) => b.일 - a.일);
+  return add(
+    "stale",
+    "알고도 방치한 막힘",
+    "볼 것",
+    `🔴 인데 ${한계일}일 넘게 안 움직인 것 ${묵은것.length}건 — ` +
+      묵은것.map((m) => `${m.일}일째 「${m.제목}」`).join(" · ") +
+      " → 고칠 수 없으면 «왜 못 고치나»를 적고 🔴 를 내려라(방치와 보류는 다르다)",
+  );
+}
+
 const 검사들 = [
   ["pii", 검사_평문개인정보],
+  ["i18nback", 검사_번역역류],
   ["rls", 검사_익명읽기],
   ["keys", 검사_화면에박힌열쇠],
   ["env", 검사_환경변수이름],
   ["deploy", 검사_미배포],
   ["cron", 검사_예약작업],
   ["app", 검사_앱미반영],
+  ["ios", 검사_아이폰미반영],
+  ["stale", 검사_묵은막힘],
 ];
 
 for (const [id, fn] of 검사들) {
@@ -378,7 +587,9 @@ console.log(`
  · 화면이 실제로 보이나(지도·잘림·빈 상자) → 브라우저로 눈으로 봐야 한다
  · 번역이 자연스러운가 → 현지 직원 몫
  · 「알림이 진짜 갔나」 → 받은편지함 확인 몫
- · 아이폰 앱에 안 들어간 고침 → 지금은 «안드로이드 부품 목록»만 대조한다(아이폰 부품은 Podfile 쪽)
+ · 애플 «심사에 걸린» 빌드가 최신인가 → App Store Connect 화면을 사람이 봐야 한다
+   (여기 아이폰 검사는 «저장소 부품 vs 출시본 부품»만 본다. 2026-08-28 에 빌드 4 를 올려두고도
+    심사 항목엔 3 이 걸려 있었다: 그대로 냈으면 재반려였다)
 `);
 
 const 볼것 = rows.filter((r) => r.판정 === "볼 것");

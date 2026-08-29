@@ -14,15 +14,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-
-const LANG_COLUMNS: Record<string, { title: string; body: string }> = {
-  ko: { title: "title_ko", body: "body_ko" },
-  en: { title: "title_en", body: "body_en" },
-  ru: { title: "title_ru", body: "body_ru" },
-  kz: { title: "title_kz", body: "body_kz" },
-  zh: { title: "title_zh", body: "body_zh" },
-  ja: { title: "title_ja", body: "body_ja" },
-};
+// 언어 고르기는 자동발송 cron 과 «같은» 함수를 쓴다 — 갈라지면 화면과 메일의 폴백이 어긋난다.
+import { localizeEducation, type EducationRow } from "@/lib/followup/educationEngine";
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,20 +61,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 다국어 매핑: lang 컬럼 → fallback ko → en
-    const cols = LANG_COLUMNS[lang] || LANG_COLUMNS.en;
-    const fallbackKo = LANG_COLUMNS.ko;
-    const fallbackEn = LANG_COLUMNS.en;
-
-    const localized = (data || []).map((item: any) => ({
-      id: item.id,
-      cancerType: item.cancer_type,
-      phase: item.send_at_phase,
-      category: item.content_type,
-      title: item[cols.title] || item[fallbackEn.title] || item[fallbackKo.title] || "",
-      body: item[cols.body] || item[fallbackEn.body] || item[fallbackKo.body] || "",
-      mediaUrl: item.media_url || null,
-    }));
+    // 다국어 매핑: 요청 언어 → 영어 → 한국어 (제목·본문을 한 벌로 고름)
+    const localized = (data || []).map((item: any) =>
+      localizeEducation(item as EducationRow, lang)
+    );
 
     return Response.json({
       ok: true,

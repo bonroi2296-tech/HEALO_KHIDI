@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { getPartnerHospital } from "@/lib/data/partnerHospitals";
 import {
@@ -150,7 +151,7 @@ export default function PartnerHospitalClient({ slug }) {
           <h3 className="text-xl font-bold mb-2">{t("partnerHospital.ctaTitle", lang)}</h3>
           <p className="text-white/80 text-sm mb-5">{t("partnerHospital.ctaDesc", lang)}</p>
           <button
-            onClick={() => router.push("/inquiry")}
+            onClick={() => router.push(localeHref("/inquiry", lang))}
             className="bg-white text-gray-800 font-bold px-8 py-3 rounded-xl hover:bg-gray-50 transition inline-flex items-center gap-2"
           >
             {t("partnerHospital.ctaBtn", lang)}

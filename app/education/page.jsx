@@ -1,6 +1,17 @@
 import EducationClient from "../patient/education/EducationClient";
+import { localeAlternates } from "@/lib/i18n/metadata";
 
-export const metadata = {
+// 페이지가 openGraph 를 정의하면 layout 의 og 가 통째로 대체된다 → og:url 도 여기서 넣어야 한다.
+export async function generateMetadata() {
+  const alt = await localeAlternates();
+  return {
+    ...baseMeta,
+    ...(alt ? { alternates: alt } : {}),
+    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}) },
+  };
+}
+
+const baseMeta = {
   title: "Patient Education",
   description:
     "Cancer-specific education content for post-treatment care. Medication guides, diet plans, exercise routines, warning signs, and mental health support in 6 languages.",

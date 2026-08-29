@@ -24,3 +24,18 @@ export function prefersReducedMotion() {
 export function scrollBehavior() {
   return prefersReducedMotion() ? "auto" : "smooth";
 }
+
+/**
+ * 폰(좁은 화면)에서만 화면을 맨 위로 올린다.
+ *
+ * 왜 여기 있나: 목록↔상세를 한 칸으로 전환하는 화면들이 전부 같은 세 줄을 베껴 쓰고 있었고,
+ * 그 안의 「1024px」가 화면마다 따로 박혀 있어 CSS 의 `lg:` 와 어긋날 수 있었다
+ * (2026-08-28 독립 리뷰 지적). 기준선을 한 곳에만 둔다.
+ *
+ * @param {number} [breakpoint=1024] Tailwind `lg` 기준선.
+ */
+export function scrollToTopOnNarrow(breakpoint = 1024) {
+  if (typeof window === "undefined") return;
+  if (window.innerWidth >= breakpoint) return;
+  window.scrollTo({ top: 0, behavior: scrollBehavior() });
+}

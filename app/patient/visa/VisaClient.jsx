@@ -179,12 +179,16 @@ function VisaCard({ checklist, label, lang, sync, serverChecks, onPersist }) {
   );
 }
 
-export default function VisaClient() {
+// initialGuide: 서버가 «기본값(러시아·90일 이하)»으로 미리 계산해 넘겨주는 안내.
+// 이게 있어야 JS 를 안 돌리는 검색·AI 로봇도 비자 종류·필요 서류를 읽어 간다.
+// initialGuideLang 을 같이 받아 지금 언어와 다를 때만 버린다(엉뚱한 언어가 첫 화면에 박히지 않게).
+export default function VisaClient({ initialGuide = null, initialGuideLang = null } = {}) {
   const lang = useLang();
+  const seed = initialGuide && initialGuideLang === lang ? initialGuide : null;
 
   const [nationality, setNationality] = useState('ru');
   const [duration, setDuration] = useState(30);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(seed);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 

@@ -58,7 +58,9 @@ function display(f, v, lang) {
   if (f.type === "stage") return stageLabel(v, lang) || String(v);
   if (f.type === "cancerType") return cancerTypeLabelL(v, lang) || String(v);
   if (f.type === "check") return v ? "✓" : null;
-  if (f.type === "icdSuggest") return v === "unknown" ? null : String(v);
+  // 폼이 저장하는 값은 `__unknown__` 이다(ReferralForm 의 icdSuggest 칸).
+  // `unknown` 만 걸러내던 탓에 환자가 「모르겠습니다」를 고르면 코디 화면에 `__unknown__` 이 날것으로 떴다.
+  if (f.type === "icdSuggest") return v === "__unknown__" || v === "unknown" ? null : String(v);
   return String(v);
 }
 

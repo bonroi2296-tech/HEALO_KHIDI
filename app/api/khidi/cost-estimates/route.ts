@@ -21,24 +21,26 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await request.json();
-    const cancer_type = String(payload.cancer_type || "").toLowerCase();
-    const stage = String(payload.stage || "unknown");
+    // 허용 목록 밖 값은 버린다. 검증 없이 두면 아무 문자열이나 저장되고
+    // (2026-08-20 실측: "<script>alert(1)</script>" 가 그대로 들어갔다),
+    // 코디 화면이 그 값으로 사전을 조회해 뜻 없는 글자를 띄운다 = 무슨 암인지 못 읽는다.
+    // 목록은 환자 요청 폼의 선택지(CANCER_OPTIONS)와 같아야 한다.
+    const CANCER_TYPES = new Set([
+      "stomach", "lung", "breast", "liver", "thyroid", "colorectal", "other",
+    ]);
+    const STAGES = new Set(["unknown", "1", "2", "3", "4"]);
 
-    // Tier 1 자동 범위 먼저 계산
-    const { data: benchmarks } = await supabaseAdmin
-      .from("treatment_cost_benchmarks")
-      .select("*")
-      .eq("cancer_type", cancer_type)
-      .eq("stage", cancer_type === "other" ? "unknown" : stage);
+    const rawCancer = String(payload.cancer_type || "").toLowerCase();
+    const rawStage = String(payload.stage || "unknown");
+    const cancer_type = CANCER_TYPES.has(rawCancer) ? rawCancer : "";
+    const stage = STAGES.has(rawStage) ? rawStage : "unknown";
 
-    let auto_min_krw: number | null = null;
-    let auto_median_krw: number | null = null;
-    let auto_max_krw: number | null = null;
-    if (benchmarks && benchmarks.length > 0) {
-      auto_min_krw = benchmarks.reduce((s: number, b: any) => s + Number(b.min_krw), 0);
-      auto_median_krw = benchmarks.reduce((s: number, b: any) => s + Number(b.median_krw), 0);
-      auto_max_krw = benchmarks.reduce((s: number, b: any) => s + Number(b.max_krw), 0);
-    }
+    // 자동 금액 범위는 내지 않는다.
+    // 2026-08-20 실측: 근거로 삼던 treatment_cost_benchmarks 63건이 전부 출처 없는 창작이었다.
+    // (존재한 적 없는 표의 "평균", 견적 0건인 시점에 "표본 200건", 진료비가 실리지 않은
+    //  보고서를 출처로 표기) 그 숫자가 환자 기록에 저장되어 화면에 그대로 노출되고 있었다.
+    // 예상진료비는 코디네이터가 병원에서 받은 금액으로 정식 견적서를 발급하는 경로로만
+    // 안내한다. 되살리려면 병원에서 받은 실제 가격표가 먼저 있어야 한다.
 
     // intake_id / consultation_id 본인 소유 검증
     if (payload.consultation_id) {
@@ -68,9 +70,11 @@ export async function POST(request: NextRequest) {
       consultation_id: payload.consultation_id || null,
       intake_id: payload.intake_id || null,
       hospital_id: payload.hospital_id || null,
-      auto_min_krw,
-      auto_median_krw,
-      auto_max_krw,
+      // 환자가 고른 암종·병기를 그대로 남긴다. 코디네이터가 병원에 무엇을 물어야 하는지가
+      // 이 두 칸이다. 예전에는 창작된 범위를 조회하는 데만 쓰이고 저장되지 않아,
+      // 코디네이터는 환자가 무슨 암 몇 기인지 모르는 채로 견적을 써야 했다.
+      cancer_type: cancer_type || null,
+      stage: stage || null,
       status: "formal_requested",
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };

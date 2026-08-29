@@ -69,6 +69,9 @@ export const COPY = {
     voiceOnMsg: "음성 통역 켬 — 상대 목소리가 통역 음성으로 들려요",
     voiceOnPendingMsg: "음성 통역 켬 — 통역봇이 방에 들어오면 상대 목소리가 통역돼요",
     voiceUnavailableMsg: "통역 기능 준비 중이에요 — 자막(텍스트)은 그대로 쓸 수 있어요",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "통역 연결이 끊겼어요 — 다시 잇는 중이에요. 자막(텍스트)은 그대로 쓸 수 있어요",
     voiceOffMsg: "음성 통역 끔 — 원래 목소리로 들려요",
     captionsOn: "자막 켜기",
     captionsOff: "자막 끄기",
@@ -247,6 +250,9 @@ export const COPY = {
     voiceOnMsg: "Voice interpretation on — you'll hear an interpreted voice",
     voiceOnPendingMsg: "Voice interpretation on — you'll hear it once the interpreter bot joins",
     voiceUnavailableMsg: "Voice interpretation is not available yet — captions still work",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "Interpretation connection lost — reconnecting. Captions still work",
     voiceOffMsg: "Voice interpretation off — you'll hear the original voice",
     captionsOn: "Turn on subtitles",
     captionsOff: "Turn off subtitles",
@@ -418,6 +424,9 @@ export const COPY = {
     voiceOnMsg: "Голосовой перевод включён — вы услышите переведённый голос",
     voiceOnPendingMsg: "Голосовой перевод включён — вы услышите его, когда подключится бот-переводчик",
     voiceUnavailableMsg: "Голосовой перевод пока недоступен — субтитры работают",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "Связь с переводом прервана — переподключаемся. Субтитры работают",
     voiceOffMsg: "Голосовой перевод выключен — вы слышите оригинальный голос",
     captionsOn: "Включить субтитры",
     captionsOff: "Выключить субтитры",
@@ -589,6 +598,9 @@ export const COPY = {
     voiceOnMsg: "Дауыстық аударма қосулы — аударылған дауысты естисіз",
     voiceOnPendingMsg: "Дауыстық аударма қосулы — аудармашы бот қосылғанда естисіз",
     voiceUnavailableMsg: "Дауыстық аударма әзірге қолжетімсіз — субтитрлер жұмыс істейді",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "Аударма байланысы үзілді — қайта қосылудамыз. Субтитрлер жұмыс істейді",
     voiceOffMsg: "Дауыстық аударма өшірулі — түпнұсқа дауысты естисіз",
     captionsOn: "Субтитрлерді қосу",
     captionsOff: "Субтитрлерді өшіру",
@@ -760,6 +772,9 @@ export const COPY = {
     voiceOnMsg: "语音口译已开启 — 您将听到翻译后的语音",
     voiceOnPendingMsg: "语音口译已开启 — 口译机器人加入后即可听到",
     voiceUnavailableMsg: "语音口译尚未开放 — 字幕仍可使用",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "口译连接中断 — 正在重连。字幕仍可使用",
     voiceOffMsg: "语音口译已关闭 — 您将听到原声",
     captionsOn: "开启字幕",
     captionsOff: "关闭字幕",
@@ -931,6 +946,9 @@ export const COPY = {
     voiceOnMsg: "音声通訳オン — 通訳された音声が聞こえます",
     voiceOnPendingMsg: "音声通訳オン — 通訳ボットが入室すると聞こえます",
     voiceUnavailableMsg: "音声通訳はまだ利用できません — 字幕は使えます",
+    // 통역봇이 «연결이 계속 실패한다»고 알릴 때 (2026-08-28 신설).
+    // 예전엔 아무 표시가 없어 사용자가 「켜졌는데 왜 안 나오지」로 계속 기다렸다.
+    voiceFailingMsg: "通訳の接続が切れました — 再接続中です。字幕は使えます",
     voiceOffMsg: "音声通訳オフ — 元の音声が聞こえます",
     captionsOn: "字幕をオン",
     captionsOff: "字幕をオフ",

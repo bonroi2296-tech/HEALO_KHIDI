@@ -142,6 +142,32 @@ export async function POST(
           metadata: JSON.stringify({ consultationId }),
         });
         console.log(`[interpreter] 봇 호출 room=${room} by=${identity}`);
+
+        // ⚠️ 위 «세어 보고 없으면 부른다»는 두 사람이 «동시에» 켜면 둘 다 0 을 보고 둘 다 부른다.
+        //    LiveKit 은 같은 이름의 호출을 막지 않는다(2026-08-28 실측: 깨끗한 방에 동시 2회 →
+        //    호출 2개가 그대로 붙었다). 봇이 둘이면 **자막이 두 배로 오고 기록도 두 배**가 된다.
+        //    잠금을 걸 자리가 없으므로(요청마다 다른 서버) **부른 «뒤»에 다시 세어 정리한다** —
+        //    가장 먼저 만들어진 것 하나만 남기고 나머지는 지운다. 둘 다 이 코드를 지나므로
+        //    누가 이기든 같은 하나가 남는다.
+        try {
+          const after = (await dispatchClient.listDispatch(room)).filter(
+            (d) => d.agentName === TRANSLATOR_AGENT_NAME
+          );
+          if (after.length > 1) {
+            const keep = after.reduce((a, b) =>
+              String(a.id) <= String(b.id) ? a : b
+            );
+            for (const d of after) {
+              if (d.id !== keep.id) await dispatchClient.deleteDispatch(d.id, room);
+            }
+            console.warn(
+              `[interpreter] 통역봇 호출이 ${after.length}개 겹쳐 ${after.length - 1}개 정리 room=${room}`
+            );
+          }
+        } catch (e) {
+          // 정리에 실패해도 통역은 된다(봇이 둘일 뿐) — 켜기 자체를 실패시키지 않는다.
+          console.warn("[interpreter] 겹친 호출 정리 실패:", (e as Error)?.message);
+        }
       }
       return Response.json({ ok: true, enabled: true, dispatched: true });
     }

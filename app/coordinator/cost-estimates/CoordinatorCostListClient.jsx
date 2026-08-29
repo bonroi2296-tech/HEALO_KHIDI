@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useCoordinatorL, useDateLocale, useBackofficeLang } from "@/lib/i18n/coordinator";
+import { t } from "@/lib/i18n";
 
 // 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
 const STATUS_COLOR = {
@@ -21,6 +22,8 @@ const STATUS_ORDER = Object.keys(STATUS_COLOR);
 export default function CoordinatorCostListClient() {
   const L = useCoordinatorL();
   const dateLoc = useDateLocale();
+  // 코디 포털 언어(healo_bo_lang). 공개 사이트 언어와 별개다.
+  const lang = useBackofficeLang();
   const STATUS_LABEL = {
     auto_range: L.coStatusAutoRange,
     formal_requested: L.coStatusFormalRequested,
@@ -121,7 +124,7 @@ export default function CoordinatorCostListClient() {
               <tr>
                 <th className="px-4 py-3 text-left">{L.coColNo}</th>
                 <th className="px-4 py-3 text-left">{L.fieldPatient}</th>
-                <th className="px-4 py-3 text-left">{L.coColAutoRange}</th>
+                <th className="px-4 py-3 text-left">{L.coColSubject}</th>
                 <th className="px-4 py-3 text-left">{L.coColTotal}</th>
                 <th className="px-4 py-3 text-left">{L.status}</th>
                 <th className="px-4 py-3 text-left">{L.coColCreated}</th>
@@ -141,9 +144,11 @@ export default function CoordinatorCostListClient() {
                       {est.patient_user_id.slice(0, 8)}…
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">
-                      {est.auto_min_krw
-                        ? `${(est.auto_min_krw / 1000000).toFixed(0)}M~${(est.auto_max_krw / 1000000).toFixed(0)}M KRW`
-                        : "—"}
+                      {est.cancer_type
+                        ? `${t(`costCalc.cancers.${est.cancer_type}`, lang)}${
+                            est.stage && est.stage !== "unknown" ? ` · ${est.stage}` : ""
+                          }`
+                        : "-"}
                     </td>
                     <td className="px-4 py-3 font-medium">
                       {est.total_krw

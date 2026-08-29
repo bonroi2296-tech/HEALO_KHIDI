@@ -36,6 +36,7 @@ export async function generateMetadata() {
       description: m.desc,
       type: "website",
       locale: OG_LOCALE[lc] || "en_US",
+      ...(alternates ? { url: alternates.canonical } : {}),
     },
   };
 }

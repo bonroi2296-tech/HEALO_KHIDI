@@ -99,7 +99,7 @@ set_font(run, 12, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('Requirements Definition Document  |  v1.0  |  2026.04.30')
+run = p.add_run('Requirements Definition Document  |  v1.2  |  2026.08.20')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -108,9 +108,9 @@ tbl_info = doc.add_table(rows=0, cols=2)
 tbl_info.style = 'Table Grid'
 info_rows = [
     ('문서 번호', 'HEALO-REQ-2026-001'),
-    ('작성 기관', '(주)본로이 (Bonroi)'),
-    ('작성일', '2026년 4월 30일'),
-    ('버전', 'v1.0'),
+    ('작성 기관', '본로이 (Bonroi)'),
+    ('작성일', '2026년 8월 20일'),
+    ('버전', 'v1.2'),
     ('보안 등급', '대외비'),
     ('관련 사업', '2026년 KHIDI ICT 기반 외국인환자 사전상담·사후관리 지원 사업'),
 ]
@@ -171,7 +171,7 @@ scope_tbl.style = 'Table Grid'
 add_header_row(scope_tbl, ['구분', '내용'])
 scope_data = [
     ('대상 국가', '카자흐스탄 (1차). 향후 우즈베키스탄·러시아 CIS 확대 예정'),
-    ('대상 질환', '주로 암(Cancer) 환자 — 방사선·표적치료·면역치료 목적'),
+    ('대상 질환', '주로 암(Cancer) 환자: 방사선·표적치료·면역치료 목적'),
     ('사업 기간', '협약체결일 ~ 2026년 11월 20일 (약 8개월, 단년도 사업)'),
     ('원격협진', '7월~11월 (5개월, 필수 4개월 초과 충족)'),
     ('플랫폼 범위', '웹(PC/모바일) + Capacitor 앱(iOS/Android) 병행'),
@@ -213,7 +213,7 @@ personas = [
             ('주요 니즈', '한국 상급종합병원 암 치료 정보 비교\n예상 치료비·일정 사전 확인\n러시아어로 의료진 상담\n귀국 후 경과 모니터링 지속'),
             ('고충 (Pain Points)', '한국 의료기관 정보 접근 어려움\n언어 장벽으로 상담 불가\n비용·비자 절차 불투명\n귀국 후 의료진과 연락 단절'),
             ('사용 시나리오', '① HEALO 웹 접속(러시아어 UI)\n② 증상·희망 치료 입력, AI 병원 매칭\n③ 화상상담 예약, 의료문서 업로드\n④ 내원·치료 (면역치료+대학병원 협진)\n⑤ 귀국 후 사후관리 앱 활용'),
-            ('핵심 라우트', '/ru 또는 /kk (다국어 홈), /inquiry (통합 문의 퍼널), /consultation/[id], /patient/*'),
+            ('핵심 라우트', '/ru 또는 /kz (다국어 홈), /inquiry (통합 문의 퍼널), /consultation/[id], /patient/*'),
         ]
     },
     {
@@ -225,11 +225,11 @@ personas = [
             ('주요 니즈', '담당 환자 전체 여정 통합 관리\nAI 이관 상담 처리 및 보완\n의료문서 번역·라우팅\n성과 실적 기록·보고'),
             ('고충', '카카오톡·이메일·전화 분산 채널 통합 어려움\nAI 오답 수정 업무 과부하\n서류 번역·포매팅 반복 작업'),
             ('사용 시나리오', '① 코디네이터 포털 로그인\n② AI 이관 알림 → 상담 처리\n③ 의료문서 업로드·병원 라우팅\n④ 환자 일정·예약 관리\n⑤ 사후관리 상태 모니터링'),
-            ('핵심 라우트', '/coordinator/*, /coordinator/messages, /coordinator/intakes'),
+            ('핵심 라우트', '/coordinator/inbox, /coordinator/messages, /coordinator/consultations'),
         ]
     },
     {
-        'title': '2.3 의료진 — 파트너 병원 (P-03)',
+        'title': '2.3 의료진: 파트너 병원 (P-03)',
         'items': [
             ('페르소나 ID', 'P-03'),
             ('대표 프로필', '면력한방병원 종양내과 전문의, 42세. 외국인 환자 상담 경험 보유.'),
@@ -237,7 +237,7 @@ personas = [
             ('주요 니즈', '환자 의료정보(CT/MRI/검사결과) 사전 검토\nWebRTC 화상상담 수행\n경과 추적 기록 입력\n협진 의뢰서 전송'),
             ('고충', '여러 플랫폼 로그인 분산\n의료문서 형식 불일치\n언어 장벽으로 직접 소통 한계'),
             ('사용 시나리오', '① 상담방 초대링크 수신(계정 발급 불필요)\n② 환자 문서 열람 (사전 검토)\n③ 화상상담 참여 (실시간 자막·통역 지원)\n④ 처방·메모 기록\n⑤ 전문의 소견 전송'),
-            ('핵심 라우트', '/consultation/[id] (초대링크 입장), /opinion/[token] (소견 작성), /hospital/* (병원 담당자 계정)'),
+            ('핵심 라우트', '/consultation/[id] (초대링크 입장), /opinion/[token] (환자가 소견을 확인하는 화면), /hospital/* (병원 담당자 계정)'),
         ]
     },
     {
@@ -270,7 +270,7 @@ doc.add_page_break()
 # ================================================================
 add_heading(doc, '3. 기능 요구사항', 1)
 add_para(doc, '우선순위: H=High(필수) / M=Medium(권장) / L=Low(선택)')
-add_para(doc, '현황: ✅완료 / 🟡부분구현 / ❌미구현')
+add_para(doc, '현황 표기: 완료 / 부분구현 / 미구현')
 doc.add_paragraph()
 
 fr_tbl = doc.add_table(rows=0, cols=5)
@@ -280,118 +280,118 @@ add_header_row(fr_tbl, ['FR-ID', '기능명', '우선순위', '상세 설명', '
 fr_data = [
     ('FR-01', '소셜/이메일 회원가입', 'H',
      '이메일·Google OAuth 기반 회원가입. 환자/코디네이터/관리자 역할 분리. Supabase Auth 사용.',
-     '✅ /app/signup, /app/login, /app/auth'),
+     '완료 · /app/signup, /app/login'),
 
     ('FR-02', '역할 기반 접근 제어(RBAC)', 'H',
      '계정 계층 7종(비회원·환자·코디네이터·관리자·국내 의료기관·해외 에이전시·해외 의료기관)으로 분기. '
      '권한 저장 위치는 계층별로 다름(app_metadata.role / hospital_users / agency_users / 초대링크 토큰). '
-     '미들웨어에서 /patient/*, /admin/*, /coordinator/*, /hospital/*, /agency/*, /clinic/* 보호. '
+     'proxy.ts 가 서버 단계에서 /admin·/hospital·/patient·/coordinator 를 막고, /agency·/clinic 은 화면 진입 시 세션 확인 + 모든 관련 API 의 checkAgencyAuth 관문으로 막는다. '
      '※ 의사는 계정 계층이 아니라 상담방 초대링크 게스트 또는 병원 계정으로 참여함.',
-     '✅ middleware.js, src/lib/auth/accountTiers.ts (계층 단일 표준)'),
+     '완료 · proxy.ts (구 middleware — Next.js 16 에서 이름이 바뀌었다), src/lib/auth/accountTiers.ts (계층 단일 표준)'),
 
     ('FR-03', '게스트 토큰 발급', 'H',
      '비회원 환자에게 public_token을 발급하여 회원가입 없이 초기 상담 접근 가능.',
-     '✅ migrations/20260125_inquiries_public_token'),
+     '완료 · migrations/20260125_inquiries_public_token_and_attachments'),
 
     ('FR-04', '암환자 인테이크 폼', 'H',
      '환자 기본정보, 암 종류·병기, 의료기록 업로드, 치료 희망 사항 수집. Progressive 단계별 폼. AES-256-GCM 암호화 저장. (사업계획서 p.27)',
-     '✅ /app/inquiry (통합 문의 퍼널), migrations/20260125_inquiries_intake_progressive'),
+     '완료 · /app/inquiry (통합 문의 퍼널), migrations/20260125_inquiries_intake_progressive'),
 
     ('FR-05', '의료문서 업로드·관리', 'H',
      'CT/MRI/검사결과/진단서 업로드. Supabase Storage 저장, 암호화. MIME 타입 검증, 파일 크기 제한.',
-     '✅ /app/api/attachments, migrations/20260406_consultation_documents'),
+     '완료 · /app/api/attachments, migrations/20260406_consultation_documents'),
 
     ('FR-06', 'PDF 생성·다운로드', 'M',
      '상담 요약, 진료 의뢰서, 비용 산출서 PDF 출력. @react-pdf/renderer 활용.',
-     '✅ /app/api/pdf, src/lib/pdf'),
+     '완료 · /app/api/pdf, src/lib/pdf'),
 
     ('FR-07', 'AI 기반 병원·의료진 매칭', 'H',
-     '환자 증상·희망 치료·예산 기반 병원 자동 추천. Gemini 2.5 Flash + RAG 3계층(DB/HIRA/Google). 다국어 결과 반환. (사업계획서 p.27)',
-     '✅ /app/api/chat, src/lib/chat/generateReply.ts, src/lib/rag'),
+     '환자 증상·희망 치료·예산 기반 병원 자동 추천. Gemini Flash(최신 별칭) + RAG 3계층(DB/HIRA/Google). 다국어 결과 반환. (사업계획서 p.27)',
+     '완료 · /app/api/chat, src/lib/chat/generateReply.ts, src/lib/rag'),
 
     ('FR-08', '병원 목록·상세 조회', 'H',
-     '병원명·진료과·의료진·시설·가격 정보 다국어(ko/en/ru/kk/zh/ja) 제공. i18n JSONB 컬럼 활용.',
-     '✅ /app/hospitals, migrations/20260223_i18n_jsonb'),
+     '병원명·진료과·의료진·시설·가격 정보 다국어(ko/en/ru/kz/zh/ja) 제공. i18n JSONB 컬럼 활용.',
+     '완료 · /app/hospitals, migrations/20260223_i18n_jsonb'),
 
     ('FR-09', '예상 비용 산출', 'M',
      '진료 항목별 예상비용 자동 산출 안내. AI 적정가 판독. 비자·숙박 비용 안내 포함. (사업계획서 p.28)',
-     '🟡 /app/patient/cost-estimates (UI 있음, AI 자동산출 부분구현)'),
+     '부분구현 · /app/coordinator/cost-estimates (견적 작성·이력 관리 가동. AI 적정가 자동 산출은 남음)'),
 
     ('FR-10', 'AI 챗봇 상담 (24시간)', 'H',
-     'Gemini 기반 AI Agent. 러시아어·카자흐어·한국어·영어 지원. RAG 기반 병원 정보 응답. Human Agent 이관 로직 포함.',
-     '✅ /app/api/chat, src/lib/chat, src/lib/rag'),
+     'Gemini 기반 AI Agent. 러시아어·카자흐어·한국어·영어 지원. RAG 기반 병원 정보 응답. 사람 상담원 이관 로직 포함.',
+     '완료 · /app/api/chat, src/lib/chat, src/lib/rag'),
 
     ('FR-11', 'Human Agent 상담 (코디네이터)', 'H',
      '코디네이터가 환자 메시지 수신·응답. AI 이관 케이스 처리. 상담 이력 기록.',
-     '✅ /app/coordinator/messages, migrations/20260225_chat_threads'),
+     '완료 · /app/coordinator/messages, migrations/20260225_chat_threads'),
 
     ('FR-12', 'WebRTC 화상상담 (LiveKit)', 'H',
      '브라우저 기반 화상·음성 상담. LiveKit Cloud 연동. 게스트 토큰으로 비회원 참여. (사업계획서 p.28, 공고문 p.8)',
-     '✅ /app/telemedicine, /app/api/livekit, @livekit/components-react'),
+     '완료 · /app/consultation/[id] (상담방), /app/c/[code] (초대 주소), /app/api/livekit'),
 
     ('FR-13', 'AI 실시간 번역 (상담 중)', 'H',
      '화상상담 및 채팅 중 러시아어↔한국어 실시간 번역. 특허 10-2868334 기반. (사업계획서 p.28)',
-     '🟡 /app/api/translate, /app/api/translate-text (번역 API 완성, 화상 내 실시간 통합 부분구현)'),
+     '완료 · /app/api/translate-text, /app/consultation/[id] (상담방 실시간 자막 가동 — 통역 자막 3,277건 축적)'),
 
     ('FR-14', '진료 예약·일정 관리', 'H',
      '환자-의료진 일정 조율, 예약 확정, 리마인더 발송. 달력 UI 제공.',
-     '🟡 /app/patient/calendar (UI 있음, 자동 리마인더 부분구현)'),
+     '부분구현 · /app/patient/calendar (리마인더 자동 발송 가동. 의료진 일정 연동만 남음)'),
 
     ('FR-15', '비자 발급 안내', 'M',
      '카자흐스탄→한국 의료비자 신청 절차, 필요 서류, 처리기간 안내. 다국어 제공.',
-     '✅ /app/patient/visa, /app/visa, migrations/20260406_education_visa_rebooking'),
+     '완료 · /app/patient/visa, /app/visa, migrations/20260406_education_visa_rebooking'),
 
     ('FR-16', '경과 모니터링 (f/u)', 'H',
      '귀국 후 환자 건강상태 주기적 체크인. 증상 입력, 검사결과 업로드, AI 이상 감지 알림. (사업계획서 p.29, 공고문 p.8)',
-     '🟡 /app/patient/symptoms (화면 있음, AI 자동감지 부분구현)'),
+     '완료 · /app/patient/symptoms, /app/api/khidi/followup (증상 기록 + 이상 징후 자동 분석·담당자 알림)'),
 
     ('FR-17', '건강관리 교육 콘텐츠', 'M',
      '암 유형별 맞춤 사후관리 가이드, 식이요법, 복약 안내. 러시아어 콘텐츠 제공. (사업계획서 p.30)',
-     '🟡 /app/patient/education, /app/education (화면 있음, 러시아어 콘텐츠 일부)'),
+     '부분구현 · /app/education (콘텐츠 18건·러시아어 전건 발행 완료. 단계별 자동 발송의 화면 연결만 남음)'),
 
     ('FR-18', '재방문 예약 (Rebooking)', 'M',
      '경과관리 기반 재방문 필요성 자동 알림. 재진 예약·비자 재발급 안내 원스톱. (사업계획서 p.30)',
-     '✅ /app/patient/rebooking, migrations/20260406_education_visa_rebooking'),
+     '완료 · /app/patient/rebooking, migrations/20260406_education_visa_rebooking'),
 
     ('FR-19', '6개 언어 UI/UX', 'H',
-     '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kk 등).',
-     '🟡 /app/ru, /app/kk (라우트 있음, 일부 콘텐츠 번역 진행 중)'),
+     '한국어·영어·러시아어·카자흐어·중국어·일본어. Next.js App Router 다국어 라우팅 (/ru, /kz 등).',
+     '완료 · 언어 접두어는 proxy.ts 가 처리한다(/ru/treatments → 내부 /treatments 로 넘기고 x-locale 머리값으로 언어 전달)'),
 
     ('FR-20', 'DB 콘텐츠 다국어 자동번역', 'H',
      '병원·치료 정보 i18n JSONB 컬럼 자동번역. Gemini 기반 배치 번역.',
-     '✅ /app/api/rag, migrations/20260223_auto_translate_fields'),
+     '완료 · /app/api/rag, migrations/20260223_auto_translate_fields'),
 
     ('FR-21', '환자 대시보드', 'H',
      '환자 본인 상담 이력, 예약, 문서, 비용, 만족도 조회. 전체 여정 통합 뷰.',
-     '✅ /app/patient/*, PatientDashboardPremium.jsx'),
+     '완료 · /app/patient/*, PatientDashboardClient.jsx'),
 
     ('FR-22', '코디네이터 포털', 'H',
      '담당 환자 관리, 상담 처리, 실적 현황, 알림 수신.',
-     '✅ /app/coordinator/*'),
+     '완료 · /app/coordinator/*'),
 
     ('FR-23', '국내 의료기관 포털', 'H',
      '병원 정보 관리, 의료진 등록, 협진 의뢰(리드) 수신, 진료 결과 입력.',
-     '✅ /app/hospital/* (구 파트너 경로에서 개명), migrations/20260407_partner_doctors_branches'),
+     '완료 · /app/hospital/* (구 파트너 경로에서 개명), migrations/20260407_partner_doctors_branches'),
 
     ('FR-24', '관리자(Admin) 포털', 'H',
      '사용자·병원·KPI·AI 성능 관리. 성과보고 자료 출력. 감사 로그.',
-     '✅ /app/admin/*, migrations/20260129_add_admin_audit_logs'),
+     '완료 · /app/admin/*, migrations/20260129_add_admin_audit_logs'),
 
     ('FR-25', '이메일 알림·리마인더', 'M',
      '예약 확인, 상담 완료, 경과 체크인 리마인더. Resend API + React Email 템플릿.',
-     '✅ /app/api/email, src/lib/email'),
+     '완료 · /app/api/email, src/lib/email'),
 
     ('FR-26', '실시간 In-app 알림', 'M',
      '상담 이관, 신규 문의, 의료진 회신 실시간 알림. Supabase Realtime 기반.',
-     '🟡 /app/patient/messages (화면 있음, 실시간 푸시 부분구현)'),
+     '완료 · src/hooks/useNotifications.ts, src/lib/push/fcm.ts (Supabase Realtime 구독 + FCM 푸시)'),
 
     ('FR-27', '환자 PII 암호화', 'H',
-     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (*_encrypted 컬럼). encryptionV2.ts 활용.',
-     '✅ src/lib/security/encryptionV2.ts, migrations/20260420_drop_*_plaintext'),
+     '환자 성명·연락처·의료정보 AES-256-GCM 암호화 저장 (암호화 칸 20개(*_encrypted) + inquiries 의 first_name·last_name·email·phone). encryptionV2.ts 활용.',
+     '완료 · src/lib/security/encryptionV2.ts, migrations/20260420_drop_cancer_intake_plaintext (실행 완료) · 20260420_drop_inquiries_plaintext_email (보류)'),
 
     ('FR-28', 'API Rate Limiting', 'H',
      '공개 POST 엔드포인트 IP 기반 요청 제한. rateLimit.ts 활용.',
-     '✅ src/lib/rateLimit.ts'),
+     '완료 · src/lib/rateLimit.ts'),
 ]
 
 for row in fr_data:
@@ -403,6 +403,33 @@ doc.add_page_break()
 # 4. 비기능 요구사항
 # ================================================================
 add_heading(doc, '4. 비기능 요구사항', 1)
+
+# 2026-08-20 실측 — 어떻게 쟀는지까지 적는다. 못 잰 것은 왜 못 쟀는지 적는다.
+NFR_VERDICT = {
+ 'NFR-01': '미달(모바일) / 충족(데스크톱) — 라이트하우스 5회 중앙값(2026. 8. 21.): 모바일 5.31초 · 데스크톱 1.12초. 모바일 값은 저속 4G·CPU 4배 감속을 가정해 계산한 것으로, 회선만 정상이면 0.68초다',
+ 'NFR-02': '충족 — 실서비스 스트리밍 응답 10건(6개 언어 중 4개) 실측, 첫 토큰까지 중앙값 2.30초 · 상위 5% 3.84초(2026. 8. 21.)',
+ 'NFR-03': '미검증 — 카자흐스탄 현지에서 재야 한다. 국내에서는 왕복 지연을 잴 수 없다',
+ 'NFR-04': '충족(부분) — 실서비스 상태 확인 주소로 동시 100건 요청: 100/100 성공, 응답 중앙값 417ms · 상위 5% 1,650ms. 다만 이는 읽기 전용 가벼운 요청이며, 화면 렌더·DB 쓰기를 포함한 본격 부하 시험은 실사용자에게 영향이 가므로 유치 확대 시점에 별도 진행',
+ 'NFR-05': '충족 — 운영DB 조회: 성명(first_name·last_name)·이메일·전화 값이 있는 행 전부 암호문, 평문 0건',
+ 'NFR-06': '충족 — 자동 검사 check:err-exposure 통과(매 변경 실행)',
+ 'NFR-07': '충족 — API 라우트 223개 전수 확인. 관문 흔적이 없던 10개는 모두 정당(공개 조회·상태 확인·서명 검증·폐쇄된 라우트)',
+ 'NFR-08': '충족 — 권한 판정에 user_metadata 를 쓰는 곳 0건(전수 검색). app_metadata.role 기준',
+ 'NFR-09': '충족 — 자동 검사 check:ratelimit-scope 통과',
+ 'NFR-10': '충족 — 실서비스 머리값 확인: Strict-Transport-Security(2년·하위도메인·preload) · CSP · X-Content-Type-Options · X-Frame-Options',
+ 'NFR-11': '충족 — 가동 감시가 10분마다 돈다. 최근 100회(2026-08-17~20) 전건 성공(100%). 같은 시각 실서비스 상태 확인 20회 연속 200 응답. 실서비스 빌드 최근 100건 중 실패 0건' ,
+ 'NFR-12': '충족 — Supabase Pro 플랜 자동 백업(7일 보관). 플랜 상태는 콘솔에서 확인',
+ 'NFR-13': '충족 — sentry.client·server·edge.config.js 세 개 모두 존재',
+ 'NFR-14': '충족 — 화면이 쓰는 문구 1,941개를 6개 언어에 전건 채움. 러시아어·카자흐어는 자동 검사가 매 변경마다 100% 확인',
+ 'NFR-15': '대체로 충족 — 라이트하우스 접근성 97점(2026. 8. 21. 실서비스). 미달 1건이던 「앱 설치 안내의 단추 글자 대비」는 수정해 본판에 반영 완료(대비 3.74 → 5.47, 접근성 100점 확인). 실서비스 배포 대기 중',
+ 'NFR-16': '충족 — 375px 폭 기준 글자 잘림·겹침 자동 검사 상시 실행(content-clip-sweep · header-no-overlap)',
+ 'NFR-17': "충족 — tsconfig paths: {'@/*': ['src/*']}",
+ 'NFR-18': '충족 — strict:false 유지, Zod 런타임 검증 사용',
+ 'NFR-19': '충족 — package.json build 가 next build --webpack',
+ 'NFR-20': '충족 — /api/rag/ingest 로 코드 수정 없이 올린다. 현재 문서 21건·조각 21개',
+ 'NFR-21': '충족 — 웹 접수 6건 전부 동의 기록과 동의 판번호 보존. 나머지 2건은 플랫폼 밖에서 받아 소급 등록한 건이라 화면 동의 기록이 없다(별도 서면 보관)',
+ 'NFR-22': '유지 — 문구·화면 모두 정보 제공·연결 서비스로 표기. 법률 판단은 외부 검토 대상',
+ 'NFR-23': '진행 중 — 유치 0/12 · 사전상담+사후관리 7/120 · 만족도 표본 1건. 잔여 기간 유입에 달려 있다',
+}
 
 nfr_cats = [
     ('성능 (Performance)', [
@@ -425,7 +452,7 @@ nfr_cats = [
         ('NFR-13', '장애 감지 및 알림 (@sentry/nextjs 연동)'),
     ]),
     ('다국어·접근성 (i18n/a11y)', [
-        ('NFR-14', '6개 언어 UI 지원 (ko/en/ru/kk/zh/ja)'),
+        ('NFR-14', '6개 언어 UI 지원 (ko/en/ru/kz/zh/ja)'),
         ('NFR-15', 'WCAG 2.1 AA 기준 접근성 기본 준수'),
         ('NFR-16', '모바일 반응형 (375px 이상 전 화면 지원)'),
     ]),
@@ -436,19 +463,19 @@ nfr_cats = [
         ('NFR-20', 'RAG 벡터DB에 신규 의료 지식 비코드 업로드 가능 구조'),
     ]),
     ('법적 준수 (Compliance)', [
-        ('NFR-21', '개인정보보호법(PIPA) 준수 — 명시적 동의, 최소 수집, 보관 기간 준수'),
-        ('NFR-22', '의료법 준수 — 원격 사전상담은 정보 제공·연결 서비스로 포지셔닝'),
-        ('NFR-23', 'KHIDI KPI 달성 의무 — 유치 12건, 상담 120건, 만족도 90점 (공고문 p.3)'),
+        ('NFR-21', '개인정보보호법(PIPA) 준수: 명시적 동의, 최소 수집, 보관 기간 준수'),
+        ('NFR-22', '의료법 준수: 원격 사전상담은 정보 제공·연결 서비스로 포지셔닝'),
+        ('NFR-23', 'KHIDI KPI 달성 의무: 유치 12건, 상담 120건, 만족도 90점 (공고문 p.3)'),
     ]),
 ]
 
 for cat_name, items in nfr_cats:
     add_heading(doc, cat_name, 2)
-    ntbl = doc.add_table(rows=0, cols=2)
+    ntbl = doc.add_table(rows=0, cols=3)
     ntbl.style = 'Table Grid'
-    add_header_row(ntbl, ['NFR-ID', '요구사항 내용'])
+    add_header_row(ntbl, ['NFR-ID', '요구사항 내용', '검증 결과 (2026. 8. 20. 실측)'])
     for nfr_id, nfr_desc in items:
-        add_data_row(ntbl, [nfr_id, nfr_desc], bold_first=True)
+        add_data_row(ntbl, [nfr_id, nfr_desc, NFR_VERDICT.get(nfr_id, '미검증')], bold_first=True)
     doc.add_paragraph()
 
 doc.add_page_break()
@@ -465,20 +492,20 @@ add_header_row(ext_tbl, ['시스템', '용도', '연동 방식', '코드 위치'
 ext_data = [
     ('Supabase (PostgreSQL 17.6)',
      'DB, Auth, Storage, Realtime, RLS\n환자 정보·상담·병원 데이터 저장',
-     '@supabase/ssr — SSR 쿠키 기반 세션\nservice_role — server-only 모듈',
+     '@supabase/ssr: SSR 쿠키 기반 세션\nservice_role: server-only 모듈',
      'src/lib/supabase/*'),
-    ('Google Gemini 2.5 Flash',
+    ('Google Gemini Flash (최신 별칭)',
      'AI 챗봇, RAG 응답 생성\n다국어 번역, 문서 분석',
      'Vercel AI SDK (@ai-sdk/google)\nstreamText / generateText',
      'src/lib/chat/generateReply.ts'),
     ('LiveKit Cloud',
      'WebRTC 화상상담 서버\n오디오/비디오/화면공유',
      'livekit-server-sdk (토큰 발급)\n@livekit/components-react (UI)',
-     '/app/api/livekit/route.ts\n/app/telemedicine/'),
+     '/app/api/khidi/consultation/token\n/app/api/livekit/webhook\n/app/consultation/[id]'),
     ('Resend',
      '이메일 발송\n예약 확인, 리마인더, 관리자 알림',
      'Resend Node.js SDK\n@react-email/render 템플릿',
-     '/app/api/email/*\nsrc/lib/email/*'),
+     'src/lib/email/*'),
     ('Google Maps API',
      '병원 위치 지도 표시\n병원 주변 정보',
      '@react-google-maps/api\nClient-side 렌더링',
@@ -486,7 +513,7 @@ ext_data = [
     ('Sentry',
      '오류 추적·성능 모니터링\n배포 후 장애 감지',
      '@sentry/nextjs + withSentryConfig',
-     'sentry.*.config.ts'),
+     'sentry.client·server·edge.config.js'),
     ('Capacitor (iOS/Android)',
      '웹→모바일 앱 래핑\n푸시 알림, 딥링크',
      '@capacitor/core\n@capacitor/push-notifications',
@@ -496,7 +523,7 @@ ext_data = [
      'HTTP REST 크롤링 + RAG 인제스트',
      'src/lib/rag/*\nmigrations/20260225_crawl_*'),
     ('AES-256-GCM (자체 구현)',
-     '환자 PII 암호화·복호화\n*_encrypted 컬럼 데이터 보호',
+     '환자 PII 암호화·복호화\n암호화 칸 데이터 보호(*_encrypted 20개 + inquiries 의 성명·이메일·전화)',
      'Web Crypto API 기반 자체 구현',
      'src/lib/security/encryptionV2.ts'),
 ]
@@ -513,7 +540,7 @@ add_heading(doc, '6. 제약사항', 1)
 constraints_data = [
     ('법적 제약', [
         '개인정보보호법(PIPA): 환자 개인정보 수집·이용 시 명시적 동의 필수. 수집 최소화 원칙. 보관 기간 이후 파기 의무.',
-        '의료법: 국내 원격 진료 규제를 고려하여 사전상담·사후상담은 "의료 정보 제공 및 연결 서비스"로 포지셔닝. 실제 진료·처방은 면허 의사와 협약 기반 별도 수행.',
+        '의료법: 국내 원격 진료 규제를 고려하여 사전상담·사후상담은 「의료 정보 제공 및 연결 서비스」로 포지셔닝. 실제 진료·처방은 면허 의사와 협약 기반 별도 수행.',
         '카자흐스탄 개인정보보호법(2013): 카자흐스탄 국민 개인정보 처리 시 현지 법령 준거.',
         '의료기기법: AI 진단 기능이 아닌 정보 제공·매칭·상담 플랫폼으로 설계 (의료기기 해당 없음).',
     ]),
@@ -528,7 +555,7 @@ constraints_data = [
         'Turbopack 빌드 금지: npx next build --webpack 전용.',
         'TypeScript strict:false 유지 (점진적 전환 중).',
         'LiveKit Cloud 의존: 화상상담은 LiveKit SaaS 의존. 자체 서버 운영 미계획.',
-        '카자흐스탄 네트워크: 지방 WebRTC 품질은 현지 5G 인프라 구축 완료(2025 말) 이후 개선 예상.',
+        '카자흐스탄 네트워크: 지방 WebRTC 품질은 현지 5G 인프라가 2025년 말 구축 완료되어 개선 추세이나, 지방은 여전히 회선 편차가 있음.',
     ]),
     ('운영적 제약', [
         '사업 기간: 협약체결일 ~ 2026.11.20 (단년도 사업).',
@@ -558,7 +585,7 @@ terms = [
     ('HEALO', '본로이 개발 AI 기반 외국인환자 상담·매칭·사후관리 통합 플랫폼명'),
     ('ICT', 'Information and Communication Technology. 정보통신기술'),
     ('RAG', 'Retrieval-Augmented Generation. 검색 기반 AI 응답 생성. HEALO에서 3계층 구조 운영 (DB→HIRA→Google)'),
-    ('AI Agent', 'AI 기반 자동 상담 봇. Gemini 2.5 Flash 기반. 복잡 케이스 시 Human Agent로 이관'),
+    ('AI Agent', 'AI 기반 자동 상담 봇. Gemini Flash 기반. 복잡 케이스 시 Human Agent로 이관'),
     ('Human Agent', '코디네이터. AI가 처리하지 못한 상담을 직접 수행'),
     ('WebRTC', 'Web Real-Time Communication. 브라우저 기반 실시간 화상·음성 통신 기술'),
     ('LiveKit', 'WebRTC 기반 화상상담 SaaS 플랫폼. 서버/클라이언트 SDK 제공'),
@@ -582,7 +609,7 @@ terms = [
     ('SaaS', 'Software as a Service. 클라우드 기반 소프트웨어 서비스 제공 방식'),
     ('pgvector', 'PostgreSQL 벡터 검색 확장. RAG 임베딩 벡터 저장·검색에 활용'),
     ('i18n', 'Internationalization. 다국어 지원 설계. HEALO는 6개 언어 지원'),
-    ('Gemini 2.5 Flash', 'Google DeepMind의 멀티모달 AI 모델. HEALO AI Agent 기반 모델'),
+    ('Gemini Flash', 'Google DeepMind 의 멀티모달 AI 모델. HEALO 는 최신 별칭(gemini-flash-latest)으로 고정 사용'),
 ]
 for term, defn in terms:
     add_data_row(term_tbl, [term, defn], bold_first=True)

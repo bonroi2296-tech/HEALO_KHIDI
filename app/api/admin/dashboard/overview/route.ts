@@ -116,6 +116,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ── 알림 발송 실패 (최근 7일) ──────────
+    //    왜 여기 띄우나: admin_notification_logs 는 여태 «쌓기만» 하고 아무도 안 읽었다.
+    //    2026-08-20 실측으로 6월에 8건이 조용히 실패해 있던 것을 발견했다(지금은 정상).
+    //    새 문의가 왔는데 알림이 안 가면 1인 운영에서는 그대로 놓친다 → 첫 화면에 숫자로 띄운다.
+    let notifyFailed7d = 0;
+    try {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await sb
+        .from("admin_notification_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "failed")
+        .gte("created_at", since);
+      notifyFailed7d = count ?? 0;
+    } catch {
+      /* 숫자 하나 못 읽었다고 첫 화면 전체를 죽이지 않는다 */
+    }
+
     // ── 최근 활동 피드 (PII 없음 — 건수·상태·키만) ──────────
     const FEED_EACH = 6;
     const [edits, inqs, sessions, refs, leads] = await Promise.all([
@@ -174,7 +191,7 @@ export async function GET(request: NextRequest) {
         coordinator: { consultations: consultationsTotal, upcoming: consultationsUpcoming, estimates: estimatesTotal, contentEdits },
         agency: { active: agenciesActive, users: agencyUsers, referrals: referralsTotal, referralsPending },
         hospital: { hospitals: hospitalsTotal, users: hospitalUsers, leads: leadsTotal, unanswered: leadsUnanswered },
-        system: { aiRunDate: ai.runDate, aiPassRate: ai.passRate, aiHallucinations: ai.hallucinations },
+        system: { aiRunDate: ai.runDate, aiPassRate: ai.passRate, aiHallucinations: ai.hallucinations, notifyFailed7d },
       },
       feed,
       asOf: new Date().toISOString(),

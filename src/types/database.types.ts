@@ -2009,6 +2009,7 @@ export type Database = {
           auto_max_krw: number | null
           auto_median_krw: number | null
           auto_min_krw: number | null
+          cancer_type: string | null
           consultation_id: string | null
           coordinator_notes_encrypted: string | null
           coordinator_user_id: string | null
@@ -2025,6 +2026,7 @@ export type Database = {
           quotation_items: Json | null
           quotation_no: string | null
           quotation_pdf_url: string | null
+          stage: string | null
           status: string
           total_krw: number | null
           total_usd: number | null
@@ -2035,6 +2037,7 @@ export type Database = {
           auto_max_krw?: number | null
           auto_median_krw?: number | null
           auto_min_krw?: number | null
+          cancer_type?: string | null
           consultation_id?: string | null
           coordinator_notes_encrypted?: string | null
           coordinator_user_id?: string | null
@@ -2051,6 +2054,7 @@ export type Database = {
           quotation_items?: Json | null
           quotation_no?: string | null
           quotation_pdf_url?: string | null
+          stage?: string | null
           status?: string
           total_krw?: number | null
           total_usd?: number | null
@@ -2061,6 +2065,7 @@ export type Database = {
           auto_max_krw?: number | null
           auto_median_krw?: number | null
           auto_min_krw?: number | null
+          cancer_type?: string | null
           consultation_id?: string | null
           coordinator_notes_encrypted?: string | null
           coordinator_user_id?: string | null
@@ -2077,6 +2082,7 @@ export type Database = {
           quotation_items?: Json | null
           quotation_no?: string | null
           quotation_pdf_url?: string | null
+          stage?: string | null
           status?: string
           total_krw?: number | null
           total_usd?: number | null
@@ -3077,6 +3083,9 @@ export type Database = {
           attachment: string | null
           attachments: Json
           cancer_type: string | null
+          icd_code: string | null
+          icd_code_updated_at: string | null
+          icd_code_updated_by: string | null
           case_status: string | null
           case_status_note: string | null
           case_status_updated_at: string | null
@@ -3146,6 +3155,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null
@@ -3215,6 +3227,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null
