@@ -407,7 +407,7 @@ export default function BrandingSettingsPage() {
 
       {/* Toast 알림 */}
       {toast && (
-        <div className="fixed bottom-[calc(1.5rem+var(--healo-safe-bottom))] right-6 z-50 animate-fade-in">
+        <div className="fixed bottom-[calc(1.5rem+var(--healo-safe-bottom)+var(--cookie-banner-h,0px))] right-6 z-50 animate-fade-in">
           <div
             className={`px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] ${
               toast.type === "success"

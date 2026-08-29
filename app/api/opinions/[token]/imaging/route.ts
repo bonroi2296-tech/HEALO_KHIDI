@@ -17,7 +17,7 @@ export const maxDuration = 300;
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { prepareStudy } from "@/lib/imaging/prepareStudy";
 
 // 한 번 풀면 다음부터는 만들어 둔 걸 주므로 넉넉히 잡아도 비용이 안 튄다.
@@ -25,7 +25,7 @@ const RATE = { windowMs: 60_000, maxRequests: 20, apiName: "opinion_imaging" };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE);
+  const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

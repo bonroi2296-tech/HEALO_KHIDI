@@ -12,6 +12,7 @@ import {
   useConnectionState,
   useLocalParticipant,
   useParticipants,
+  useIsSpeaking,
   useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
@@ -95,7 +96,14 @@ import { uploadDirect } from "@/lib/uploadAttachment";
 import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
+import { shouldSwitchToServerStt, createSpokenClock } from "@/lib/consultation/sttWatchdog";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { STT_ENGINES } from "@/lib/consultation/sttEngine";
+import { shouldStitch, stitch, LIVE_TRANSLATE_STITCH } from "@/lib/consultation/transcriptStitch";
+
+// 통역봇 줄이 «더 안 붙는다»고 볼 때까지 기다리는 시간. 이어 붙이기 상한(10초)보다 짧게 잡아
+// 마지막 줄이 기록에서 빠지지 않게 한다.
+const BOT_LINE_SETTLE_MS = 6000;
 import { useStickToBottom } from "@/lib/consultation/useStickToBottom";
 import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { isPatientSideRole } from "@/lib/consultation/inviteRole";
@@ -151,8 +159,14 @@ function roleLabel(role, c) {
 // 내 LiveKit identity 도 같이 올린다 — 통역봇 호출 API 가 «누가 통역을 원하는가»를
 // 참가자 속성으로 기록하는 데 쓴다(봇을 언제 내보낼지 판정). 통역 버튼은 방 컨텍스트
 // 밖(페이지 레벨)에 정의돼 있어 identity 를 직접 못 읽는다 → 이미 있는 이 브릿지에 얹었다.
-function MicStateBridge({ onChange, onIdentity, onName }) {
+function MicStateBridge({ onChange, onIdentity, onName, onSpeaking }) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+  // «내가 지금 말하고 있나» — 영상 서버가 내 마이크 소리로 판정한 값. 자막 경로 워치독이
+  // 「내가 말했는데 브라우저 받아쓰기 결과가 0」을 가르는 데 쓴다(sttWatchdog.ts).
+  const isSpeaking = useIsSpeaking(localParticipant);
+  useEffect(() => {
+    onSpeaking?.(!!isSpeaking);
+  }, [isSpeaking, onSpeaking]);
   useEffect(() => {
     onChange?.(!!isMicrophoneEnabled);
   }, [isMicrophoneEnabled, onChange]);
@@ -944,10 +958,23 @@ export default function ConsultationRoomPage() {
   // 이 통화(입장)에서 발생한 번역만 패널에 보이게 하는 기준 시각.
   // 예전 통화·반복 테스트의 번역 기록이 상담에 쌓여 재입장 때 섞여 보이던 것 차단(PO 제보).
   // 시계 오차·직전 맥락 대비 15초 버퍼. window 체크로 SSR 시각 오염 회피.
+  // 회의록을 어디서부터 불러올지 정하는 기준 시각.
+  //
+  // ⚠️ 기본값은 «화면을 연 시각 - 15초»다. 그러면 상담 «도중»에 새로고침하거나 회선이
+  //    끊겨 다시 들어왔을 때, 그때까지 쌓인 회의록이 화면에서 통째로 사라진다
+  //    (DB 에는 남아 있는데 안 보인다 — 2026-08-28 실측: 전체 흐름 시험에서 0줄).
+  //    → 세션의 «통화 시작 시각»을 알게 되면 그걸로 갈아끼운다(아래 setCallStartFromSession).
+  //    그러면 같은 상담의 기록은 다 살아나고, 지난 상담 것은 여전히 안 딸려 온다.
   const callStartMsRef = useRef(null);
   if (callStartMsRef.current === null && typeof window !== "undefined") {
     callStartMsRef.current = Date.now() - 15000;
   }
+  const setCallStartFromSession = useCallback((startedAt) => {
+    const t = startedAt ? new Date(startedAt).getTime() : NaN;
+    if (!Number.isFinite(t)) return;
+    // 앞당기기만 한다 — 뒤로 미루면 방금 쌓인 줄이 잘려 나간다.
+    if (t < (callStartMsRef.current ?? 0)) callStartMsRef.current = t;
+  }, []);
   const afterCallStart = useCallback((createdAt) => {
     const t = createdAt ? new Date(createdAt).getTime() : 0;
     return t >= (callStartMsRef.current ?? 0);
@@ -960,8 +987,15 @@ export default function ConsultationRoomPage() {
   // 봇이 방에 없으면(서버 스위치 꺼짐·에이전트 미가동) 켤 수 없고 안내만 띄운다.
   const [voiceOn, setVoiceOn] = useState(false);
   const [agentPresent, setAgentPresent] = useState(false);
+  // 통역봇이 「연결이 계속 실패한다」고 알린 적이 있나 (같은 통화에 한 번만 안내)
+  const translatorFailWarnedRef = useRef(false);
   // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
   const [myIdentity, setMyIdentity] = useState(null);
+  // 「통역을 켜고 싶은데 아직 방에 안 붙었다」를 기억해 두는 자리. 화면을 열자마자 통역을
+  // 누르면 identity 가 아직 없어 서버가 400 으로 거부하고, 토글이 되돌아가 사용자에겐
+  // «눌렀는데 안 켜짐»이 된다(2026-08-28 실측: 12초 뒤엔 실패, 30초 뒤엔 성공).
+  // 그래서 거절하지 않고 기억해 두었다가 identity 가 채워지면 그때 보낸다.
+  const pendingVoiceRef = useRef(false);
   // 내 표시 이름 (MicStateBridge 가 채움) — 서버 STT 에 넘겨 회의록에 화자로 남긴다.
   // ref 로도 들고 있는 이유: STT 녹음 사이클은 effect 안에서 돌아 최신 state 를 못 읽는다.
   const myNameRef = useRef("");
@@ -971,6 +1005,8 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
+  // 「자막」 스위치 최신값 — DC 수신 자막을 내 화면에 띄울지 판정한다(2026-08-07 PO 제보).
+  const translationEnabledRef = useRef(false);
   // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
   // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
   // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
@@ -982,6 +1018,9 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     voiceOnRef.current = voiceOn;
   }, [voiceOn]);
+  useEffect(() => {
+    translationEnabledRef.current = translationEnabled;
+  }, [translationEnabled]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
     if (agentPresent) {
@@ -1214,8 +1253,9 @@ export default function ConsultationRoomPage() {
       }
       return next.filter((_, i) => i !== oldest);
     });
-    // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
-    // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
+    // 문장 길이에 비례해 자동 숨김(6~15초). 처음엔 12~30초였는데(«너무 슉슉 넘어가 읽기
+    // 힘들다» PO 제보 2026-07-23), 이번엔 자막이 화면을 너무 오래 가린다는 반대 요구로
+    // #1309 에서 지금 값으로 줄였다. 지난 자막은 「자막 기록」 패널에 남아 다시 읽을 수 있다.
     // 중간(진행 중) 자막은 곧 다음 조각·확정 자막으로 교체되므로 짧게(8초) — 발화 중단 시 잔상 방지.
     const timers = remoteSubtitleTimersRef.current;
     if (timers.has(k)) clearTimeout(timers.get(k));
@@ -1283,6 +1323,21 @@ export default function ConsultationRoomPage() {
   //      스스로를 재강화한다(틀린 단어가 계속 되돌아온다).
   // → 중복은 안 넣고, 3분 지난 줄은 버린다. (상한 8은 그대로)
   const CONTEXT_TTL_MS = 180000;
+  /**
+   * 이어 붙인 줄을 문맥에 넣을 때, 방금 넣었던 «붙이기 전 앞줄»을 먼저 뺀다.
+   *
+   * 왜 (2026-08-28): 이어 붙이기는 조각이 올 때마다 «누적된 전체 문장»을 만든다.
+   * 그걸 그대로 쌓으면 「카자흐스탄에서」 → 「카자흐스탄에서 왔습니다」 가 둘 다 남아,
+   * 8줄짜리 문맥 버퍼가 한 문장의 중간 상태로 가득 찬다(다음 번역이 참고할 «앞 대화»가 사라진다).
+   * 마지막 항목이 정확히 그 앞줄일 때만 뺀다 — 그 사이 다른 사람 말이 들어왔으면 안 건드린다.
+   */
+  const replaceConvoContext = useCallback((speaker, lang, prevText, nextText) => {
+    const buf = convoContextRef.current;
+    const last = buf[buf.length - 1];
+    if (last && prevText && last.text === prevText) buf.pop();
+    pushConvoContextRef.current(speaker, lang, nextText);
+  }, []);
+
   const pushConvoContext = useCallback((speaker, lang, text) => {
     if (!text) return;
     const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
@@ -1296,12 +1351,45 @@ export default function ConsultationRoomPage() {
     if (buf.some((b) => b.norm === norm)) return; // 같은 발화가 다른 경로로 또 들어옴
     buf.push({ speaker, lang, text, norm, at: now });
     if (buf.length > 8) buf.splice(0, buf.length - 8);
+    // 시험 도구가 «문맥이 어떻게 쌓였나»를 볼 수 있게 개발 환경에서만 창에 걸어 둔다.
+    if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+      window.__convoContext = buf;
+    }
   }, []);
+  const pushConvoContextRef = useRef(pushConvoContext);
+  useEffect(() => {
+    pushConvoContextRef.current = pushConvoContext;
+  }, [pushConvoContext]);
 
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
+  // 문장 중간에서 잘린 자막을 앞줄에 도로 붙인다 (판정은 transcriptStitch).
+  //   왜: 2026-08-27 실측 — 실서비스 자막의 31% 가 말이 끝나기 전에 잘려 있었다.
+  //   ⚠️ «내 화면과 내 기록»에만 적용한다. 상대에게 보내는 자막과 서버 저장은 안 건드린다
+  //      (상대 화면에서 이미 뜬 줄을 교체할 방법이 없어, 붙여 보내면 중복으로 보인다).
+  const lastShownRef = useRef(null);
+
   const applyTranslation = useCallback(
     (original, translated, srcLangOverride, utter, spokenAt) => {
+      const at = spokenAt || Date.now();
+      const incoming = {
+        source: original,
+        translated,
+        // ⚠️ 화자 키는 «이름»이 아니라 고정값이다. 이어 붙이기는 화자가 비어 있으면 안 붙이는데,
+        //    이름은 자주 비어 있다(실측 2026-08-28: 실서비스 자막 3,554줄 중 41%가 이름 없음).
+        //    이 경로는 «언제나 나»이므로 이름으로 가릴 이유가 없다 — 고정 키를 쓴다.
+        //    (통역봇 경로는 다르다: 거긴 여러 사람이 섞이므로 진짜 화자 id 가 있어야 한다)
+        speaker: "self",
+        lang: srcLangOverride || myLang,
+        at,
+      };
+      const merged = shouldStitch({ prev: lastShownRef.current, next: incoming });
+      if (merged) {
+        const j = stitch({ prev: lastShownRef.current, next: incoming });
+        original = j.source;
+        translated = j.translated;
+      }
+
       const entry = {
         id: Date.now(),
         original_text: original,
@@ -1313,14 +1401,29 @@ export default function ConsultationRoomPage() {
         // ⚠️ «말한 시각»으로 찍는다. 도착 시각으로 찍으면 내 줄만 번역 왕복(1~2초)만큼 뒤로
         //    밀리는데, 상대 줄은 이미 말한 시각으로 찍혀 있어 기록 순서가 서로 어긋난다
         //    (2026-07-29 PO «자막 순서도 좀 꼬이는거 같고»). 두 줄이 같은 시계를 쓰게 맞춘다.
-        created_at: new Date(spokenAt || Date.now()).toISOString(),
+        created_at: new Date(merged ? lastShownRef.current.at : at).toISOString(),
       };
 
       // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
-      setTranslations((prev) => [...prev.slice(-1999), entry]);
+      //   붙인 경우엔 새 줄을 «추가»하지 않고 마지막 줄을 통째로 갈아끼운다.
+      setTranslations((prev) =>
+        merged && prev.length
+          ? [...prev.slice(0, -1), entry]
+          : [...prev.slice(-1999), entry]
+      );
+      lastShownRef.current = {
+        ...incoming,
+        source: original,
+        translated,
+        at: merged ? lastShownRef.current.at : at,
+      };
 
-      // 다음 번역의 문맥으로 축적
-      pushConvoContext("self", srcLangOverride || myLang, original);
+      // 다음 번역의 문맥으로 축적 — 붙였으면 앞줄을 갈아끼운다(중간 상태가 겹쳐 쌓이지 않게)
+      if (merged) {
+        replaceConvoContext("self", srcLangOverride || myLang, incoming.source, original);
+      } else {
+        pushConvoContext("self", srcLangOverride || myLang, original);
+      }
 
       // Show subtitle
       setCurrentSubtitle({ original, translated });
@@ -1330,7 +1433,8 @@ export default function ConsultationRoomPage() {
       // utter(발화 세대) 동봉 — 큐 밀림으로 이전 발화의 확정 자막이 다음 발화의 부분 자막을
       // 덮는 순서 역전을 수신측이 걸러낼 근거(독립리뷰 #1).
       if (publishSubtitleRef.current) {
-        publishSubtitleRef.current(translated, targetLang, myRole, { utter });
+        // ⚠️ 상대에겐 «이번 조각»만 보낸다 — 합친 문장을 보내면 상대 화면에 앞부분이 두 번 뜬다.
+        publishSubtitleRef.current(incoming.translated, targetLang, myRole, { utter });
       }
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
@@ -1346,13 +1450,19 @@ export default function ConsultationRoomPage() {
       // Clear interim
       setInterimText("");
     },
-    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext]
+    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext, replaceConvoContext]
   );
 
   // ── Translate (큐 순차처리) ──
   // 이전 번역이 끝나기 전에 다음 발화가 와도 '버리지' 않고 큐에 쌓아 순서대로 처리한다.
   //   (예전엔 isTranslating 중이면 그 조각을 통째로 버려서, 쉬지 않고 말하면 발화가 증발했음
   //    — 데스크톱 크롬 등 '잘 되는' 환경에서도 나던 '번역 완성도 낮음'의 숨은 원인.)
+  // 「이 자막을 어느 받아쓰기가 만들었나」 — 기록에 같이 남긴다(2026-08-06).
+  // 왜 ref 인가: 이 값을 쓰는 translateText 는 useCallback 이라, 상태로 넣으면 경로가 바뀔
+  //   때마다 함수가 새로 만들어져 번역 큐를 잡고 있는 참조들이 어긋난다. 읽는 시점만
+  //   맞으면 되므로 ref 로 둔다. (useServerStt 는 아래에서 계산되지만 ref 라 순서 무관)
+  const sttEngineRef = useRef(STT_ENGINES.BROWSER);
+
   const translateQueueRef = useRef([]);
   // ── 번역을 «한 번에 하나씩» 하던 것을 3개까지 동시로 ──
   // 왜 (2026-08-04 실측): AI 왕복이 1~3초인데 그날 회의는 **최대 1.4초에 한 줄**이 나왔다.
@@ -1390,6 +1500,9 @@ export default function ConsultationRoomPage() {
                 translatedText: item.pre,
                 sourceLanguage: myLang,
                 targetLanguage: targetLang,
+                sttEngine: STT_ENGINES.BACKCHANNEL,
+                // 회의록에 「누가 말했나」를 남긴다 — 이 경로에만 빠져 있었다(2026-08-07).
+                speakerName: myNameRef.current || undefined,
               }),
             }).catch(() => {});
           }
@@ -1409,6 +1522,9 @@ export default function ConsultationRoomPage() {
               targetLang,
               consultationId,
               speakerRole: "self",
+              // 이 글을 만든 받아쓰기 경로 — 기록에 남겨야 길별 품질을 실사용에서 잰다.
+              sttEngine: sttEngineRef.current,
+          speakerName: myNameRef.current || undefined,
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
               context: contextForApi(convoContextRef.current),
             }),
@@ -1471,6 +1587,11 @@ export default function ConsultationRoomPage() {
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role, name, participantIdentity, interim, utter }) => {
+      // ── 내가 「자막」을 안 켰으면 안 띄운다 (2026-08-07 PO 제보) ──
+      // 자막은 **방 전체에** 뿌려지므로, 상대 한 명만 켜도 안 켠 사람 화면에 자막이 올라왔다.
+      // PO 실사용: 노트북에서만 자막을 켰는데 PC 화면에 «지 멋대로» 자막이 뜸.
+      // 자막 스위치는 「내 화면에 자막을 볼지」를 정하는 내 스위치다 — 상대가 못 끄게 한다.
+      if (!translationEnabledRef.current) return;
       // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
       // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
       if (voiceOnRef.current && agentPresentRef.current) return;
@@ -1536,28 +1657,255 @@ export default function ConsultationRoomPage() {
 
   // ── 통역 봇 자막 수신 (LiveTranslateBridge, lk.translation 스트림) ──
   // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
+  // 아직 «더 붙을 수 있어» 저장을 미뤄 둔 통역봇 줄. 조각이 확정된 뒤에 한 번만 보낸다.
+  const botPendingRef = useRef(null);
+  const botFlushTimerRef = useRef(null);
+  // 기록 실패를 한 통화에 한 번만 알리기 위한 표시(자막마다 알리면 로그·화면이 뒤덮인다)
+  const botSaveFailedRef = useRef(false);
+  // 저장이 «실패한» 줄을 담아 두는 자리. 회선이 잠깐 끊기면 그 사이 확정된 통역 줄이
+  // 영영 사라졌다(2026-08-28 실측: 회선을 14초 끊었더니 4건 중 2건이 기록에 안 남았다).
+  // 회선이 돌아오면 여기 담긴 것을 다시 보낸다.
+  const botRetryRef = useRef([]);
+  // ⚠️ 진단 비콘(reportClientEvent)은 이 아래에서 선언된다. 여기서 «이름으로» 참조하면
+  //    의존성 배열이 렌더 중에 평가돼 ReferenceError 가 나고 상담방이 통째로 안 뜬다
+  //    (2026-08-28 실측: 화면 백지 + "Cannot access before initialization").
+  //    그래서 ref 로 받아서 쓴다.
+  const reportBotErrRef = useRef(null);
+
+  // 통역봇이 「지금 통역이 안 되고 있다」고 알릴 때.
+  //
+  // 왜 (2026-08-28 실측): 봇은 연결이 끊기면 조용히 재연결만 반복한다 — 30초에 15번 실패해도
+  // 화면은 「통역 켜짐」 그대로였다. 사용자는 봇도 있고 스위치도 켜져 있으니 계속 기다린다.
+  // ⚠️ 한 통화에 한 번만 알린다. 재연결은 몇 초마다 오가므로 매번 띄우면 화면이 안내로 뒤덮인다.
+  const handleTranslatorFailing = useCallback(
+    (failing) => {
+      if (!failing) {
+        translatorFailWarnedRef.current = false;
+        return;
+      }
+      if (translatorFailWarnedRef.current) return;
+      translatorFailWarnedRef.current = true;
+      toast.error(c.voiceFailingMsg || c.voiceUnavailableMsg);
+      reportClientEventRef.current?.("media_failure", "translator reported failing");
+    },
+    [c]
+  );
+
+  // 통역봇 줄 하나를 기록에 남긴다. 2026-08-28 까지 이 경로만 저장이 통째로 빠져 있었다
+  // (실측: 자막 3,553건 중 통역봇 경로 0건) — 화면에는 떴지만 회의록·상담 요약에는 없었다.
+  // ⚠️ 천장: 같은 언어를 쓰는 사람이 방에 둘 이상이면 그 인원수만큼 중복 저장된다.
+  //    지금 상담은 한국어 1명 + 환자 언어 1명이라 안 겹친다. 겹치기 시작하면 통역봇이
+  //    자막마다 고유 번호를 실어 보내고 서버에서 거르는 쪽으로 올려야 한다.
+  // 통역 줄 하나를 실제로 보낸다. 실패하면 대기열에 담아 나중에 다시 보낸다.
+  // item 이 있으면 «재시도»다(횟수가 이어진다).
+  const postBotLine = useCallback(
+    (payload, item) => {
+      const requeue = () => {
+        const q = botRetryRef.current;
+        // 회선이 오래 끊겨도 메모리가 무한히 늘지 않게 상한을 둔다.
+        if (q.length >= 200) return;
+        const it = item || { payload, tries: 0 };
+        // 세 번 실패하면 포기한다(계속 붙잡고 있어도 같은 이유로 실패한다).
+        if (it.tries >= 3) return;
+        q.push(it);
+      };
+      fetch(`/api/khidi/consultation/${consultationId}/translate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+        },
+        body: JSON.stringify(payload),
+        // 화면이 사라진 뒤에도 요청을 끝까지 보낸다(자막 한 줄은 64KB 상한에 한참 못 미친다).
+        // ⚠️ 정직하게: 2026-08-28 실측에서는 이걸 «꺼도» 탭을 닫을 때 마지막 줄이 저장됐다
+        //    (자동화 브라우저의 탭 닫기 기준). 실제 창 닫기·앱 종료에서도 같은지는 못 쟀다.
+        //    필요 없다고 증명된 것도 아니어서 안전망으로 남긴다 — 유실되는 쪽이 훨씬 해롭다.
+        keepalive: true,
+      })
+        .then((r) => {
+          if (r.ok) return;
+          // 5xx 는 «지금만» 안 되는 것일 수 있으니 다시 보낸다.
+          // 4xx 는 몸통이 잘못된 것이라 다시 보내도 같은 답이 온다 — 버린다.
+          if (r.status >= 500) requeue();
+          if (botSaveFailedRef.current) return;
+          // 상담 기록이 안 남는 것은 조용히 지나가면 안 된다. 다만 한 통화에 한 번만
+          // 알린다 — 자막마다 보내면 로그가 폭주하고 화면도 안내로 뒤덮인다.
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", r.status);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save failed: ${r.status}`);
+        })
+        .catch((e) => {
+          requeue();
+          if (botSaveFailedRef.current) return;
+          botSaveFailedRef.current = true;
+          console.warn("[consultation] 통역 자막 기록 실패:", e?.message);
+          reportBotErrRef.current?.("media_failure", `bot subtitle save error: ${e?.message}`);
+        });
+    },
+    [consultationId, isGuestMode, inviteToken]
+  );
+
+  // 회선이 돌아오면(또는 20초마다) 못 보낸 줄을 다시 흘린다.
+  useEffect(() => {
+    if (!consultationId) return undefined;
+    const drain = () => {
+      const q = botRetryRef.current;
+      if (!q.length) return;
+      botRetryRef.current = [];
+      for (const it of q) {
+        it.tries += 1;
+        postBotLine(it.payload, it);
+      }
+    };
+    window.addEventListener("online", drain);
+    const timer = setInterval(drain, 20000);
+    return () => {
+      window.removeEventListener("online", drain);
+      clearInterval(timer);
+    };
+  }, [consultationId, postBotLine]);
+
+  const flushBotLine = useCallback(
+    (line) => {
+      if (!line || !consultationId) return;
+      const body = String(line.translated || "").trim();
+      if (!body) return;
+      postBotLine({
+          // 통역봇은 원문을 안 준다(번역된 자막만 온다) — 원문 칸은 비워 둔다.
+          translatedText: body,
+          // ⚠️ 자막에 실려 오는 lang 은 «번역된 결과» 언어(= 내 언어)다. 그걸 원문 언어 칸에
+          //    넣으면 회의록에 「한국어 → 한국어」로 남는다. 원문 언어는 «상대 언어»(targetLang)다.
+          //    천장: 방에 사람이 셋 이상이고 상대들의 언어가 서로 다르면 부정확해진다.
+          //    그때는 통역봇이 자막에 화자의 원문 언어를 같이 실어 보내야 한다.
+          sourceLanguage: targetLang,
+          targetLanguage: myLang,
+          sttEngine: STT_ENGINES.LIVE_TRANSLATE,
+          speakerName: line.speakerName || undefined,
+          // 「말한 시각」 — 붙인 줄은 «첫 조각»의 시각이다. 안 보내면 저장 시각으로 남아
+          // 회의록에서 이 줄만 최대 6초 뒤로 밀린다(확정 타이머만큼).
+          // 시각이 없거나 이상하면 아예 안 보낸다(서버가 자기 시각을 쓴다).
+          //    Invalid Date 에 toISOString() 을 부르면 예외가 나 저장이 통째로 날아간다.
+          ...(Number.isFinite(line.at) ? { spokenAt: new Date(line.at).toISOString() } : {}),
+      });
+    },
+    [consultationId, myLang, targetLang, postBotLine]
+  );
+
   const handleBotSubtitle = useCallback(
     ({ text, lang, role, speakerId, name }) => {
+      // 통역봇은 방에 하나뿐이라 «상대가 통역을 켜면» 내 화면에도 자막이 흘러든다.
+      // DC 자막과 같은 이유로 내 스위치를 따른다 (2026-08-07).
+      if (!translationEnabledRef.current) return;
+
+      // 통역 모델은 말을 따라가며 몇 글자씩 즉시 내보내 조각이 아주 잘다(2026-08-28 실측:
+      // 문장 중간 절단 68%). 앞줄에 도로 붙여 문장 단위로 되돌린다 — 같은 실측에서 0%.
+      // ⚠️ 화자를 모르면(통역봇이 speaker 속성을 안 실은 경우) 이어 붙이지 않는다.
+      //    「bot:…」 같은 가짜 키로 묶으면 두 사람의 말이 같은 화자로 취급돼 한 줄로 붙는다.
+      //    자막 자리(슬롯)는 예전처럼 가짜 키를 써도 되지만, 붙이기 판정은 안 된다.
+      const speakerKey = speakerId || `bot:${role || "interpreter"}`;
+      const incoming = {
+        source: text,
+        translated: text,
+        speaker: speakerKey,
+        lang,
+        at: Date.now(),
+      };
+      const prev = botPendingRef.current;
+      const merged =
+        !!speakerId && shouldStitch({ prev, next: incoming }, LIVE_TRANSLATE_STITCH);
+      const line = merged ? stitch({ prev, next: incoming }) : null;
+      const shown = merged ? line.translated : text;
+
+      // 더 못 붙이는 게 확정된 «앞줄»만 기록에 넣는다. 붙는 동안 보내면 조각난 채로 남는다.
+      if (!merged && prev) flushBotLine(prev);
+
+      botPendingRef.current = {
+        ...incoming,
+        source: shown,
+        translated: shown,
+        at: merged ? prev.at : incoming.at,
+        // ⚠️ 앞줄의 이름은 «붙인 경우에만» 물려받는다. 안 붙은 경우의 앞줄은 다른 사람일 수
+        //    있어서(화자가 달라 안 붙은 것), 그때 물려받으면 회의록에 남의 이름이 찍힌다.
+        speakerName: name || (merged ? prev?.speakerName : null) || null,
+      };
+
+      // 다음 조각이 안 오면 시간으로 확정한다. 이게 없으면 «대화의 마지막 줄»이 통째로
+      // 빠진다 — 화면을 닫을 때 도는 정리 함수는 탭을 그냥 닫으면 안 돌기 때문이다
+      // (2026-08-28 실검증에서 8조각 중 뒤 5조각이 안 올라간 것으로 드러났다).
+      if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+      botFlushTimerRef.current = setTimeout(() => {
+        if (botPendingRef.current) {
+          flushBotLine(botPendingRef.current);
+          botPendingRef.current = null;
+        }
+      }, BOT_LINE_SETTLE_MS);
+
       // 자막 자리와 기록 모두 «원래 말한 사람» 기준 — 봇 이름으로 묶으면 두 사람이 번갈아
       // 말할 때 한 자리를 서로 덮어쓰고, 기록엔 화자가 통째로 비어 남는다(2026-07-29 자가감사).
-      showRemoteSubtitle({ key: speakerId || `bot:${role || "interpreter"}`, text, lang, name });
-      pushConvoContext("other", lang, text);
-      setTranslations((prev) => [
-        ...prev.slice(-1999),
-        {
+      showRemoteSubtitle({ key: speakerKey, text: shown, lang, name });
+      if (merged) {
+        replaceConvoContext("other", lang, prev.source, shown);
+      } else {
+        pushConvoContext("other", lang, shown);
+      }
+      setTranslations((prev2) => {
+        const entry = {
           id: Date.now(),
           original_text: "",
-          translated_text: text,
-          source_language: lang,
+          translated_text: shown,
+          // 위와 같은 이유 — lang 은 번역 «결과» 언어라 원문 언어 칸에 못 쓴다.
+          source_language: targetLang,
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name || null,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+          created_at: new Date(botPendingRef.current.at).toISOString(),
+        };
+        // 붙인 경우엔 새 줄을 «추가»하지 않고 마지막 줄을 통째로 갈아끼운다.
+        return merged && prev2.length
+          ? [...prev2.slice(0, -1), entry]
+          : [...prev2.slice(-1999), entry];
+      });
     },
-    [pushConvoContext, showRemoteSubtitle, myLang]
+    [pushConvoContext, replaceConvoContext, showRemoteSubtitle, myLang, targetLang, flushBotLine]
   );
+
+  // 자막·통역을 «끄면» 이어 붙이기 상태를 비운다.
+  //
+  // 왜 (2026-08-28): 안 비우면 다시 켰을 때 «끄기 전에 끊겨 있던 줄»에 새 말이 붙는다.
+  // 그 사이 대화가 이어졌으면 서로 다른 두 문장이 한 줄이 되고, 뜻이 바뀐다.
+  // 시간 조건(10초)이 대부분 막지만, 자막이 지저분해서 잠깐 껐다 켜는 건 흔한 일이다.
+  // ⚠️ 아직 기록에 안 넣은 통역봇 줄은 «버리지 말고» 넣는다 — 이미 받은 말이다.
+  useEffect(() => {
+    if (translationEnabled) return;
+    lastShownRef.current = null;
+    if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+    if (botPendingRef.current) {
+      flushBotLine(botPendingRef.current);
+      botPendingRef.current = null;
+    }
+  }, [translationEnabled, flushBotLine]);
+
+  // 통역(음성)만 끈 경우도 같다 — 봇 자막이 끊기므로 대기 줄을 확정한다.
+  useEffect(() => {
+    if (voiceOn) return;
+    if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+    if (botPendingRef.current) {
+      flushBotLine(botPendingRef.current);
+      botPendingRef.current = null;
+    }
+  }, [voiceOn, flushBotLine]);
+
+  // 통화가 끝나거나 화면을 벗어날 때 «아직 안 보낸 마지막 줄»을 남긴다.
+  // 이게 없으면 대화의 마지막 문장이 매번 기록에서 빠진다.
+  useEffect(() => {
+    return () => {
+      if (botFlushTimerRef.current) clearTimeout(botFlushTimerRef.current);
+      if (botPendingRef.current) {
+        flushBotLine(botPendingRef.current);
+        botPendingRef.current = null;
+      }
+    };
+  }, [flushBotLine]);
 
   // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
   // 순서 역전 필터: 조각을 보내자마자 다음 녹음을 시작하므로 응답이 뒤섞여 도착한다.
@@ -1677,6 +2025,7 @@ export default function ConsultationRoomPage() {
           targetLang,
           consultationId, // 인증용 — partial 이라 서버는 기록하지 않는다
           speakerRole: "self",
+          speakerName: myNameRef.current || undefined,
           partial: true,
           context: contextForApi(convoContextRef.current),
         }),
@@ -1701,6 +2050,9 @@ export default function ConsultationRoomPage() {
   // ── Speech Recognition ──
   // 브라우저 STT 가 마지막으로 결과(중간자막 포함)를 낸 시각 — "조용한 사망" 워치독용
   const lastBrowserSttRef = useRef(0);
+  // 내가 «실제로 말한» 누적 시간(영상 서버 isSpeaking 으로 잼) — 워치독이 「말했는데 결과 0」만 잡게.
+  const spokenClockRef = useRef(createSpokenClock());
+  const onLocalSpeaking = useCallback((on) => spokenClockRef.current.set(on), []);
   const [forceServerStt, setForceServerStt] = useState(false);
   const stt = useSpeechRecognition({
     language: myLang,
@@ -1748,20 +2100,18 @@ export default function ConsultationRoomPage() {
     }
   }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
 
-  // ── 방에 들어오면 자막을 한 번 자동으로 켠다 (2026-08-03) ──
-  // 예전엔 기본 꺼짐이라 «사람이 버튼을 눌러야» 켜졌다. 8/3 실회의 2건 실측:
-  //   첫 입장 → 첫 자막까지 회의A 13분 26초, 회의B 11분 32초.
-  //   회의B 는 첫 자막 줄이 **문장 중간**에서 시작한다 = 대화가 이미 돌던 중에 켜졌다는 뜻.
-  // 그 시간 동안 통역도 기록도 통째로 없었고, 결국 손님이 먼저 «러시아어 자막이 안 보인다»고
-  // 말했다(16:12:43). 우리가 파는 기능을 손님이 켜 달라고 말하게 두면 안 된다.
-  // 딱 한 번만 켠다 — 끈 사람에게 도로 켜지면 버튼이 먹통으로 느껴진다.
-  const autoCaptionsOnRef = useRef(false);
-  useEffect(() => {
-    if (autoCaptionsOnRef.current || !myIdentity || translationEnabled) return;
-    autoCaptionsOnRef.current = true;
-    toggleTranslation();
-  }, [myIdentity, translationEnabled, toggleTranslation]);
-
+  // ── 자막은 «사람이 누를 때만» 켜진다 (PO 결정 2026-08-07) ──
+  //
+  // 2026-08-03 에 «방에 들어오면 한 번 자동으로 켜기»를 넣었었다. 그때 근거는 실회의 2건에서
+  //   첫 입장 → 첫 자막까지 13분 26초 / 11분 32초가 걸렸고 손님이 먼저 «러시아어 자막이
+  //   안 보인다»고 말한 것이었다.
+  // 그런데 자동으로 켜지면 «내가 안 켰는데 자막이 지 멋대로 올라온다»가 된다. 2026-08-07
+  //   홍보 영상 촬영 중 PO 가 정확히 그 상황을 겪었다 — 노트북·PC 두 대를 켜 놨는데 버튼을
+  //   누르지 않은 PC 화면에 자막이 계속 올라왔다. 게다가 그 자막에는 아무도 안 한 말이 섞인다.
+  //   → PO 결정: **자동으로 켜지 않는다. 누르면 켜진다.**
+  //
+  // ⚠️ 되살리지 마라. 8/03 의 «늦게 켜진다» 문제는 여전히 유효하지만, 답은 «몰래 켜기»가
+  //    아니라 «켜라고 눈에 띄게 알려 주기»다(그건 별건).
   // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
   // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
   useEffect(() => {
@@ -2087,6 +2437,8 @@ export default function ConsultationRoomPage() {
 
         const session = detailResult.data;
         setConsultation(session);
+        // 회의록을 «통화 시작»부터 불러오게 기준을 앞당긴다(재접속해도 안 사라지게).
+        setCallStartFromSession(session.started_at);
 
         // Set language from consultation data
         if (session.patient_language) setTargetLang(session.patient_language);
@@ -2234,6 +2586,19 @@ export default function ConsultationRoomPage() {
   // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
   const requestInterpreter = useCallback(
     async (on) => {
+      // 아직 방에 안 붙었으면 보내지 말고 미뤄 둔다. 토글은 켜진 채로 두어 «눌린 것»이
+      // 화면에 남고, 아래 effect 가 identity 가 오는 즉시 대신 보낸다.
+      if (on && !myIdentity) {
+        pendingVoiceRef.current = true;
+        return;
+      }
+      if (!on) {
+        // 아직 켜지지도 않은 상태(방에 안 붙음)에서 끄면 보낼 게 없다. 그대로 보내면
+        // identity 가 없어 400 이 나고 «끄기»인데도 오류 안내가 뜬다.
+        const wasPending = pendingVoiceRef.current;
+        pendingVoiceRef.current = false;
+        if (wasPending || !myIdentity) return;
+      }
       try {
         const res = await fetch(
           `/api/khidi/consultation/${consultationId}/interpreter`,
@@ -2268,7 +2633,61 @@ export default function ConsultationRoomPage() {
     [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
   );
 
+  // 방에 붙는 순간, 미뤄 둔 «통역 켜기»를 대신 보낸다.
+  useEffect(() => {
+    if (!myIdentity || !pendingVoiceRef.current) return;
+    pendingVoiceRef.current = false;
+    requestInterpreter(true);
+  }, [myIdentity, requestInterpreter]);
+
+  // 통화 «중»에 화면을 새로고침해도 통역이 꺼진 채로 돌아오지 않게 한다.
+  // 2026-08-28 실측: 새로고침하면 통역봇은 방에 그대로 남는데 내 통역 표시(voice)만
+  // 지워져서, 화면엔 봇이 보이는데 소리는 안 나오는 「왜 안 들리지」 상태가 됐다.
+  // 켰다는 사실만 기억해 두었다가 위의 «미뤄 둔 켜기» 흐름에 그대로 태운다
+  // (봇 부르기·되돌리기·안내가 이미 그 흐름에 다 들어 있다).
+  const voiceMemoKey = consultationId ? `tx-voice:${consultationId}` : null;
+  useEffect(() => {
+    if (!voiceMemoKey) return;
+    try {
+      if (sessionStorage.getItem(voiceMemoKey) === "1") {
+        pendingVoiceRef.current = true;
+        setVoiceOn(true);
+      }
+    } catch {
+      /* 저장소를 막아 둔 브라우저 — 기억만 못 할 뿐 통화엔 지장 없다 */
+    }
+    // 방이 정해질 때 한 번만 되살린다(이 뒤로는 아래 이펙트가 기록을 맡는다).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMemoKey]);
+
+  useEffect(() => {
+    if (!voiceMemoKey) return;
+    try {
+      if (voiceOn) sessionStorage.setItem(voiceMemoKey, "1");
+      else sessionStorage.removeItem(voiceMemoKey);
+    } catch {
+      /* noop */
+    }
+  }, [voiceMemoKey, voiceOn]);
+
+  // 방에 영영 못 붙으면(회선 문제 등) 켜진 척 두지 않는다. 통역 이전에 통화가 안 되는
+  // 상태이므로, 20초 안에 identity 가 안 오면 토글을 되돌리고 안내한다.
+  useEffect(() => {
+    if (!voiceOn || !pendingVoiceRef.current) return;
+    const t = setTimeout(() => {
+      if (!pendingVoiceRef.current) return;
+      pendingVoiceRef.current = false;
+      setVoiceOn(false);
+      toast.error(c.voiceUnavailableMsg);
+    }, 20000);
+    return () => clearTimeout(t);
+  }, [voiceOn, c]);
+
   // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
+  useEffect(() => {
+    reportBotErrRef.current = reportClientEvent;
+  }, [reportClientEvent]);
+
   const reportClientEventRef = useRef(null);
   useEffect(() => {
     reportClientEventRef.current = reportClientEvent;
@@ -2591,8 +3010,19 @@ export default function ConsultationRoomPage() {
   const useServerStt =
     translationEnabled &&
     myMicOn && // 마이크 꺼짐 = 송신 STT 중지 (수신 자막은 ListenModeBridge 가 별도 동작)
+    !isAloneInRoom && // 혼자 = 자막을 볼 상대가 없다. 아래 참조.
     (stt.failed || !stt.isSupported || forceServerStt) &&
     mediaRecOk;
+
+  // ⚠️ 혼자 있을 때 서버 STT 를 왜 막나 (2026-08-07 PO 제보):
+  //   테스트 방에 혼자 들어가 있는데 자막이 스스로 진료 문장을 만들어냈다
+  //   ("약에 대해서 다시 좀 부작용이라든가 설명해 주실 수는 없을까요?" — 아무도 안 한 말).
+  //   원인: 아래 VAD 문턱(rms>0.014)은 숨소리·사무실 잡음을 통과시키고(실측 잡음 0.021),
+  //   그 «말이 아닌» 조각을 받으면 모델이 도메인에 어울리는 문장을 창작한다.
+  //   2026-08-06 A/B 실측: 조용한 구간에서 창작 10/12(83%). 프롬프트 금지문은 안 지켜진다
+  //   (8/03 에 두 번 강화했으나 15~17% 에서 안 줄었음).
+  //   → 근본 수리(언어별 모델 분기)는 별건이고, 혼자인 방은 애초에 자막이 갈 곳이 없으므로
+  //     여기서 아예 안 돌린다. 비용도 같이 준다.
 
   // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
   // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
@@ -2607,26 +3037,53 @@ export default function ConsultationRoomPage() {
 
   // 워치독: "지원된다"는 브라우저 STT 가 결과·에러·종료 이벤트 없이 조용히 죽는 환경
   // (삼성 인터넷 등 실기기에서 확인) — 기존 휴리스틱(에러/빠른종료 3회)은 아무 신호도
-  // 없으면 영영 안 걸림. 통번역 켠 뒤 8초간 브라우저 STT 결과가 전혀 없으면 서버 STT 로
-  // 강제 전환. 크롬에서 8초간 말을 안 했어도 전환되지만, 서버 STT 도 같은 자막
-  // 파이프라인 + 무음 스킵(VAD)이라 동작·비용 차이 없음.
+  // 없으면 영영 안 걸림. → 「내가 실제로 말했는데(영상 서버 isSpeaking 누적 3초+) 브라우저
+  // 결과가 0」이면 서버 STT 로 전환한다.
+  //
+  // ⚠️ 2026-08-16 수정 전엔 「8초간 결과 없음」만 보고 넘겼고 *"크롬에서 8초간 말을 안 했어도
+  //    전환되지만 … 동작·비용 차이 없음"* 이라 적혀 있었다. 그 전제가 틀렸다 — 서버 길은 실측상
+  //    문장 잘림 11~59%·무음 지어냄 83% 라 «다른 길»이다. 회의에서 자막 켜자마자 남 말을 듣는
+  //    사람(흔하다)이 전부 그 길로 «영영» 넘어갔다 = 자막 품질이 날마다 달라 보이던 유력 원인.
+  //    판정 규칙과 시험은 sttWatchdog.ts.
   useEffect(() => {
     if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
+    spokenClockRef.current.reset();
     const timer = setInterval(() => {
-      if (lastBrowserSttRef.current > enabledAt) {
+      const browserSttAlive = lastBrowserSttRef.current > enabledAt;
+      if (browserSttAlive) {
         clearInterval(timer); // 브라우저 STT 정상 동작 확인 — 전환 불필요
         return;
       }
-      if (Date.now() - enabledAt >= 8000) {
+      if (
+        shouldSwitchToServerStt({
+          elapsedMs: Date.now() - enabledAt,
+          spokenMs: spokenClockRef.current.spokenMs(),
+          browserSttAlive,
+          // 영상 서버 방이 없는 화면(미설정·방 없는 상담)엔 MicStateBridge 가 안 그려져 발화 신호가
+          // 영영 0 → 그 화면에선 예전처럼 시간만 보고 넘어간다(독립 리뷰 지적).
+          speakingSignalAvailable: !!(livekitToken && livekitUrl),
+        })
+      ) {
         clearInterval(timer);
         stt.stop(); // 마이크 점유 해제 — 서버 STT 녹음과 충돌 방지
         setForceServerStt(true);
+        // «어느 길로 넘어갔나» 기록 — media_failure 와 type 을 나눈다(같은 type 은 10초 1건이라
+        // 장치 실패 비콘 직후면 이 기록이 삼켜졌다). 서버는 CONSULTATION_STT_EVENT 로 남긴다.
+        reportClientEventRef.current?.(
+          "stt_fallback",
+          `browser STT silent after ${Math.round(spokenClockRef.current.spokenMs() / 1000)}s of speech → server STT`
+        );
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
+  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop, livekitToken, livekitUrl]);
+  // 경로가 바뀌면 기록에 남길 표시도 같이 바꾼다 (위 sttEngineRef 참고).
+  useEffect(() => {
+    sttEngineRef.current = useServerStt ? STT_ENGINES.SERVER : STT_ENGINES.BROWSER;
+  }, [useServerStt]);
+
   const translateTextRef = useRef(translateText);
   useEffect(() => {
     translateTextRef.current = translateText;
@@ -3173,8 +3630,11 @@ export default function ConsultationRoomPage() {
 
   const sessionActions = (
     <>
-      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF. */}
+      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF(2026-08-07 PO 결정: 누를 때만 켜진다). */}
       <button
+        // 야간 로봇 검사가 «6개 언어 글자»가 아니라 이 표식으로 자막을 켠다 — 기본 OFF 가 되면서
+        // 검사가 자막을 한 줄도 못 보게 됐다(2026-08-18 리뷰). 이름표를 지우지 마라.
+        data-testid="captions-toggle"
         onClick={toggleTranslation}
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
@@ -3536,7 +3996,12 @@ export default function ConsultationRoomPage() {
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
               {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
-              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} onName={setMyName} />
+              <MicStateBridge
+                onChange={setMyMicOn}
+                onIdentity={setMyIdentity}
+                onName={setMyName}
+                onSpeaking={onLocalSpeaking}
+              />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
@@ -3557,6 +4022,7 @@ export default function ConsultationRoomPage() {
                 myLang={myLang}
                 myRole={myRole}
                 voiceOn={voiceOn}
+                onTranslatorFailing={handleTranslatorFailing}
                 onAgentPresence={setAgentPresent}
                 onRemoteSubtitle={handleBotSubtitle}
               />
@@ -4062,18 +4528,35 @@ export default function ConsultationRoomPage() {
                               </div>
                             )}
                             <div className="border border-gray-700 rounded-lg p-2.5 hover:border-gray-600 transition">
-                              <div className="mb-2">
-                                <p className="text-xs text-gray-500 mb-0.5">
-                                  {LANG_LABELS[trans.source_language] || trans.source_language}
-                                </p>
-                                <p className="text-sm text-gray-200">{trans.original_text}</p>
-                              </div>
-                              <div className="pt-2 border-t border-gray-700">
-                                <p className="text-xs text-teal-700 mb-0.5">
-                                  {LANG_LABELS[trans.target_language] || trans.target_language}
-                                </p>
-                                <p className="text-sm text-teal-300">{trans.translated_text}</p>
-                              </div>
+                              {/* 원문이 있을 때만 원문 칸을 그린다. 실시간 통역(live_translate)
+                                  경로는 «번역문만» 주므로, 원문 칸을 늘 그리면 빈 줄이 남는다
+                                  (2026-08-28: 그 상태에서 아래 번역 칸까지 안 그려져 상자가 통째로
+                                  비었다 — 회의록에 내용이 하나도 안 보였다). */}
+                              {trans.original_text && (
+                                <div className="mb-2">
+                                  <p className="text-xs text-gray-500 mb-0.5">
+                                    {LANG_LABELS[trans.source_language] || trans.source_language}
+                                  </p>
+                                  <p className="text-sm text-gray-200">{trans.original_text}</p>
+                                </div>
+                              )}
+                              {/* 출발어 == 도착어면 번역문 = 원문이라 같은 말이 두 번 찍힌다
+                                  (2026-08-07 PO 화면: 「한국어 → 한국어」에서 문장마다 2줄 중복).
+                                  ⚠️ 그 판정은 «원문 유무»가 아니라 «두 글이 같은가»로 해야 한다 —
+                                  원문으로 판정하면 통역 경로가 통째로 안 그려진다. */}
+                              {trans.translated_text &&
+                                trans.translated_text !== trans.original_text && (
+                                  <div
+                                    className={
+                                      trans.original_text ? "pt-2 border-t border-gray-700" : ""
+                                    }
+                                  >
+                                    <p className="text-xs text-teal-700 mb-0.5">
+                                      {LANG_LABELS[trans.target_language] || trans.target_language}
+                                    </p>
+                                    <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>

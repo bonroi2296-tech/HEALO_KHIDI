@@ -16,7 +16,9 @@ import { NextRequest } from "next/server";
 import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { readTranscriptField } from "@/lib/consultation/transcriptCrypto";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 const GUEST_ADMISSIONS_RATE = {
   windowMs: 60 * 1000,
@@ -37,7 +39,7 @@ async function checkGuestStaffToken(
   consultationId: string
 ): Promise<Response | null> {
   const ip = getClientIp(request) || "unknown";
-  const rl = checkRateLimit(ip, GUEST_ADMISSIONS_RATE);
+  const rl = await checkRateLimitPersistent(ip, GUEST_ADMISSIONS_RATE);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },
@@ -74,7 +76,7 @@ export async function GET(
   const { data, error } = await supabaseAdmin
     .from("consultation_admissions")
     .select(
-      "id, participant_role, participant_identity, display_name, status, requested_at, decided_at, requester_ip"
+      "id, participant_role, participant_identity, display_name, display_name_encrypted, status, requested_at, decided_at, requester_ip"
     )
     .eq("consultation_id", consultationId)
     .order("requested_at", { ascending: true });
@@ -84,7 +86,26 @@ export async function GET(
     return Response.json({ ok: false, error: "db_error" }, { status: 500 });
   }
 
-  const rows = data ?? [];
+  const raw = data ?? [];
+
+  // 평문 잔존 행이면 조회 김에 암호문으로 이전(기회주의 백필, best-effort).
+  const toBackfill = (raw as any[]).filter((r) => r.display_name && !r.display_name_encrypted).slice(0, 20);
+  for (const r of toBackfill) {
+    try {
+      await supabaseAdmin
+        .from("consultation_admissions")
+        .update({ display_name_encrypted: encryptStringNullable(r.display_name), display_name: null } as any)
+        .eq("id", r.id)
+        .is("display_name_encrypted", null);
+    } catch { /* best-effort — 다음 조회 때 재시도 */ }
+  }
+
+  // 응답: 암호문은 감추고 복호화된 이름만 (필드명 유지 — 화면 코드 변경 불필요)
+  const rows = (raw as any[]).map((r) => {
+    const rest = { ...r };
+    delete rest.display_name_encrypted;
+    return { ...rest, display_name: readTranscriptField(r.display_name_encrypted, r.display_name) };
+  });
   return Response.json({
     ok: true,
     pending: rows.filter((r: any) => r.status === "pending"),

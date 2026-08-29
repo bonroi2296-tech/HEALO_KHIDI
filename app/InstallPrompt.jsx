@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { splitLocale } from "@/lib/i18n/config";
+import { isNativeApp } from "@/lib/isNativeApp";
 
 // 스태프 포털·상담방에선 PWA 설치 배너 숨김(하단 fixed라 입력창·UI를 덮음 + 마케팅용이라 무관).
 // /inquiry: AI챗이 풀하이트라 하단 fixed 배너가 입력칸을 덮음 → 전역 배너 대신 챗 안 인라인 힌트(ChatInstallHint) 사용.
@@ -31,6 +32,13 @@ export default function InstallPrompt({ lang = "en" }) {
   const [iosHint, setIosHint] = useState(false);
 
   useEffect(() => {
+    // 🍎 스토어 앱(Capacitor) 안이면 아예 뜨면 안 된다 — 2026-08-14 아이폰 화면 실측으로 발견.
+    //    앱 안인데 «홈 화면에 추가하면 앱처럼 쓸 수 있어요» 가 떴다. 이유: 아래 standalone 검사가
+    //    Capacitor WKWebView 에서는 false 이고(navigator.standalone 없음·display-mode 도 아님),
+    //    이름표에는 iPhone·Safari 가 그대로 들어 있어 «아이폰 사파리 방문자»로 오인됐다.
+    //    ⚠️ 사용자 혼란만이 아니라 애플 4.2(웹뷰 껍데기) 오해를 부를 수 있어 심사 위험이기도 하다.
+    //    안드로이드 앱은 beforeinstallprompt 가 발화하지 않아 원래 안 떴다 → 아이폰 앱 전용 결함이었다.
+    if (isNativeApp()) return;
     try {
       if (localStorage.getItem(DISMISS_KEY) === "1") return;
       const isStandalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
@@ -93,7 +101,7 @@ export default function InstallPrompt({ lang = "en" }) {
         <div style={card}>
           {icon}
           <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.35 }}>{t.install}</div>
-          <button onClick={doInstall} style={{ flexShrink: 0, background: "#0d9488", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, padding: "8px 16px", cursor: "pointer" }}>{t.cta}</button>
+          <button onClick={doInstall} style={{ flexShrink: 0, background: "#0f766e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, padding: "8px 16px", cursor: "pointer" }}>{t.cta}</button>
           {closeBtn}
         </div>
       </div>

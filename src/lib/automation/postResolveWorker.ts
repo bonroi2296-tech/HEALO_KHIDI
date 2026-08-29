@@ -257,7 +257,11 @@ export async function runPostResolve(threadId: string): Promise<{
         quality_score: extracted.quality_score,
         status: "draft",
         is_active: true,
-        auto_status: "auto_extracted",
+        // "auto_extracted" 는 DB 검사규칙(playbook_patterns_auto_status_check)에 없는 값이라
+        // 이 insert 가 통째로 거부됐다(2026-08-20 실측). 자동판정 전 출발선은 사람이 가르친 패턴
+        // (admin/playbook/teach)과 같은 "none" 이고, RAG 적재가 끝나면 아래에서 auto_approved 로 올린다.
+        // 「자동 추출됨」 표시는 metadata.auto_extracted 가 이미 갖고 있다.
+        auto_status: "none",
         metadata: { auto_extracted: true, job_id: jobId },
         created_at: nowIso(),
         updated_at: nowIso(),

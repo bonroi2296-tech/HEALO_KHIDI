@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>새 문의서 화면 시안</title>
+<style>
+:root{
+  --teal-700:#0f766e; --teal-800:#115e59; --teal-50:#f0fdfa; --teal-100:#ccfbf1;
+  --g900:#111827; --g700:#374151; --g600:#4b5563; --g500:#6b7280; --g300:#d1d5db;
+  --g200:#e5e7eb; --g100:#f3f4f6; --g50:#f9fafb;
+  --amber-700:#b45309; --amber-50:#fffbeb; --amber-200:#fde68a;
+  --red-600:#dc2626; --red-50:#fef2f2;
+  --emerald-700:#047857;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--g100);color:var(--g900);
+     font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;
+     font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:0 auto;padding:32px 20px 72px}
+.lead{margin:0 0 6px;font-size:24px;font-weight:700;letter-spacing:-.4px}
+.lead-sub{margin:0 0 28px;color:var(--g600);font-size:14px}
+.tag{display:inline-block;background:var(--teal-700);color:#fff;font-size:11px;font-weight:700;
+     padding:3px 9px;border-radius:999px;vertical-align:middle;margin-left:8px;letter-spacing:.3px}
+
+/* ── 화면 액자 ───────────────────────────── */
+.frame{background:#fff;border:1px solid var(--g200);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.05);
+       overflow:hidden;margin-bottom:14px}
+.frame-cap{font-size:12.5px;color:var(--g600);margin:0 0 8px;font-weight:600}
+.chrome{background:var(--g50);border-bottom:1px solid var(--g200);padding:8px 14px;
+        font-size:11.5px;color:var(--g500);display:flex;gap:6px;align-items:center}
+.dot{width:9px;height:9px;border-radius:999px;background:var(--g300)}
+.url{background:#fff;border:1px solid var(--g200);border-radius:999px;padding:2px 12px;margin-left:8px;
+     font-size:11.5px;color:var(--g600)}
+
+/* ── 폼 머리 ─────────────────────────────── */
+.head{padding:26px 30px 20px;border-bottom:1px solid var(--g200)}
+.h1{font-size:24px;font-weight:700;margin:0 0 6px;letter-spacing:-.4px}
+.h1sub{color:var(--g600);font-size:14px;margin:0}
+.proxy{margin-top:14px;background:var(--teal-50);border:1px solid var(--teal-100);border-radius:12px;
+       padding:9px 13px;font-size:13px;color:var(--teal-800)}
+.progress{margin-top:16px}
+.pbar{height:6px;background:var(--g200);border-radius:999px;overflow:hidden}
+.pfill{height:100%;width:64%;background:var(--teal-700);border-radius:999px}
+.pmeta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--g600);margin-top:7px;
+       font-variant-numeric:tabular-nums}
+
+/* ── 묶음 ────────────────────────────────── */
+.body{padding:20px 30px 26px;background:var(--g50)}
+.sec{background:#fff;border:1px solid var(--g200);border-radius:12px;margin-bottom:12px;overflow:hidden;
+     box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.sech{display:flex;align-items:center;gap:11px;padding:14px 18px;cursor:default}
+.num{width:26px;height:26px;flex:none;border-radius:8px;background:var(--teal-700);color:#fff;
+     font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.num.done{background:var(--emerald-700)}
+.num.todo{background:var(--g300);color:var(--g700)}
+.sect{font-size:15px;font-weight:700;flex:1}
+.secn{font-size:12.5px;color:var(--g600);font-variant-numeric:tabular-nums}
+.chev{color:var(--g500);font-size:12px;width:14px;text-align:center}
+.secb{padding:4px 18px 20px;border-top:1px solid var(--g200)}
+
+/* ── 입력칸 ──────────────────────────────── */
+.row{display:flex;gap:14px;flex-wrap:wrap;margin-top:15px}
+.f{flex:1 1 200px;min-width:0}
+.f.wide{flex-basis:100%}
+.lb{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--g700)}
+.star{color:var(--red-600);margin-left:2px}
+.rec{color:var(--amber-700);font-size:11.5px;font-weight:700;margin-left:5px}
+.in{width:100%;border:1px solid var(--g300);border-radius:12px;padding:10px 13px;font-size:14px;
+    background:#fff;color:var(--g900);min-height:42px}
+.in.ph{color:var(--g500)}
+.in.filled{color:var(--g900)}
+.ta{min-height:74px;white-space:pre-wrap}
+.hint{font-size:12px;color:var(--g600);margin-top:5px}
+.sel::after{content:"⌄";float:right;color:var(--g500);margin-top:-2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{border:1px solid var(--g300);border-radius:999px;padding:6px 13px;font-size:13px;color:var(--g700);background:#fff}
+.chip.on{border-color:var(--teal-700);background:var(--teal-50);color:var(--teal-800);font-weight:600}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--g700);margin-top:9px}
+.box{width:17px;height:17px;flex:none;border:1.5px solid var(--g300);border-radius:5px;margin-top:2px}
+.box.on{background:var(--teal-700);border-color:var(--teal-700);position:relative}
+.box.on::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:8px;
+               border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+/* ── 첨부 ────────────────────────────────── */
+.drop{border:1.5px dashed var(--g300);border-radius:12px;padding:16px;text-align:center;background:#fff;margin-top:8px}
+.drop .t{font-size:13.5px;font-weight:600;color:var(--g700)}
+.drop .s{font-size:12px;color:var(--g600);margin-top:3px}
+.file{display:flex;align-items:center;gap:9px;border:1px solid var(--g200);border-radius:10px;
+      padding:9px 12px;margin-top:8px;font-size:13px;background:#fff}
+.file .nm{flex:1;color:var(--g900)}
+.file .sz{color:var(--g600);font-size:12px;font-variant-numeric:tabular-nums}
+.ok{color:var(--emerald-700);font-size:12px;font-weight:700}
+.warnbox{background:var(--amber-50);border:1px solid var(--amber-200);border-radius:12px;padding:12px 14px;
+         margin-top:12px;font-size:13px;color:var(--amber-700);line-height:1.7}
+.warnbox b{color:#7c4a06}
+.err{background:var(--red-50);border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-top:12px;
+     font-size:13px;color:var(--red-600);line-height:1.7}
+.or{display:flex;align-items:center;gap:10px;margin:12px 0 4px;color:var(--g500);font-size:12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--g200)}
+.mini{background:var(--g50);border:1px solid var(--g200);border-radius:12px;padding:13px 15px;margin-top:14px}
+.mini .mt{font-size:12.5px;font-weight:700;color:var(--g700);margin-bottom:8px}
+
+/* ── 바닥 ────────────────────────────────── */
+.foot{padding:18px 30px 26px;border-top:1px solid var(--g200);background:#fff}
+.btn{display:block;width:100%;background:var(--teal-700);color:#fff;border-radius:12px;padding:14px;
+     text-align:center;font-size:15px;font-weight:700;border:none}
+.btn.off{background:var(--g200);color:var(--g600)}
+.saveline{display:flex;justify-content:space-between;font-size:12px;color:var(--g600);margin-top:10px;
+          font-variant-numeric:tabular-nums}
+
+/* ── 모바일 ──────────────────────────────── */
+.two{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+.phone{width:310px;flex:none;border:1px solid var(--g200);border-radius:16px;background:#fff;overflow:hidden;
+       box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.phone .head{padding:18px 18px 14px}
+.phone .h1{font-size:19px}
+.phone .body{padding:14px 16px 18px}
+.phone .sech{padding:12px 14px}
+.phone .secb{padding:2px 14px 16px}
+.phone .foot{padding:14px 16px 18px}
+.stickynote{background:var(--g900);color:#fff;font-size:12px;border-radius:10px;padding:9px 12px;
+            margin:0 16px 12px;line-height:1.6}
+
+/* ── 전/후 ───────────────────────────────── */
+h2.sh{font-size:17px;font-weight:700;margin:44px 0 4px;letter-spacing:-.3px}
+p.sh-sub{margin:0 0 14px;color:var(--g600);font-size:13.5px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--g200);border-radius:12px;
+      overflow:hidden;font-size:13.5px}
+th{background:var(--g50);text-align:left;padding:10px 14px;font-size:12.5px;color:var(--g600);font-weight:600;
+   border-bottom:1px solid var(--g200)}
+td{padding:10px 14px;border-bottom:1px solid var(--g200);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.was{color:var(--red-600)}
+.now{color:var(--teal-800);font-weight:600}
+.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--g700);margin:12px 0 0}
+.legend b{font-weight:700}
+</style></head><body>
+<div class="page">
+
+<h1 class="lead">새 문의서 화면 시안<span class="tag">아직 안 만든 것</span></h1>
+<p class="lead-sub">
+  세브란스·이대 의뢰서 양식 합집합을 <b>한 장</b>에서 받는다. 묶음은 접었다 펼 뿐 제출 단위가 아니다 — <b>보내기 버튼은 아래 딱 하나.</b><br>
+  아래는 한국어판. 실제 환자는 자기 언어(러시아어·카자흐어 등)로 같은 화면을 본다.
+</p>
+
+<p class="frame-cap">① 데스크톱 — 묶음을 다 펼친 모습 (칸을 전부 보여주려고 펼쳤다. 실제로는 채운 묶음부터 접힌다)</p>
+<div class="frame">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">healwith.co.kr/inquiry</span></div>
+
+  <div class="head">
+    <p class="h1">환자 의뢰서</p>
+    <p class="h1sub">한국 대학병원에 보낼 의뢰서입니다. 아는 만큼 채우고 한 번에 보내면 됩니다.</p>
+    <div class="proxy">에이전시 <b>Saulyk</b> 계정 — 환자를 대신해 작성 중입니다. 자동 채움은 꺼져 있습니다.</div>
+    <div class="progress">
+      <div class="pbar"><div class="pfill"></div></div>
+      <div class="pmeta"><span>필수 칸 16개 중 <b>10개</b> 완료</span><span>남은 필수 6칸</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ① 환자 신원 -->
+    <div class="sec">
+      <div class="sech"><span class="num done">1</span><span class="sect">환자 신원</span>
+        <span class="secn">필수 8 · 완료</span><span class="chev">⌃</span></div>
+      <div class="secb">
+        <div class="row">
+          <div class="f"><label class="lb">성 (여권 영문 표기)<span class="star">*</span></label>
+            <div class="in filled">TATEPBAYEVA</div></div>
+          <div class="f"><label class="lb">이름 (여권 영문 표기)<span class="star">*</span></label>
+            <div class="in filled">AIGERIM</div></div>
+        </div>
+        <p class="hint">여권에 적힌 라틴 문자 그대로 적어주세요. 영상 자료의 이름과 다르면 병원이 등록을 거부합니다.</p>
+        <div class="row">
+          <div class="f"><label class="lb">생년월일<span class="star">*</span></label>
+            <div class="in filled">1967-08-31</div></div>
+          <div class="f"><label class="lb">성별<span class="star">*</span></label>
+            <div class="chips" style="margin-top:2px"><span class="chip on">여성</span><span class="chip">남성</span></div></div>
+          <div class="f"><label class="lb">국적<span class="star">*</span></label>
+            <div class="in filled sel">Kazakhstan / Қазақстан</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label class="lb">여권번호<span class="star">*</span></label>
+            <div class="in filled">N••••••42</div>
+            <p class="hint">암호화해서 보관합니다. 병원 의뢰서에만 쓰입니다.</p></div>
+          <div class="f"><label class="lb">이메일<span class="star">*</span></label>
+            <div class="in filled">aigerim.t@mail.ru</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label class="lb">휴대전화 <span style="color:var(--g500);font-weight:500">(선택)</span></label>
+            <div class="in filled">+7 701 ••• ••42</div></div>
+          <div class="f"><label class="lb">환자가 쓰는 언어<span class="star">*</span></label>
+            <div class="in filled sel">Русский</div>
+            <p class="hint">코디네이터가 이 언어로 연락합니다.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 진단·현재 상태 -->
+    <div class="sec">
+      <div class="sech"><span class="num done">2</span><span class="sect">진단 · 현재 상태</span>
+        <span class="secn">필수 6 · 완료</span><span class="chev">⌃</span></div>
+      <div class="secb">
+        <div class="row">
+          <div class="f wide"><label class="lb">진단명 — 현지 진단서에 적힌 그대로<span class="star">*</span></label>
+            <div class="in filled">Злокачественное новообразование восходящей ободочной кишки (C18.2)</div>
+            <p class="hint">번역하지 말고 원문 그대로 적어주세요. 한국어·영어 번역은 저희가 합니다.</p></div>
+        </div>
+        <div class="row">
+          <div class="f"><label class="lb">암종<span class="star">*</span></label>
+            <div class="in filled sel">대장암</div></div>
+          <div class="f"><label class="lb">병기 <span style="color:var(--g500);font-weight:500">(선택)</span></label>
+            <div class="in ph sel">모르면 비워두세요</div></div>
+          <div class="f"><label class="lb">진단 시기<span class="star">*</span></label>
+            <div class="in filled">2026-03</div></div>
+        </div>
+        <div class="row">
+          <div class="f wide"><label class="lb">주 호소 — 지금 가장 불편하거나 아픈 곳과 그 양상<span class="star">*</span></label>
+            <div class="in filled ta">Боли в правой части живота, потеря веса 8 кг за 3 месяца, слабость.</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label class="lb">발병 시기 <span style="color:var(--g500);font-weight:500">(선택)</span></label>
+            <div class="in ph">예: 2025년 12월경</div></div>
+          <div class="f wide"><label class="lb">지금까지 받은 검사와 치료<span class="star">*</span></label>
+            <div class="in filled ta">Колоноскопия 2026-03-14, биопсия — аденокарцинома. КТ 2026-03-20. Операция не проводилась.</div></div>
+        </div>
+        <div class="row">
+          <div class="f wide"><label class="lb">현지 주치의 소견 — 현지에서 권고받은 치료<span class="star">*</span></label>
+            <div class="in filled ta">Рекомендована операция с последующей химиотерапией.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 병력·약물 -->
+    <div class="sec">
+      <div class="sech"><span class="num done">3</span><span class="sect">병력 · 약물</span>
+        <span class="secn">필수 2 · 완료</span><span class="chev">⌃</span></div>
+      <div class="secb">
+        <div class="row"><div class="f wide"><label class="lb">과거력<span class="star">*</span></label>
+          <div class="chips"><span class="chip on">고혈압</span><span class="chip">당뇨</span><span class="chip">간염</span>
+            <span class="chip">결핵</span><span class="chip">알레르기</span><span class="chip on">수술 이력</span>
+            <span class="chip">해당 없음</span></div>
+          <div class="in filled ta" style="margin-top:9px">Гипертония с 2018 г. Аппендэктомия 2009 г.</div></div></div>
+        <div class="row">
+          <div class="f"><label class="lb">복용 중인 약물<span class="star">*</span></label>
+            <div class="in filled ta">Амлодипин 5 мг, 1 раз в день</div>
+            <div class="chk"><span class="box"></span><span>복용 중인 약 없음</span></div></div>
+          <div class="f"><label class="lb">가족력 <span style="color:var(--g500);font-weight:500">(선택)</span></label>
+            <div class="in ph ta">부모·형제의 암 병력 등</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label class="lb">코로나 백신 <span style="color:var(--g500);font-weight:500">(선택)</span></label>
+            <div class="in ph">백신명 / 접종 차수</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 의뢰 목적·일정 -->
+    <div class="sec">
+      <div class="sech"><span class="num todo">4</span><span class="sect">의뢰 목적 · 일정</span>
+        <span class="secn">필수 2 남음</span><span class="chev">⌃</span></div>
+      <div class="secb">
+        <div class="row"><div class="f wide"><label class="lb">무엇을 알고 싶으신가요?<span class="star">*</span></label>
+          <div class="in ph ta">예: 한국에서 수술이 가능한지, 어떤 치료를 받게 되는지, 비용이 얼마나 드는지</div>
+          <p class="hint">병원이 이 질문에 답하는 형태로 소견을 보내옵니다. 구체적일수록 답도 구체적입니다.</p></div></div>
+        <div class="row">
+          <div class="f"><label class="lb">내원 희망일<span class="star">*</span></label>
+            <div class="in ph">연-월-일</div>
+            <div class="chk"><span class="box on"></span><span>날짜는 조율 가능합니다</span></div></div>
+          <div class="f"><label class="lb">장시간 비행이 가능한 상태인가요?<span class="rec">권장</span></label>
+            <div class="chips" style="margin-top:2px"><span class="chip">가능</span><span class="chip">불가</span>
+              <span class="chip on">주치의에게 확인 안 됨</span></div>
+            <p class="hint">세브란스가 주치의 확인을 요구하는 항목입니다.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 자료 첨부 -->
+    <div class="sec">
+      <div class="sech"><span class="num todo">5</span><span class="sect">자료 첨부</span>
+        <span class="secn">강력권장 3 · 2개 남음</span><span class="chev">⌃</span></div>
+      <div class="secb">
+
+        <div class="row"><div class="f wide"><label class="lb">여권 사본<span class="rec">권장</span></label>
+          <div class="file"><span class="nm">passport_tatepbayeva.jpg</span><span class="sz">1.8MB</span><span class="ok">올림</span></div>
+        </div></div>
+
+        <div class="row"><div class="f wide"><label class="lb">검사 결과지 — 진단서 · 조직검사 · 혈액검사<span class="rec">권장</span></label>
+          <div class="drop"><div class="t">파일을 끌어다 놓거나 눌러서 고르세요</div>
+            <div class="s">PDF · JPG · PNG · Word · 최대 200MB</div></div>
+        </div></div>
+
+        <div class="row"><div class="f wide"><label class="lb">영상 자료 (CT · MRI · DICOM)<span class="rec">권장</span></label>
+          <div class="drop"><div class="t">CD 안의 파일을 통째로 압축해서 올려주세요</div>
+            <div class="s">ZIP · RAR · .dcm · 최대 200MB</div></div>
+          <div class="or">또는 파일이 너무 크면</div>
+          <div class="in ph">구글 드라이브 · 드롭박스 링크 붙여넣기</div>
+          <p class="hint">영상 CD는 200MB를 넘는 일이 많습니다. 그럴 땐 링크가 더 빠릅니다.</p>
+        </div></div>
+
+        <div class="warnbox">
+          <b>검사 결과지와 영상 자료가 아직 없습니다.</b><br>
+          이 두 가지가 없으면 병원이 소견을 못 내고 되물어옵니다 — 보통 1~2주가 더 걸립니다.
+          지금 없어도 보낼 수는 있습니다.
+          <div class="chk" style="color:var(--amber-700)"><span class="box"></span>
+            <span>지금은 없습니다. 구한 뒤에 따로 보내겠습니다.</span></div>
+        </div>
+
+        <div class="mini">
+          <div class="mt">병원이 요구하는 자료 목록 — 있는 것만 체크해 두세요 (필수 아님)</div>
+          <div class="chk"><span class="box on"></span><span>진단 시점의 내시경 결과지 · 내시경 사진 · 조직검사 결과</span></div>
+          <div class="chk"><span class="box"></span><span>수술기록지</span></div>
+          <div class="chk"><span class="box"></span><span>수술 전·후 영상 파일(DICOM)과 판독지</span></div>
+          <div class="chk"><span class="box"></span><span>항암 치료 기록 (날짜 · 기간 · 약명 · 용량 · 횟수)</span></div>
+          <div class="chk"><span class="box"></span><span>방사선 치료 기록 (총 Gy 포함)</span></div>
+          <div class="chk"><span class="box on"></span><span>최근 6개월 이내 혈액검사 결과</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ 동의 -->
+    <div class="sec">
+      <div class="sech"><span class="num done">6</span><span class="sect">개인정보 수집 · 이용 동의</span>
+        <span class="secn">필수 4 · 완료</span><span class="chev">⌃</span></div>
+      <div class="secb">
+        <div class="chk"><span class="box on"></span><span><b>모두 동의</b> (선택 포함)</span></div>
+        <div class="chk"><span class="box on"></span><span>[필수] 개인정보(이름 · 연락처 · 국적 · 여권번호) 수집 · 이용</span></div>
+        <div class="chk"><span class="box on"></span><span>[필수] 민감정보(진단 · 치료 등 건강정보) 수집 · 이용</span></div>
+        <div class="chk"><span class="box on"></span><span>[필수] 한국 협력 의료기관 · 의뢰 에이전시에 정보 제공</span></div>
+        <div class="chk"><span class="box on"></span><span>[필수] 개인정보 국외 이전 (대한민국 ↔ 환자 소재국)</span></div>
+        <div class="chk"><span class="box"></span><span>[선택] 마케팅 · 뉴스레터 수신</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <div class="btn off">필수 6칸을 더 채우면 보낼 수 있습니다</div>
+    <div class="saveline"><span>쓰던 내용은 자동 저장됩니다 — 창을 닫아도 그대로 있습니다</span>
+      <span>마지막 저장 14:32</span></div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><b style="color:var(--red-600)">*</b> 필수 — 없으면 병원이 접수 자체를 안 받는 칸. 비면 보내기 버튼이 안 눌린다.</span>
+  <span><b class="rec" style="margin:0">권장</b> 없어도 보낼 수 있지만 경고가 뜬다.</span>
+  <span><b style="color:var(--g500)">(선택)</b> 그냥 비워도 된다.</span>
+</div>
+
+
+<h2 class="sh">② 필수 칸을 다 채웠을 때 — 보내기 직전</h2>
+<p class="sh-sub">보내기 전에 영상 자료의 신원을 자동으로 대조한다. 병원이 반려하는 가장 흔한 이유라서.</p>
+<div class="frame" style="max-width:640px">
+  <div class="foot" style="border-top:none">
+    <div class="err">
+      <b>영상 파일 속 환자 이름이 의뢰서와 다릅니다.</b><br>
+      영상: <b>TATEPBAEVA A.</b> · 의뢰서: <b>TATEPBAYEVA AIGERIM</b><br>
+      이대로 보내면 병원 시스템에 등록되지 않습니다. 확인해주세요.
+    </div>
+    <div class="warnbox" style="margin-top:10px">
+      보내고 나면 <b>세브란스 양식</b>과 <b>이대 양식</b> Word 파일이 자동으로 만들어집니다.
+      러시아어로 쓰신 내용은 한국어·영어로 번역해서 함께 보냅니다.
+    </div>
+    <div class="btn" style="margin-top:14px">의뢰서 보내기</div>
+    <div class="saveline"><span>보낸 뒤에도 자료를 더 올릴 수 있습니다</span><span>마지막 저장 14:41</span></div>
+  </div>
+</div>
+
+
+<h2 class="sh">③ 휴대폰에서는</h2>
+<p class="sh-sub">칸 하나가 한 줄을 다 쓴다. 묶음은 채운 순서대로 접혀서, 화면엔 늘 「지금 채울 묶음」만 펼쳐져 있다.</p>
+<div class="two">
+  <div class="phone">
+    <div class="head">
+      <p class="h1">환자 의뢰서</p>
+      <div class="progress" style="margin-top:12px">
+        <div class="pbar"><div class="pfill" style="width:64%"></div></div>
+        <div class="pmeta"><span>10 / 16</span><span>남은 6칸</span></div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="sec"><div class="sech"><span class="num done">1</span><span class="sect">환자 신원</span><span class="chev">⌄</span></div></div>
+      <div class="sec"><div class="sech"><span class="num done">2</span><span class="sect">진단 · 현재 상태</span><span class="chev">⌄</span></div></div>
+      <div class="sec"><div class="sech"><span class="num done">3</span><span class="sect">병력 · 약물</span><span class="chev">⌄</span></div></div>
+      <div class="sec">
+        <div class="sech"><span class="num todo">4</span><span class="sect">의뢰 목적 · 일정</span><span class="chev">⌃</span></div>
+        <div class="secb">
+          <div class="row"><div class="f wide"><label class="lb">무엇을 알고 싶으신가요?<span class="star">*</span></label>
+            <div class="in ph ta">예: 한국에서 수술이 가능한지</div></div></div>
+          <div class="row"><div class="f wide"><label class="lb">내원 희망일<span class="star">*</span></label>
+            <div class="in ph">연-월-일</div>
+            <div class="chk"><span class="box on"></span><span>날짜는 조율 가능합니다</span></div></div></div>
+          <div class="row"><div class="f wide"><label class="lb">장시간 비행이 가능한가요?<span class="rec">권장</span></label>
+            <div class="chips"><span class="chip">가능</span><span class="chip">불가</span><span class="chip on">확인 안 됨</span></div></div></div>
+        </div>
+      </div>
+      <div class="sec"><div class="sech"><span class="num todo">5</span><span class="sect">자료 첨부</span><span class="chev">⌄</span></div></div>
+      <div class="sec"><div class="sech"><span class="num done">6</span><span class="sect">동의</span><span class="chev">⌄</span></div></div>
+    </div>
+    <div class="stickynote">쓰던 내용은 자동 저장됩니다. 자료를 병원에서 떼 오신 뒤 이어서 쓰셔도 됩니다.</div>
+    <div class="foot"><div class="btn off">필수 6칸 남음</div></div>
+  </div>
+
+  <div style="flex:1 1 300px;min-width:280px">
+    <table>
+      <tr><th colspan="2">긴 폼의 유일한 진짜 위험 = 쓰다 날림 → 이렇게 막는다</th></tr>
+      <tr><td style="width:44%"><b>자동 임시저장</b></td><td>칸을 채울 때마다 이 기기에 저장. 창을 닫아도 그대로.</td></tr>
+      <tr><td><b>이어서 쓰기 링크</b></td><td>이메일로 발송(선택). 자료를 병원에서 떼 와야 하는 사람용.</td></tr>
+      <tr><td><b>보낸 뒤에도 추가</b></td><td>자료는 보낸 뒤에 올려도 같은 의뢰건에 붙는다.</td></tr>
+      <tr><td><b>순서 자유</b></td><td>묶음은 제출 단위가 아니다. 위아래로 오가도 아무것도 안 잃는다.</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<h2 class="sh">④ 지금 폼 → 새 폼</h2>
+<p class="sh-sub">칸 수는 늘지만 <b>사람이 손으로 하던 일</b>은 줄어든다.</p>
+<table>
+  <tr><th style="width:30%">무엇</th><th style="width:35%">지금</th><th>새 폼</th></tr>
+  <tr><td>제출 횟수</td><td class="was">2번 (1단계 보내고 → 2단계 또 보냄)</td><td class="now">1번</td></tr>
+  <tr><td>병원이 요구하는 칸</td><td class="was">10개가 아예 없음</td><td class="now">두 병원 양식 합집합 전부</td></tr>
+  <tr><td>여권</td><td class="was">번호도 사본도 없음</td><td class="now">번호(암호화) + 사본 파일</td></tr>
+  <tr><td>진단명</td><td class="was">암종 9종 분류만</td><td class="now">현지 진단서 원문 그대로 + 암종 분류</td></tr>
+  <tr><td>영상 자료</td><td class="was">파일 올리기만 (200MB 넘으면 못 냄)</td><td class="now">파일 <b>또는</b> 구글드라이브·드롭박스 링크</td></tr>
+  <tr><td>병원 양식 작성</td><td class="was">코디가 두 양식에 손으로 두 번 옮겨 적음</td><td class="now">Word 파일 자동 생성 (세브란스·이대)</td></tr>
+  <tr><td>메일 제목</td><td class="was">사람이 규칙 외워서 씀</td><td class="now">[본로이] 이름 / 생년월일 / 진단명 자동 조립</td></tr>
+  <tr><td>러시아어 자료</td><td class="was">보낸 뒤 병원이 «확인 불가» 회신</td><td class="now">저장할 때 한국어·영어 번역본 같이 보관</td></tr>
+  <tr><td>영상 이름 불일치</td><td class="was">보내고 나서 반려당함</td><td class="now">보내기 <b>전에</b> 자동 대조 후 경고</td></tr>
+  <tr><td>쓰다 창 닫으면</td><td class="was">1단계만 남고 2단계는 날아감</td><td class="now">전부 자동 저장 · 이어서 쓰기</td></tr>
+</table>
+
+</div></body></html>

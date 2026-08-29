@@ -12,6 +12,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptReferralData } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { briefSig, readBriefMap, normalizeBriefLang } from "@/lib/inquiry/caseBrief";
 
@@ -90,16 +91,27 @@ export async function GET(
     // 「어디서 왔나」 네 칸은 «따로» 읽는다 — 위 목록에 섞으면 그 컬럼이 아직 없는 환경에서
     // 조회 «전체»가 죽어 문의 상세가 통째로 안 열린다(2026-08-04 동작 시험에서 실제로 그랬다:
     // 화면에 「조회 중 문제가 발생했습니다」만 떴다). 여기서 실패하면 그 줄만 안 보이면 된다.
-    let arrival: Record<string, unknown> = {};
+    // ⚠️ 두 «따로 읽기»는 서로 상관이 없다 → 줄줄이 기다리지 말고 나란히(독립 리뷰: 상세 한 번에 왕복 3회).
+    const [arrivalRow, referralRow, icdRow] = await Promise.all([
+      supabaseAdmin.from("inquiries").select("source_locale, referrer_host, landing_path, utm").eq("id", Number(rawId)).single(),
+      supabaseAdmin.from("inquiries").select("intake_data").eq("id", Number(rawId)).single(),
+      // 코디가 확정한 진단코드(2026-08-26 신설). 같은 이유로 «따로» 읽는다.
+      // src/types/database.types.ts 는 생성물이라 신규 컬럼을 아직 모른다 → 이 쿼리만 캐스팅.
+      // 타입 재생성(supabase gen types) 시 이 캐스팅을 지워라.
+      (supabaseAdmin.from as any)("inquiries").select("icd_code, icd_code_updated_at, icd_code_updated_by").eq("id", Number(rawId)).single(),
+    ]);
+    if (arrivalRow.data) Object.assign(data as object, arrivalRow.data as Record<string, unknown>);
+    if (icdRow.data) Object.assign(data as object, icdRow.data as Record<string, unknown>);
+
+    // 새 의뢰서(/inquiry/referral)가 채운 칸은 intake_data 에 있다 — 여기도 «따로» 읽는다(위와 같은 이유).
+    // 🛑 2026-08-19 실측: 쓰는 곳(referral route)은 있는데 읽는 곳이 없어 환자가 채운 진단명·불편한 곳·
+    //    약물·비행 가능·받고 싶은 것 전부가 코디 화면에 «안 떴다». 개편의 존재 이유가 통째로 빠져 있었다.
+    //    암호화된 칸은 아래에서 복호화한다(referral route 의 enc() 목록과 짝).
+    let referral: Record<string, unknown> | null = null;
     {
-      const { data: a } = await supabaseAdmin
-        .from("inquiries")
-        .select("source_locale, referrer_host, landing_path, utm")
-        .eq("id", Number(rawId))
-        .single();
-      if (a) arrival = a as Record<string, unknown>;
+      const raw = (referralRow.data as any)?.intake_data;
+      if (raw && typeof raw === "object" && raw.version === "referral_v1") referral = raw;
     }
-    Object.assign(data as object, arrival);
 
     // PII 복호화 (staff 인증 통과 후 서버에서만). 실패해도 나머지는 반환(fail-safe).
     let inquiry: any = data;
@@ -107,6 +119,16 @@ export async function GET(
       inquiry = await decryptInquiryForAdmin(data);
     } catch (e: any) {
       console.error("[portal/inbox/:id] decrypt error:", e?.message);
+    }
+
+    // 의뢰서 칸 복호화 — referral route 가 enc() 로 감싼 키만. 실패한 칸은 null(fail-safe).
+    inquiry.referral = null;
+    if (referral) {
+      try {
+        inquiry.referral = decryptReferralData(referral);
+      } catch (e: any) {
+        console.error("[portal/inbox/:id] referral decrypt error:", e?.message);
+      }
     }
 
     // 에이전시명 평탄화(관계조인 → 단일 필드)

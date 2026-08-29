@@ -1,0 +1,126 @@
+#!/usr/bin/env node
+// 「비밀 맞히기」를 막는 관문은 반드시 DB 기반 횟수제한(checkRateLimitPersistent)을 써야 한다는 가드.
+//
+// 왜: Vercel 은 요청을 여러 인스턴스에 흩뿌린다. in-memory 판(checkRateLimit)은 카운터가
+//     인스턴스마다 «따로» 돌아, 인스턴스가 N대면 실제 상한이 N배가 된다.
+//     "1분 5회"라고 적혀 있어도 실제로는 1분 5N회 → 막혀 있는 것처럼 보이지만 덜 막혀 있다.
+//     2026-08-13 점검에서 비밀번호 찾기·아이디 찾기·비밀번호 변경 + 토큰 링크 관문 8곳이
+//     이 상태였다. src/lib/rateLimit.ts 안에 DB 판이 이미 있었는데 절반만 옮겨져 있었다.
+//
+// 무엇을 잡나: 「비밀을 지키는 관문」에서 in-memory 판을 직접 호출하는 줄.
+// 관문 판정은 «두 갈래»다 — 경로 이름만 보면 절반을 놓친다(2026-08-13 실측: 경로판만 만들었더니
+// 토큰을 주소가 아니라 몸통·질의문자열로 받는 라우트 9곳이 통째로 빠졌다):
+//   (가) 경로:  app/api/auth/**, 경로에 [token]/[code], **/guest-join, **/rotate-token, **/claim/**
+//   (나) 내용:  파일 안에서 public_token · x-guest-token · verifyGuestToken 을 «검증»하는 라우트
+//              (토큰을 맞혀서 남의 대화·개인정보를 여는 걸 막는 관문 — 주소에 안 드러난다)
+// 그 외 라우트(업로드·번역 등 도배 방지용)는 대상 아님 — 뚫려도 「비밀 노출」이 아니라 소음이라
+// DB 왕복 비용을 물릴 이유가 없다.
+//
+// 예외 허용: 정말 in-memory 로 충분하면 그 줄 끝에 `// allow-memory-ratelimit` 주석.
+//
+// 자체시험: node scripts/check-ratelimit-scope.mjs --selftest
+
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, extname } from "node:path";
+
+const ROOT = "app";
+const EXTS = new Set([".ts", ".js"]);
+
+// (가) 비밀을 지키는 관문으로 볼 «경로»(슬래시 정규화 기준)
+const SECRET_GATE = [
+  /(^|\/)app\/api\/auth\//,
+  /\[token\]/,
+  /\[code\]/,
+  /(^|\/)guest-join\//,
+  /(^|\/)rotate-token\//,
+  /(^|\/)claim\//,
+];
+
+// (나) 주소엔 안 드러나지만 «내용»상 토큰 관문인 라우트.
+// public_token / x-guest-token 을 받아 소유권을 확인하는 곳 = 맞히기 공격 대상.
+// (기기 알림 등록의 token 처럼 「등록만 하는」 값은 여기 안 걸리게 이름을 좁게 잡았다.)
+const SECRET_BODY = /\bpublic_token\b|x-guest-token|verifyGuestToken/;
+
+const SKIP = [/\.test\./, /\.contract\./, /(^|\/)node_modules\//];
+
+// in-memory 판 «호출». import 줄과 Persistent 호출은 제외.
+const MEMORY_CALL = /(?<!Persistent)\bcheckRateLimit\s*\(/;
+
+function walk(dir, out) {
+  let entries;
+  try { entries = readdirSync(dir); } catch { return out; }
+  for (const name of entries) {
+    const p = join(dir, name);
+    let st;
+    try { st = statSync(p); } catch { continue; }
+    if (st.isDirectory()) walk(p, out);
+    else if (EXTS.has(extname(name))) out.push(p);
+  }
+  return out;
+}
+
+function scanLine(line) {
+  if (line.includes("allow-memory-ratelimit")) return false;
+  if (/^\s*import\s/.test(line)) return false;
+  return MEMORY_CALL.test(line);
+}
+
+if (process.argv.includes("--selftest")) {
+  const cases = [
+    ["const rl = checkRateLimit(ip, RATE);", true],
+    ["  if (!checkRateLimit(ip, RATE).allowed) {", true],
+    ["const rl = await checkRateLimitPersistent(ip, RATE);", false],
+    ['import { checkRateLimit, getClientIp } from "@/lib/rateLimit";', false],
+    ["const rl = checkRateLimit(ip, RATE); // allow-memory-ratelimit", false],
+  ];
+  let bad = 0;
+  for (const [line, want] of cases) {
+    const got = scanLine(line);
+    if (got !== want) { bad++; console.error(`  자체시험 실패: ${JSON.stringify(line)} → ${got}, 기대 ${want}`); }
+  }
+  const pathCases = [
+    ["app/api/auth/find-id/route.ts", true],
+    ["app/api/opinions/[token]/page/route.ts", true],
+    ["app/c/[code]/route.ts", true],
+    ["app/api/attachments/upload/route.ts", false],
+  ];
+  for (const [p, want] of pathCases) {
+    const got = SECRET_GATE.some((re) => re.test(p));
+    if (got !== want) { bad++; console.error(`  자체시험 실패(경로): ${p} → ${got}, 기대 ${want}`); }
+  }
+  // (나) 내용 판정 — 주소엔 안 드러나는 토큰 관문
+  const bodyCases = [
+    ['const { thread_id, public_token } = body;', true],
+    ['request.headers.get("x-guest-token")', true],
+    ['const token = body?.token; // 기기 알림 등록용', false],
+  ];
+  for (const [src, want] of bodyCases) {
+    const got = SECRET_BODY.test(src);
+    if (got !== want) { bad++; console.error(`  자체시험 실패(내용): ${JSON.stringify(src)} → ${got}, 기대 ${want}`); }
+  }
+  if (bad) { console.error(`❌ 자체시험 ${bad}건 실패 — 가드가 고장난 상태다.`); process.exit(1); }
+  console.log("✓ 자체시험 통과");
+  process.exit(0);
+}
+
+const files = walk(ROOT, []).filter((p) => {
+  const s = p.replace(/\\/g, "/");
+  if (SKIP.some((re) => re.test(s))) return false;
+  if (SECRET_GATE.some((re) => re.test(s))) return true;
+  try { return SECRET_BODY.test(readFileSync(p, "utf8")); } catch { return false; }
+});
+
+const hits = [];
+for (const f of files) {
+  readFileSync(f, "utf8").split("\n").forEach((line, i) => {
+    if (scanLine(line)) hits.push(`  ${f}:${i + 1}  ${line.trim().slice(0, 110)}`);
+  });
+}
+
+if (hits.length) {
+  console.error(`❌ 비밀 관문 ${hits.length}곳이 인스턴스별(in-memory) 횟수제한을 쓴다 — 인스턴스 수만큼 상한이 곱해진다:`);
+  console.error(hits.join("\n"));
+  console.error(`\n→ checkRateLimitPersistent(await 필요)로 교체. 정말 in-memory 로 충분하면 줄 끝에 // allow-memory-ratelimit`);
+  process.exit(1);
+}
+console.log(`✓ 비밀 관문 전부 DB 기반 횟수제한 (검사 ${files.length}개 라우트)`);

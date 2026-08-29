@@ -56,11 +56,20 @@ export async function GET(request: NextRequest) {
 
   if (responses && Array.isArray(responses) && responses.length > 0) {
     totalResponses = responses.length;
-    q1Avg = responses.reduce((s: number, r: any) => s + (r.q1_score || 0), 0) / totalResponses;
-    q2Avg = responses.reduce((s: number, r: any) => s + (r.q2_score || 0), 0) / totalResponses;
-    q3Avg = responses.reduce((s: number, r: any) => s + (r.q3_score || 0), 0) / totalResponses;
-    q4Avg = responses.reduce((s: number, r: any) => s + (r.q4_score || 0), 0) / totalResponses;
-    q5Avg = responses.reduce((s: number, r: any) => s + (r.q5_score || 0), 0) / totalResponses;
+    // ⚠️ 미응답(null)을 «0점»으로 넣고 전체 응답 수로 나누면 평균이 깎인다 — 아래 전체평균
+    //    (avgSatisfaction100)은 이미 미응답을 제외하는데 문항별만 옛 계산이 남아 한 화면 안에서
+    //    두 숫자가 안 맞았다(2026-08-14 감사). 답한 사람만으로 나눈다.
+    const avgOf = (key: string): number => {
+      const vals = responses
+        .map((r: any) => r[key])
+        .filter((v: any) => typeof v === "number" && Number.isFinite(v));
+      return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
+    };
+    q1Avg = avgOf("q1_score");
+    q2Avg = avgOf("q2_score");
+    q3Avg = avgOf("q3_score");
+    q4Avg = avgOf("q4_score");
+    q5Avg = avgOf("q5_score");
   }
 
   // Likert(1~5) → 100점 환산 (kpi.ts 와 단일 소스: satisfaction.ts).

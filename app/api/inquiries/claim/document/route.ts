@@ -22,7 +22,7 @@ export const maxDuration = 60;
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { renderPdfPage } from "@/lib/documents/pdfPage";
 import { docxToHtml } from "@/lib/documents/docxHtml";
 
@@ -33,7 +33,7 @@ const MAX_DOCX_BYTES = 10 * 1024 * 1024; // 워드는 글만 뽑으므로 이보
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, RATE);
+  const rl = await checkRateLimitPersistent(ip, RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }

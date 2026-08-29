@@ -30,12 +30,22 @@ const VALID_TYPES = new Set(["connect_error", "connect_timeout", "media_failure"
 // ── 소리 상태 기록 (오류가 아니다) ──
 // 하울링 감지기는 만든 뒤로 실측이 0건이었다. 「고쳤다 → 아니던데 → 또 고친다」가 반복된
 // 진짜 이유가 이것이다(2026-08-04 PO: "너 맨날 해결했다 하는데 제대로 되질 않던데").
-//   howling_muted  — 자동 차단이 걸렸다(무엇을 껐는지 포함)
+//   howling_quiet_join — ①번 방어선: 같은 회선이라 입장 «순간»에 조용히 들어갔다 (2026-08-16 신설 —
+//                        이 경로만 기록이 없어 8/05~15 열흘간 「0건」이 «막았다»인지 «안 돈다»인지 못 갈랐다.
+//                        howling_muted 와 «다른 이름»인 이유: 클라이언트가 같은 type 은 10초에 1건만
+//                        보내서, ① 직후 사람이 되돌리고 ②가 다시 끈 기록이 삼켜지는 것을 막으려고)
+//   howling_muted  — ②번 방어선: 소리로 하울링을 잡아 자동 차단이 걸렸다(무엇을 껐는지 포함)
 //   howling_kept   — 이 기기는 «소리 유지 대상»으로 정해져 안 껐다
 //   howling_missed — 같은 방으로 보이는데 자동 차단이 안 걸렸다  ← 제일 중요한 기록
+//   howling_levels — 통화당 1건: 감지기가 «실제로 들은» 내/상대 음량·단일음 수 (2026-08-18 신설).
+//                    문턱 0.45·0.22 는 실측 0건짜리 추정값인 채 세 번 조정됐다 — 그 표본을 만든다.
+//   stt_fallback   — 자막 경로가 브라우저 받아쓰기 → 서버 받아쓰기로 넘어갔다(2026-08-16 신설).
+//                    오류가 아니라 «어느 길로 갔나» 기록. media_failure 와 type 을 나눈 이유는 위와 같다
+//                    (장치 실패 비콘 10초 안에 넘어가면 기록이 삼켜졌다). CONSULTATION_STT_EVENT 로 남긴다.
 // ⚠️ 오류(CONSULTATION_CLIENT_ERROR)와 **다른 이름으로** 남긴다. 같이 세면 하울링 한 번에
 //    「오류 폭증」 종이 울려 직원이 헛걸음한다(그 경보는 10분에 8건이면 발사된다).
-const AUDIO_TYPES = new Set(["howling_muted", "howling_kept", "howling_missed"]);
+const AUDIO_TYPES = new Set(["howling_quiet_join", "howling_muted", "howling_kept", "howling_missed", "howling_levels"]);
+const STT_TYPES = new Set(["stt_fallback"]);
 
 export async function POST(
   request: NextRequest,
@@ -64,10 +74,12 @@ export async function POST(
     }
 
     const type = typeof body?.type === "string" ? body.type : "";
-    if (!VALID_TYPES.has(type) && !AUDIO_TYPES.has(type)) {
+    if (!VALID_TYPES.has(type) && !AUDIO_TYPES.has(type) && !STT_TYPES.has(type)) {
       return Response.json({ ok: false, error: "invalid_type" }, { status: 400 });
     }
-    const isAudio = AUDIO_TYPES.has(type);
+    // «상태 기록»(소리·자막 경로) = 오류가 아니다 → 폭증 경보 계산을 아예 건너뛴다.
+    const isState = AUDIO_TYPES.has(type) || STT_TYPES.has(type);
+    const stateAction = AUDIO_TYPES.has(type) ? "CONSULTATION_AUDIO_EVENT" : "CONSULTATION_STT_EVENT";
     const message =
       typeof body?.message === "string" ? body.message.slice(0, 300) : "";
 
@@ -83,7 +95,7 @@ export async function POST(
       const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
       await supabaseAdmin.from("admin_audit_logs").insert({
         admin_email: "client-event@consultation",
-        action: isAudio ? "CONSULTATION_AUDIO_EVENT" : "CONSULTATION_CLIENT_ERROR",
+        action: isState ? stateAction : "CONSULTATION_CLIENT_ERROR",
         metadata: {
           consultation_id: consultationId,
           type,
@@ -95,8 +107,8 @@ export async function POST(
         },
       } as any);
 
-      // 소리 기록은 오류가 아니다 — 폭증 경보를 울리지 않는다(직원 헛걸음 방지).
-      if (isAudio) return Response.json({ ok: true });
+      // 소리·자막경로 기록은 오류가 아니다 — 폭증 경보를 울리지 않는다(직원 헛걸음 방지).
+      if (isState) return Response.json({ ok: true });
 
       // ── 오류 폭증 경보 (안전망 ③, 2026-07-15 PO 승인) ──
       // 같은 상담에서 최근 10분 내 오류 비콘이 임계치(8건)를 넘으면 직원 종 알림 —

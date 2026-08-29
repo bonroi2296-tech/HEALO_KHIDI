@@ -77,11 +77,41 @@ export async function ssrfSafeFetch(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: options.headers ?? {},
-      redirect: "follow",
-    });
+    // ⚠️ redirect:"follow" 는 «처음 주소»만 검사하고 3xx 로 옮겨간 주소는 그냥 따라간다 —
+    //    외부 병원 주소가 169.254.169.254(클라우드 내부정보) 같은 데로 넘기면 뚫렸다(2026-08-14 감사).
+    //    직접 따라가며 «옮겨갈 때마다» 같은 검사를 다시 한다.
+    const MAX_REDIRECTS = 5;
+    let current = url;
+    let res: Response;
+    for (let hop = 0; ; hop++) {
+      res = await fetch(current.toString(), {
+        signal: controller.signal,
+        headers: options.headers ?? {},
+        redirect: "manual",
+      });
+      const location = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (!location) break;
+      if (hop >= MAX_REDIRECTS) {
+        clearTimeout(timeoutId);
+        return { ok: false, status: res.status, error: "too_many_redirects" };
+      }
+      let next: URL;
+      try {
+        next = new URL(location, current); // 상대 주소도 흡수
+      } catch {
+        clearTimeout(timeoutId);
+        return { ok: false, status: res.status, error: "invalid_url" };
+      }
+      if (!ALLOWED_SCHEMES.includes(next.protocol)) {
+        clearTimeout(timeoutId);
+        return { ok: false, status: res.status, error: "scheme_not_allowed" };
+      }
+      if (isPrivateOrLocal(getHostname(next))) {
+        clearTimeout(timeoutId);
+        return { ok: false, status: res.status, error: "private_or_local_ip_blocked" };
+      }
+      current = next;
+    }
     clearTimeout(timeoutId);
 
     const contentLength = res.headers.get("content-length");

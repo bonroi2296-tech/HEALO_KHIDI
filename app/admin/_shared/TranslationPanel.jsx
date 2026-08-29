@@ -3,8 +3,14 @@
 import { useState, useCallback } from 'react';
 import { Globe, RefreshCw, Loader2, Check, Pencil, AlertCircle } from 'lucide-react';
 
+// 화면에 실제로 나가는 6개 언어를 전부 연다.
+// 2026-08-20 이전엔 ko·en·zh·ja 4개만 있어서, **1차 타깃인 러시아어·카자흐어는
+// 코디네이터가 이 화면에서 아예 못 고쳤다** — 고치려면 개발자를 거쳐야 했고
+// 그게 「코디가 하나부터 열까지 손으로 고친다」의 절반이었다.
 const LANG_TABS = [
   { code: 'ko', label: 'KO', full: '한국어' },
+  { code: 'ru', label: 'RU', full: 'Русский' },
+  { code: 'kz', label: 'KZ', full: 'Қазақша' },
   { code: 'en', label: 'EN', full: 'English' },
   { code: 'zh', label: 'ZH', full: '中文' },
   { code: 'ja', label: 'JA', full: '日本語' },

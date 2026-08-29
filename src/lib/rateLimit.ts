@@ -273,12 +273,35 @@ export async function checkRateLimitPersistent(
  */
 export const RATE_LIMITS = {
   // 문의 제출: 1분당 5회 (정상 사용자는 충분, 봇은 차단)
+  //
+  // ⚠️ 통(apiName)이 같으면 «여러 라우트가 한 통에 합산»된다 — 키가 `apiName:IP` 라서다.
+  // 인메모리 시절엔 인스턴스마다 흩어져 잘 안 걸렸는데, DB 판으로 옮기면 정확히 합산돼
+  // 정상 사용자가 막힐 수 있다. 성격이 다른 흐름(제출 vs 화면 열기)은 통을 나눠라.
+  // 의뢰서 «서류 판독»(/api/inquiry/classify-doc) — 서류 1개당 1회. 🛑 INQUIRY(접수, 5/분)와 통을 «같이 쓰지 마라».
+  //    2026-08-19 독립 리뷰: 같은 통을 쓰고 있어서 폼이 권하는 서류 5개를 올리면 판독 5회가 접수 한도를 다 먹고
+  //    정작 「보내기」가 429 를 맞았다. 업로드 서명 통(20/분)과 같은 크기.
+  DOC_CLASSIFY: {
+    windowMs: 60 * 1000,
+    maxRequests: 20,
+    apiName: 'doc_classify',
+    message: 'Too many document reads. Please wait a minute.',
+  },
   INQUIRY: {
     windowMs: 60 * 1000,
     maxRequests: 5,
     apiName: 'inquiry',
   },
-  
+
+  // 채팅 화면 «열기»(대화방 목록·복구·요약) 전용 통 — 2026-08-13 신설.
+  // 왜 나눴나: 이 3개는 화면 한 번 열 때 함께 불린다. 제출용 5회 통에 얹으면
+  // 문의 폼을 내고(3회) 채팅을 여는 것만으로 상한을 넘긴다(실측 6회 > 5회).
+  // 30회로 잡아도 토큰 추측 방어는 그대로다 — 1분에 30번 찍어서 맞힐 수 있는 토큰이 아니다.
+  CHAT_READ: {
+    windowMs: 60 * 1000,
+    maxRequests: 30,
+    apiName: 'chat_read',
+  },
+
   // 채팅: 1분당 20회 (대화형이므로 더 허용)
   CHAT: {
     windowMs: 60 * 1000,

@@ -37,24 +37,23 @@
 단순 사전상담만 받고 한국 미방문 → **카운트 X**.
 
 ### 측정 데이터 출처
-- `consultation_sessions` 테이블 (사전상담 기록)
-- `khidi_intakes` 테이블 (인테이크 정보, 국적)
-- `patient_visits` 테이블 (한국 방문 기록 — 신설 권장, 또는 `consultation_sessions.visit_confirmed_at`)
+- `inquiries` 테이블 — `outcome='admitted'` 가 유치 확정 표시다.
+  코디네이터가 「유치 확정」을 누르거나, 병원 포털에서 리드를 「치료 확정」으로 바꾸면 여기에 반영된다.
+- 유치 전환 대시보드(`/admin/khidi/conversion`)와 **같은 정의**를 쓴다.
+
+> ⚠️ **2026-08-20 정정.** 아래 SQL 이 `users`·`khidi_intakes`·`patient_visits` 와
+> `consultation_sessions.visit_confirmed_at` 을 조회하고 있었는데 **넷 다 존재하지 않는다.**
+> 코드는 2026-06-19 에 이미 고쳤고(POSTMORTEMS #7 — 없는 컬럼을 조회해 실적이 항상 0이었다)
+> 이 문서만 옛 SQL 로 남아 있었다. 아래는 **운영DB 에서 실제로 돌려 값을 확인한** SQL 이다.
 
 ### 산출 SQL
 ```sql
-SELECT COUNT(DISTINCT u.id) AS 유치_건수
-FROM users u
-JOIN khidi_intakes i ON i.user_id = u.id
-JOIN consultation_sessions cs ON cs.patient_id = u.id
-WHERE i.nationality NOT IN ('KR', 'Korea', '한국')
-  AND cs.status = 'completed'
-  AND EXISTS (
-    SELECT 1 FROM patient_visits pv
-    WHERE pv.patient_id = u.id
-      AND pv.arrival_date IS NOT NULL
-  )
-  AND i.created_at BETWEEN '2026-04-01' AND '2026-12-31';
+-- 2026-08-20 실행 확인: 0건
+SELECT COUNT(*) AS 유치_건수
+FROM inquiries i
+WHERE i.outcome = 'admitted'
+  AND COALESCE(i.is_test, FALSE) = FALSE
+  AND i.created_at >= '2026-04-01' AND i.created_at < '2026-12-01';
 ```
 
 ### 검증 절차
@@ -97,19 +96,22 @@ WHERE i.nationality NOT IN ('KR', 'Korea', '한국')
 ### 산출 SQL
 ```sql
 -- ① 영상 사전상담
+-- 2026-08-20 실행 확인: 1건
 SELECT COUNT(*) AS 영상_사전상담
 FROM consultation_sessions cs
 WHERE cs.session_type = 'pre_consultation'
   AND cs.status = 'completed'
-  AND cs.scheduled_at BETWEEN '2026-04-01' AND '2026-12-31';
+  AND COALESCE(cs.is_test, FALSE) = FALSE          -- 시험 방 제외
+  AND cs.scheduled_at >= '2026-04-01' AND cs.scheduled_at < '2026-12-01';
 
 -- ② 글로 전달한 사전상담 (의료진 소견 전달 완료, 시험용 문의 제외)
+-- 2026-08-20 실행 확인: 6건
 SELECT COUNT(*) AS 글_소견전달
 FROM case_opinions o
-LEFT JOIN inquiries i ON i.id = o.inquiry_id
 WHERE o.released_at IS NOT NULL
-  AND i.is_test IS NOT TRUE
-  AND o.released_at BETWEEN '2026-04-01' AND '2026-12-31';
+  AND NOT EXISTS (SELECT 1 FROM inquiries i
+                  WHERE i.id = o.inquiry_id AND COALESCE(i.is_test, FALSE) = TRUE)
+  AND o.released_at >= '2026-04-01' AND o.released_at < '2026-12-01';
 ```
 
 ### 보조 지표 (월간 보고용)
@@ -146,13 +148,14 @@ WHERE o.released_at IS NOT NULL
 
 ### 산출 SQL
 ```sql
-SELECT
-  AVG(
-    (q1_score + q2_score + q3_score + q4_score + q5_score) / 5.0 * 20
-  ) AS 만족도_평균
-FROM survey_responses
-WHERE survey_type = 'post_consultation'
-  AND submitted_at BETWEEN '2026-04-01' AND '2026-12-31';
+-- 2026-08-20 실행 확인: 응답 1건, 평균 100.0
+-- ⚠️ survey_type 은 survey_responses 가 아니라 surveys 표에 있다(2026-08-20 정정).
+SELECT ROUND(AVG((r.q1_score + r.q2_score + r.q3_score + r.q4_score + r.q5_score) / 5.0 * 20), 1)
+       AS 만족도_평균,
+       COUNT(*) AS 응답_수
+FROM survey_responses r
+JOIN surveys s ON s.id = r.survey_id
+WHERE r.submitted_at >= '2026-04-01' AND r.submitted_at < '2026-12-01';
 ```
 
 ### 검증 절차
@@ -181,17 +184,16 @@ WHERE survey_type = 'post_consultation'
 ### 산출 SQL
 ```sql
 -- 사후관리 영상 상담
+-- 2026-08-20 실행 확인: 0건 (실환자가 치료 완료 단계에 아직 도달하지 않았다)
 SELECT COUNT(*) AS 사후관리_상담_건수
 FROM consultation_sessions
 WHERE session_type = 'follow_up'
   AND status = 'completed'
-  AND scheduled_at BETWEEN '2026-04-01' AND '2026-12-31';
+  AND COALESCE(is_test, FALSE) = FALSE
+  AND scheduled_at >= '2026-04-01' AND scheduled_at < '2026-12-01';
 
--- 사후관리 메시지 (옵션)
-SELECT COUNT(DISTINCT thread_id) AS 사후관리_메시지_쓰레드
-FROM messages
-WHERE message_type = 'follow_up'
-  AND created_at BETWEEN '2026-04-01' AND '2026-12-31';
+-- (옛 「사후관리 메시지」 SQL 삭제 — messages 표는 존재하지 않는다. 2026-08-20 확인)
+-- 성과지표에 세는 사후관리는 위 「완료된 follow_up 세션」뿐이다.
 ```
 
 ---

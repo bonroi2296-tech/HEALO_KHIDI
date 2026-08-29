@@ -13,11 +13,20 @@ npm run dev                # dev 서버는 Turbopack 정상
 
 - **Production: 「머지는 자유, 배포만 하루 한 번」 (2026-07-28 PO 결정).**
   **PR 은 평소대로 바로 머지해라.** main 에 머지돼도 **실서비스 빌드가 돌지 않는다.**
-  하루 한 번 **KST 오후 3시**에 `Daily Deploy` 워크플로가 main 을 **`production` 브랜치**로
-  밀고, **그 한 건만** 빌드된다 — 그날 머지된 것 전부가 그 한 건에 들어간다.
-  (Vercel 의 Production Branch = `production`. main 은 보호 브랜치라 로봇이 못 민다 —
-   깃허브가 로봇이 만든 커밋에 검사를 안 돌려줘서 「검사 통과」 조건을 영원히 못 채운다.
-   자물쇠를 푸는 대신 옆문을 냈다. **`production` 브랜치는 창구 말고 아무도 건드리지 마라.**)
+  하루 한 번 **KST 오후 3시**에 창구가 열리고 **그 한 건만** 빌드된다 — 그날 머지된 것
+  전부가 그 한 건에 들어간다.
+
+  **창구를 여는 건 `Vercel 예약`이다** (`app/api/cron/daily-deploy/route.ts`, `vercel.json` 의 `crons`).
+  main 의 최신 커밋을 읽어 **Vercel API 로 프로덕션 배포를 직접 만든다**(`target: "production"` +
+  `build.env.DEPLOY_WINDOW=1`). 직전 프로덕션 배포와 커밋이 같으면 「새 머지 없음」으로 건너뛴다.
+
+  > ⚠️ **`production` 브랜치는 이제 창구가 갱신하지 않는다 (2026-07-31 이후).**
+  > 옛 방식은 깃허브 워크플로가 main 을 그 브랜치로 미는 것이었는데, **깃허브가 예약을
+  > 2~3시간 늦게 깨워서**(3일 연속 실측: 오후 3시 예약이 5시 36~48분에 시작) 정시 창구를
+  > Vercel 로 옮겼다. 새 경로는 열쇠가 없어 브랜치를 못 민다.
+  > → **배포 여부를 `production` 브랜치로 판정하지 마라.** 그 브랜치는 낡은 커밋에 멈춰 있다.
+  > 판정은 `/api/health` 의 실서비스 커밋이나 Vercel 배포 목록으로 해라.
+  > (깃허브 `Daily Deploy` 워크플로는 **예비**로 남겨 뒀다 — Vercel 경로가 실패해도 늦게라도 나간다.)
   - 급한 것(**장애·보안·PO가 지금 보자고 한 것**)은 기다리지 마라:
     ```bash
     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push

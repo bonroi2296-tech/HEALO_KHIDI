@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptInquiryForAdmin, decryptReferralData } from "@/lib/security/decryptForAdmin";
 import { generateCaseBrief, briefSig, normalizeBriefLang, readBriefMap } from "@/lib/inquiry/caseBrief";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
@@ -58,6 +58,15 @@ export async function POST(
     let inquiry: any = data;
     try {
       inquiry = await decryptInquiryForAdmin(data);
+      // 새 의뢰서(/inquiry/referral)가 채운 칸 — 안 읽으면 브리프가 진단명·불편한 곳·약물·현지 소견을 통째로 모른다.
+      // 🛑 위 목록(BRIEF_FIELDS)에 섞지 마라 — 그 컬럼이 아직 없는 환경에서 조회 «전체»가 죽어 브리프가 안 만들어진다.
+      const { data: refRow } = await supabaseAdmin.from("inquiries").select("intake_data").eq("id", Number(id)).single();
+      // 코디가 확정한 진단코드도 «따로» 읽는다(위 목록에 섞으면 그 컬럼 없는 환경에서 브리프가 통째로 안 만들어진다).
+      // 타입 정의는 생성물이라 신규 컬럼을 모른다 → 이 쿼리만 캐스팅. 타입 재생성 시 지워라.
+      const { data: icdRow } = await (supabaseAdmin.from as any)("inquiries").select("icd_code").eq("id", Number(id)).single();
+      if (icdRow?.icd_code) inquiry.icd_code = icdRow.icd_code;
+      const ref = (refRow as any)?.intake_data;
+      if (ref && typeof ref === "object" && ref.version === "referral_v1") inquiry.referral = decryptReferralData(ref);
     } catch (e: any) {
       console.error("[coordinator/brief] decrypt error:", e?.message);
     }

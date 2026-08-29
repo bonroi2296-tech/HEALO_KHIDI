@@ -36,12 +36,42 @@ export interface SignBody {
  *   (실측 2026-08-03: `신장_초음파_검사.jpg` → 서명은 200 으로 내주고 PUT 에서 400 InvalidKey).
  *   서명 단계는 통과하므로 화면엔 그냥 「업로드 실패」만 뜬다 — 원인이 안 보인다.
  *   키릴 파일명은 원래부터 `_` 로 바뀌어 살아남았고, 한글만 예외로 열어둔 게 화근이었다.
+ *
+ * 🛠 2026-08-14: 아스키 규칙은 그대로 두되 «정보를 잃지 않게» 고쳤다.
+ *   그전엔 러시아어 이름이 통째로 날아갔다 — `выписка_тест.pdf` → `__.pdf`.
+ *   충돌은 앞의 UUID 가 막아주지만 저장소를 직접 열면 파일이 전부 `__.pdf` 라 구분이 안 됐다.
+ *   → 키릴은 «옮겨 적고»(vypiska_test.pdf), 그래도 몸통이 비면 `file` 을 준다.
  */
+const CYRILLIC: Record<string, string> = {
+  а:"a", б:"b", в:"v", г:"g", д:"d", е:"e", ё:"e", ж:"zh", з:"z", и:"i", й:"y",
+  к:"k", л:"l", м:"m", н:"n", о:"o", п:"p", р:"r", с:"s", т:"t", у:"u", ф:"f",
+  х:"kh", ц:"ts", ч:"ch", ш:"sh", щ:"sch", ъ:"", ы:"y", ь:"", э:"e", ю:"yu", я:"ya",
+  // 카자흐어에만 있는 글자
+  ә:"a", ғ:"g", қ:"q", ң:"ng", ө:"o", ұ:"u", ү:"u", һ:"h", і:"i",
+};
+
+function translit(s: string): string {
+  return s.replace(/[Ѐ-ӿ]/g, (ch) => {
+    const low = ch.toLowerCase();
+    const mapped = CYRILLIC[low];
+    if (mapped === undefined) return "_";
+    if (ch === low || !mapped) return mapped;
+    return mapped.charAt(0).toUpperCase() + mapped.slice(1);
+  });
+}
+
 export function sanitizeFileName(name: string): string {
-  return name
+  // ① é·ü 같은 라틴 확장 글자는 악센트만 떼면 살아난다 ② 키릴은 음차 ③ 나머지는 «_»
+  const ascii = translit(name.normalize("NFKD").replace(/[̀-ͯ]/g, ""))
     .replace(/[^a-zA-Z0-9._-]/g, "_")
     .replace(/_{2,}/g, "_")
     .slice(0, 200);
+
+  // 이름이 통째로 날아간 경우(한글·중국어 등) — 아무 정보도 없는 키가 된다.
+  // 확장자는 살리고 몸통엔 최소한의 이름을 준다. 원래 이름은 DB 에 그대로 남아 있다.
+  const m = ascii.match(/^(.*?)(\.[a-zA-Z0-9]{1,8})?$/);
+  const stem = (m?.[1] ?? ascii).replace(/[._-]/g, "");
+  return stem ? ascii : `file${m?.[2] ?? ""}`;
 }
 
 /**
@@ -49,8 +79,20 @@ export function sanitizeFileName(name: string): string {
  * .dcm(의료영상)은 표준 MIME 이 없어 브라우저가 빈 문자열로 준다 — 병원 CD 자료가 이 경우.
  */
 export function normalizeMime(name: string, declared: string): string {
+  // 브라우저마다 다른 이름으로 오는 것을 «앞머리 검사가 아는 이름»으로 맞춘다. 안 맞추면 sign 은 통과하고
+  // commit 의 앞머리 검사가 mime_mismatch 로 지운다 — 환자 눈엔 「올렸는데 사라짐」(독립 리뷰 3건 지적).
+  if (declared === "application/x-rar-compressed") return "application/vnd.rar";
+  if (declared === "application/octet-stream") {
+    if (/\.rar$/i.test(name)) return "application/vnd.rar";
+    if (/\.zip$/i.test(name)) return "application/zip";
+    declared = "";   // 나머지는 확장자로 다시 본다(.dcm·확장자 없음 → DICOM)
+  }
   if (declared) return declared;
   if (/\.dcm$/i.test(name)) return "application/dicom";
+  // 확장자가 «아예 없는» 파일도 DICOM 으로 본다. 병원 CD 의 낱개 파일이 그렇다
+  // (2026-08-18 실측: Z01·Z02… 601개, 전부 확장자 없음). 틀렸으면 서버의 앞머리 검사가
+  // 128바이트째 "DICM" 이 없다고 잡아 지운다 — 여기서 관대해도 문이 열리지는 않는다.
+  if (!/\.[A-Za-z0-9]{1,8}$/.test(name)) return "application/dicom";
   return "";
 }
 

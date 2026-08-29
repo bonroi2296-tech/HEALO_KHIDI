@@ -1375,6 +1375,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           display_name: string | null
+          display_name_encrypted: string | null
           guest_token_id: string | null
           id: string
           left_at: string | null
@@ -1391,6 +1392,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           display_name?: string | null
+          display_name_encrypted?: string | null
           guest_token_id?: string | null
           id?: string
           left_at?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           display_name?: string | null
+          display_name_encrypted?: string | null
           guest_token_id?: string | null
           id?: string
           left_at?: string | null
@@ -1438,6 +1441,7 @@ export type Database = {
         Row: {
           consultation_id: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           document_type: string | null
           file_name: string
@@ -1445,10 +1449,12 @@ export type Database = {
           file_type: string
           id: string
           storage_path: string
+          uploaded_by: string | null
         }
         Insert: {
           consultation_id: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           document_type?: string | null
           file_name: string
@@ -1456,10 +1462,12 @@ export type Database = {
           file_type: string
           id?: string
           storage_path: string
+          uploaded_by?: string | null
         }
         Update: {
           consultation_id?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           document_type?: string | null
           file_name?: string
@@ -1467,6 +1475,7 @@ export type Database = {
           file_type?: string
           id?: string
           storage_path?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
@@ -1802,6 +1811,8 @@ export type Database = {
           source_text: string | null
           source_text_encrypted: string | null
           speaker_name: string | null
+          speaker_name_encrypted: string | null
+          stt_engine: string | null
           target_lang: string
           translated_text: string | null
           translated_text_encrypted: string | null
@@ -1815,6 +1826,8 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          speaker_name_encrypted?: string | null
+          stt_engine?: string | null
           target_lang: string
           translated_text?: string | null
           translated_text_encrypted?: string | null
@@ -1828,6 +1841,8 @@ export type Database = {
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
+          speaker_name_encrypted?: string | null
+          stt_engine?: string | null
           target_lang?: string
           translated_text?: string | null
           translated_text_encrypted?: string | null
@@ -1994,6 +2009,7 @@ export type Database = {
           auto_max_krw: number | null
           auto_median_krw: number | null
           auto_min_krw: number | null
+          cancer_type: string | null
           consultation_id: string | null
           coordinator_notes_encrypted: string | null
           coordinator_user_id: string | null
@@ -2010,6 +2026,7 @@ export type Database = {
           quotation_items: Json | null
           quotation_no: string | null
           quotation_pdf_url: string | null
+          stage: string | null
           status: string
           total_krw: number | null
           total_usd: number | null
@@ -2020,6 +2037,7 @@ export type Database = {
           auto_max_krw?: number | null
           auto_median_krw?: number | null
           auto_min_krw?: number | null
+          cancer_type?: string | null
           consultation_id?: string | null
           coordinator_notes_encrypted?: string | null
           coordinator_user_id?: string | null
@@ -2036,6 +2054,7 @@ export type Database = {
           quotation_items?: Json | null
           quotation_no?: string | null
           quotation_pdf_url?: string | null
+          stage?: string | null
           status?: string
           total_krw?: number | null
           total_usd?: number | null
@@ -2046,6 +2065,7 @@ export type Database = {
           auto_max_krw?: number | null
           auto_median_krw?: number | null
           auto_min_krw?: number | null
+          cancer_type?: string | null
           consultation_id?: string | null
           coordinator_notes_encrypted?: string | null
           coordinator_user_id?: string | null
@@ -2062,6 +2082,7 @@ export type Database = {
           quotation_items?: Json | null
           quotation_no?: string | null
           quotation_pdf_url?: string | null
+          stage?: string | null
           status?: string
           total_krw?: number | null
           total_usd?: number | null
@@ -3062,6 +3083,9 @@ export type Database = {
           attachment: string | null
           attachments: Json
           cancer_type: string | null
+          icd_code: string | null
+          icd_code_updated_at: string | null
+          icd_code_updated_by: string | null
           case_status: string | null
           case_status_note: string | null
           case_status_updated_at: string | null
@@ -3131,6 +3155,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null
@@ -3200,6 +3227,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null

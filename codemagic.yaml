@@ -56,12 +56,20 @@ workflows:
         # ⚠️ 이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조 → pod install/.xcworkspace 없음.
         #    xcodeproj 를 직접 빌드한다. Firebase SDK(FirebaseMessaging)는 첫 클라우드 맥 빌드에서
         #    App 타겟에 SPM 패키지로 추가해야 AppDelegate 가 컴파일된다(APP_STORE_LISTING.md 참고).
+        #
+        # ⚠️ `--disable-xcpretty` 를 지우지 마라 (2026-08-20 추가).
+        #    이게 없으면 xcodebuild 출력이 요약기(xcpretty)를 거치면서 「Failed to archive」 한 줄만
+        #    남고 진짜 컴파일 오류가 통째로 사라진다. 2026-08-20 빌드 #5 가 정확히 그랬다:
+        #    실패 로그가 12줄뿐이라 원인을 추측할 수밖에 없었고, 진단하려고 한 판을 더 구워야 했다.
+        #    아래 artifacts 의 `/tmp/xcodebuild_logs/*.log` 도 같은 목적이다(실패해도 로그는 남긴다).
         script: |
           xcode-project build-ipa \
             --project "ios/App/App.xcodeproj" \
-            --scheme "App"
+            --scheme "App" \
+            --disable-xcpretty
     artifacts:
       - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration
@@ -181,7 +189,9 @@ workflows:
       vars:
         # 진단 목적상 첫 화면을 로그인으로 고정한다(확인할 화면이 거기라서).
         # 실제 출시 빌드는 건드리지 않는다 — 이 워크플로 안에서만 덮어쓴다.
-        DIAG_START_URL: "https://healwith.co.kr/login?focus=email"
+        # ⚠️ ?focus=email 을 붙이면 키보드가 올라와 화면 아래쪽(소셜 로그인 버튼)을 가린다.
+        #    2026-08-13 실측: 「Apple로 계속하기」가 키보드+알림 팝업에 가려 한 장도 못 건졌다.
+        DIAG_START_URL: "https://healwith.co.kr/login"
     scripts:
       - name: 의존성 설치
         script: npm ci
@@ -247,13 +257,15 @@ workflows:
             xcrun simctl launch "$UDID" kr.co.healwith.app
             sleep 25   # 라이브 로드라 네트워크가 끝나야 화면이 뜬다
             SAFE_NAME="$(echo "$DEV" | tr ' ()' '___')"
-            # 첫 화면 주소에 ?focus=email 이 붙어 있어 커서가 자동으로 들어간다 →
-            # 앱 웹뷰는 사용자 탭 없이도 포커스로 키보드가 뜨므로, 이 한 장에
-            # «키보드 올라온 상태의 배치»가 그대로 담긴다.
-            # (simctl 에는 키보드를 토글하는 명령이 없다 — 그래서 화면 쪽에서 연다.)
+            # 1번: 손 안 댄 첫 화면(알림 권한 팝업이 떠 있는 상태 그대로).
             # 한 대가 실패해도 나머지 한 대는 찍고 넘어가게 한다(끝에서 0장이면 어차피 끊긴다).
-            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-01-login-keyboard.png" || echo "⚠️ $DEV 1번 사진 실패"
-            sleep 5
+            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-01-first.png" || echo "⚠️ $DEV 1번 사진 실패"
+
+            # 🚫 osascript(맥 자판 흉내내기)로 팝업을 닫으려 하지 마라 — 2026-08-13 실측:
+            #    클라우드 맥엔 화면 조작 권한(Accessibility)이 없어 «||true 로도 안 흘러가고 통째로 멈춘다»
+            #    (12분 넘게 매달려 빌드를 끊어야 했다). simctl 에는 탭 명령이 없다 = 팝업은 못 닫는다.
+            #    대신 키보드를 안 띄워서(첫 화면 주소에 focus 안 붙임) 화면 아래쪽을 비워둔다.
+            sleep 8
             xcrun simctl io "$UDID" screenshot "$SHOT_DIR/${SAFE_NAME}-02-settled.png" || echo "⚠️ $DEV 2번 사진 실패"
             xcrun simctl shutdown "$UDID" || true
           done

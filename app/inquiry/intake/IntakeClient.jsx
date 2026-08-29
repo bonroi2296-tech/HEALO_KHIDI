@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, UploadCloud, File, X } from 'lucide-react';
+import { ChevronLeft, UploadCloud, File, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import { uploadAttachment } from '@/lib/uploadAttachment';
 import { t } from '@/lib/i18n';
@@ -94,6 +94,8 @@ export function InquiryIntakePage({ setView }) {
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // 못 올라간 첨부 — 완료 화면에서 크게 알린다(토스트로 흘리면 서류가 조용히 사라진다).
+  const [failedUploads, setFailedUploads] = useState([]);
 
   useEffect(() => {
     if (!inquiryId || !token) {
@@ -118,12 +120,19 @@ export function InquiryIntakePage({ setView }) {
     if (!inquiryId || !token) return;
     setSubmitting(true);
     try {
+      // ⚠️ 실패한 첨부를 «토스트 한 번»으로 흘리면, 환자는 다 넘어간 줄 알고 접수를 끝내고
+      //    코디는 그 서류를 영영 못 받는다(2026-08-14 감사: 의료 서류 손실).
+      //    PO 결정(2026-08-15): 접수는 받되 «크게» 경고 + 코디에게도 알린다.
       let extraPaths = [];
+      const failedFiles = [];
       if (files.length) {
         for (const file of files) {
           const uploadResult = await uploadAttachment(file);
           if (uploadResult.ok) extraPaths.push({ path: uploadResult.path, name: uploadResult.name, type: uploadResult.type || null });
-          else toast.error(t(uploadResult.error === 'file_too_large' ? 'chat.upload.tooLarge' : 'chat.upload.failed', langCode));
+          else {
+            failedFiles.push({ name: file.name, reason: uploadResult.error || 'upload_failed' });
+            toast.error(t(uploadResult.error === 'file_too_large' ? 'chat.upload.tooLarge' : 'chat.upload.failed', langCode));
+          }
         }
       }
 
@@ -139,6 +148,8 @@ export function InquiryIntakePage({ setView }) {
         notes: form.notes || null,
       };
       if (extraPaths.length) intakePatch.attachments_extra = extraPaths;
+      // 코디가 「서류가 왜 없지」를 몰라 헤매지 않게, 못 올라간 파일 목록을 문의에 같이 남긴다.
+      if (failedFiles.length) intakePatch.attachments_failed = failedFiles;
 
       const res = await fetch('/api/inquiries/intake', {
         method: 'POST',
@@ -160,6 +171,7 @@ export function InquiryIntakePage({ setView }) {
           body: JSON.stringify({ eventType: 'step2_submitted', inquiryId: Number(inquiryId) }),
         }).catch(() => {});
       }
+      setFailedUploads(failedFiles);
       setDone(true);
     } catch (e) {
       console.error(e);
@@ -176,6 +188,26 @@ export function InquiryIntakePage({ setView }) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
         <p className="text-lg font-bold text-teal-700 mb-6">{t('intake.saved', langCode)}</p>
+
+        {/* 못 올라간 첨부가 있으면 «크게» 알린다 — 토스트로 흘리면 환자는 다 넘어간 줄 알고
+            코디는 그 서류를 영영 못 받는다(PO 결정 2026-08-15: 접수는 받되 크게 경고). */}
+        {failedUploads.length > 0 && (
+          <div role="alert" className="mb-6 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-left">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-amber-900">{t('intake.attachFailed.title', langCode)}</p>
+                <p className="text-xs text-amber-800 leading-relaxed mt-1">{t('intake.attachFailed.desc', langCode)}</p>
+                <ul className="mt-2.5 space-y-1">
+                  {failedUploads.map((f, i) => (
+                    <li key={`${f.name}-${i}`} className="text-xs font-semibold text-amber-900 break-all">• {f.name}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6 rounded-2xl border border-teal-100 bg-teal-50/60 p-5 text-left">
           <p className="text-sm font-semibold text-gray-900 mb-1.5">{t('intakeForm.soft.title', langCode)}</p>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">{t('intakeForm.soft.desc', langCode)}</p>

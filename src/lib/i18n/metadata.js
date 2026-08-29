@@ -34,6 +34,9 @@ export function pickLocalized(obj, locale) {
 // title은 absolute로 줘 루트 template "%s | healwith" 중복을 피한다. OG 제목/설명도 같이 언어화.
 export async function localizedMeta(base, titleKey, descKey) {
   const { locale } = await getRequestLocale();
+  // og:url 은 여기서 넣는다 — 공개 페이지가 각자 openGraph 를 정의하면 layout 것이 통째로
+  // 대체되므로, layout 에만 넣으면 전 페이지에서 사라진다(2026-08-28 실측으로 확인).
+  const alt = await localeAlternates();
   const lc = locale || DEFAULT_LOCALE;
   const title = t(titleKey, lc);
   const description = t(descKey, lc);
@@ -41,7 +44,7 @@ export async function localizedMeta(base, titleKey, descKey) {
     ...base,
     title: { absolute: title },
     description,
-    openGraph: base.openGraph ? { ...base.openGraph, title, description } : base.openGraph,
+    openGraph: base.openGraph ? { ...base.openGraph, title, description, url: alt?.canonical } : base.openGraph,
     // twitter 도 같이 언어화 (2026-07-30): 예전엔 openGraph 만 갈아서, base.twitter 를 둔
     // 화면(홈·treatments·hospitals·immune)의 트위터/공유 카드만 영어로 남아 있었다.
     twitter: base.twitter ? { ...base.twitter, title, description } : base.twitter,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 
 export default function AboutClient() {
   const langCode = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
@@ -46,7 +47,7 @@ export default function AboutClient() {
             <p className="mt-2 text-gray-600">
               {t("about.contactDesc", langCode)}{" "}
               <Link
-                href="/contact"
+                href={localeHref("/contact", langCode)}
                 className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("about.contactLink", langCode)}

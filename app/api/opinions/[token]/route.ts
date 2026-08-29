@@ -17,7 +17,6 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import {
-  checkRateLimit,
   checkRateLimitPersistent,
   getClientIp,
   getRateLimitHeaders,
@@ -220,7 +219,7 @@ export async function GET(
   context: { params: Promise<{ token: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, VIEW_RATE);
+  const rl = await checkRateLimitPersistent(ip, VIEW_RATE);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429, headers: getRateLimitHeaders(rl) });
   }
@@ -245,6 +244,14 @@ export async function GET(
     }
     const inq = await decryptInquiryForAdmin(inqRaw).catch(() => inqRaw);
 
+    // 코디가 확정한 진단코드 — 위 목록에 섞지 말고 «따로» 읽는다(그 컬럼 없는 환경에서 조회 전체가
+    // 죽으면 의료진이 케이스를 아예 못 연다). 요약을 다시 만들 때 이 값이 같이 들어간다.
+    try {
+      const { data: icdRow } = await (supabaseAdmin as any)
+        .from("inquiries").select("icd_code").eq("id", req.inquiry_id).maybeSingle();
+      if (icdRow?.icd_code) inq.icd_code = icdRow.icd_code;
+    } catch { /* 못 읽으면 그 줄만 빠진다 */ }
+
     // 감사로그: 소견 링크로 케이스 PII(이름·임상·첨부)를 열람. 계정 없어 링크 지문으로 식별. 실패해도 진행.
     void logAdminAction({
       adminEmail: `opinion_link:${token.slice(0, 8)}`,
@@ -266,6 +273,9 @@ export async function GET(
         nationality: inq.nationality || null,
         language: inq.spoken_language || null,
         cancer_type: inq.cancer_type || null,
+        // 코디가 확정한 진단코드. 요약(brief)에도 자료로 넘어가지만 모델이 본문에 안 쓸 수 있어서
+        // «칸»으로도 내려준다 — 의료진이 찾는 값을 요약문 운에 맡기지 않는다.
+        icd_code: inq.icd_code || null,
         treatment_type: inq.treatment_type && inq.treatment_type !== inq.cancer_type ? inq.treatment_type : null,
         preferred_date: inq.preferred_date || null,
         preferred_date_flex: !!inq.preferred_date_flex,

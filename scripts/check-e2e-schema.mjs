@@ -112,8 +112,46 @@ if (unreachable.length) {
   process.exit(1);
 }
 
+// ── 「컬럼은 다 있는데 새 행을 못 넣는」 경우도 있다 (2026-08-19 실제 사고) ──────────────
+// 구조 복사 때 **번호 자동 매기기(identity)** 가 안 딸려와서, 시험용 DB 의 inquiries 는
+// insert 를 통째로 거부하고 있었다(23502: null value in column "id"). 컬럼 대조는 통과하므로
+// 이 검사기가 초록을 찍었고, 아무도 «접수»를 시험하지 않아 몇 주간 아무도 몰랐다.
+// → 진짜로 «한 줄 넣어보고 지운다». 시험용 DB 라 넣어도 되고, 이게 유일하게 정직한 확인이다.
+async function canInsert(table, row) {
+  const h = { apikey: KEY, Authorization: `Bearer ${KEY}`, "content-type": "application/json", Prefer: "return=representation" };
+  let res;
+  try {
+    res = await fetch(`${URL_}/rest/v1/${table}`, { method: "POST", headers: h, body: JSON.stringify(row) });
+  } catch (e) {
+    return `${table}: 접속 실패(${e.message})`;
+  }
+  const body = await res.text().catch(() => "");
+  if (!res.ok) {
+    const idNull = /null value in column "id"/i.test(body);
+    return idNull
+      ? `${table}: 번호 자동 매기기(identity)가 없다 → 고치기: alter table public.${table} alter column id add generated always as identity (start with 1);`
+      : `${table}: 넣기 실패 ${res.status} ${body.slice(0, 160)}`;
+  }
+  try {
+    const id = JSON.parse(body)[0]?.id;
+    if (id != null) await fetch(`${URL_}/rest/v1/${table}?id=eq.${id}`, { method: "DELETE", headers: h });
+  } catch { /* 확인용 한 줄이라 못 지워도 시험엔 지장 없다 */ }
+  return null;
+}
+
+const writeFail = await canInsert("inquiries", {
+  first_name: "e2e-schema-probe", email: "e2e-schema-probe@healo-test.invalid",
+  cancer_type: "colorectal", status: "received", is_test: true,
+});
+if (writeFail) {
+  console.error(`
+❌ 시험용 데이터베이스가 새 행을 못 받는다 — 접수 흐름 시험이 전부 헛돈다.`);
+  console.error(`   - ${writeFail}`);
+  process.exit(1);
+}
+
 if (missing.length === 0) {
-  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조)`);
+  console.log(`✓ 시험용 데이터베이스 스키마 일치 (테이블 ${checked}개 실제 대조 + 넣기 1건 실측)`);
   process.exit(0);
 }
 

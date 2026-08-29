@@ -1,0 +1,71 @@
+# 훑기 대장 — 매일 자동으로 「상시 상태」를 훑고, 볼 게 있을 때만 알린다.
+#
+# 왜 창구로 만들었나 (2026-08-14 PO 지시):
+#   `npm run sweep` 을 만들어 놓고 PO 에게 「가끔 돌려라」라고 넘겼더니 PO: *"그걸 내가 심심할때마다 돌려야 하니?"*
+#   맞는 지적이다 — CLAUDE.md 규칙: **PO 에게 셸 명령어를 쥐여주지 마라.** 어시가 할 수 있는 건 어시가 한다.
+#   사람이 기억해야 도는 검사는 결국 안 돌고, 안 도는 검사는 없는 것과 같다.
+#
+# 언제 아나: 볼 게 «있을 때만» 실패로 끝난다 → 깃허브가 저장소 주인에게 실패 메일을 보낸다.
+#   조용하면 이상 없다는 뜻이다(매일 초록 메일이 오면 사람이 곧 무시하게 된다).
+#
+# 🛑 「못 잼」도 실패로 친다. 비밀값이 없어 검사가 빠졌는데 초록으로 보이는 것이
+#    2026-08 야간검사 사고(8일간 조용히 실패)의 정확한 형태였다.
+name: 훑기 대장 (매일)
+
+on:
+  schedule:
+    - cron: "0 23 * * *" # 매일 08:00 KST — 배포 창구(15:00 KST)보다 앞이라 그날 볼 것을 미리 안다
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 「본판 ↔ 실서비스 차이」 검사가 커밋 이력을 본다
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: 훑기
+        env:
+          # ⚠️ 이 저장소의 비밀값은 NEXT_PUBLIC_SUPABASE_URL 이 «비어 있다». 실제 주소는 SUPABASE_URL 에 있다.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # ⚠️ 손님 열쇠(NEXT_PUBLIC_SUPABASE_ANON_KEY)는 아직 저장소 비밀값에 «없다».
+          #    그래서 「손님이 환자 표를 읽나」 검사가 «못 잼»으로 나온다 — 그것도 실패로 잡히니 조용히 묻히진 않는다.
+          #    넣으면 6개가 다 돈다. 이 값은 원래 브라우저로 그대로 나가는 공개값이라 넣어도 위험이 없다.
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        # ⚠️ `set -o pipefail` 을 지우지 마라. 깃허브 작업의 «기본» 셸은 `bash -e {0}` 라
+        #    pipefail 이 꺼져 있고, 그러면 파이프의 종료코드는 맨 끝 `tee` 의 것(=언제나 0)이 된다.
+        #    2026-08-28 실측: 이 창구가 13번 돌아 13번 다 초록이었는데, 실행 기록을 열어보면
+        #    매번 «못 잼 2건»으로 exit 1 하고 있었다. 아래 메일 단계는 매번 «건너뜀»이었고
+        #    경보는 한 통도 안 나갔다 — 이 파일 머리말이 경계하던 「못 잼이 초록으로 보이는 것」
+        #    바로 그것이 이 파일 안에서 일어나고 있었다.
+        #    기계가 막는다: `npm run check:workflow-pipefail`
+        run: |
+          set -o pipefail
+          node scripts/sweep.mjs --alert 2>&1 | tee sweep.txt
+
+      # 메일은 깃허브 기본 알림에 기대지 않는다 — 이미 쓰는 길(Resend → E2E_ALERT_EMAIL)을 그대로 쓴다.
+      # 왜: 깃허브 기본 알림은 「어느 주소로 가는지」가 계정 설정에 숨어 있고 사람이 끄기도 쉽다.
+      #     E2E 검사가 이미 이 길로 실패를 알리고 있으니 받는 곳이 하나로 모인다.
+      - name: 메일로 알리기 (볼 게 있을 때만)
+        if: failure() && env.RESEND_API_KEY != '' && env.E2E_ALERT_EMAIL != ''
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          E2E_ALERT_EMAIL: ${{ secrets.E2E_ALERT_EMAIL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          BODY=$(sed -n '/^──/,$p' sweep.txt | head -20 | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/<br>/g')
+          curl -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"onboarding@resend.dev\",
+              \"to\": \"$E2E_ALERT_EMAIL\",
+              \"subject\": \"🔎 HEALO 훑기 대장 — 볼 것이 있습니다\",
+              \"html\": \"<h2>매일 훑기에서 볼 것이 나왔습니다</h2><p>$BODY</p><p><a href='\\\"$RUN_URL\\\"'>전체 결과 보기 →</a></p>\"
+            }"

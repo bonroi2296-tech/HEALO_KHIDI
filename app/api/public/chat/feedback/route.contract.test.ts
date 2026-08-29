@@ -38,6 +38,9 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
 
 vi.mock("@/lib/rateLimit", () => ({
   checkRateLimit: () => ({ allowed: true }),
+  // 2026-08-13: 비밀 관문은 DB 기반(cross-isolate) 판을 쓴다 → 그쪽도 흉내내야 한다.
+  checkRateLimitPersistent: async () => ({ allowed: true, remaining: 99, resetAt: 0 }),
+  getRateLimitHeaders: () => ({}),
   getClientIp: () => "127.0.0.1",
   RATE_LIMITS: { CHAT: { windowMs: 60000, maxRequests: 100, apiName: "chat" } },
 }));

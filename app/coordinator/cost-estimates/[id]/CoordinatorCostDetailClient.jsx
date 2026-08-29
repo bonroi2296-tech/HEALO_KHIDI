@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useCoordinatorL, useDateLocale, useBackofficeLang } from "@/lib/i18n/coordinator";
+import { t } from "@/lib/i18n";
+import { IMMUNE_CLINIC_PRICES, PRICE_SOURCE_DATE, priceLang } from "@/lib/costs/immuneClinicPrices";
 
 // 상태 enum 키 순서만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
 const STATUSES = [
@@ -50,6 +52,8 @@ function feeCapMessage(detail, L) {
 
 export default function CoordinatorCostDetailClient({ estimateId }) {
   const L = useCoordinatorL();
+  // 코디 포털 언어(healo_bo_lang). 공개 사이트 언어와 별개다.
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   const STATUS_LABELS = {
     auto_range: L.coStatusAutoRange,
@@ -109,6 +113,27 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
 
   function addItem() {
     setItems([...items, { label: "", note: "", krw: "", usd: "" }]);
+  }
+
+  // 확정 가격표에서 고르면 항목명·비고·금액이 채워진 줄이 추가된다. 손으로 치면 오타가 난다.
+  // 범위가 있는 항목(예: 글루타치온 3만~6만)은 최소값을 넣는다 — 코디가 실제 용량에 맞춰 고친다.
+  function addFromPriceList(itemCode) {
+    if (!itemCode) return;
+    const pl = priceLang(lang);
+    for (const group of IMMUNE_CLINIC_PRICES) {
+      const found = group.items.find((it) => it.code === itemCode);
+      if (!found) continue;
+      setItems([
+        ...items,
+        {
+          label: found.label[pl] || found.label.ko,
+          note: found.note ? found.note[pl] || found.note.ko : "",
+          krw: String(found.krw),
+          usd: "",
+        },
+      ]);
+      return;
+    }
   }
   function removeItem(i) {
     setItems(items.filter((_, idx) => idx !== i));
@@ -285,13 +310,13 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
         </div>
       </section>
 
-      {/* 자동 범위 */}
-      {estimate.auto_min_krw && (
+      {/* 환자가 무엇에 대해 견적을 요청했는지. 병원에 물어야 할 대상이다. */}
+      {estimate.cancer_type && (
         <section className="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <h2 className="font-medium text-sm">{L.coAutoRangeTier1}</h2>
+          <h2 className="font-medium text-sm">{L.coColSubject}</h2>
           <p className="text-sm text-gray-700 mt-1">
-            {Number(estimate.auto_min_krw).toLocaleString(dateLoc)} ~{" "}
-            {Number(estimate.auto_max_krw).toLocaleString(dateLoc)} KRW
+            {t(`costCalc.cancers.${estimate.cancer_type}`, lang)}
+            {estimate.stage && estimate.stage !== "unknown" ? ` · ${estimate.stage}` : ""}
           </p>
         </section>
       )}
@@ -301,14 +326,39 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="font-medium text-sm">{L.coItems}</h2>
           {canEdit && (
-            <button
-              onClick={addItem}
-              className="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-700"
-            >
-              + {L.coAddItem}
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value=""
+                onChange={(e) => { addFromPriceList(e.target.value); e.target.value = ""; }}
+                className="text-xs border border-gray-300 rounded px-2 py-1 max-w-[15rem]"
+                aria-label={L.coPickFromPrices}
+              >
+                <option value="">{L.coPickFromPrices}</option>
+                {IMMUNE_CLINIC_PRICES.map((g) => (
+                  <optgroup key={g.code} label={g.title[priceLang(lang)] || g.title.ko}>
+                    {g.items.map((it) => (
+                      <option key={it.code} value={it.code}>
+                        {(it.label[priceLang(lang)] || it.label.ko)} · {Number(it.krw).toLocaleString(dateLoc)}
+                        {it.krwMax ? `~${Number(it.krwMax).toLocaleString(dateLoc)}` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <button
+                onClick={addItem}
+                className="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-700"
+              >
+                + {L.coAddItem}
+              </button>
+            </div>
           )}
         </div>
+        {canEdit && (
+          <p className="px-4 pt-2 text-xs text-gray-500">
+            {L.coPriceListNote.replace("{date}", PRICE_SOURCE_DATE)}
+          </p>
+        )}
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
             <tr>

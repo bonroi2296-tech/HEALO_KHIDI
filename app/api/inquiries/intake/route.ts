@@ -44,10 +44,12 @@ export async function POST(request: NextRequest) {
     checkBlockRate().catch(err => console.error('[alert] checkBlockRate failed:', err));
 
     // ✅ P2: 퍼널 이벤트 추적 (차단)
-    trackFunnelEvent({
+    // after(): 응답을 보낸 뒤에도 함수를 살려 둔다. 안 감싸면 서버리스가 그대로 얼어서
+    // 기록이 «조용히 사라진다» (2026-08-20 실측: 문의 145건에 퍼널 이벤트 1건뿐이었다).
+    after(() => trackFunnelEvent({
       stage: 'form_blocked',
       dropReason: 'rate_limit_exceeded',
-    });
+    }));
     
     return Response.json(
       { 
@@ -196,9 +198,11 @@ export async function POST(request: NextRequest) {
     logInquiryReceived(apiPath, clientIp, { inquiryId });
 
     // ✅ P2: 퍼널 이벤트 추적 (Step2 제출)
-    trackFunnelEvent({
+    // after(): 응답을 보낸 뒤에도 함수를 살려 둔다. 안 감싸면 서버리스가 그대로 얼어서
+    // 기록이 «조용히 사라진다» (2026-08-20 실측: 문의 145건에 퍼널 이벤트 1건뿐이었다).
+    after(() => trackFunnelEvent({
       stage: 'form_step2_submit',
-    });
+    }));
 
     // ✅ P4.1: 관리자 알림 (fail-safe: 알림 실패해도 메인 로직 영향 없음)
     // 최신 inquiry 정보 조회하여 알림

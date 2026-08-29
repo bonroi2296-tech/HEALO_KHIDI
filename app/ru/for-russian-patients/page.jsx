@@ -51,6 +51,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    url: "/ru/for-russian-patients",
     title: "Лечение рака в Корее | healwith — Медицинский консьерж",
     description:
       "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR, иммунотерапия корейской медицины. Поддержка на русском языке.",
@@ -140,7 +141,7 @@ export default function ForRussianPatientsPage() {
               Второе мнение бесплатно · WhatsApp
             </a>
             <Link
-              href="/inquiry"
+              href="/ru/inquiry"
               className="border border-teal-600 text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
               Оставить заявку
@@ -194,7 +195,7 @@ export default function ForRussianPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -263,21 +264,21 @@ export default function ForRussianPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Виза C-3-3: краткосрочная (до 90 дней)</li>
                 <li>• Срок оформления: 5–7 рабочих дней</li>
                 <li>• Документы: паспорт, письмо клиники, страховка</li>
                 <li>• healwith готовит пакет документов</li>
               </ul>
-              <Link href="/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/ru/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Подробнее о визе →
               </Link>
             </div>
             {/* 가격 출처 = src/lib/chat/careReference.ts (면력한방병원 암 진료비 안내 2026-06 · PO 제공) — 가격 개정 시 거기와 같이 갱신.
                 단 항공권 줄은 진료비 자료가 아니라 일반 시세 참고치(예외). */}
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Онкохирургия в университетских клиниках: $3 000–18 500 (по типу рака)</li>
                 <li>• Интегративный иммунный курс (стационар): $740–1 480/нед., палата отдельно</li>
@@ -287,7 +288,7 @@ export default function ForRussianPatientsPage() {
               <p className="text-[11px] text-gray-400 mt-3">
                 Диапазоны ориентировочные, а не фиксированные цены. Точная стоимость — после изучения медицинских документов; предварительный расчёт бесплатен.
               </p>
-              <Link href="/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/ru/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Получить точный расчёт →
               </Link>
             </div>
@@ -326,7 +327,7 @@ export default function ForRussianPatientsPage() {
               Написать в WhatsApp
             </a>
             <Link
-              href="/inquiry"
+              href="/ru/inquiry"
               className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Оставить заявку
@@ -337,12 +338,12 @@ export default function ForRussianPatientsPage() {
         {/* ── Internal links ─────────────────────────────── */}
         <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
           <Link href="/ru" className="hover:text-teal-700">Главная (RU)</Link>
-          <Link href="/treatments" className="hover:text-teal-700">Виды лечения</Link>
-          <Link href="/hospitals" className="hover:text-teal-700">Больницы</Link>
+          <Link href="/ru/treatments" className="hover:text-teal-700">Виды лечения</Link>
+          <Link href="/ru/hospitals" className="hover:text-teal-700">Больницы</Link>
           {/* Immune Hospital 직링크 제거 — 광고 심사 경로에서 「세포 치료」를 떼어내기 위함.
               병원 목록(/hospitals)을 통해서는 그대로 갈 수 있다. */}
-          <Link href="/visa" className="hover:text-teal-700">Виза</Link>
-          <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
+          <Link href="/ru/visa" className="hover:text-teal-700">Виза</Link>
+          <Link href="/ru/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>
       </main>
     </>

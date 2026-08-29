@@ -5,6 +5,7 @@ import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Papercl
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
+import { isNativeApp } from "@/lib/isNativeApp";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
 import { describeUpload } from "@/lib/uploadPolicy";
@@ -215,6 +216,10 @@ function ChatInstallHint({ lang }) {
 
   useEffect(() => {
     try {
+      // 🍎 스토어 앱 안이면 뜨면 안 된다 — InstallPrompt 와 «같은 구멍»이 여기에도 있었다(2026-08-14).
+      //    Capacitor WKWebView 는 아래 standalone 이 false 인데 이름표엔 iPhone·Safari 가 남아 있어
+      //    «아이폰 사파리 방문자»로 오인된다. 자세한 경위는 app/InstallPrompt.jsx 주석 참조.
+      if (isNativeApp()) { setHidden(true); return; }
       if (localStorage.getItem("a2hs-dismissed") === "1") { setHidden(true); return; }
       const standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
       if (standalone) { setHidden(true); return; } // 이미 설치됨
@@ -952,7 +957,13 @@ export function ThreadChat({ onBack, backLabel } = {}) {
         finalText ||
         (t("chat.aiUnavailable", langCode) ||
           "I'm having trouble generating a response right now. Please try again in a moment.");
-      setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: safeText } : m)));
+      // 말풍선 id 를 서버가 알려준 «진짜» 메시지 번호로 바꾼다.
+      // 임시 번호(`ai_<시각>`)를 그대로 두면 답변 평가가 chat_feedback.message_id(uuid) 에 걸려
+      // 500 으로 죽는다 — 실측(2026-08-20): 챗 메시지 1,068건인데 평가는 0건이었다.
+      const realId = meta?.message_id || null;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === aiId ? { ...m, id: realId || m.id, content: safeText } : m))
+      );
 
       if (meta?.ai_error) {
         console.warn("[ThreadChat] AI returned error reply:", meta.ai_error);

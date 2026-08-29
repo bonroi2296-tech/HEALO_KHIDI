@@ -1,0 +1,50 @@
+{
+  "_왜있나": "이미 알고 있고 «지금은 안 고치기로 한» 것들. 이만큼까지는 조용히 넘어가고, 이보다 늘면 알린다. 이게 없으면 매일 같은 경보가 울려 사람이 검사 전체를 무시하게 된다.",
+  "_주의": "여기 값을 늘려서 경보를 끄지 마라. 늘리려면 「왜」와 「재검토일」을 같이 고쳐야 한다. 재검토일이 지나면 검사가 스스로 알린다.",
+  "평문개인정보": {
+    "허용": {
+      "consultation_guest_tokens.invitee_email": 7,
+      "consultation_guest_tokens.invitee_name": 10,
+      "reminders_scheduled.recipient_address": 3,
+      "profiles.full_name": 4
+    },
+    "왜": "셋 다 평문으로 «읽는 것이 설계»다 — 알림 메일이 그 값을 그대로 받는 곳에 넘기고, 가입자 이름은 어드민 화면이 복호화 없이 띄운다. 값만 잠그면 메일이 안 나가고 화면에 암호문이 뜬다. 쓰는 쪽·읽는 쪽을 짝지어 고쳐야 한다(반쪽 금지). 지금 새고 있진 않다 — 세 표 모두 접근권한 규칙 켜짐 + 익명 허용 0개(2026-08-14 실측).",
+    "재검토일": "2026-09-15",
+    "상세": "docs/KNOWN_ISSUES.md"
+  },
+  "앱출시": {
+    "_왜있나": "웹은 고치면 바로 폰에 반영되지만(라이브 로드), 「네이티브 부품」은 앱 파일(AAB)을 새로 구워 스토어에 올려야 들어간다. 2026-08-19 PO 제보(뒤로가기가 앱을 끈다)가 정확히 이 함정이었다 — 8/5 에 고쳤는데 폰에 깔린 판은 8/4 소스라 부품 자체가 없었고, 웹 배포로는 영원히 안 갔다.",
+    "안드로이드": {
+      "versionCode": 10,
+      "versionName": "1.0.9",
+      "게시일": "2026-08-20 16:01 (내부 테스트 게시). 같은 날 오전 판(9)은 프로덕션 심사 제출됨",
+      "부품": [
+        "capacitor-app",
+        "capacitor-keyboard",
+        "capacitor-push-notifications",
+        "capacitor-splash-screen",
+        "capacitor-status-bar"
+      ],
+      "_부품이_판정기준": "검사는 이 목록과 지금 android/app/capacitor.build.gradle 을 맞대 본다. 저장소에만 있는 부품 = 그 기능이 폰에서 죽어 있다는 뜻. 버전코드는 안 믿는다 — 8/5 뒤로가기 고침은 버전코드를 안 올리고 부품만 넣었다.",
+      "빌드한소스": "d3e26bc0",
+      "_빌드한소스주석": "AAB 를 구운 그 나무(트리)의 커밋. 「Apple 연결 중」 수리(allowNavigation 두 호스트 추가)가 담긴 판이다."
+    },
+    "아이폰": {
+      "build": 4,
+      "versionName": "1.0",
+      "게시일": "2026-08-28 15:00 (TestFlight 전송 완료, Codemagic 빌드 #11)",
+      "부품": [
+        "@capacitor/app",
+        "@capacitor/keyboard",
+        "@capacitor/push-notifications",
+        "@capacitor/splash-screen",
+        "@capacitor/status-bar",
+        "@capawesome/capacitor-apple-sign-in"
+      ],
+      "_부품이_판정기준": "검사는 이 목록과 지금 package.json 의 캐패시터 부품을 맞대 본다. 저장소에만 있는 부품 = 그 기능이 아이폰에서 죽어 있다는 뜻. ⚠️ Package.swift 를 기준으로 삼지 마라 — `npx cap sync ios` 를 안 돌리면 낡은 채로 남아 «거짓 통과»가 된다. package.json 은 항상 최신이다.",
+      "빌드한소스": "7b0dece",
+      "_왜_아이폰도_보나": "2026-08-28 사고: 아이폰 빌드 3 에는 @capacitor/app 이 안 실려 있었는데 이 검사가 안드로이드만 봐서 «통과»로 나왔다. 그날 애플 로그인이 실기기에서 죽었고 훑기로는 끝내 못 잡았다. 그래서 아이폰 칸을 만들었다."
+    },
+    "고칠때": "스토어에 새 판을 올렸으면 여기 값을 그 판으로 바꿔라. 안드로이드 부품은 그 판을 구운 커밋의 android/app/capacitor.build.gradle 에서, 아이폰 부품은 그 판을 구운 Codemagic 빌드 로그의 「Found N Capacitor plugins for ios」 목록에서 뽑아라."
+  }
+}

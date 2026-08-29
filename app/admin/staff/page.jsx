@@ -23,11 +23,12 @@ const TR = {
     lblEmailColon: "이메일:", lblPasswordColon: "비밀번호:", loginColon: "로그인:",
     btnCopyCreds: "로그인 정보 복사", copiedToast: "로그인 정보 복사됨",
     registeredHeading: "등록된 직원", loadingText: "불러오는 중…", emptyStaff: "아직 등록된 코디네이터 계정이 없습니다.",
+    btnResetPassword: "비밀번호 초기화", confirmResetPasswordTpl: "{name} 님의 비밀번호를 초기화할까요? 새 임시 비밀번호가 발급되고, 기존 비밀번호로는 로그인할 수 없습니다.", toastPasswordReset: "비밀번호를 초기화했습니다. 아래 임시 비밀번호를 전달하세요.",
     statusDisabled: "비활성", btnEdit: "수정", btnDisable: "비활성화", btnEnable: "재활성화",
     confirmDisableTpl: "{name} 을(를) 비활성화할까요?\n(목록엔 '비활성'으로 남고, 상담 배정 드롭다운에서만 제외됩니다. 언제든 재활성화 가능)",
     toastFailPrefix: "실패: ", toastDisabledOn: "비활성화됨", toastDisabledOff: "재활성화됨", toastRequestFail: "요청 실패",
     errEmailRequired: "이메일을 입력하세요", errPasswordShort: "임시 비밀번호는 최소 6자 (비우면 자동 생성)", errPasswordShortServer: "임시 비밀번호는 최소 6자",
-    toastCreatedNewTpl: "{role} 계정 생성 완료", toastCreatedExistingTpl: "기존 계정에 {role} 역할 부여 + 비번 재설정",
+    toastCreatedNewTpl: "{role} 계정 생성 완료", toastCreatedExistingTpl: "기존 계정에 {role} 역할 부여 (비밀번호는 그대로)",
   },
   en: {
     roleCoordinator: "Coordinator",
@@ -42,11 +43,12 @@ const TR = {
     lblEmailColon: "Email:", lblPasswordColon: "Password:", loginColon: "Login:",
     btnCopyCreds: "Copy login details", copiedToast: "Login details copied",
     registeredHeading: "Registered staff", loadingText: "Loading…", emptyStaff: "No coordinator accounts registered yet.",
+    btnResetPassword: "Reset password", confirmResetPasswordTpl: "Reset {name}'s password? A new temporary password will be issued and the old one will stop working.", toastPasswordReset: "Password reset. Share the temporary password below.",
     statusDisabled: "Disabled", btnEdit: "Edit", btnDisable: "Disable", btnEnable: "Re-enable",
     confirmDisableTpl: "Disable {name}?\n(Stays in the list as 'Disabled' and is only excluded from the consultation-assignment dropdown. Can be re-enabled anytime.)",
     toastFailPrefix: "Failed: ", toastDisabledOn: "Disabled", toastDisabledOff: "Re-enabled", toastRequestFail: "Request failed",
     errEmailRequired: "Please enter an email", errPasswordShort: "Temporary password must be at least 6 characters (leave blank to auto-generate)", errPasswordShortServer: "Temporary password must be at least 6 characters",
-    toastCreatedNewTpl: "{role} account created", toastCreatedExistingTpl: "{role} role assigned to existing account + password reset",
+    toastCreatedNewTpl: "{role} account created", toastCreatedExistingTpl: "{role} role assigned to existing account (password unchanged)",
   },
   ru: {
     roleCoordinator: "Координатор",
@@ -61,11 +63,12 @@ const TR = {
     lblEmailColon: "Email:", lblPasswordColon: "Пароль:", loginColon: "Вход:",
     btnCopyCreds: "Скопировать данные для входа", copiedToast: "Данные для входа скопированы",
     registeredHeading: "Зарегистрированные сотрудники", loadingText: "Загрузка…", emptyStaff: "Пока нет зарегистрированных координаторов.",
+    btnResetPassword: "Сбросить пароль", confirmResetPasswordTpl: "Сбросить пароль для {name}? Будет выдан новый временный пароль, старый перестанет работать.", toastPasswordReset: "Пароль сброшен. Передайте временный пароль ниже.",
     statusDisabled: "Отключён", btnEdit: "Изменить", btnDisable: "Отключить", btnEnable: "Включить",
     confirmDisableTpl: "Отключить {name}?\n(Останется в списке как «Отключён» и будет исключён только из выпадающего списка назначения консультаций. Можно включить снова в любой момент)",
     toastFailPrefix: "Ошибка: ", toastDisabledOn: "Отключён", toastDisabledOff: "Включён", toastRequestFail: "Запрос не выполнен",
     errEmailRequired: "Введите email", errPasswordShort: "Временный пароль — минимум 6 символов (оставьте пустым для автогенерации)", errPasswordShortServer: "Временный пароль — минимум 6 символов",
-    toastCreatedNewTpl: "Аккаунт «{role}» создан", toastCreatedExistingTpl: "Роль «{role}» назначена существующему аккаунту + пароль сброшен",
+    toastCreatedNewTpl: "Аккаунт «{role}» создан", toastCreatedExistingTpl: "Роль «{role}» назначена существующему аккаунту (пароль не изменён)",
   },
   kz: {
     roleCoordinator: "Үйлестіруші",
@@ -80,6 +83,7 @@ const TR = {
     lblEmailColon: "Email:", lblPasswordColon: "Құпия сөз:", loginColon: "Кіру:",
     btnCopyCreds: "Кіру деректерін көшіру", copiedToast: "Кіру деректері көшірілді",
     registeredHeading: "Тіркелген қызметкерлер", loadingText: "Жүктелуде…", emptyStaff: "Әзірге тіркелген үйлестіруші аккаунты жоқ.",
+    btnResetPassword: "Құпиясөзді қалпына келтіру", confirmResetPasswordTpl: "{name} құпиясөзін қалпына келтіру керек пе? Жаңа уақытша құпиясөз беріледі, ескісі жарамсыз болады.", toastPasswordReset: "Құпиясөз қалпына келтірілді. Төмендегі уақытша құпиясөзді беріңіз.",
     statusDisabled: "Өшірулі", btnEdit: "Өңдеу", btnDisable: "Өшіру", btnEnable: "Қайта қосу",
     confirmDisableTpl: "{name} өшірілсін бе?\n(Тізімде «Өшірулі» болып қалады, тек кеңес тағайындау ашылмалы тізімінен алынады. Кез келген уақытта қайта қосуға болады)",
     toastFailPrefix: "Қате: ", toastDisabledOn: "Өшірілді", toastDisabledOff: "Қайта қосылды", toastRequestFail: "Сұрау орындалмады",
@@ -99,6 +103,7 @@ const TR = {
     lblEmailColon: "邮箱：", lblPasswordColon: "密码：", loginColon: "登录：",
     btnCopyCreds: "复制登录信息", copiedToast: "登录信息已复制",
     registeredHeading: "已注册员工", loadingText: "加载中…", emptyStaff: "暂无已注册的协调员账户。",
+    btnResetPassword: "重置密码", confirmResetPasswordTpl: "要重置 {name} 的密码吗？将生成新的临时密码，原密码将失效。", toastPasswordReset: "密码已重置。请将下方临时密码转交。",
     statusDisabled: "已停用", btnEdit: "编辑", btnDisable: "停用", btnEnable: "重新启用",
     confirmDisableTpl: "确定停用 {name} 吗？\n（将在列表中保留为“已停用”，仅从会诊分配下拉列表中排除，可随时重新启用）",
     toastFailPrefix: "失败：", toastDisabledOn: "已停用", toastDisabledOff: "已重新启用", toastRequestFail: "请求失败",
@@ -137,6 +142,8 @@ export default function AdminStaffPage() {
   const [form, setForm] = useState({ name: "", email: "", role: "coordinator", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState(null);
+  // 비밀번호 초기화 진행 중인 직원 — 연타 방지.
+  const [resettingEmail, setResettingEmail] = useState("");
 
   async function authHeaders() {
     const { data } = await supabase.auth.getSession();
@@ -160,6 +167,33 @@ export default function AdminStaffPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // 비밀번호 초기화 — 「수정」과 «분리»된 별도 동작(2026-08-15 PO 결정).
+  // 예전엔 「수정 → 제출」이 무조건 비번을 덮어써서, 이름 오타만 고쳐도 그 직원이 로그인 불가가 됐다.
+  async function handleResetPassword(s) {
+    if (!confirm(fmt(tt("confirmResetPasswordTpl"), { name: s.full_name || s.email }))) return;
+    setResettingEmail(s.email);
+    setLastCreated(null);
+    try {
+      const res = await fetch("/api/admin/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ email: s.email, role: s.role, resetPassword: true }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`${tt("toastFailPrefix")}${result.error || "unknown"}`);
+        return;
+      }
+      toast.success(tt("toastPasswordReset"));
+      setLastCreated({ email: result.loginEmail, password: result.tempPassword });
+      load();
+    } catch {
+      toast.error(tt("toastRequestFail"));
+    } finally {
+      setResettingEmail("");
+    }
+  }
 
   async function handleToggleDisabled(s) {
     const disabled = !s.disabled;
@@ -332,6 +366,13 @@ export default function AdminStaffPage() {
                   className="text-xs font-semibold text-gray-600 hover:text-teal-700 px-2 py-1"
                 >
                   {tt("btnEdit")}
+                </button>
+                <button
+                  onClick={() => handleResetPassword(s)}
+                  disabled={resettingEmail === s.email}
+                  className="text-xs font-semibold text-amber-700 hover:text-amber-800 px-2 py-1 disabled:opacity-50"
+                >
+                  {tt("btnResetPassword")}
                 </button>
                 <button
                   onClick={() => handleToggleDisabled(s)}

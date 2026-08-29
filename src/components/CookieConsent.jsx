@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { isNativeApp } from "@/lib/isNativeApp";
 
@@ -75,7 +76,7 @@ export default function CookieConsent() {
         <div className="flex-1 text-sm text-gray-600">
           <p className="font-semibold text-gray-900 mb-1">{tr("title")}</p>
           <p>{tr("body")}{" "}
-            <a href="/cookies" className="touch-inline text-teal-700 underline">{tr("learnMore")}</a>
+            <a href={localeHref("/cookies", lang)} className="touch-inline text-teal-700 underline">{tr("learnMore")}</a>
           </p>
         </div>
         <div className="flex gap-2 shrink-0">

@@ -18,7 +18,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
 import { describeUpload } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
-import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
@@ -27,6 +27,9 @@ import OpinionsSection from "./OpinionsSection";
 import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
+import ProgressSection from "./ProgressSection";
+import HospitalMatchSection from "./HospitalMatchSection";
+import ReferralSection from "./ReferralSection";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -66,6 +69,78 @@ function Row({ icon: Icon, label, value }) {
       </div>
       <div className="w-28 shrink-0 text-sm text-gray-500">{label}</div>
       <div className="flex-1 text-sm text-gray-900 break-words">{value || "—"}</div>
+    </div>
+  );
+}
+
+/**
+ * 진단코드 줄 — 코디가 직접 넣고 고친다(Row 와 같은 모양이되 값이 입력칸이다).
+ *
+ * 환자가 의뢰서에 적은 코드와는 «다른 칸»이다(inquiries.icd_code). 환자 자가 신고를 코디 확정으로
+ * 덮어쓰지 않으려고 갈라 뒀다. 암종을 고른 케이스면 그 부위 코드를 권하되 자동으로 넣지는 않는다.
+ */
+function IcdCodeRow({ inquiryId, initial, cancerType, L, lang }) {
+  const [code, setCode] = useState(initial || "");
+  // 저장에 성공한 «마지막 값». 처음 값(initial)을 계속 기준으로 삼으면 저장한 뒤에도 저장 단추가
+  // 남아 있어 「저장이 된 건지」를 알 수 없다(2026-08-26 화면 확인에서 실제로 그랬다).
+  const [saved, setSaved] = useState(initial || "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const sugg = icd10SuggestionFor(cancerType);
+  const dirty = (code || "").trim().toUpperCase() !== saved;
+
+  const save = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/icd-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ code }),
+      });
+      const r = await res.json();
+      if (!res.ok || !r.ok) throw new Error(r.error || "save_failed");
+      setCode(r.code || "");
+      setSaved(r.code || "");
+      setMsg({ ok: true, text: L.coSaveDone });
+    } catch {
+      setMsg({ ok: false, text: L.coSaveFail });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="w-6 shrink-0 text-gray-500 pt-0.5"><FileText size={16} /></div>
+      <div className="w-28 shrink-0 text-sm text-gray-500">{L.ibIcdCode}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={code}
+            onChange={(e) => { setCode(e.target.value); setMsg(null); }}
+            placeholder={sugg ? sugg.code : "C18.2"}
+            className="w-32 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm uppercase outline-none focus:border-teal-700"
+          />
+          {dirty && (
+            <button type="button" onClick={save} disabled={saving}
+                    className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-50">
+              {saving ? L.coSaving : L.ibIcdSave}
+            </button>
+          )}
+          {sugg && code.trim().toUpperCase() !== sugg.code && (
+            <button type="button" onClick={() => { setCode(sugg.code); setMsg(null); }}
+                    className="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100">
+              {L.ibIcdSuggest}: {sugg.code} · {cancerTypeLabelL(cancerType, lang)}
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-gray-500">{L.ibIcdNote}</p>
+        {msg && (
+          <p className={`mt-1 text-xs font-semibold ${msg.ok ? "text-emerald-700" : "text-red-600"}`}>{msg.text}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -566,6 +641,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttDownloadPath(null);
   }
 
+  // 병원에 넘길 자료를 «한 번에» 확보 — 파일을 낱개로 순서대로 받는다.
+  //   왜 하나로 압축하지 «않나»: ①병원 메일이 압축파일을 막는 경우가 있고
+  //   (세브란스 2026-08 회신: 실행파일 자동 차단) ②받은 뒤 클라우드에 올릴 때 낱개가
+  //   그대로 폴더에 들어가 병원이 풀 필요가 없다. 서버에서 수백 MB 를 묶을 일도 없어진다.
+  const [bulkDown, setBulkDown] = useState(null); // { done, total } | null
+  async function downloadAllAttachments(atts) {
+    const list = (Array.isArray(atts) ? atts : [])
+      .map((a) => ({
+        path: typeof a === "string" ? a : a?.path,
+        name: (typeof a === "object" && a?.name) || null,
+      }))
+      .filter((x) => x.path);
+    if (!list.length || bulkDown) return;
+    setBulkDown({ done: 0, total: list.length });
+    for (let i = 0; i < list.length; i++) {
+      await downloadAttachment(list[i].path, list[i].name || list[i].path.split("/").pop());
+      setBulkDown({ done: i + 1, total: list.length });
+      // 연달아 내려받으면 브라우저가 «자동 다운로드»로 보고 막는다(크롬은 한 번 «허용»을 묻는다).
+      // 사이를 조금 띄우면 그 물음이 한 번으로 끝난다.
+      if (i < list.length - 1) await new Promise((r) => setTimeout(r, 600));
+    }
+    setTimeout(() => setBulkDown(null), 1500);
+  }
+
   // 첨부 번역: 외국 검사지를 병원·환자 전달용으로 원문 1:1 번역(요약 아님, 숫자 보존). 출력 언어=ko/en/ru.
   const [transLoadingKey, setTransLoadingKey] = useState(null); // `${path}::${lang}` 로딩중
   const [translations, setTranslations] = useState({}); // `${path}::${lang}` -> { doc } | { error }
@@ -1021,6 +1120,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <Card title={L.ibMedicalCard}>
           <Row icon={Globe} label={L.nationality} value={nationality} />
           <Row icon={Stethoscope} label={L.cancerType} value={cancer} />
+          <IcdCodeRow
+            inquiryId={inquiryId}
+            initial={inquiry.icd_code || ""}
+            cancerType={inquiry.cancer_type || null}
+            L={L}
+            lang={lang}
+          />
           <Row
             icon={Calendar}
             label={L.ibPreferredDate}
@@ -1175,6 +1281,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         );
       })()}
 
+      {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
+      <ReferralSection referral={inquiry.referral} lang={lang} />
+
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
       {(() => {
@@ -1182,6 +1291,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         return (
         <Card title={`${L.ibAttachmentsCard} (${atts.length})`}>
           <div className="space-y-2">
+            {/* 병원 의뢰용 — 파일이 2개 이상일 때만. 1개면 아래 낱개 버튼으로 충분하다. */}
+            {atts.length > 1 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => downloadAllAttachments(atts)}
+                  disabled={!!bulkDown}
+                  title={L.atDownloadAllTitle}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-teal-700 text-xs font-medium hover:bg-teal-100 disabled:opacity-60"
+                >
+                  {bulkDown ? (
+                    <span className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Download size={13} />
+                  )}
+                  {bulkDown
+                    ? `${L.atDownloadAllBusy} ${bulkDown.done}/${bulkDown.total}`
+                    : `${L.atDownloadAll} (${atts.length})`}
+                </button>
+              </div>
+            )}
             {atts.map((a, i) => {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
@@ -1382,6 +1512,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         inquiryId={inquiryId}
         patientLang={inquiry?.preferred_language || inquiry?.spoken_language || null}
       />
+
+      {/* 이 암종을 진료하는 병원 — 병원 등록 정보 기준(공고 ICT ① 매칭). 순위는 안 매긴다. */}
+      <HospitalMatchSection cancerType={inquiry?.cancer_type || null} />
+
+      {/* 사후관리 경과 — 해외 의료기관·환자가 올린 검사결과·영상·소견(읽기 전용, 공고 ICT ④). */}
+      <ProgressSection inquiryId={inquiryId} />
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>

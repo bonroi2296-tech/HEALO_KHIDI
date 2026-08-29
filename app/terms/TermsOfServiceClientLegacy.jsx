@@ -83,9 +83,7 @@ export default function TermsOfServiceClientLegacy() {
                     onMouseEnter={e => { if (activeId !== id) e.currentTarget.style.background = "#f0fdfa"; }}
                     onMouseLeave={e => { if (activeId !== id) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <span style={{ color: activeId === id ? "rgba(255,255,255,0.65)" : "#94a3b8", fontSize: "0.625rem", paddingTop: 2, flexShrink: 0 }}>
-                      {String(idx + 1).padStart(2, "0")}
-                    </span>
+                    {/* 번호는 제목 문자열(“제1조 (목적)”)에 이미 들어 있다 — 자동 순번을 또 붙이면 이중 번호가 된다 */}
                     <span>{s.title}</span>
                   </a>
                 );
@@ -108,11 +106,6 @@ export default function TermsOfServiceClientLegacy() {
                     borderBottom: idx < sections.length - 1 ? "1px solid #e2e8f0" : "none",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                    <span style={{ background: "#0d9488", color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", fontFamily: "monospace" }}>
-                      Article {String(idx + 1).padStart(2, "0")}
-                    </span>
-                  </div>
                   <h2 style={{ fontSize: "clamp(1.125rem, 2.5vw, 1.5rem)", fontWeight: 800, color: "#0f172a", margin: "0 0 16px", lineHeight: 1.25 }}>
                     {section.title}
                   </h2>
@@ -131,12 +124,12 @@ export default function TermsOfServiceClientLegacy() {
             <footer style={{ marginTop: 48, paddingTop: 24, borderTop: "2px solid #99f6e4", fontSize: "0.75rem", color: "#64748b", lineHeight: 1.7 }}>
               <p style={{ margin: 0 }}>
                 {(() => { const t = {
-                  ko: "이 약관은 대한민국 전자상거래법, 의료법, 의료해외진출법을 기반으로 작성되었습니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.",
-                  en: "These terms are based on the Republic of Korea's E-Commerce Act, Medical Service Act, and Act on Support for Overseas Expansion of Healthcare. Final legal effect is subject to applicable law and attorney review.",
-                  ru: "Настоящие условия основаны на законах Республики Корея об электронной торговле, о медицинском обслуживании и о поддержке зарубежного развития здравоохранения. Окончательная юридическая сила определяется применимым законодательством и проверкой юриста.",
-                  kz: "Бұл шарттар Корея Республикасының электрондық сауда, медициналық қызмет және денсаулық сақтауды шетелде дамыту туралы заңдарына негізделген. Түпкілікті заңды күші қолданыстағы заңнама мен заңгердің тексеруіне байланысты.",
-                  zh: "本条款依据韩国《电子商务法》《医疗法》及《医疗海外拓展法》制定。最终法律效力以适用法律及律师审核为准。",
-                  ja: "本規約は韓国の電子商取引法、医療法、医療海外進出法に基づいて作成されています。最終的な法的効力は適用法令および弁護士の確認に従います。",
+                  ko: "이 약관은 대한민국 전자상거래법, 의료법, 의료해외진출법을 기반으로 작성되었습니다.",
+                  en: "These terms are based on the Republic of Korea's E-Commerce Act, Medical Service Act, and Act on Support for Overseas Expansion of Healthcare.",
+                  ru: "Настоящие условия основаны на законах Республики Корея об электронной торговле, о медицинском обслуживании и о поддержке зарубежного развития здравоохранения.",
+                  kz: "Бұл шарттар Корея Республикасының электрондық сауда, медициналық қызмет және денсаулық сақтауды шетелде дамыту туралы заңдарына негізделген.",
+                  zh: "本条款依据韩国《电子商务法》《医疗法》及《医疗海外拓展法》制定。",
+                  ja: "本規約は韓国の電子商取引法、医療法、医療海外進出法に基づいて作成されています。",
                 }; return t[langCode] || t.en; })()}
               </p>
             </footer>

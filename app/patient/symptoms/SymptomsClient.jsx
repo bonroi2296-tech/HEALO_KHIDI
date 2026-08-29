@@ -10,6 +10,7 @@ import {
   CheckCircle, Clock, ChevronDown,
 } from 'lucide-react';
 import EmergencyNumbers from '@/components/EmergencyNumbers';
+import ProgressUploadCard from './ProgressUploadCard';
 
 // DB urgency_level 코드 → 표시 라벨 키(중앙 사전) + 색상 클래스
 const URGENCY_STYLE = {
@@ -94,12 +95,16 @@ export default function SymptomsClient() {
       });
 
       const data = await res.json();
-      if (data.ok || data.analysis) {
+      // ⚠️ 서버는 분석은 됐지만 DB 저장이 실패하면 { ok:true, analysis, saved:false } 를 준다.
+      //    이때도 「완료」로 처리하면 환자는 보고된 줄 알지만 코디·의사에게 안 가고 본인 이력에도
+      //    안 남는다(응급 권고가 나온 케이스면 특히 위험). 저장이 실제로 됐을 때만 성공 UI. (2026-08-14 감사)
+      if ((data.ok || data.analysis) && data.saved !== false) {
         setResult(data.analysis || data);
         setSymptoms([{ name: '', severity: 5, duration: '' }]);
-        if (data.saved && user?.access_token) await loadReports(user.access_token);
+        if (user?.access_token) await loadReports(user.access_token);
       } else {
-        // 실패가 무증상(스피너만 멈춤)으로 끝나던 구멍 — 깨진 문자 거부(#92)는 원인까지 안내
+        // 실패가 무증상(스피너만 멈춤)으로 끝나던 구멍 — 깨진 문자 거부(#92)는 원인까지 안내.
+        // 저장 실패(saved:false)면 폼을 지우지 않고 남겨 재제출할 수 있게 한다.
         setSubmitError(t(data.error === 'broken_encoding' ? 'patientSymptoms.brokenEncoding' : 'patientSymptoms.submitFailed', lang));
       }
     } catch (e) {
@@ -237,9 +242,9 @@ export default function SymptomsClient() {
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-sm text-gray-500">{t('patientSymptoms.urgency', lang)}</span>
               <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                (URGENCY_STYLE[result.urgency_level] || URGENCY_STYLE.minimal).color
+                (URGENCY_STYLE[result.urgencyLevel] || URGENCY_STYLE.minimal).color
               }`}>
-                {t((URGENCY_STYLE[result.urgency_level] || URGENCY_STYLE.minimal).label, lang)}
+                {t((URGENCY_STYLE[result.urgencyLevel] || URGENCY_STYLE.minimal).label, lang)}
               </span>
             </div>
 
@@ -250,13 +255,13 @@ export default function SymptomsClient() {
                 <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${
-                      result.risk_score >= 0.7 ? 'bg-red-500' :
-                      result.risk_score >= 0.4 ? 'bg-yellow-500' : 'bg-green-500'
+                      result.riskScore >= 0.7 ? 'bg-red-500' :
+                      result.riskScore >= 0.4 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
-                    style={{ width: `${(result.risk_score || 0) * 100}%` }}
+                    style={{ width: `${(result.riskScore || 0) * 100}%` }}
                   />
                 </div>
-                <span className="text-sm font-bold">{((result.risk_score || 0) * 100).toFixed(0)}%</span>
+                <span className="text-sm font-bold">{((result.riskScore || 0) * 100).toFixed(0)}%</span>
               </div>
             </div>
 
@@ -269,14 +274,14 @@ export default function SymptomsClient() {
             )}
 
             {/* Flagged symptoms */}
-            {result.flagged_symptoms?.length > 0 && (
+            {result.flaggedSymptoms?.length > 0 && (
               <div className="p-3 bg-red-50 rounded-lg border border-red-100">
                 <div className="flex items-center gap-1.5 mb-2">
                   <AlertTriangle size={14} className="text-red-600" />
                   <span className="text-xs font-medium text-red-700">Warning</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {result.flagged_symptoms.map((s, i) => (
+                  {result.flaggedSymptoms.map((s, i) => (
                     <span key={i} className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
                       {s}
                     </span>
@@ -287,7 +292,7 @@ export default function SymptomsClient() {
 
             {/* Emergency — 별도 분기. 가장 급한 상태가 가장 강하게 보여야 한다
                 (기존엔 재진 권유와 같은 파란 카드에 문구만 달랐고, 걸 수 있는 번호가 없었음) */}
-            {result.recommended_action === 'emergency' ? (
+            {result.recommendedAction === 'emergency_refer' ? (
               <div className="p-4 rounded-xl border border-red-300 bg-red-50">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={18} className="text-red-600 shrink-0" />
@@ -296,18 +301,18 @@ export default function SymptomsClient() {
                 <p className="mt-1.5 mb-3 text-xs text-red-700">{t('patientSymptoms.emergencyCallHint', lang)}</p>
                 <EmergencyNumbers lang={lang} urgent />
               </div>
-            ) : result.recommended_action ? (
+            ) : result.recommendedAction ? (
               <div className={`p-3 rounded-lg border ${
-                result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor'
+                result.recommendedAction === 'schedule_followup' || result.recommendedAction === 'escalate_doctor'
                   ? 'bg-blue-50 border-blue-200'
                   : 'bg-gray-50 border-gray-200'
               }`}>
                 <p className="text-sm font-medium text-blue-800">
-                  {result.recommended_action === 'schedule_followup' ? t('patientSymptoms.recFollowup', lang) :
-                   result.recommended_action === 'escalate_doctor' ? t('patientSymptoms.recDoctor', lang) :
-                   result.recommended_action}
+                  {result.recommendedAction === 'schedule_followup' ? t('patientSymptoms.recFollowup', lang) :
+                   result.recommendedAction === 'escalate_doctor' ? t('patientSymptoms.recDoctor', lang) :
+                   result.recommendedAction}
                 </p>
-                {(result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor') && (
+                {(result.recommendedAction === 'schedule_followup' || result.recommendedAction === 'escalate_doctor') && (
                   <button
                     onClick={() => router.push('/patient/rebooking')}
                     className="mt-2 px-4 py-2 bg-teal-700 text-white rounded-lg text-sm font-medium hover:bg-teal-800 transition"
@@ -320,6 +325,9 @@ export default function SymptomsClient() {
           </div>
         </div>
       )}
+
+      {/* 검사결과·경과 올리기 (ICT ④) — 증상 기록과 같은 사후관리 화면에 둔다 */}
+      <ProgressUploadCard />
 
       {/* Previous Reports toggle */}
       <button

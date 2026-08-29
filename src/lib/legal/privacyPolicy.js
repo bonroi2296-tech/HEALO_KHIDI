@@ -11,27 +11,69 @@
  * - 카자흐스탄 개인정보 및 보호에 관한 법률 (94-V ЗРК, 2013)
  * - EU General Data Protection Regulation (GDPR) Article 9, 44-49
  *
- * ⚠️ 중요: 본 초안은 법률 전문가(한국, 카자흐스탄 현지) 최종 검토 후 배포해야 함.
- * 특히 다음 항목은 사업 실사 후 확정 필요:
- * - 외국인환자 유치업자 등록번호 (보건복지부)
- * - 카자흐스탄 로컬라이제이션 요건 (2015년 개정법 적용 여부)
- * - DPO 지정 및 연락처
- * - SCC (Standard Contractual Clauses) 체결 여부
- * - 보관기간 세부 (의료법 §22 진료기록 10년 vs 마케팅 정보)
- * - 해외 유치 에이전시 = §7 제3자 제공(독립 개인정보처리자) + §8 국외이전으로 공개(2.2.0).
- *   ⚠️ 위탁(§26)이 아니다 — 2026-07-24 동종 글로벌 서비스 실조사 결과 Bookimed·MediGlobus 모두
- *   파트너를 "independent/separate controller"로 공개하고, 한국법 실무 기준도 "수탁자는 자기 목적
- *   이용 금지 / 자기 목적으로도 쓰면 제3자 제공"이라 에이전시(자기 고객관리 목적 보유)는 제공이 맞다.
- *   (초안 2026-07-16 의 '위탁 방식' 전제를 이때 교정.) 에이전시와 데이터 공유 계약 체결·서명 필요.
- *   ✅ 반영 언어: KO(지배본)·EN·RU·KZ·ZH·JA 6개 전부.
+ * 📌 확정 상태 (2026-08-20 전수 점검) — 「나중에 전문가에게」로 미뤄두지 말고 여기서 결론을 적는다.
+ *    1인 운영이라 외부 자문이 없다. 판단이 필요하면 근거를 실조사해 여기에 적고 닫는다.
+ *    ⛔ 새 항목을 「전문가 검토 필요」로 적어두지 마라 — 무엇을 조사해 어떻게 판단했는지를 적어라.
  *
- * ⚠️ 배포 전(2.2.0): 변호사 최종검토 + PRIVACY_EFFECTIVE_DATE를 배포일 기준으로 설정 +
- *    각 언어 §18 본문의 "현재 버전 2.1.0" 표기를 2.2.0로 동기화 + PIPA §18 사전공지(중요변경 7일 전).
+ * ✅ 외국인환자 유치업자 등록번호 — A-2026-01-02-06761 (2026-03-11~2029-03-10, 서울특별시장).
+ *    §2 에 6개 언어 전부 기재됨.
+ * ✅ 개인정보보호책임자(DPO) — §14 에 지정·연락처 기재. 1인 운영이라 대표가 겸한다(admin@healwith.co.kr).
+ * ✅ 보관기간 세부 — 2.4.0 에서 실제 처리에 맞춰 확정(§6). 짝이 되는 코드는
+ *    src/lib/account/deleteAccount.ts · i18n patientAccount.delDesc · app/account-deletion/.
+ * ✅ SCC(EU 표준계약조항) — 체결 불필요. ①EU→한국은 EU 집행위 적정성 결정(2022/254)으로 SCC 없이 이전 가능
+ *    ②우리 이용자는 카자흐스탄·러시아 거주자라 GDPR 적용 대상이 아니다. §8 에 그대로 적혀 있다.
+ * ✅ 카자흐스탄 현지화(94-V) — 우리에게는 적용되지 않는다고 본다.
+ *    근거: 이 의무의 적용 기준은 「카자흐스탄에서 영업하거나(operating in Kazakhstan) 현지 데이터 처리
+ *    설비를 쓰는 경우」다. 본로이는 카자흐스탄에 법인·지사·서버가 없고 현지 설비도 쓰지 않는다
+ *    (DB 는 Supabase ap-northeast-2 서울). 국외이전은 별도 필수 동의로 받고 있고(consent.crossBorder),
+ *    2026-08-20 실측으로 진짜 문의 6건 전부에 cross_border_kr 동의가 기록돼 있음을 확인했다.
+ *    ⚠️ 남는 위험: 당국(MCRIAP)이 「카자흐 거주자를 상대로 영업하면 operating 으로 본다」고 넓게 볼 여지는 있다.
+ *       그 경우에도 첫 조치는 시정 명령이다.
+ *    🔁 다시 볼 때: 카자흐스탄에 법인·사무소를 내거나, 현지 서버·결제·광고 대행을 쓰기 시작할 때.
+ *
+ * 🔶 아직 안 끝난 것 (이건 «판단»이 아니라 «행동»이 남은 것):
+ *    - 해외 유치 에이전시와 데이터 공유 계약 체결·서명. 방침은 이미 §7 제3자 제공 +
+ *      §8 국외이전으로 공개하고 있으나, 계약서에 서명을 받아야 그 공개가 실제로 뒷받침된다.
+ *      ⚠️ 위탁(§26)이 아니다 — 2026-07-24 동종 글로벌 서비스 실조사 결과 Bookimed·MediGlobus 모두
+ *      파트너를 "independent/separate controller"로 공개하고, 한국법 실무 기준도 「수탁자는 자기 목적
+ *      이용 금지 / 자기 목적으로도 쓰면 제3자 제공」이라 에이전시(자기 고객관리 목적 보유)는 제공이 맞다.
+ *      (초안 2026-07-16 의 '위탁 방식' 전제를 이때 교정.) ✅ 6개 언어 전부 반영됨.
+ *
+ * 🧭 방침을 고칠 때 지킬 것:
+ *    - PRIVACY_VERSION 을 올리고, 6개 언어 §19 의 버전 표기와 개정 요약을 같이 갱신한다.
+ *    - PRIVACY_EFFECTIVE_DATE 를 «실서비스 반영 예정일»로 맞춘다(작성일보다 과거면 앞뒤가 안 맞는다).
+ *    - 처리 방식이 바뀌는 변경은 §19 대로 7일 전(불리하면 30일 전) 통지. 설명만 바로잡는 정정은 즉시 반영.
  */
 
+/**
+ * 📌 2.4.0 (2026-08-20) — §6 보관기간을 «실제 동작 + 최신 법령»에 맞춤. PO 지시로 수정.
+ *
+ *  ① 「탈퇴 시 30일 이내 파기」 → 「즉시 파기」.
+ *     실제로 /api/patient/account/delete 가 그 자리에서 지운다(실측 확인).
+ *  ② 「장기 미이용(3년 무활동) 계정은 사전 통지 후 파기」 → «자동 파기 없음»으로 교체.
+ *     · 지우는 코드가 0줄이었다. 문구만 있고 동작이 없던 상태.
+ *     · 그 의무의 근거였던 「개인정보 유효기간제」는 2023-09-15 폐지됐다.
+ *       지금은 휴면 정책을 사업자가 «자율»로 정하고 «사전 안내»만 하면 된다.
+ *     · 게다가 3년은 같은 조항의 보존의무보다 짧다(계약·결제 5년, 진료기록 10년).
+ *       3년에 지우면 남겨야 할 기록을 먼저 없애게 된다 — PO 지적으로 확인.
+ *     🛑 되살리려면: 통지 절차 + 예행연습(대상만 세기)부터 만들고, 보존의무 기록을
+ *        건드리지 않는지 확인한 다음에만 넣어라.
+ *  ③ 「민감정보는 탈퇴 시 지체 없이 파기」 → 실제에 맞게 분리해 서술.
+ *     연락처 칸은 즉시 파기하지만, 이미 병원에 전달된 진료 관련 기록과 첨부 서류는
+ *     법정 보존기간 동안 남고 그 안에 성함이 있을 수 있다. 이것을 숨기지 않고 적었다.
+ *
+ *  ✅ 그대로 둔 것: 「원격협진 자막·대화 기록: 암호화하여 보관」은 실측 결과 사실이다
+ *     (consultation_translations.source_text_encrypted · consultation_messages.message_encrypted).
+ *
+ *  ℹ️ 동의 판 번호(UnifiedInquiryFunnel 의 consentVersion "2.0.0")는 이 버전과 별개로 관리된다.
+ *     이번 수정은 동의 «항목»을 바꾸지 않았으므로 기존 동의를 다시 받지 않는다.
+ *
+ *  ⚠️ 이 파일을 고치면 짝이 되는 3곳도 같이 봐라:
+ *     src/lib/account/deleteAccount.ts · i18n patientAccount.delDesc · app/account-deletion/
+ */
 // ⚠️ 2.2.0 콘텐츠 반영됨. 시행일은 배포 확정 시 갱신(현재는 직전 시행일 유지).
-export const PRIVACY_EFFECTIVE_DATE = "2026-06-29";
-export const PRIVACY_VERSION = "2.2.0";
+export const PRIVACY_EFFECTIVE_DATE = "2026-08-21";
+export const PRIVACY_VERSION = "2.4.0";
 
 /**
  * 동의 항목 구조 (필수/선택 분리)
@@ -76,8 +118,8 @@ const SECTIONS_STRUCTURE = [
   { id: "security", required: true },            // 안전조치
   { id: "cookies", required: true },
   { id: "dpo", required: true },                 // 개인정보보호책임자
-  { id: "jurisdiction_kz", required: true },     // 카자흐스탄 거주자
   { id: "automated_decisions", required: true }, // 자동화된 결정 (PIPA §37-2)
+  { id: "jurisdiction_kz", required: true },     // 카자흐스탄 거주자
   { id: "jurisdiction_eu", required: true },     // EU 거주자 (GDPR)
   { id: "jurisdiction_ru", required: true },     // 러시아 거주자
   { id: "changes", required: true },
@@ -90,7 +132,7 @@ const SECTIONS_STRUCTURE = [
  */
 const KO = {
   pageTitle: "개인정보처리방침",
-  lastUpdated: "최종 개정일",
+  lastUpdated: "시행일",
   version: "버전",
   tableOfContents: "목차",
 
@@ -136,9 +178,15 @@ const KO = {
       "【자동 수집】",
       "· IP 주소, 쿠키, 세션 로그, 서비스 이용 기록",
       "· 기기 정보(OS, 브라우저, 모델), 위치 정보(정확한 위치가 아닌 국가 단위, 이용자 동의 시 확장)",
+      "· 모바일 앱 알림용 기기 토큰(앱에서 알림을 허용한 경우에 한함)",
+      "",
+      "【원격협진(화상상담) 이용 시】",
+      "· 음성·영상: 통화 중 실시간으로만 전달되며 회사는 녹화·녹음하지 않습니다(녹화 기능은 현재 꺼져 있으며, 도입 시 사전 동의를 받고 본 방침을 개정합니다).",
+      "· 자막·번역 텍스트: 상담 기록으로 저장되며 암호화하여 보관합니다. 자막은 이용자가 켠 경우에만 생성됩니다.",
+      "· 자막 생성을 위해 발화 음성이 제9조의 수탁자에게 받아쓰기·번역 목적으로 전달됩니다(브라우저 받아쓰기를 사용하는 경우 해당 브라우저 제조사에도 전달될 수 있습니다).",
       "",
       "【결제 관련】",
-      "· 결제 수단 정보는 결제대행사(PG)를 통해 처리되며, 회사는 카드번호 전체를 저장하지 않습니다.",
+      "· 회사는 이용자로부터 진료비·서비스 이용료를 직접 수납하지 않으며, 카드번호 등 결제 수단 정보를 수집·보관하지 않습니다. 진료비는 이용자가 의료기관에 직접 납부합니다.",
     ],
   },
 
@@ -149,10 +197,11 @@ const KO = {
       "나. 의료기관 매칭, 진료 예약, 비자 및 체류 지원",
       "다. 의료기관으로의 진료 관련 정보 제공(환자 동의 기반)",
       "라. 통역·이동·숙박 등 부대 서비스 제공",
-      "마. 결제 처리 및 영수증·세금계산서 발행",
+      "마. 진료비 견적 안내 및 정산 지원(회사는 이용자의 진료비를 직접 수납하지 않습니다)",
       "바. 민원 및 불만 처리, 고객 상담",
       "사. 서비스 품질 개선, 통계 분석, 보안 사고 대응",
       "아. 법령상 의무 이행(의료법 §21, 국세청 신고 등)",
+      "자. 예약·상담 일정 및 진행 상황 알림 발송(이메일, 앱에서 알림을 허용한 경우 앱 푸시)",
     ],
   },
 
@@ -172,14 +221,15 @@ const KO = {
       "",
       "【관계 법령에 따른 보관】",
       "· 계약 또는 청약철회 기록: 5년 (전자상거래법 §6)",
-      "· 대금 결제 및 재화 공급 기록: 5년 (전자상거래법 §6)",
       "· 소비자 불만 및 분쟁 처리 기록: 3년 (전자상거래법 §6)",
       "· 로그인 기록: 3개월 (통신비밀보호법 §15-2)",
       "· 환자 진료 관련 기록(의료기관이 보유한 진료기록): 의료법 §22 및 시행규칙 §15에 따라 10년 — ※ 회사는 해당 기록의 사본을 보유하지 않으며, 의료기관이 원본을 관리합니다.",
       "",
       "【서비스 목적별 보관】 (저장제한 원칙 — 개인정보보호법 §21, GDPR Art.5(1)(e): 목적에 필요한 기간만 보유)",
-      "· 회원 계정 정보: 회원 자격 유지 기간 동안 보유하며, 탈퇴 시 지체 없이(30일 이내) 파기. 단 장기 미이용(3년 무활동) 계정은 사전 통지 후 파기.",
-      "· 민감정보(건강정보): 사전상담·치료·사후관리 등 서비스 제공에 필요한 기간 동안 보유하며, 회원 탈퇴 또는 동의 철회 시 지체 없이 파기합니다. ※ 본 방침에서 ‘서비스 완료’란 일회성 진료가 아니라 사후관리를 포함한 이용자와의 관계 종료를 의미합니다.",
+      "· 회원 계정 정보: 회원 자격 유지 기간 동안 보유하며, 이용자가 탈퇴하면 로그인 계정과 연락처 정보(이름·전화번호·이메일)를 그 즉시 파기합니다. 탈퇴는 서비스 내 「계정 · 개인정보」 화면에서 이용자가 직접 할 수 있습니다.",
+      "· 장기 미이용 계정: 회사는 미이용을 이유로 한 자동 파기를 두지 않습니다. 이를 의무화하던 개인정보 유효기간제가 2023년 9월 15일 폐지되어 휴면 정책은 각 사업자가 자율적으로 정하도록 바뀌었고, 암 치료는 진단·치료·사후관리가 수년에 걸치는 여정이어서 일정 기간의 미이용을 관계 종료로 보기 어렵기 때문입니다. 파기를 원하시면 언제든 직접 탈퇴하실 수 있으며, 회사가 휴면 정책을 신설할 경우 사전에 안내드립니다.",
+      "· 민감정보(건강정보): 사전상담·치료·사후관리 등 서비스 제공에 필요한 기간 동안 보유합니다. 회원 탈퇴 또는 동의 철회 시, 그 정보에 붙어 있던 이름·연락처·이메일을 즉시 파기하여 이용자를 식별할 수 없는 상태로 만듭니다. 다만 이미 의료기관에 전달된 진료 관련 기록과 이용자가 올린 검사 서류는 위 【관계 법령에 따른 보관】의 기간 동안 남으며, 해당 서류 안에는 성함이 기재되어 있을 수 있습니다. 보존기간이 지나면 지체 없이 파기합니다. ※ 본 방침에서 ‘서비스 완료’란 일회성 진료가 아니라 사후관리를 포함한 이용자와의 관계 종료를 의미합니다.",
+      "· 원격협진 자막·대화 기록: 암호화하여 보관하며, 이용자와의 관계 종료 또는 삭제 요청 시 파기",
       "· 마케팅 동의 정보: 동의 철회 시까지",
     ],
   },
@@ -224,12 +274,13 @@ const KO = {
       "【이전 받는 자 및 국가】",
       "· 대한민국 내 협력 의료기관 (진료 목적)",
       "· 클라우드 서비스 제공자: Vercel Inc. (미국), Supabase Inc. (미국 법인 — 데이터는 서울(ap-northeast-2) 리전에 저장)",
+      "· 소셜 로그인 인증: Google LLC (미국) · Apple Inc. (미국) — 해당 로그인 이용 시",
       "· 분석 서비스: Google Ireland Ltd. (GA4, 아일랜드)",
       "· 이메일 발송: Resend Inc. (미국)",
       "· 원격협진 영상통화: LiveKit Inc. (미국)",
-      "· AI 챗봇·번역: Google LLC (Gemini API, 미국 — 이용자 동의 시)",
-      "· 환자를 의뢰한 해외 유치 에이전시 (환자 소재국, 예: 카자흐스탄·러시아): 전문의 소견·치료 안내 전달 및 사전·사후관리 지원 — 제9조 처리위탁 및 위탁계약에 의함",
-      "· 고객지원 도구: [확정 시 기입]",
+      "· AI 챗봇·번역·원격협진 자막 받아쓰기: Google LLC (Gemini API, 미국 — 해당 기능 이용 시)",
+      "· 앱 푸시 알림 발송: Google LLC (Firebase Cloud Messaging, 미국 — 앱에서 알림을 허용한 경우)",
+      "· 환자를 의뢰한 해외 유치 에이전시 (환자 소재국, 예: 카자흐스탄·러시아): 전문의 소견·치료 안내 전달 및 사전·사후관리 지원 — 제7조 제3자 제공에 따르며, 에이전시는 회사의 수탁자가 아니라 자신의 목적으로 처리하는 독립적 개인정보처리자입니다",
       "",
       "【이전 목적 및 항목】",
       "· 의료기관: 제7조 ‘제3자 제공’과 동일",
@@ -242,7 +293,7 @@ const KO = {
       "【안전조치】",
       "· EU→한국 이전: 2021년 12월 EU 집행위원회의 한국 적정성 결정(Decision 2022/254)에 따라 별도의 SCC 없이 이전 가능. 단, 한국 내에서 PIPC 감독 하에 처리됨을 전제.",
       "· 기타 이전: Standard Contractual Clauses 또는 이에 준하는 계약·기술적 안전조치(암호화, 가명처리)를 통해 이전받는 자의 개인정보 보호 의무를 확보합니다.",
-      "· 카자흐스탄 관련: 제15조의 현지화 의무 조항을 참고하시기 바랍니다.",
+      "· 카자흐스탄 관련: 제16조의 현지화 의무 조항을 참고하시기 바랍니다.",
     ],
   },
 
@@ -254,10 +305,11 @@ const KO = {
       "· Supabase Inc. — 데이터베이스 호스팅 (미국 법인, 데이터는 서울(ap-northeast-2) 리전에 저장)",
       "· Vercel Inc. — 웹 애플리케이션 호스팅 (미국)",
       "· Google LLC — 인증(OAuth), 분석, 지도 (미국/아일랜드)",
+      "· Apple Inc. — 「애플로 로그인」 인증 (미국)",
       "· Resend Inc. — 알림·안내 이메일 송신 (미국)",
       "· LiveKit Inc. — 원격협진 영상통화 (미국)",
-      "· Google LLC (Gemini API) — AI 챗봇 응답 및 번역 (이용자 동의 시, 미국)",
-      "· [결제대행사 확정 시 기입] — 결제 처리",
+      "· Google LLC (Gemini API) — AI 챗봇 응답, 번역, 원격협진 자막 받아쓰기 (해당 기능 이용 시, 미국)",
+      "· Google LLC (Firebase Cloud Messaging) — 앱 푸시 알림 발송 (앱에서 알림을 허용한 경우, 미국)",
       "",
       "위탁 업체는 계약을 통해 개인정보 보호 의무, 목적 외 이용 금지, 기술적·관리적 보호조치를 준수하며, 회사는 정기적으로 감독합니다.",
     ],
@@ -302,10 +354,19 @@ const KO = {
   },
 
   cookies: {
-    title: "13. 쿠키의 사용",
+    title: "13. 쿠키 및 앱 접근권한",
     body: [
       "회사는 세션 유지, 언어 설정, 보안, 이용 분석을 위해 쿠키를 사용합니다.",
       "이용자는 브라우저 설정을 통해 쿠키를 거부할 수 있으며, 상세는 별도의 「쿠키 정책」을 참고하시기 바랍니다.",
+      "모바일 앱에서는 필수 항목만 사용하며, 분석용 쿠키는 사용하지 않습니다.",
+      "",
+      "【모바일 앱 접근권한 (정보통신망법 §22-2)】",
+      "· 카메라(선택): 화상상담 영상, 진단서·검사결과 촬영",
+      "· 마이크(선택): 화상상담 음성",
+      "· 알림(선택): 예약·상담 일정 및 진행 상황 안내",
+      "· 사진·파일(선택): 진단서·검사결과 업로드 및 저장",
+      "필수 접근권한은 없습니다. 위 권한을 모두 허용하지 않아도 앱을 이용할 수 있으며, 해당 기능만 제한됩니다. 권한은 기기 설정에서 언제든지 변경할 수 있습니다.",
+      "앱을 삭제하면 알림용 기기 토큰은 더 이상 유효하지 않으며, 회사 서버에서 정리됩니다.",
     ],
   },
 
@@ -322,7 +383,7 @@ const KO = {
   },
 
   jurisdiction_kz: {
-    title: "15. 카자흐스탄 거주 이용자 추가 고지",
+    title: "16. 카자흐스탄 거주 이용자 추가 고지",
     body: [
       "본 조항은 카자흐스탄공화국 「개인정보 및 그 보호에 관한 법률」(94-V ЗРК, 2013, 2015·2022년 개정) 및 관련 시행규정에 따른 추가 고지입니다.",
       "",
@@ -347,12 +408,12 @@ const KO = {
       "· 디지털개발·혁신·항공우주산업부 (Министерство цифрового развития, инноваций и аэрокосмической промышленности)",
       "",
       "【신고 및 분쟁】",
-      "본 방침 제19조 연락처로 문의하거나, 거주지 법원 또는 감독기관에 제소할 수 있습니다.",
+      "본 방침 제20조 연락처로 문의하거나, 거주지 법원 또는 감독기관에 제소할 수 있습니다.",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. 자동화된 결정 (개인정보보호법 §37-2)",
+    title: "15. 자동화된 결정 (개인정보보호법 §37-2)",
     body: [
       "회사는 이용자에게 적합한 의료기관을 추천하기 위해 AI 기반 매칭 알고리즘을 사용합니다. 이는 「개인정보보호법」 제37조의2에 따른 '자동화된 결정'에 해당할 수 있습니다.",
       "",
@@ -371,7 +432,7 @@ const KO = {
   },
 
   jurisdiction_eu: {
-    title: "16. EU·EEA 거주 이용자 추가 고지 (GDPR)",
+    title: "17. EU·EEA 거주 이용자 추가 고지 (GDPR)",
     body: [
       "EU/EEA 거주자에게 GDPR이 적용되는 경우 다음 권리가 보장됩니다.",
       "· 정보 접근권 (Art. 15), 정정권 (Art. 16), 삭제권 (Art. 17), 처리제한권 (Art. 18), 이동권 (Art. 20), 반대권 (Art. 21), 자동화 결정 거부권 (Art. 22)",
@@ -383,7 +444,7 @@ const KO = {
   },
 
   jurisdiction_ru: {
-    title: "17. 러시아 거주 이용자 추가 고지",
+    title: "18. 러시아 거주 이용자 추가 고지",
     body: [
       "러시아연방 「개인정보보호법」(152-ФЗ)에 따라, 러시아 시민의 개인정보 초기 수집은 러시아 영토 내에서 이루어져야 한다는 로컬라이제이션 의무가 있습니다.",
       "회사는 러시아 시민의 데이터에 대해 해당 법적 요건 준수 방안을 별도로 검토 중이며, 러시아 거주 이용자는 서비스 이용 전 본 조항의 고지를 명시적으로 확인하고 동의합니다.",
@@ -392,15 +453,17 @@ const KO = {
   },
 
   changes: {
-    title: "18. 방침의 변경",
+    title: "19. 방침의 변경",
     body: [
       "본 방침의 중요한 변경 사항은 시행 최소 7일 전(불리한 변경은 30일 전)에 공지사항 및 이메일을 통해 통지합니다.",
-      "현재 버전: 2.1.0 (시행일: 2026-06-29)",
+      "다만 실제 처리 방식은 그대로인데 설명이 사실과 달랐던 부분을 바로잡는 «정정»은, 틀린 내용이 계속 게시되지 않도록 즉시 반영하고 그 내용을 아래 개정 요약에 밝힙니다.",
+      "현재 버전: 2.4.0 (시행일: 2026-08-21) · 직전 버전 2.3.0 (2026-08-14)",
+      "2.4.0 개정 요약: ①탈퇴 시 파기 시점을 「30일 이내」에서 「즉시」로 정정 ②「3년 무활동 계정 자동 파기」 항목 삭제(근거였던 개인정보 유효기간제가 2023-09-15 폐지되어 휴면 정책은 자율이며, 3년은 계약·결제 5년·진료기록 10년 등 법정 보존기간보다 짧아 적용할 수 없었습니다. 파기를 원하시면 언제든 직접 탈퇴하실 수 있습니다) ③탈퇴 시 남는 것과 지워지는 것을 실제 처리에 맞게 구체화.",
     ],
   },
 
   contact: {
-    title: "19. 연락처",
+    title: "20. 연락처",
     body: [
       "개인정보·일반 문의: admin@healwith.co.kr",
       "주소: 서울특별시 강서구 강서로 385, 613호 (마곡동, 우성에스비타워)",
@@ -415,7 +478,7 @@ const KO = {
  */
 const EN = {
   pageTitle: "Privacy Policy",
-  lastUpdated: "Last Updated",
+  lastUpdated: "Effective",
   version: "Version",
   tableOfContents: "Contents",
 
@@ -461,9 +524,15 @@ const EN = {
       "【Automatically Collected】",
       "· IP address, cookies, session logs, service usage records",
       "· Device information (OS, browser, model), approximate geolocation (country-level; precise location only with consent)",
+      "· Mobile app push notification device token (only if you enable notifications in the app)",
+      "",
+      "【When Using Telemedicine (Video Consultation)】",
+      "· Audio and video: transmitted in real time only during the call; we do not record it (the recording feature is currently disabled; if introduced, we will obtain prior consent and amend this Policy).",
+      "· Captions and translated text: stored as consultation records in encrypted form. Captions are generated only when you turn them on.",
+      "· To generate captions, spoken audio is sent to the processors listed in Section 9 for transcription and translation (if browser-based transcription is used, it may also be sent to your browser vendor).",
       "",
       "【Payment-Related】",
-      "· Payment details are processed by a Payment Gateway. We do not store full card numbers.",
+      "· We do not collect any treatment or service fees from users, and we do not collect or store payment credentials such as card numbers. Treatment costs are paid by the user directly to the medical institution.",
     ],
   },
 
@@ -474,10 +543,11 @@ const EN = {
       "b. Hospital matching, appointment booking, visa and stay support",
       "c. Provision of consent-based medical information to healthcare providers",
       "d. Interpretation, transportation, and accommodation services",
-      "e. Payment processing and issuance of receipts or tax invoices",
+      "e. Treatment cost estimates and settlement support (we do not collect treatment payments from users)",
       "f. Customer support and dispute resolution",
       "g. Service quality improvement, statistical analysis, security incident response",
       "h. Compliance with legal obligations",
+      "i. Sending notifications about appointments, consultations, and case progress (email, and app push if you enable it)",
     ],
   },
 
@@ -497,14 +567,15 @@ const EN = {
       "",
       "【Statutory Retention】",
       "· Contract/withdrawal records: 5 years (Act on Consumer Protection in E-Commerce §6)",
-      "· Payment and supply records: 5 years",
       "· Consumer complaints/dispute records: 3 years",
       "· Login records: 3 months (Protection of Communications Secrets Act §15-2)",
       "· Medical records held by hospitals: 10 years (Medical Service Act §22). Note: healwith does not retain copies of medical records; originals are maintained by the hospital.",
       "",
       "【Service-Based Retention】 (Storage limitation principle — PIPA §21, GDPR Art.5(1)(e): retained only as long as necessary for the purpose)",
-      "· Account information: retained while membership remains active; deleted without delay (within 30 days) upon withdrawal. Long-dormant accounts (3 years of inactivity) are deleted after prior notice.",
-      "· Sensitive health data: retained for as long as necessary to provide the service, including pre-consultation, treatment, and aftercare; deleted without delay upon account withdrawal or withdrawal of consent. Note: in this Policy, 'service completion' means the end of the relationship with the user including aftercare, not a one-off treatment.",
+      "· Account information: retained while membership remains active. When you withdraw, your login and contact details (name, phone number, email) are deleted immediately. You can withdraw yourself from the Account & Privacy screen in the service.",
+      "· Long-dormant accounts: we do not automatically delete accounts for inactivity. The rule that required this (the personal data validity period system) was abolished on 15 September 2023, leaving dormancy policy to each operator, and cancer care spans diagnosis, treatment and aftercare over several years, so a period of inactivity does not reliably mean the relationship has ended. You may withdraw at any time, and we will give prior notice if we introduce a dormancy policy.",
+      "· Sensitive health data: retained for as long as necessary to provide the service, including pre-consultation, treatment, and aftercare. Upon withdrawal or withdrawal of consent, the name, phone number and email attached to that data are deleted immediately so that you can no longer be identified from it. However, care records already sent to a hospital and the test documents you uploaded remain for the periods listed under Statutory Retention above, and your name may appear inside those documents. They are destroyed without delay once the retention period ends. Note: in this Policy, 'service completion' means the end of the relationship with the user including aftercare, not a one-off treatment.",
+      "· Telemedicine captions and conversation records: stored encrypted; deleted at the end of the relationship with the user or upon a deletion request",
       "· Marketing consent data: until withdrawal",
     ],
   },
@@ -549,12 +620,13 @@ const EN = {
       "【Recipients & Jurisdictions】",
       "· Korean partner hospitals (for medical purposes)",
       "· Cloud infrastructure: Vercel Inc. (USA), Supabase Inc. (USA — data stored in the Seoul (ap-northeast-2) region)",
+      "· Social login authentication: Google LLC (USA), Apple Inc. (USA) — when you use those sign-in options",
       "· Analytics: Google Ireland Ltd. (GA4, Ireland)",
       "· Email delivery: Resend Inc. (USA)",
       "· Telemedicine video calls: LiveKit Inc. (USA)",
-      "· AI chatbot / translation: Google LLC (Gemini API, USA — with user consent)",
-      "· Overseas patient-referring agency (patient's country of residence, e.g., Kazakhstan, Russia): delivery of specialist opinions and treatment guidance, and pre/post-care support — governed by the data-processing entrustment in Section 9 and a processing agreement",
-      "· Customer support tools: [To be confirmed]",
+      "· AI chatbot, translation, and telemedicine caption transcription: Google LLC (Gemini API, USA — when you use these features)",
+      "· App push notifications: Google LLC (Firebase Cloud Messaging, USA — when you enable notifications in the app)",
+      "· Overseas patient-referring agency (patient's country of residence, e.g., Kazakhstan, Russia): delivery of specialist opinions and treatment guidance, and pre/post-care support — governed by the third-party disclosure in Section 7; the agency is not our processor but an independent controller acting for its own purposes",
       "",
       "【Purposes & Items】",
       "· Hospitals: Same as Section 7",
@@ -567,7 +639,7 @@ const EN = {
       "【Safeguards】",
       "· EU→Korea transfers: Pursuant to the European Commission's adequacy decision for Korea of December 2021 (Decision 2022/254), such transfers may take place without separate SCCs, provided the data is processed in Korea under PIPC supervision.",
       "· Other transfers: We secure the recipient's data protection obligations through Standard Contractual Clauses or equivalent contractual and technical safeguards (encryption, pseudonymization).",
-      "· Regarding Kazakhstan: Please refer to the localization obligation provisions in Section 15.",
+      "· Regarding Kazakhstan: Please refer to the localization obligation provisions in Section 16.",
     ],
   },
 
@@ -579,10 +651,11 @@ const EN = {
       "· Supabase Inc. — Database hosting (USA — data stored in the Seoul (ap-northeast-2) region)",
       "· Vercel Inc. — Web application hosting (USA)",
       "· Google LLC — Authentication (OAuth), analytics, maps (USA/Ireland)",
+      "· Apple Inc. — Sign in with Apple authentication (USA)",
       "· Resend Inc. — Notification and informational email delivery (USA)",
       "· LiveKit Inc. — Telemedicine video calls (USA)",
-      "· Google LLC (Gemini API) — AI chatbot responses and translation (with user consent, USA)",
-      "· [Payment Gateway — TBC] — Payment processing",
+      "· Google LLC (Gemini API) — AI chatbot responses, translation, and telemedicine caption transcription (when you use these features, USA)",
+      "· Google LLC (Firebase Cloud Messaging) — App push notification delivery (when you enable notifications in the app, USA)",
       "",
       "Contracts require processors to observe data protection obligations, prohibition on use beyond stated purposes, and technical/organizational safeguards. We audit processors regularly.",
     ],
@@ -627,10 +700,19 @@ const EN = {
   },
 
   cookies: {
-    title: "13. Use of Cookies",
+    title: "13. Cookies and App Permissions",
     body: [
       "We use cookies for session management, language preferences, security, and analytics.",
       "You may disable cookies via browser settings. See our Cookie Policy for details.",
+      "In the mobile app we use essential items only; analytics cookies are not used.",
+      "",
+      "【Mobile App Permissions (Network Act §22-2)】",
+      "· Camera (optional): video consultation, photographing medical certificates and test results",
+      "· Microphone (optional): video consultation audio",
+      "· Notifications (optional): appointment, consultation, and case progress alerts",
+      "· Photos and files (optional): uploading and saving medical certificates and test results",
+      "No permission is mandatory. You can use the app without granting any of the above; only the related feature is limited. Permissions can be changed at any time in your device settings.",
+      "If you delete the app, the notification device token is no longer valid and is cleared from our servers.",
     ],
   },
 
@@ -647,7 +729,7 @@ const EN = {
   },
 
   jurisdiction_kz: {
-    title: "15. Additional Notice for Residents of Kazakhstan",
+    title: "16. Additional Notice for Residents of Kazakhstan",
     body: [
       "This section provides additional disclosures under the Republic of Kazakhstan Law on Personal Data and Its Protection (No. 94-V, 2013, as amended in 2015 and 2022) and related implementing regulations.",
       "",
@@ -672,12 +754,12 @@ const EN = {
       "· Ministry of Digital Development, Innovations and Aerospace Industry (Министерство цифрового развития, инноваций и аэрокосмической промышленности)",
       "",
       "【Reports and Disputes】",
-      "You may contact us at the address in Section 19 of this Policy, or bring proceedings before the courts or supervisory authority of your place of residence.",
+      "You may contact us at the address in Section 20 of this Policy, or bring proceedings before the courts or supervisory authority of your place of residence.",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. Automated Decisions (PIPA §37-2)",
+    title: "15. Automated Decisions (PIPA §37-2)",
     body: [
       "The Company uses an AI-based matching algorithm to recommend suitable healthcare providers to you. This may constitute an \"automated decision\" under Article 37-2 of the Personal Information Protection Act.",
       "",
@@ -696,7 +778,7 @@ const EN = {
   },
 
   jurisdiction_eu: {
-    title: "16. Additional Notice for Residents of EU/EEA (GDPR)",
+    title: "17. Additional Notice for Residents of EU/EEA (GDPR)",
     body: [
       "Where GDPR applies, the following rights are guaranteed:",
       "· Right of access (Art. 15), rectification (Art. 16), erasure (Art. 17), restriction (Art. 18), portability (Art. 20), objection (Art. 21), and regarding automated decision-making (Art. 22).",
@@ -708,7 +790,7 @@ const EN = {
   },
 
   jurisdiction_ru: {
-    title: "17. Additional Notice for Residents of Russia",
+    title: "18. Additional Notice for Residents of Russia",
     body: [
       "Russian Federal Law 152-FZ requires initial collection of personal data of Russian citizens within Russian territory.",
       "healwith is separately evaluating compliance with this requirement. By using the service, Russian residents acknowledge and explicitly consent to these terms.",
@@ -717,15 +799,17 @@ const EN = {
   },
 
   changes: {
-    title: "18. Changes to This Policy",
+    title: "19. Changes to This Policy",
     body: [
       "Material changes will be notified via our service notice and email at least 7 days prior to effect (30 days for adverse changes).",
-      "Current version: 2.1.0 (Effective 2026-06-29).",
+      "However, where our actual processing is unchanged and we are correcting a description that did not match it, we publish the correction immediately so that inaccurate wording is not left up, and we state what was corrected in the summary below.",
+      "Current version: 2.4.0 (effective 2026-08-21). Previous version 2.3.0 (2026-08-14).",
+      "Summary of changes in 2.4.0: (1) deletion on withdrawal corrected from 'within 30 days' to 'immediately'; (2) the 'automatic deletion of accounts after 3 years of inactivity' item was removed (the rule it rested on, the personal data validity period system, was abolished on 15 September 2023, leaving dormancy policy to each operator, and 3 years is shorter than statutory retention such as 5 years for contracts and payments and 10 years for medical records, so it could not be applied; you may withdraw yourself at any time); (3) what is kept and what is deleted on withdrawal is now described as it actually works.",
     ],
   },
 
   contact: {
-    title: "19. Contact",
+    title: "20. Contact",
     body: [
       "Privacy and general inquiries: admin@healwith.co.kr",
       "Address: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
@@ -741,7 +825,7 @@ const EN = {
  */
 const RU = {
   pageTitle: "Политика конфиденциальности",
-  lastUpdated: "Последнее обновление",
+  lastUpdated: "Дата вступления в силу",
   version: "Версия",
   tableOfContents: "Содержание",
 
@@ -787,9 +871,15 @@ const RU = {
       "【Автоматически собираемые】",
       "· IP-адрес, файлы cookie, журналы сессий, записи использования сервиса",
       "· Сведения об устройстве (ОС, браузер, модель), приблизительное геоположение (на уровне страны; точное местоположение — только с согласия)",
+      "· Токен устройства для push-уведомлений мобильного приложения (только если вы включили уведомления в приложении)",
+      "",
+      "【При использовании дистанционной консультации (видеосвязь)】",
+      "· Аудио и видео: передаются в реальном времени только во время звонка; компания не ведёт запись (функция записи в настоящее время отключена; при её введении будет получено предварительное согласие и настоящая Политика будет изменена).",
+      "· Субтитры и переведённый текст: сохраняются как записи консультации в зашифрованном виде. Субтитры создаются только если вы их включили.",
+      "· Для создания субтитров произносимая речь передаётся обработчикам, указанным в разделе 9, для расшифровки и перевода (при использовании браузерного распознавания речь может также передаваться разработчику вашего браузера).",
       "",
       "【Связанные с оплатой】",
-      "· Платёжные данные обрабатываются через платёжного агента (PG). Компания не хранит полный номер карты.",
+      "· Компания не взимает с пользователей плату за лечение или услуги и не собирает и не хранит платёжные реквизиты, включая номера карт. Стоимость лечения пользователь оплачивает непосредственно медицинскому учреждению.",
     ],
   },
 
@@ -800,10 +890,11 @@ const RU = {
       "b. Подбор медицинского учреждения, запись на приём, поддержка по визе и пребыванию",
       "c. Предоставление медицинским учреждениям информации о лечении на основании согласия пользователя",
       "d. Услуги перевода, транспорта и проживания",
-      "e. Обработка платежей и выставление квитанций или налоговых счетов-фактур",
+      "e. Подготовка сметы стоимости лечения и поддержка расчётов (компания не принимает оплату лечения от пользователей)",
       "f. Обработка жалоб и обращений, поддержка клиентов",
       "g. Повышение качества сервиса, статистический анализ, реагирование на инциденты безопасности",
       "h. Исполнение установленных законом обязанностей",
+      "i. Отправка уведомлений о записях, консультациях и ходе обращения (эл. почта, push-уведомления приложения при их включении)",
     ],
   },
 
@@ -823,14 +914,15 @@ const RU = {
       "",
       "【Хранение в силу закона】",
       "· Записи о договорах/отзыве: 5 лет (Закон о защите прав потребителей в электронной торговле §6)",
-      "· Записи об оплате и поставке: 5 лет",
       "· Записи о жалобах потребителей и спорах: 3 года",
       "· Записи о входе в систему: 3 месяца (Закон о защите тайны связи §15-2)",
       "· Медицинские записи, хранимые больницами: 10 лет (Закон о медицинском обслуживании §22). Примечание: healwith не хранит копии медицинских записей; оригиналы ведутся больницей.",
       "",
       "【Хранение в зависимости от цели】 (принцип ограничения хранения — Закон о защите персональных данных §21, GDPR ст. 5(1)(e): хранятся только в течение срока, необходимого для цели)",
-      "· Данные учётной записи: хранятся в течение срока действия членства; при выходе удаляются без промедления (в течение 30 дней). Учётные записи с длительной неактивностью (3 года бездействия) удаляются после предварительного уведомления.",
-      "· Чувствительные медицинские данные: хранятся в течение срока, необходимого для оказания услуги, включая предварительную консультацию, лечение и последующее сопровождение; удаляются без промедления при выходе из членства или отзыве согласия. Примечание: в настоящей политике «завершение услуги» означает окончание отношений с пользователем, включая последующее сопровождение, а не разовое лечение.",
+      "· Данные учётной записи: хранятся в течение срока действия членства. При выходе данные для входа и контактные данные (имя, телефон, эл. почта) удаляются немедленно. Выйти можно самостоятельно на странице «Аккаунт и конфиденциальность» в сервисе.",
+      "· Долго неиспользуемые учётные записи: мы не удаляем их автоматически из-за неактивности. Норма, которая этого требовала (режим срока действия персональных данных), отменена 15 сентября 2023 года, и политика неактивности теперь определяется каждой компанией самостоятельно; кроме того, онкологическая помощь охватывает диагностику, лечение и последующее сопровождение в течение нескольких лет, поэтому период неактивности не означает окончание отношений. Вы можете выйти в любой момент, а о введении политики неактивности мы уведомим заранее.",
+      "· Чувствительные медицинские данные: хранятся в течение срока, необходимого для оказания услуги, включая предварительную консультацию, лечение и последующее сопровождение. При выходе из членства или отзыве согласия имя, телефон и эл. почта, привязанные к этим данным, удаляются немедленно, так что по ним вас нельзя опознать. Однако записи о лечении, уже переданные в больницу, и загруженные вами документы обследований сохраняются в течение сроков, указанных выше в разделе «Хранение в силу закона», и внутри этих документов может быть указано ваше имя. По окончании срока хранения они уничтожаются без промедления. Примечание: в настоящей политике «завершение услуги» означает окончание отношений с пользователем, включая последующее сопровождение, а не разовое лечение.",
+      "· Субтитры и записи разговоров дистанционных консультаций: хранятся в зашифрованном виде; удаляются по окончании отношений с пользователем или по запросу об удалении",
       "· Данные о согласии на маркетинг: до отзыва согласия",
     ],
   },
@@ -875,12 +967,13 @@ const RU = {
       "【Получатели и юрисдикции】",
       "· Партнёрские больницы в Корее (в медицинских целях)",
       "· Облачная инфраструктура: Vercel Inc. (США), Supabase Inc. (США — данные хранятся в регионе Сеул (ap-northeast-2))",
+      "· Аутентификация через социальные сети: Google LLC (США), Apple Inc. (США) — при использовании этих способов входа",
       "· Аналитика: Google Ireland Ltd. (GA4, Ирландия)",
       "· Отправка электронной почты: Resend Inc. (США)",
       "· Видеозвонки для дистанционных консультаций: LiveKit Inc. (США)",
-      "· ИИ-чатбот и перевод: Google LLC (Gemini API, США — при согласии пользователя)",
-      "· Зарубежное агентство, направившее пациента (страна проживания пациента, напр. Казахстан, Россия): передача заключений специалистов и рекомендаций по лечению, поддержка до- и послелечебного сопровождения — регулируется поручением обработки (раздел 9) и договором поручения",
-      "· Инструменты поддержки клиентов: [подлежит уточнению]",
+      "· ИИ-чатбот, перевод и расшифровка субтитров дистанционных консультаций: Google LLC (Gemini API, США — при использовании этих функций)",
+      "· Push-уведомления приложения: Google LLC (Firebase Cloud Messaging, США — если вы включили уведомления в приложении)",
+      "· Зарубежное агентство, направившее пациента (страна проживания пациента, напр. Казахстан, Россия): передача заключений специалистов и рекомендаций по лечению, поддержка до- и послелечебного сопровождения — регулируется разделом 7 (передача третьим лицам); агентство не является нашим обработчиком, а выступает самостоятельным оператором, действующим в своих целях",
       "",
       "【Цели и состав данных】",
       "· Больницы: то же, что в разделе 7",
@@ -893,7 +986,7 @@ const RU = {
       "【Меры защиты】",
       "· Передача из ЕС в Корею: в соответствии с решением Европейской комиссии об адекватности уровня защиты в Корее от декабря 2021 года (Решение 2022/254) такая передача возможна без отдельных SCC при условии, что данные обрабатываются в Корее под надзором PIPC.",
       "· Прочие передачи: мы обеспечиваем выполнение получателем обязанностей по защите персональных данных посредством Стандартных договорных положений или эквивалентных договорных и технических мер защиты (шифрование, псевдонимизация).",
-      "· В отношении Казахстана: просим ознакомиться с положениями об обязанности локализации в разделе 15.",
+      "· В отношении Казахстана: просим ознакомиться с положениями об обязанности локализации в разделе 16.",
     ],
   },
 
@@ -905,10 +998,11 @@ const RU = {
       "· Supabase Inc. — хостинг базы данных (США — данные хранятся в регионе Сеул (ap-northeast-2))",
       "· Vercel Inc. — хостинг веб-приложения (США)",
       "· Google LLC — аутентификация (OAuth), аналитика, карты (США/Ирландия)",
+      "· Apple Inc. — аутентификация «Вход с Apple» (США)",
       "· Resend Inc. — отправка уведомительных и информационных электронных писем (США)",
       "· LiveKit Inc. — видеозвонки для дистанционных консультаций (США)",
-      "· Google LLC (Gemini API) — ответы ИИ-чатбота и перевод (при согласии пользователя, США)",
-      "· [Платёжный агент — подлежит уточнению] — обработка платежей",
+      "· Google LLC (Gemini API) — ответы ИИ-чатбота, перевод и расшифровка субтитров дистанционных консультаций (при использовании этих функций, США)",
+      "· Google LLC (Firebase Cloud Messaging) — отправка push-уведомлений приложения (если вы включили уведомления в приложении, США)",
       "",
       "Договоры обязывают обработчиков соблюдать обязанности по защите данных, запрет на использование сверх заявленных целей, а также технические и организационные меры защиты. Мы регулярно осуществляем контроль за обработчиками.",
     ],
@@ -953,10 +1047,19 @@ const RU = {
   },
 
   cookies: {
-    title: "13. Использование файлов cookie",
+    title: "13. Файлы cookie и разрешения приложения",
     body: [
       "Мы используем файлы cookie для поддержания сессии, языковых настроек, безопасности и аналитики.",
       "Вы можете отключить файлы cookie в настройках браузера. Подробнее см. в нашей Политике использования файлов cookie.",
+      "В мобильном приложении используются только необходимые элементы; аналитические файлы cookie не применяются.",
+      "",
+      "【Разрешения мобильного приложения (Закон о сетях §22-2)】",
+      "· Камера (по выбору): видеоконсультация, съёмка справок и результатов обследований",
+      "· Микрофон (по выбору): звук видеоконсультации",
+      "· Уведомления (по выбору): напоминания о записях, консультациях и ходе обращения",
+      "· Фото и файлы (по выбору): загрузка и сохранение справок и результатов обследований",
+      "Обязательных разрешений нет. Приложением можно пользоваться, не предоставляя ни одного из них; ограничивается только соответствующая функция. Разрешения можно изменить в настройках устройства в любое время.",
+      "При удалении приложения токен устройства для уведомлений становится недействительным и удаляется с наших серверов.",
     ],
   },
 
@@ -973,7 +1076,7 @@ const RU = {
   },
 
   jurisdiction_kz: {
-    title: "15. Дополнительное уведомление для жителей Казахстана",
+    title: "16. Дополнительное уведомление для жителей Казахстана",
     body: [
       "Настоящий раздел содержит дополнительные сведения, предусмотренные Законом Республики Казахстан «О персональных данных и их защите» (№ 94-V ЗРК, 2013, с изменениями 2015 и 2022 годов) и соответствующими подзаконными актами.",
       "",
@@ -998,12 +1101,12 @@ const RU = {
       "· Министерство цифрового развития, инноваций и аэрокосмической промышленности",
       "",
       "【Обращения и споры】",
-      "Вы можете обратиться по контактным данным, указанным в разделе 19 настоящей Политики, либо подать иск в суд или надзорный орган по месту вашего проживания.",
+      "Вы можете обратиться по контактным данным, указанным в разделе 20 настоящей Политики, либо подать иск в суд или надзорный орган по месту вашего проживания.",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. Автоматизированные решения (PIPA §37-2)",
+    title: "15. Автоматизированные решения (PIPA §37-2)",
     body: [
       "Компания использует алгоритм подбора на основе ИИ для рекомендации подходящих вам медицинских учреждений. Это может являться «автоматизированным решением» согласно статье 37-2 Закона о защите персональных данных.",
       "",
@@ -1022,7 +1125,7 @@ const RU = {
   },
 
   jurisdiction_eu: {
-    title: "16. Дополнительное уведомление для жителей ЕС/ЕЭЗ (GDPR)",
+    title: "17. Дополнительное уведомление для жителей ЕС/ЕЭЗ (GDPR)",
     body: [
       "Если применяется GDPR, гарантируются следующие права:",
       "· Право на доступ (ст. 15), исправление (ст. 16), удаление (ст. 17), ограничение (ст. 18), переносимость (ст. 20), возражение (ст. 21), а также в отношении автоматизированного принятия решений (ст. 22).",
@@ -1034,7 +1137,7 @@ const RU = {
   },
 
   jurisdiction_ru: {
-    title: "17. Дополнительное уведомление для жителей России",
+    title: "18. Дополнительное уведомление для жителей России",
     body: [
       "Федеральный закон Российской Федерации 152-ФЗ требует, чтобы первоначальный сбор персональных данных граждан России осуществлялся на территории Российской Федерации.",
       "healwith отдельно оценивает порядок соблюдения данного требования. Пользуясь сервисом, жители России подтверждают и явно выражают согласие с настоящими условиями.",
@@ -1043,15 +1146,17 @@ const RU = {
   },
 
   changes: {
-    title: "18. Изменения настоящей Политики",
+    title: "19. Изменения настоящей Политики",
     body: [
       "О существенных изменениях мы уведомляем через объявления сервиса и по электронной почте не менее чем за 7 дней до вступления в силу (за 30 дней — в случае неблагоприятных изменений).",
-      "Текущая версия: 2.1.0 (вступила в силу 2026-06-29).",
+      "Однако если фактическая обработка данных не меняется, а мы исправляем описание, которое ей не соответствовало, такое исправление публикуется немедленно, чтобы неверная формулировка не оставалась на сайте, и мы указываем суть исправления в кратком описании ниже.",
+      "Текущая версия: 2.4.0 (вступает в силу 2026-08-21). Предыдущая версия 2.3.0 (2026-08-14).",
+      "Краткое описание изменений 2.4.0: (1) срок удаления при выходе исправлен с «в течение 30 дней» на «немедленно»; (2) пункт об «автоматическом удалении учётных записей после 3 лет неактивности» удалён (норма, на которой он основывался, режим срока действия персональных данных, отменена 15 сентября 2023 года, и политика неактивности теперь определяется компанией самостоятельно; кроме того, 3 года короче установленных законом сроков хранения — 5 лет для договоров и платежей, 10 лет для медицинских записей — поэтому применить его было нельзя; вы можете выйти самостоятельно в любой момент); (3) что сохраняется и что удаляется при выходе, описано так, как это работает на самом деле.",
     ],
   },
 
   contact: {
-    title: "19. Контакты",
+    title: "20. Контакты",
     body: [
       "Вопросы по защите персональных данных и общие вопросы: admin@healwith.co.kr",
       "Адрес: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
@@ -1067,7 +1172,7 @@ const RU = {
  */
 const KZ = {
   pageTitle: "Құпиялылық саясаты",
-  lastUpdated: "Соңғы жаңарту",
+  lastUpdated: "Күшіне ену күні",
   version: "Нұсқа",
   tableOfContents: "Мазмұны",
 
@@ -1113,9 +1218,15 @@ const KZ = {
       "【Автоматты түрде жиналатын】",
       "· IP-мекенжай, cookie файлдары, сессия журналдары, сервисті пайдалану жазбалары",
       "· Құрылғы туралы мәліметтер (ОЖ, браузер, моделі), шамамен геолокация (ел деңгейінде; дәл орналасу тек келісіммен)",
+      "· Мобильді қосымшаның push-хабарламалары үшін құрылғы токені (қосымшада хабарламаларға рұқсат берілген жағдайда ғана)",
+      "",
+      "【Қашықтан кеңес беруді (бейнеқоңырау) пайдалану кезінде】",
+      "· Дыбыс пен бейне: қоңырау кезінде тек нақты уақытта беріледі; компания жазып алмайды (жазу функциясы қазір өшірулі; енгізілген жағдайда алдын ала келісім алынып, осы Саясат өзгертіледі).",
+      "· Субтитрлер мен аударма мәтіні: кеңес жазбасы ретінде шифрланған түрде сақталады. Субтитрлер тек сіз қосқан жағдайда жасалады.",
+      "· Субтитрлерді жасау үшін айтылған сөз 9-бөлімде көрсетілген өңдеушілерге транскрипция және аударма үшін жіберіледі (браузердегі тану пайдаланылса, сөз браузер өндірушісіне де жіберілуі мүмкін).",
       "",
       "【Төлемге қатысты】",
-      "· Төлем деректері төлем агенті (PG) арқылы өңделеді. Компания карта нөмірін толық сақтамайды.",
+      "· Компания пайдаланушылардан ем немесе қызмет ақысын тікелей алмайды және карта нөмірі сияқты төлем деректерін жинамайды әрі сақтамайды. Ем ақысын пайдаланушы медициналық мекемеге тікелей төлейді.",
     ],
   },
 
@@ -1126,10 +1237,11 @@ const KZ = {
       "b. Медициналық мекемені таңдау, қабылдауға жазылу, виза мен болуды қолдау",
       "c. Пайдаланушының келісімі негізінде медициналық мекемелерге емдеу туралы ақпаратты беру",
       "d. Аударма, көлік және тұру қызметтері",
-      "e. Төлемдерді өңдеу және түбіртектер немесе салық шот-фактураларын беру",
+      "e. Ем құнының сметасын дайындау және есеп айырысуды қолдау (компания пайдаланушылардан ем ақысын қабылдамайды)",
       "f. Шағымдар мен өтініштерді өңдеу, клиенттерді қолдау",
       "g. Сервис сапасын арттыру, статистикалық талдау, қауіпсіздік оқиғаларына әрекет ету",
       "h. Заңда белгіленген міндеттерді орындау",
+      "i. Жазылу, кеңес беру және өтініштің барысы туралы хабарламалар жіберу (электрондық пошта, қосымшада рұқсат берілсе push-хабарлама)",
     ],
   },
 
@@ -1149,14 +1261,15 @@ const KZ = {
       "",
       "【Заң бойынша сақтау】",
       "· Шарт/бас тарту туралы жазбалар: 5 жыл (Электрондық саудадағы тұтынушылардың құқықтарын қорғау туралы заң §6)",
-      "· Төлем және жеткізу жазбалары: 5 жыл",
       "· Тұтынушылардың шағымдары мен дауларды реттеу жазбалары: 3 жыл",
       "· Жүйеге кіру жазбалары: 3 ай (Байланыс құпиясын қорғау туралы заң §15-2)",
       "· Ауруханалар сақтайтын медициналық жазбалар: 10 жыл (Медициналық қызмет көрсету туралы заң §22). Ескерту: healwith медициналық жазбалардың көшірмелерін сақтамайды; түпнұсқаларды аурухана жүргізеді.",
       "",
       "【Мақсатына қарай сақтау】 (сақтауды шектеу қағидаты — Дербес деректерді қорғау туралы заң §21, GDPR 5(1)(e)-бабы: тек мақсат үшін қажетті мерзімде сақталады)",
-      "· Тіркелгі деректері: мүшелік белсенді болған кезеңде сақталады; шыққан кезде кідіріссіз (30 күн ішінде) жойылады. Ұзақ уақыт белсенді емес (3 жыл әрекетсіз) тіркелгілер алдын ала хабарлағаннан кейін жойылады.",
-      "· Сезімтал медициналық деректер: алдын ала кеңес беру, емдеу және кейінгі сүйемелдеуді қоса алғанда, қызмет көрсету үшін қажетті мерзімде сақталады; мүшеліктен шыққан немесе келісімді кері қайтарған кезде кідіріссіз жойылады. Ескерту: осы саясатта «қызметтің аяқталуы» бір реттік емдеуді емес, кейінгі сүйемелдеуді қоса алғанда, пайдаланушымен қарым-қатынастың аяқталуын білдіреді.",
+      "· Тіркелгі деректері: мүшелік белсенді болған кезеңде сақталады. Шыққан кезде кіру деректері мен байланыс деректері (аты-жөні, телефон, пошта) дереу жойылады. Шығуды сервистегі «Аккаунт және құпиялылық» бетінен өзіңіз жасай аласыз.",
+      "· Ұзақ уақыт пайдаланылмаған тіркелгілер: біз оларды әрекетсіздігі үшін автоматты түрде жоймаймыз. Мұны талап еткен дербес деректердің жарамдылық мерзімі режимі 2023 жылғы 15 қыркүйекте жойылды және енді әрекетсіздік саясатын әр компания өзі белгілейді; оның үстіне онкологиялық көмек диагностика, емдеу және кейінгі сүйемелдеуді бірнеше жыл бойы қамтиды, сондықтан әрекетсіздік кезеңі қарым-қатынастың аяқталуын білдірмейді. Кез келген уақытта өзіңіз шыға аласыз, ал әрекетсіздік саясатын енгізсек, алдын ала хабарлаймыз.",
+      "· Сезімтал медициналық деректер: алдын ала кеңес беру, емдеу және кейінгі сүйемелдеуді қоса алғанда, қызмет көрсету үшін қажетті мерзімде сақталады. Мүшеліктен шыққан немесе келісімді кері қайтарған кезде сол деректерге байланысты аты-жөні, телефон және пошта дереу жойылады, сондықтан олар бойынша сізді тану мүмкін болмайды. Алайда ауруханаға жіберілген емдеу жазбалары мен сіз жүктеген тексеру құжаттары жоғарыдағы «Заң бойынша сақтау» бөлімінде көрсетілген мерзімдерде сақталады, ол құжаттардың ішінде аты-жөніңіз жазылған болуы мүмкін. Сақтау мерзімі аяқталған соң олар кідіріссіз жойылады. Ескерту: осы саясатта «қызметтің аяқталуы» бір реттік емдеуді емес, кейінгі сүйемелдеуді қоса алғанда, пайдаланушымен қарым-қатынастың аяқталуын білдіреді.",
+      "· Қашықтан кеңес берудің субтитрлері мен әңгіме жазбалары: шифрланған түрде сақталады; пайдаланушымен қарым-қатынас аяқталғанда немесе жою сұралғанда жойылады",
       "· Маркетингке келісім деректері: келісім кері қайтарылғанға дейін",
     ],
   },
@@ -1201,12 +1314,13 @@ const KZ = {
       "【Алушылар мен юрисдикциялар】",
       "· Кореядағы серіктес ауруханалар (медициналық мақсатта)",
       "· Бұлттық инфрақұрылым: Vercel Inc. (АҚШ), Supabase Inc. (АҚШ — деректер Сеул (ap-northeast-2) аймағында сақталады)",
+      "· Әлеуметтік желі арқылы кіру аутентификациясы: Google LLC (АҚШ), Apple Inc. (АҚШ) — осы кіру тәсілдерін пайдаланған кезде",
       "· Аналитика: Google Ireland Ltd. (GA4, Ирландия)",
       "· Электрондық пошта жіберу: Resend Inc. (АҚШ)",
       "· Қашықтан кеңес беру бейнеқоңыраулары: LiveKit Inc. (АҚШ)",
-      "· ЖИ чат-бот және аударма: Google LLC (Gemini API, АҚШ — пайдаланушының келісімімен)",
-      "· Пациентті жолдаған шетелдік агенттік (пациенттің тұрғылықты елі, мыс. Қазақстан, Ресей): маман қорытындылары мен емдеу нұсқауларын жеткізу, емге дейінгі және кейінгі қолдау — 9-бөлімдегі өңдеуді тапсыру және тапсыру шарты негізінде",
-      "· Клиенттерді қолдау құралдары: [нақтылануы тиіс]",
+      "· ЖИ чат-бот, аударма және қашықтан кеңес беру субтитрлерін транскрипциялау: Google LLC (Gemini API, АҚШ — осы функцияларды пайдаланған кезде)",
+      "· Қосымшаның push-хабарламалары: Google LLC (Firebase Cloud Messaging, АҚШ — қосымшада хабарламаларға рұқсат берілген жағдайда)",
+      "· Пациентті жолдаған шетелдік агенттік (пациенттің тұрғылықты елі, мыс. Қазақстан, Ресей): маман қорытындылары мен емдеу нұсқауларын жеткізу, емге дейінгі және кейінгі қолдау — 7-бөлімдегі үшінші тұлғаларға беру ережелеріне сәйкес; агенттік біздің өңдеушіміз емес, өз мақсаттары үшін әрекет ететін дербес оператор болып табылады",
       "",
       "【Мақсаттар мен деректер құрамы】",
       "· Ауруханалар: 7-бөлімдегідей",
@@ -1219,7 +1333,7 @@ const KZ = {
       "【Қорғау шаралары】",
       "· ЕО→Корея беру: Еуропалық комиссияның Кореяға қатысты 2021 жылғы желтоқсандағы барабарлық шешіміне (Decision 2022/254) сәйкес мұндай беру жеке SCC-сіз жүзеге асырылуы мүмкін, деректер Кореяда PIPC қадағалауымен өңделген жағдайда.",
       "· Өзге беру: біз алушының дербес деректерді қорғау міндеттерін Стандартты шарттық ережелер немесе соған балама шарттық және техникалық қорғау шаралары (шифрлау, бүркеншіктеу) арқылы қамтамасыз етеміз.",
-      "· Қазақстанға қатысты: 15-бөлімдегі локализация міндеті туралы ережелермен танысуыңызды сұраймыз.",
+      "· Қазақстанға қатысты: 16-бөлімдегі локализация міндеті туралы ережелермен танысуыңызды сұраймыз.",
     ],
   },
 
@@ -1231,10 +1345,11 @@ const KZ = {
       "· Supabase Inc. — дерекқорды хостинг (АҚШ — деректер Сеул (ap-northeast-2) аймағында сақталады)",
       "· Vercel Inc. — веб-қосымшаны хостинг (АҚШ)",
       "· Google LLC — аутентификация (OAuth), аналитика, карталар (АҚШ/Ирландия)",
+      "· Apple Inc. — «Apple арқылы кіру» аутентификациясы (АҚШ)",
       "· Resend Inc. — хабарлама және ақпараттық электрондық хаттарды жіберу (АҚШ)",
       "· LiveKit Inc. — қашықтан кеңес беру бейнеқоңыраулары (АҚШ)",
-      "· Google LLC (Gemini API) — ЖИ чат-бот жауаптары және аударма (пайдаланушының келісімімен, АҚШ)",
-      "· [Төлем агенті — нақтылануы тиіс] — төлемдерді өңдеу",
+      "· Google LLC (Gemini API) — ЖИ чат-бот жауаптары, аударма және қашықтан кеңес беру субтитрлерін транскрипциялау (осы функцияларды пайдаланған кезде, АҚШ)",
+      "· Google LLC (Firebase Cloud Messaging) — қосымшаның push-хабарламаларын жіберу (қосымшада хабарламаларға рұқсат берілген жағдайда, АҚШ)",
       "",
       "Шарттар өңдеушілерден деректерді қорғау міндеттерін, мәлімделген мақсаттардан тыс пайдалануға тыйым салуды, сондай-ақ техникалық және ұйымдастырушылық қорғау шараларын сақтауды талап етеді. Біз өңдеушілерді тұрақты түрде бақылаймыз.",
     ],
@@ -1279,10 +1394,19 @@ const KZ = {
   },
 
   cookies: {
-    title: "13. Cookie файлдарын пайдалану",
+    title: "13. Cookie файлдары және қосымша рұқсаттары",
     body: [
       "Біз cookie файлдарын сессияны сақтау, тіл баптаулары, қауіпсіздік және аналитика үшін пайдаланамыз.",
       "Сіз браузер баптаулары арқылы cookie файлдарын өшіре аласыз. Толығырақ біздің Cookie саясатынан қараңыз.",
+      "Мобильді қосымшада тек қажетті элементтер пайдаланылады; аналитикалық cookie файлдары қолданылмайды.",
+      "",
+      "【Мобильді қосымшаның рұқсаттары (Желі туралы заң §22-2)】",
+      "· Камера (таңдау бойынша): бейнекеңес беру, анықтамалар мен тексеру нәтижелерін түсіру",
+      "· Микрофон (таңдау бойынша): бейнекеңес берудің дыбысы",
+      "· Хабарламалар (таңдау бойынша): жазылу, кеңес беру және өтініштің барысы туралы хабарлау",
+      "· Фото және файлдар (таңдау бойынша): анықтамалар мен тексеру нәтижелерін жүктеу және сақтау",
+      "Міндетті рұқсаттар жоқ. Жоғарыдағылардың ешқайсысын бермей-ақ қосымшаны пайдалануға болады; тек тиісті функция шектеледі. Рұқсаттарды құрылғы параметрлерінде кез келген уақытта өзгертуге болады.",
+      "Қосымшаны жойған кезде хабарламаға арналған құрылғы токені жарамсыз болады және біздің серверлерімізден тазартылады.",
     ],
   },
 
@@ -1299,7 +1423,7 @@ const KZ = {
   },
 
   jurisdiction_kz: {
-    title: "15. Қазақстан тұрғындарына арналған қосымша хабарлама",
+    title: "16. Қазақстан тұрғындарына арналған қосымша хабарлама",
     body: [
       "Осы бөлім Қазақстан Республикасының «Дербес деректер және оларды қорғау туралы» заңында (№ 94-V ЗРК, 2013, 2015 және 2022 жылғы өзгерістермен) және тиісті заңға тәуелді актілерде көзделген қосымша мәліметтерді қамтиды.",
       "",
@@ -1324,12 +1448,12 @@ const KZ = {
       "· Цифрлық даму, инновациялар және аэроғарыш өнеркәсібі министрлігі",
       "",
       "【Өтініштер мен даулар】",
-      "Осы Саясаттың 19-бөліміндегі байланыс деректері бойынша хабарласа аласыз немесе тұрғылықты жеріңіздегі сотқа не қадағалаушы органға жүгіне аласыз.",
+      "Осы Саясаттың 20-бөліміндегі байланыс деректері бойынша хабарласа аласыз немесе тұрғылықты жеріңіздегі сотқа не қадағалаушы органға жүгіне аласыз.",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. Автоматтандырылған шешімдер (PIPA §37-2)",
+    title: "15. Автоматтандырылған шешімдер (PIPA §37-2)",
     body: [
       "Компания сізге қолайлы медициналық мекемелерді ұсыну үшін ЖИ негізіндегі сәйкестендіру алгоритмін пайдаланады. Бұл Дербес деректерді қорғау туралы заңның 37-2-бабына сәйкес «автоматтандырылған шешім» болуы мүмкін.",
       "",
@@ -1348,7 +1472,7 @@ const KZ = {
   },
 
   jurisdiction_eu: {
-    title: "16. ЕО/ЕЭА тұрғындарына арналған қосымша хабарлама (GDPR)",
+    title: "17. ЕО/ЕЭА тұрғындарына арналған қосымша хабарлама (GDPR)",
     body: [
       "GDPR қолданылатын жағдайда келесі құқықтар кепілдендіріледі:",
       "· Қол жеткізу құқығы (15-бап), түзету (16-бап), жою (17-бап), шектеу (18-бап), тасымалдау (20-бап), қарсылық білдіру (21-бап) және автоматтандырылған шешім қабылдауға қатысты (22-бап).",
@@ -1360,7 +1484,7 @@ const KZ = {
   },
 
   jurisdiction_ru: {
-    title: "17. Ресей тұрғындарына арналған қосымша хабарлама",
+    title: "18. Ресей тұрғындарына арналған қосымша хабарлама",
     body: [
       "Ресей Федерациясының 152-ФЗ Федералдық заңы Ресей азаматтарының дербес деректерін бастапқы жинау Ресей Федерациясының аумағында жүзеге асырылуын талап етеді.",
       "healwith осы талаптың сақталу тәртібін жеке бағалап жатыр. Сервисті пайдалану арқылы Ресей тұрғындары осы шарттарды растайды және оларға нақты келісім береді.",
@@ -1369,15 +1493,17 @@ const KZ = {
   },
 
   changes: {
-    title: "18. Осы Саясатқа өзгерістер енгізу",
+    title: "19. Осы Саясатқа өзгерістер енгізу",
     body: [
       "Елеулі өзгерістер туралы біз сервис хабарландырулары арқылы және электрондық пошта арқылы күшіне енуден кемінде 7 күн бұрын (қолайсыз өзгерістер жағдайында 30 күн бұрын) хабарлаймыз.",
-      "Ағымдағы нұсқа: 2.1.0 (2026-06-29 күшіне енген).",
+      "Алайда деректерді өңдеу тәртібі өзгермей, оған сәйкес келмеген сипаттаманы түзететін жағдайда, қате мәтін сайтта қалып қоймауы үшін түзету дереу жарияланады және оның мәні төмендегі қысқаша мазмұнда көрсетіледі.",
+      "Ағымдағы нұсқа: 2.4.0 (2026-08-21 күшіне енеді). Алдыңғы нұсқа 2.3.0 (2026-08-14).",
+      "2.4.0 өзгерістерінің қысқаша мазмұны: (1) шыққан кездегі жою мерзімі «30 күн ішінде» дегеннен «дереу» деп түзетілді; (2) «3 жыл әрекетсіздіктен кейін тіркелгіні автоматты жою» тармағы алып тасталды (оның негізі болған дербес деректердің жарамдылық мерзімі режимі 2023 жылғы 15 қыркүйекте жойылды, әрекетсіздік саясаты енді компанияның өз шешімі; сонымен қатар 3 жыл шарт пен төлем үшін 5 жыл, медициналық жазбалар үшін 10 жыл сияқты заңды сақтау мерзімдерінен қысқа, сондықтан оны қолдану мүмкін емес еді; қаласаңыз кез келген уақытта өзіңіз шыға аласыз); (3) шыққан кезде не қалатыны мен не жойылатыны нақты жұмысына сәйкес нақтыланды.",
     ],
   },
 
   contact: {
-    title: "19. Байланыс",
+    title: "20. Байланыс",
     body: [
       "Дербес деректерді қорғау және жалпы сұрақтар: admin@healwith.co.kr",
       "Мекенжайы: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
@@ -1392,7 +1518,7 @@ const KZ = {
  */
 const ZH = {
   pageTitle: "隐私政策",
-  lastUpdated: "最后更新",
+  lastUpdated: "生效日",
   version: "版本",
   tableOfContents: "目录",
 
@@ -1438,9 +1564,15 @@ const ZH = {
       "【自动收集】",
       "· IP 地址、Cookie、会话日志、服务使用记录",
       "· 设备信息（操作系统、浏览器、型号）、大致地理位置（国家级别；精确位置仅在同意时收集）",
+      "· 移动应用推送通知的设备令牌（仅在您于应用中允许通知时）",
+      "",
+      "【使用远程协诊（视频咨询）时】",
+      "· 语音与影像：仅在通话过程中实时传输，公司不进行录音录像（录制功能目前处于关闭状态，如日后启用将事先取得同意并修订本政策）。",
+      "· 字幕及翻译文本：作为咨询记录加密保存。字幕仅在您开启时才会生成。",
+      "· 为生成字幕，通话语音会发送至第9条所列受托方进行转写与翻译（若使用浏览器转写，语音也可能发送至您的浏览器厂商）。",
       "",
       "【支付相关】",
-      "· 支付信息通过支付代理（PG）处理，公司不存储完整的卡号。",
+      "· 公司不向用户直接收取诊疗费或服务费，也不收集或存储卡号等支付信息。诊疗费由用户直接向医疗机构支付。",
     ],
   },
 
@@ -1451,10 +1583,11 @@ const ZH = {
       "b. 医疗机构匹配、就诊预约、签证及停留支持",
       "c. 基于用户同意向医疗机构提供就诊相关信息",
       "d. 口译、交通、住宿等附加服务",
-      "e. 支付处理及收据或税务发票的开具",
+      "e. 诊疗费用报价及结算支持（公司不直接收取用户的诊疗费）",
       "f. 投诉及咨询处理、客户支持",
       "g. 服务质量改进、统计分析、安全事件应对",
       "h. 履行法定义务",
+      "i. 发送预约、咨询及办理进度通知（电子邮件，以及在应用中允许时的推送通知）",
     ],
   },
 
@@ -1474,14 +1607,15 @@ const ZH = {
       "",
       "【依法定保存】",
       "· 合同/撤回记录：5 年（《电子商务消费者保护法》§6）",
-      "· 支付及货物供应记录：5 年",
       "· 消费者投诉及纠纷处理记录：3 年",
       "· 登录记录：3 个月（《通信秘密保护法》§15-2）",
       "· 医院保存的诊疗记录：10 年（《医疗法》§22）。注：healwith 不保存诊疗记录的副本，原件由医院管理。",
       "",
       "【按服务目的保存】（存储限制原则——《个人信息保护法》§21、GDPR 第5(1)(e)条：仅在目的所需的期间内保存）",
-      "· 账户信息：在会员资格有效期间保存；注销时立即（30 日内）销毁。长期未使用（3 年无活动）的账户经事先通知后销毁。",
-      "· 敏感健康信息：在提供服务（包括事前咨询、治疗及后续管理）所需的期间内保存；会员注销或撤回同意时立即销毁。注：本方针中“服务完成”指包括后续管理在内的与用户关系的结束，而非一次性诊疗。",
+      "· 账户信息：在会员资格有效期间保存。您注销时，登录方式和联系信息（姓名、电话、邮箱）将立即销毁。您可在服务内「账户与隐私」页面自行注销。",
+      "· 长期未使用的账户：本公司不因未使用而自动销毁账户。此前要求如此处理的个人信息有效期制度已于 2023 年 9 月 15 日废止，休眠政策改由各企业自行决定；且癌症诊疗涵盖诊断、治疗与后续管理，历时数年，一段时间未使用并不代表关系已结束。您可随时自行注销；若本公司新设休眠政策，将事先通知。",
+      "· 敏感健康信息：在提供服务（包括事前咨询、治疗及后续管理）所需的期间内保存。会员注销或撤回同意时，附于该信息的姓名、电话、邮箱将立即销毁，使其无法再识别到您本人。但已发送至医疗机构的诊疗相关记录及您上传的检查文件，将在上述【依法定保存】所列期间内保留，这些文件中可能写有您的姓名；保存期限届满后立即销毁。注：本方针中“服务完成”指包括后续管理在内的与用户关系的结束，而非一次性诊疗。",
+      "· 远程协诊字幕及对话记录：加密保存；在与用户的关系结束或收到删除请求时销毁",
       "· 营销同意信息：至撤回同意为止",
     ],
   },
@@ -1526,12 +1660,13 @@ const ZH = {
       "【接收方及司法管辖区】",
       "· 韩国合作医院（用于医疗目的）",
       "· 云基础设施：Vercel Inc.（美国）、Supabase Inc.（美国——数据存储于首尔（ap-northeast-2）区域）",
+      "· 社交登录身份验证：Google LLC（美国）、Apple Inc.（美国）——使用相应登录方式时",
       "· 分析服务：Google Ireland Ltd.（GA4，爱尔兰）",
       "· 邮件发送：Resend Inc.（美国）",
       "· 远程协诊视频通话：LiveKit Inc.（美国）",
-      "· AI 聊天机器人及翻译：Google LLC（Gemini API，美国——经用户同意）",
-      "· 转介患者的海外招揽机构（患者居住国，如哈萨克斯坦、俄罗斯）：传递专科医生意见书与治疗指引，并支持诊前·诊后管理 —— 依据第9条处理委托及委托合同",
-      "· 客户支持工具：[确定后填写]",
+      "· AI 聊天机器人、翻译及远程协诊字幕转写：Google LLC（Gemini API，美国——使用相关功能时）",
+      "· 应用推送通知：Google LLC（Firebase Cloud Messaging，美国——在应用中允许通知时）",
+      "· 转介患者的海外招揽机构（患者居住国，如哈萨克斯坦、俄罗斯）：传递专科医生意见书与治疗指引，并支持诊前·诊后管理 —— 依据第7条向第三方提供；该机构并非我们的受托方，而是为自身目的进行处理的独立个人信息处理者",
       "",
       "【目的及项目】",
       "· 医院：与第7条相同",
@@ -1544,7 +1679,7 @@ const ZH = {
       "【安全措施】",
       "· 欧盟→韩国转移：根据欧盟委员会于2021年12月作出的韩国充分性决定（Decision 2022/254），在数据于韩国境内并受 PIPC 监管下处理的前提下，此类转移可无需单独的 SCC 即可进行。",
       "· 其他转移：我们通过标准合同条款或与之相当的合同及技术安全措施（加密、假名化）确保接收方履行个人信息保护义务。",
-      "· 关于哈萨克斯坦：请参阅第15条有关本地化义务的规定。",
+      "· 关于哈萨克斯坦：请参阅第16条有关本地化义务的规定。",
     ],
   },
 
@@ -1556,10 +1691,11 @@ const ZH = {
       "· Supabase Inc. — 数据库托管（美国——数据存储于首尔（ap-northeast-2）区域）",
       "· Vercel Inc. — 网络应用托管（美国）",
       "· Google LLC — 身份验证（OAuth）、分析、地图（美国/爱尔兰）",
+      "· Apple Inc. — 「通过 Apple 登录」身份验证（美国）",
       "· Resend Inc. — 通知及告知类电子邮件发送（美国）",
       "· LiveKit Inc. — 远程协诊视频通话（美国）",
-      "· Google LLC（Gemini API）— AI 聊天机器人应答及翻译（经用户同意，美国）",
-      "· [支付代理 — 待定] — 支付处理",
+      "· Google LLC（Gemini API）— AI 聊天机器人应答、翻译及远程协诊字幕转写（使用相关功能时，美国）",
+      "· Google LLC（Firebase Cloud Messaging）— 应用推送通知发送（在应用中允许通知时，美国）",
       "",
       "合同要求处理者遵守个人信息保护义务、禁止超出既定目的使用，并采取技术及管理保护措施。我们定期对处理者进行监督。",
     ],
@@ -1604,10 +1740,19 @@ const ZH = {
   },
 
   cookies: {
-    title: "13. Cookie 的使用",
+    title: "13. Cookie 及应用权限",
     body: [
       "我们使用 Cookie 用于保持会话、语言设置、安全及使用分析。",
       "您可通过浏览器设置拒绝 Cookie。详情请参阅我们的《Cookie 政策》。",
+      "在移动应用中仅使用必要项目，不使用分析类 Cookie。",
+      "",
+      "【移动应用权限（《信息通信网法》§22-2）】",
+      "· 相机（可选）：视频咨询、拍摄诊断书及检查结果",
+      "· 麦克风（可选）：视频咨询的语音",
+      "· 通知（可选）：预约、咨询及办理进度的提醒",
+      "· 照片及文件（可选）：上传并保存诊断书及检查结果",
+      "没有必需权限。即使不授予上述任何权限也可使用本应用，仅相关功能受限。权限可随时在设备设置中更改。",
+      "删除应用后，通知所用的设备令牌即失效，并会从公司服务器中清理。",
     ],
   },
 
@@ -1624,7 +1769,7 @@ const ZH = {
   },
 
   jurisdiction_kz: {
-    title: "15. 致哈萨克斯坦居民的补充告知",
+    title: "16. 致哈萨克斯坦居民的补充告知",
     body: [
       "本节提供哈萨克斯坦共和国《个人数据及其保护法》（第94-V号，2013年，经2015年及2022年修订）及相关实施法规所要求的补充披露。",
       "",
@@ -1649,12 +1794,12 @@ const ZH = {
       "· 数字发展、创新与航空航天工业部（Министерство цифрового развития, инноваций и аэрокосмической промышленности）",
       "",
       "【申诉及争议】",
-      "您可通过本政策第19条的联系方式与我们联系，或向您居住地的法院或监管机构提起诉讼。",
+      "您可通过本政策第20条的联系方式与我们联系，或向您居住地的法院或监管机构提起诉讼。",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. 自动化决定（PIPA §37-2）",
+    title: "15. 自动化决定（PIPA §37-2）",
     body: [
       "公司使用基于 AI 的匹配算法为您推荐合适的医疗机构。这可能构成《个人信息保护法》第37条之二所称的“自动化决定”。",
       "",
@@ -1673,7 +1818,7 @@ const ZH = {
   },
 
   jurisdiction_eu: {
-    title: "16. 致欧盟/欧洲经济区居民的补充告知（GDPR）",
+    title: "17. 致欧盟/欧洲经济区居民的补充告知（GDPR）",
     body: [
       "在适用 GDPR 的情形下，保障以下权利：",
       "· 访问权（第15条）、更正权（第16条）、删除权（第17条）、限制权（第18条）、可携权（第20条）、反对权（第21条）及关于自动化决策的权利（第22条）。",
@@ -1685,7 +1830,7 @@ const ZH = {
   },
 
   jurisdiction_ru: {
-    title: "17. 致俄罗斯居民的补充告知",
+    title: "18. 致俄罗斯居民的补充告知",
     body: [
       "俄罗斯联邦第152-ФЗ号法律要求俄罗斯公民个人数据的初始收集应在俄罗斯境内进行。",
       "healwith 正在另行评估对该要求的合规方案。通过使用本服务，俄罗斯居民确认并明确同意上述条款。",
@@ -1694,15 +1839,17 @@ const ZH = {
   },
 
   changes: {
-    title: "18. 本政策的变更",
+    title: "19. 本政策的变更",
     body: [
       "重大变更将于生效至少 7 日前（不利变更则为 30 日前）通过服务公告及电子邮件予以通知。",
-      "当前版本：2.1.0（生效日 2026-06-29）。",
+      "但若实际处理方式并未改变，仅是更正与之不符的表述，为避免错误内容继续公示，该更正将立即生效，并在下方修订摘要中说明更正内容。",
+      "当前版本：2.4.0（生效日 2026-08-21）。上一版本 2.3.0（2026-08-14）。",
+      "2.4.0 修订摘要：①注销时的销毁时点由「30 日内」更正为「立即」；②删除「3 年无活动账户自动销毁」条目（其依据的个人信息有效期制度已于 2023 年 9 月 15 日废止，休眠政策改由各企业自行决定；且 3 年短于合同与付款 5 年、诊疗记录 10 年等法定保存期限，无法适用；您可随时自行注销）；③按实际处理具体说明注销时保留与删除的内容。",
     ],
   },
 
   contact: {
-    title: "19. 联系方式",
+    title: "20. 联系方式",
     body: [
       "个人信息及一般咨询：admin@healwith.co.kr",
       "地址：Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
@@ -1714,7 +1861,7 @@ const ZH = {
 
 const JA = {
   pageTitle: "プライバシーポリシー",
-  lastUpdated: "最終更新",
+  lastUpdated: "施行日",
   version: "バージョン",
   tableOfContents: "目次",
 
@@ -1760,9 +1907,15 @@ const JA = {
       "【自動収集】",
       "· IP アドレス、Cookie、セッションログ、サービス利用記録",
       "· 端末情報（OS、ブラウザ、機種）、おおよその位置情報（国単位。正確な位置情報は同意がある場合のみ）",
+      "· モバイルアプリのプッシュ通知用デバイストークン（アプリで通知を許可した場合に限る）",
+      "",
+      "【遠隔協診（ビデオ相談）をご利用の場合】",
+      "· 音声・映像：通話中にリアルタイムで送信されるのみで、当社は録画・録音を行いません（録画機能は現在オフであり、導入する場合は事前に同意を取得し本ポリシーを改定します）。",
+      "· 字幕・翻訳テキスト：相談記録として暗号化して保存します。字幕は利用者がオンにした場合にのみ生成されます。",
+      "· 字幕の生成のため、発話音声は第9条の受託者に文字起こし・翻訳のために送信されます（ブラウザの音声認識を使用する場合、ブラウザ提供者にも送信されることがあります）。",
       "",
       "【決済関連】",
-      "· 決済情報は決済代行会社（PG）を通じて処理され、当社はカード番号の全体を保存しません。",
+      "· 当社は利用者から診療費・サービス利用料を直接収受せず、カード番号などの決済情報を収集・保存しません。診療費は利用者が医療機関へ直接お支払いいただきます。",
     ],
   },
 
@@ -1773,10 +1926,11 @@ const JA = {
       "b. 医療機関のマッチング、診療予約、ビザおよび滞在支援",
       "c. 利用者の同意に基づく医療機関への診療関連情報の提供",
       "d. 通訳・移動・宿泊などの付帯サービスの提供",
-      "e. 決済処理および領収書・税務インボイスの発行",
+      "e. 診療費の見積り案内および精算支援（当社は利用者の診療費を直接収受しません）",
       "f. 苦情・相談対応、カスタマーサポート",
       "g. サービス品質の改善、統計分析、セキュリティインシデント対応",
       "h. 法令上の義務の履行",
+      "i. 予約・相談および進捗に関する通知の送信（メール、アプリで許可した場合はプッシュ通知）",
     ],
   },
 
@@ -1796,14 +1950,15 @@ const JA = {
       "",
       "【関係法令に基づく保管】",
       "· 契約・申込撤回の記録：5 年（電子商取引消費者保護法 §6）",
-      "· 代金決済および財貨供給の記録：5 年",
       "· 消費者の苦情および紛争処理の記録：3 年",
       "· ログイン記録：3 か月（通信秘密保護法 §15-2）",
       "· 病院が保有する診療記録：10 年（医療法 §22）。※ healwith は診療記録の写しを保有せず、原本は医療機関が管理します。",
       "",
       "【サービス目的別の保管】（保存制限の原則 — 個人情報保護法 §21、GDPR 第5条(1)(e)：目的に必要な期間のみ保有）",
-      "· アカウント情報：会員資格が有効な期間保有し、退会時は遅滞なく（30 日以内）破棄します。長期未利用（3 年間活動なし）のアカウントは事前通知のうえ破棄します。",
-      "· 機微（健康）情報：事前相談・治療・アフターケアなど、サービス提供に必要な期間保有し、退会または同意の撤回時に遅滞なく破棄します。※ 本方針における「サービス完了」とは、一回限りの診療ではなく、アフターケアを含む利用者との関係の終了を意味します。",
+      "· アカウント情報：会員資格が有効な期間保有します。退会されると、ログイン手段と連絡先情報（氏名・電話番号・メールアドレス）をただちに破棄します。退会はサービス内の「アカウント・プライバシー」画面からご自身で行えます。",
+      "· 長期未利用のアカウント：当社は未利用を理由とする自動破棄を行いません。これを義務づけていた個人情報有効期間制度は 2023 年 9 月 15 日に廃止され、休眠ポリシーは各事業者が自主的に定めることとなりました。また、がん診療は診断・治療・アフターケアが数年にわたるため、一定期間の未利用をもって関係の終了とはみなせません。破棄をご希望の場合はいつでもご自身で退会いただけます。休眠ポリシーを新設する場合は事前にお知らせします。",
+      "· 機微（健康）情報：事前相談・治療・アフターケアなど、サービス提供に必要な期間保有します。退会または同意の撤回時には、その情報に紐づく氏名・電話番号・メールアドレスをただちに破棄し、利用者を特定できない状態にします。ただし、すでに医療機関へ提供された診療関連の記録および利用者がアップロードした検査書類は、上記【関係法令に基づく保管】の期間中は残り、当該書類の中にはお名前が記載されている場合があります。保管期間の経過後は遅滞なく破棄します。※ 本方針における「サービス完了」とは、一回限りの診療ではなく、アフターケアを含む利用者との関係の終了を意味します。",
+      "· 遠隔協診の字幕・会話記録：暗号化して保管し、利用者との関係終了時または削除請求時に破棄",
       "· マーケティング同意情報：同意撤回まで",
     ],
   },
@@ -1848,12 +2003,13 @@ const JA = {
       "【移転先および国・地域】",
       "· 韓国国内の提携病院（医療目的）",
       "· クラウドインフラ：Vercel Inc.（米国）、Supabase Inc.（米国 — データはソウル（ap-northeast-2）リージョンに保存）",
+      "· ソーシャルログイン認証：Google LLC（米国）・Apple Inc.（米国）— 当該ログインを利用する場合",
       "· 分析サービス：Google Ireland Ltd.（GA4、アイルランド）",
       "· メール送信：Resend Inc.（米国）",
       "· 遠隔協診のビデオ通話：LiveKit Inc.（米国）",
-      "· AI チャットボット・翻訳：Google LLC（Gemini API、米国 — 利用者の同意がある場合）",
-      "· 患者を紹介した海外の誘致エージェンシー（患者の居住国、例：カザフスタン・ロシア）：専門医所見・治療案内の伝達および事前・事後管理の支援 — 第9条の処理委託および委託契約に基づく",
-      "· カスタマーサポートツール：[確定後に記載]",
+      "· AI チャットボット・翻訳・遠隔協診の字幕文字起こし：Google LLC（Gemini API、米国 — 当該機能を利用する場合）",
+      "· アプリのプッシュ通知：Google LLC（Firebase Cloud Messaging、米国 — アプリで通知を許可した場合）",
+      "· 患者を紹介した海外の誘致エージェンシー（患者の居住国、例：カザフスタン・ロシア）：専門医所見・治療案内の伝達および事前・事後管理の支援 — 第7条の第三者提供に基づき、エージェンシーは当社の受託者ではなく、自らの目的で処理する独立した個人情報取扱事業者です",
       "",
       "【目的および項目】",
       "· 病院：第7条と同じ",
@@ -1866,7 +2022,7 @@ const JA = {
       "【安全措置】",
       "· EU→韓国の移転：2021年12月の欧州委員会による韓国に対する十分性決定（Decision 2022/254）に基づき、データが韓国国内で PIPC の監督の下で処理されることを前提に、別途の SCC なしに移転することができます。",
       "· その他の移転：標準契約条項またはこれに準ずる契約上・技術上の安全措置（暗号化、仮名化）を通じて、移転先の個人情報保護義務を確保します。",
-      "· カザフスタンに関して：第15条のローカライゼーション義務に関する規定をご参照ください。",
+      "· カザフスタンに関して：第16条のローカライゼーション義務に関する規定をご参照ください。",
     ],
   },
 
@@ -1878,10 +2034,11 @@ const JA = {
       "· Supabase Inc. — データベースホスティング（米国 — データはソウル（ap-northeast-2）リージョンに保存）",
       "· Vercel Inc. — ウェブアプリケーションホスティング（米国）",
       "· Google LLC — 認証（OAuth）、分析、地図（米国/アイルランド）",
+      "· Apple Inc. — 「Appleでサインイン」認証（米国）",
       "· Resend Inc. — 通知・案内メールの送信（米国）",
       "· LiveKit Inc. — 遠隔協診のビデオ通話（米国）",
-      "· Google LLC（Gemini API）— AI チャットボットの応答および翻訳（利用者の同意がある場合、米国）",
-      "· [決済代行会社 — 未定] — 決済処理",
+      "· Google LLC（Gemini API）— AI チャットボットの応答、翻訳、遠隔協診の字幕文字起こし（当該機能を利用する場合、米国）",
+      "· Google LLC（Firebase Cloud Messaging）— アプリのプッシュ通知の送信（アプリで通知を許可した場合、米国）",
       "",
       "契約により、受託者は個人情報保護義務、目的外利用の禁止、ならびに技術的・管理的保護措置を遵守し、当社は定期的にこれを監督します。",
     ],
@@ -1926,10 +2083,19 @@ const JA = {
   },
 
   cookies: {
-    title: "13. Cookie の使用",
+    title: "13. Cookie およびアプリの権限",
     body: [
       "当社は、セッションの維持、言語設定、セキュリティおよび利用分析のために Cookie を使用します。",
       "利用者はブラウザの設定により Cookie を拒否することができます。詳細は別途の「Cookie ポリシー」をご参照ください。",
+      "モバイルアプリでは必須項目のみを使用し、分析用 Cookie は使用しません。",
+      "",
+      "【モバイルアプリの権限（情報通信網法 §22-2）】",
+      "· カメラ（任意）：ビデオ相談の映像、診断書・検査結果の撮影",
+      "· マイク（任意）：ビデオ相談の音声",
+      "· 通知（任意）：予約・相談および進捗のお知らせ",
+      "· 写真・ファイル（任意）：診断書・検査結果のアップロードおよび保存",
+      "必須の権限はありません。上記をいずれも許可しなくてもアプリをご利用いただけます（該当機能のみ制限されます）。権限は端末の設定からいつでも変更できます。",
+      "アプリを削除すると、通知用のデバイストークンは無効となり、当社サーバーから整理されます。",
     ],
   },
 
@@ -1946,7 +2112,7 @@ const JA = {
   },
 
   jurisdiction_kz: {
-    title: "15. カザフスタン居住者向けの追加告知",
+    title: "16. カザフスタン居住者向けの追加告知",
     body: [
       "本条は、カザフスタン共和国「個人データおよびその保護に関する法律」（第94-V号、2013年、2015年・2022年改正）および関連施行規定が要求する追加の開示事項を提供します。",
       "",
@@ -1971,12 +2137,12 @@ const JA = {
       "· デジタル開発・革新・航空宇宙産業省（Министерство цифрового развития, инноваций и аэрокосмической промышленности）",
       "",
       "【申告および紛争】",
-      "本ポリシー第19条の連絡先にお問い合わせいただくか、居住地の裁判所または監督機関に提訴することができます。",
+      "本ポリシー第20条の連絡先にお問い合わせいただくか、居住地の裁判所または監督機関に提訴することができます。",
     ],
   },
 
   automated_decisions: {
-    title: "15-2. 自動化された決定（PIPA §37-2）",
+    title: "15. 自動化された決定（PIPA §37-2）",
     body: [
       "当社は、利用者に適した医療機関を推薦するために、AI ベースのマッチングアルゴリズムを使用します。これは「個人情報保護法」第37条の2に基づく「自動化された決定」に該当する場合があります。",
       "",
@@ -1995,7 +2161,7 @@ const JA = {
   },
 
   jurisdiction_eu: {
-    title: "16. EU/EEA 居住者向けの追加告知（GDPR）",
+    title: "17. EU/EEA 居住者向けの追加告知（GDPR）",
     body: [
       "GDPR が適用される場合、以下の権利が保障されます。",
       "· アクセス権（第15条）、訂正権（第16条）、削除権（第17条）、制限権（第18条）、ポータビリティ権（第20条）、異議権（第21条）、および自動化された意思決定に関する権利（第22条）。",
@@ -2007,7 +2173,7 @@ const JA = {
   },
 
   jurisdiction_ru: {
-    title: "17. ロシア居住者向けの追加告知",
+    title: "18. ロシア居住者向けの追加告知",
     body: [
       "ロシア連邦第152-ФЗ号法は、ロシア国民の個人データの初回収集をロシア領域内で行うことを求めています。",
       "healwith は、本要件の遵守方法について別途検討中です。本サービスを利用することにより、ロシア居住者は本条項を確認し、明示的に同意するものとします。",
@@ -2016,15 +2182,17 @@ const JA = {
   },
 
   changes: {
-    title: "18. 本ポリシーの変更",
+    title: "19. 本ポリシーの変更",
     body: [
       "重要な変更は、施行の少なくとも 7 日前（不利な変更の場合は 30 日前）に、サービス内のお知らせおよびメールにより通知します。",
-      "現在のバージョン：2.1.0（施行日 2026-06-29）。",
+      "ただし、実際の取扱いは変わらず、それと合っていなかった記述を正す «訂正» については、誤った内容が掲示され続けないよう直ちに反映し、その内容を下記の改定要約に明記します。",
+      "現在のバージョン：2.4.0（施行日 2026-08-21）。前バージョン 2.3.0（2026-08-14）。",
+      "2.4.0 改定の要約：①退会時の破棄時点を「30 日以内」から「ただちに」に訂正 ②「3 年間活動のないアカウントの自動破棄」の項目を削除（根拠であった個人情報有効期間制度が 2023 年 9 月 15 日に廃止され、休眠ポリシーは各事業者の自主的判断となりました。また 3 年は契約・決済 5 年、診療記録 10 年などの法定保存期間より短く、適用できませんでした。破棄をご希望の場合はいつでもご自身で退会いただけます） ③退会時に残るものと削除されるものを実際の処理に合わせて具体化。",
     ],
   },
 
   contact: {
-    title: "19. 連絡先",
+    title: "20. 連絡先",
     body: [
       "個人情報・一般のお問い合わせ：admin@healwith.co.kr",
       "住所：Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",

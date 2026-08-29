@@ -13,6 +13,8 @@ const loadSupabase = () => import("@/lib/data/supabaseClient").then((m) => m.sup
 import { SITE_INFO } from "@/lib/siteSettings";
 import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
+import { localeHref, splitLocale } from "@/lib/i18n/config";
 import {
   Header,
   MobileBottomNav,
@@ -22,6 +24,7 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
+import AppUpdateBanner from "./AppUpdateBanner";
 // 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
 import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode, event, GA_EVENTS } from "@/lib/ga";
@@ -116,6 +119,11 @@ export default function ClientShell({ children, initialLang = "en" }) {
     import("@/lib/app/androidBackButton")
       .then((m) => m.registerAndroidBackButton())
       .catch(() => { /* 네이티브 아님 → 무시 */ });
+    // 앱 링크(메일·상담 초대)로 들어온 주소를 그 화면으로 옮긴다 — 안 하면 무조건 첫 화면이 뜬다.
+    // 2026-08-20 흉내기 실측: /ko/hospitals 를 눌러도 홈(/ru)이 열렸다(앱 꺼져 있을 때·켜져 있을 때 둘 다).
+    import("@/lib/app/deepLinks")
+      .then((m) => m.registerDeepLinks())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
   }, []);
 
   // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
@@ -147,21 +155,26 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
   const handleSetView = (viewName) => {
     setIsMobileMenuOpen(false);
+    // 지금 보고 있는 주소에 언어가 붙어 있으면(/kz/…) 그 언어를 유지한 주소로 보낸다.
+    // 안 붙이면 proxy 가 «맨 주소 → 감지 언어» 308 을 한 번 더 태운다(공개경로 전부).
+    // 언어 없는 주소(/admin·/login 등)에서는 예전처럼 맨 주소 그대로 — 감지 로직을 건드리지 않는다.
+    const loc = splitLocale(pathname)[0];
+    const go = (p) => router.push(loc ? localeHref(p, loc) : p);
     switch (viewName) {
       case "home":
-        router.push("/");
+        go("/");
         break;
       case "admin":
         router.push("/admin");
         break;
       case "list_treatment":
-        router.push("/treatments");
+        go("/treatments");
         break;
       case "list_hospital":
-        router.push("/hospitals");
+        go("/hospitals");
         break;
       case "inquiry":
-        router.push("/inquiry");
+        go("/inquiry");
         break;
       case "login":
         router.push("/login");
@@ -170,10 +183,10 @@ export default function ClientShell({ children, initialLang = "en" }) {
         router.push("/signup");
         break;
       case "success":
-        router.push("/success");
+        go("/success");
         break;
       default:
-        router.push("/");
+        go("/");
     }
   };
 
@@ -187,19 +200,29 @@ export default function ClientShell({ children, initialLang = "en" }) {
   };
 
   const handleGlobalInquiry = () => {
-    router.push("/inquiry");
+    const loc = splitLocale(pathname)[0];
+    router.push(loc ? localeHref("/inquiry", loc) : "/inquiry");
     setIsMobileMenuOpen(false);
   };
 
   const getCurrentView = useMemo(() => {
-    if (pathname === "/") return "home";
-    if (pathname.startsWith("/treatments")) return "list_treatment";
-    if (pathname.startsWith("/hospitals")) return "list_hospital";
+    // 주소에 언어가 붙은 뒤로(/kz/treatments) 이 판정이 전부 빗나가 **메뉴의 현재 위치 표시가
+    // 죽어 있었다**(2026-08-20 실서비스 실측: /kz/treatments 에 bg-teal-200 이 0개).
+    // 언어를 떼고 비교한다.
+    const [, bare] = splitLocale(pathname);
+    if (bare === "/") return "home";
+    if (bare.startsWith("/treatments")) return "list_treatment";
+    if (bare.startsWith("/hospitals")) return "list_hospital";
     return "";
   }, [pathname]);
 
   // 인콰이어리(문의 퍼널)는 집중 태스크 흐름 → 하단 탭바 숨겨 채팅·폼 공간 확보(모바일)
-  const hideBottomNav = pathname.includes("success") || pathname.includes("/inquiry");
+  // 로그인·가입 계열도 같은 이유 + 실제 결함: 아이폰(좁은 화면)에서 하단 탭바/문의 동그라미가
+  // 「Apple로 계속하기」 줄을 덮는다(2026-08-13 시뮬레이터 사진으로 확인). 애플 심사 4.8.0 위험.
+  const hideBottomNav =
+    pathname.includes("success") ||
+    pathname.includes("/inquiry") ||
+    /\/(login|signup|find-id|forgot-password)(\/|$)/.test(pathname);
   // 포털(자체 깔끔한 상단바 + 공개 헤더/하단바/푸터 숨김): 관리자·국내병원·해외에이전시/의료기관·환자
   // ⚠️ /patient 누락 시: 공개 헤더+공개 하단바(진료과목/문의/병원)+푸터가 환자 레이아웃의
   //    자체 하단탭(홈/문서/더보기) 위에 겹쳐 모바일 레이아웃이 깨짐(2026-06-23 PO 신고, POSTMORTEMS #32).
@@ -304,6 +327,15 @@ export default function ClientShell({ children, initialLang = "en" }) {
   );
 }
 
+// 직원 화면(어드민·코디·병원) = 공개 사이트 언어가 아니라 «백오피스 언어 설정»을 따르는 곳.
+// 에이전시·의료기관·환자 포털은 공개 언어(healo_lang)를 그대로 쓰므로 여기 넣지 않는다.
+// 직원 화면 상단 띠의 「로그아웃」. t() 사전을 안 타는 이유는 PortalTopBar 주석에.
+// 코디 사전을 통째로 import 하면 공개 페이지 번들에도 800줄짜리 사전이 딸려 온다.
+const BO_LOGOUT = { ko: "로그아웃", en: "Log out", ru: "Выйти", kz: "Шығу", zh: "退出", ja: "ログアウト" };
+
+const isBackofficePath = (p) =>
+  p.startsWith("/admin") || p.startsWith("/coordinator") || p.startsWith("/hospital");
+
 function ClientShellContent({
   isPortalPage,
   session,
@@ -319,8 +351,12 @@ function ClientShellContent({
   hideBottomNav,
   children,
 }) {
-  const langCode = useLang();
+  const publicLang = useLang();
+  const backofficeLang = useBackofficeLang();
   const pathname = usePathname() || "/";
+  // 본문(코디·어드민)은 useBackofficeLang 을 쓰는데 껍데기만 공개 언어를 따라가면
+  // 「본문은 한국어인데 상단 띠·로그아웃만 영어」가 된다(2026-08-27 PO 지적).
+  const langCode = isBackofficePath(pathname) ? backofficeLang : publicLang;
   // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
   // 크롬(헤더·푸터·하단탭) 없이 내용만 렌더하는 **단일 작업 페이지**.
   // - /consultation/ : 화상상담방
@@ -353,6 +389,10 @@ function ClientShellContent({
       >
         {SKIP_LABEL[langCode] || SKIP_LABEL.en}
       </a>
+      {/* 앱이 옛 판이면 「업데이트해 주세요」 띠. 막지 않고 안내만 하며 닫을 수 있다.
+          상담방에서는 띄우지 않는다 — 화면 위쪽을 밀면 통화 화면 배치가 어긋난다
+          (쿠키 배너가 하단 조작바를 덮었던 2026-07-20 사고와 같은 이유). */}
+      {!isConsultationPage && <AppUpdateBanner />}
       {isConsultationPage ? null : isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
       ) : (
@@ -372,7 +412,11 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
+        {/* 🛑 하단바를 숨기는 화면(문의·로그인·가입·완료)도 «쿠키 동의 띠» 만큼은 자리를 비워야 한다 —
+            안 그러면 첫 방문자에게 화면 맨 아래(의뢰서의 「보내기」 등)가 띠에 덮여 눌리지 않는다
+            (2026-08-19 자동 클릭 검사가 의뢰서에서 잡음). 띠가 닫히면 변수가 0이라 여백도 사라진다.
+            포털·상담방은 자체 레이아웃이 바닥을 직접 다루므로 손대지 않는다. */}
+        <main id="main-content" className={isPortalPage || isConsultationPage ? "" : hideBottomNav ? "pb-[var(--cookie-banner-h,0px)]" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
       {/* 푸터에 붙어 있던 `pt-safe-area` 제거(2026-08-03) — 위쪽 안전영역은 «화면 맨 위 상태표시줄»을
@@ -393,7 +437,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.company.map((item) => (
                   <li key={item.href}>
-                    <a className="touch-link hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={localeHref(item.href, langCode)}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>
@@ -420,7 +464,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.legal.map((item) => (
                   <li key={item.href}>
-                    <a className="touch-link hover:text-teal-700" href={item.href}>
+                    <a className="touch-link hover:text-teal-700" href={localeHref(item.href, langCode)}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>
@@ -507,6 +551,11 @@ function ClientShellContent({
    Portal Top Bar — 메인과 동일한 teal 톤, 좌측 로고로 메인 이동
    ────────────────────────────────────────────── */
 function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
+  // 껍데기 문구는 t() 사전을 타는데, 브라우저에는 «서버가 심은 언어» 사전 1개만 실린다.
+  // 직원 화면 언어는 그 사전과 별개라 t() 가 영어로 폴백해 「Log Out」이 남았다.
+  // 코디 사전(CT)은 6개 언어를 코드에 들고 있어 사전 적재와 무관하게 바로 나온다.
+  const isBackoffice = isBackofficePath(usePathname() || "/");
+  const logoutLabel = isBackoffice ? (BO_LOGOUT[langCode] || BO_LOGOUT.en) : t("auth.logout", langCode);
   return (
     // ⚠️ 안전영역 여백(pt-safe-area)은 «바깥», 바 높이(h-14)는 «안쪽» 이어야 한다.
     //    한 칸에 같이 걸면 padding 이 height 안으로 먹혀(border-box) 바가 안 내려가고
@@ -538,7 +587,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
           className="flex items-center gap-1 text-slate-600 hover:text-teal-700 transition-colors ml-1"
         >
           <LogOut size={15} />
-          <span className="hidden sm:inline">{t("auth.logout", langCode)}</span>
+          <span className="hidden sm:inline">{logoutLabel}</span>
         </button>
       </div>
      </div>
@@ -547,10 +596,14 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
 }
 
 /* 포털 전용 언어 스위처 — 해외 에이전시/의료기관·병원·코디·관리자가 자기 언어로.
-   공개 페이지처럼 URL 언어화/리로드 없이 쿠키만 바꾸고 healo:langchange 로 즉시 리렌더. */
+   공개 페이지처럼 URL 언어화는 없이 쿠키만 바꾸고 **새로 불러온다**.
+   ⚠️ 예전엔 healo:langchange 로 «즉시 리렌더»만 했다 — 7/27부터 브라우저가 «자기 언어 사전 1개»만
+   들고 있어서 그러면 칸 이름은 옛 언어로 남고 서버가 주는 글만 새 언어로 바뀌었다(2026-08-18 실측:
+   러시아어로 바꿨는데 「환자·접수일·보내주신 것」은 한국어, 단계 이름만 러시아어). */
 function PortalLangSwitcher({ langCode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const pathname = usePathname() || "/";
   useEffect(() => {
     const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", onDoc);
@@ -561,9 +614,15 @@ function PortalLangSwitcher({ langCode }) {
     setOpen(false);
     // 어느 언어에서 어느 언어로 갈아탔나 — 번역 보강 우선순위의 근거.
     if (code !== langCode) { try { event(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {} }
-    setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
-    setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));
+    // 두 쿠키를 같이 심던 것을 갈랐다: 직원 화면에서 고른 언어가 공개 사이트 언어까지
+    // 바꿔 버리면 안 된다(2026-08-27 PO 지적). 자기 쪽 설정만 바꾼다.
+    if (isBackofficePath(pathname)) setBackofficeLangCookie(code);  // 어드민·코디·병원 (healo_bo_lang)
+    else setLangCookie(code);                                       // 공개·에이전시·의료기관·환자 (healo_lang)
+    // 새로 불러와야 layout 이 «그 언어» 사전을 심는다(위 주석). 같은 언어면 굳이 안 한다.
+    if (typeof window !== "undefined") {
+      if (code !== langCode) window.location.reload();
+      else window.dispatchEvent(new Event("healo:langchange"));
+    }
   };
   return (
     <div className="relative notranslate" ref={ref}>

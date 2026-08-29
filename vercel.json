@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/cron/run-regression-tests",
-      "schedule": "0 18 * * *"
+      "schedule": "0 18 * * 1,4"
     },
     {
       "path": "/api/cron/automation",

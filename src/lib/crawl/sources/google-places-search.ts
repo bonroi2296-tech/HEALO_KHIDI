@@ -1,7 +1,9 @@
 import type { CrawlSource, CrawlSearchParams, CrawlResult, CrawlHospitalRow, FieldMeta } from "../types";
 import { SPECIALTY_GROUPS, getSearchKeywordsForGroups } from "../specialty-groups";
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+// 서버측 호출이라 리퍼러가 없다 — 지도용 NEXT_PUBLIC 키는 리퍼러 제한이 걸려 있어 여기서 쓰면 403.
+// 서버 전용 키(GOOGLE_PLACES_API_KEY)를 먼저 본다. (2026-08-14)
+const API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 // 17개 시도 중심 좌표 — 가나다순
 const REGIONS: Record<string, { label: string; lat: number; lng: number }> = {
@@ -103,7 +105,7 @@ export const googlePlacesSearchSource: CrawlSource = {
   regions: Object.entries(REGIONS).map(([key, v]) => ({ key, label: v.label })),
   specialties: SPECIALTY_GROUPS.map((g) => ({ key: g.key, label: g.label })),
   fields: FIELDS,
-  requiredEnvKeys: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"],
+  requiredEnvKeys: ["GOOGLE_PLACES_API_KEY"],
 
   isAvailable() { return !!API_KEY; },
 

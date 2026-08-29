@@ -1,5 +1,5 @@
 /* ───────── 의료진 세부 이력 다국어 사전 (ru·kz·zh·ja) ─────────
-   왜 별도 파일인가: app/hospitals/HospitalsClient.jsx 의 DOCTORS 는 의사 28명이
+   왜 별도 파일인가: src/lib/data/immuneDoctors.js 의 IMMUNE_DOCTOR_ROSTER 는 의사 28명이
    같은 문구(예: '(Current) Attending Director, Immune Hospital')를 반복해서 쓴다.
    배열마다 6개 언어를 박으면 같은 번역이 수십 번 복제된다 → 문구 단위로 1번만 번역한다.
 
@@ -22,6 +22,7 @@ export const DOCTOR_PHRASES = {
   'Graduated from Dongguk University, College of Korean Medicine': { ru: 'Окончил факультет корейской медицины Университета Тонгук', kz: 'Тонгук университетінің корей медицинасы факультетін бітірген', zh: '毕业于东国大学韩医科大学', ja: '東国大学韓医科大学 卒業' },
   'Integrative Oncology Certified Specialist': { ru: 'Сертифицированный специалист по интегративной онкологии', kz: 'Интегративті онкология бойынша сертификатталған маман', zh: '整合肿瘤学会 认证医师', ja: '統合がん学会 認定医' },
   'Spinal Nerve Chuna Medicine Society Regular Member': { ru: 'Действительный член Общества спинальной нейро-мануальной медицины Чуна', kz: 'Омыртқа-жүйке Чуна медицинасы қоғамының толық мүшесі', zh: '脊椎神经推拿医学会 正会员', ja: '脊椎神経チュナ医学会 正会員' },
+  '[MBC] TV appearance on "Wonderful Daughter-in-Law"': { ru: 'Участие в передаче MBC «Странная страна невесток»', kz: 'MBC «Таңғажайып елдегі келін» бағдарламасына қатысу', zh: '出演MBC《奇怪国度的儿媳》节目', ja: 'MBC「不思議の国の嫁」出演' },
   'Korean Medicine Obesity Academy Expert Course': { ru: 'Экспертный курс Академии лечения ожирения корейской медицины', kz: 'Корей медицинасы семіздік академиясының сарапшы курсы', zh: '韩方肥胖学会 专家课程', ja: '韓方肥満学会 専門家課程' },
   'Dong-Eui Herbal Medicine Society Regular Member': { ru: 'Действительный член Общества фитотерапии Тонъи', kz: 'Тонъи фитотерапия қоғамының толық мүшесі', zh: '东医方药学会 正会员', ja: '東医方薬学会 正会員' },
 
@@ -252,6 +253,8 @@ export const DOCTOR_PHRASES = {
   'Korean Cancer Rehabilitation Hospital Association Member': { ru: 'Член Ассоциации онкореабилитационных больниц Кореи', kz: 'Корея онкореабилитациялық ауруханалар қауымдастығының мүшесі', zh: '大韩癌症康复医院协会 会员', ja: '大韓がんリハビリ病院協会 会員' },
   'Functional Nutrition Korean Medicine Society': { ru: 'Общество функционального питания корейской медицины', kz: 'Корей медицинасының функционалды тағамтану қоғамы', zh: '功能性营养韩医学会', ja: '機能性栄養韓医学会' },
   'Bee Venom Acupuncture Attenuates Oxaliplatin-Induced Neuropathic Pain by Modulating Action Potential Threshold in Dorsal Root Ganglia Neurons (Toxins, 2020;12(12))': { ru: 'Апитоксинотерапия уменьшает нейропатическую боль, вызванную оксалиплатином, за счёт модуляции порога потенциала действия нейронов спинномозговых ганглиев (Toxins, 2020;12(12))', kz: 'Ара уымен акупунктура арқа-түбір ганглийлері нейрондарының әрекет потенциалы табалдырығын өзгертіп, оксалиплатин туындатқан нейропатиялық ауырсынуды азайтады (Toxins, 2020;12(12))', zh: '蜂毒药针通过调节背根神经节神经元动作电位阈值减轻奥沙利铂诱导的神经病理性疼痛（Toxins, 2020;12(12)）', ja: '蜂毒薬鍼は後根神経節ニューロンの活動電位閾値を調節しオキサリプラチン誘発神経障害性疼痛を軽減する（Toxins, 2020;12(12)）' },
+  'Engagement of Spinal Serotonergic System in the Pain-Alleviating Effect of [6]-Shogaol in Chemotherapy-Induced Neuropathic Pain': { ru: 'Участие спинальной серотонинергической системы в обезболивающем действии [6]-шогаола при нейропатической боли, вызванной химиотерапией', kz: 'Химиотерапия туындатқан нейропатиялық ауырсынуда [6]-шогаолдың ауырсынуды басу әсеріне жұлынның серотонинергиялық жүйесінің қатысуы', zh: '脊髓5-羟色胺能系统参与[6]-姜烯酚对化疗诱发神经病理性疼痛的镇痛作用', ja: '化学療法誘発神経障害性疼痛における[6]-ショウガオールの鎮痛作用への脊髄セロトニン神経系の関与' },
+  '[6]-Shogaol Attenuates Oxaliplatin-Induced Allodynia through Serotonergic Receptors and GABA in the Spinal Cord in Mice': { ru: '[6]-шогаол уменьшает аллодинию, вызванную оксалиплатином, через серотониновые рецепторы и ГАМК в спинном мозге мышей', kz: '[6]-шогаол тышқандар жұлынындағы серотонин рецепторлары мен ГАМҚ арқылы оксалиплатин туындатқан аллодинияны азайтады', zh: '[6]-姜烯酚通过小鼠脊髓5-羟色胺受体与GABA减轻奥沙利铂诱发的触诱发痛', ja: '[6]-ショウガオールはマウス脊髄のセロトニン受容体とGABAを介してオキサリプラチン誘発アロディニアを軽減する' },
 
   '(Current) CMO, Immune Hospital': { ru: '(сейчас) Главный медицинский директор (CMO), Immune Hospital', kz: '(қазір) Бас медициналық директор (CMO), Immune Hospital', zh: '（现）Immune Hospital 医疗总监（CMO）', ja: '（現）Immune Hospital 医療統括責任者（CMO）' },
   '(Former) Brain Health Center & Shoulder Center, Immuno-Oncology, Jangdeok Korean Medicine Hospital': { ru: '(ранее) Центр здоровья мозга и центр плеча, иммуно-онкология, Jangdeok Korean Medicine Hospital', kz: '(бұрын) Ми денсаулығы және иық орталығы, иммуно-онкология, Jangdeok Korean Medicine Hospital', zh: '（前）Jangdeok Korean Medicine Hospital 免疫肿瘤 脑健康中心·肩关节中心', ja: '（前）Jangdeok Korean Medicine Hospital 免疫腫瘍 脳健康センター・肩センター' },
@@ -353,4 +356,9 @@ export const DOCTOR_PHRASES = {
   'Korean Internal Medicine · Pain Rehab': { ru: 'Внутренние болезни корейской медицины · реабилитация при боли', kz: 'Корей медицинасының ішкі аурулары · ауырсыну реабилитациясы', zh: '韩方内科 · 疼痛康复', ja: '韓方内科 · 疼痛リハビリ' },
   'Korean Dermatology · Anti-Aging Center': { ru: 'Дерматология корейской медицины · центр антивозрастной медицины', kz: 'Корей медицинасы дерматологиясы · қартаюға қарсы орталық', zh: '韩方皮肤科 · 抗老化中心', ja: '韓方皮膚科 · アンチエイジングセンター' },
   'Anti-Aging Center': { ru: 'Центр антивозрастной медицины', kz: 'Қартаюға қарсы орталық', zh: '抗老化中心', ja: 'アンチエイジングセンター' },
+
+  /* 2026-08-18 병원 홈페이지 기준 재수집 때 새로 생긴 문구 */
+  '#EasyToConsult': { ru: '#ЛёгкаяКонсультация', kz: '#ЖеңілКеңес', zh: '#问诊轻松', ja: '#相談しやすい' },
+  'Korean Pharmacopuncture Institute Member': { ru: 'Член Корейского института фармакопунктуры', kz: 'Корей фармакопунктура институтының мүшесі', zh: '大韩药针学会 会员', ja: '大韓薬鍼学会 会員' },
+  'General Practice': { ru: 'Лечебный отдел', kz: 'Емдеу бөлімі', zh: '诊疗部', ja: '診療部' },
 };

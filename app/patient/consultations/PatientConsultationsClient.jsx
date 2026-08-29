@@ -143,7 +143,7 @@ export default function PatientConsultationsClient() {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-gray-900">
+                      <h3 className="text-[clamp(24px,2.5vw,32px)] font-bold text-gray-900">
                         {(cancerKey && t(cancerKey, lang)) ||
                           q.cancer_type ||
                           t("patientConsults.inquiryFallback", lang)}
@@ -252,7 +252,7 @@ function ConsultationCard({ session, past, lang }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-gray-900">
+            <h3 className="text-[clamp(24px,2.5vw,32px)] font-bold text-gray-900">
               {session.hospitals?.name || t("patientConsults.sessionFallback", lang)}
             </h3>
             {session.partner_doctors?.name_ko && (

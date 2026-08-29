@@ -63,7 +63,7 @@ export default function PrivacyPolicyClientLegacy() {
               {pageLabels.tableOfContents || "Contents"}
             </p>
             <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sections.map((s, idx) => (
+              {sections.map((s) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
@@ -83,9 +83,7 @@ export default function PrivacyPolicyClientLegacy() {
                   onMouseEnter={e => { if (activeId !== s.id) e.currentTarget.style.background = "#f0fdfa"; }}
                   onMouseLeave={e => { if (activeId !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span style={{ color: activeId === s.id ? "rgba(255,255,255,0.65)" : "#94a3b8", fontSize: "0.625rem", paddingTop: 2, flexShrink: 0 }}>
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
+                  {/* 번호는 제목 문자열(“1. 총칙”)에 이미 들어 있다 — 자동 순번을 또 붙이면 이중 번호가 된다 */}
                   <span>{s.title}</span>
                 </a>
               ))}
@@ -105,11 +103,6 @@ export default function PrivacyPolicyClientLegacy() {
                   borderBottom: idx < sections.length - 1 ? "1px solid #e2e8f0" : "none",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                  <span style={{ background: "#0d9488", color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", fontFamily: "monospace" }}>
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
-                </div>
                 <h2 style={{ fontSize: "clamp(1.125rem, 2.5vw, 1.5rem)", fontWeight: 800, color: "#0f172a", margin: "0 0 16px", lineHeight: 1.25 }}>
                   {section.title}
                 </h2>
@@ -127,12 +120,12 @@ export default function PrivacyPolicyClientLegacy() {
             <footer style={{ marginTop: 48, paddingTop: 24, borderTop: "2px solid #99f6e4", fontSize: "0.75rem", color: "#64748b", lineHeight: 1.7 }}>
               <p style={{ margin: 0 }}>
                 {(() => { const t = {
-                  ko: "이 문서는 대한민국 개인정보보호법(§28-8 포함), 의료법, 의료해외진출법, 카자흐스탄 94-V ЗРК, EU GDPR을 기반으로 작성되었습니다. 환자 민감정보는 AES-256-GCM 암호화 후 저장됩니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.",
-                  en: "This document is drafted based on Korean PIPA (incl. §28-8), the Medical Service Act, the Medical Tourism Act, Kazakhstan Law 94-V ЗРК, and the EU GDPR. Patient sensitive data is stored with AES-256-GCM encryption. Final legal effect is subject to applicable laws and professional review.",
-                  ru: "Этот документ составлен на основе закона Кореи PIPA (включая §28-8), закона о медицинском обслуживании, закона о медицинском туризме, закона Казахстана 94-V ЗРК и Регламента ЕС GDPR. Чувствительные персональные данные пациентов хранятся с шифрованием AES-256-GCM. Окончательная юридическая сила определяется применимым законодательством и профессиональной проверкой.",
-                  kz: "Бұл құжат Корея PIPA заңы (§28-8 қоса алғанда), медициналық қызмет туралы заң, медициналық туризм туралы заң, Қазақстанның 94-V ЗРК заңы және ЕО GDPR негізінде жасалған. Пациенттің құпия деректері AES-256-GCM шифрлауымен сақталады. Түпкілікті заңды күші қолданыстағы заңнама мен кәсіби тексеруге байланысты.",
-                  zh: "本文件依据韩国《个人信息保护法（PIPA）》（含§28-8）《医疗法》《医疗观光法》、哈萨克斯坦94-V ЗРК法及欧盟《通用数据保护条例（GDPR）》制定。患者敏感信息经 AES-256-GCM 加密后存储。最终法律效力以适用法律及专业审核为准。",
-                  ja: "本書類は韓国の個人情報保護法（PIPA、§28-8を含む）、医療法、医療観光法、カザフスタン94-V ЗРК法、EU GDPRに基づいて作成されています。患者の機微情報はAES-256-GCM暗号化のうえ保存されます。最終的な法的効力は適用法令および専門家の確認に従います。",
+                  ko: "이 문서는 대한민국 개인정보보호법(§28-8 포함), 의료법, 의료해외진출법, 카자흐스탄 94-V ЗРК, EU GDPR을 기반으로 작성되었습니다. 환자 민감정보는 AES-256-GCM 암호화 후 저장됩니다.",
+                  en: "This document is drafted based on Korean PIPA (incl. §28-8), the Medical Service Act, the Medical Tourism Act, Kazakhstan Law 94-V ЗРК, and the EU GDPR. Patient sensitive data is stored with AES-256-GCM encryption.",
+                  ru: "Этот документ составлен на основе закона Кореи PIPA (включая §28-8), закона о медицинском обслуживании, закона о медицинском туризме, закона Казахстана 94-V ЗРК и Регламента ЕС GDPR. Чувствительные персональные данные пациентов хранятся с шифрованием AES-256-GCM.",
+                  kz: "Бұл құжат Корея PIPA заңы (§28-8 қоса алғанда), медициналық қызмет туралы заң, медициналық туризм туралы заң, Қазақстанның 94-V ЗРК заңы және ЕО GDPR негізінде жасалған. Пациенттің құпия деректері AES-256-GCM шифрлауымен сақталады.",
+                  zh: "本文件依据韩国《个人信息保护法（PIPA）》（含§28-8）《医疗法》《医疗观光法》、哈萨克斯坦94-V ЗРК法及欧盟《通用数据保护条例（GDPR）》制定。患者敏感信息经 AES-256-GCM 加密后存储。",
+                  ja: "本書類は韓国の個人情報保護法（PIPA、§28-8を含む）、医療法、医療観光法、カザフスタン94-V ЗРК法、EU GDPRに基づいて作成されています。患者の機微情報はAES-256-GCM暗号化のうえ保存されます。",
                 }; return t[langCode] || t.en; })()}
               </p>
             </footer>

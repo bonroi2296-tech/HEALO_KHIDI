@@ -9,6 +9,7 @@
 **주요 라우트:** (2026-05 피벗·통합 반영)
 - `/` 홈
 - `/inquiry` **통합 문의 퍼널** — 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 redirect (통폐합 완료). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널.
+  - `/inquiry/referral` **환자 의뢰서** (2026-08 전면 개편, Inquiry Form 이 여기로) — 갈림길(「상담만 6칸」/「전체 20칸」) → 문턱 «둘»(접수 6칸만 막고 나머지는 진행률). 자료 먼저 올리면 AI 판독으로 칸 자동채움. 칸 정의 SoR `src/lib/inquiry/referralSchema.js` · 문구는 사전 `referral.*`(코디 편집기로 수정) · 접수 API `app/api/inquiries/referral` · 코디 화면 「의뢰서」 카드 `app/coordinator/inbox/[id]/ReferralSection.jsx` · 설계 `docs/design/INQUIRY_FORM_REDESIGN.md`.
 - `/care-journey` 치료 여정 안내 (정적, 6개 언어)
 - `/telemedicine` 원격협진 (헤더 전면 배치, NEW)
 - `/hospitals` `/treatments` 목록 | `/treatments/[slug]` 암종 상세(비암종 slug = 한방 프로그램 상세, 한방 특화 페이지에서 링크 — 잔재 아님 2026-07-14 확인) | `/search` **비활성**(옛 프로젝트 잔재, `/hospitals` 리다이렉트, 코드 보존 2026-07-14)

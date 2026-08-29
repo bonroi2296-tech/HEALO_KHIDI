@@ -92,7 +92,13 @@ export function normalizeUsage(usage: unknown): {
   }
   const u = usage as Record<string, unknown>;
   const prompt = (u.promptTokens ?? u.inputTokens ?? null) as number | null;
-  const completion = (u.completionTokens ?? u.outputTokens ?? null) as number | null;
+  // ⚠️ 「생각 토큰」도 출력으로 청구된다. 구글은 별도 필드(thoughtsTokenCount / reasoningTokens)로
+  // 주고 SDK 의 completionTokens 에는 «안» 들어 있다. 안 더하면 출력 비용을 절반 이하로
+  // 과소집계한다 — 2026-08-14 실측: 같은 질문에서 답변 411 토큰 / 생각 631 토큰(출력의 61%).
+  const thoughts = (u.thoughtsTokenCount ?? u.reasoningTokens ?? u.thoughtsTokens ?? null) as number | null;
+  const completionRaw = (u.completionTokens ?? u.outputTokens ?? null) as number | null;
+  const completion =
+    completionRaw != null ? Number(completionRaw) + Number(thoughts ?? 0) : (thoughts != null ? Number(thoughts) : null);
   const total =
     (u.totalTokens as number | undefined) ??
     (prompt != null && completion != null ? prompt + completion : null);

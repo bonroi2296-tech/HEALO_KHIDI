@@ -8,6 +8,7 @@
 import { generateText } from "ai";
 import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
+import { glossaryPrompt } from "@/lib/i18n/glossary";
 
 const TRANSLATE_MODEL = "gemini-flash-latest";
 
@@ -82,9 +83,28 @@ TRANSLATION RULES:
 - "duration", "recovery_time": Keep every number and unit exactly as given ("1회 30분, 주 2회" → "30 min per session, twice a week"). Never round, drop, or invent a figure.
 - "preparation", "risks": Patient-safety text (pre-visit instructions, precautions, side effects). Translate LITERALLY and completely — do not soften, summarize, omit, or add any item. A dropped precaution is a safety incident. Keep list structure and line breaks.
 
+${glossaryBlock(targetLangs)}
 Return ONLY valid JSON with language codes as keys. Each key contains an object with the translated fields.
 Example format: { "en": { "name": "...", "description": "..." }, "zh": { "name": "...", "description": "..." } }
 Only include fields that were provided in the input. Omit empty fields.`;
+}
+
+/**
+ * 용어집을 프롬프트에 붙인다 — 「같은 개념은 어느 화면에서나 같은 단어로」.
+ *
+ * 왜 필요한가: 문장 하나만 놓고 보면 больница 도 клиника 도 틀린 번역이 아니다.
+ * 그래서 모델은 매번 «그때그때 자연스러운» 단어를 고르고, 사이트 전체로 보면 같은 병원이
+ * 화면마다 다른 이름이 된다. 2026-08-20 실측에서 면력한방병원이 5가지로 불리고 있었다.
+ * 이 흔들림은 원어민이 손으로 통일하기 전엔 안 잡혔다 — 그 일을 여기서 미리 없앤다.
+ */
+function glossaryBlock(targetLangs: LangCode[]): string {
+  const blocks = targetLangs
+    .map((l) => {
+      const rows = glossaryPrompt(l);
+      return rows ? `[${l}]\n${rows}` : "";
+    })
+    .filter(Boolean);
+  return blocks.length ? `\nGLOSSARY (per target language) — reuse these exact words:\n${blocks.join("\n")}\n` : "";
 }
 
 // ============================================================

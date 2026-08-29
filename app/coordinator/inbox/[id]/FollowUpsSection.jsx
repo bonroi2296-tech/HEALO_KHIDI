@@ -31,7 +31,7 @@ export default function FollowUpsSection({ inquiryId }) {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-  const [editAt, setEditAt] = useState(null);   // 고치는 중인 줄(적힌 시각으로 찾는다)
+  const [editAt, setEditAt] = useState(null);   // 고치는 중인 줄(안정적 id 로 지목 — 시각은 겹칠 수 있다)
   const [editText, setEditText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -110,16 +110,16 @@ export default function FollowUpsSection({ inquiryId }) {
     finally { setBusy(false); }
   }
 
-  async function saveEdit(at) {
+  async function saveEdit(key) {
     const t = editText.trim();
     if (t.length < 2) return;
-    if (await send("PATCH", { at, text: t })) { setEditAt(null); setEditText(""); }
+    if (await send("PATCH", { at: key, text: t })) { setEditAt(null); setEditText(""); }
   }
 
   // 지우는 이유: 잘못 적으면 «의료진 화면에 그대로» 간다. 되돌릴 길이 있어야 한다.
-  async function removeOne(at) {
+  async function removeOne(key) {
     if (!window.confirm("이 추가 정보를 지웁니다. 의료진 화면에서도 사라집니다.")) return;
-    await send("DELETE", { at });
+    await send("DELETE", { at: key });
   }
 
   const fmt = (iso) => { try { return new Date(iso).toLocaleString(loc || "ko-KR"); } catch { return iso; } };
@@ -154,8 +154,8 @@ export default function FollowUpsSection({ inquiryId }) {
       {items.length > 0 && (
         <ul className="space-y-2 mb-3">
           {items.map((f, i) => (
-            <li key={i} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              {editAt === f.at ? (
+            <li key={f.id || i} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              {editAt === (f.id || f.at) ? (
                 <>
                   <textarea
                     value={editText}
@@ -164,7 +164,7 @@ export default function FollowUpsSection({ inquiryId }) {
                     className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                   />
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <button onClick={() => saveEdit(f.at)} disabled={busy || editText.trim().length < 2}
+                    <button onClick={() => saveEdit(f.id || f.at)} disabled={busy || editText.trim().length < 2}
                       className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
                       <Check size={12} /> 저장
                     </button>
@@ -188,11 +188,11 @@ export default function FollowUpsSection({ inquiryId }) {
                         환자가 지움 {fmt(f.removedAt)}
                       </span>
                     )}
-                    <button onClick={() => { setEditAt(f.at); setEditText(f.text); }} disabled={busy}
+                    <button onClick={() => { setEditAt(f.id || f.at); setEditText(f.text); }} disabled={busy}
                       className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-teal-700 disabled:opacity-40">
                       <Pencil size={11} /> 고치기
                     </button>
-                    <button onClick={() => removeOne(f.at)} disabled={busy}
+                    <button onClick={() => removeOne(f.id || f.at)} disabled={busy}
                       className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-red-700 disabled:opacity-40">
                       <Trash2 size={11} /> 지우기
                     </button>

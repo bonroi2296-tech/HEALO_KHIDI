@@ -9,6 +9,8 @@ import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleInAppNotice from '@/components/auth/GoogleInAppNotice';
+import { isNativeApp, hasNativeGoogleSignIn, useGoogleBlockedInApp } from '@/lib/isNativeApp';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -25,6 +27,9 @@ export const LoginPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
     const [redirectTarget, setRedirectTarget] = useState(null);
+    // 앱(스토어 셸) 안에서는 구글 로그인이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
+    // 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고, 이 값은 disabled·aria 만 채운다.
+    const googleBlockedInApp = useGoogleBlockedInApp();
 
     useEffect(() => {
         // ?redirect= 소비 — proxy(미로그인 보호경로)·환자앱 곳곳이 발급하는데 여기서 안 읽어
@@ -131,9 +136,15 @@ export const LoginPage = ({ setView }) => {
                         </div>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
+                            {/* name·autoComplete 는 «장식»이 아니다 — 폰의 비밀번호 관리자(삼성 패스·구글)가
+                                이 표시를 보고 어느 칸에 무엇을 넣을지 정한다. 없으면 «추측»하다가
+                                이메일을 비밀번호 칸에 채운다(2026-08-14 PO 갤럭시 S25 Ultra 실측). 빼지 마라. */}
                             <input
                                 id="login-email"
+                                name="email"
                                 type="email"
+                                autoComplete="username"
+                                inputMode="email"
                                 required
                                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder={t("login.emailPlaceholder", langCode)}
@@ -152,7 +163,9 @@ export const LoginPage = ({ setView }) => {
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
                             <input
                                 id="login-password"
+                                name="password"
                                 type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
                                 required
                                 className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder="••••••••"
@@ -188,7 +201,29 @@ export const LoginPage = ({ setView }) => {
                     <div className="mt-6">
                         <button
                             onClick={async () => {
-                                
+                                // 앱에서는 웹 방식(리다이렉트)이 끝까지 못 간다 — PKCE 검증값은 앱 웹뷰에
+                                // 남는데 구글은 로그인 화면을 크롬으로 내보내기 때문이다.
+                                //  · 네이티브 부품이 있는 판 → 그 길로 간다.
+                                //  · 부품이 없는 옛 판 → 시작조차 하지 않는다(안내문이 대신 떠 있다).
+                                // ⚠️ 여기서 웹 방식으로 «폴백하지 마라» — 앱에서는 확실히 실패하는 길이다
+                                //    (애플과 다르다: 애플은 옛 판에서 웹 방식이 그나마 시도는 된다).
+                                if (isNativeApp()) {
+                                    if (!hasNativeGoogleSignIn()) return;
+                                    setOauthLoading(true);
+                                    const g = await import('@/lib/auth/googleNativeSignIn');
+                                    try {
+                                        await g.signInWithGoogleNative(supabase);
+                                        window.location.href = redirectTarget || '/';
+                                    } catch (err) {
+                                        // 계정 선택 창을 그냥 닫은 것은 오류가 아니다.
+                                        if (!g.isGoogleCancel(err)) {
+                                            console.error('[LoginPage] ❌ Google native sign-in failed:', err);
+                                            toast.error(t("login.googleError", langCode));
+                                        }
+                                        setOauthLoading(false);
+                                    }
+                                    return;
+                                }
                                 setOauthLoading(true);
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
@@ -212,8 +247,9 @@ export const LoginPage = ({ setView }) => {
                                     setOauthLoading(false);
                                 }
                             }}
-                            disabled={loading || oauthLoading}
-                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                            disabled={loading || oauthLoading || googleBlockedInApp}
+                            aria-describedby="login-google-app-note"
+                            className="app-google-lock-btn w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -226,6 +262,8 @@ export const LoginPage = ({ setView }) => {
                                 {oauthLoading ? t("login.googleConnecting", langCode) : t("login.googleContinue", langCode)}
                             </span>
                         </button>
+
+                        <GoogleInAppNotice id="login-google-app-note" langCode={langCode} />
 
                         {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
                             설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}

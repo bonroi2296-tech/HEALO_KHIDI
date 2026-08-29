@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
 
 const STATUS_OPTS = ["all", "draft", "approved", "rejected"];
 const SCOPE_LABELS = { treatment: "Treatment", country: "Country", general: "General" };
@@ -18,6 +19,12 @@ export default function PlaybookPatternsPage() {
   const [extractThread, setExtractThread] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [mergeMode, setMergeMode] = useState(false);
+
+  // 폰(1단 배치): 상세가 목록 «아래»에 그려져 눌러도 화면이 안 바뀌던 것 — 위로 올려준다.
+  const selectPattern = (p) => {
+    setSelected(p);
+    scrollToTopOnNarrow();
+  };
   const [mergeSelection, setMergeSelection] = useState(new Set());
   const [merging, setMerging] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -275,8 +282,8 @@ export default function PlaybookPatternsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* List */}
-        <div className="lg:col-span-2">
+        {/* List — 폰에선 패턴을 고르면 접히고 상세만 보인다(합치기 모드일 땐 목록을 유지) */}
+        <div className={`lg:col-span-2 ${selected && !mergeMode ? "hidden lg:block" : ""}`}>
           {loading ? (
             <div className="text-center py-10 text-gray-500">Loading...</div>
           ) : patterns.length === 0 ? (
@@ -286,7 +293,7 @@ export default function PlaybookPatternsPage() {
               {patterns.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => !mergeMode && setSelected(p)}
+                  onClick={() => !mergeMode && selectPattern(p)}
                   className={`border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition ${
                     selected?.id === p.id && !mergeMode ? "ring-2 ring-indigo-500 bg-indigo-50" : ""
                   } ${!p.is_active && p.is_active !== undefined ? "opacity-50" : ""}`}
@@ -347,11 +354,21 @@ export default function PlaybookPatternsPage() {
         </div>
 
         {/* Detail Panel */}
-        <div className="lg:col-span-1">
+        <div className={`lg:col-span-1 ${selected && !mergeMode ? "" : "hidden lg:block"}`}>
           {selected ? (
             <div className="border rounded-lg p-4 bg-white sticky top-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold">Pattern Detail</h3>
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* 폰에서만 — 목록이 접혀 있어 되돌아갈 길이 필요하다 */}
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="lg:hidden shrink-0 -ml-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                  >
+                    ← 목록
+                  </button>
+                  <h3 className="text-sm font-bold">Pattern Detail</h3>
+                </div>
                 <div className="flex gap-1">
                   {selected.status === "draft" && selected.is_active !== false && (
                     <button

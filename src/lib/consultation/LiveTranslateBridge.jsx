@@ -23,9 +23,13 @@ import { RoomEvent, ConnectionState } from "livekit-client";
 import {
   isLiveTranslateEnabledClient,
   PARTICIPANT_LANG_ATTR,
+  INTERPRETER_WANT_ATTR,
+  INTERPRETER_WANT_ON,
   NATIVE_LANG,
   TRANSLATION_TRACK_PREFIX,
   TRANSLATION_TEXT_TOPIC,
+  TRANSLATOR_STATUS_ATTR,
+  TRANSLATOR_STATUS_FAILING,
 } from "@/lib/consultation/liveTranslate";
 
 /**
@@ -49,7 +53,14 @@ function parseTxTrackName(name) {
  * @param {function} [props.onAgentPresence] — (boolean) => void 통역 봇 재실 여부 통지(토글 활성화 판단용)
  * @param {function} props.onRemoteSubtitle — ({ text, lang, role }) => void (기존 자막 UI 재사용)
  */
-export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPresence, onRemoteSubtitle }) {
+export function LiveTranslateBridge({
+  myLang,
+  myRole,
+  voiceOn = false,
+  onAgentPresence,
+  onRemoteSubtitle,
+  onTranslatorFailing,
+}) {
   const room = useRoomContext();
   const subtitleCbRef = useRef(onRemoteSubtitle);
   // 내 언어로 통역되고 있는 "원음 화자"들 — 이들은 원음을 음소거(통역과 이중 재생 방지).
@@ -86,6 +97,35 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
     return () => events.forEach((e) => room.off(e, check));
   }, [enabled, room, onAgentPresence]);
 
+  // ── 0-2) 통역봇이 «지금 통역이 안 된다»고 알리면 그대로 위로 전한다 ──
+  //
+  // 봇은 연결이 끊기면 조용히 재연결만 반복한다(2026-08-28 실측: 30초에 15번 실패해도
+  // 화면은 「켜짐」 그대로였다). 봇이 tx_status 로 알려 주면 그걸 사용자에게 보여준다.
+  useEffect(() => {
+    if (!enabled || !room || !onTranslatorFailing) return;
+    const check = () => {
+      let failing = false;
+      for (const p of room.remoteParticipants?.values?.() ?? []) {
+        if (!p.identity?.startsWith("agent-")) continue;
+        if (p.attributes?.[TRANSLATOR_STATUS_ATTR] === TRANSLATOR_STATUS_FAILING) {
+          failing = true;
+          break;
+        }
+      }
+      onTranslatorFailing(failing);
+    };
+    check();
+    const events = [
+      RoomEvent.ParticipantAttributesChanged,
+      RoomEvent.ParticipantConnected,
+      RoomEvent.ParticipantDisconnected,
+      // 재연결 뒤에는 그동안의 속성 변화를 못 받았으므로 다시 읽는다.
+      RoomEvent.Reconnected,
+    ];
+    events.forEach((e) => room.on(e, check));
+    return () => events.forEach((e) => room.off(e, check));
+  }, [enabled, room, onTranslatorFailing]);
+
   // ── 1) 내 언어를 방에 알림 (lang 속성) ──
   // ⚠️ 반드시 **연결 완료 후에** 보낼 것. `setAttributes` 는 서버 ack 를 5초 기다리다
   //    타임아웃하는데, 연결 전에 부르면 그 ack 가 영영 안 와서 조용히 실패한다.
@@ -93,13 +133,23 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
   //    2026-07-20 프로덕션 실측: 게스트 입장 시 "Request to update local metadata timed out"
   //    경고만 남고 서버 참가자에 attributes 가 통째로 비어 있었다(POSTMORTEMS #100).
   //    재연결 시에도 다시 알린다 — 재협상 과정에서 속성이 유실될 수 있다.
+  //
+  // ⚠️ 「통역 원함」(voice)도 «같이» 다시 알린다. lang 만 되살리면 안 된다 —
+  //    2026-08-28 실측: 회선을 8초 끊었다 붙이니 `lang=ko` 는 남고 **`voice=on` 이 사라졌다.**
+  //    그러면 봇은 「이 사람은 통역을 안 원한다」로 보고 통역쌍을 내린다.
+  //    화면은 여전히 「통역 켜짐」이라 사용자는 왜 안 나오는지 모른다(조용한 실패).
+  //    원래 이 값은 서버(interpreter 라우트)가 적지만, 재연결 때 그 라우트는 안 불린다.
   useEffect(() => {
     if (!enabled || !room || !myLang) return;
     const apply = () => {
       const lp = room.localParticipant;
       if (!lp) return;
-      lp.setAttributes({ [PARTICIPANT_LANG_ATTR]: myLang || NATIVE_LANG }).catch(
-        (e) => console.warn("[LiveTranslate] setAttributes lang 실패:", e?.message)
+      lp.setAttributes({
+        [PARTICIPANT_LANG_ATTR]: myLang || NATIVE_LANG,
+        // 켜짐이면 on, 꺼짐이면 빈 값(= 지움) — «지금 상태»를 그대로 다시 적는다.
+        [INTERPRETER_WANT_ATTR]: voiceOn ? INTERPRETER_WANT_ON : "",
+      }).catch((e) =>
+        console.warn("[LiveTranslate] setAttributes lang/voice 실패:", e?.message)
       );
     };
     if (room.state === ConnectionState.Connected) apply();
@@ -109,7 +159,7 @@ export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPr
       room.off(RoomEvent.Connected, apply);
       room.off(RoomEvent.Reconnected, apply);
     };
-  }, [enabled, room, myLang]);
+  }, [enabled, room, myLang, voiceOn]);
 
   // ── 2) 통역 자막(텍스트 스트림 lk.translation) 수신 → 기존 자막 UI 로 ──
   // voiceOn 게이트: 통역 껐으면 봇 자막도 안 띄운다 — 클라 STT 자막과의 이중 표시 방지(공존 설계).

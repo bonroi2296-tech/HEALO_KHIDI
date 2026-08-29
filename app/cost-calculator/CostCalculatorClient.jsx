@@ -18,6 +18,7 @@ import { useState } from "react";
 import { event as gaEvent, GA_EVENTS } from "@/lib/ga";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { getAllCancerCosts, getDisclaimer, getSourceLabel, formatKRW } from "@/lib/data/hiraCancerCosts";
 
@@ -104,7 +105,7 @@ export default function CostCalculatorClient() {
         <h2 className="text-xl md:text-2xl font-bold mb-2">{t("costCalc.quoteTitle", lang)}</h2>
         <p className="text-sm text-teal-100 max-w-xl mx-auto">{t("costCalc.quoteText", lang)}</p>
         <p className="text-xs text-teal-100/80 mt-3">{t(CANCER_KEYS[cancerIdx], lang)} · {t(`costCalc.programs.${programKey}.name`, lang)}</p>
-        <Link href="/inquiry" className="inline-block mt-5 bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
+        <Link href={localeHref("/inquiry", lang)} className="inline-block mt-5 bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
           {t("costCalc.cta", lang)}
         </Link>
       </section>
@@ -171,10 +172,10 @@ export default function CostCalculatorClient() {
       </section>
 
       <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
-        <Link href="/care-journey" className="hover:text-teal-700">{t("costCalc.navCare", lang)}</Link>
-        <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
-        <Link href="/inquiry" className="hover:text-teal-700">{t("costCalc.navConsult", lang)}</Link>
-        <Link href="/visa" className="hover:text-teal-700">{t("costCalc.navVisa", lang)}</Link>
+        <Link href={localeHref("/care-journey", lang)} className="hover:text-teal-700">{t("costCalc.navCare", lang)}</Link>
+        <Link href={localeHref("/hospitals/immune", lang)} className="hover:text-teal-700">Immune Hospital</Link>
+        <Link href={localeHref("/inquiry", lang)} className="hover:text-teal-700">{t("costCalc.navConsult", lang)}</Link>
+        <Link href={localeHref("/visa", lang)} className="hover:text-teal-700">{t("costCalc.navVisa", lang)}</Link>
       </nav>
     </main>
   );

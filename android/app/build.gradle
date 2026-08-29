@@ -13,8 +13,11 @@ android {
         // 4 = 내부테스트 첫 도달분(2026-07-31 업로드). 폰까지 간 첫 번째 판이다.
         // 5 = 키보드(adjustResize)+ 첫 화면(스플래시) 수리. 4 에서는 둘 다 그대로였다(PO 실기기 확인).
         // 6 = 첫 화면 로고 잘림 수리(말풍선 꼬리가 «동그란 오리기» 밖이라 잘렸다 — PO 제보).
-        versionCode 9
-        versionName "1.0.8"
+        // 9 = 2026-08-20 오전 게시분(뒤로가기 부품·입력칸 뒤바뀜·404 오진 수리).
+        // 10 = 같은 날 오후. 「Apple 연결 중」에서 영영 멈추던 것(allowNavigation 비어 있어서
+        //      애플 주소가 앱 밖 브라우저로 튕겨 나가 세션이 앱에 안 돌아왔다 — 아이폰·갤럭시 공통).
+        versionCode 10
+        versionName "1.0.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

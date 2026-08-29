@@ -25,7 +25,8 @@ import { randomBytes } from "node:crypto";
 import { AccessToken } from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 // 2026-08-04: 2h → 6h. 2시간을 넘기는 회의에서 **재입장이 막혔다**(만료된 입장권으로는
 // 다시 못 들어온다). 초대 토큰 자체의 수명(상담 시각 +12시간, 최소 72시간)은 그대로다 —
@@ -45,7 +46,7 @@ export async function POST(
   try {
     // Rate limit (brute force 방어)
     const ip = getClientIp(request) || "unknown";
-    const rl = checkRateLimit(ip, GUEST_JOIN_RATE);
+    const rl = await checkRateLimitPersistent(ip, GUEST_JOIN_RATE);
     if (!rl.allowed) {
       return Response.json(
         { ok: false, error: "rate_limited" },
@@ -235,7 +236,8 @@ export async function POST(
           consultation_id: consultationId,
           participant_role: role,
           participant_identity: identity,
-          display_name: name,
+          // 입장자 이름(환자 실명)은 암호문 칸에 — 예전엔 display_name 평문으로 쌓였다(2026-08-14 감사).
+          display_name_encrypted: encryptStringNullable(name || null),
           guest_token_id: verification.tokenId,
           status: initialStatus,
           decided_at:

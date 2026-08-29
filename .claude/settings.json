@@ -52,16 +52,6 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/plain-korean.sh"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash|mcp__Supabase__.*",
@@ -80,6 +70,16 @@
             "type": "command",
             "command": "node .claude/hooks/blast-radius-warn.mjs",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/plain-korean.sh"
           }
         ]
       }

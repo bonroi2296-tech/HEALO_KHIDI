@@ -64,3 +64,53 @@ export async function renderPdfPage(
     return { ok: false, error: "render_failed" };
   }
 }
+
+// ── AI 에게 읽힐 때 쓰는 «가볍게 다시 그리기» ────────────────────────────────
+// 왜 (2026-08-14, PO 실사용 서류 130.9MB):
+//   그 서류는 20쪽짜리 «순수 스캔»이었다 — 글자 데이터 0자, 쪽당 6.5MB.
+//   원본 그대로는 AI 요청 한 장(20MB)에 절대 안 들어간다.
+//   🛑 쪽마다 따로 물어보는 길(쪼개기)은 택하지 않았다 — 20번 부르고 비용도 20배인데
+//      AI 가 앞뒤 쪽을 못 봐서 정확도는 오히려 떨어진다.
+//   대신 «해상도만 낮춰» 한 번에 던진다. 글자를 읽는 데 쪽당 6.5MB 는 필요 없다.
+//   실측: 130.9MB → 6.4MB(4.0초) → AI 8.3초에 진단명·병기·수술기록까지 전부 읽어냄.
+const AI_JPEG_QUALITY = 72;
+const AI_MAX_PAGES = 40;              // 쪽이 아주 많은 서류에서 요청이 터지지 않게
+const AI_MAX_BYTES = 12 * 1024 * 1024; // 보낼 그림 총합 상한(요청 20MB 안에 여유 두고)
+
+export type AiPageImage = { mime: string; b64: string };
+
+/**
+ * 큰 서류를 «AI 가 읽을 만한 크기»의 쪽 그림들로 다시 그린다.
+ * @returns null 이면 못 그렸다(부품 없음·깨진 파일 등) — 부르는 쪽이 「못 읽음」으로 처리한다.
+ */
+export async function renderForAi(
+  buf: Buffer,
+  mime: string
+): Promise<{ pages: AiPageImage[]; total: number; read: number } | null> {
+  try {
+    const mupdf: any = await import("mupdf");
+    const doc = mupdf.Document.openDocument(buf, mime);
+    const total = doc.countPages();
+    if (total < 1) return null;
+
+    const pages: AiPageImage[] = [];
+    let bytes = 0;
+    for (let i = 0; i < Math.min(total, AI_MAX_PAGES); i++) {
+      const p = doc.loadPage(i);
+      const b = p.getBounds();
+      const scale = Math.min(MAX_SIDE_PX / Math.max(b[2] - b[0], b[3] - b[1]), 3);
+      const pix = p.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false, true);
+      const jpeg = Buffer.from(pix.asJPEG(AI_JPEG_QUALITY, false));
+      pix.destroy();
+      // 상한을 넘기 «전»에 멈춘다 — 넘고 나서 자르면 이미 보낸 요청이 터진다.
+      if (bytes + jpeg.length > AI_MAX_BYTES) break;
+      bytes += jpeg.length;
+      pages.push({ mime: "image/jpeg", b64: jpeg.toString("base64") });
+    }
+    if (!pages.length) return null;
+    return { pages, total, read: pages.length };
+  } catch (e) {
+    console.error("[pdfPage] renderForAi failed:", e);
+    return null;
+  }
+}

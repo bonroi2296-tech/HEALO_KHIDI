@@ -22,23 +22,25 @@ export const MANUALS = {
   admin: {
     title: "관리자 포털 사용설명서",
     summary: "유치 성과(KHIDI 평가지표)·환자 여정·제휴 자원·AI 품질을 한곳에서 운영하는 본부 화면입니다.",
-    updated: "2026-07-28",
+    updated: "2026-08-25",
     sections: [
       {
         heading: "여기서 뭘 하나요?",
-        intro: "왼쪽 메뉴는 업무 흐름대로 5묶음 + 「AI 품질」(평소 접힘, 제목 클릭으로 펼침)입니다. 2026-07-24 리뉴얼로 안 쓰는 옛 화면(플레이북·크롤·Import 등)은 메뉴에서 숨겼습니다 — 지운 게 아니라 비활성이라, 필요해지면 바로 복구됩니다.",
+        intro: "왼쪽 메뉴는 업무 흐름대로 5묶음 + 「AI 품질」(평소 접힘, 제목 클릭으로 펼침)입니다. 안 쓰는 옛 화면(플레이북·크롤·Import 등)은 메뉴에서 숨겼습니다 — 지운 게 아니라 비활성이라, 필요해지면 바로 복구됩니다. 무엇을 숨길지는 매달 실제 데이터 건수로 다시 잽니다(2026-08-25 재측정에서 잘못 숨겼던 「자동개선 현황」이 되살아났습니다).",
         items: [
           { title: "홈", desc: "「통합 대시보드」(역할별 현황 카드 + 최근 활동 — 2026-07-24 신설) + 「KHIDI 리포트」(유치·상담·사후관리·만족도 자동집계 — 곧 평가 점수) + 문의 통계·광고 예산." },
-          { title: "상담·문의", desc: "사전상담 리드 → 문의 관리 → 케이스 → AI 채팅 → 화상 상담 → 협진 의뢰 → 후속 리마인더까지 환자 한 명의 여정. 견적 관리·비자 트래킹·증상 알림도 여기서 열립니다(코디 포털 화면을 어드민 계정으로 그대로 사용 — 2026-07-24 통합)." },
-          { title: "파트너·회원", desc: "직원(코디) 계정·에이전시/클리닉·파트너 발굴·제휴 병원·의료진·환자 회원·데이터 삭제 요청 — 사람·기관 관리는 전부 여기." },
-          { title: "콘텐츠", desc: "치료·암종 정보, 문구 편집기(전 화면 문구를 6개 언어로 수정 — 코디와 같은 화면), AI가 참고하는 지식베이스(RAG) 관리." },
-          { title: "AI 품질", desc: "AI 상태·품질 평가·회귀 테스트·에이전트 자기분석·모델 성능 비교·피드백. (평소 접힘)" },
-          { title: "시스템", desc: "감사로그·외부 서비스 사용량·알림·브랜딩." },
+          { title: "상담·문의", desc: "문의·케이스 받은함 → 케이스 → AI 채팅 → 화상 상담 → 협진 의뢰 → 후속 리마인더까지 환자 한 명의 여정. 환자 대화·견적 관리·비자 트래킹·증상 알림도 여기서 열립니다(코디 포털 화면을 어드민 계정으로 그대로 사용)." },
+          { title: "파트너·회원", desc: "직원(코디) 계정·에이전시/클리닉·파트너 발굴·제휴 병원·병원 진료의뢰·환자 회원·데이터 삭제 요청 — 사람·기관 관리는 전부 여기." },
+          { title: "콘텐츠", desc: "문구 편집기(전 화면 문구를 6개 언어로 수정 — 코디와 같은 화면), 환자 교육자료(2026-08-25 신설), AI가 참고하는 지식베이스(RAG) 관리." },
+          { title: "AI 품질", desc: "AI 상태·품질 평가·회귀 테스트·에이전트 자기분석·모델 성능 비교·자동개선 현황. (평소 접힘)" },
+          { title: "시스템", desc: "개선 요청함·감사로그·외부 서비스 사용량·알림·브랜딩." },
         ],
       },
       {
         heading: "꼭 알아둘 핵심 동선",
         items: [
+          { title: "환자 한 명을 통으로 보기", desc: "「상담·문의 › 문의·케이스 받은함」이 환자 한 명의 모든 것이 모이는 화면입니다 — 의뢰서·소견·공유 문서·후속 일정까지 한 자리에서 봅니다(코디가 쓰는 바로 그 화면이라 코디와 어드민이 같은 걸 봅니다). 예전 어드민 전용 문의 화면은 상태 변경과 번역만 됐어요 — 그 화면은 하위의 「문의 원본(시험 포함)」에 남아 있고, **시험용 문의까지 보고 싶을 때만** 쓰면 됩니다(받은함은 시험 문의를 항상 숨깁니다)." },
+          { title: "환자 교육자료 고치기 (2026-08-25 신설)", desc: "「콘텐츠 › 환자 교육자료」에서 환자에게 나가는 수술 후 안내(식단·투약·운동·주의 증상·마음 챙기기)를 6개 언어로 고칩니다. 암종별로 묶여 있고, 번역이 빠진 자료엔 「N개 언어 비어있음」 딱지가 붙어요. 「환자에게 보이기」를 끄면 환자 화면에서 내려갑니다(자료를 지우지는 않습니다)." },
           { title: "통합 대시보드(홈)", desc: "로그인하면 처음 보는 화면. 「오늘 현황」 카드 = 환자(문의·AI채팅)/코디(상담·견적·문구편집)/에이전시·클리닉(활성·협진의뢰)/병원(미응답 리드)/시스템(AI 통과율·환각) — 전부 실데이터 집계이고 카드를 누르면 해당 화면으로 이동. 「최근 활동」 = 모든 역할의 변경사항(문구 수정·새 문의·상담 생성·협진 의뢰·병원 리드)이 시간순 타임라인으로 — 코디·에이전시가 뭘 했는지 여기서 따라갑니다." },
           { title: "성과 집계는 자동", desc: "「홈 › KHIDI 리포트」 한 화면이 유치/상담/사후관리/만족도를 목표 대비 자동 집계합니다(이게 곧 평가 점수). 거기서 「북극성 지표」·「유치 전환 상세」·「환자 만족도」·「증빙 산출물」로 드릴다운." },
           { title: "북극성 지표(매주 보는 단일 운전대)", desc: "「KHIDI 리포트 › 북극성 지표」 = 주간 '사전상담 완료' 추세 + 선행지표 4종(신규문의·예약→완료 전환율·만족도 응답률·에이전시 회신율). 유치·상담·만족도는 결과(후행)지표라 매주 못 올리지만, 사전상담 완료는 매주 올릴 수 있고 3개 점수를 동시에 밀어줍니다. 매주 이 숫자가 오르는지 보세요." },
@@ -82,7 +84,10 @@ export const MANUALS = {
       },
       {
         heading: "각 메뉴 한 줄 설명",
-        items: [          { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
+        items: [
+          { title: "의뢰서 카드 (문의 상세)", desc: "새 의뢰서(/inquiry/referral)로 들어온 문의는 문의 상세에 「의뢰서」 카드가 뜹니다 — 환자가 채운 진단명·불편한 곳·받은 검사·약물·병력·비행 가능 여부·받고 싶은 것(소견서/비용)이 의뢰서 화면과 같은 순서로 나오고, 안 채운 칸은 «비어 있음»으로 세워 둡니다(뭘 더 받아야 하는지 이 카드 하나로 보세요). 「상담만」으로 보낸 문의는 노란 띠로 표시되고 대부분 비어 있는 게 정상입니다. 서류는 «무슨 서류로 판독됐나»가 붙어 있고(AI 추정 — 환자가 고쳤으면 「사람이 고침」), 200MB 를 넘어 못 올린 자료는 「링크로 받음 ↗」으로 열립니다. 병기·진단시기는 위쪽 「추가 정보」 카드에도 같이 뜹니다." },
+          { title: "의뢰서 문구 고치기", desc: "의뢰서 화면(칸 이름·안내·단추·완료 문구)은 전부 「콘텐츠 편집」에서 고칠 수 있습니다 — 검색창에 그 문구를 아무 언어로나 넣으면 나오고(항목 코드는 referral.… 로 시작), 고치면 배포 없이 바로 환자 화면에 반영됩니다. 원어민이 「이 말은 이렇게」라고 짚어주면 그 자리에서 고치세요. 되돌리려면 칸을 비우고 저장." },
+          { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
           { title: "견적", desc: "치료·체류 비용 견적 작성/공유." },
           { title: "증상 알림", desc: "환자가 올린 증상 기록 중 살펴야 할 알림." },
           { title: "AI 품질 경고 알림", desc: "AI가 환자에게 이상한 답(지어낸 정보 등)을 하면 종(🔔) 알림이 옵니다. 누르면 「AI 상담 리드」 대화 뷰에서 그 대화가 바로 열려요 — 어떤 답이 나갔는지 확인하고, 환자에게 정정이 필요하면 담당자(어드민·의료진)에게 알리세요(코디 화면은 읽기 전용)." },
@@ -144,7 +149,10 @@ export const MANUALS = {
           },
           {
             heading: "One-line description of each menu",
-            items: [              { title: "Visa tracking", desc: "Tracks the invitation letter and visa progress stages." },
+            items: [
+              { title: "Referral card (inquiry detail)", desc: "Inquiries that came through the new referral form (/inquiry/referral) show a “Referral form” card in the inquiry detail — diagnosis as written, main symptom, tests and treatments, medications, history, fitness to fly, and what the patient wants (opinion / cost estimate), in the same order as the patient's form. Fields the patient left blank are listed as “empty”, so this one card shows what still needs to be collected. Inquiries sent as “consultation only” carry a yellow note and are mostly empty by design. Documents show what type they were read as (AI guess — “corrected by user” if the patient fixed it); files over 200MB appear as “via link ↗”. Stage and diagnosis date also appear in the “Additional info” card above." },
+              { title: "Editing referral-form wording", desc: "Every text on the referral form (field names, hints, buttons, done screen) can be edited in “Content editing” — search for the phrase in any language (item codes start with referral.…) and the change reaches the patient screen immediately, no deploy needed. When a native speaker says “this should read like this”, fix it right there. To revert, clear the field and save." },
+              { title: "Visa tracking", desc: "Tracks the invitation letter and visa progress stages." },
               { title: "Estimate", desc: "Creates/shares estimates of treatment and stay costs." },
               { title: "Symptom alerts", desc: "Alerts among patient-submitted symptom records that need attention." },
               { title: "Content editing", desc: "An editor for fixing the wording of the home page and all screens in 6 languages. **This screen (and the whole back office) can be switched to your own language with the globe button at the top right** — the choice is remembered. Search for a phrase in any language (phrases you have already edited are searchable too) and the matching phrases appear; turn on 'Show same block' to also see and edit the whole screen block it belongs to (title, subtitle, cards) in one place. If a box shows multiple lines, those line breaks (Enter) appear on the screen exactly as typed; if it is a single line, the screen wraps it automatically to fit the width, so just edit the sentence. On the right of each row there are language marks (한·EN·РУ·ҚЗ·中·日). Solid teal is the language you are editing now; light teal means you have edited that language before (grey means the built-in wording is still in use — it does not mean the field is empty). Click a mark to switch to that language, so you can tell at a glance whether Kazakh has been touched without expanding the row. Pressing 'Save' does not apply changes right away — a window first lists what is changing: the item name (or its code) and 'previous text → new text'. Look through the list and press 'Save as is'. This is where you can spot whether the wrong row is being changed, so please read it every time. After saving, changes apply to the screen immediately; saving an emptied box restores the original text. If the text becomes identical to another option in the same group (for example, a neighbouring cancer-type button), a red 'Duplicate text' mark appears — if choice buttons share the same wording, the patient cannot tell what they are selecting, so check before saving. Past edits are shown via the 'Change history' button — each row now names **which screen it belongs to** with an 「Open screen」 link (rows we could not name yet show 「화면 미확인」, and 「화면 못 찾음」 means the phrase may not appear on any screen at all), and the newest 50 load first with a 「Load more」 button below; type in the search box above to search **the whole history** by wording, screen name or editor (searching automatically loads the rest first, so if nothing shows, there really is nothing) (previous text in light red, new text in light green; for a phrase edited for the first time, the 'previous' side shows the original wording with a 'Default' mark)." },
@@ -190,7 +198,10 @@ export const MANUALS = {
           },
           {
             heading: "Однострочное описание каждого меню",
-            items: [              { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
+            items: [
+              { title: "Карточка «Направление» (детали заявки)", desc: "У заявок, пришедших через новую форму направления (/inquiry/referral), в деталях появляется карточка «Направление» — диагноз как в документе, главная жалоба, обследования и лечение, препараты, анамнез, возможность перелёта и что пациент хочет получить (заключение / стоимость), в том же порядке, что и в форме. Незаполненные поля показаны как «не заполнено» — по этой карточке видно, что ещё нужно запросить. Заявки «только консультация» помечены жёлтой полосой и в основном пусты — так и задумано. У документов указано, как они были распознаны (оценка ИИ — «исправлено пользователем», если пациент поправил); файлы больше 200MB открываются как «по ссылке ↗». Стадия и дата диагноза также видны в карточке «Дополнительная информация» выше." },
+              { title: "Правка текстов формы направления", desc: "Все тексты формы направления (названия полей, подсказки, кнопки, экран после отправки) правятся в «Редактировании контента» — найдите фразу на любом языке (коды элементов начинаются с referral.…), и правка сразу появится на экране пациента без деплоя. Когда носитель языка говорит «здесь лучше так», исправляйте прямо там. Чтобы вернуть исходный текст — очистите поле и сохраните." },
+              { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
               { title: "Смета", desc: "Составление/отправка сметы расходов на лечение и пребывание." },
               { title: "Оповещения о симптомах", desc: "Оповещения среди записей о симптомах, присланных пациентом, требующие внимания." },
               { title: "Редактирование контента", desc: "Редактор, позволяющий править тексты главной и всех страниц на 6 языках. **Этот экран (и весь бэк-офис) можно переключить на русский кнопкой с глобусом справа вверху** — выбор запоминается. Найдите фразу на любом языке (уже исправленные фразы тоже ищутся) — появятся совпадающие фразы; включите «Показать весь блок», чтобы увидеть и править весь блок экрана (заголовок, подзаголовок, карточки) в одном месте. Если поле многострочное — эти переносы строк (Enter) отображаются на странице ровно так, как введены; если поле однострочное — страница переносит текст автоматически по ширине, правьте просто предложение. Справа в каждой строке есть отметки языков (한·EN·РУ·ҚЗ·中·日). Сплошной бирюзовый — язык, который вы правите сейчас; светло-бирюзовый — язык, который вы уже правили раньше (серый значит, что используется исходный текст, а не что поле пустое). Нажмите на отметку, чтобы сразу перейти к этому языку — так видно, правился ли казахский, не раскрывая строку. При нажатии «Сохранить» изменения не применяются сразу — сначала открывается окно со списком «что и на что меняется»: название пункта (или его код) и «прежний текст → новый текст». Просмотрите список и нажмите «Сохранить как есть». Это место, где видно, не меняется ли случайно соседняя строка, — пожалуйста, просматривайте каждый раз. После сохранения изменения сразу применяются на странице; если сохранить пустое поле, вернётся исходный текст. Если текст совпадёт с другим вариантом того же набора (например, с соседней кнопкой типа рака), появится красная пометка «Дубликат текста» — если надписи на кнопках выбора совпадают, пациент не понимает, что выбирает, поэтому проверьте перед сохранением. История правок — по кнопке «История изменений»: в каждой строке указан **экран**, к которому относится текст, и ссылка «Открыть экран» (если экран ещё не определён — «화면 미확인», а «화면 못 찾음» означает, что текст может не появляться ни на одном экране); сначала грузятся последние 50 записей, остальные — кнопкой «Ещё»; поле поиска сверху ищет по **всей истории** — по тексту, названию экрана или автору правки (при поиске остальные записи догружаются автоматически, поэтому если ничего не найдено — значит, этого действительно нет) (прежний текст — светло-красным, новый — светло-зелёным; если фразу правят впервые, в поле «прежний» показывается исходный текст с пометкой «По умолчанию»)." },

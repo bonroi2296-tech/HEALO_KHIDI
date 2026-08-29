@@ -78,3 +78,22 @@ export function pickHandoffConfirm(lang: string, reachable: boolean, inChannel =
   const map = inChannel ? HANDOFF_CONFIRM_IN_CHANNEL : reachable ? HANDOFF_CONFIRM : HANDOFF_NEED_CONTACT;
   return map[lang] || map.en;
 }
+
+// 연락처가 없는데 모델이 제 입으로 "접수됐다"고 확정하는 거짓말을 지운다.
+// ⚠️ 프롬프트에 금지 규칙이 이미 있는데도(generateReply.ts REGISTER/PROCEED 분기) 모델이 어겼다 —
+//    야간 스모크 TEST A 가 2026-08-05~13 8일 연속 이 문장으로 실패했다. 그래서 문장 단속을 서버로 내린다.
+//    (모델을 더 타이르는 대신 기계가 자른다 — 재발하면 프롬프트가 아니라 여기만 보면 된다.)
+const FALSE_INTAKE_CONFIRM =
+  /(접수\s*(가|는|요청이)?\s*(정상적으로\s*)?(되었|됐|완료|접수됨)|접수해\s*드렸|등록\s*(이|은)?\s*(정상적으로\s*)?(되었|됐|완료)|registered\s+(successfully|your\s+request)|successfully\s+registered|has\s+been\s+registered|заявка\s+(принята|оформлена)|өтініш\s+қабылданды|已(为您)?(登记|受理)|受付しました|受け付けました)/i;
+
+// 문장 단위로 걸러내되, 첫 줄만 문제면 그 줄만 지운다(문서 요청·안내 등 쓸모 있는 나머지는 살린다).
+export function stripFalseIntakeConfirm(reply: string): string {
+  if (!reply) return reply;
+  const kept = reply
+    .split(/\n/)
+    .filter((line) => !FALSE_INTAKE_CONFIRM.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return kept;
+}

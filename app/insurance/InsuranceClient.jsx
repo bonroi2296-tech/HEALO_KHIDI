@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CheckCircle, Info, MapPin } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { localeHref } from "@/lib/i18n/config";
 import { COPY } from "./copy";
 
 /* 대학병원 실사진 스트립 — 사진은 저장소 로컬 자산(/hospitals 상세와 동일 출처), 이름 표기는 care-journey와 통일 */
@@ -45,7 +46,7 @@ export default function InsuranceClient() {
               ))}
             </ul>
             <Link
-              href="/inquiry"
+              href={localeHref("/inquiry", lang)}
               className="inline-flex items-center gap-2 mt-7 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors duration-200"
             >
               {c.hero.cta} <ArrowRight size={18} />
@@ -250,7 +251,7 @@ export default function InsuranceClient() {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 text-balance">{c.closing.title}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed text-pretty">{c.closing.body}</p>
           <Link
-            href="/inquiry"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors duration-200"
           >
             {c.closing.cta} <ArrowRight size={18} />

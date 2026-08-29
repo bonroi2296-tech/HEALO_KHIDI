@@ -8,9 +8,12 @@
  * 코디네이터가 직접 환자 상태를 확인하고 필요 시 의료진에게 연결하세요.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
+import { useDeepLinkParam } from '@/lib/hooks/useDeepLinkParam';
+import { useLatestOnly } from '@/lib/hooks/useLatestOnly';
+import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
 import {
   AlertTriangle,
   CheckCircle,
@@ -83,11 +86,29 @@ export default function AlertsPage() {
   const [actionLoading, setActionLoading] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // 딥링크: 「증상 이상치」 알림이 `?alert=<id>` 로 보낸다. 이 화면이 그 값을 «안 읽어서»
+  // 눌러도 목록만 열렸다 — 새로 만든 딥링크 검사(check:deeplinks)가 잡아낸 건이다(2026-08-28).
+  // 기본 거름망이 '미확인'이라 이미 확인한 경보면 목록에 없다 → '전체'로 풀고 그 줄을 편다.
+  //
+  // ⚠️ 그 줄로 «데려가는» 건 시간으로 재면 안 된다. 첫판은 300ms 뒤에 찾게 했는데, 그 시점엔
+  //    아직 조회가 안 끝나 그 줄이 화면에 없다 — 조용히 아무 일도 안 일어난다(같은 날 재점검에서
+  //    발견). 목록이 «실제로 바뀐 뒤»에 찾는다.
+  const pendingScrollRef = useRef(null);
+  useDeepLinkParam('alert', (id) => {
+    setFilter('all');
+    setExpandedId(id);
+    pendingScrollRef.current = id;
+  });
+
+  // ⚠️ 조회가 겹칠 수 있다(딥링크가 거름망을 바꾸는 순간, 사람이 거름망을 연타할 때).
+  //    그때 «늦게 도착한 옛 응답»이 새 결과를 덮어써서 엉뚱한 목록이 남는다 → useLatestOnly 로 막는다.
+  const beginRequest = useLatestOnly();
   const fetchAlerts = useCallback(async () => {
+    const isLatest = beginRequest();
     setLoading(true);
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLoading(false); return; }
+    if (!session) { if (isLatest()) setLoading(false); return; }
 
     try {
       let url = `/api/symptoms/alerts?status=${filter}&limit=100`;
@@ -97,14 +118,15 @@ export default function AlertsPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
+      if (!isLatest()) return; // 이미 지난 조회 — 버린다
       if (data.ok) {
         setAlerts(data.data || []);
       }
     } catch (e) {
       console.error(e);
     }
-    setLoading(false);
-  }, [filter, severityFilter]);
+    if (isLatest()) setLoading(false);
+  }, [filter, severityFilter, beginRequest]);
 
   // 미확인 뱃지 카운트 (별도 조회)
   const fetchUnreadCount = useCallback(async () => {
@@ -124,6 +146,17 @@ export default function AlertsPage() {
     fetchAlerts();
     fetchUnreadCount();
   }, [fetchAlerts, fetchUnreadCount]);
+
+  // 딥링크로 지목된 경보가 «목록에 실제로 나타난 뒤»에 그 줄로 데려간다.
+  // 아직 없으면 아무것도 안 하고, 다음 갱신에서 다시 본다(시간 재기 금지 — 위 주석 참고).
+  useEffect(() => {
+    const id = pendingScrollRef.current;
+    if (!id) return;
+    const el = document.getElementById(`alert-${id}`);
+    if (!el) return;
+    pendingScrollRef.current = null;
+    el.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+  }, [alerts]);
 
   const handleAcknowledge = async (alertId) => {
     setActionLoading(alertId);
@@ -265,6 +298,7 @@ export default function AlertsPage() {
             return (
               <div
                 key={alert.id}
+                id={`alert-${alert.id}`}
                 className={`bg-white border rounded-xl overflow-hidden transition-shadow hover:shadow-sm ${sStyle.border} ${isResolved ? 'opacity-60' : ''}`}
               >
                 {/* 메인 행 */}
