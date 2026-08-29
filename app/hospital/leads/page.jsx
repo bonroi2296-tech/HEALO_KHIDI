@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
+import { useLatestOnly } from "@/lib/hooks/useLatestOnly";
 import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -44,13 +46,18 @@ export default function HospitalLeadsPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent"); // recent | oldest
 
+  // ⚠️ 거름망을 연달아 누르면 조회가 겹치고, «늦게 도착한 옛 응답»이 새 결과를 덮어써
+  //    엉뚱한 목록이 남는다. useLatestOnly 로 막는다(2026-08-28 같은 부류 전수 점검).
+  const beginRequest = useLatestOnly();
   const loadLeads = useCallback(async () => {
+    const isLatest = beginRequest();
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: "50" });
       if (statusFilter) params.set("status", statusFilter);
       const res = await fetchWithAuth(`/api/partner/leads?${params}`);
       const data = await res.json();
+      if (!isLatest()) return; // 이미 지난 조회 — 버린다
       if (data.ok) {
         setLeads(data.leads);
         setTotal(data.total);
@@ -58,11 +65,27 @@ export default function HospitalLeadsPage() {
     } catch (err) {
       console.error("[Leads] Load error:", err);
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, beginRequest]);
 
   useEffect(() => { loadLeads(); }, [loadLeads]);
+
+  // 딥링크: 「📥 새 진료 의뢰」 알림이 `?lead=<id>` 로 보낸다. 예전엔 목록 주소만 줘서
+  // 병원 담당자가 어느 건인지 눈으로 찾아야 했다 (2026-08-28).
+  // ⚠️ 목록은 최근 50건만 받는다 — 오래된 알림이면 그 안에 없다. 없으면 «조용히 아무 일도
+  //    안 일어나는» 게 아니라 그 건만 따로 받아 연다(리뷰 지적: 알림의 존재 이유가 사라짐).
+  useDeepLinkParam("lead", async (id) => {
+    const found = leads.find((l) => String(l.id) === id);
+    if (found) { handleOpenDetail(found); return; }
+    try {
+      const res = await fetchWithAuth(`/api/partner/leads/${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (data.ok && data.lead) handleOpenDetail(data.lead);
+    } catch (err) {
+      console.error("[Leads] Deep link fetch error:", err);
+    }
+  }, { ready: !loading });
 
   const handleOpenDetail = (lead) => {
     setSelectedLead(lead);

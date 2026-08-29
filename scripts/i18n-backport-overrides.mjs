@@ -34,7 +34,9 @@ import { pathToFileURL } from "node:url";
 const CHECK_ONLY = process.argv.includes("--check");
 const ROOT = process.cwd();
 
-const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// 자동 검사 상자에서는 NEXT_PUBLIC_SUPABASE_URL 이 «비어 있다» — 실제 주소는 SUPABASE_URL 에 있다.
+// 이 한 줄이 폴백 없이 있어서, 열쇠가 다 있는데도 매일 「못 잼」으로 넘어갔다(2026-08-28 실측).
+const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!URL_ || !KEY) {
   console.log("[i18n-backport] Supabase 자격증명이 없어 건너뛴다 (이 상자에서는 확인 불가).");

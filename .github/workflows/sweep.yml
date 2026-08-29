@@ -38,7 +38,16 @@ jobs:
           #    그래서 「손님이 환자 표를 읽나」 검사가 «못 잼»으로 나온다 — 그것도 실패로 잡히니 조용히 묻히진 않는다.
           #    넣으면 6개가 다 돈다. 이 값은 원래 브라우저로 그대로 나가는 공개값이라 넣어도 위험이 없다.
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: node scripts/sweep.mjs --alert 2>&1 | tee sweep.txt
+        # ⚠️ `set -o pipefail` 을 지우지 마라. 깃허브 작업의 «기본» 셸은 `bash -e {0}` 라
+        #    pipefail 이 꺼져 있고, 그러면 파이프의 종료코드는 맨 끝 `tee` 의 것(=언제나 0)이 된다.
+        #    2026-08-28 실측: 이 창구가 13번 돌아 13번 다 초록이었는데, 실행 기록을 열어보면
+        #    매번 «못 잼 2건»으로 exit 1 하고 있었다. 아래 메일 단계는 매번 «건너뜀»이었고
+        #    경보는 한 통도 안 나갔다 — 이 파일 머리말이 경계하던 「못 잼이 초록으로 보이는 것」
+        #    바로 그것이 이 파일 안에서 일어나고 있었다.
+        #    기계가 막는다: `npm run check:workflow-pipefail`
+        run: |
+          set -o pipefail
+          node scripts/sweep.mjs --alert 2>&1 | tee sweep.txt
 
       # 메일은 깃허브 기본 알림에 기대지 않는다 — 이미 쓰는 길(Resend → E2E_ALERT_EMAIL)을 그대로 쓴다.
       # 왜: 깃허브 기본 알림은 「어느 주소로 가는지」가 계정 설정에 숨어 있고 사람이 끄기도 쉽다.

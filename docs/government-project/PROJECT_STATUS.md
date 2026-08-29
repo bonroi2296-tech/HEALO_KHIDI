@@ -82,7 +82,7 @@
 | Vercel Hobby 플랜 cron 한도 초과 | 2026-04 | 배포 5시간 실패 | 크론 daily 화 + 외부 스케줄러 가이드 작성 |
 | `vercel.json` 스키마 위반 (`_crons_memo`) | 2026-04 | 배포 약 20회 실패 | 메모를 `docs/CRON_STATUS.md` 로 이전, vercel.json 정리 |
 | Gemini 2.5 Flash 무료 티어 종료 | 2026-04-01 | API 호출 실패 가능 | 3 Flash 전면 교체 |
-| LEGACY/PREMIUM 디자인 혼선 | 2026-04 | UI 일관성 | 토글 시스템 + LEGACY 기본 전환, 변경 시 즉시 롤백 정책 |
+| LEGACY/PREMIUM 디자인 혼선 | 2026-04 | UI 일관성 | (2026-04) 토글 시스템 + LEGACY 기본 전환 → **(2026-06) 토글째 폐기, 단일 기본 톤(teal)으로 환원**. CR-D-03 |
 
 ---
 

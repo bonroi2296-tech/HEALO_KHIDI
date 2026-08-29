@@ -18,6 +18,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { checkAgencyAuth, requirePartnerType } from "@/lib/auth/checkAgencyAuth";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { uploadLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
@@ -52,6 +53,8 @@ async function signRecords(rows: any[]): Promise<any[]> {
         inquiry_id: r.inquiry_id,
         record_type: r.record_type,
         record_type_label: RECORD_TYPE_LABEL[r.record_type as ProgressRecordType] || "경과",
+        // 누가 올렸나 — 코디 화면이 「해외 의료기관 / 환자 본인」을 갈라 보여준다.
+        uploader_role: r.uploader_role,
         note: r.note,
         file_name: r.file_name,
         file_type: r.file_type,
@@ -223,7 +226,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, records: await signRecords(data) });
     }
 
-    // 2) 관리자 (inquiry별 검토) — 사후관리 검토 권한
+    // 2) 코디네이터 (inquiry별 검토) — 2026-08-25 신설.
+    //    여태 열람 주체가 「해외 의료기관 본인」과 「관리자」뿐이라, 현지에서 올린 검사결과·영상을
+    //    **케이스를 실제로 끌고 가는 코디가 볼 화면이 없었다**(올라오면 타임라인에 한 줄만 떴다).
+    //    관리자 게이트(requireAdminAuth)는 app_metadata.role='admin'·허용목록만 통과시켜
+    //    코디는 403 이므로, staff 게이트를 먼저 둔다(같은 판정 = 다른 코디 API 와 동일).
+    const staff = await requirePortalAuth(request, { staffOnly: true });
+    if (staff.success) {
+      if (!inquiryIdParam) {
+        return NextResponse.json({ ok: false, error: "inquiry_required" }, { status: 400 });
+      }
+      const { data, error } = await (supabaseAdmin as any)
+        .from("progress_records")
+        .select("*")
+        .eq("inquiry_id", Number(inquiryIdParam))
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) {
+        console.error("[khidi/progress] staff list:", error.message);
+        return NextResponse.json({ ok: false, error: "list_failed" }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, records: await signRecords(data) });
+    }
+
+    // 3) 관리자 (inquiry별 검토) — 사후관리 검토 권한
     const admin = await requireAdminAuth(request);
     if (!admin.success) return admin.response;
     if (!inquiryIdParam) {

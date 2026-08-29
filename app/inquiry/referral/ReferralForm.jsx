@@ -16,6 +16,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 import { CANCER_TYPES, STAGES, optLabel } from "@/lib/inquiry/intakeLabels";
+import { icd10SuggestionFor, cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { describeUpload, MAX_DOC_BYTES as MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
 import { canPickFolder, pickImagingFiles, sumBytes, bundleToZip, formatMB, splitDrop } from "@/lib/inquiry/cdBundle";
 import { uploadAttachment } from "@/lib/uploadAttachment";
@@ -534,6 +535,7 @@ export default function ReferralForm() {
                             <Field f={f} lang={lang} value={values[f.name]} onChange={set}
                                    lit={highlight === f.name} fromDoc={!!autoFilled[f.name]}
                                    bare={sec.id !== "essentials"}
+                                   all={values}
                                    error={f.name === "email" && emailBad ? tr("emailBad", lang) : null} />
                             {/* 안내는 «고른 칸 바로 밑»에 붙는다. 묶음 끝에 두면 758px 아래라
                                 화면 밖이고, 골라도 아무 일 없는 것처럼 보인다(2026-08-13 PO 실사용). */}
@@ -667,7 +669,7 @@ export default function ReferralForm() {
 //    이게 애매하다 — 어차피 주면 좋은 건데」). 거기부터는 «전부 채우면 좋은 것»이라
 //    칸마다 등급을 매기면 사람은 「선택이면 안 해도 되겠네」로 읽는다.
 //    묶음 위 한 줄이 «많이 알려주실수록 좋다»를 대신 말한다.
-function Field({ f, lang, value, onChange, lit, fromDoc, bare, error }) {
+function Field({ f, lang, value, onChange, lit, fromDoc, bare, error, all }) {
   if (f.type === "note") {
     return <p className="mt-2 w-full text-xs leading-relaxed text-gray-600">{lab(f.label, lang)}</p>;
   }
@@ -744,17 +746,28 @@ function Field({ f, lang, value, onChange, lit, fromDoc, bare, error }) {
       );
       break;
     }
-    case "icdSuggest":
+    case "icdSuggest": {
       // 코드를 못 고르는 게 정상이다 — 「모르겠습니다」가 기본이고 관문이 아니다.
+      // 위에서 고른 암종이 있으면 그 부위의 ICD-10 상위 코드를 «권한다». 자동으로 채우지는 않는다:
+      // 세부 자리와 병기는 의사가 정하는 것이라, 우리가 넣어 버리면 환자가 그대로 확정으로 읽는다.
+      const sugg = icd10SuggestionFor(all?.cancerType);
+      const unknown = value === "__unknown__";
       control = (
         <>
-          <input id={inputId} className={box} placeholder="C18.2" disabled={value === "__unknown__"}
-                 value={value === "__unknown__" ? "" : (value || "")} onChange={(e) => onChange(f.name, e.target.value)} />
-          <Toggle checked={value === "__unknown__"} onClick={() => onChange(f.name, value === "__unknown__" ? "" : "__unknown__")}
+          <input id={inputId} className={box} placeholder={sugg ? sugg.code : "C18.2"} disabled={unknown}
+                 value={unknown ? "" : (value || "")} onChange={(e) => onChange(f.name, e.target.value)} />
+          {sugg && !unknown && value !== sugg.code && (
+            <button type="button" onClick={() => onChange(f.name, sugg.code)}
+                    className="mt-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-800 transition-all duration-200 hover:bg-teal-100">
+              {tr("icdSuggest", lang)}: {sugg.code} · {cancerTypeLabelL(all.cancerType, lang)}
+            </button>
+          )}
+          <Toggle checked={unknown} onClick={() => onChange(f.name, unknown ? "" : "__unknown__")}
                   label={tr("icdUnknown", lang)} className="mt-2" />
         </>
       );
       break;
+    }
     case "cdFolder":
       return <CdFolder f={f} lang={lang} value={value} onChange={onChange} />;
     default:

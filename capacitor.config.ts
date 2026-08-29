@@ -61,6 +61,16 @@ const config: CapacitorConfig = {
     //       supabase 를 넣어도 구글 흐름은 안 바뀐다 — accounts.google.com 이 여전히 목록에 없어서
     //       구글은 그대로 바깥 브라우저로 나간다.
     //    ⚠️ 이건 앱 껍데기 설정이라 **앱 파일을 새로 구워야 폰에 간다.** 웹 배포로는 안 간다.
+    //
+    // 🔴 **2026-08-28 정정: 위 8/20 고침은 문제를 «반만» 고친 것이었다.**
+    //    「연결 중」에서 영영 멈추는 것은 없앴지만, 아이폰은 그 다음에 애플 로그인을
+    //    「웹 화면 이동」이 아니라 **「시스템 창」으로 가로챈다.** 그래서 얼굴 인식까지 성공한 뒤
+    //    그 결과가 우리 서버로 돌아오지 못한다.
+    //      실측(실기기 촬영본 + Supabase 기록 대조): 3분 동안 `/auth/v1/authorize` **3건**,
+    //      `/auth/v1/callback` **0건**. 화면에는 아래 errorPath(오프라인 안내)가 떴다.
+    //    → **아이폰은 이제 웹뷰를 안 거치고 네이티브 창을 직접 쓴다**
+    //      (`src/lib/auth/appleNativeSignIn.ts`). 이 목록은 **안드로이드·예비용으로만 남긴다.**
+    //      지우지 마라: 안드로이드는 여전히 웹 흐름이다.
     allowNavigation: [
       'appleid.apple.com',
       'hvwwlkawaxabhtumjhrg.supabase.co',

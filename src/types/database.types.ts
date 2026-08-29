@@ -3083,6 +3083,9 @@ export type Database = {
           attachment: string | null
           attachments: Json
           cancer_type: string | null
+          icd_code: string | null
+          icd_code_updated_at: string | null
+          icd_code_updated_by: string | null
           case_status: string | null
           case_status_note: string | null
           case_status_updated_at: string | null
@@ -3152,6 +3155,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null
@@ -3221,6 +3227,9 @@ export type Database = {
           attachment?: string | null
           attachments?: Json
           cancer_type?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           case_status?: string | null
           case_status_note?: string | null
           case_status_updated_at?: string | null

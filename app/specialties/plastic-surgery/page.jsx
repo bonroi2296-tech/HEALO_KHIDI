@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { localeAlternates } from "@/lib/i18n/metadata";
 import {
   Star,
   Shield,
@@ -10,7 +11,18 @@ import {
   Award,
 } from "lucide-react";
 
-export const metadata = {
+// hreflang 은 경로 방식(/ru/...)으로만 맞는다 — 옛 "?lang=ru" 표기는 무시되고 영어판으로
+// 가므로 검색엔진에 틀린 주소를 주고 있었다(2026-08-28 실측). og:url 도 canonical 과 일치시킨다.
+export async function generateMetadata() {
+  const alt = await localeAlternates();
+  return {
+    ...baseMeta,
+    ...(alt ? { alternates: alt } : {}),
+    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}) },
+  };
+}
+
+const baseMeta = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
   robots: { index: false, follow: false },
   title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide",
@@ -31,19 +43,6 @@ export const metadata = {
     description:
       "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan.",
     type: "website",
-    url: "https://healwith.co.kr/specialties/plastic-surgery",
-  },
-  alternates: {
-    canonical: "/specialties/plastic-surgery",
-    languages: {
-      en: "/specialties/plastic-surgery?lang=en",
-      ko: "/specialties/plastic-surgery?lang=ko",
-      ru: "/specialties/plastic-surgery?lang=ru",
-      kk: "/specialties/plastic-surgery?lang=kz",
-      zh: "/specialties/plastic-surgery?lang=zh",
-      ja: "/specialties/plastic-surgery?lang=ja",
-      'x-default': "/specialties/plastic-surgery",
-    },
   },
 };
 
