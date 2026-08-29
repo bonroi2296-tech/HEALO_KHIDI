@@ -86,6 +86,7 @@
     "blast:verify": "node scripts/blast-verify.mjs",
     "sweep": "node scripts/sweep.mjs",
     "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
+    "check:docs": "python docs/government-project/audit_docs.py",
     "audit:negative-control": "node scripts/negative-control.mjs",
     "check:guard-coverage": "node scripts/check-guard-coverage.mjs",
     "check:workflow-pipefail": "node scripts/check-workflow-pipefail.mjs"
