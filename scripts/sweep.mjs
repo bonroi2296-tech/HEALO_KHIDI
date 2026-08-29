@@ -80,6 +80,42 @@ const PII_TABLES = {
   chat_feedback: ["guest_email"],
 };
 
+/**
+ * 「지금 어느 가지에서 재고 있나」 — 이 검사가 «맨 앞»에 있는 이유.
+ *
+ * 아래 검사들은 대부분 «작업 폴더의 파일»을 읽는다(사전 파일·capacitor.build.gradle·
+ * KNOWN_ISSUES 표…). 그래서 폴더가 낡은 가지에 서 있으면 **이미 고친 것이 다시 뜬다.**
+ *
+ * 2026-08-30 실측: 본판 폴더가 8/28 19:14 부터 `docs/handoff-ai-guards`(origin/main 보다
+ * 21커밋 뒤)에 서 있었다. 그 상태로 훑으니 「코디 교정 미반영 13건」이 떴는데,
+ * origin/main 에서 다시 재니 **0건**이었다. 하루 전에 고쳐 합친 것이 «안 고쳐진 것»으로 보였다.
+ * 더 위험한 건 그 자리에서 만든 신청서다 — 그대로 합쳤으면 21커밋이 되돌아갔다.
+ *
+ * ⚠️ 가지 이름으로 판정하지 마라(main 이어도 pull 을 안 했으면 낡는다). **거리로 잰다.**
+ */
+function 검사_재는자리() {
+  let 가지, 뒤처짐, 앞섬;
+  try {
+    execSync("git fetch -q origin main", { stdio: "ignore" });
+    가지 = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8" }).trim();
+    뒤처짐 = Number(execSync("git rev-list --count HEAD..origin/main", { encoding: "utf8" }).trim());
+    앞섬 = Number(execSync("git rev-list --count origin/main..HEAD", { encoding: "utf8" }).trim());
+  } catch {
+    return add("where", "지금 어느 가지에서 재나", "못 잼", "git 상태를 못 읽는다");
+  }
+  const 꼬리 = 앞섬 ? ` · 나만 가진 것 ${앞섬}개` : "";
+  if (뒤처짐 === 0) return add("where", "지금 어느 가지에서 재나", "통과", `${가지} · origin/main 과 같은 자리${꼬리}`);
+  // 작업 중이면 한두 개 뒤처지는 건 흔하다 — 아래 검사가 오판할 만큼 벌어졌을 때만 세운다.
+  if (뒤처짐 < 5) return add("where", "지금 어느 가지에서 재나", "통과", `${가지} · ${뒤처짐}커밋 뒤${꼬리}`);
+  return add(
+    "where",
+    "지금 어느 가지에서 재나",
+    "볼 것",
+    `${가지} 가 origin/main 보다 ${뒤처짐}커밋 뒤에 있다${꼬리} → **아래 결과를 그대로 믿지 마라**(이미 고친 것이 다시 뜬다). ` +
+      "여기서 신청서를 만들면 그만큼 되돌아간다. `git checkout main && git pull` 뒤 다시 훑어라"
+  );
+}
+
 async function 검사_평문개인정보() {
   const client = sb();
   if (!client) return add("pii", "평문으로 남은 개인정보", "못 잼", "SUPABASE_SERVICE_ROLE_KEY 없음");
@@ -311,9 +347,18 @@ async function 검사_예약작업() {
 //       버전코드를 안 올려도 잡힌다. 실제로 이 방식이면 8/5 그 고침이 그날 바로 걸렸다.
 const 네이티브경로 = ["capacitor.config.ts", "android", "ios"];
 
-/** capacitor.build.gradle 에서 실제로 «앱에 박히는» 부품 이름을 뽑는다. */
+/**
+ * capacitor.build.gradle 에서 실제로 «앱에 박히는» 부품 이름을 뽑는다.
+ *
+ * 🔴 **2026-08-30: 여기에 `capacitor-` 접두사 제한이 걸려 있어 2년치 «서드파티» 부품을 통째로 놓쳤다.**
+ *   공식 부품은 `capacitor-app` 처럼 시작하지만, 남이 만든 것은 만든 곳 이름이 앞에 붙는다 —
+ *   `capawesome-capacitor-apple-sign-in`(애플 로그인) · `capgo-capacitor-social-login`(구글 로그인).
+ *   즉 **하필 「새로 넣어서 폰에 아직 안 간」 부품만 골라서 안 보였다.** 8/28 애플 로그인을 넣었을 때도
+ *   이 검사는 「부품 5개 전부 출시본에 있음」이라며 조용했다.
+ *   → 이 파일은 캡시터가 «부품만» 적어 생성하므로 접두사로 거를 이유가 없다. 전부 잡는다.
+ */
 function 부품목록(gradleText) {
-  return [...gradleText.matchAll(/project\(['"]:(capacitor-[a-z0-9-]+)['"]\)/g)].map((m) => m[1]).sort();
+  return [...gradleText.matchAll(/project\(['"]:([a-z0-9-]+)['"]\)/g)].map((m) => m[1]).sort();
 }
 
 async function 검사_앱미반영() {
@@ -556,6 +601,7 @@ function 검사_묵은막힘() {
 }
 
 const 검사들 = [
+  ["where", 검사_재는자리],
   ["pii", 검사_평문개인정보],
   ["i18nback", 검사_번역역류],
   ["rls", 검사_익명읽기],
