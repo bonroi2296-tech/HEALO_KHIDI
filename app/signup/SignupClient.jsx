@@ -11,7 +11,7 @@ import { getLangCodeFromCookie, t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import GoogleInAppNotice from '@/components/auth/GoogleInAppNotice';
-import { isNativeApp, useIsNativeApp } from '@/lib/isNativeApp';
+import { isNativeApp, hasNativeGoogleSignIn, useGoogleBlockedInApp } from '@/lib/isNativeApp';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -103,7 +103,7 @@ export const SignUpPage = ({ setView }) => {
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
     // 앱(스토어 셸) 안에서는 구글 가입이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
     // 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고, 이 값은 disabled·aria 만 채운다.
-    const googleBlockedInApp = useIsNativeApp();
+    const googleBlockedInApp = useGoogleBlockedInApp();
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
     const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
     // claim(환자 계정연결) 링크 경유 가입 — /signup?redirect=/claim/[token]. 로그인 화면의
@@ -132,7 +132,9 @@ export const SignUpPage = ({ setView }) => {
         //    그런데 아래는 성공/실패 판정이 `error` 하나뿐이라 그때 `oauthRedirecting` 이 안 꺼진다
         //    → 전체화면 오버레이(닫을 방법 없음)가 가입 폼을 덮어버린다. 버튼 하나 멈추는 것보다 나쁘다.
         //    (`/inquiry` 퍼널의 「Google로 가입」이 이 주소로 보낸다 — 퍼널 쪽에서도 같이 막는다.)
-        if (isNativeApp()) return;
+        //    ⚠️ 2026-08-29 네이티브 부품이 붙은 뒤로는 «부품이 없는 옛 판»만 여기서 멈춘다.
+        //    부품이 있으면 아래에서 네이티브 창으로 간다(웹 이동이 없으니 오버레이도 안 갇힌다).
+        if (isNativeApp() && !hasNativeGoogleSignIn()) return;
 
         // ?provider=google 제거 — 실패 후 새로고침 시 재트리거/루프 방지
         try {
@@ -144,6 +146,21 @@ export const SignUpPage = ({ setView }) => {
         const lc = getLangCodeFromCookie();
         setOauthRedirecting(true);
         (async () => {
+            // 앱이면 네이티브 창으로 — 웹 방식은 앱에서 끝까지 못 간다.
+            if (isNativeApp()) {
+                const g = await import('@/lib/auth/googleNativeSignIn');
+                try {
+                    await g.signInWithGoogleNative(supabase);
+                    window.location.href = target || '/';
+                } catch (err) {
+                    if (!g.isGoogleCancel(err)) {
+                        console.error('[SignUpPage] Google native sign-in failed:', err);
+                        toast.error(t('signup.googleError', lc));
+                    }
+                    setOauthRedirecting(false);
+                }
+                return;
+            }
             try {
                 const redirectUrl = `${window.location.origin}/auth/callback${target ? `?next=${encodeURIComponent(target)}` : ''}`;
                 // signInWithOAuth 는 throw 가 아니라 { error } 를 반환 — error 객체를 직접 검사
@@ -499,6 +516,24 @@ export const SignUpPage = ({ setView }) => {
                 <div className="mb-8">
                     <button
                         onClick={async () => {
+                            // 앱에서는 웹 방식이 끝까지 못 간다(PKCE 검증값이 크롬과 갈린다).
+                            // 부품이 있는 판만 네이티브로 가고, 옛 판은 시작조차 하지 않는다(안내문이 뜬다).
+                            if (isNativeApp()) {
+                                if (!hasNativeGoogleSignIn()) return;
+                                setLoading(true);
+                                const g = await import('@/lib/auth/googleNativeSignIn');
+                                try {
+                                    await g.signInWithGoogleNative(supabase);
+                                    window.location.href = redirectTarget || '/';
+                                } catch (err) {
+                                    if (!g.isGoogleCancel(err)) {
+                                        console.error('[SignUpPage] Google native sign-in failed:', err);
+                                        toast.error(t("signup.googleError", langCode));
+                                    }
+                                    setLoading(false);
+                                }
+                                return;
+                            }
                             setLoading(true);
                             try {
                                 const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;

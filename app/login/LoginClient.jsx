@@ -10,7 +10,7 @@ import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
 import GoogleInAppNotice from '@/components/auth/GoogleInAppNotice';
-import { isNativeApp, useIsNativeApp } from '@/lib/isNativeApp';
+import { isNativeApp, hasNativeGoogleSignIn, useGoogleBlockedInApp } from '@/lib/isNativeApp';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -29,7 +29,7 @@ export const LoginPage = ({ setView }) => {
     const [redirectTarget, setRedirectTarget] = useState(null);
     // 앱(스토어 셸) 안에서는 구글 로그인이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
     // 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고, 이 값은 disabled·aria 만 채운다.
-    const googleBlockedInApp = useIsNativeApp();
+    const googleBlockedInApp = useGoogleBlockedInApp();
 
     useEffect(() => {
         // ?redirect= 소비 — proxy(미로그인 보호경로)·환자앱 곳곳이 발급하는데 여기서 안 읽어
@@ -201,8 +201,29 @@ export const LoginPage = ({ setView }) => {
                     <div className="mt-6">
                         <button
                             onClick={async () => {
-                                // 앱에서는 시작조차 하지 않는다 — 시작하면 「연결 중」에 영영 갇힌다.
-                                if (isNativeApp()) return;
+                                // 앱에서는 웹 방식(리다이렉트)이 끝까지 못 간다 — PKCE 검증값은 앱 웹뷰에
+                                // 남는데 구글은 로그인 화면을 크롬으로 내보내기 때문이다.
+                                //  · 네이티브 부품이 있는 판 → 그 길로 간다.
+                                //  · 부품이 없는 옛 판 → 시작조차 하지 않는다(안내문이 대신 떠 있다).
+                                // ⚠️ 여기서 웹 방식으로 «폴백하지 마라» — 앱에서는 확실히 실패하는 길이다
+                                //    (애플과 다르다: 애플은 옛 판에서 웹 방식이 그나마 시도는 된다).
+                                if (isNativeApp()) {
+                                    if (!hasNativeGoogleSignIn()) return;
+                                    setOauthLoading(true);
+                                    const g = await import('@/lib/auth/googleNativeSignIn');
+                                    try {
+                                        await g.signInWithGoogleNative(supabase);
+                                        window.location.href = redirectTarget || '/';
+                                    } catch (err) {
+                                        // 계정 선택 창을 그냥 닫은 것은 오류가 아니다.
+                                        if (!g.isGoogleCancel(err)) {
+                                            console.error('[LoginPage] ❌ Google native sign-in failed:', err);
+                                            toast.error(t("login.googleError", langCode));
+                                        }
+                                        setOauthLoading(false);
+                                    }
+                                    return;
+                                }
                                 setOauthLoading(true);
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;

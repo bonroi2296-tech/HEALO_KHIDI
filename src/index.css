@@ -178,20 +178,26 @@ html[data-healo-native="1"] {
   --healo-safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* ===== 앱에서 구글 로그인 잠금 (2026-08-29, 임시) =====
+/* ===== 「부품이 없는 옛 앱」에서만 구글 로그인 잠금 (2026-08-29) =====
    왜 CSS 로도 잠그나: `app/layout.jsx` 가 첫 그림 «전에» head 인라인으로
    `<html data-healo-native="1">` 를 붙인다. 리액트 수화를 기다려 잠그면 느린 웹뷰에서
    «멀쩡한 버튼 → 회색» 깜빡임이 나고, 그 틈에 눌리면 «영영 연결 중»에 다시 갇힌다.
    리액트 쪽 `disabled`·`aria-describedby` 는 그 뒤에 붙어 의미(스크린리더)를 채운다 — 둘은 짝이다.
    이유·증거 = `src/components/auth/GoogleInAppNotice.jsx` 주석.
-   ⚠️ 네이티브 구글 로그인이 붙으면 이 블록과 그 파일을 «같이» 지워라. */
+
+   🔑 **`:not([data-healo-google-native="1"])` 가 핵심이다** (2026-08-29 네이티브 붙이며 추가).
+   웹은 배포되는 즉시 «모든» 앱에 반영되는데(라이브로드) 네이티브 부품은 앱을 새로 구워
+   스토어를 거쳐야 들어간다. 즉 «새 웹 + 옛 앱» 구간이 반드시 생긴다.
+   → 부품이 있는 판에서만 잠금이 풀리고, 옛 판은 이 안내를 그대로 본다.
+   ⚠️ 스토어의 모든 판에 부품이 들어간 뒤에야 이 블록과 GoogleInAppNotice.jsx 를 지울 수 있다.
+      그 전에 지우면 옛 앱 사용자가 «눌러도 영영 연결 중»으로 되돌아간다. */
 .app-google-lock-note {
   display: none;
 }
-html[data-healo-native="1"] .app-google-lock-note {
+html[data-healo-native="1"]:not([data-healo-google-native="1"]) .app-google-lock-note {
   display: block;
 }
-html[data-healo-native="1"] .app-google-lock-btn {
+html[data-healo-native="1"]:not([data-healo-google-native="1"]) .app-google-lock-btn {
   opacity: 0.5;
   pointer-events: none;
   cursor: not-allowed;

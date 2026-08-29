@@ -28,7 +28,7 @@ import { event, GA_EVENTS } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
 import GoogleInAppNotice from "@/components/auth/GoogleInAppNotice";
-import { isNativeApp } from "@/lib/isNativeApp";
+import { isNativeApp, hasNativeGoogleSignIn } from "@/lib/isNativeApp";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -462,9 +462,10 @@ export default function UnifiedInquiryFunnel() {
     : "";
 
   function handleSignupGoogle() {
-    // 앱(스토어 셸)에서는 구글 가입이 끝까지 못 간다 — 여기서 보내면 /signup 이 전체화면
+    // 앱(스토어 셸)에서는 «웹 방식» 구글 가입이 끝까지 못 간다 — 여기서 보내면 /signup 이 전체화면
     // 오버레이를 띄운 채 영영 멈춘다. 이유·증거는 GoogleInAppNotice 주석. (2026-08-29)
-    if (isNativeApp()) return;
+    // ⚠️ 네이티브 부품이 있는 판은 그대로 보낸다 — /signup 이 ?provider=google 을 받아 네이티브 창을 연다.
+    if (isNativeApp() && !hasNativeGoogleSignIn()) return;
     safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "google" });
     router.push(`/signup?provider=google&from=inquiry${claimRedirect}`);
   }
