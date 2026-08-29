@@ -359,7 +359,7 @@ export function AdminNav() {
   return (
     <>
       {/* Mobile: top bar with hamburger — 전역 포털 상단바 «바로 밑». 높이 값을 손으로 박지 마라,
-          상단바는 h-14 md:h-16 + 안전영역이다(단일 SoR: app/styles/healo-tokens.css). */}
+          상단바는 h-14 md:h-16 + 안전영역이다(단일 SoR: src/index.css 의 .healo-portal-offset). */}
       <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">

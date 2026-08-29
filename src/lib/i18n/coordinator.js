@@ -71,6 +71,10 @@ const CT = {
   name: { ko: "이름", en: "Name", ru: "Имя", kz: "Аты", zh: "姓名", ja: "氏名" },
   nationality: { ko: "국적", en: "Nationality", ru: "Гражданство", kz: "Азаматтығы", zh: "国籍", ja: "国籍" },
   cancerType: { ko: "암종", en: "Cancer type", ru: "Тип рака", kz: "Обыр түрі", zh: "癌种", ja: "がん種" },
+  ibIcdCode: { ko: "진단코드", en: "Diagnosis code", ru: "Код диагноза", kz: "Диагноз коды", zh: "诊断代码", ja: "診断コード" },
+  ibIcdSuggest: { ko: "추천", en: "Suggested", ru: "Рекомендуется", kz: "Ұсынылады", zh: "推荐", ja: "推奨" },
+  ibIcdSave: { ko: "코드 저장", en: "Save code", ru: "Сохранить код", kz: "Кодты сақтау", zh: "保存代码", ja: "コードを保存" },
+  ibIcdNote: { ko: "부위 분류이며 확정 진단이 아니다", en: "Site classification, not a confirmed diagnosis", ru: "Классификация по локализации, не подтверждённый диагноз", kz: "Орналасу бойынша жіктеу, расталған диагноз емес", zh: "为部位分类，非确诊结果", ja: "部位分類であり確定診断ではありません" },
   contactMethod: { ko: "연락방법", en: "Contact method", ru: "Способ связи", kz: "Байланыс тәсілі", zh: "联系方式", ja: "連絡方法" },
   receivedDate: { ko: "접수일", en: "Received", ru: "Дата заявки", kz: "Қабылданған күні", zh: "接收日期", ja: "受付日" },
   viewAll: { ko: "전체 보기", en: "View all", ru: "Показать все", kz: "Барлығын көру", zh: "查看全部", ja: "すべて表示" },
@@ -307,6 +311,9 @@ const CT = {
   msInquiry: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
   msNoMessages: { ko: "메시지 없음", en: "No messages", ru: "Нет сообщений", kz: "Хабар жоқ", zh: "无消息", ja: "メッセージなし" },
   msSelectConversation: { ko: "왼쪽에서 대화를 선택하세요.", en: "Select a conversation on the left.", ru: "Выберите диалог слева.", kz: "Сол жақтан әңгімені таңдаңыз.", zh: "请在左侧选择一个对话。", ja: "左側から会話を選択してください。" },
+  // 알림 딥링크로 들어왔는데 그 대화가 목록에 없을 때. 「왼쪽에서 고르세요」는 폰에 왼쪽이
+  // 없어서 틀린 안내가 된다(2026-08-28 완성도 감사).
+  msThreadNotFound: { ko: "그 대화를 찾을 수 없습니다.", en: "That conversation could not be found.", ru: "Этот диалог не найден.", kz: "Бұл әңгіме табылмады.", zh: "未找到该对话。", ja: "その会話が見つかりません。" },
   msGuestBadge: { ko: "게스트(비회원)", en: "Guest (non-member)", ru: "Гость (не участник)", kz: "Қонақ (мүше емес)", zh: "访客（非会员）", ja: "ゲスト（非会員）" },
   msAIChat: { ko: "AI 채팅", en: "AI chat", ru: "AI-чат", kz: "AI чат", zh: "AI 聊天", ja: "AIチャット" },
   msNoMessagesYet: { ko: "아직 메시지가 없습니다.", en: "No messages yet.", ru: "Сообщений пока нет.", kz: "Әзірге хабар жоқ.", zh: "还没有消息。", ja: "まだメッセージがありません。" },

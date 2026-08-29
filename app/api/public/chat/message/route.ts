@@ -21,6 +21,7 @@ import {
   detectHandOff,
   getModelName,
   logPlaybookUsage,
+  modelBypassKind,
 } from "@/lib/chat/generateReply";
 import {
   INTAKE_EVERY_N_TURNS,
@@ -258,6 +259,9 @@ export async function POST(request: NextRequest) {
           ...(hasAttachments ? { attachment_ack: true } : {}),
           ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
           ...(aiError ? { ai_error: aiError } : {}),
+          // 모델을 «안 거치고» 코드가 가로챈 턴이면 그 이름을 남긴다(잡담·화제정정·마스터키).
+          // 안 남기면 가로채기 오작동이 정상 답변과 구별이 안 된다 — 2026-08-28 사고가 그것이었다.
+          ...(modelBypassKind(_analytics?.ragScoring) ? { bypassed: modelBypassKind(_analytics?.ragScoring) } : {}),
         },
       })
       .select("id")

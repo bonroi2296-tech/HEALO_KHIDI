@@ -51,6 +51,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    url: "/ru/for-russian-patients",
     title: "Лечение рака в Корее | healwith — Медицинский консьерж",
     description:
       "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR, иммунотерапия корейской медицины. Поддержка на русском языке.",
@@ -194,7 +195,7 @@ export default function ForRussianPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -263,7 +264,7 @@ export default function ForRussianPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Виза C-3-3: краткосрочная (до 90 дней)</li>
                 <li>• Срок оформления: 5–7 рабочих дней</li>
@@ -277,7 +278,7 @@ export default function ForRussianPatientsPage() {
             {/* 가격 출처 = src/lib/chat/careReference.ts (면력한방병원 암 진료비 안내 2026-06 · PO 제공) — 가격 개정 시 거기와 같이 갱신.
                 단 항공권 줄은 진료비 자료가 아니라 일반 시세 참고치(예외). */}
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Онкохирургия в университетских клиниках: $3 000–18 500 (по типу рака)</li>
                 <li>• Интегративный иммунный курс (стационар): $740–1 480/нед., палата отдельно</li>

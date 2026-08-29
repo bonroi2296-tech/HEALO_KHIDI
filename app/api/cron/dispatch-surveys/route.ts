@@ -56,7 +56,7 @@ import {
 import { renderEducationEmail } from "@/lib/email/templates/educationContent";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
-import { decryptMaybe } from "@/lib/security/encryptionV2";
+import { decryptMaybe, encryptStringNullable } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
           fire_at: new Date().toISOString(),
           channel: "email",
           recipient_user_id: session.patient_id || null,
-          recipient_address: toEmail,
+          recipient_address: encryptStringNullable(toEmail),
           payload: { survey_id: tokenResult.surveyId, token: tokenResult.token },
           status: "sent",
           sent_at: new Date().toISOString(),
@@ -415,7 +415,7 @@ export async function GET(request: NextRequest) {
                   fire_at: new Date().toISOString(),
                   channel: "email",
                   recipient_user_id: c.user_id || null,
-                  recipient_address: recipient.email,
+                  recipient_address: encryptStringNullable(recipient.email),
                   payload: { survey_id: tokenResult.surveyId, inquiry_id: c.id, phase: step.phase },
                   status: "sent",
                   sent_at: new Date().toISOString(),
@@ -546,7 +546,7 @@ export async function GET(request: NextRequest) {
                   fire_at: new Date().toISOString(),
                   channel: "email",
                   recipient_user_id: c.user_id || null,
-                  recipient_address: recipient.email,
+                  recipient_address: encryptStringNullable(recipient.email),
                   payload: {
                     inquiry_id: c.id,
                     phase,

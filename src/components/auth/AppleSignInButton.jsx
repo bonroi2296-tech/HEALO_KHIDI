@@ -18,6 +18,7 @@
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
+import { isIOSApp } from "@/lib/isNativeApp";
 
 export const APPLE_LOGIN_ENABLED =
   process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true";
@@ -39,6 +40,37 @@ export default function AppleSignInButton({
   const start = async () => {
     setBusy(true);
     try {
+      // 🍎 아이폰 «앱 안»에서는 웹 방식이 끝까지 못 간다 — 아이폰이 애플 로그인을 시스템 창으로
+      //    가로채서, 인증은 되는데 그 결과가 우리 서버로 안 돌아온다(2026-08-28 실기기 실측).
+      //    그래서 앱에서는 아이폰이 주는 창을 직접 쓰고 토큰만 받아 온다.
+      //    안드로이드는 웹 방식이 그대로 되므로 건드리지 않는다(가상 폰 실측: 정상).
+      //
+      // 🔴 **네이티브 창을 못 쓰면 «반드시» 웹 방식으로 내려가야 한다** (2026-08-28 사고로 추가).
+      //    이 앱은 웹을 그대로 띄우는 구조라 **웹 배포가 앱 업데이트보다 먼저 나간다.**
+      //    그 사이에 있는 사람은 「새 웹 코드 + 그 기능이 없는 옛 앱」 조합이 되는데,
+      //    폴백이 없으면 버튼을 누르는 즉시 「Apple 로그인에 실패했습니다」가 뜬다.
+      //    실제로 2026-08-28 15:13 Assel 아이폰에서 그렇게 났다 — 배포는 15:04, 앱은 아직 빌드 3.
+      //    ⚠️ 이 폴백을 지우지 마라. 앱 판이 뒤처지는 구간은 «항상» 생긴다.
+      if (isIOSApp()) {
+        const native = await import("@/lib/auth/appleNativeSignIn").catch(() => null);
+        if (native) {
+          try {
+            await native.signInWithAppleNative(supabase);
+            // 세션이 이 화면에 바로 생기므로 서버 콜백을 타지 않는다 → 착지만 직접 정한다.
+            window.location.href = redirectTarget || "/";
+            return;
+          } catch (nativeError) {
+            // 사용자가 창을 그냥 닫은 것은 오류가 아니다 — 조용히 버튼만 되살린다.
+            if (native.isAppleCancel(nativeError)) {
+              setBusy(false);
+              return;
+            }
+            // 그 밖의 실패(옛 앱이라 기능이 없음 등)는 «막다른 길이 아니다» → 아래 웹 방식으로 계속.
+            console.warn("[apple] 네이티브 창 실패, 웹 방식으로 내려간다", nativeError);
+          }
+        }
+      }
+
       const redirectUrl = `${window.location.origin}/auth/callback${
         redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ""
       }`;

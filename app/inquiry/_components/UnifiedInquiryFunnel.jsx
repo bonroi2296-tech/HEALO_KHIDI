@@ -27,6 +27,8 @@ import { getArrival } from "@/lib/inquiry/arrival";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
+import GoogleInAppNotice from "@/components/auth/GoogleInAppNotice";
+import { isNativeApp, hasNativeGoogleSignIn } from "@/lib/isNativeApp";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -460,6 +462,10 @@ export default function UnifiedInquiryFunnel() {
     : "";
 
   function handleSignupGoogle() {
+    // 앱(스토어 셸)에서는 «웹 방식» 구글 가입이 끝까지 못 간다 — 여기서 보내면 /signup 이 전체화면
+    // 오버레이를 띄운 채 영영 멈춘다. 이유·증거는 GoogleInAppNotice 주석. (2026-08-29)
+    // ⚠️ 네이티브 부품이 있는 판은 그대로 보낸다 — /signup 이 ?provider=google 을 받아 네이티브 창을 연다.
+    if (isNativeApp() && !hasNativeGoogleSignIn()) return;
     safeEvent(GA_EVENTS.SIGNUP_CLICKED, { method: "google" });
     router.push(`/signup?provider=google&from=inquiry${claimRedirect}`);
   }
@@ -525,11 +531,13 @@ export default function UnifiedInquiryFunnel() {
         <div className="space-y-3">
           <button
             onClick={handleSignupGoogle}
-            className="w-full flex items-center justify-center gap-3 py-3.5 border-2 border-gray-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition font-semibold text-sm"
+            aria-describedby="funnel-google-app-note"
+            className="app-google-lock-btn w-full flex items-center justify-center gap-3 py-3.5 border-2 border-gray-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition font-semibold text-sm"
           >
             <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>
             {tl("signupGoogle", lang)}
           </button>
+          <GoogleInAppNotice id="funnel-google-app-note" langCode={lang} variant="signup" />
           <button
             onClick={handleSignupEmail}
             className="w-full py-3.5 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition text-sm"

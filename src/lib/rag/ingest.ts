@@ -2,6 +2,7 @@ import { supabaseAdmin } from "./supabaseAdmin";
 import { buildDocument } from "./buildDocument";
 import { chunkText } from "./chunker";
 import { getEmbedding } from "../chat/generateReply";
+import { CANCER_DETAILS, ITCRN_FRAMEWORK } from "../data/immuneCancerDetails";
 
 type SourceType =
   | "treatment"
@@ -10,7 +11,8 @@ type SourceType =
   | "normalized_inquiry"
   | "policy"
   | "faq"
-  | "center_menu";
+  | "center_menu"
+  | "cancer_info";
 
 const nowIso = () => new Date().toISOString();
 
@@ -24,6 +26,8 @@ const TRUST_TIER_BY_SOURCE: Partial<Record<SourceType, number>> = {
   treatment: 2,
   // 자사 제휴병원이 준 공식 메뉴판(엑셀 원본) — hospital/treatment 와 같은 등급.
   center_menu: 2,
+  // 제휴병원 공식 사이트에서 옮겨온 암종별 치료 안내 — 위와 같은 등급.
+  cancer_info: 2,
 };
 
 const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
@@ -96,6 +100,63 @@ const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
         });
       }
       return { data: [...groups.values()], error: null };
+    }
+    case "cancer_info": {
+      // 원본은 DB가 아니라 코드 안의 정본(src/lib/data/immuneCancerDetails.js) —
+      // 같은 파일을 암종 상세 화면(app/treatments/[slug])도 쓴다. 그래서 표를 새로 만들지 않고
+      // 화면과 같은 정본에서 파생시킨다(두 벌 관리 방지). 파일이 바뀌면 이 적재만 다시 돌리면 된다.
+      // sourceId 는 암종 slug(female·digest·liver·lung·thyroid·etc) 또는 치료축 키로 해석.
+      const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
+      const rows: any[] = [];
+
+      for (const [slug, d] of Object.entries<any>(CANCER_DETAILS)) {
+        if (sourceId && sourceId !== slug) continue;
+        for (const lang of LANGS) {
+          const title = d?.title?.[lang];
+          if (!title) continue; // 그 언어 번역이 없으면 문서를 만들지 않는다
+          const lines: string[] = [];
+          if (d?.intro?.[lang]) lines.push(d.intro[lang]);
+          const comps = (d?.complications || [])
+            .map((c: any) =>
+              c?.name?.[lang] ? `${c.name[lang]}: ${c?.desc?.[lang] || ""}`.trim() : null
+            )
+            .filter(Boolean);
+          if (comps.length) lines.push(`주요 합병증·증상 / Complications: ${comps.join(" | ")}`);
+          const progs = d?.focusPrograms?.[lang] || [];
+          if (progs.length) lines.push(`중점 프로그램 / Focus programs: ${progs.join(", ")}`);
+          rows.push({ slug, lang, title, lines, source_url: d?.immuneSourceUrl });
+        }
+      }
+
+      // 치료 5축(ITCRN)은 항목이 한국어로만 적혀 있어 한국어 문서만 만든다.
+      // 다른 언어 환자에게는 위 암종별 문서의 focusPrograms(6개 언어 완비)가 같은 역할을 한다.
+      const AXIS_LABEL: Record<string, string> = {
+        cellular: "세포면역",
+        humoral: "체액면역",
+        methods: "치료법",
+        programs: "프로그램",
+        evidence: "근거",
+        before: "항암 전",
+        during: "항암 중",
+        after: "항암 후",
+      };
+      for (const [axis, a] of Object.entries<any>(ITCRN_FRAMEWORK)) {
+        if (sourceId && sourceId !== axis) continue;
+        const title = a?.title?.ko;
+        if (!title) continue;
+        const lines: string[] = [];
+        if (a?.desc?.ko) lines.push(a.desc.ko);
+        for (const [key, val] of Object.entries<any>(a)) {
+          if (key === "title" || key === "desc") continue;
+          const label = AXIS_LABEL[key] || key;
+          if (Array.isArray(val) && val.length) lines.push(`${label}: ${val.join(", ")}`);
+          else if (typeof val === "string" && val) lines.push(`${label}: ${val}`);
+        }
+        if (!lines.length) continue;
+        rows.push({ slug: `itcrn-${axis}`, lang: "ko", title, lines });
+      }
+
+      return { data: rows, error: null };
     }
     default:
       return { data: [], error: null };
@@ -221,6 +282,7 @@ export const ingestSources = async (
     "review",
     "normalized_inquiry",
     "center_menu",
+    "cancer_info",
   ],
   sourceId?: string
 ) => {

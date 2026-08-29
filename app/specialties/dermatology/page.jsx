@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { localeAlternates } from "@/lib/i18n/metadata";
 import {
   Star,
   Shield,
@@ -10,7 +11,18 @@ import {
   Syringe,
 } from "lucide-react";
 
-export const metadata = {
+// hreflang 은 경로 방식(/ru/...)으로만 맞는다 — 옛 "?lang=ru" 표기는 무시되고 영어판으로
+// 가므로 검색엔진에 틀린 주소를 주고 있었다(2026-08-28 실측). og:url 도 canonical 과 일치시킨다.
+export async function generateMetadata() {
+  const alt = await localeAlternates();
+  return {
+    ...baseMeta,
+    ...(alt ? { alternates: alt } : {}),
+    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}) },
+  };
+}
+
+const baseMeta = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
   robots: { index: false, follow: false },
   title: "Dermatology & Skin Treatments in Korea",
@@ -31,19 +43,6 @@ export const metadata = {
     description:
       "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and rejuvenation at competitive prices.",
     type: "website",
-    url: "https://healwith.co.kr/specialties/dermatology",
-  },
-  alternates: {
-    canonical: "/specialties/dermatology",
-    languages: {
-      en: "/specialties/dermatology?lang=en",
-      ko: "/specialties/dermatology?lang=ko",
-      ru: "/specialties/dermatology?lang=ru",
-      kk: "/specialties/dermatology?lang=kz",
-      zh: "/specialties/dermatology?lang=zh",
-      ja: "/specialties/dermatology?lang=ja",
-      'x-default': "/specialties/dermatology",
-    },
   },
 };
 
@@ -216,7 +215,7 @@ function DermatologyContent() {
                     <item.icon size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-1">
+                    <h3 className="text-[clamp(24px,2.5vw,32px)] font-bold text-gray-900 mb-1">
                       {item.title}
                     </h3>
                     <p className="text-sm text-gray-600">{item.description}</p>
