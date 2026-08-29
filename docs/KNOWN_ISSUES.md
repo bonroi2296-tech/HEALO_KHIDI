@@ -527,7 +527,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
-| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | `capacitor.config.ts` (`allowNavigation`) | 필요 |
+| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | ~~`capacitor.config.ts`~~ → **네이티브 구글 로그인**(2026-08-29 정정) | 필요 |
 | 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
 | 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
 
@@ -535,9 +535,9 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 
 - 안드로이드 `Bridge.java:407-419`: 이동하려는 주소의 **호스트가 `server.url`(=healwith.co.kr)과 다르고 `allowNavigation` 에도 없으면 → `Intent.ACTION_VIEW` 로 «시스템 브라우저»를 열고 웹뷰 이동은 취소**한다.
 - iOS `WebViewDelegationHandler.swift:96-115`: 완전히 동일 — `shouldAllowNavigation` 밖이면 `UIApplication.shared.open` (사파리) + `decisionHandler(.cancel)`.
-- `capacitor.config.ts` 에 **`allowNavigation` 설정이 없다.**
+- ~~`capacitor.config.ts` 에 **`allowNavigation` 설정이 없다.**~~ **⚠️ 2026-08-20 이후 사실이 아니다** — `appleid.apple.com` + Supabase 호스트가 들어 있다(애플 로그인용). 구글은 여전히 «일부러» 안 넣는다(아래 정정 참고).
 - ⇒ 「Google로 계속하기」를 누르면 `accounts.google.com` 으로 가야 하는데 **앱이 그걸 크롬/사파리로 던진다.** 사용자는 브라우저에서 로그인하고, 되돌아오는 주소(`healwith.co.kr/auth/callback`)도 **브라우저에서** 열려 **세션 쿠키가 브라우저에 생긴다. 앱은 로그인 안 된 그대로.**
-- **고치는 법**: `server.allowNavigation` 에 OAuth 도메인 추가(`accounts.google.com` 등) 또는 네이티브 구글 로그인 플러그인 도입. ⚠️ `allowNavigation` 은 보안 경계라 **필요한 호스트만** 최소로.
+- ~~**고치는 법**: `server.allowNavigation` 에 OAuth 도메인 추가(`accounts.google.com` 등)~~ **🛑 이 길은 막혔다. 하지 마라** — 웹뷰 안에서 열리는 순간 구글이 정책으로 **400** 을 준다(2026-08-04 실기기·흉내기 양쪽 재현, `capacitor.config.ts` 주석). **남은 답은 「네이티브 구글 로그인」 하나뿐**이다(아래 2026-08-29 정정).
 - 🚫 **이 때문에 「이메일 로그인이 막혔으니 구글 로그인으로 우회하라」는 조언은 성립하지 않는다.** 1번과 15번이 동시에 막혀 **앱에서 로그인할 방법이 아예 없다.**
 
 > ### 🔴 2026-08-29 실측 — 15번의 «진짜 이유»가 밝혀졌다 (그전 설명은 절반만 맞았다)
