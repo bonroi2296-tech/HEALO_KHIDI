@@ -6,16 +6,26 @@
 
     python audit_docs.py
 """
+import datetime
 import glob
 import os
 import pathlib
 import re
+import sys
 from collections import Counter, defaultdict
+
+# 한글 윈도(cp949)에서 그대로 돌리면 「—」 같은 글자에서 출력이 죽는다(2026-08-29 실측).
+# `npm run check:docs` 가 그렇게 죽으면 «검사가 통과한 것처럼» 보이지 않고 그냥 오류만 남는다.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from docx import Document
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-기준일 = (2026, 8, 21)
+# 「미래 날짜」 판정 기준은 «돌리는 날»이다. 코드에 박아 두면 날이 갈수록 과거를 미래로 잡는다
+# (2026-08-29 실측: 8/21 로 박혀 있어 이미 지난 8/25 가 4건 오탐으로 잡혔다).
+_오늘 = datetime.date.today()
+기준일 = (_오늘.year, _오늘.month, _오늘.day)
 문제 = []
 
 
