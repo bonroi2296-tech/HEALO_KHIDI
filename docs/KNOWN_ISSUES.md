@@ -527,7 +527,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
-| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | ~~`capacitor.config.ts`~~ → **네이티브 구글 로그인**(2026-08-29 정정) | 필요 |
+| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🟡 **안드로이드 코드 완료 — 앱 재빌드 대기**(2026-08-29 저녁) · 아이폰 미착수 | ~~`capacitor.config.ts`~~ → **네이티브 구글 로그인** | 필요 |
 | 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
 | 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
 
@@ -567,6 +567,36 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 >
 > **임시 조치 (2026-08-29 배포, 재빌드 불필요)**: 앱 안에서는 구글 버튼을 **회색으로 잠그고 이유를 한 줄로 적는다**
 > (`src/components/auth/GoogleInAppNotice.jsx`). 웹에는 영향 없음. 네이티브 로그인이 붙으면 **그 파일을 지워라.**
+>
+> **✅ 2026-08-29 저녁 — 안드로이드는 ①②③ 다 했다. 남은 건 «앱 재빌드» 하나뿐이다.**
+> · ① 구글 클라우드 `healwith-500902` 에 **Android OAuth 클라이언트 3개** 생성(패키지 `kr.co.healwith.app`).
+>   SHA-1 이 **둘이 아니라 셋**이었다 — Play 앱 서명 키 · **이전** Play 앱 서명 키(2026-07-28 키 업그레이드로 생김,
+>   구형 안드로이드가 이 키로 서명된 앱을 받는다) · 업로드 키.
+>   ⚠️ **구글 프로젝트가 두 개다**: OAuth 는 `healwith-500902`(번호 466786534560), Firebase 키는 `healo-e3e58`.
+>   후자엔 OAuth 클라이언트가 0개라 「아직 구성되지 않음」이 뜨는데, **거기 만들면 웹 클라이언트와 갈린다.**
+> · ② Supabase 구글 공급자 「Client IDs」에 웹 1 + 안드로이드 3 = **넷을 쉼표로** 저장(다시 열어 확인함).
+>   Client Secret 무손 · **Skip nonce checks 는 껐다**(iOS 붙일 때 같이 본다).
+> · ③ 부품 **`@capgo/capacitor-social-login@8.5.0`** + `src/lib/auth/googleNativeSignIn.ts`.
+>   부품은 npm 조건뿐 아니라 `android/build.gradle` 을 직접 열어 확인했다 —
+>   `implementation project(':capacitor-android')` 라 캡시터 판을 못 박지 않고(8/28 iOS 사고의 그 함정이 없다),
+>   `minSdk 24`·`compileSdk 36` 이 우리 것과 같으며 **Credential Manager**(androidx.credentials 1.5.0)를 쓴다.
+>
+> 🔴 **nonce 규약이 애플과 «반대»다** — 여기서 틀리면 조용히 로그인만 실패한다.
+>   애플은 애플에 «해시»·Supabase 에 «원본»인데, 구글은 부품이 `setNonce()` 로 **그대로** 넘기고
+>   구글도 클레임에 그대로 넣으므로 **양쪽 다 원본**이다.
+>
+> 🔑 **코드에 넘기는 것은 «웹» 클라이언트 ID** 다(안드로이드 ID 가 아니다). 안드로이드 클라이언트는 구글이
+>   패키지+서명을 검증하는 데만 쓰고, 받은 id_token 의 `aud` 는 `webClientId` 가 된다.
+>
+> 🧩 **임시 잠금은 «지우지 않고» 조건을 좁혔다**: `html[data-healo-native="1"]:not([data-healo-google-native="1"])`.
+>   웹은 배포 즉시 모든 앱에 반영되지만 부품은 새로 구워야 들어간다 → **«새 웹 + 옛 앱» 구간이 반드시 생긴다.**
+>   그 판에서는 기존 안내가 그대로 뜨고, 부품이 있는 판에서만 잠금이 풀린다.
+>   **스토어의 모든 판에 부품이 들어간 뒤에야** `GoogleInAppNotice.jsx` 와 `src/index.css` 잠금 블록을 지울 수 있다.
+>   (`app/api/auth/forgot-password/route.ts` 의 메일 문구도 그때 같이 고쳐라 — 메일은 앱·웹을 구분 못 한다.)
+>
+> ❌ **아직 아무도 확인 못 한 것**: 실기기에서 실제로 되는지. **앱을 새로 구워야 잴 수 있다**(Codemagic).
+>   구글은 등록 반영에 최대 몇 시간 걸릴 수 있다고 안내한다.
+> 🍎 **아이폰은 아직 안 했다** — iOS 구글 클라이언트 미발급. 아이폰에는 애플 로그인이 「동등한 대안」으로 있다.
 
 **17번 목록**: `src/components/CookieConsent.jsx:63`(`bottom-0`, 단 앱에선 숨김) · `app/admin/settings/branding/page.tsx:410` · `app/admin/settings/notifications/_components/Toast.tsx:12`(둘 다 `bottom-6`=24px, 버튼줄 약 48px 에 못 미침) · `app/_components/ManualDrawer.jsx:59`(`1.25rem`=20px).
 

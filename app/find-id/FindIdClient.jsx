@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Calendar, ArrowLeft, MailCheck, SearchX } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useLang } from "@/lib/i18n/LangContext";
-import { useIsNativeApp } from "@/lib/isNativeApp";
+import { useGoogleBlockedInApp } from "@/lib/isNativeApp";
 
 // 활성 6개 언어(ko·en·ru·kz·zh·ja) 인라인 — 기능 문구만 (공용 i18n 미수정)
 const L = {
@@ -34,7 +34,9 @@ export default function FindIdClient() {
   const toast = useToast();
   const langCode = useLang();
   // 결과 안내가 «앱에서 잠긴 버튼»을 가리키지 않도록. 결과는 조회 뒤에만 뜨므로 깜빡임 없음.
-  const inNativeApp = useIsNativeApp();
+  // ⚠️ 2026-08-29: 네이티브 부품이 들어간 판에서는 버튼이 «안 잠기므로» 이 안내를 쓰면 안 된다
+  //    → 앱 여부가 아니라 «잠겼는가»로 판정한다(useGoogleBlockedInApp).
+  const inNativeApp = useGoogleBlockedInApp();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

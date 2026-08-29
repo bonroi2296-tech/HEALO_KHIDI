@@ -37,6 +37,37 @@ export function isIOSApp(): boolean {
   return /iPhone|iPad|iPod/.test(navigator.userAgent);
 }
 
+/**
+ * 지금 «안드로이드 앱 안»인가. 구글 로그인이 여기서만 다른 길을 탄다
+ * (앱 웹뷰의 웹 방식은 PKCE 검증값이 갈려 끝까지 못 간다 → `src/lib/auth/googleNativeSignIn.ts`).
+ *
+ * ⚠️ 위와 같은 이유로 **화면을 그리는 도중에 부르지 마라**(서버엔 navigator 가 없다).
+ */
+export function isAndroidApp(): boolean {
+  if (!isNativeApp()) return false;
+  const platform = (window as unknown as { Capacitor?: { getPlatform?: () => string } })
+    .Capacitor?.getPlatform?.();
+  if (platform) return platform === "android";
+  return /Android/i.test(navigator.userAgent);
+}
+
+/**
+ * 이 앱 판에 «네이티브 구글 로그인 부품이 들어 있나».
+ *
+ * 🔑 **왜 판 번호가 아니라 부품 유무로 재나**: 웹은 배포되는 즉시 모든 앱에 반영되는데(라이브로드)
+ *    부품은 **앱을 새로 구워 스토어를 거쳐야** 들어간다. 즉 새 웹 코드가 «부품이 없는 옛 앱»에서
+ *    도는 구간이 반드시 생긴다. 그때 네이티브를 부르면 그 자리에서 죽는다
+ *    (2026-08-28 애플에서 실제로 겪었다 — 폴백이 없어 버튼이 즉시 실패했다).
+ *    → 옛 앱에서는 이 함수가 false 를 주고, 화면은 기존 「폰 브라우저에서 열어라」 안내를 그대로 쓴다.
+ */
+export function hasNativeGoogleSignIn(): boolean {
+  if (!isAndroidApp()) return false;
+  const cap = (
+    window as unknown as { Capacitor?: { isPluginAvailable?: (name: string) => boolean } }
+  ).Capacitor;
+  return cap?.isPluginAvailable?.("SocialLogin") === true;
+}
+
 // 앱 여부는 «절대 안 바뀐다» → 구독은 빈 함수(알림이 올 일이 없다).
 const neverChanges = () => () => {};
 
@@ -51,4 +82,19 @@ const neverChanges = () => () => {};
  */
 export function useIsNativeApp(): boolean {
   return useSyncExternalStore(neverChanges, isNativeApp, () => false);
+}
+
+/**
+ * 「구글 버튼을 잠가야 하나」 — 앱이면서 **네이티브 부품이 없는** 판에서만 true.
+ *
+ * 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고(`src/index.css` 의
+ * `html[data-healo-native="1"]:not([data-healo-google-native="1"])`), 이 훅은 그 뒤에
+ * `disabled`·`aria-describedby` 같은 «의미»를 채운다 — 둘은 짝이라 조건이 같아야 한다.
+ */
+export function useGoogleBlockedInApp(): boolean {
+  return useSyncExternalStore(
+    neverChanges,
+    () => isNativeApp() && !hasNativeGoogleSignIn(),
+    () => false
+  );
 }
