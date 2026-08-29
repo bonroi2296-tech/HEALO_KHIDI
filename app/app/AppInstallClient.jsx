@@ -98,7 +98,7 @@ export default function AppInstallClient() {
       <p className="text-sm md:text-base text-gray-700">{c.moving}</p>
       <a
         href={target.url}
-        className="inline-flex items-center rounded-xl bg-teal-600 px-6 py-3 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-teal-700"
+        className="inline-flex items-center rounded-xl bg-teal-700 px-6 py-3 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-teal-800"
       >
         {c.openStore}
       </a>
@@ -116,7 +116,7 @@ export default function AppInstallClient() {
         <button
           type="button"
           onClick={() => { deferred.prompt(); setDeferred(null); }}
-          className="inline-flex items-center rounded-xl bg-teal-600 px-6 py-3 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-teal-700"
+          className="inline-flex items-center rounded-xl bg-teal-700 px-6 py-3 text-white font-semibold shadow-sm transition-all duration-200 hover:bg-teal-800"
         >
           {inst.cta}
         </button>
