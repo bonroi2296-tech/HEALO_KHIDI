@@ -178,6 +178,25 @@ html[data-healo-native="1"] {
   --healo-safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* ===== 앱에서 구글 로그인 잠금 (2026-08-29, 임시) =====
+   왜 CSS 로도 잠그나: `app/layout.jsx` 가 첫 그림 «전에» head 인라인으로
+   `<html data-healo-native="1">` 를 붙인다. 리액트 수화를 기다려 잠그면 느린 웹뷰에서
+   «멀쩡한 버튼 → 회색» 깜빡임이 나고, 그 틈에 눌리면 «영영 연결 중»에 다시 갇힌다.
+   리액트 쪽 `disabled`·`aria-describedby` 는 그 뒤에 붙어 의미(스크린리더)를 채운다 — 둘은 짝이다.
+   이유·증거 = `src/components/auth/GoogleInAppNotice.jsx` 주석.
+   ⚠️ 네이티브 구글 로그인이 붙으면 이 블록과 그 파일을 «같이» 지워라. */
+.app-google-lock-note {
+  display: none;
+}
+html[data-healo-native="1"] .app-google-lock-note {
+  display: block;
+}
+html[data-healo-native="1"] .app-google-lock-btn {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .pb-safe-area {
   padding-bottom: var(--healo-safe-bottom);
 }

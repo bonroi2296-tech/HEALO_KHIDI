@@ -9,6 +9,8 @@ import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleInAppNotice from '@/components/auth/GoogleInAppNotice';
+import { isNativeApp, useIsNativeApp } from '@/lib/isNativeApp';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -25,6 +27,9 @@ export const LoginPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
     const [redirectTarget, setRedirectTarget] = useState(null);
+    // 앱(스토어 셸) 안에서는 구글 로그인이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
+    // 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고, 이 값은 disabled·aria 만 채운다.
+    const googleBlockedInApp = useIsNativeApp();
 
     useEffect(() => {
         // ?redirect= 소비 — proxy(미로그인 보호경로)·환자앱 곳곳이 발급하는데 여기서 안 읽어
@@ -196,7 +201,8 @@ export const LoginPage = ({ setView }) => {
                     <div className="mt-6">
                         <button
                             onClick={async () => {
-                                
+                                // 앱에서는 시작조차 하지 않는다 — 시작하면 「연결 중」에 영영 갇힌다.
+                                if (isNativeApp()) return;
                                 setOauthLoading(true);
                                 try {
                                     const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
@@ -220,8 +226,9 @@ export const LoginPage = ({ setView }) => {
                                     setOauthLoading(false);
                                 }
                             }}
-                            disabled={loading || oauthLoading}
-                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                            disabled={loading || oauthLoading || googleBlockedInApp}
+                            aria-describedby="login-google-app-note"
+                            className="app-google-lock-btn w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -234,6 +241,8 @@ export const LoginPage = ({ setView }) => {
                                 {oauthLoading ? t("login.googleConnecting", langCode) : t("login.googleContinue", langCode)}
                             </span>
                         </button>
+
+                        <GoogleInAppNotice id="login-google-app-note" langCode={langCode} />
 
                         {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
                             설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}

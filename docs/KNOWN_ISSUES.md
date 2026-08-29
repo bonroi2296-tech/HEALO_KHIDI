@@ -527,7 +527,7 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
-| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | `capacitor.config.ts` (`allowNavigation`) | 필요 |
+| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | ~~`capacitor.config.ts`~~ → **네이티브 구글 로그인**(2026-08-29 정정) | 필요 |
 | 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
 | 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
 
@@ -535,10 +535,38 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
 
 - 안드로이드 `Bridge.java:407-419`: 이동하려는 주소의 **호스트가 `server.url`(=healwith.co.kr)과 다르고 `allowNavigation` 에도 없으면 → `Intent.ACTION_VIEW` 로 «시스템 브라우저»를 열고 웹뷰 이동은 취소**한다.
 - iOS `WebViewDelegationHandler.swift:96-115`: 완전히 동일 — `shouldAllowNavigation` 밖이면 `UIApplication.shared.open` (사파리) + `decisionHandler(.cancel)`.
-- `capacitor.config.ts` 에 **`allowNavigation` 설정이 없다.**
+- ~~`capacitor.config.ts` 에 **`allowNavigation` 설정이 없다.**~~ **⚠️ 2026-08-20 이후 사실이 아니다** — `appleid.apple.com` + Supabase 호스트가 들어 있다(애플 로그인용). 구글은 여전히 «일부러» 안 넣는다(아래 정정 참고).
 - ⇒ 「Google로 계속하기」를 누르면 `accounts.google.com` 으로 가야 하는데 **앱이 그걸 크롬/사파리로 던진다.** 사용자는 브라우저에서 로그인하고, 되돌아오는 주소(`healwith.co.kr/auth/callback`)도 **브라우저에서** 열려 **세션 쿠키가 브라우저에 생긴다. 앱은 로그인 안 된 그대로.**
-- **고치는 법**: `server.allowNavigation` 에 OAuth 도메인 추가(`accounts.google.com` 등) 또는 네이티브 구글 로그인 플러그인 도입. ⚠️ `allowNavigation` 은 보안 경계라 **필요한 호스트만** 최소로.
+- ~~**고치는 법**: `server.allowNavigation` 에 OAuth 도메인 추가(`accounts.google.com` 등)~~ **🛑 이 길은 막혔다. 하지 마라** — 웹뷰 안에서 열리는 순간 구글이 정책으로 **400** 을 준다(2026-08-04 실기기·흉내기 양쪽 재현, `capacitor.config.ts` 주석). **남은 답은 「네이티브 구글 로그인」 하나뿐**이다(아래 2026-08-29 정정).
 - 🚫 **이 때문에 「이메일 로그인이 막혔으니 구글 로그인으로 우회하라」는 조언은 성립하지 않는다.** 1번과 15번이 동시에 막혀 **앱에서 로그인할 방법이 아예 없다.**
+
+> ### 🔴 2026-08-29 실측 — 15번의 «진짜 이유»가 밝혀졌다 (그전 설명은 절반만 맞았다)
+>
+> **그전 설명**: 「세션 쿠키가 브라우저에 생겨서 앱은 로그아웃 그대로」. → 맞지만 **거기서 끝이 아니다.**
+> 실제로는 **브라우저에도 로그인이 안 된다.** 코드 교환 자체가 깨진다.
+>
+> **왜**: `signInWithOAuth` 를 누른 «앱 웹뷰»가 PKCE 검증값(`code_verifier`)을 **자기 쿠키에** 심는다.
+> 그다음 `accounts.google.com` 이 크롬으로 튕겨 나가고, 돌아오는 `/auth/callback` 도 **크롬에서** 열린다.
+> 서버는 크롬의 쿠키를 보는데 거기엔 검증값이 없다 → 교환 실패.
+>
+> **증거 (PO 갤럭시 실기기, 2026-08-29 12:59 KST = 03:59 UTC 1건)**
+> - Supabase `auth_logs`: `/authorize` 03:59:17 → `/callback` 03:59:22 **`login` 성공 (provider=google)** — 구글 쪽은 멀쩡했다.
+> - Vercel `/auth/callback`: `Session exchange error: PKCE code verifier not found in storage.`
+>   `This can happen if the auth flow was initiated in a different browser or device` → **307 로 `/login?error=oauth_failed`**
+> - 같은 24시간 안에 **구글 로그인이 끝까지 간 건 0건**. 같은 창구의 애플(`/token` provider=apple) 2건·이메일 7건은 **전부 200**.
+>
+> **왜 애플만 되나** — `allowNavigation` 에 `appleid.apple.com` + Supabase 가 들어 있어 애플은 **처음부터 끝까지 웹뷰 안**에서 끝난다.
+> 그러니 검증값이 계속 같은 쿠키통에 있다. 구글만 밖으로 나가서 갈라진다. **즉 애플 작업(8/20·8/28)이 구글을 깨뜨린 게 아니다** —
+> 구글은 이 표(7/28)에서부터 이미 막힘이었다.
+>
+> **그래서 `allowNavigation` 에 구글을 넣는 건 답이 아니다** — 넣으면 웹뷰 안에서 열리는데 구글이 정책으로 400 을 준다(8/04 실측).
+> **진짜 고침 = 네이티브 구글 로그인** (애플과 같은 방식: 네이티브 창에서 받은 `id_token` → `signInWithIdToken`).
+> 필요한 것: ①구글 클라우드 콘솔에 **안드로이드 OAuth 클라이언트**(앱 서명 SHA-1) + iOS 클라이언트 ②Supabase 구글 공급자의
+> 「Authorized Client IDs」에 그 ID 추가 ③플러그인 + **앱 재빌드**. ⚠️ 부품 고를 때 `Package.swift` 의 `capacitor-swift-pm` 요구
+> 버전을 먼저 확인해라(8/28 iOS 빌드가 여기서 죽었다).
+>
+> **임시 조치 (2026-08-29 배포, 재빌드 불필요)**: 앱 안에서는 구글 버튼을 **회색으로 잠그고 이유를 한 줄로 적는다**
+> (`src/components/auth/GoogleInAppNotice.jsx`). 웹에는 영향 없음. 네이티브 로그인이 붙으면 **그 파일을 지워라.**
 
 **17번 목록**: `src/components/CookieConsent.jsx:63`(`bottom-0`, 단 앱에선 숨김) · `app/admin/settings/branding/page.tsx:410` · `app/admin/settings/notifications/_components/Toast.tsx:12`(둘 다 `bottom-6`=24px, 버튼줄 약 48px 에 못 미침) · `app/_components/ManualDrawer.jsx:59`(`1.25rem`=20px).
 
