@@ -37,6 +37,8 @@ const EXIT_WINDOW_MS = 2000;
 const HINT_ID = "healo-back-exit-hint";
 
 let registered = false;
+/** 「지금 붙이는 중」 — 붙는 동안 또 부르면 받는 자리가 두 개가 된다(registerAndroidBackButton 주석 참고). */
+let registering = false;
 /** 「첫 화면에서 뒤로」를 누른 시각. null = 대기 없음(0 도 유효한 시각이라 falsy 검사 금지). */
 let exitArmedAt: number | null = null;
 let hintTimer: ReturnType<typeof setTimeout> | null = null;
@@ -136,7 +138,16 @@ export function __resetBackButtonState(): void {
 
 export async function registerAndroidBackButton(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (registered) return;
+  if (registered || registering) return;
+  // ⚠️ 「붙이는 중」에도 잠가야 한다. 아래 `registered = true` 는 addListener 가 «끝난 뒤»에야
+  //    세워지는데(그 이유는 아래 주석), 그 사이에 이 함수가 한 번 더 불리면 위의 `registered` 검사를
+  //    둘 다 통과해 **받는 자리가 두 개** 붙는다. 그러면 한 번 누른 뒤로가기가 두 번 처리되어
+  //    첫 번째가 안내를 띄우고 두 번째가 그 자리에서 앱을 꺼버린다 — 겉보기 증상이
+  //    「고치기 전」과 똑같아서 고쳐졌는지 알 수가 없다.
+  //    2026-08-20 흉내기 실측(로그): 한 번 눌렀는데
+  //      SWEEP-HANDLE armed=null → SWEEP-HANDLE armed=1787188958382 → exitApp
+  //    두 번 불리는 경로는 실제로 있다 — 리액트가 화면을 다시 그리며 이 등록을 다시 부른다.
+  registering = true;
 
   try {
     const { Capacitor } = await import("@capacitor/core");
@@ -158,5 +169,7 @@ export async function registerAndroidBackButton(): Promise<void> {
     registered = true;
   } catch {
     /* 플러그인이 없거나 네이티브가 아님 → 무시(웹에서 정상) */
+  } finally {
+    registering = false; // 실패했으면 다음에 다시 시도할 수 있게 풀어 준다
   }
 }
