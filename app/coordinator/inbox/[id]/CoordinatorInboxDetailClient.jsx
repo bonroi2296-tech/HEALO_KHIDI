@@ -23,6 +23,7 @@ import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
+import { trackingUrl, trackingMessageLine, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import OpinionsSection from "./OpinionsSection";
 import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
@@ -505,7 +506,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [reqResult, setReqResult] = useState(null); // { link, emailSent, email, lang }
   const [reqError, setReqError] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [claimCopied, setClaimCopied] = useState(false); // "환자 연결 링크 복사" 버튼 피드백
+  const [claimCopied, setClaimCopied] = useState(false); // "링크 복사" 버튼 피드백
+  // 환자에게 줄 진행상황 주소. 조립은 trackingLink.ts 한 곳에서만 한다 —
+  // 접수 확인 메일·봇 답장도 같은 함수를 쓰므로 여기서 손으로 이어붙이면 주소가 갈라진다.
+  const shareUrl =
+    typeof window !== "undefined" && inquiry?.public_token
+      ? trackingUrl(window.location.origin, inquiry.public_token)
+      : null;
 
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
   const [caseStatus, setCaseStatus] = useState("");
@@ -998,21 +1005,37 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   🙋 {pick(INTAKE_UI.submitterGuest, lang)}
                 </span>
               )}
-              {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 왓츠앱 등으로 공유.
-                  has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재로만 판정(안정적). */}
-              {!inquiry.has_account && inquiry.public_token && (
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/claim/${inquiry.public_token}`;
-                    navigator.clipboard.writeText(url).then(() => {
-                      setClaimCopied(true);
-                      setTimeout(() => setClaimCopied(false), 2000);
-                    });
-                  }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
-                >
-                  {claimCopied ? <Check size={12} /> : <Copy size={12} />} {claimCopied ? L.ibClaimCopied : L.ibClaimCopy}
-                </button>
+              {/* 2026-08-25: 예전엔 «계정 없는 케이스»에만 떴다(!inquiry.has_account).
+                  그런데 왓츠앱·메일로 받은 건을 우리가 손으로 넣으면 계정이 붙어 있는 경우가 많고,
+                  그때 코디는 «상대에게 줄 주소»를 화면 어디서도 못 꺼냈다(PO 지적 2026-08-25).
+                  주소 자체는 새로 만들지 않는다 — inquiries.public_token 이 모든 문의에 이미 붙어 있고
+                  접수 확인 메일·봇 답장도 같은 주소를 보낸다(src/lib/inquiry/trackingLink.ts).
+                  ⚠️ 그래서 이건 «새로 여는 문»이 아니라 이미 나가 있는 주소를 꺼내 보여주는 것뿐이다. */}
+              {inquiry.public_token && (
+                <span className="inline-flex items-center gap-1" title={shareUrl || undefined}>
+                  <button
+                    onClick={() => {
+                      if (!shareUrl) return;
+                      navigator.clipboard.writeText(shareUrl).then(() => {
+                        setClaimCopied(true);
+                        setTimeout(() => setClaimCopied(false), 2000);
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
+                  >
+                    {claimCopied ? <Check size={12} /> : <Copy size={12} />} {claimCopied ? L.ibClaimCopied : L.ibClaimCopy}
+                  </button>
+                  {/* 왓츠앱: 받는 사람은 코디가 대화창에서 고른다 — 환자 전화번호는 암호화돼 있어
+                      화면이 들고 있지 않다. 문구는 환자 언어로 이미 만들어 둔 한 줄을 그대로 쓴다. */}
+                  <a
+                    href={shareUrl ? `https://wa.me/?text=${encodeURIComponent(trackingMessageLine(shareUrl, toTrackingLang(inquiry.preferred_language)))}` : undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-50 text-green-800 hover:bg-green-100 transition"
+                  >
+                    <Send size={12} /> {L.ibShareWhatsapp}
+                  </a>
+                </span>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>
@@ -1020,6 +1043,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </div>
         <div className="flex items-center gap-2">
           <span
+            // 상세가 «다 그려졌는지»를 자동 검사가 이걸로 판정한다 — 이 딱지가 뜨기 전에 재면
+            // 아직 안 그려진 화면을 「없다」로 읽는다(2026-08-25 실제로 그랬다).
+            data-testid="inquiry-step-badge"
+            data-step2-done={step2Done ? "1" : "0"}
             className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
               step2Done ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-700"
             }`}
@@ -1583,7 +1610,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       </Card>
 
       {/* 추가 정보 요청 — 환자에게 Step2 상세폼 링크 발송(이메일) + 코디용 복사/왓츠앱 */}
+      {/* 자동 검사가 «글자» 대신 이 표식으로 고른다 — 코디 화면 언어가 한국어가 아니면
+          「추가 정보 요청」으로 못 찾아 검사가 조용히 지나친다(2026-08-25). */}
       {!step2Done && (
+        <div data-testid="request-info-card">
         <Card title={L.ibReqCard}>
           <p className="text-sm text-gray-600 mb-3 leading-relaxed">
             {L.ibReqDesc1}
@@ -1593,6 +1623,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           {!reqResult ? (
             <div className="flex flex-wrap items-center gap-3">
               <button
+                data-testid="request-info-button"
                 onClick={requestInfo}
                 disabled={reqLoading}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
@@ -1655,6 +1686,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             </div>
           )}
         </Card>
+        </div>
       )}
 
       {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}

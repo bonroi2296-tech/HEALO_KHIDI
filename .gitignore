@@ -193,3 +193,6 @@ gcp-*.json
 # 보관 위치는 저장소 밖(Documents\healwith-keys\). 만드는 법: scripts/dump-schema-snapshot.mjs
 healo-db-schema-*.sql
 *-schema-snapshot*.sql
+
+# 화면 확인표 결과물(사진 포함) — 만드는 법: npm run verify:screens
+verify-report/

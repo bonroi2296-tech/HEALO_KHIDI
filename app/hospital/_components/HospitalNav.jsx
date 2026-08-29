@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { useHospitalContext } from "./HospitalGateClient";
+import { usePortalContext } from "../../_components/PortalGate";
 import { HOSPITAL_CONTENT_ENABLED } from "./featureFlags";
 
 // KHIDI 방향성 기준 메뉴
@@ -30,7 +30,7 @@ export function HospitalNav() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
-  const hospitalInfo = useHospitalContext();
+  const hospitalInfo = usePortalContext();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {

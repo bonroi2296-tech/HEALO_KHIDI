@@ -12,6 +12,9 @@ export default function robots() {
     "/hospital",
     "/coordinator",
     "/doctor",
+    // 2026-08-25 추가: 해외 파트너 포털. /hospital·/coordinator 는 막고 이 둘만 빠져 있었다.
+    "/agency",
+    "/clinic",
     "/patient/rebooking",
     "/patient/documents",
     "/patient/consultations",
