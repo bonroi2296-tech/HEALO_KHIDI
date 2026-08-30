@@ -301,9 +301,52 @@ const isGaConfigured = (): boolean => {
   } catch { return false; }
 };
 
+/**
+ * 「수집 주소에 실제로 «닿는가»」 — 자가진단이 거짓말하는 마지막 구멍을 막는 값.
+ *
+ * 왜 필요한가 (2026-07-30 실측):
+ *   gtag.js 가 내려오고(`loaded`) 대기줄에 config 가 들어가도(`configured`), **수집 주소가
+ *   막혀 있으면 아무것도 도착하지 않는다.** 그런데 그 둘은 전부 «우리 탭 안의 사실»이라
+ *   차단 여부를 알 수 없다 → 자가진단이 초록불을 켜고 데이터는 0 이 된다.
+ *   실제로 PO PC 의 광고차단기(AdGuard)가 `||google-analytics.com^` 을 DNS 에서 막고 있었다
+ *   (`0.0.0.0` 응답). 이 값이 없으면 그 상태를 «정상»이라고 보고하게 된다.
+ *
+ * 판정 원리: `mode:"no-cors"` 요청은 응답 내용을 못 읽는 대신 **4xx·5xx 여도 «성공»으로 온다.**
+ * 즉 거절(reject)된다면 그건 서버 응답이 아니라 **네트워크 단계에서 막힌 것**이다.
+ *
+ * ponytail: 대표 주소(www.google-analytics.com) 한 곳만 찔러본다. 지역 수집기
+ * (region1~N.google-analytics.com)만 골라 막는 차단 목록이 있으면 이 검사는 못 잡는다 —
+ * 그런 목록이 실제로 나오면 그때 주소를 늘려라.
+ */
+let endpointReachable: boolean | null = null;
+let probing = false;
+
+/** 자가진단 배지가 뜰 때만 호출된다(일반 방문자에겐 이 요청이 나가지 않는다). */
+export const probeGaEndpoint = (): void => {
+  if (typeof window === "undefined" || endpointReachable !== null || probing) return;
+  probing = true;
+  // tid 없는 빈 요청 — GA 는 이걸로 아무것도 기록하지 않는다(도달 여부만 본다).
+  fetch("https://www.google-analytics.com/g/collect", {
+    method: "POST",
+    mode: "no-cors",
+    cache: "no-store",
+    body: "",
+  })
+    .then(() => { endpointReachable = true; })
+    .catch(() => { endpointReachable = false; })
+    .finally(() => {
+      probing = false;
+      healthListeners.forEach((fn) => {
+        try { fn(); } catch { /* 진단 표시가 화면을 깨뜨리면 안 된다 */ }
+      });
+    });
+};
+
 export const getGaHealth = () => ({
   loaded: isGaScriptLoaded(),
   configured: isGaConfigured(),
+  /** null = 아직 확인 중 / true = 막힘 없음 / false = 광고차단기·DNS 가 막고 있음 */
+  reachable: endpointReachable,
   sent: sentCount,
   last: lastSent,
   internal: internalUser,

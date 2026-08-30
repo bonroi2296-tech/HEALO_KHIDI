@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getGaHealth, onGaActivity } from "@/lib/ga";
+import { getGaHealth, onGaActivity, probeGaEndpoint } from "@/lib/ga";
 
 /**
  * GA 자가진단 배지 — 주소 뒤에 `?ga_debug=1` 을 붙여 열었을 때만 화면에 뜬다.
@@ -25,7 +25,7 @@ export default function GaDebugBadge({
   retried,
 }) {
   const [health, setHealth] = useState({
-    loaded: false, configured: false, sent: 0, last: "", internal: false,
+    loaded: false, configured: false, reachable: null, sent: 0, last: "", internal: false,
   });
   const [closed, setClosed] = useState(false);
 
@@ -40,9 +40,11 @@ export default function GaDebugBadge({
         const next = getGaHealth();
         const same =
           prev.loaded === next.loaded && prev.configured === next.configured &&
+          prev.reachable === next.reachable &&
           prev.sent === next.sent && prev.last === next.last && prev.internal === next.internal;
         return same ? prev : next;   // 순수 비교만 — 여기서 부수효과 금지
       });
+    probeGaEndpoint();   // 수집 주소가 차단됐는지 1회 확인(진단 화면에서만 나가는 요청)
     sync();
     const off = onGaActivity(sync);
     const tm = setInterval(sync, 1000);
@@ -54,7 +56,14 @@ export default function GaDebugBadge({
   const script = health.loaded
     ? { icon: "✅", text: "내려옴" }
     : loadFailed
-      ? { icon: "❌", text: retried ? "실패(재시도했는데도 안 됨)" : "실패 — 재시도 중" }
+      ? {
+          icon: "❌",
+          // 실측상 가장 흔한 원인이 광고차단기다(2026-07-30: AdGuard 가 «/* Blocked by AdGuard */»
+          // 를 500 으로 돌려줬다). 원인을 여기 적어야 사람이 다음 행동을 안다.
+          text: retried
+            ? "실패(재시도했는데도 안 됨) — 광고차단기(AdGuard·uBlock 등)부터 꺼봐라"
+            : "실패 — 재시도 중",
+        }
       : !interacted
         ? { icon: "⏳", text: "대기 중 (아무 곳이나 한 번 터치하거나 5초 기다려라)" }
         : { icon: "⏳", text: "받는 중" };
@@ -65,14 +74,26 @@ export default function GaDebugBadge({
     ["실서비스 모드", isProduction ? "✅" : "❌ 개발 모드 (여기선 원래 안 보냄)"],
     ["관리자 경로", isAdminPath ? "❌ /admin 은 일부러 제외" : "✅ 아님"],
     ["gtag.js", `${script.icon} ${script.text}`],
-    ["화면 조회 전달", health.configured ? "✅ GA 가 받았음" : "⏳ 아직"],
+    // ⚠️ 이 줄은 «우리 탭 안의 사실»이다 — 대기줄에 실렸다는 뜻이지 도착했다는 뜻이 아니다.
+    //    도착 여부는 아래 「수집 주소」 줄이 본다. 예전 문구(«GA 가 받았음»)는 과장이었다.
+    ["화면 조회 전달", health.configured ? "✅ 대기줄에 실림" : "⏳ 아직"],
+    [
+      "수집 주소",
+      health.reachable === null
+        ? "⏳ 확인 중"
+        : health.reachable
+          ? "✅ 막힘 없음"
+          : "❌ 광고차단기·DNS 가 막고 있다 — 이 기기에선 아무것도 도착하지 않는다",
+    ],
   ];
   if (health.internal) rows.push(["직원 계정", "🚫 로그인이 직원이라 추적을 껐음 (로그아웃하고 봐라)"]);
 
   // ⚠️ 판정(ok)에 「우리 이벤트 건수」를 넣으면 안 된다 — 첫 화면만 보고 나간 방문에서는
   //    정상인데도 0 건이다(랜딩 조회는 gtag.js 가 스스로 보낸다 — ga.ts 의 isGaConfigured 주석).
   //    그걸 기준으로 삼으면 잘 되는 상태를 «실패»라고 표시한다. 건수는 «참고용»으로만 보여준다.
-  const ok = health.loaded && health.configured && !health.internal;
+  //    수집 주소 차단은 «확인될 때까지(null)»는 판정을 깎지 않는다 — 확인 중에 빨간불을
+  //    띄우면 잠깐 사이에 사람이 «고장»으로 읽는다. 차단이 «확정»된 경우에만 실패로 본다.
+  const ok = health.loaded && health.configured && !health.internal && health.reachable !== false;
 
   return (
     <div
