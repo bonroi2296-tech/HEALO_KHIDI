@@ -22,6 +22,8 @@ interface CostEstimateRow {
   patient_user_id: string;
   coordinator_user_id: string | null;
   status: string;
+  // 발행 시각 — issued 전이 때 같이 찍는다([id]/route.ts). 여정 매핑이 «발행 이력»의 근거로 쓴다.
+  quotation_issued_at: string | null;
   consultation_id: string | null;
   intake_id: string | null;
   // 어느 병원 견적인지 — 유치수수료 법정 상한이 «병원 종별»마다 다르기 때문에

@@ -41,7 +41,7 @@
 
 - 브라우저 조작은 `preview_start`(dev 서버) → `read_page`(구조·텍스트) → `javascript_tool`(계산된 스타일 등) 순으로.
   스크린샷은 `computer{action:"screenshot"}` — 다만 **텍스트·구조 확인은 `read_page` 가 더 빠르고 정확**하다.
-- 시각 확인 필요 시 Vercel preview URL 사용자에게 제공.
+- ~~시각 확인 필요 시 Vercel preview URL 사용자에게 제공.~~ → **정정(2026-08-30): 시각 확인은 로컬 + 화면 사진이 기본. Vercel 프리뷰는 완전 차단 — PO 가 요청할 때만 연다**(2026-07-31 PO 지시 = `CLAUDE.md` 빌드·검사·배포 절, 여는 절차는 `docs/rules/DEPLOY.md`).
 
 ## 로그인 뒤 화면 (2026-07-28 정정 — 이전 서술이 도구 현실보다 낡았다)
 
@@ -52,14 +52,14 @@
 
 **실제:** 브라우저로 그냥 열면 못 보는 게 맞다(미들웨어 `proxy.ts` 가 세션 없으면 `/login` 으로 보냄). 하지만 **자동 검증(Playwright)에는 역할별 로그인 세션을 파일로 저장해 두는 장치가 이미 있다** — `e2e/auth.setup.ts` 가 역할당 1회만 로그인하고 `storageState` 로 쿠키를 저장한다.
 
-- **세션 저장이 되는 역할(5개):** `patient` · `admin` · `coordinator` · `agency` · `clinic`
-  — 각각 `E2E_TEST_USER_EMAIL` · `E2E_ADMIN_EMAIL` · `E2E_COORDINATOR_EMAIL` · `E2E_AGENCY_EMAIL` · `E2E_CLINIC_EMAIL` 이 설정된 경우에만. 미설정 역할은 스킵된다.
-- **🕳 구멍: `hospital`(국내병원) 역할은 아예 목록에 없다.** 그래서 `/hospital/profile`·`/hospital/treatments` 는 **어떤 방법으로도 자동 확인이 안 된다.** 2026-07-28 핸드오프의 "계정 접근 불가로 못 봄" 이 바로 이것 — 계정을 몰라서가 아니라 **애초에 목록에 없어서**다.
-- `E2E_*` 키는 `.env.example` 에도 없어서 새로 세팅하는 사람이 존재 자체를 모른다.
+- **세션 저장이 되는 역할(6개 — 전부):** `patient` · `admin` · `coordinator` · `agency` · `clinic` · `hospital`
+  — 각각 `E2E_TEST_USER_EMAIL` · `E2E_ADMIN_EMAIL` · `E2E_COORDINATOR_EMAIL` · `E2E_AGENCY_EMAIL` · `E2E_CLINIC_EMAIL` · `E2E_HOSPITAL_EMAIL` 이 설정된 경우에만. 미설정 역할은 스킵된다.
+- ~~**🕳 구멍: `hospital`(국내병원) 역할은 아예 목록에 없다.** 그래서 `/hospital/profile`·`/hospital/treatments` 는 **어떤 방법으로도 자동 확인이 안 된다.**~~ → ✅ **낡은 서술이었다 (2026-08-30 실측 정정)**. `e2e/auth.setup.ts:31~32` 에 `hospital` 이 2026-07-28 추가됐고(PR #1137), hospital 세션 저장·병원 스펙이 CI 에서 실제로 통과한 기록이 `KNOWN_ISSUES.md` 에 있다(✅ 2026-07-29 실측). 이 문서만 수리 직전(같은 날 이관) 상태로 얼어 있었다.
+- ~~`E2E_*` 키는 `.env.example` 에도 없어서 새로 세팅하는 사람이 존재 자체를 모른다.~~ → ✅ `.env.example` 157~168줄에 6개 역할 12개 키가 전부 등재돼 있다(«2026-07-28 추가» 주석 포함).
 
-**그래서 지금 규칙:**
-1. 백오피스 화면을 확인해야 하면 **먼저 해당 역할의 E2E 세션으로 여는 길이 있는지 본다**(위 5개면 있다).
-2. 없으면(= `hospital`) **로컬에서 본 척하지 말고** Vercel preview URL 을 PO 에게 주고 확인받는다.
+**그래서 지금 규칙 (2026-08-30 갱신):**
+1. 백오피스 화면을 확인해야 하면 **먼저 해당 역할의 E2E 세션으로 여는 길이 있는지 본다** — `hospital` 포함 6개 역할 전부 길이 있다.
+2. E2E 로도 못 열면 **로컬에서 본 척하지 말고** 로컬 + 화면 사진으로 확인한다. **Vercel 프리뷰는 완전 차단 — PO 가 요청할 때만 연다**(2026-07-31 PO 지시, 절차는 `docs/rules/DEPLOY.md`) — 어시가 판단해서 여는 통로가 아니다.
 3. 어느 쪽도 못 했으면 **"직접 동작 검증 못 함"이라고 명시**한다.
 
 ## 화면을 띄우는 「예의」 — PO 가 볼 자리를 열어두고, 남의 사이트는 PO 크롬으로 (취향 원장에서 이관)

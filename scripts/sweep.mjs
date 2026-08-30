@@ -39,8 +39,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
-const only = (process.argv.find((a) => a.startsWith("--only=")) || "").replace("--only=", "");
-const want = (id) => !only || only.split(",").includes(id);
+const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+const 지정검사 = (onlyArg || "").replace("--only=", "").split(",").map((s) => s.trim()).filter(Boolean);
+const want = (id) => 지정검사.length === 0 || 지정검사.includes(id);
 
 const rows = [];
 const add = (id, 이름, 판정, 근거, 옵션 = {}) => rows.push({ id, 이름, 판정, 근거, 경보: 옵션.경보 !== false });
@@ -200,15 +201,30 @@ async function 검사_익명읽기() {
 }
 
 // ── 3. 실서비스 화면에 박혀서 나가는 열쇠
-const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/ko/login"];
+//    ⚠️ 로그인은 /login 이다 — /ko/login 이 아니다(login 은 proxy.ts PUBLIC_PREFIXES 에 없어 언어 접두사가
+//    안 붙는다 → /ko/login 은 실서비스에서 «항상 404»였다). 2026-08-30 까지는 fetch 실패·오류를 삼키는
+//    바람에 이 검사가 로그인 화면 대신 404 페이지를 훑고도 조용히 「통과」로 찍혀 아무도 몰랐다.
+const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/login"];
 
 async function 검사_화면에박힌열쇠() {
+  // ⚠️ fetch 실패를 삼키지 않는다 (2026-08-30 감사): 예전엔 실패한 페이지를 그냥 continue 해서,
+  //    사이트가 안 열리는 날(DNS 오류·다운·CI 네트워크 차단)에도 「통과: 0건」이 찍혔다 —
+  //    «못 물어봐서 0건»이 «없어서 0건»으로 위장하는, 아래 rls 검사가 미끼 조회로 막아 둔 바로 그 함정이
+  //    이 검사에만 남아 있었다. HTTP 오류(res.ok 아님)도 같은 이유로 «본 것»으로 안 친다 —
+  //    짧은 오류 페이지엔 열쇠가 없으니 «진짜 화면은 안 보고» 통과가 되기 때문.
   const 발견 = new Set();
+  const 못본페이지 = [];
   for (const p of PAGES) {
     let html;
     try {
-      html = await (await fetch(SITE + p)).text();
+      const res = await fetch(SITE + p);
+      if (!res.ok) {
+        못본페이지.push(`${p}(HTTP ${res.status})`);
+        continue;
+      }
+      html = await res.text();
     } catch {
+      못본페이지.push(`${p}(응답 없음)`);
       continue;
     }
     for (const m of html.matchAll(/AIza[0-9A-Za-z_-]{35}/g)) 발견.add(m[0].slice(0, 10) + "…");
@@ -217,11 +233,20 @@ async function 검사_화면에박힌열쇠() {
   }
   // 지도 열쇠 1개는 원래 브라우저로 나가는 값이라 정상 — 2개 이상이거나 sk-/service_role 이면 볼 것.
   const 위험 = [...발견].filter((k) => !k.startsWith("AIza"));
+  if (위험.length === 0 && 못본페이지.length > 0) {
+    return add(
+      "keys",
+      "화면에 박혀 나가는 열쇠",
+      "못 잼",
+      `${PAGES.length}개 중 ${못본페이지.length}개 페이지를 못 봤다: ${못본페이지.join(", ")} — 못 본 «0건»은 «없음»이 아니다`
+    );
+  }
   add(
     "keys",
     "화면에 박혀 나가는 열쇠",
     위험.length ? "볼 것" : "통과",
-    발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : "0건"
+    (발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : `${PAGES.length}개 페이지 전부 확인, 0건`) +
+      (위험.length && 못본페이지.length ? ` · 못 본 페이지 ${못본페이지.length}개: ${못본페이지.join(", ")}` : "")
   );
 }
 
@@ -426,13 +451,44 @@ async function 검사_앱미반영() {
  * ⚠️ 기준을 `ios/App/CapApp-SPM/Package.swift` 로 잡지 마라. 그 파일은 `npx cap sync ios`
  *    를 돌려야 갱신되는데, 안 돌리면 낡은 채로 남아 **거짓 통과**가 된다.
  *    `package.json` 은 부품을 넣는 순간 바뀌므로 항상 최신이다.
+ *
+ * 🔴 **2026-08-30: 안드로이드 쪽(#1536)과 «같은 사고»가 여기엔 그대로 남아 있었다.**
+ *   `@capacitor/`·`@capawesome/` 접두사만 잡아서 `@capgo/capacitor-social-login`(구글 로그인, 8/29 도입)이
+ *   대조 대상에서 통째로 빠졌고, 그 부품이 출시본(빌드 4)에 없는 «지금» 상태를
+ *   「부품 6개 전부 그 판에 있음」이라며 통과로 찍었다 — 하필 「새로 넣어서 폰에 아직 안 간」
+ *   부품만 골라서 안 보이는, #1536 이 안드로이드에서 잡은 바로 그 부류다.
+ *   → 이름 접두사로 거르지 않는다. **«실체»로 판정한다**: 캡시터 부품은 제 package.json 에
+ *     `capacitor` 칸을 갖고, 아이폰에 실리는 부품은 제 뿌리에 Package.swift(SPM)도 갖는다
+ *     (2026-08-30 실측 — 부품 7개 전부 둘 다 있고, core/cli/android/ios 는 둘 다 없어 자연히 빠진다.
+ *     제외 목록은 만약을 위한 이중 안전벨트로만 남긴다).
+ *   ⚠️ node_modules 를 못 읽으면 «부품 0개 = 전부 실림»이 아니라 throw 로 세운다(호출부가 «못 잼»으로
+ *     보고) — 반쪽 목록으로 답하는 것이 정확히 이 검사가 잡으려는 「거짓 통과」이기 때문이다.
  */
 function 아이폰부품목록() {
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
   const 제외 = new Set(["@capacitor/core", "@capacitor/cli", "@capacitor/android", "@capacitor/ios"]);
-  return Object.keys(pkg.dependencies || {})
-    .filter((n) => (n.startsWith("@capacitor/") || n.startsWith("@capawesome/")) && !제외.has(n))
-    .sort();
+  const 부품 = [];
+  const 못읽음 = [];
+  for (const n of Object.keys(pkg.dependencies || {})) {
+    if (제외.has(n)) continue;
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(path.join("node_modules", n, "package.json"), "utf8"));
+    } catch {
+      못읽음.push(n);
+      continue;
+    }
+    if (manifest.capacitor && fs.existsSync(path.join("node_modules", n, "Package.swift"))) 부품.push(n);
+  }
+  if (못읽음.length)
+    throw new Error(
+      `node_modules 에서 ${못읽음.length}개 패키지를 못 읽었다(${못읽음.slice(0, 3).join(", ")}${못읽음.length > 3 ? " …" : ""}) — npm install 뒤 다시 훑어라. 반쪽 목록으로 판정하면 거짓 통과가 된다`
+    );
+  if (부품.length === 0)
+    throw new Error(
+      "캡시터 부품을 하나도 못 찾았다 — 판정 표식(부품 package.json 의 capacitor 칸 + Package.swift)이 낡았는지 확인해라. 0개로 답하면 「전부 실림」이라는 거짓 통과가 된다"
+    );
+  return 부품.sort();
 }
 
 async function 검사_아이폰미반영() {
@@ -446,7 +502,13 @@ async function 검사_아이폰미반영() {
     return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시.아이폰」 칸이 비었거나 부품 목록이 없다");
   }
 
-  const 현재부품 = 아이폰부품목록();
+  let 현재부품;
+  try {
+    현재부품 = 아이폰부품목록();
+  } catch (e) {
+    // 부품 목록을 «반쪽»으로 얻었을 때 통과로 위장하지 않는다 — 위 함수 주석의 🔴 참고.
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", String(e.message));
+  }
   const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
   const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
 
@@ -613,6 +675,22 @@ const 검사들 = [
   ["ios", 검사_아이폰미반영],
   ["stale", 검사_묵은막힘],
 ];
+
+// --only= 오타 방어 (2026-08-30 감사): 예전엔 모르는 이름을 주면(예: --only=key ← keys 오타)
+// 검사 «0개»가 조용히 돌고 「볼 것 0건 / 못 잼 0건 / 통과 0건」 + exit 0 으로 끝났다 —
+// 훑지도 않았는데 훑은 척이 되는 가짜 초록이고, --alert 를 같이 줘도 그대로 초록이었다.
+// 머리말의 «통과로 위장하지 않는다» 원칙대로: 모르는 이름·빈 이름은 여기서 세우고 있는 이름을 알려준다.
+if (onlyArg !== undefined) {
+  const 아는이름 = 검사들.map(([id]) => id);
+  const 모름 = 지정검사.filter((id) => !아는이름.includes(id));
+  if (모름.length > 0 || 지정검사.length === 0) {
+    console.error(
+      (모름.length ? `그런 검사 없음: ${모름.join(", ")}` : "--only= 에 검사 이름이 없다") +
+        ` — 있는 것: ${아는이름.join(", ")}`
+    );
+    process.exit(1);
+  }
+}
 
 for (const [id, fn] of 검사들) {
   if (!want(id)) continue;

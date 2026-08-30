@@ -96,7 +96,12 @@ export function computeCurrentStage(data) {
     if (visaInProgress) return "visa";
 
     const hasFinalProposal = coordinatorResponses?.some((r) => r.is_final);
-    const hasAnyProposal = coordinatorResponses?.length > 0;
+    // 환자에게 실제로 «보인» 제안만 센다 (2026-08-30) — draft 계열(auto_range·내부 초안)은
+    // 아직 보낸 제안이 아니라서 단순 length>0 이면 환자 몰래 여정이 proposal 로 전진했다.
+    // status 어휘는 costEstimateJourney.ts 매핑 기준. status 없는 옛 모양은 is_final 로만 판정.
+    const hasAnyProposal = coordinatorResponses?.some(
+      (r) => ["sent", "accepted", "rejected", "expired"].includes(r.status) || r.is_final
+    );
     const hasScheduledConsultation = consultations?.some((c) =>
       ["scheduled", "in_progress"].includes(c.status)
     );
@@ -172,10 +177,10 @@ export function computeNextActions(data, lang = "en") {
     });
   }
 
-  // 새 제안
-  const newProposals = coordinatorResponses?.filter(
-    (r) => r.status === "sent" && !r.is_final
-  );
+  // 새 제안 — 발송됐고 환자가 아직 수락/거절 안 한 것.
+  // (예전 `sent && !is_final` 은 cost_estimates 매핑상 sent ⇒ is_final 이라 영원히 참일 수
+  //  없는 죽은 조건이었다 — 2026-08-30. 어휘는 costEstimateJourney.ts 기준.)
+  const newProposals = coordinatorResponses?.filter((r) => r.status === "sent");
   if (newProposals?.length > 0) {
     actions.push({
       id: "proposals",

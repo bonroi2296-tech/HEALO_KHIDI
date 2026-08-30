@@ -88,11 +88,15 @@ export default function ImmuneHospitalClient() {
         {/* 통계 바 */}
         <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-6">
           {[
-            { num: "50,000+", label: tr("statCases") },
-            { num: "98%", label: tr("statSatisfaction") },
+            /* ⚠️ 숫자를 여기 직접 적지 마라 — 병원이 공개한 값과 어긋난다.
+               2026-07-29 실제로 어긋나 있었다: 만족도 98%(병원은 93.5%) · 전담 의료진 7+(병원은 19명).
+               게다가 바로 아래 「면력 자체 조사 결과」라는 출처를 달아 둔 상태였다.
+               값은 전부 `src/lib/data/immuneHospitalInfo.js` 한 곳에서만 고친다. */
+            { num: H.cumulativeCases, label: tr("statCases") },
+            { num: H.satisfactionRate, label: tr("statSatisfaction") },
             { num: String(years), unit: tr("yearsUnit"), label: tr("statYears") },
             { num: String(H.branches.length), label: tr("statBranches") },
-            { num: "7+", label: tr("statDoctors") },
+            { num: H.dedicatedDoctors, label: tr("statDoctors") },
             { num: "24/7", label: tr("statHealing") },
           ].map((stat, i) => (
             <div key={i}>
@@ -104,7 +108,9 @@ export default function ImmuneHospitalClient() {
             </div>
           ))}
         </div>
-        {/* 만족도 98% 출처 명기 — 면력 자체조사(2024.11.06 전지점). 근거 있는 수치임을 표시. */}
+        {/* 만족도 출처 명기 — 면력 자체조사(2024.11.06 전지점).
+            ⚠️ 출처를 다는 것만으로는 부족하다. 2026-07-29 까지 이 자리엔 «출처는 병원, 숫자는 우리»가
+               걸려 있었다(화면 98% vs 병원 공개 93.5%). 숫자와 출처는 항상 같이 확인해야 한다. */}
         <p className="mt-4 text-[11px] text-gray-400 leading-relaxed">{tr("satisfactionNote")}</p>
       </section>
 

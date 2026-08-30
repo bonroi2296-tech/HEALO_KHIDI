@@ -193,13 +193,16 @@ export async function PUT(request: NextRequest) {
       const { error: insertErr } = await supabaseAdmin.from("hospitals").insert(hospitalData);
 
       if (insertErr) {
-        results.push({ name: item.name, success: false, reason: insertErr.message });
+        // 보안 핵심 규칙 ①: 응답에 DB 오류 원문(insertErr.message) 노출 금지 → 코드형만, 원문은 서버 로그로.
+        console.error("[admin/crawl] insert error:", item.name, insertErr.message);
+        results.push({ name: item.name, success: false, reason: "insert_failed" });
       } else {
         successCount++;
         results.push({ name: item.name, success: true, slug });
       }
     } catch (err: any) {
-      results.push({ name: item.name, success: false, reason: err.message });
+      console.error("[admin/crawl] unexpected error:", item.name, err?.message || err);
+      results.push({ name: item.name, success: false, reason: "unexpected_error" });
     }
   }
 
