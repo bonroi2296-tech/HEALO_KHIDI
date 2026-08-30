@@ -42,6 +42,15 @@ const SOURCE_COLORS = {
   naver_local: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
+// 임포트 실패 사유 — API 는 보안 규칙(오류 원문 노출 금지)상 코드형만 주므로 여기서 한국어로 풀어 보여준다.
+const IMPORT_REASON_LABELS = {
+  lookup_failed: "중복 확인 조회 실패",
+  duplicate_slug: "같은 주소(slug)의 병원이 이미 있음",
+  duplicate_name: "같은 이름의 병원이 이미 있음",
+  insert_failed: "DB 저장 실패 (서버 로그 확인)",
+  unexpected_error: "알 수 없는 오류 (서버 로그 확인)",
+};
+
 const SOURCE_GUIDES = {
   hira: {
     name: "HIRA (건강보험심사평가원)",
@@ -993,7 +1002,7 @@ export default function CrawlPage() {
                 {r.success ? (
                   <span className="text-xs text-green-700">/{r.slug}</span>
                 ) : (
-                  <span className="text-xs text-red-600">{r.reason}</span>
+                  <span className="text-xs text-red-600">{IMPORT_REASON_LABELS[r.reason] || r.reason}</span>
                 )}
               </div>
             ))}

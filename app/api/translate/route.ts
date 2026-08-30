@@ -12,6 +12,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { triggerMultiLangTranslation } from "@/lib/translate";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { safeEqual } from "@/lib/security/safeEqual";
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
 
@@ -19,8 +20,9 @@ export async function POST(request: NextRequest) {
   if (!INTERNAL_SECRET) {
     return NextResponse.json({ ok: false, error: "INTERNAL_API_SECRET not configured" }, { status: 500 });
   }
+  // `!==` 단순비교는 타이밍 사이드채널(CISO-5) → 공용 safeEqual 로 상수시간 비교.
   const authHeader = request.headers.get("x-internal-secret");
-  if (authHeader !== INTERNAL_SECRET) {
+  if (!safeEqual(authHeader, INTERNAL_SECRET)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 403 });
   }
 

@@ -20,6 +20,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { safeEqual } from "@/lib/security/safeEqual";
 
 export async function POST(request) {
   try {
@@ -30,9 +31,12 @@ export async function POST(request) {
     if (!rl.allowed) {
       return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
     }
-    const internalSecret = process.env.INTERNAL_API_SECRET;
-    const internalOk =
-      Boolean(internalSecret) && request.headers.get("x-internal-secret") === internalSecret;
+    // `===` 단순비교는 타이밍 사이드채널(CISO-5) → 공용 safeEqual 로 상수시간 비교
+    // (env 미설정·헤더 누락이면 safeEqual 이 false — Boolean() 선검사 불필요).
+    const internalOk = safeEqual(
+      request.headers.get("x-internal-secret"),
+      process.env.INTERNAL_API_SECRET
+    );
     if (!internalOk) {
       const auth = await requireAdminAuth(request);
       if (!auth.success) return auth.response;

@@ -5,7 +5,7 @@
  * 보안:
  * - INTERNAL_ADMIN_SECRET 환경변수로 보호
  * - ✅ Secret을 **헤더(x-internal-admin-secret)** 로만 받음 (body가 아님 — CSRF + 로그 노출 방지)
- * - ✅ timingSafeEqual 로 비교 (타이밍 공격 방지)
+ * - ✅ 공용 safeEqual(timingSafeEqual) 로 비교 (타이밍 공격 방지) — 로컬 복붙본을 @/lib/security/safeEqual 로 승격
  * - ✅ IP 기반 rate limit (분당 5회)
  *
  * ⚠️ 과거 버전은 adminSecret을 JSON body로 받고 `!==` 비교 → CSRF + 타이밍 누출 위험.
@@ -16,22 +16,15 @@ export const runtime = "nodejs";
 
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
-import { timingSafeEqual, randomUUID as nodeRandomUUID } from "node:crypto";
+import { randomUUID as nodeRandomUUID } from "node:crypto";
 import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { safeEqual } from "@/lib/security/safeEqual";
 
 const ROTATE_RATE = {
   windowMs: 60 * 1000,
   maxRequests: 5,
   apiName: "rotate_token",
 };
-
-function safeEqual(a: string | undefined, b: string | undefined): boolean {
-  if (!a || !b) return false;
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return timingSafeEqual(bufA, bufB);
-}
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
