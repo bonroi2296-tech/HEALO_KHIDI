@@ -716,15 +716,53 @@ const UI_PREMIUM_BASELINE = {
     re: /var\(--(?:cream|gold|ink|paper|fg-on|font-serif)[\w-]*\)/i,
     name: "premium 토큰 변수 참조(정의처 삭제됨 — 값이 비어 렌더된다)",
   };
-  const UI_PREMIUM_TOKENS = [...EMAIL_PREMIUM_TOKENS, UI_PREMIUM_VAR];
-  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
+  // PDF 가드(scripts/check-pdf-tone.mjs)는 src/lib/pdf/ «안에서만» gold/cream 변형 hex 와 Noto Serif 를
+  // 막는다 — 같은 값이 «화면» 코드로 들어오면 어느 가드도 못 잡았다(2026-08-30 감사에서 확인).
+  // 전부 옛 styles.js 에서 실제로 제거했던 잔재값이라 재유입 경로(옛 파일 복사)가 위 5종과 같다.
+  // 추가 시점 실측: 확장 범위 포함 전 범위 0건 = 기준선 영향 없음.
+  const UI_EXTRA_PREMIUM_TOKENS = [
+    { re: /#b89550|#e8d9b4/i, name: "premium gold 변형 hex(#b89550·#e8d9b4)" },
+    { re: /#e3dbcc|#fbf8f2/i, name: "premium cream 변형 hex(#e3dbcc·#fbf8f2)" },
+    { re: /Noto\s*Serif/i, name: "Noto Serif 세리프 폰트" },
+  ];
+  // ⚠️ 2026-08-30 전까지 이 합본은 «선언만» 되고 아래 루프는 5종(EMAIL_PREMIUM_TOKENS)만 돌았다 —
+  //    변수 참조 가드가 죽은 코드였던 것. 루프를 이 합본으로 배선해 주석이 주장하던 검출을 실제로 한다.
+  const UI_PREMIUM_TOKENS = [...EMAIL_PREMIUM_TOKENS, ...UI_EXTRA_PREMIUM_TOKENS, UI_PREMIUM_VAR];
+  // public/offline.html 은 우리 CSS 를 안 쓰는 독립 파일이고 :root 에 «자기» 변수를 정의해 쓴다
+  // (--ink:#1f2937 = gray-800 — 이름만 premium 과 우연히 겹치고 값은 기본 톤). 변수 참조 토큰만 면제하고
+  // hex·serif 토큰은 그대로 검사한다 — 그 파일의 HEALO 잔재 전례가 있어 «통째 면제»는 금지.
+  const UI_PREMIUM_VAR_EXEMPT = /^public\/offline\.html$/;
+  // 확장 걸음마: 공용 walk()/CODE_EXT 는 안 건드린다(다른 규칙들이 그 값에 기대고 있다 — §1c walkCss 와
+  // 같은 이유). css·html 은 스캔 3폴더에서, public/ 은 텍스트 파일만(사진·아이콘 등 바이너리 제외) 훑는다.
+  const walkExt = (dir, extRe) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      const rel = join(dir, e);
+      if (EXCLUDE.test("/" + rel.replace(/\\/g, "/") + "/")) continue;
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walkExt(rel, extRe));
+      else if (extRe.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  const PUBLIC_TEXT_EXT = /\.(html?|css|js|mjs|json|svg|txt|md|csv|webmanifest)$/i;
+  const UI_PREMIUM_FILES = [
+    ...walk("app"), ...walk("src"), ...walk("components"),
+    ...["app", "src", "components"].flatMap((d) => walkExt(d, /\.(css|html?)$/i)),
+    ...walkExt("public", PUBLIC_TEXT_EXT),
+  ];
+  for (const file of UI_PREMIUM_FILES) {
     if (UI_PREMIUM_SKIP.test(file)) continue;
     let lines;
     try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
     const rel = file.replace(/\\/g, "/");
     const hits = [];
     lines.forEach((line, i) => {
-      for (const t of EMAIL_PREMIUM_TOKENS) {
+      for (const t of UI_PREMIUM_TOKENS) {
+        if (t === UI_PREMIUM_VAR && UI_PREMIUM_VAR_EXEMPT.test(rel)) continue;
         if (t.re.test(line)) hits.push({ i, name: t.name, line });
       }
       if (UI_PREMIUM_IMPORT.test(line)) {
