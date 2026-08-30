@@ -6,7 +6,12 @@ vi.mock("../supabase/browser", () => ({
   createSupabaseBrowserClient: () => ({}),
 }));
 
-import { computeCurrentStage } from "./journeyState.js";
+import {
+  computeCurrentStage,
+  computeNextActions,
+  computeNotificationCount,
+} from "./journeyState.js";
+import { mapCostEstimateToJourneyResponse } from "./costEstimateJourney";
 
 /**
  * EDGE-1 회귀잠금 (2026-06-22): 코디/병원이 올린 inquiry.case_status 가
