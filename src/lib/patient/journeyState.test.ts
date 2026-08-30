@@ -131,6 +131,30 @@ describe("mapCostEstimateToJourneyResponse — 상태 매핑", () => {
     expect(mapped.is_final).toBe(false);
   });
 
+  it("어드민 정정(accepted→rejected) 뒤 낡은 patient_accepted_at 이 남아도 거절이 이긴다 (2026-08-30 독립 리뷰)", () => {
+    // [id]/route.ts 는 어드민에게 TRANSITIONS 우회를 허용하고 patient_accepted_at 은 아무도 안 지운다.
+    // 말단 상태를 타임스탬프보다 먼저 판정하지 않으면 거절 견적이 「확정」으로 둔갑 — 이 파일의 존재 이유가 무너진다.
+    const mapped = mapCostEstimateToJourneyResponse(
+      estimateRow("rejected", {
+        quotation_issued_at: T_ISSUED,
+        patient_accepted_at: T_ACCEPTED,
+      })
+    );
+    expect(mapped.status).toBe("rejected");
+    expect(mapped.is_final).toBe(false);
+  });
+
+  it("만료(expired)도 낡은 patient_accepted_at 을 이긴다 — 말단 상태 우선", () => {
+    const mapped = mapCostEstimateToJourneyResponse(
+      estimateRow("expired", {
+        quotation_issued_at: T_ISSUED,
+        patient_accepted_at: T_ACCEPTED,
+      })
+    );
+    expect(mapped.status).toBe("expired");
+    expect(mapped.is_final).toBe(false);
+  });
+
   it("발행 전 만료(auto_range → expired)는 환자에게 보인 적이 없으니 draft 취급", () => {
     const mapped = mapCostEstimateToJourneyResponse(estimateRow("expired"));
     expect(mapped.status).toBe("draft");
