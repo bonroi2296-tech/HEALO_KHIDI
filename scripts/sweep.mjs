@@ -204,12 +204,24 @@ async function 검사_익명읽기() {
 const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/ko/login"];
 
 async function 검사_화면에박힌열쇠() {
+  // ⚠️ fetch 실패를 삼키지 않는다 (2026-08-30 감사): 예전엔 실패한 페이지를 그냥 continue 해서,
+  //    사이트가 안 열리는 날(DNS 오류·다운·CI 네트워크 차단)에도 「통과: 0건」이 찍혔다 —
+  //    «못 물어봐서 0건»이 «없어서 0건»으로 위장하는, 아래 rls 검사가 미끼 조회로 막아 둔 바로 그 함정이
+  //    이 검사에만 남아 있었다. HTTP 오류(res.ok 아님)도 같은 이유로 «본 것»으로 안 친다 —
+  //    짧은 오류 페이지엔 열쇠가 없으니 «진짜 화면은 안 보고» 통과가 되기 때문.
   const 발견 = new Set();
+  const 못본페이지 = [];
   for (const p of PAGES) {
     let html;
     try {
-      html = await (await fetch(SITE + p)).text();
+      const res = await fetch(SITE + p);
+      if (!res.ok) {
+        못본페이지.push(`${p}(HTTP ${res.status})`);
+        continue;
+      }
+      html = await res.text();
     } catch {
+      못본페이지.push(`${p}(응답 없음)`);
       continue;
     }
     for (const m of html.matchAll(/AIza[0-9A-Za-z_-]{35}/g)) 발견.add(m[0].slice(0, 10) + "…");
@@ -218,11 +230,20 @@ async function 검사_화면에박힌열쇠() {
   }
   // 지도 열쇠 1개는 원래 브라우저로 나가는 값이라 정상 — 2개 이상이거나 sk-/service_role 이면 볼 것.
   const 위험 = [...발견].filter((k) => !k.startsWith("AIza"));
+  if (위험.length === 0 && 못본페이지.length > 0) {
+    return add(
+      "keys",
+      "화면에 박혀 나가는 열쇠",
+      "못 잼",
+      `${PAGES.length}개 중 ${못본페이지.length}개 페이지를 못 봤다: ${못본페이지.join(", ")} — 못 본 «0건»은 «없음»이 아니다`
+    );
+  }
   add(
     "keys",
     "화면에 박혀 나가는 열쇠",
     위험.length ? "볼 것" : "통과",
-    발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : "0건"
+    (발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : `${PAGES.length}개 페이지 전부 확인, 0건`) +
+      (위험.length && 못본페이지.length ? ` · 못 본 페이지 ${못본페이지.length}개: ${못본페이지.join(", ")}` : "")
   );
 }
 
