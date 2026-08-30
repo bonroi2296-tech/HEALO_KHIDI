@@ -108,8 +108,8 @@
 - **사전상담 실적 누락**: 96건 중 통화흔적 42건인데 **문의 연결 1건뿐**. 실적 조건=「문의연결+완료」라 완료 자동화해도 실적 0, 연결까지 자동화하면 에이전시 미팅·테스트가 허위실적. → 코디가 통화흔적 42건을 훑어 진짜 환자만 소급 연결(UI 이미 있음). 코드로 도우려면 「통화했는데 완료 미표시」 목록을 코디 화면에 띄우는 새 기능 필요(PO 승인 대기).
 
 ### 🟠 조건부로 터지는 것 (다음 차례)
-1. **환자 실명 평문** — `consultation_translations.speaker_name` 2,020행 · `consultation_admissions.display_name` 288행. 내용은 암호화하면서 이름칸만 평문. 익명읽기는 차단이라 서버·백업 유출 시. 쓰는 곳: `stt/route.ts:313`, `guest-join/route.ts:238`.
-2. **상담 임상요약·권고 평문** — `consultation/[id]/route.ts:167`. `notes`는 암호화하는데 `clinical_summary`·`recommendations`는 평문(암호화 컬럼은 이미 있는데 아무도 안 씀). DB 실측 0행이나 코디가 그 화면 쓰면 쌓임.
+1. ~~**환자 실명 평문** — `consultation_translations.speaker_name` 2,020행 · `consultation_admissions.display_name` 288행. 내용은 암호화하면서 이름칸만 평문. 익명읽기는 차단이라 서버·백업 유출 시. 쓰는 곳: `stt/route.ts:313`, `guest-join/route.ts:238`.~~ ✅ **같은 날 #1392(2026-08-14) 로 고쳐졌다 — 이 줄만 갱신이 빠졌던 것 (2026-08-30 실측)**. 쓰기 경로: `stt/route.ts` 가 `encryptTranscriptRow(...)` 로 화자 이름까지 암호문 칸에 넣고(평문 `speaker_name` 쓰기 없음), `guest-join/route.ts` 는 `display_name_encrypted: encryptStringNullable(...)`. 기존 평문 행은 `PROJECT_CONTEXT.md` 8/14 기록상 2,312칸 이전·재확인 평문 0건(`20260814_encrypt_consult_pii.sql` 적용 완료) — 단 DB 재실측은 이 세션에선 못 함(열쇠 없음).
+2. ~~**상담 임상요약·권고 평문** — `consultation/[id]/route.ts:167`. `notes`는 암호화하는데 `clinical_summary`·`recommendations`는 평문(암호화 컬럼은 이미 있는데 아무도 안 씀). DB 실측 0행이나 코디가 그 화면 쓰면 쌓임.~~ ✅ **이것도 #1392 로 같이 닫혔다 (2026-08-30 실측)** — `consultation/[id]/route.ts` 가 `clinical_summary_encrypted`·`recommendations_encrypted` 에 저장하고 평문 칸은 null 처리한다.
 3. ~~**K-02 이중집계**~~ ✅ **오진이었다 — 취소 (2026-08-15 실측)**
    - 「같은 환자가 상담+소견 둘 다면 2건」은 **버그가 아니라 의도된 집계**다. PO 확인: *문의 1건에 번역·병원별 문의·환자 언어 회신까지 각각 리소스가 들어가므로 하나씩 다 센다*(기존 결정).
    - 「소견 2번」도 실측하니 문의 #37 의 **의사 2명이 서로 다른 내용을 쓴 진짜 2건**(의사수 2·내용 2종·55분 간격)이었다. 실수 중복 아님.
