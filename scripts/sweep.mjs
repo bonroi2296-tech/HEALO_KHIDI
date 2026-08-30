@@ -652,6 +652,22 @@ const 검사들 = [
   ["stale", 검사_묵은막힘],
 ];
 
+// --only= 오타 방어 (2026-08-30 감사): 예전엔 모르는 이름을 주면(예: --only=key ← keys 오타)
+// 검사 «0개»가 조용히 돌고 「볼 것 0건 / 못 잼 0건 / 통과 0건」 + exit 0 으로 끝났다 —
+// 훑지도 않았는데 훑은 척이 되는 가짜 초록이고, --alert 를 같이 줘도 그대로 초록이었다.
+// 머리말의 «통과로 위장하지 않는다» 원칙대로: 모르는 이름·빈 이름은 여기서 세우고 있는 이름을 알려준다.
+if (onlyArg !== undefined) {
+  const 아는이름 = 검사들.map(([id]) => id);
+  const 모름 = 지정검사.filter((id) => !아는이름.includes(id));
+  if (모름.length > 0 || 지정검사.length === 0) {
+    console.error(
+      (모름.length ? `그런 검사 없음: ${모름.join(", ")}` : "--only= 에 검사 이름이 없다") +
+        ` — 있는 것: ${아는이름.join(", ")}`
+    );
+    process.exit(1);
+  }
+}
+
 for (const [id, fn] of 검사들) {
   if (!want(id)) continue;
   try {
