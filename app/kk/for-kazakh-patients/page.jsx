@@ -140,8 +140,8 @@ export default function ForKazakhPatientsPage() {
         <section className="mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-700 mb-1">72,9%</div>
-              <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2018–2022)</p>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">73,7%</div>
+              <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2019–2023)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
               <div className="text-3xl font-extrabold text-teal-700 mb-1">2,01 млн</div>
