@@ -659,7 +659,9 @@ for (const file of readdirSync(join(ROOT, "e2e"))
 //     UI 코드 검사(위)는 이메일 순수-HTML 문자열을 안 봐서 사각지대였음. → 라이브 이메일 템플릿에
 //     premium 토큰이 다시 들어오면 CI 가 차단. 정답 톤 레퍼런스 = infoRequest.ts.
 //     범위: src/lib/email/templates/** + surveyEmailTemplate.ts (legacy 전환 완료 파일).
-//     제외: src/emails/*.jsx(React Email premium 시스템 — 실사용 확인 후 별도 전환 예정).
+//     ※ 옛 주석이 «src/emails/*.jsx(React Email premium 시스템)는 별도 전환 예정»이라며 제외로 적어
+//       뒀었는데 낡은 기록이었다(2026-08-30 정정) — 그 시스템은 2026-07-01 PO 지시로 라우트째 통삭제됐다
+//       (PR #539, 4파일 1,028줄). 지금 저장소에 src/emails/ 는 없다. 어딘가 살아있다고 읽지 마라.
 const EMAIL_TEMPLATE_FILES = [
   ...walk("src/lib/email/templates"),
   "src/lib/surveys/surveyEmailTemplate.ts",
