@@ -8,7 +8,7 @@
 - **막은 방법**: `check-content-consistency.mjs` **§8-b** — 화면 코드 전체에서 premium 색 5종(`Playfair`·`#c8a96a`·`#f5f0e8`·`#0a0a0a`·`#c7c2b8`)과 `healo/Primitives` 신규 import 를 잡는다.
 - **같은 날 닫힌 잔재 3곳**: 알림 화면 2곳·`Primitives.jsx` 삭제(#1483, 별도 세션) · **KHIDI 만족도 화면**의 자유 의견 세로줄 금색 → `border-teal-700`(#1487).
 - ⚠️ **`UI_PREMIUM_BASELINE` 은 지금 비어 있다.** 새 잔재를 거기 적어 통과시키지 마라 — 그 표는 「고치는 중인 것」의 임시 통행증이지 면제권이 아니다.
-- **아직 남은 것**: `app/styles/healo-tokens.css` 가 `app/layout.jsx:3` 에서 전 페이지에 실린다(cream/gold/ink 정의 원본). 별도 세션 몫.
+- ~~**아직 남은 것**: `app/styles/healo-tokens.css` 가 `app/layout.jsx:3` 에서 전 페이지에 실린다~~ → ✅ **이것도 닫혔다** (2026-08-30 실측: 그 파일도 `Primitives.jsx` 도 본판에 없고 `app/layout.jsx` 에 import 도 없다 — #1481·#1483 에서 삭제됨. 같은 문서 아래 「전체 코드리뷰」 표 12번도 8/29 에 같은 사실을 실측해 뒀다).
 
 ---
 
