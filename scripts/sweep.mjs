@@ -201,7 +201,10 @@ async function 검사_익명읽기() {
 }
 
 // ── 3. 실서비스 화면에 박혀서 나가는 열쇠
-const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/ko/login"];
+//    ⚠️ 로그인은 /login 이다 — /ko/login 이 아니다(login 은 proxy.ts PUBLIC_PREFIXES 에 없어 언어 접두사가
+//    안 붙는다 → /ko/login 은 실서비스에서 «항상 404»였다). 2026-08-30 까지는 fetch 실패·오류를 삼키는
+//    바람에 이 검사가 로그인 화면 대신 404 페이지를 훑고도 조용히 「통과」로 찍혀 아무도 몰랐다.
+const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/login"];
 
 async function 검사_화면에박힌열쇠() {
   // ⚠️ fetch 실패를 삼키지 않는다 (2026-08-30 감사): 예전엔 실패한 페이지를 그냥 continue 해서,
