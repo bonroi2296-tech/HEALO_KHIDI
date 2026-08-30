@@ -41,7 +41,7 @@
 
 - 브라우저 조작은 `preview_start`(dev 서버) → `read_page`(구조·텍스트) → `javascript_tool`(계산된 스타일 등) 순으로.
   스크린샷은 `computer{action:"screenshot"}` — 다만 **텍스트·구조 확인은 `read_page` 가 더 빠르고 정확**하다.
-- 시각 확인 필요 시 Vercel preview URL 사용자에게 제공.
+- ~~시각 확인 필요 시 Vercel preview URL 사용자에게 제공.~~ → **정정(2026-08-30): 시각 확인은 로컬 + 화면 사진이 기본. Vercel 프리뷰는 완전 차단 — PO 가 요청할 때만 연다**(2026-07-31 PO 지시 = `CLAUDE.md` 빌드·검사·배포 절, 여는 절차는 `docs/rules/DEPLOY.md`).
 
 ## 로그인 뒤 화면 (2026-07-28 정정 — 이전 서술이 도구 현실보다 낡았다)
 
