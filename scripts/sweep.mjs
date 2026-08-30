@@ -426,13 +426,44 @@ async function 검사_앱미반영() {
  * ⚠️ 기준을 `ios/App/CapApp-SPM/Package.swift` 로 잡지 마라. 그 파일은 `npx cap sync ios`
  *    를 돌려야 갱신되는데, 안 돌리면 낡은 채로 남아 **거짓 통과**가 된다.
  *    `package.json` 은 부품을 넣는 순간 바뀌므로 항상 최신이다.
+ *
+ * 🔴 **2026-08-30: 안드로이드 쪽(#1536)과 «같은 사고»가 여기엔 그대로 남아 있었다.**
+ *   `@capacitor/`·`@capawesome/` 접두사만 잡아서 `@capgo/capacitor-social-login`(구글 로그인, 8/29 도입)이
+ *   대조 대상에서 통째로 빠졌고, 그 부품이 출시본(빌드 4)에 없는 «지금» 상태를
+ *   「부품 6개 전부 그 판에 있음」이라며 통과로 찍었다 — 하필 「새로 넣어서 폰에 아직 안 간」
+ *   부품만 골라서 안 보이는, #1536 이 안드로이드에서 잡은 바로 그 부류다.
+ *   → 이름 접두사로 거르지 않는다. **«실체»로 판정한다**: 캡시터 부품은 제 package.json 에
+ *     `capacitor` 칸을 갖고, 아이폰에 실리는 부품은 제 뿌리에 Package.swift(SPM)도 갖는다
+ *     (2026-08-30 실측 — 부품 7개 전부 둘 다 있고, core/cli/android/ios 는 둘 다 없어 자연히 빠진다.
+ *     제외 목록은 만약을 위한 이중 안전벨트로만 남긴다).
+ *   ⚠️ node_modules 를 못 읽으면 «부품 0개 = 전부 실림»이 아니라 throw 로 세운다(호출부가 «못 잼»으로
+ *     보고) — 반쪽 목록으로 답하는 것이 정확히 이 검사가 잡으려는 「거짓 통과」이기 때문이다.
  */
 function 아이폰부품목록() {
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
   const 제외 = new Set(["@capacitor/core", "@capacitor/cli", "@capacitor/android", "@capacitor/ios"]);
-  return Object.keys(pkg.dependencies || {})
-    .filter((n) => (n.startsWith("@capacitor/") || n.startsWith("@capawesome/")) && !제외.has(n))
-    .sort();
+  const 부품 = [];
+  const 못읽음 = [];
+  for (const n of Object.keys(pkg.dependencies || {})) {
+    if (제외.has(n)) continue;
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(path.join("node_modules", n, "package.json"), "utf8"));
+    } catch {
+      못읽음.push(n);
+      continue;
+    }
+    if (manifest.capacitor && fs.existsSync(path.join("node_modules", n, "Package.swift"))) 부품.push(n);
+  }
+  if (못읽음.length)
+    throw new Error(
+      `node_modules 에서 ${못읽음.length}개 패키지를 못 읽었다(${못읽음.slice(0, 3).join(", ")}${못읽음.length > 3 ? " …" : ""}) — npm install 뒤 다시 훑어라. 반쪽 목록으로 판정하면 거짓 통과가 된다`
+    );
+  if (부품.length === 0)
+    throw new Error(
+      "캡시터 부품을 하나도 못 찾았다 — 판정 표식(부품 package.json 의 capacitor 칸 + Package.swift)이 낡았는지 확인해라. 0개로 답하면 「전부 실림」이라는 거짓 통과가 된다"
+    );
+  return 부품.sort();
 }
 
 async function 검사_아이폰미반영() {
