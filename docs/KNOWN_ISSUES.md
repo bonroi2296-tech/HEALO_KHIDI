@@ -290,9 +290,9 @@ AdGuard 로 healwith.co.kr 을 막고 있었다). 대신 **화면이 부르는 �
 - 시점도 맞는다: 첫 44건이 **6/30**, 그 다음 날부터 매일. 6월이 싸고 7월이 3.3배인 이유가 이거다.
 - 청구 토큰(6~8월 입력 20.6M·출력 7.45M) 중 **우리가 설명할 수 있는 건 입력 6.8M·출력 0.42M뿐**. 나머지는 회귀 테스트로 추정(₩10만 안팎). ⚠️ **구글은 호출자별로 안 쪼개주므로 이 배분은 추정이다.**
 
-**왜 계측에 안 잡히나 — 구멍 2개**
-1. `src/lib/chat/regressionRunner.ts` 는 `logAiUsage()` 를 **부르지 않는다**(실서비스 호출부 8곳은 전부 부른다).
-2. `src/lib/ai/usagePricing.ts` 의 정규화가 `completionTokens`/`outputTokens` 만 읽는다 → **「생각 토큰」(`thoughtsTokenCount`)이 어디서도 안 더해진다.** 실측(2026-08-14): 생각 토큰이 출력의 **60~77%** 였다. 즉 계측이 잡더라도 출력 비용을 절반 이하로 과소집계한다.
+~~**왜 계측에 안 잡히나 — 구멍 2개**~~ ✅ **둘 다 #1388(2026-08-14) 로 닫혔다 — 이 절만 갱신이 빠졌던 것 (2026-08-30 실측)**
+1. ~~`src/lib/chat/regressionRunner.ts` 는 `logAiUsage()` 를 **부르지 않는다**(실서비스 호출부 8곳은 전부 부른다).~~ ✅ `regressionRunner.ts:95·128` 에 `logAiUsage(surface: "regression_judge"/"regression_generate")` 실존.
+2. ~~`src/lib/ai/usagePricing.ts` 의 정규화가 `completionTokens`/`outputTokens` 만 읽는다 → **「생각 토큰」(`thoughtsTokenCount`)이 어디서도 안 더해진다.** 실측(2026-08-14): 생각 토큰이 출력의 **60~77%** 였다. 즉 계측이 잡더라도 출력 비용을 절반 이하로 과소집계한다.~~ ✅ `usagePricing.ts:98` 이 `thoughtsTokenCount ?? reasoningTokens ?? …` 를 합산한다.
 
 **🔴 앞으로의 위험(별건, 지금부터) — 생각 최소화가 거부되기 시작했다**
 `gemini-flash-latest` 별칭은 **2026-08-14 현재 `gemini-3.7-flash`**. 이 세대에서 실측:
