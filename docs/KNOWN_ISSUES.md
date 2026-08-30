@@ -96,6 +96,35 @@
 
 **재검토: 2026-08-27 (KHIDI 중간평가) 전까지** — ⏰ **기한 경과(2026-08-30 확인), 재검토 대기.** 처리 여부는 이 세션에서 판단 안 함 — PO 영역(위 PO 지시 그대로: 다음 세션도 손대지 말 것).
 
+## 🔎 2026-08-30 전수 감사 — 확인했지만 오늘 안 고친 것 (이유·재검토)
+
+> 2026-08-30 전수 감사에서 **발견마다 반증 검사(코드 실측 + PO 결정 대조)를 통과한 확정 건** 중, 오늘 **일부러 안 고친 것**만 적는다.
+> 규칙(2026-08-14 PO 승인): 🔴만 즉시, 🟡🟢는 기록 + 재검토 날짜. 각 건에 「왜 안 고쳤나」와 「무엇이 트리거면 고치나」를 붙였다.
+> 문서-현실 드리프트류(#1392·#1388·worker-src·앱 버전 표·PREVIEW/AUTOMERGE 프리뷰 지시)는 같은 날 정정 완료 — 이 문서 곳곳의 ✅ 2026-08-30 표기가 그것이다.
+
+### 검사·훑기 도구의 그물 구멍 (전부 내부 도구 — 현재 실서비스 피해 0, 잠복)
+
+1. 🟡 **sweep 코디 교정(번역 역류) 검사 — 자식 스크립트가 죽으면 «통과: 어긋남 0건» 오판** (`scripts/sweep.mjs:490`): execSync 실패를 catch 로 삼키고 「코드와 어긋남 N건」 정규식에 else 가 없어, 자식(`i18n-backport-overrides.mjs`)이 열쇠 폐기·DB 오류로 죽는 날부터 매일 훑기가 거짓 초록. **왜 보류**: 자식 출력을 `--json` 기계 파싱으로 바꾸는 개조가 커서(문자열 맞추기 의존 제거까지 한 세트). 같은 부류로 「화면에 박힌 열쇠」 검사(`sweep.mjs:210`)도 fetch 전실패 = 통과다(rls 검사의 미끼 조회 패턴 미적용). **트리거**: sweep 을 다음에 손댈 때 — 최소 수리는 「매치 실패 = 통과가 아니라 못 잼」 판정 한 줄. **재검토: 2026-09-15**
+2. 🟡 **sweep 크론 감시가 9개 중 3개 하드코딩** (`scripts/sweep.mjs:301`): `vercel.json` 크론 9개 중 kpi·회귀·automation 3개만 감시 — `dispatch-reminders`(5분마다, 환자 리마인더)·`consultation-reminders`·`purge-recordings` 는 조용히 죽어도 sweep·deadman 어디에도 안 걸린다(dispatch-surveys 는 deadman, daily-deploy 는 sweep 검사5가 교차 감시 중). **왜 보류**: 미감시 4개는 「돌면 무조건 한 줄 남는 표」가 없어 감시 행 추가가 불가 — `vercel.json` 을 읽어 «감시 안 붙은 크론 N개»를 알리고 감시 불가 크론은 사유 적은 명시적 제외 목록으로 두는 개조가 필요. **트리거**: sweep 개조 착수 시, 또는 크론 신설 시. **재검토: 2026-09-15**
+3. 🟡 **check-ratelimit-scope 가 «제한이 아예 없음»을 못 잡음 + 비회원 public_token 검증 라우트 무제한** (`scripts/check-ratelimit-scope.mjs:113`): checkRateLimit 호출이 0건인 관문 파일은 검사망 밖인 채 «검사 N개 라우트» 초록에 세어진다 — 실례로 `app/api/attachments/sign/route.ts` 의 비회원 public_token 대조 경로가 무제한(토큰이 UUIDv4 라 실제 맞히기는 계산상 불가능 — 당장 새는 건 아니고 «가드의 사각»이 본질). **왜 보류**: 라우트에 `checkRateLimitPersistent` 를 붙이는 건 실동작 검증(첨부 서명 흐름)이 필요해 오늘 범위 밖. **트리거**: attachments/sign 을 손댈 때 제한 추가 + 검사에 «호출 0건 관문도 위반» 항목(`// allow-no-ratelimit` 면제 주석과 함께). **재검토: 2026-09-15**
+4. 🟡 **check-no-raw-error-exposure 의 setter 화이트리스트·한 줄 매칭 한계** (`scripts/check-no-raw-error-exposure.mjs:36`): `err?.message`(옵셔널 체이닝)·목록 밖 setter(`setErrMsg`·`setConnectErrorDetail` 등)·여러 줄 호출이 전부 통과. 실례: `app/consultation/[id]/page.jsx:3990`(의도적 노출 — #61 재발 방지 — 인데 `// allow-raw-error` 없이 가드 눈 밖으로 통과)·어드민 토스트 2곳(`toast?.error?.('…'+e?.message)`). **왜 보류**: 정규식 확장은 오탐 전수 대조가 필요(「누락보다 과탐이 안전」 원칙 유지하며 넓혀야 함). **트리거**: 이 가드를 다음에 손댈 때 — `?.message` 대응·setter 휴리스틱 확장·3990행 `// allow-raw-error` 명시가 한 세트. **재검토: 2026-09-15**
+5. 🟢 **check-migration-idempotency 의 파일 단위 포괄 면제** (`scripts/check-migration-idempotency.mjs:91`): 파일 어딘가에 `pg_constraint` 가 한 번만 나오면 그 파일의 «모든» ADD CONSTRAINT 가 면제 — 가드된 제약이 있는 파일에 나중에 맨몸 제약을 추가하면 재실행 42710 인데 검사는 초록. 현 저장소 살아있는 위반 0(구조만 열림), 발화해도 시끄러운 하드 에러라 조용한 손상 아님. **트리거**: 이 검사를 손댈 때 제약 «이름 단위» 판정으로. **재검토: 2026-10-15**
+6. 🟢 **check-enum-values 의 RULES 스냅샷(2026-08-20 손 작성) 신선도 무감시** (`scripts/check-enum-values.mjs:34`): 새 IN-목록 CHECK 가 DB 에 생겨도 스냅샷이 낡았다는 신호가 어디에도 안 뜸. 저장소 안 실제 어긋남 0건·스냅샷 10일밖에 안 됨. **트리거**: migrations 에 새 CHECK(IN-목록) 추가 시 RULES 동반 갱신, 자동화는 CLAUDE.md 규칙 7 의 3문답 검토 후(migrations 가 실DB 변경의 전수라는 보장 없음). **재검토: 2026-10-15**
+7. 🟢 **check-workflow-pipefail 이 `shell:` 값을 안 보고 면제** (`scripts/check-workflow-pipefail.mjs:134`): `shell: sh`(pipefail 없음)·`pwsh` 도 «선언됨»으로 통과 — 다만 현 워크플로에 `shell:` 사용 0건(grep 실측)이라 순수 잠복. **트리거**: 워크플로에 `shell:` 을 쓰는 순간 declared 판정을 `shell:\s*bash` 로 좁혀라. **재검토: 2026-10-15**
+
+### 코드 결함 — 실재하나 오늘 조건이 안 맞아 보류
+
+8. 🟡 **화상상담 자막 스티칭이 「배열 마지막 원소 = 내 직전 줄」을 가정** (`app/consultation/[id]/page.jsx:1865`, 같은 패턴 1409~1413): 자기 STT 경로와 통역봇 경로가 10초 스티칭 창 안에 끼어들면 `slice(0,-1)` 이 남의 마지막 줄을 지운다(화면 «자막 기록» 패널 한정 — 서버 저장분은 별도 경로라 DB 무사). **왜 보류**: 화상 영역은 별도 세션 차선(`fix/ai-alert-and-smalltalk-gate` 원격 브랜치 살아 있음)이라 충돌 회피 — 「남의 차선 발견은 문서로」 규칙(AUTOMERGE.md). **고치는 법**(담당 세션용): 교체 대상을 «마지막 원소»가 아니라 entry 고유 id(또는 speaker+at)로 찾아 교체. **트리거**: 그 차선이 닫히거나 화상 자막을 손대는 세션. **재검토: 2026-09-15**
+9. 🟡 **AI 챗 암종 over-anchoring 가드 위치 이동(#1355→55c5d073)의 행동 회귀 미검증** (`src/lib/chat/generateReply.ts:416`): 가드가 프롬프트 최상단→고정부(STATIC_RULES) 뒤로 이동 — 규칙 문자열 222개 diff 0 은 실측 확인했으나, «누적 스레드에서 안 꺾인다»던 원래 우려는 프롬프트만으로 판정 불가. **왜 보류**: 판정엔 실서비스 회귀 측정(`check:ai-behavior` — 커밋 스스로 «반영 후 반드시 돌린다» 명시)이 필요 — 이 상자에서 실호출 불가. 방어 3겹(anti-anchoring 상시 블록·정정 코드 게이트)은 살아 있음. **트리거**: 배포 창구 이후 아무 세션이나 `check:ai-behavior` 1회 — 이미 1순위로 적힌 후속 검증이다. **재검토: 2026-09-07**
+10. 🟢 **반복 루프 감지 턴에서 캐시 접두사 깨짐 — 정확성 무해, 비용 실측 해석 함정** (`src/lib/chat/generateReply.ts:1187`, 스트리밍 쪽 1393~1395): REPETITION_GUARD 가 STATIC_RULES «앞»에 붙어 그 턴만 Gemini 암시적 캐시 미적중(턴당 약 3,012토큰 과금). 반복 감지는 드문 회로차단 상황에서만 발화. **함정**: 배포 후 `ai_usage_events.meta.cached_tokens` 로 캐시를 검증할 때 0 인 건을 접두사 파손으로 오진하지 마라 — 그 턴은 0 이 정상. **트리거**: 캐시 실측 작업 시 REPETITION_GUARD 를 프롬프트 «끝»으로 옮기거나 meta 에 플래그 추가. **재검토: 2026-09-15**
+
+### 화면 톤·i18n — 고치는 방식이 정해져 있어 오늘 안 건드림
+
+11. 🟢 **공개·어드민 화면의 「AI 만든 느낌」 금지 위반 잔재 4묶음**: ①문의 퍼널 큰 컬러 원(w-16 rounded-full+size 32) 3곳 + 💡 이모지 2곳(`app/inquiry/_components/UnifiedInquiryFunnel.jsx:492`·515·584·527·598) ②ReviewModal rounded-3xl+shadow-2xl+영어 제목 «All Reviews»(`src/components/Modals.jsx:32`·34) ③화상상담 대기·거부 화면의 ⏳·✕ 이모지 원(`app/consultation/[id]/page.jsx:3852`·3864) ④어드민 그라데이션 2곳(`app/admin/inquiries/_client/InquiryManager.jsx:284`, `app/admin/rag/documents/page.jsx:119`). **왜 안 고쳤나**: 전부 DESIGN.md 이전부터 있던 기존 부채이고, DESIGN.md change_authority 가 «기존 화면 자동 변경 금지»(PO 명시 키워드 필요) — 화면·취향은 PO 와 화면 보며 고치는 게 관례(2026-08-04 작업 리듬 결정). **트리거**: PO 가 「기본 톤 마이그레이션」류를 지시할 때의 후보 목록이 이것. ③의 teal-400 글씨색은 어두운 화면 정답이니 고치지 말 것. **재검토: PO 지시 시**
+12. 🟡 **i18n 번역 채우기 묶음** — 번역을 6개 언어로 새로 채워야 해서 별도 한 판 작업: ①환자·토큰 페이지 `metadata.title` 한국어 6곳(`app/patient/page.jsx:4`·consultations·symptoms·documents 각 :4 + `/claim/[token]`·`/survey/[token]`) — 러·카 환자 브라우저 탭에 한국어. 수단은 기존 `localizedMeta` 헬퍼(공개 페이지 ~20곳 사용 중) ②ru/kz 에만 있는 유령 키 62개(`src/lib/i18n/dictionary.js:10132` 등 — khidi.* 38·inquiry.* 22·intake.* 2, 현재 사용처 0 = 죽은 키. 삭제가 정답이나 khidi.* 의 유래 미확정이라 확인 후) ③면역병원 히어로 alt 한국어 1곳(`app/hospitals/immune/ImmuneHospitalClient.jsx:79` — 같은 파일 tr 래퍼로 1줄) ④`/no-access` 전면 한국어(`app/no-access/page.jsx:35` — 6개어 인라인 L={} 패턴 5분 작업, 같은 부류 HospitalGateClient·StaffPortalGate 는 이미 수리됨). **트리거**: 다음 i18n 세션에서 한 묶음으로 — ①·③·④는 즉시 가능, ②는 삭제 확인 후. **재검토: 2026-09-15**
+
+> 📌 이 표의 값어치는 「안 고쳤다」가 아니라 **「왜 안 고쳤는지 + 언제 다시 볼지」** 다(위 #1262 표와 같은 규칙 — 날짜 없는 보류는 다시 안 본다).
+
 ## 🔎 전체 코드리뷰 6라운드 — 미고침 발견 목록 (2026-08-14, PO 지시 전수감사)
 
 > 19만 줄을 6라운드로 훑은 결과. 🔴 5건 중 4건은 고쳐서 [#1390](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1390) 으로 올렸다.
