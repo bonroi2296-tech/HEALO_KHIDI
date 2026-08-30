@@ -39,8 +39,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
-const only = (process.argv.find((a) => a.startsWith("--only=")) || "").replace("--only=", "");
-const want = (id) => !only || only.split(",").includes(id);
+const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+const 지정검사 = (onlyArg || "").replace("--only=", "").split(",").map((s) => s.trim()).filter(Boolean);
+const want = (id) => 지정검사.length === 0 || 지정검사.includes(id);
 
 const rows = [];
 const add = (id, 이름, 판정, 근거, 옵션 = {}) => rows.push({ id, 이름, 판정, 근거, 경보: 옵션.경보 !== false });
@@ -477,7 +478,13 @@ async function 검사_아이폰미반영() {
     return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시.아이폰」 칸이 비었거나 부품 목록이 없다");
   }
 
-  const 현재부품 = 아이폰부품목록();
+  let 현재부품;
+  try {
+    현재부품 = 아이폰부품목록();
+  } catch (e) {
+    // 부품 목록을 «반쪽»으로 얻었을 때 통과로 위장하지 않는다 — 위 함수 주석의 🔴 참고.
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", String(e.message));
+  }
   const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
   const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
 
