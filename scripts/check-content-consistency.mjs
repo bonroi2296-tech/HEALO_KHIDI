@@ -703,6 +703,13 @@ const UI_PREMIUM_BASELINE = {
 {
   const UI_PREMIUM_SKIP = /healo[\\/]Primitives\.jsx$/;
   const UI_PREMIUM_IMPORT = /from\s+["'][^"']*healo\/Primitives["']/;
+  // 색값 리터럴 말고 «변수 참조»로 되살아나는 경로도 잡는다 (2026-08-30, elated-meninsky 곁가지 회수).
+  // 정의처(healo-tokens.css)가 삭제돼 var(--gold-2) 류는 값이 «빈 채로» 조용히 렌더된다 — 그래서 더 위험.
+  const UI_PREMIUM_VAR = {
+    re: /var\(--(?:cream|gold|ink|paper|fg-on|font-serif)[\w-]*\)/i,
+    name: "premium 토큰 변수 참조(정의처 삭제됨 — 값이 비어 렌더된다)",
+  };
+  const UI_PREMIUM_TOKENS = [...EMAIL_PREMIUM_TOKENS, UI_PREMIUM_VAR];
   for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
     if (UI_PREMIUM_SKIP.test(file)) continue;
     let lines;
