@@ -21,6 +21,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { getConfirmedEmail } from "@/lib/auth/verifiedEmail";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { mapCostEstimateToJourneyResponse } from "@/lib/patient/costEstimateJourney";
 
 function safeDecrypt(enc: any): string {
   try {
@@ -119,19 +120,11 @@ export async function GET(request: NextRequest) {
       inquiry,
       intake: (intakesRes as any).data?.[0] || null,
       consultations: (consultationsRes as any).data || [],
-      // journeyState 는 `is_final`·`status`("sent"/"accepted") 를 본다 — cost_estimates 의
-      // 실제 칸으로 옮겨 준다. 정식 견적서가 «발행»됐으면 최종 제안, 환자가 «수락»했으면 accepted.
-      // (auto_range 만 있는 건은 자동 추정치라 아직 「보낸 제안」이 아니다 → draft)
-      coordinatorResponses: ((coordResponsesRes as any).data || []).map((e: any) => ({
-        ...e,
-        is_final: Boolean(e.quotation_issued_at),
-        status: e.patient_accepted_at
-          ? "accepted"
-          : e.quotation_issued_at
-            ? "sent"
-            : "draft",
-        created_at: e.quotation_issued_at || e.created_at,
-      })),
+      // journeyState 는 `is_final`·`status` 를 본다 — cost_estimates 의 실제 칸으로
+      // 옮겨 준다. 매핑 규칙(거절·만료 포함)·단위시험은 costEstimateJourney.ts 에.
+      coordinatorResponses: ((coordResponsesRes as any).data || []).map(
+        mapCostEstimateToJourneyResponse
+      ),
       followup: (followupRes as any).data?.[0] || null,
       symptoms: (symptomsRes as any).data || [],
       threads: (threadsRes as any).data || [],
