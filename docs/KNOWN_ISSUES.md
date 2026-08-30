@@ -490,9 +490,10 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   `assetlinks.json` 이 실서비스에 없고 시험용 서명이라 검증 불가 → **원인 진단이 맞았다는 확인.**
 - ⚠️ **부분 검증**: 이메일 `com` 유실은 재현 안 됨. 단 자동 입력은 한글 키보드의 «조합» 방식을 안 거치므로
   **가설을 반증한 게 아니다.** 실기기에서 추가 확인 필요.
-- 🆕 **새 발견(실서비스 웹)**: 콘솔에 CSP 위반 — `Refused to create a worker from 'blob:...'`.
+- ~~🆕 **새 발견(실서비스 웹)**: 콘솔에 CSP 위반 — `Refused to create a worker from 'blob:...'`.
   `worker-src` 가 지정 안 돼 `script-src` 로 폴백되면서 **Web Worker 생성이 차단**된다
-  (`_next/static/chunks/4073.*.js`). 어느 기능이 죽는지 미확인 → 별도 조사 필요.
+  (`_next/static/chunks/4073.*.js`). 어느 기능이 죽는지 미확인 → 별도 조사 필요.~~
+  → ✅ **해소됐다 — 조사도 수리도 끝난 상태 (2026-08-30 실측)**: `next.config.js:197` 에 `"worker-src 'self' blob:"` 이 있고, 191행 주석이 원인(미지정 → script-src 폴백)과 죽던 기능(센트리 세션 리플레이 압축 워커)까지 규명해 뒀다. 재발 가드 `e2e/csp-headers.spec.ts` 존재. **별도 조사 착수하지 마라.**
 
 ## 📋 스토어 앱 — 고칠 것 전수 목록 (2026-07-28 확정, 이 표가 색인)
 
