@@ -4,6 +4,65 @@
 > 채점표 = `src/lib/completeness/rubric.js` (사람용 `docs/DEFINITION_OF_DONE.md`). 형식·루프 구조는 `.claude/skills/completeness-audit/SKILL.md` 참고.
 > 새 엔트리는 이 안내문 바로 아래에 추가.
 
+## 2026-08-31 완성도 감사 (범위: diff — 비공개·환자 화면 다국어화 PR #1547, 합치기 관문)
+
+- **스캔**: DoD-8(반쪽 배선) · DoD-1(6개어) · DoD-3(문서-현실 드리프트) · DoD-5(죽은 링크·막다른길) ·
+  «시험이 진짜로 잠그나»(신규 관점). 3라운드 + 독립 감사 워크플로(5개 관점 병렬 fan-out → 발견 19건 →
+  관점별 반증 검증).
+- **발견 13건 → 전부 수정.** 감사가 없었으면 **판의 본체가 절반만 고쳐진 채 나갈 뻔했다.**
+
+  **🔴 라운드1 — 「같은 부류」를 세다 만 것 (반쪽)**
+  1. `/consultation/{id}` — `GUEST_LINK_PREFIXES` 는 셋인데 앞의 둘만 고쳤다. page 가 `"use client"` 라
+     서버 `layout.jsx` 로 해결.
+  2. `/inquiry/intake` — 코디가 «환자 언어»로 메일 발송하는 토큰 폼인데 제목이 영어였고,
+     **noindex 가 없어 색인 가능**이었다(토큰 없이 열면 빈 화면 = 「내용 없는 페이지」 색인).
+  3. `/education` — «진짜» 색인되는 화면이 영어였다. 번역 키가 같은 날 `app/patient/education`(죽은
+     리다이렉트 껍데기)에 잘못 붙어 있었다. 키를 옮기고 죽은 metadata 삭제.
+
+  **🔴 라운드2 — 「환자가 먼저 보는 화면」을 통째로 빠뜨림**
+  4. **로그인 벽 7곳**(`/login`·`/signup`·`/find-id`·`/forgot-password`·`/reset-password`·
+     `/auth/confirm`·`/account/password`) 이 영어 고정. `/patient/*` 는 전부 로그인 뒤라
+     코디 링크를 누른 환자는 **반드시** 여기로 튕겨 온다(실측: `/patient/visa` → 307 → `/login`).
+     즉 앞 라운드가 고친 화면보다 «먼저» 보는 화면이 안 고쳐져 있었다. + `/app`(앱 설치 안내).
+  5. `/opinion/{token}` — `GUEST_LINK_PREFIXES` 에서 빠져 `<html lang>` 이 **항상 en**.
+  6. 공유 카드 4곳(`/cost-calculator`·`/partners`·`/ru/for-russian-patients`·`/kk/for-kazakh-patients`)
+     이 `openGraph` 만 정의하고 `twitter` 를 안 둬서 **루트의 영어 카드**를 물려받았다.
+     앞 둘은 ru/kz 유료 광고 착지, 뒤 둘은 Yandex 색인 자산이다.
+  7. `noindex` 인데 `canonical` 을 같이 내보내던 3곳(`/specialties/{dental,dermatology,plastic-surgery}`)
+     — **이번 판이 세운 규칙을 정작 세 화면이 어기고 있었다.**
+  8. `robots.txt` 의 죽은 선언 2줄(`Allow: /patient/education`·`/patient/visa`) — 실측하니 둘 다
+     307 → `/login`(Disallow 대상). 크롤러는 그 화면을 본 적이 없다.
+
+  **🔴 라운드3 — 시험이 «잠근다고 주장한 것»을 안 잠그고 있었다**
+  9. `seoMeta.test.ts` 는 **「이미 localizedMeta 를 부르는 화면」만** 봤다 → 어떤 화면이 정적 제목으로
+     되돌아가면 목록에서 그냥 빠지고 전부 초록. **판의 본체에 잠금이 0이었다.**
+     `MUST_LOCALIZE` 29곳을 이름으로 박고, **돌연변이 시험으로 실제 실패를 확인**했다
+     (`/login` 을 정적으로 되돌림 → 실패, 복구 → 통과).
+  10. 같은 파일의 «인라인 base 금지» 검사가 파일 단위로 short-circuit → 두 번째 호출이 빠졌다. 호출 단위로 정정.
+  11. `walk()` 가 `page.*` 만 걸어 새 `layout.*` 두 개가 검사에서 조용히 빠질 뻔했다. `layout` 도 걷게 확장.
+
+  **🔴 내가 쓴 것을 내가 틀림 (같은 날 자기 정정 2건)**
+  12. `KNOWN_ISSUES` 에 *「specialties 3곳이 크롤러에 열려 있어 검색 유입이 있을 수 있다」* 고 적었는데
+      **틀렸다.** 실측하니 셋 다 `noindex` 였고 코드 주석에 **2026-06-17 PO 결정**이 그대로 있었다.
+      `robots.txt` 의 `Allow` 는 크롤 허가일 뿐 색인이 아니다 — 페이지의 noindex 가 이긴다. 항목을 고쳐 썼다.
+  13. `/opinion` 을 «환자용 화면인데 한국어로 샌다»로 읽고 **69개 문구를 번역할 뻔했다.**
+      발송부(`app/api/coordinator/opinions/route.ts` `buildSummary`)를 읽으니 *"검사지·상세를 보시고
+      소견 부탁드립니다"* — **받는 사람이 한국 전문의**였다. 본문 한국어가 «맞는 것»이다.
+      번역을 취소하고, 잘못 쓴 커밋 메시지·주석·사전 문구(환자 시점 → 의사 시점)를 정정했다.
+      **교훈: 화면을 고치기 전에 그 화면의 «독자»를 먼저 확인하라.**
+
+- **검증 방법(정직)**: 프로덕션 빌드(`next build --webpack`) + `next start` 를 띄우고 쿠키
+  `healo_lang=ru`/`kz`·`Accept-Language`·메신저 봇 UA 4종으로 실측. 로그인 없이 열리는 9곳은
+  **Chromium 실브라우저 사진 + `document.title` 실값**으로 남겼다.
+  ⚠️ 서버를 새로 띄울 때마다 **옛 프로세스를 kill 했는지 확인**했다 — 이번 세션에 옛 서버가
+  살아 있어 「안 고쳐졌다」는 거짓 판독이 한 번 났다(고침은 이미 들어가 있었다).
+- **검증 못 함(정직)**: `/patient/*` 14곳 실화면 — 이 상자에 Supabase service_role 열쇠가 없어 로그인 불가.
+  사전의 실제 값으로 대조만 했다(ru/kz 누락 0). 메신저 실카드도 못 봤다(실제 왓츠앱 발송 필요) —
+  대신 봇 UA 4종으로 서버 응답을 쟀다.
+- **안 고치고 기록만 한 것 3건** → `docs/KNOWN_ISSUES.md`:
+  메신저 미리보기 카드가 봇에겐 영어인 것(고치는 recipe까지 적음) · 백오피스 탭 제목 60곳 · 피벗 전 미용 화면 3곳 삭제 여부.
+- **라운드**: 3 (라운드3에서 나온 11이 마지막 신규 발견 — 이후 무발견)
+
 ## 2026-08-30 완성도 감사 (범위: diff — 전수 감사 세션 PR #1541, 합치기 관문)
 - 스캔: DoD-3(문서-현실 드리프트) · DoD-7(시각·폰 폭 412px 실측) · DoD-2/6(조용한 실패) · DoD-1(6개어)
 - **발견 2건 → 전부 수정** (둘 다 «직전 독립 리뷰 수리가 방금 만든» 드리프트 — 고치는 손이 문서를 낡게 한다):
