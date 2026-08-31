@@ -58,8 +58,13 @@ export default defineConfig({
     : {
         // 앞에 붙은 한 줄은 «힙 상한을 로그에 남기는 것»이다 — 아래 env 설정이 실제로
         // 먹었는지 눈으로 확인할 자리가 없으면 「재시작이 안 났다」가 우연인지 알 수 없다.
+        //
+        // 🛑 `console.error` 여야 한다 (2026-08-31 실측). Playwright 의 webServer 는
+        //    **stdout 기본값이 `"ignore"`** 라 `console.log` 는 통째로 버려진다
+        //    (stderr 만 기본 `"pipe"`). 처음에 log 로 썼다가 CI 로그에 한 줄도 안 남아
+        //    「설정이 먹었나」를 판정하지 못했다 — 확인하려고 넣은 줄이 확인이 안 되는 자리에 있었다.
         command:
-          `node -e "console.log('[heap] limit=' + Math.round(require('v8').getHeapStatistics().heap_size_limit/1048576) + 'MB')"` +
+          `node -e "console.error('[heap] limit=' + Math.round(require('v8').getHeapStatistics().heap_size_limit/1048576) + 'MB')"` +
           " && npm run dev",
         /**
          * 🛑 2026-08-31: **매 실행 정확히 1건이 흔들렸다.**
