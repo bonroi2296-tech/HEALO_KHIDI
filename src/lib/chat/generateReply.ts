@@ -277,6 +277,15 @@ export interface ChatSession {
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
+  /**
+   * 대화가 벌어지는 자리. 기본값 "web"(사이트 안 채팅 위젯).
+   * ⚠️ **「게스트 30일 자동 재개」는 web 에서만 참이다** — 그건 브라우저 쿠키
+   * (`app/inquiry/ThreadChat.jsx` COOKIE_MAX_AGE) + `/api/public/chat/resume` 로 굴러간다.
+   * 텔레그램·왓츠앱엔 브라우저도 쿠키도 없고 대신 «그 메신저 대화창»이 곧 스레드라 항상 이어진다.
+   * 이 칸을 안 나누면 메신저 환자에게 없는 기능을 약속하게 되고, 더 나쁘게는 그 거짓말이
+   * 판사에게 「사실」로 넘어가 환각 검출을 통과한다(2026-08-31 독립 리뷰 지적).
+   */
+  channel?: "web" | "messenger";
 }
 
 
@@ -393,15 +402,25 @@ const STATIC_RULES = [
  *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
  */
 export function buildSessionFacts(session: ChatSession = {}): string {
-  const { isLoggedIn = false, hasAttachments = false } = session;
+  const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
+
+  // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
+  //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 언제나 이어진다.
+  //    여기서 안 나누면 «없는 기능»을 약속하고, 그 거짓말이 판사에게 사실로 넘어간다.
+  const continuity = isLoggedIn
+    ? "- The patient is LOGGED IN: the conversation is linked to their account and reopens on ANY device from My Page."
+    : channel === "messenger"
+    // 참인 사실만 적는다. 「쿠키는 없습니다」식 부정문을 넣으면 모델이 그걸 환자에게 그대로
+    // 읊어 오히려 혼란을 준다 — 웹 전용 기능은 «말하지 않는 것»이 맞다.
+    ? "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history and continues right here whenever they come back, with no time limit."
+    : "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in.";
+
   return [
     hasAttachments
       ? "- The patient uploaded document(s)/image(s) in this chat, but the assistant CANNOT open, see, or read their contents — it only knows files were received."
       : "",
     "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
-    isLoggedIn
-      ? "- The patient is LOGGED IN: the conversation is linked to their account and reopens on ANY device from My Page."
-      : "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in.",
+    continuity,
     "- The assistant replies LIVE in this chat; a human coordinator follows up through the patient's contact detail.",
   ]
     .filter(Boolean)
@@ -479,7 +498,7 @@ export function buildSystemPrompt(
     buildSessionFacts(session),
     isLoggedIn
       ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
-      : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. Leaving an email or signing in is optional, never demanded.",
+      : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY using ONLY the fact stated above, and do not add a device, browser, cookie or time limit that is not written there. Leaving an email or signing in is optional, never demanded.",
     "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now.",
     "",
     contactInThisChannel

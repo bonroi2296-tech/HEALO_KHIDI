@@ -235,9 +235,81 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     expect(buildJudgePrompt(neutral)).not.toContain("[SESSION FACTS");
   });
 
-  it("판사에게 «이것도 컨텍스트다»라고 명시한다 — 칸만 있고 규칙이 없으면 또 환각으로 찍는다", () => {
+  /**
+   * ⚠️ 이 블록이 «행동을 바꾸는» 부분을 잠근다.
+   *
+   * 처음 낸 판에서는 이 자리를 `toContain("SESSION FACTS")` + `/환각이 아니다/` 로만 봤는데,
+   * 둘 다 **이 PR 이전부터 있던 다른 문장에 이미 있는 말**이라 규칙 문단을 통째로 지워도
+   * 19건이 전부 초록이었다(독립 리뷰가 실제로 지워서 실증했다).
+   * → 규칙 문단의 **각 조항을 따로** 대조한다. 조항을 지우면 해당 줄이 터진다.
+   */
+  describe("판사 규칙 문단 — 조항별로 잠근다", () => {
     const prompt = buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({}) });
-    expect(prompt).toContain("SESSION FACTS");
-    expect(prompt).toMatch(/환각이 아니다/);
+
+    it("① 「이 칸도 컨텍스트다」 선언", () => {
+      expect(prompt).toContain("RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 셋 다다");
+      expect(prompt).toContain("【SESSION FACTS 칸에 대하여】");
+    });
+
+    it("② 보관·재개 기간이 칸과 같으면 사실이라는 봐주기", () => {
+      expect(prompt).toMatch(/대화 보관·재개 기간을 응답이[\s\S]{0,40}이 칸에 적힌 것과 같으면 사실/);
+    });
+
+    it("③ 봐주기의 «범위 제한» — 의료·체류·일정 주장엔 안 통한다", () => {
+      // 이 조항이 없으면 「30일」 같은 숫자가 토큰 단위로 통과해
+      // "비자로 30일 체류 가능" 류의 지어낸 주장까지 봐주게 된다(독립 리뷰 지적).
+      expect(prompt).toContain("의료·체류·일정에 관한");
+      expect(prompt).toMatch(/이 칸이 근거가 못 된다/);
+    });
+
+    it("④ 역방향 규칙 — 칸과 어긋나게 말하면 여전히 환각이다", () => {
+      expect(prompt).toMatch(/이 칸과 «어긋나게» 말했다면/);
+      expect(prompt).toContain("어느 기기에서나 열린다");
+      expect(prompt).toMatch(/쿠키·기기·기간 제한을 지어냄/);
+      expect(prompt).toContain("첨부파일 내용을 읽은 것처럼");
+    });
+
+    it("⑤ 돈 판정의 근거는 «두 칸»이라고 못 박는다 (칸이 셋이 되며 지시대상이 깨졌던 자리)", () => {
+      // 「위 두 칸」이라고만 쓰여 있던 때는, 새 칸이 끼어들며 그 «두 칸»이
+      // SESSION FACTS + OFFICIAL REFERENCE 로 읽힐 수 있었다 → RAG 에만 있던 진짜 금액이
+      // fabricated_price 로 오탐될 수 있었다(#173 이 고친 부류의 재발 경로).
+      expect(prompt).toContain("**RETRIEVED CONTEXT 와 OFFICIAL REFERENCE 두 칸**");
+      expect(prompt).toMatch(/SESSION FACTS 엔 금액이 없다/);
+      expect(prompt).not.toContain("거꾸로, 위 두 칸에");
+    });
+  });
+
+  /**
+   * 채널 분리 — 텔레그램·왓츠앱엔 브라우저도 쿠키도 없다.
+   * 나누지 않으면 «없는 기능»을 약속하고, 이 PR 이 그 거짓말을 판사에게 「사실」로 넘겨
+   * 환각 검출까지 통과시킨다(독립 리뷰가 잡은 결함 1).
+   */
+  describe("메신저 채널엔 쿠키·30일을 사실로 주지 않는다", () => {
+    it("메신저 게스트 사실엔 30일도 쿠키도 브라우저도 없다", () => {
+      const facts = buildSessionFacts({ isLoggedIn: false, channel: "messenger" });
+      expect(facts).not.toMatch(/30 days/);
+      expect(facts).not.toMatch(/cookie/i);
+      expect(facts).not.toMatch(/browser/i);
+      // 대신 «이 대화창이 곧 스레드»라는 참인 사실이 들어간다.
+      expect(facts).toContain("messenger conversation IS the thread");
+    });
+
+    it("웹 게스트는 그대로 30일 쿠키 재개다 (기본값이 web)", () => {
+      expect(buildSessionFacts({ isLoggedIn: false })).toContain("30 days");
+      expect(buildSessionFacts({ isLoggedIn: false, channel: "web" })).toContain("30 days");
+    });
+
+    it("메신저에서도 판사가 같은 문자열을 본다", () => {
+      const facts = buildSessionFacts({ channel: "messenger" });
+      expect(sessionBlock(buildJudgePrompt({ ...neutral, sessionFacts: facts }))).toContain(facts);
+      expect(buildSystemPrompt("", false, false, [], {}, true, { channel: "messenger" }, "ko")).toContain(facts);
+    });
+
+    it("시스템 프롬프트가 «칸에 없는» 기기·쿠키·기간을 덧붙이지 말라고 지시한다", () => {
+      // 사실 칸을 채널별로 나눠도, 프롬프트의 다른 줄이 「이 기기에서 다시 열린다」고
+      // 덧붙이면 메신저에서 도로 거짓말이 된다(원래 그렇게 적혀 있었다).
+      const sys = buildSystemPrompt("", false, false, [], {}, true, { channel: "messenger" }, "ko");
+      expect(sys).toMatch(/do not add a device, browser, cookie or time limit that is not written there/);
+    });
   });
 });
