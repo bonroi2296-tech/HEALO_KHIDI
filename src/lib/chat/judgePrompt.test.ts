@@ -201,6 +201,21 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     expect(withAll.split("\n")).toHaveLength(4);
   });
 
+  it("🔒 로그인 분기 문장도 잠근다 — 그리고 «진입점»을 말하지 않는다", () => {
+    // golden 은 기대값을 buildSessionFacts 자신으로 만들어서 이 문장이 통째로 창작으로
+    // 바뀌어도 못 잡는다(6차 독립 리뷰가 실증: 완전히 다른 문장으로 바꿔도 1,508건 초록).
+    // 게다가 옛 문구의 「from My Page」는 «거짓»이었다 — /patient/chat 페이지는 실재하지만
+    // 환자 대시보드 메뉴에도 하단탭에도 없어서, 그렇게 안내하면 환자가 가서 못 찾는다.
+    // 그 거짓이 사실 칸에 있으면 판사가 환각으로 못 찍는다(1차 리뷰의 「메신저 쿠키 약속」과
+    // 같은 구조). 참인 만큼만 적고, 화면 이름은 말하지 않게 한다.
+    const loggedIn = buildSessionFacts({ isLoggedIn: true });
+    expect(loggedIn).toMatch(/linked to their account/);
+    expect(loggedIn).toMatch(/continues on ANY device once they sign in/);
+    expect(loggedIn).toMatch(/Do NOT tell them which menu or page to open/);
+    // 🔴 화면·메뉴 이름을 사실로 단정하지 않는다(안내 경로가 바뀌면 즉시 거짓이 된다).
+    expect(loggedIn).not.toMatch(/My Page/i);
+  });
+
   it("게스트 사실을 넘기면 판사 프롬프트에 30일 재개가 들어간다", () => {
     const block = sessionBlock(
       buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({ isLoggedIn: false }) }),
@@ -389,12 +404,19 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
           "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
         ].join("\n");
 
-        // 블록 뒤에는 REGISTER/PROCEED 지시문이 빈 줄 없이 바로 이어지므로 «길이»로 자른다.
-        // 중간에 줄을 끼워 넣거나 빼거나 고치면 여기가 즉시 어긋난다.
+        // ⚠️ 블록의 «끝»까지 고정해야 한다. 처음엔 `slice(start, start + expected.length)` 로
+        //    앞부분만 봤는데, 그러면 마지막 줄 «뒤»에 사실을 덧붙이는 것을 못 잡는다
+        //    (6차 독립 리뷰가 실제로 한 줄 붙여 1,508건 전부 초록임을 실증).
+        //    → 블록 다음에 오는 것(REGISTER/PROCEED)의 시작점까지를 «통째로» 자른다.
+        const REGISTER_MARKER = "- REGISTER / PROCEED:";
+        const end = prompt.indexOf(REGISTER_MARKER, start);
+        expect(end, "REGISTER/PROCEED 표지가 사라져 블록 끝을 못 찾는다").toBeGreaterThan(start);
+        const block = prompt.slice(start, end).replace(/\n+$/, "");
+
         // ⚠️ 여기가 터졌다면 둘 중 하나다:
         //   ① 사실을 추가했다 → `buildSessionFacts` 안에 넣어라(그래야 판사도 본다).
         //   ② 지시문을 고쳤다 → 위 기대값도 같이 고쳐라(고의 변경임을 남기는 자리다).
-        expect(prompt.slice(start, start + expected.length), JSON.stringify(session)).toBe(expected);
+        expect(block, JSON.stringify(session)).toBe(expected);
       }
     });
 

@@ -413,7 +413,12 @@ export function buildSessionFacts(session: ChatSession = {}): string {
   //    «쿠키 안내» 쪽으로 떨어지면 그게 곧 거짓말이다 → 모르는 값은 안전한 쪽으로 보낸다.
   //    (정보가 조금 부족한 것은 괜찮지만, 없는 기능을 약속하는 것은 안 괜찮다.)
   const continuity = isLoggedIn
-    ? "- The patient is LOGGED IN: the conversation is linked to their account and reopens on ANY device from My Page."
+    // ⚠️ 「My Page 에서」라고 «진입점»을 말하지 않는다 — `/patient/chat` 페이지는 실재하지만
+    //    환자 대시보드 메뉴(PatientDashboardClient MENU_ITEMS)에도 하단탭(patient/layout.jsx)에도
+    //    없고 견적·메시지 화면 안쪽에서만 링크된다. 「My Page 에서 열린다」고 안내하면 환자가
+    //    거기 가서 못 찾는다 = 거짓 안내이고, 이 칸에 있으면 판사가 그걸 환각으로 못 찍는다
+    //    (6차 독립 리뷰). 「계정에 연결돼 어느 기기에서나 이어진다」까지가 참이다.
+    ? "- The patient is LOGGED IN: the conversation is linked to their account, so it continues on ANY device once they sign in. Do NOT tell them which menu or page to open — you do not know the current navigation."
     : channel === "web"
     ? "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in."
     // 참인 사실만 적는다. 「쿠키는 없습니다」식 부정문을 넣으면 모델이 그걸 환자에게 그대로

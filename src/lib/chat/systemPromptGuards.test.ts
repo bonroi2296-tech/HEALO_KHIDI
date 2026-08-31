@@ -158,20 +158,15 @@ describe("judge 배선 잠금 (반성문 #179)", () => {
     expect(JUDGE_SRC).not.toMatch(/sessionFacts\?:/);
   });
 
-  it("판사 호출부 «개수»만큼 sessionFacts 가 전달된다", () => {
-    // 타입이 이미 진짜 잠금을 한다. 이건 한 겹 더 보는 것뿐이라 «형태»에 관대해야 한다 —
-    // `sessionFacts,`(shorthand) 든 `sessionFacts: prep.sessionFacts` 든 둘 다 정당하다.
-    // 좁게 세면 «맞는 변경»에도 헛경보가 난다(5차 리뷰 지적).
-    const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
-    const passed = (SRC.match(/^\s*sessionFacts(,|:)/gm) ?? []).length;
-    expect(calls).toBeGreaterThanOrEqual(2);
-    expect(passed).toBeGreaterThanOrEqual(calls);
-  });
-
-  it("안내자료(officialReference)도 호출부 개수만큼 전달된다 (#173 잠금 유지)", () => {
-    const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
-    const passed = (SRC.match(/^\s*officialReference:/gm) ?? []).length;
-    expect(passed).toBeGreaterThanOrEqual(calls);
+  it("판사 호출부 «전부»가 sessionFacts 를 넘긴다 — 호출 블록 안에서만 센다", () => {
+    // ⚠️ 처음엔 파일 전체에서 `sessionFacts` 줄을 세었는데, 인터페이스 필드 선언과
+    //    prepareGeneration 반환까지 같이 세어져 **진짜 배선 두 줄을 다 지워도 통과**했다
+    //    (6차 독립 리뷰 실증). 이제 «호출 블록 안»만 본다.
+    //    진짜 잠금은 타입(위 시험)이 하고, 이건 형태를 바꿔 우회하는 것까지 한 겹 더 보는 것이다.
+    const calls = SRC.match(/runJudgeInBackground\(\{[^}]*\}\)/g) ?? [];
+    expect(calls.length, "호출부를 못 찾았다(정규식이 낡았을 수 있다)").toBeGreaterThanOrEqual(2);
+    expect(calls.filter((c) => !/sessionFacts/.test(c))).toEqual([]);
+    expect(calls.filter((c) => !/officialReference/.test(c))).toEqual([]);
   });
 
   it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + prepareGeneration 1", () => {
