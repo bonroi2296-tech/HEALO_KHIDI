@@ -28,18 +28,28 @@ const CYRILLIC = /[Ѐ-ӿ]/; // 러시아어·카자흐어 공통 문자 범위
 // localizedMeta(baseMeta, "seo.x.title", "seo.x.desc") 호출에서 열쇳말 두 개를 뽑는다.
 const CALL = /localizedMeta\(\s*[A-Za-z_$][\w$]*\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g;
 
+// ⚠️ layout 도 같이 걷는다 (2026-08-31 확장). 클라이언트 컴포넌트(page 첫 줄 "use client")는
+//    metadata 를 내보낼 수 없어서 서버 layout 이 대신 부르는 화면이 있다(app/consultation).
+//    page 만 걷던 시절엔 그런 화면이 아래 «ru/kz 키릴 검사»에서 «조용히» 빠졌다 —
+//    이 시험이 막으려던 바로 그 구조다. 새 파일 이름을 늘리려면 여기부터 늘려라.
+const META_FILE = /^(page|layout)\.(jsx|tsx)$/;
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(p, out);
-    else if (/^page\.(jsx|tsx)$/.test(entry.name)) out.push(p);
+    else if (META_FILE.test(entry.name)) out.push(p);
   }
   return out;
 }
 
+// app/ 을 한 번만 걷는다 — 아래 두 시험이 같은 목록을 본다(예전엔 각자 걸어서
+// 「한쪽만 새 파일을 본다」가 가능했다).
+const META_FILES = walk(APP_DIR);
+
 function collectKeys() {
   const found: { file: string; key: string }[] = [];
-  for (const file of walk(APP_DIR)) {
+  for (const file of META_FILES) {
     const src = fs.readFileSync(file, "utf8");
     for (const m of src.matchAll(CALL)) {
       found.push({ file: path.relative(process.cwd(), file), key: m[1] });
@@ -64,7 +74,7 @@ describe("공개 화면의 검색 제목·설명 언어화", () => {
    */
   it("localizedMeta 를 부르는 화면은 하나도 빠짐없이 위 정규식에 잡힌다 (인라인 base 금지)", () => {
     const missed: string[] = [];
-    for (const file of walk(APP_DIR)) {
+    for (const file of META_FILES) {
       const src = fs.readFileSync(file, "utf8");
       if (!src.includes("localizedMeta(")) continue;
       if ([...src.matchAll(CALL)].length > 0) continue;

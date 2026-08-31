@@ -1,22 +1,11 @@
 import { redirect } from 'next/navigation';
-import { localizedMeta } from "@/lib/i18n/metadata";
 
-// 언어화 경위·함정(«/patient 는 x-locale 이 안 붙는다»)과 base 를 인라인 객체가 아니라
-// 이름 붙인 상수로 두는 이유는 app/patient/page.jsx 주석 참조.
-//
-// ⚠️ 정직하게: 이 화면은 아래에서 곧바로 /education 으로 redirect 하므로 **이 제목이 실제로
-//    브라우저 탭에 뜨는 일은 사실상 없다**(본문 없는 리다이렉트 응답이라 <head> 가 안 나간다).
-//    그래도 고치는 이유는 두 가지다 — ①리다이렉트를 걷어내는 날 영어 제목이 조용히 되살아난다
-//    ②/patient 화면 15개 중 하나만 정적 영어로 남으면 다음 사람이 그걸 「허용된 패턴」으로 읽는다.
-//    실제 화면 제목은 /education(app/education/page.jsx)이 자기 metadata 로 낸다.
-// ⚠️ alternates 는 «일부러» 옛 값 그대로 둔다. 여기서 null 로 바꾸면 「고쳤다」고 말할 수 있을 뿐
-//    실제 효과는 확인할 수 없다(리다이렉트라 메타가 안 나감). 손대지 않는 쪽이 정직하다.
-const baseMeta = { alternates: { canonical: "/education" } };
-
-export async function generateMetadata() {
-  return localizedMeta(baseMeta, "seo.patientEducation.title", "seo.patientEducation.desc");
-}
-
+// 이 화면은 곧바로 /education 으로 되돌리는 «문»일 뿐이다 — 본문 없는 리다이렉트 응답이라
+// <head> 가 나가지 않고, 따라서 제목·설명을 붙여도 브라우저 탭에 뜨는 일이 없다.
+// 2026-08-31 에 여기 다국어 metadata 를 붙였다가 **실측으로 걷어냈다**: 러시아어 설정으로
+// /ru/education 을 열어 보니 영어 제목이 그대로였고, 정작 색인되는 화면은 app/education/page.jsx
+// 였다. 번역 키(seo.patientEducation.*)는 그쪽으로 옮겼다.
+// 「나중에 리다이렉트를 걷어낼지 모르니 남겨두자」는 명분이 아니다(CLAUDE.md: 죽은 코드는 삭제).
 export default function PatientEducationPage() {
   redirect('/education');
 }
