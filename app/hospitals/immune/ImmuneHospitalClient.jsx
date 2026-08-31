@@ -76,7 +76,10 @@ export default function ImmuneHospitalClient() {
           <div className="relative w-full aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             <Image
               src={IMMUNE_PHOTOS.signage}
-              alt="면력한방병원 마곡 본원 리셉션"
+              /* 대체텍스트도 화면 글자다 — 러/카 환자의 스크린리더·이미지 실패 시 한국어가 읽혔다.
+                 이 파일이 useLang/t() 를 쓰는 덕에 check-content-consistency §7(하드코딩 한국어)이
+                 파일 «전체»를 면제해서 이 한 줄만 3개월 살아남았다. 사전 키로 옮긴다. */
+              alt={tr("heroPhotoAlt")}
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"

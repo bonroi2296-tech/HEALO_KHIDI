@@ -35,13 +35,19 @@ export default function robots() {
       // ── 기본 크롤러 ───────────────────────────────────────────
       {
         userAgent: "*",
+        // ⚠️ 여기 목록은 «크롤을 여는» 게 아니라 «우리가 SEO 지면이라고 선언하는» 목록이다.
+        //    맨 위 "/" 가 이미 전부를 열어 두므로(막는 건 아래 disallow 뿐), 각 줄은 사실상 주석이다.
+        //    그래서 «없는 지면»을 적어두면 다음 사람이 그걸 지면으로 믿는다.
+        // 2026-08-31 삭제: "/patient/education"·"/patient/visa".
+        //    실측 — 로그인 없이 열면 둘 다 **307 → /login** 이다(proxy.ts 가 /patient/* 를 먼저 막는다).
+        //    즉 크롤러는 여기 적힌 화면을 «한 번도 본 적이 없고» 매번 Disallow 인 /login 에 부딪혔다.
+        //    같은 날 두 화면에 noindex 까지 붙었으니(app/patient/visa/page.jsx) 선언과 현실이
+        //    정반대가 됐다. 교육자료의 «진짜» 공개 지면은 /education 이고 그건 "/" 로 이미 열려 있다.
         allow: [
           "/",
           "/treatments",
           "/hospitals",
           "/specialties",
-          "/patient/education",
-          "/patient/visa",
           "/about",
           "/contact",
           "/ru/for-russian-patients",

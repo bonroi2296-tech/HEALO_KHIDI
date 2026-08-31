@@ -59,7 +59,15 @@ function isPublicLocalePath(pathname: string) {
 
 // 토큰 링크로 «계정 없이» 들어오는 화면. SEO 대상이 아니라 URL 언어화는 안 하지만,
 // 방문자 본인 언어로는 보여야 한다(러/카 환자가 실제로 여는 유일한 화면들).
-const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/"];
+// ⚠️ 코디가 «로그인 없는 사람»에게 보내는 링크는 하나도 빠짐없이 여기 있어야 한다. 빠지면 그 화면만
+//    조용히 영어로 열린다 — 인증도 라우팅도 멀쩡하니 아무 검사도 안 걸린다.
+//    2026-08-31 추가: "/opinion/" (전문의 소견 요청, app/api/coordinator/opinions/route.ts:51).
+//    실측 — Accept-Language 가 무엇이든 <html lang="en"> 이었다(같은 요청으로 /claim 은 ru/kk 정상).
+//    src/lib/ga.ts:146 은 이미 네 주소를 «같은 부류»로 묶어 두고 있었다(여기만 셋이었다).
+//    ※ 앞의 셋은 환자가 받지만 **/opinion 은 한국 전문의가 받는다**(카톡). 그래도 같은 칸이 맞다 —
+//      이 분기가 하는 일은 「주소에 언어가 없는 로그인 없는 링크의 언어를 방문자에게서 알아내라」이지
+//      「환자용이냐」가 아니다. 한국어 화면에 lang="en" 이 박히던 것도 이걸로 같이 고쳐졌다.
+const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/", "/opinion/"];
 function detectLocale(request: NextRequest) {
   // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -230,10 +238,16 @@ export async function proxy(request: NextRequest) {
   //   실측(2026-07-27 프로덕션): /consultation/… 은 Accept-Language 가 ru·kk·ko 무엇이든
   //   전부 <html lang="en"> (같은 요청으로 /telemedicine 은 ru·kk 로 정상). 러/카 환자가
   //   상담방·만족도설문을 영어로 받고 있었다 = 핵심 타겟이 새는 지점.
-  // 고침: 이 두 경로도 detectLocale(쿠키 → Accept-Language(kk→kz) → en)을 태운다.
+  // 고침: 이 경로들도 detectLocale(쿠키 → Accept-Language(kk→kz) → en)을 태운다.
   //   감지 장치는 이미 있었고 잘 돈다 — 이 경로만 그 분기를 안 탔을 뿐이다.
-  // ⚠️ 인증 로직엔 영향 없다: 이 두 경로는 원래 아래 분기를 하나도 안 타고
+  // ⚠️ 인증 로직엔 영향 없다: 이 경로들은 원래 아래 분기를 하나도 안 타고
   //   맨 끝 NextResponse.next() 로 떨어진다(초대토큰 검증은 페이지·API 가 한다).
+  //   /opinion 을 넣을 때 다시 확인함(2026-08-31): 아래 인증 분기는 /admin·/hospital·/patient·
+  //   /agency·/clinic·/coordinator 여섯뿐이고 /opinion 은 어디에도 안 걸린다 — 즉 이 줄에 넣어도
+  //   «있던 검사가 사라지는» 일이 없다. 새 주소를 넣기 전에 이 대조를 반드시 다시 하라.
+  // 🔸 남은 한계(2026-08-31 실측): 메신저 미리보기 «봇»은 쿠키도 Accept-Language 도 안 보낸다
+  //   → 카드가 영어로 뜬다. 환자가 실제로 열면 Accept-Language 로 제 언어가 나온다(사람은 정상).
+  //   봇까지 맞추려면 링크에 ?lang= 를 붙여야 한다 → docs/KNOWN_ISSUES.md 참고.
   if (GUEST_LINK_PREFIXES.some((p) => pathname.startsWith(p))) {
     const locale = detectLocale(request);
     const headers = new Headers(request.headers);
@@ -274,8 +288,52 @@ export async function proxy(request: NextRequest) {
   }
 
   // ========================================
+  // 로그인 벽 — «처음 오는» 방문자도 제 언어로 (2026-08-31)
+  // ========================================
+  // 왜 필요한가 (실측): `/patient/*` 는 전부 로그인 뒤라 코디가 보낸 딥링크를 누른 환자는
+  //   307 로 `/login` 에 도착한다. 그런데 `/login` 은 PUBLIC_PREFIXES 에도 GUEST_LINK_PREFIXES
+  //   에도 없어서 x-locale 이 안 붙고, getUiLocale 의 폴백은 «쿠키뿐»이라 **쿠키가 없는 첫
+  //   방문자는 통째로 영어**를 받았다 — Accept-Language 가 ru 든 kk 든 <html lang="en">.
+  //   즉 「두 번째 방문부터만 러시아어」였고, 초대 링크로 처음 오는 환자가 정확히 그 반대다.
+  //   (2026-08-31 실측: Accept-Language: ru 로 /patient/visa → /login 도착 → "Sign in | healwith")
+  //
+  // ⚠️ 왜 getUiLocale 에 Accept-Language 를 넣지 «않았나» — 그게 더 짧아 보이지만 틀린다.
+  //   서버 컴포넌트는 쿠키를 심을 수 없다. 서버만 Accept-Language 로 ru 를 그리면 클라이언트는
+  //   쿠키가 없어 en 으로 갈려 **hydration mismatch**(POSTMORTEMS #77)가 그대로 재현된다.
+  //   그래서 «쿠키를 심을 수 있는 유일한 자리»인 여기서 고친다 — 위 게스트 분기와 같은 방식이다.
+  //
+  // ⚠️ 여기 목록은 «인증 검사를 원래 안 타는» 화면만이어야 한다. 아래 인증 분기(/admin·/patient·
+  //   /hospital·/agency·/clinic·/coordinator)에 걸리는 경로를 넣으면 그 분기를 건너뛰어
+  //   **검사가 사라진다.** 넣기 전에 반드시 아래 분기 목록과 대조하라.
+  //   `/patient/*` 를 여기 넣지 않은 이유도 그것이고, 넣을 필요도 없다 — 환자는 `/login` 을
+  //   반드시 거치고 거기서 쿠키가 심어지므로 그다음 화면부터는 쿠키가 이어 준다.
+  //   `/auth/confirm` 만 넣고 `/auth/callback` 은 안 넣는다(OAuth 콜백은 손대지 않는다).
+  const VISITOR_LANG_PREFIXES = [
+    "/login",
+    "/signup",
+    "/find-id",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/confirm",
+    "/account/password",
+    "/no-access",
+    "/app",
+  ];
+  if (VISITOR_LANG_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    const locale = detectLocale(request);
+    const headers = new Headers(request.headers);
+    headers.set("x-locale", locale);
+    const res = NextResponse.next({ request: { headers } });
+    // 불변식(POSTMORTEMS #77): x-locale 을 주입하는 분기는 healo_lang 쿠키도 같이 심는다.
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
+    return res;
+  }
+
+  // ========================================
   // 예외 경로: 인증 없이 통과
   // ========================================
+  // ⚠️ /login·/signup 은 위 VISITOR_LANG_PREFIXES 가 «먼저» 잡아 같은 next() 를 돌려준다
+  //    (언어만 얹어서). 여기 남겨 두는 건 목록이 갈라졌을 때의 안전벨트다.
   const publicPaths = [
     "/login",
     "/signup",
