@@ -73,26 +73,34 @@ export async function localizedMeta(base, titleKey, descKey) {
   const locale = await getUiLocale();
   const title = t(titleKey, locale);
   const description = t(descKey, locale);
-  // ⚠️ base 에 openGraph/twitter 가 «없으면 키 자체를 안 쓴다» (2026-08-31 실측으로 고침).
-  //   `openGraph: undefined` 로 내보내면 Next 의 병합이 `for (const key in metadata)` 라
-  //   **값이 undefined 여도 키가 잡혀** resolveOpenGraph(undefined) → null 로 루트 layout 의
-  //   og:*·twitter:* 를 통째로 지운다. 실측: 그 상태의 /claim 은 og 0개·twitter 0개였고
-  //   /login(안 고친 화면)은 상속돼 살아 있었다. **카카오톡은 og 전용이라 미리보기가 아예 안 뜬다** —
-  //   코디가 메신저로 보내는 링크가 바로 /claim·/survey 라 이 회귀는 기능의 명분을 깎는다.
-  //   og:url 을 여기서 넣는 이유는 그대로다: 공개 페이지가 각자 openGraph 를 정의하면 layout 것이
-  //   통째로 대체되므로 layout 에만 넣으면 전 페이지에서 사라진다(2026-08-28 실측).
-  const og = base.openGraph
-    ? { openGraph: { ...base.openGraph, title, description, url: (await localeAlternates())?.canonical } }
-    : {};
+  // ⚠️ og·twitter 는 «항상» 언어화된 값으로 채운다 — base 에 없어도 마찬가지다.
+  //   2026-08-31 에 이 자리를 두 번 틀렸고, 두 번 다 실측으로 잡혔다:
+  //   ①`openGraph: undefined` 를 키로 내보냄 → Next 병합이 `for (const key in metadata)` 라
+  //     값이 undefined 여도 키가 잡혀 루트 layout 것을 통째로 지웠다(/claim 이 og 0개).
+  //   ②그래서 «키 자체를 안 쓰게» 바꿨더니 이번엔 루트 layout 의 **영어 마케팅 카드**를 그대로
+  //     물려받았다 — 실측: og:title="healwith | Korea Cancer Care…"(영어), og:url=".../ru"(러시아어 홈).
+  //     제목만 러시아어인데 메신저가 읽는 건 og 라, 카카오톡·왓츠앱엔 여전히 영어가 떴다.
+  //   → 정답은 «지우기»도 «비우기»도 아니라 «언어화해서 채우기». 그래야 코디가 보내는
+  //     /claim·/survey 링크의 미리보기 카드가 환자 언어로 뜬다.
+  //   og:url 은 공개 화면(base.openGraph 있음)에만 넣는다. 비공개 화면은 x-pathname 이 없어
+  //   canonical 이 «그 언어 홈»으로 잘못 찍히기 때문이다(2026-08-31 독립 리뷰 지적).
+  const ogBase = base.openGraph ?? {};
+  const openGraph = { ...ogBase, title, description };
+  if (base.openGraph) openGraph.url = (await localeAlternates())?.canonical;
+  // ⚠️ 미리보기 «썸네일»도 같이 챙긴다. Next 는 opengraph-image 파일을 «그 세그먼트»에만 자동으로
+  //   붙이는데(루트에만 app/opengraph-image.js 가 있다), 페이지가 openGraph 를 정의하는 순간
+  //   루트 것이 안 따라온다 → 이미지 없는 맨 카드가 된다. 수리 «전»에는 layout 을 통째로 상속해
+  //   이미지가 있었으므로, 안 챙기면 그것도 회귀다(2026-08-31 실측: /claim og:image 0개).
+  if (!openGraph.images) openGraph.images = [`${siteUrl()}/opengraph-image`];
   // twitter 도 같이 언어화 (2026-07-30): 예전엔 openGraph 만 갈아서, base.twitter 를 둔
   // 화면(홈·treatments·hospitals·immune)의 트위터/공유 카드만 영어로 남아 있었다.
-  const tw = base.twitter ? { twitter: { ...base.twitter, title, description } } : {};
+  const twitter = { ...(base.twitter ?? {}), title, description };
   return {
     ...base,
     title: { absolute: title },
     description,
-    ...og,
-    ...tw,
+    openGraph,
+    twitter,
   };
 }
 

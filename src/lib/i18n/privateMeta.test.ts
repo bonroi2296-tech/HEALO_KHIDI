@@ -106,24 +106,31 @@ describe("localizedMeta — 메신저 미리보기(og/twitter) 상속 (2026-08-3
     state.cookie = "ru";
   });
 
-  // 왜 이 시험이 있나: base 에 openGraph 가 없을 때 `openGraph: undefined` 를 «키로» 내보내면
-  // Next 의 병합(for...in)이 값이 undefined 여도 키를 잡아 resolveOpenGraph(undefined) → null 로
-  // 루트 layout 의 og:*·twitter:* 를 통째로 지운다. 실측(2026-08-31): 그 상태의 /claim 은
-  // og 0개·twitter 0개였고, 안 고친 /login 은 상속돼 살아 있었다.
-  // ⛔ 카카오톡은 og 전용이라 미리보기 카드가 «아예» 안 뜬다 — 코디가 메신저로 보내는 링크가
-  //    바로 /claim·/survey 라, 이 회귀는 이 기능의 존재 이유를 깎는다.
-  it("base 에 openGraph 가 없으면 키 자체를 안 만든다 (layout 상속 유지)", async () => {
-    const meta = await localizedMeta(
+  // 왜 이 시험이 있나 — 이 자리를 2026-08-31 에 «두 번» 틀렸고 둘 다 실측으로 잡혔다:
+  //  ①`openGraph: undefined` 를 키로 내보냄 → Next 병합이 값 undefined 도 키로 잡아
+  //    루트 layout 의 og 를 통째로 지웠다(실측: /claim og 0개 · twitter 0개).
+  //  ②그래서 «키 자체를 안 씀»으로 바꿨더니 이번엔 루트 layout 의 **영어 마케팅 카드**를
+  //    그대로 물려받았다(실측: og:title="healwith | Korea Cancer Care…", og:url=".../ru").
+  //    제목만 러시아어이고 메신저가 읽는 og 는 영어 — 고친 게 아니라 더 나빠진 상태였다.
+  // → 정답은 «언어화해서 채우기». 코디가 보내는 /claim·/survey 링크의 미리보기 카드가
+  //   환자 언어로 떠야 이 기능이 값을 한다. 실측 확인: og:title "Ход вашего лечения | healwith".
+  it("base 에 openGraph 가 없어도 og·twitter 를 «언어화해서» 채운다 (영어 카드 상속 금지)", async () => {
+    const meta: any = await localizedMeta(
       { robots: { index: false, follow: false }, alternates: null },
       "seo.noAccess.title",
       "seo.noAccess.desc"
     );
-    expect("openGraph" in meta).toBe(false);
-    expect("twitter" in meta).toBe(false);
+    expect(meta.openGraph.title).toMatch(/[А-Яа-я]/);
+    expect(meta.openGraph.description).toMatch(/[А-Яа-я]/);
+    expect(meta.twitter.title).toMatch(/[А-Яа-я]/);
+    // 썸네일도 잃지 마라 — 수리 전에는 layout 을 통째로 상속해 이미지가 있었다.
+    expect(meta.openGraph.images?.length).toBeGreaterThan(0);
+    // 비공개 화면엔 og:url 을 넣지 않는다 — x-pathname 이 없어 «그 언어 홈»으로 잘못 찍힌다.
+    expect(meta.openGraph.url).toBeUndefined();
   });
 
   it("base 에 openGraph 가 있으면 언어화해서 채운다 (공개 화면 동작 유지)", async () => {
-    const meta = await localizedMeta(
+    const meta: any = await localizedMeta(
       { openGraph: { type: "website" }, twitter: { card: "summary_large_image" } },
       "seo.noAccess.title",
       "seo.noAccess.desc"
