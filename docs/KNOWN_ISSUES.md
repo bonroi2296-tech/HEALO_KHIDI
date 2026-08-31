@@ -121,7 +121,12 @@
 ### 화면 톤·i18n — 고치는 방식이 정해져 있어 오늘 안 건드림
 
 11. 🟢 **공개·어드민 화면의 「AI 만든 느낌」 금지 위반 잔재 4묶음**: ①문의 퍼널 큰 컬러 원(w-16 rounded-full+size 32) 3곳 + 💡 이모지 2곳(`app/inquiry/_components/UnifiedInquiryFunnel.jsx:492`·515·584·527·598) ②ReviewModal rounded-3xl+shadow-2xl+영어 제목 «All Reviews»(`src/components/Modals.jsx:32`·34) ③화상상담 대기·거부 화면의 ⏳·✕ 이모지 원(`app/consultation/[id]/page.jsx:3852`·3864) ④어드민 그라데이션 2곳(`app/admin/inquiries/_client/InquiryManager.jsx:284`, `app/admin/rag/documents/page.jsx:119`). **왜 안 고쳤나**: 전부 DESIGN.md 이전부터 있던 기존 부채이고, DESIGN.md change_authority 가 «기존 화면 자동 변경 금지»(PO 명시 키워드 필요) — 화면·취향은 PO 와 화면 보며 고치는 게 관례(2026-08-04 작업 리듬 결정). **트리거**: PO 가 「기본 톤 마이그레이션」류를 지시할 때의 후보 목록이 이것. ③의 teal-400 글씨색은 어두운 화면 정답이니 고치지 말 것. **재검토: PO 지시 시**
-12. 🟡 **i18n 번역 채우기 묶음** — 번역을 6개 언어로 새로 채워야 해서 별도 한 판 작업: ①환자·토큰 페이지 `metadata.title` 한국어 6곳(`app/patient/page.jsx:4`·consultations·symptoms·documents 각 :4 + `/claim/[token]`·`/survey/[token]`) — 러·카 환자 브라우저 탭에 한국어. 수단은 기존 `localizedMeta` 헬퍼(공개 페이지 ~20곳 사용 중) ②ru/kz 에만 있는 유령 키 62개(`src/lib/i18n/dictionary.js:10132` 등 — khidi.* 38·inquiry.* 22·intake.* 2, 현재 사용처 0 = 죽은 키. 삭제가 정답이나 khidi.* 의 유래 미확정이라 확인 후) ③면역병원 히어로 alt 한국어 1곳(`app/hospitals/immune/ImmuneHospitalClient.jsx:79` — 같은 파일 tr 래퍼로 1줄) ④`/no-access` 전면 한국어(`app/no-access/page.jsx:35` — 6개어 인라인 L={} 패턴 5분 작업, 같은 부류 HospitalGateClient·StaffPortalGate 는 이미 수리됨). **트리거**: 다음 i18n 세션에서 한 묶음으로 — ①·③·④는 즉시 가능, ②는 삭제 확인 후. **재검토: 2026-09-15**
+12. ✅ **[닫힘 2026-08-31] i18n 번역 채우기 묶음** — 네 갈래 «전부» 끝났다(신청서 #1547).
+    ①환자·토큰 화면 한국어 제목 → 29곳을 `localizedMeta` 로 언어화(원래 적힌 6곳보다 넓었다) ·
+    ②ru/kz 유령 키 62개 → 삭제(전수로는 15개 언어 436개) ·
+    ③면역병원 히어로 alt → 6개어 추가(한국어는 다수 표기 「면력한방병원」으로) ·
+    ④`/no-access` 전면 한국어 → 본문·제목 모두 6개어(실측: 한글 0자·키릴 758자).
+    ⚠️ 여기 적혀 있던 파일:줄 번호는 이제 안 맞는다 — 그 줄들은 주석이 됐다. 지금 자리는 각 화면의 `baseMeta`.
 
 > 📌 이 표의 값어치는 「안 고쳤다」가 아니라 **「왜 안 고쳤는지 + 언제 다시 볼지」** 다(위 #1262 표와 같은 규칙 — 날짜 없는 보류는 다시 안 본다).
 
@@ -960,19 +965,27 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   봇은 ①②가 둘 다 없으니 항상 ③으로 떨어진다. **언어를 알 방법이 주소 안에 없다**는 게 근본 원인이다.
 - **고치는 법(다음 사람에게 — 한 벌로 해야 한다, 반쪽 금지)**:
   1. `detectLocale` 맨 앞에 `request.nextUrl.searchParams.get("lang")` 을 한 칸 넣는다(LOCALES 검증 필수).
-  2. 코디가 만드는 링크 생성부에 `?lang={환자언어}` 를 붙인다. 환자 언어는 대부분 그 자리에서 이미 복호화해
-     쓰고 있다 — `app/api/coordinator/opinions/route.ts:51` · `app/api/cron/consultation-reminders/route.ts:106` ·
-     `app/api/cron/dispatch-reminders/route.ts:193·232·260` 등. (`/inquiry/intake` 는 이미
-     `/{lang}/inquiry/intake` 라 **이 문제가 없다** — 그 방식이 정답의 본보기다.)
+  2. 코디가 만드는 링크 생성부에 `?lang={받는 사람 언어}` 를 붙인다. **아래가 전수다** —
+     ⚠️ 2026-08-31 재검증에서 처음 적은 목록이 «가장 중요한 둘을 빠뜨리고 있었다». 그대로 따라 했으면
+     상담방·소견만 고치고 코디가 제일 많이 보내는 진행상황·설문은 그대로 영어로 남았다.
+
+     | 링크 | 만드는 자리 | 받는 사람 |
+     |---|---|---|
+     | `/claim/{token}` 진행 상황 | `src/lib/inquiry/trackingLink.ts:36` | **환자** |
+     | `/survey/{token}` 만족도 설문 | `src/lib/surveys/generateSurveyToken.ts:131` | **환자** |
+     | `/consultation/{id}` 화상상담 방 | `app/api/cron/consultation-reminders/route.ts:106` · `app/api/cron/dispatch-reminders/route.ts:193·232·260` | **환자** |
+     | `/opinion/{token}` 전문의 소견 | `app/api/coordinator/opinions/route.ts:51` | ⚠️ **한국 전문의** — 환자 언어를 붙이면 «틀린다». 붙이려면 `ko` 이거나 아예 안 붙이는 게 맞다 |
+
+     (`/inquiry/intake` 는 이미 `/{lang}/inquiry/intake` 라 **이 문제가 없다** — 그 방식이 정답의 본보기다.)
   3. ①만 하고 ②를 안 하면 죽은 코드다. ②만 하고 ①을 안 하면 아무 효과가 없다.
 - **왜 이번 판에서 안 했나**: ②가 크론·메일 발송 경로를 건드린다. 「제목 언어화」 판에 발송 로직 변경을
   얹으면 문제가 생겼을 때 원인을 가르기 어렵다. **사람이 보는 화면은 이미 다 고쳐졌다**는 게 이 판의 경계다.
 
 ## 🔸 백오피스 탭 제목 60곳이 전부 똑같다 — 안 고쳤다 (2026-08-31 실측, 범위 밖으로 판단)
 
-- **무엇**: `/admin`·`/coordinator`·`/hospital`·`/agency`·`/clinic` 아래 화면 **60곳**의 브라우저 탭 제목이
-  전부 `healwith | Korea Cancer Care for International Patients` 로 같다. 전부 `"use client"` 라
-  자기 제목을 못 내보내고 루트 것을 물려받는다.
+- **무엇**: `/admin`·`/coordinator`·`/hospital`·`/agency`·`/clinic` 아래 화면 **72곳 중 57곳**(자기 제목을 못 내보내는 `"use client"` 화면)의 브라우저 탭 제목이
+  전부 `healwith | Korea Cancer Care for International Patients` 로 같다.
+  ⚠️ 처음엔 「60곳 전부 use client」라고 적었는데 **둘 다 틀렸다**(2026-08-31 재측정: 총 72곳 · use client 57곳).
 - **왜 지금 안 고쳤나**: 이번 판은 **환자가 보는 화면**을 고치는 판이다. 이 60곳은 한국 직원·코디가 쓰는
   내부 도구라 환자·검색·메신저 어디에도 안 나간다. 60곳에 사전 열쇳말 120개를 새로 다는 건 이 판의
   본래 범위(환자 언어 누수)를 두 배로 부풀린다.

@@ -318,6 +318,7 @@ export async function proxy(request: NextRequest) {
     "/account/password",
     "/no-access",
     "/app",
+    "/notifications",
   ];
   if (VISITOR_LANG_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     const locale = detectLocale(request);

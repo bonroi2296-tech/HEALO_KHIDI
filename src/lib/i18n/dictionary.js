@@ -1373,6 +1373,9 @@ export const DICTIONARY = {
     //   app/patient 아래 page.jsx 는 실측 15개인데 4개만 고쳐 「반쪽」이라는 독립 리뷰 지적이 나왔다.
     //   증상은 같다(본문은 6개어인데 탭 제목만 영어) → 대응도 같다: generateMetadata + localizedMeta.
     //   ⚠️ 값 안의 「| healwith」를 빼지 마라. 위 문단대로 title:{absolute} 라 루트 template 이 안 붙는다.
+    // ⚠️ 이 두 줄만 «공개·색인» 화면 것이다 — 이름이 patient* 라 위 문단(noindex 환자 화면)에 섞여 있지만
+    //    실제 사용처는 app/education/page.jsx 이고 그 주소(/ru/education 등)는 sitemap 에 실려 검색에 뜬다.
+    //    이름을 바꾸지 않은 이유: 화면·시험 목록까지 같이 고쳐야 해서 별건이다. 값만 공개 화면 기준으로 쓴다.
     "seo.patientEducation.title": "Patient Education | healwith",
     "seo.patientEducation.desc": "Cancer care guides for life after treatment — medication, diet, exercise, warning signs and mental health support.",
     "seo.patientAccount.title": "Account & Privacy | healwith",
@@ -1399,6 +1402,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "Join your scheduled video consultation with a Korean oncology specialist. Interpretation included.",
     "seo.inquiryIntake.title": "Additional Information Form | healwith",
     "seo.inquiryIntake.desc": "Complete the additional details your coordinator requested. We use them to match you with the right Korean hospital.",
+    "seo.notifications.title": "Notifications | healwith",
+    "seo.notifications.desc": "Your treatment updates, coordinator messages and appointment reminders in one place.",
     "seo.login.title": "Sign in | healwith",
     "seo.login.desc": "Sign in to healwith to follow your treatment, message your coordinator and join video consultations.",
     "seo.signup.title": "Create an account | healwith",
@@ -3462,6 +3467,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "예약된 한국 종양 전문의 화상상담에 입장하세요. 통역이 함께합니다.",
     "seo.inquiryIntake.title": "추가 정보 입력 | healwith",
     "seo.inquiryIntake.desc": "담당 코디네이터가 요청한 추가 정보를 입력해 주세요. 정확한 병원 매칭에 사용됩니다.",
+    "seo.notifications.title": "알림 | healwith",
+    "seo.notifications.desc": "치료 진행 알림·코디네이터 메시지·예약 알림을 한곳에서 봅니다.",
     "seo.login.title": "로그인 | healwith",
     "seo.login.desc": "healwith에 로그인해 치료 진행 상황 확인, 코디네이터 메시지, 화상상담을 이용하세요.",
     "seo.signup.title": "회원가입 | healwith",
@@ -5510,6 +5517,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "进入与韩国肿瘤专科医生的预约视频问诊。含口译服务。",
     "seo.inquiryIntake.title": "补充信息表 | healwith",
     "seo.inquiryIntake.desc": "请填写协调员要求的补充信息，用于为您精准匹配韩国医院。",
+    "seo.notifications.title": "通知 | healwith",
+    "seo.notifications.desc": "在一处查看治疗进度提醒、协调员消息与预约提醒。",
     "seo.login.title": "登录 | healwith",
     "seo.login.desc": "登录 healwith，跟踪治疗进度、与协调员沟通并加入视频问诊。",
     "seo.signup.title": "注册 | healwith",
@@ -7558,6 +7567,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "予約済みの韓国がん専門医とのオンライン診療に入室します。通訳付き。",
     "seo.inquiryIntake.title": "追加情報フォーム | healwith",
     "seo.inquiryIntake.desc": "担当コーディネーターが依頼した追加情報をご記入ください。韓国の病院を正確にマッチングするために使用します。",
+    "seo.notifications.title": "お知らせ | healwith",
+    "seo.notifications.desc": "治療の進捗・コーディネーターからの連絡・予約リマインダーをまとめて確認できます。",
     "seo.login.title": "ログイン | healwith",
     "seo.login.desc": "healwith にログインして、治療の進捗確認、コーディネーターへの連絡、オンライン診療をご利用ください。",
     "seo.signup.title": "新規登録 | healwith",
@@ -10115,6 +10126,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "Подключитесь к назначенной видеоконсультации с корейским онкологом. Перевод включён.",
     "seo.inquiryIntake.title": "Форма дополнительной информации | healwith",
     "seo.inquiryIntake.desc": "Заполните дополнительные сведения, которые запросил ваш координатор. Они нужны для точного подбора клиники в Корее.",
+    "seo.notifications.title": "Уведомления | healwith",
+    "seo.notifications.desc": "Обновления о лечении, сообщения координатора и напоминания о приёмах — в одном месте.",
     "seo.login.title": "Вход | healwith",
     "seo.login.desc": "Войдите в healwith, чтобы следить за ходом лечения, писать координатору и подключаться к видеоконсультациям.",
     "seo.signup.title": "Регистрация | healwith",
@@ -12165,6 +12178,8 @@ export const DICTIONARY = {
     "seo.consultation.desc": "Кореялық онколог маманмен жоспарланған бейнеконсультацияға қосылыңыз. Аударма қамтылған.",
     "seo.inquiryIntake.title": "Қосымша ақпарат нысаны | healwith",
     "seo.inquiryIntake.desc": "Координаторыңыз сұраған қосымша мәліметтерді толтырыңыз. Олар Кореядағы клиниканы дәл таңдау үшін қажет.",
+    "seo.notifications.title": "Хабарламалар | healwith",
+    "seo.notifications.desc": "Емделу жаңалықтары, координатор хабарламалары және қабылдау еске салғыштары — бір жерде.",
     "seo.login.title": "Кіру | healwith",
     "seo.login.desc": "Емделу барысын қадағалау, координатормен хат алмасу және бейнеконсультацияға қосылу үшін healwith-ке кіріңіз.",
     "seo.signup.title": "Тіркелу | healwith",
