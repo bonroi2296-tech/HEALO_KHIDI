@@ -71,20 +71,28 @@ export async function localizedMeta(base, titleKey, descKey) {
   // ⚠️ 여기만 getUiLocale — x-locale 이 없는 비공개 화면(/patient·/no-access)에서도 쿠키 언어로
   //    제목이 나와야 본문과 언어가 안 갈린다. 아래 localeAlternates 는 계속 x-locale 전용이다.
   const locale = await getUiLocale();
-  // og:url 은 여기서 넣는다 — 공개 페이지가 각자 openGraph 를 정의하면 layout 것이 통째로
-  // 대체되므로, layout 에만 넣으면 전 페이지에서 사라진다(2026-08-28 실측으로 확인).
-  const alt = await localeAlternates();
-  const lc = locale || DEFAULT_LOCALE;
-  const title = t(titleKey, lc);
-  const description = t(descKey, lc);
+  const title = t(titleKey, locale);
+  const description = t(descKey, locale);
+  // ⚠️ base 에 openGraph/twitter 가 «없으면 키 자체를 안 쓴다» (2026-08-31 실측으로 고침).
+  //   `openGraph: undefined` 로 내보내면 Next 의 병합이 `for (const key in metadata)` 라
+  //   **값이 undefined 여도 키가 잡혀** resolveOpenGraph(undefined) → null 로 루트 layout 의
+  //   og:*·twitter:* 를 통째로 지운다. 실측: 그 상태의 /claim 은 og 0개·twitter 0개였고
+  //   /login(안 고친 화면)은 상속돼 살아 있었다. **카카오톡은 og 전용이라 미리보기가 아예 안 뜬다** —
+  //   코디가 메신저로 보내는 링크가 바로 /claim·/survey 라 이 회귀는 기능의 명분을 깎는다.
+  //   og:url 을 여기서 넣는 이유는 그대로다: 공개 페이지가 각자 openGraph 를 정의하면 layout 것이
+  //   통째로 대체되므로 layout 에만 넣으면 전 페이지에서 사라진다(2026-08-28 실측).
+  const og = base.openGraph
+    ? { openGraph: { ...base.openGraph, title, description, url: (await localeAlternates())?.canonical } }
+    : {};
+  // twitter 도 같이 언어화 (2026-07-30): 예전엔 openGraph 만 갈아서, base.twitter 를 둔
+  // 화면(홈·treatments·hospitals·immune)의 트위터/공유 카드만 영어로 남아 있었다.
+  const tw = base.twitter ? { twitter: { ...base.twitter, title, description } } : {};
   return {
     ...base,
     title: { absolute: title },
     description,
-    openGraph: base.openGraph ? { ...base.openGraph, title, description, url: alt?.canonical } : base.openGraph,
-    // twitter 도 같이 언어화 (2026-07-30): 예전엔 openGraph 만 갈아서, base.twitter 를 둔
-    // 화면(홈·treatments·hospitals·immune)의 트위터/공유 카드만 영어로 남아 있었다.
-    twitter: base.twitter ? { ...base.twitter, title, description } : base.twitter,
+    ...og,
+    ...tw,
   };
 }
 

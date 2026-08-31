@@ -152,10 +152,12 @@ export const DICTIONARY = {
     // check-content-consistency §7 이 파일 «전체»를 면제해서(같은 스크립트 :583) 한 줄만 남은 걸 못 봤다.
     // ⚠️ 지점명은 지어내지 말고 hospitalsPage.branch.gangseo.name 표기(강서/Кансо/江西)를 따른다.
     //    원문의 「마곡」은 동 이름이라 사전 전체(구 이름)와 어긋나 환자가 다른 지점으로 읽는다.
-    // ⚠️ 병원명은 «배포 중인» 표기 Immune Hospital 로 통일. glossary.js 의 org.myeonryeok 은
-    //    ru/kz 에 Иммуногоспиталь 을 제안하지만 status:"proposed"(경고만)이고, 실제 사전은 6개어 전부
-    //    Immune Hospital 이다. 여기 한 줄만 바꾸면 용어집이 막으려던 「한 사이트 5가지 이름」을 되살린다.
-    //    표기를 뒤집을 거면 immuneHospital.*·seo.immune.*·seo.hospitals.* 를 한 번에 — 별건(PO 결정).
+    // ⚠️ 병원명 표기는 «이미 갈라져 있다» — 여기 한 줄로 통일하려 들지 마라(2026-08-31 실측 정정).
+    //    실측: 라틴 표기 `Immune Hospital` 53곳 · 러시아어 표기 `Иммунная Клиника` 16곳이 동시에 산다
+    //    (예: careJourney.partnerImmune*, hospitalsPage.branchesDesc). 즉 «6개어 전부 라틴»이 아니다.
+    //    glossary.js 의 org.myeonryeok 은 ru/kz 에 Иммуногоспиталь 을 제안하지만 status:"proposed"(경고만).
+    //    → 지금 이 alt 는 다수 표기(라틴)를 따랐다. 진짜 통일은 immuneHospital.*·careJourney.partnerImmune*·
+    //    hospitalsPage.*·seo.immune.*·seo.hospitals.* 를 한 번에 — 세 표기 중 무엇으로 갈지는 PO 결정(별건).
     "immuneHospital.heroPhotoAlt": "Immune Hospital Gangseo HQ — main reception",
     "immuneHospital.philosophyBody": "Every Immune Hospital recovery program is built on these five principles — not separate treatments, but an integrated system that works together.",
     "immuneHospital.philosophyEyebrow": "Care philosophy",

@@ -99,3 +99,38 @@ describe("localeAlternates — 손대면 안 되는 쪽 (SEO 오염 차단문)",
     expect(Object.keys(alt!.languages)).toHaveLength(7); // 6개 언어 + x-default
   });
 });
+
+describe("localizedMeta — 메신저 미리보기(og/twitter) 상속 (2026-08-31 회귀 수리)", () => {
+  beforeEach(() => {
+    state.header = null;
+    state.cookie = "ru";
+  });
+
+  // 왜 이 시험이 있나: base 에 openGraph 가 없을 때 `openGraph: undefined` 를 «키로» 내보내면
+  // Next 의 병합(for...in)이 값이 undefined 여도 키를 잡아 resolveOpenGraph(undefined) → null 로
+  // 루트 layout 의 og:*·twitter:* 를 통째로 지운다. 실측(2026-08-31): 그 상태의 /claim 은
+  // og 0개·twitter 0개였고, 안 고친 /login 은 상속돼 살아 있었다.
+  // ⛔ 카카오톡은 og 전용이라 미리보기 카드가 «아예» 안 뜬다 — 코디가 메신저로 보내는 링크가
+  //    바로 /claim·/survey 라, 이 회귀는 이 기능의 존재 이유를 깎는다.
+  it("base 에 openGraph 가 없으면 키 자체를 안 만든다 (layout 상속 유지)", async () => {
+    const meta = await localizedMeta(
+      { robots: { index: false, follow: false }, alternates: null },
+      "seo.noAccess.title",
+      "seo.noAccess.desc"
+    );
+    expect("openGraph" in meta).toBe(false);
+    expect("twitter" in meta).toBe(false);
+  });
+
+  it("base 에 openGraph 가 있으면 언어화해서 채운다 (공개 화면 동작 유지)", async () => {
+    const meta = await localizedMeta(
+      { openGraph: { type: "website" }, twitter: { card: "summary_large_image" } },
+      "seo.noAccess.title",
+      "seo.noAccess.desc"
+    );
+    expect(meta.openGraph.type).toBe("website");
+    expect(meta.openGraph.title).toMatch(/[А-Яа-я]/);
+    expect(meta.twitter.card).toBe("summary_large_image");
+    expect(meta.twitter.title).toMatch(/[А-Яа-я]/);
+  });
+});
