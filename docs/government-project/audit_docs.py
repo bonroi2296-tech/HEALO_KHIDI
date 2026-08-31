@@ -19,7 +19,16 @@ from collections import Counter, defaultdict
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from docx import Document
+try:
+    from docx import Document
+except ModuleNotFoundError:
+    # 🛑 트레이스백으로 죽지 마라 — 「고장」인지 「환경에 없음」인지 구별이 안 된다.
+    #    2026-08-31 정리 실측: 이 검사는 `python-docx` 가 없어 매번 트레이스백으로 죽었고,
+    #    어떤 워크플로·훅도 안 부르고 있어 «있는 줄 알지만 한 번도 안 도는 검사»였다.
+    print("⏭️  정부과제 문서 감사 — **못 쟀다**: python-docx 가 이 환경에 없다.")
+    print("   재려면: pip install python-docx  (그다음 npm run check:docs)")
+    print("   ⚠️ 이 줄이 보이면 「통과」라고 적지 마라 — 검사한 적이 없다.")
+    sys.exit(0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 「미래 날짜」 판정 기준은 «돌리는 날»이다. 코드에 박아 두면 날이 갈수록 과거를 미래로 잡는다
