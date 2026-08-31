@@ -387,6 +387,9 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
 
         const r = await generateChatReply(toModelHistory(history), text, lang, thread.id, {
           isLoggedIn: false,
+          // 왓츠앱엔 브라우저도 쿠키도 없다 → 「30일 쿠키 재개」를 사실로 말하면 거짓말이고,
+          // 그 거짓말이 품질 판사에게 「사실」로 넘어가 환각 검출까지 통과한다(반성문 #179 리뷰 지적).
+          channel: "messenger" as const,
           hasReachableContact: true,
           // 이 채팅 자체가 연락 채널 → 연락처·선호 채널 되묻기 금지(텔레그램과 동일).
           contactInThisChannel: true,

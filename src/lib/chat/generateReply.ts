@@ -277,6 +277,15 @@ export interface ChatSession {
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
+  /**
+   * 대화가 벌어지는 자리. 기본값 "web"(사이트 안 채팅 위젯).
+   * ⚠️ **「게스트 30일 자동 재개」는 web 에서만 참이다** — 그건 브라우저 쿠키
+   * (`app/inquiry/ThreadChat.jsx` COOKIE_MAX_AGE) + `/api/public/chat/resume` 로 굴러간다.
+   * 텔레그램·왓츠앱엔 브라우저도 쿠키도 없고 대신 «그 메신저 대화창»이 곧 스레드라 항상 이어진다.
+   * 이 칸을 안 나누면 메신저 환자에게 없는 기능을 약속하게 되고, 더 나쁘게는 그 거짓말이
+   * 판사에게 「사실」로 넘어가 환각 검출을 통과한다(2026-08-31 독립 리뷰 지적).
+   */
+  channel?: "web" | "messenger";
 }
 
 
@@ -380,6 +389,67 @@ const STATIC_RULES = [
   "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
 ].join("\n");
 
+/**
+ * 이 턴에 모델이 «사실»로 받은 세션 상태(로그인 여부·게스트 30일 재개·첨부 못 읽음 등).
+ *
+ * 왜 따로 뺐나 (2026-08-31, 반성문 #179): 이 사실들은 RAG 컨텍스트에도 안내자료에도 없고
+ * 오직 시스템 프롬프트에만 있는데, 품질 판사(judge.ts)는 그 두 칸만 봤다.
+ * → 모델이 여기 적힌 대로 «정확히» 답해도 판사는 "컨텍스트에 없다"며 hallucination 으로 찍었다.
+ *   실측: 60일간 hallucination 53건 중 32건(60%)이 «로그인 안 했는데 저장돼?» 한 케이스,
+ *   7/02~8/30 매일 1건씩 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx COOKIE_MAX_AGE).
+ *   2026-08-28 부터 hallucination 이 ALERT_ALWAYS_FLAGS 라 매일 코디에게 가짜 경보까지 갔다.
+ * ⚠️ 프롬프트와 판사가 «같은 문자열»을 봐야 어긋나지 않는다 — 여기서 한 번만 조립하고
+ *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
+ */
+export function buildSessionFacts(session: ChatSession = {}): string {
+  const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
+
+  // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
+  //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 이어진다.
+  //    여기서 안 나누면 «없는 기능»을 약속하고, 그 거짓말이 판사에게 사실로 넘어간다.
+  // ⚠️ 분기를 «web 일 때만 쿠키»로 «긍정» 판정한다(«messenger 일 때만 아님»이 아니라).
+  //    DB `chat_threads.channel` 값은 "telegram"|"whatsapp"|"web" 이라, 다음 사람이
+  //    `channel: thread.channel` 이라고 넘기면 "telegram" 이 들어온다. 그때 미지의 값이
+  //    «쿠키 안내» 쪽으로 떨어지면 그게 곧 거짓말이다 → 모르는 값은 안전한 쪽으로 보낸다.
+  //    (정보가 조금 부족한 것은 괜찮지만, 없는 기능을 약속하는 것은 안 괜찮다.)
+  const continuity = isLoggedIn
+    // ⚠️ 「My Page 에서」라고 «진입점»을 말하지 않는다 — `/patient/chat` 페이지는 실재하지만
+    //    환자 대시보드 메뉴(PatientDashboardClient MENU_ITEMS)에도 하단탭(patient/layout.jsx)에도
+    //    없고 견적·메시지 화면 안쪽에서만 링크된다. 「My Page 에서 열린다」고 안내하면 환자가
+    //    거기 가서 못 찾는다 = 거짓 안내이고, 이 칸에 있으면 판사가 그걸 환각으로 못 찍는다
+    //    (6차 독립 리뷰). 「계정에 연결돼 어느 기기에서나 이어진다」까지가 참이다.
+    ? "- The patient is LOGGED IN: the conversation is linked to their account, so it continues on ANY device once they sign in. Do NOT tell them which menu or page to open — you do not know the current navigation."
+    : channel === "web"
+    ? "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in."
+    // 참인 사실만 적는다. 「쿠키는 없습니다」식 부정문을 넣으면 모델이 그걸 환자에게 그대로
+    // 읊어 오히려 혼란을 준다 — 웹 전용 기능은 «말하지 않는 것»이 맞다.
+    // ⚠️ 「기한 없음」도 안 쓴다: 코디가 스레드를 종료(resolved/closed)하면 다음 메시지는
+    //    새 스레드로 가서 이전 대화를 안 물고 온다 — 그건 «끊김 없음»이 아니다(2차 리뷰 지적).
+    : "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history, so they can come back to this same chat later.";
+
+  // ⚠️ 「코디가 어떤 경로로 후속하나」는 여기 «넣지 않는다».
+  //    한때 세 갈래로 나눠 넣었다가 뺐다(4차 독립 리뷰). 이유:
+  //    ① 「연락 수단이 없으면 코디가 후속할 수 없다」가 **거짓**이다 — 코디는 같은 스레드에
+  //       답을 남길 수 있고(admin/chat/threads/[id]/messages) 게스트는 돌아와서 그걸 본다.
+  //    ② 그 거짓 문장이 이 칸에 들어가면, 프롬프트의 첨부 하드룰(「코디가 파일을 직접 보고
+  //       설명해 준다」)대로 답한 모델이 판사의 «칸과 어긋나면 환각» 규칙에 걸린다
+  //       = 이 반성문이 없애려던 오탐을 «연락처» 축에 새로 만든다.
+  //    ③ 후속 경로는 애초에 «세션 상태»가 아니라 «업무 절차»이고, 아래 REGISTER/PROCEED
+  //       지시문이 같은 세 갈래로 이미 정확히 다룬다(중복이었다).
+  //    → 이 칸엔 채널·연락처와 무관하게 «항상 참»인 것만 남긴다.
+
+  return [
+    hasAttachments
+      ? "- The patient uploaded document(s)/image(s) in this chat, but the assistant CANNOT open, see, or read their contents — it only knows files were received."
+      : "",
+    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    continuity,
+    "- The assistant replies LIVE in this chat, right now.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
@@ -446,11 +516,16 @@ export function buildSystemPrompt(
     //    라는 출처가 붙어 암환자에게 나갈 수 있었다.** 근거 없는 답보다 나쁜 게 가짜 출처다.
     "",
     "SESSION & IDENTITY FACTS (about THIS conversation — answer any 'will I lose this / am I logged in / how do I get a reply' question with these FACTS, never guess or improvise):",
-    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    // ⚠️ 사실 자체는 buildSessionFacts 한 곳에서만 조립한다 — 품질 판사가 «같은 문자열»을 받아야
+    //    정확한 답이 환각으로 안 찍힌다(반성문 #179). 여기 직접 사실을 추가하지 마라.
+    buildSessionFacts(session),
     isLoggedIn
-      ? "- The patient is LOGGED IN. This conversation is linked to their account, so they can close it and return anytime, on ANY device, from their My Page. Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
-      : "- The patient is a GUEST (not logged in). This conversation also auto-resumes for 30 days on THIS browser/device via a secure cookie. So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. It only won't follow them to a DIFFERENT device unless they leave an email or sign in (optional, never demanded).",
-    "- You reply LIVE in this chat. NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
+      ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
+      : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY using ONLY the fact stated above, and do not add a device, browser, cookie or time limit that is not written there. Leaving an email or signing in is optional, never demanded.",
+    // ⚠️ 「코디가 연락처로 후속한다」 절은 origin/main 그대로 여기 «지시문»으로 둔다 —
+    //    사실 칸(buildSessionFacts)에 넣었다가 뺐다. 연락 수단이 없는 게스트에겐 참이 아니고,
+    //    바로 아래 REGISTER/PROCEED 세 갈래가 그 경우를 정확히 갈라 다룬다(4차 리뷰).
+    "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
     "",
     contactInThisChannel
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), the coordinator will reply RIGHT HERE in this same chat — this chat IS the contact channel. NEVER ask for an email, phone number, messenger ID, or preferred contact method, and never send them to a separate form. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up in this chat. Only ask for any of the 5 required documents still missing."
@@ -1032,6 +1107,8 @@ interface PreparedGeneration {
   ragScoring: string;
   /** 이 턴에 실제 주입된 안내자료 판(전체 or 가격 뺀 축약). 품질 판사에게 같은 걸 보여준다. */
   careReference: string;
+  /** 이 턴에 시스템 프롬프트가 «사실»로 준 세션 상태. 판사에게 같은 문자열을 보여준다(반성문 #179). */
+  sessionFacts: string;
 }
 
 async function prepareGeneration(
@@ -1114,6 +1191,7 @@ async function prepareGeneration(
     judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
     careReference: pickCareReference(docListAllowed),
+    sessionFacts: buildSessionFacts(session),
   };
 }
 
@@ -1164,7 +1242,7 @@ export async function generateChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       return {
@@ -1285,6 +1363,7 @@ export async function generateChatReply(
       response: finalReply,
       context: judgeContext || undefined,
       officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
       threadId: threadId ?? null,
@@ -1369,7 +1448,7 @@ export async function streamChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
@@ -1521,6 +1600,7 @@ export async function streamChatReply(
       response: fullText,
       context: judgeContext || undefined,
       officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,
       threadId: threadId ?? null,

@@ -346,6 +346,11 @@ describe("텔레그램 웹훅 계약", () => {
     expect(generateChatReply).toHaveBeenCalledTimes(1);
     // 텔레그램은 항상 회신 가능 — 연락처 요구 게이트 우회 계약
     expect((generateChatReply.mock.calls[0] as any)[4]?.hasReachableContact).toBe(true);
+    // 채널 표시 계약(반성문 #179) — 이 한 줄이 빠지면 AI 가 텔레그램 환자에게 «없는 기능»인
+    // 「30일 브라우저 쿠키 재개」를 사실로 안내하고, 그 거짓말이 품질 판사에게 「사실 칸」으로
+    // 넘어가 환각 검출까지 통과한다. buildSessionFacts 쪽 시험은 순수함수만 보므로
+    // «값이 실제로 도달하는가»는 여기서만 잡힌다(2차 독립 리뷰 지적).
+    expect((generateChatReply.mock.calls[0] as any)[4]?.channel).toBe("messenger");
     expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "AI 답변");
 
     const sIns = captured.find(
