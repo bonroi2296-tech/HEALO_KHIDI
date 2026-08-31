@@ -29,6 +29,8 @@ const base = {
   query: "위암 수술 얼마나 드나요?",
   response: "담당 코디네이터가 병원 견적을 받아 안내해 드리겠습니다.",
   lang: "ko",
+  // 키를 «명시»한다 — JudgeInput.sessionFacts 는 선택 필드가 아니라 필수 키다(반성문 #179).
+  sessionFacts: undefined,
 };
 
 /** 판사 프롬프트에서 OFFICIAL REFERENCE 칸만 떼어낸다(응답·질문 때문에 통과하는 걸 막는다). */
@@ -83,6 +85,7 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
       response: "면력한방병원에서 보조 케어를 받으실 수 있습니다.",
       lang: "ko",
       officialReference: CARE_REFERENCE_MINIMAL,
+      sessionFacts: undefined,
     });
     const ref = referenceBlock(p);
     expect(ref).toContain("범위 요약");   // 축약판이 실제로 들어갔다
@@ -102,6 +105,7 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
       response: "면력한방병원에서 보조 케어를 받으실 수 있습니다.",
       lang: "ko",
       officialReference: CARE_REFERENCE_MINIMAL,
+      sessionFacts: undefined,
     });
     // 자료에 실제로 있는 «돈 표기»를 전부 뽑아, 그중 하나라도 프롬프트에 나오면 실패.
     // ⚠️ 「$ 붙은 것만」 보면 안 된다 — 자료는 범위 윗값에 $ 를 안 붙인다($6,000–18,500).
@@ -181,6 +185,7 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     query: "나 로그인 안 했는데 이거 저장돼? 창 닫으면 사라져?",
     response: "코디네이터가 이어서 안내해 드리겠습니다.",
     lang: "ko",
+    sessionFacts: undefined as string | undefined,
   };
 
   it("게스트 사실을 넘기면 판사 프롬프트에 30일 재개가 들어간다", () => {
@@ -322,19 +327,34 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
       }
     });
 
-    it("연락처가 없으면 «코디가 연락처로 후속한다»를 사실로 주지 않는다", () => {
-      // 이 문장이 무조건이던 때는, 연락처가 하나도 없는 게스트에게 모델이
-      // "코디가 연락드리겠습니다"라고 답해도 판사가 「칸에 있으니 사실」로 통과시켰다
-      // — 2026-06-22 실제 컴플레인이 났던 거짓 약속이다(3차 리뷰 지적).
-      const noContact = buildSessionFacts({ isLoggedIn: false });
-      expect(noContact).toMatch(/NO way to reach this patient/);
-      expect(noContact).not.toMatch(/contact detail already on file/);
+    it("🔒 사실 칸은 «항상 참인 것»만 담는다 — 연락 경로를 여기 넣지 마라", () => {
+      // 한때 「코디가 어떤 경로로 후속하나」를 세 갈래로 넣었다가 뺐다(4차 독립 리뷰).
+      // 「연락 수단이 없으면 코디가 후속할 수 없다」는 **거짓**이다 — 코디는 같은 스레드에
+      // 답을 남길 수 있고 게스트는 돌아와서 본다. 그 거짓이 이 칸에 들어가면,
+      // 프롬프트의 첨부 하드룰(「코디가 파일을 직접 보고 설명해 준다」)대로 답한 모델이
+      // 판사의 «칸과 어긋나면 환각» 규칙에 걸린다 = 이 PR 이 없애려던 오탐을 새로 만든다.
+      // 후속 경로는 «세션 상태»가 아니라 «업무 절차»이고, REGISTER/PROCEED 지시문의 몫이다.
+      for (const session of [
+        {},
+        { isLoggedIn: true },
+        { isLoggedIn: false, hasReachableContact: true },
+        { isLoggedIn: false, contactInThisChannel: true },
+        { channel: "messenger" as const },
+      ]) {
+        const facts = buildSessionFacts(session);
+        expect(facts, JSON.stringify(session)).not.toMatch(/cannot follow up/i);
+        expect(facts, JSON.stringify(session)).not.toMatch(/contact detail/i);
+        expect(facts, JSON.stringify(session)).not.toMatch(/NO way to reach/i);
+        // 대신 채널·연락처와 무관하게 참인 것만 남는다.
+        expect(facts).toMatch(/replies LIVE in this chat/);
+      }
+    });
 
-      const onFile = buildSessionFacts({ isLoggedIn: false, hasReachableContact: true });
-      expect(onFile).toMatch(/contact detail already on file/);
-
-      const here = buildSessionFacts({ isLoggedIn: false, contactInThisChannel: true });
-      expect(here).toMatch(/follows up IN THIS SAME chat/);
+    it("로그인 사실과 «연락 수단 없음»이 한 칸에서 부딪히지 않는다", () => {
+      // 두 문장이 같은 칸에 있으면 판사에게 모순된 사실을 주게 된다(4차 리뷰 F4).
+      const loggedIn = buildSessionFacts({ isLoggedIn: true });
+      expect(loggedIn).toMatch(/LOGGED IN/);
+      expect(loggedIn).not.toMatch(/account on file/i);
     });
 
     it("메신저에서도 판사가 같은 문자열을 본다", () => {

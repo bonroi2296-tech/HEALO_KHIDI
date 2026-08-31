@@ -137,34 +137,42 @@ describe("deflection-loop guards (regression lock)", () => {
 });
 
 /**
- * 품질 판사 배선 잠금 — 2026-08-31, 반성문 #179 (3차 독립 리뷰 지적).
+ * 품질 판사 배선 잠금 — 2026-08-31, 반성문 #179 (3차·4차 독립 리뷰).
  *
- * 이 PR 의 «존재 이유»는 판사에게 세션 사실을 넘기는 것인데, 정작 그 배선
- * (`runJudgeInBackground({ … sessionFacts … })`) 을 무는 시험이 하나도 없었다.
- * 리뷰어가 그 두 줄을 지우고 돌리니 **1,499건 전부 초록**이었다.
- * `JudgeInput.sessionFacts` 가 선택 필드(`?`)라 typecheck 도 안 걸린다.
- * 즉 리팩터 한 번에 #179 가 통째로 되살아나는데(정확한 답이 매일 환각으로 찍히고
- * 코디에게 가짜 경보) 검사는 전부 초록인 상태였다.
+ * 3차: 이 PR 의 «존재 이유»인 배선(`runJudgeInBackground({ … sessionFacts … })`)을 무는
+ *   시험이 하나도 없었다. 그 두 줄을 지워도 1,499건 전부 초록이었다.
+ * 4차: 그래서 넣은 소스 정규식 시험이 **새 호출부를 못 봤다** — 들여쓰기가 다르거나
+ *   객체를 변수로 넘기면 정규식이 못 잡는데 「«모든» 호출부」라고 이름 붙어 있었다.
+ *   세 번째 호출부를 심어 1,505건 전부 초록임을 리뷰어가 실증했다.
  *
- * ⚠️ 「개수」가 아니라 «전부 넘기는가»를 잰다 — 새 진입점(새 채널·새 스트리밍 경로)을
- *   추가하면서 이 칸만 빠뜨리는 것이 정확히 같은 사고이기 때문이다.
+ * → **진짜 잠금은 타입이 한다**: `JudgeInput.sessionFacts` 는 선택 필드가 아니라
+ *   「키는 필수, 값은 undefined 허용」이라 **호출부가 이 칸을 빠뜨리면 `tsc` 가 막는다.**
+ *   아래 시험은 그 타입 계약이 «살아 있는지»와, 조립이 한 곳에서만 되는지를 지킨다
+ *   (형태에 기대는 검사는 우회되므로 개수 대조 하나만 남긴다).
  */
 describe("judge 배선 잠금 (반성문 #179)", () => {
-  const calls = SRC.match(/runJudgeInBackground\(\{[\s\S]*?\n {4}\}\)/g) ?? [];
+  const JUDGE_SRC = readFileSync(path.resolve(__dirname, "judge.ts"), "utf8");
 
-  it("판사 호출부가 실제로 잡힌다 (정규식이 망가지면 여기가 «먼저» 터진다)", () => {
-    expect(calls.length).toBeGreaterThanOrEqual(2);
+  it("🔒 sessionFacts 는 «선택 필드가 아니다» — 이게 풀리면 호출부 누락을 tsc 가 못 잡는다", () => {
+    expect(JUDGE_SRC).toMatch(/sessionFacts: string \| undefined;/);
+    expect(JUDGE_SRC).not.toMatch(/sessionFacts\?:/);
   });
 
-  it("«모든» 판사 호출부가 sessionFacts 를 넘긴다", () => {
-    expect(calls.filter((c) => !/\bsessionFacts\b/.test(c))).toEqual([]);
+  it("판사 호출부 «개수»만큼 sessionFacts 가 전달된다", () => {
+    // 타입이 이미 막지만, 형태를 바꿔 우회하는 것까지 한 겹 더 본다.
+    const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
+    const passed = (SRC.match(/^\s*sessionFacts,\s*$/gm) ?? []).length;
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(passed).toBe(calls);
   });
 
-  it("«모든» 판사 호출부가 안내자료(officialReference)도 같이 넘긴다 (#173 잠금 유지)", () => {
-    expect(calls.filter((c) => !/\bofficialReference\b/.test(c))).toEqual([]);
+  it("안내자료(officialReference)도 호출부 개수만큼 전달된다 (#173 잠금 유지)", () => {
+    const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
+    const passed = (SRC.match(/^\s*officialReference: careReference,\s*$/gm) ?? []).length;
+    expect(passed).toBe(calls);
   });
 
-  it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + 판사용 1", () => {
+  it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + prepareGeneration 1", () => {
     // 호출부에서 buildSessionFacts 를 «다시» 부르면 시스템 프롬프트가 쓴 것과 어긋날 수 있다.
     expect(SRC).toMatch(/sessionFacts: buildSessionFacts\(session\)/);
     expect(SRC.match(/buildSessionFacts\(session\)/g)?.length).toBe(2);

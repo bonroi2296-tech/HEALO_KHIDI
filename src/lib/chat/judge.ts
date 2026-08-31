@@ -49,8 +49,14 @@ export interface JudgeInput {
    * 실측(2026-08-31): 60일간 hallucination 53건 중 32건(60%)이 이 한 부류 — «로그인 안 했는데
    * 저장돼?» 케이스가 7/02~8/30 매일 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx).
    * 반성문 #179. ⚠️ officialReference 와 «칸을 따로» 쓴다 — 같은 예산을 나눠 쓰면 서로 밀어낸다.
+   *
+   * ⚠️ **선택 필드(`?`)가 아니라 「키는 필수, 값은 undefined 허용」이다.** 이유:
+   *   `?` 였을 때는 새 호출부가 이 칸을 «통째로 빠뜨려도» tsc 도 시험도 안 잡았다
+   *   (4차 독립 리뷰가 세 번째 호출부를 심어 1,505건 전부 초록임을 실증).
+   *   키를 필수로 두면 **호출부가 늘어나는 순간 컴파일이 막는다** — 텍스트 검사보다 훨씬 강하다.
+   *   판사에게 줄 사실이 정말 없는 자리(단위시험 등)는 `sessionFacts: undefined` 라고 «명시»하라.
    */
-  sessionFacts?: string;
+  sessionFacts: string | undefined;
   lang: string;
   messageId?: string | null;
   threadId?: string | null;

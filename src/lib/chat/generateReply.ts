@@ -402,13 +402,7 @@ const STATIC_RULES = [
  *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
  */
 export function buildSessionFacts(session: ChatSession = {}): string {
-  const {
-    isLoggedIn = false,
-    hasAttachments = false,
-    channel = "web",
-    hasReachableContact = false,
-    contactInThisChannel = false,
-  } = session;
+  const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
 
   // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
   //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 이어진다.
@@ -428,15 +422,16 @@ export function buildSessionFacts(session: ChatSession = {}): string {
     //    새 스레드로 가서 이전 대화를 안 물고 온다 — 그건 «끊김 없음»이 아니다(2차 리뷰 지적).
     : "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history, so they can come back to this same chat later.";
 
-  // ⚠️ 후속 연락도 «사실»이라 세 갈래를 나눈다. 예전엔 무조건 「코디가 연락처로 후속한다」였는데,
-  //    연락처가 하나도 없는 게스트에게 그건 거짓 약속이고(2026-06-22 PO 재현으로 실제 컴플레인),
-  //    그 거짓말이 이 칸을 통해 판사에게 「사실」로 넘어가면 환각 검출까지 통과한다
-  //    (1차 리뷰가 잡은 «메신저에 쿠키 약속»과 똑같은 구조 — 3차 리뷰 지적).
-  const followUp = contactInThisChannel
-    ? "- The assistant replies LIVE here, and a human coordinator follows up IN THIS SAME chat — this chat is the contact channel."
-    : hasReachableContact
-    ? "- The assistant replies LIVE here, and a human coordinator follows up through the contact detail already on file."
-    : "- The assistant replies LIVE here. We currently have NO way to reach this patient outside this chat (no email, phone, or account on file), so a coordinator cannot follow up unless they leave a contact.";
+  // ⚠️ 「코디가 어떤 경로로 후속하나」는 여기 «넣지 않는다».
+  //    한때 세 갈래로 나눠 넣었다가 뺐다(4차 독립 리뷰). 이유:
+  //    ① 「연락 수단이 없으면 코디가 후속할 수 없다」가 **거짓**이다 — 코디는 같은 스레드에
+  //       답을 남길 수 있고(admin/chat/threads/[id]/messages) 게스트는 돌아와서 그걸 본다.
+  //    ② 그 거짓 문장이 이 칸에 들어가면, 프롬프트의 첨부 하드룰(「코디가 파일을 직접 보고
+  //       설명해 준다」)대로 답한 모델이 판사의 «칸과 어긋나면 환각» 규칙에 걸린다
+  //       = 이 반성문이 없애려던 오탐을 «연락처» 축에 새로 만든다.
+  //    ③ 후속 경로는 애초에 «세션 상태»가 아니라 «업무 절차»이고, 아래 REGISTER/PROCEED
+  //       지시문이 같은 세 갈래로 이미 정확히 다룬다(중복이었다).
+  //    → 이 칸엔 채널·연락처와 무관하게 «항상 참»인 것만 남긴다.
 
   return [
     hasAttachments
@@ -444,7 +439,7 @@ export function buildSessionFacts(session: ChatSession = {}): string {
       : "",
     "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
     continuity,
-    followUp,
+    "- The assistant replies LIVE in this chat, right now.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -522,7 +517,10 @@ export function buildSystemPrompt(
     isLoggedIn
       ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
       : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY using ONLY the fact stated above, and do not add a device, browser, cookie or time limit that is not written there. Leaving an email or signing in is optional, never demanded.",
-    "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now.",
+    // ⚠️ 「코디가 연락처로 후속한다」 절은 origin/main 그대로 여기 «지시문»으로 둔다 —
+    //    사실 칸(buildSessionFacts)에 넣었다가 뺐다. 연락 수단이 없는 게스트에겐 참이 아니고,
+    //    바로 아래 REGISTER/PROCEED 세 갈래가 그 경우를 정확히 갈라 다룬다(4차 리뷰).
+    "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
     "",
     contactInThisChannel
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), the coordinator will reply RIGHT HERE in this same chat — this chat IS the contact channel. NEVER ask for an email, phone number, messenger ID, or preferred contact method, and never send them to a separate form. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up in this chat. Only ask for any of the 5 required documents still missing."
