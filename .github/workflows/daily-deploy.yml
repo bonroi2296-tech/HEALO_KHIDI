@@ -124,3 +124,35 @@ jobs:
           # 실패하면 그날 배포가 통째로 안 나간다 → 워크플로를 빨간불로 끝내서 눈에 띄게 한다.
           git push origin HEAD:production
           echo "✅ main → production 푸시 완료 — Vercel 프로덕션 빌드 1건이 돈다."
+
+      # ── 푸시가 성공해도 «배포가 안 만들어질» 수 있다 (2026-08-31 실측) ─────────
+      # 그날: 01:36:48 에 main 머지로 프리뷰 배포가 하나 만들어졌고(ignore 스크립트가 취소),
+      #       29초 뒤 01:37:17 에 이 창구가 같은 커밋을 production 으로 밀었다.
+      #       푸시는 성공했는데(185aa4b5..7dad74b9) Vercel 이 **배포를 아예 안 만들었다** —
+      #       같은 커밋의 배포가 방금 있었기 때문으로 보인다. 26분 뒤에도 실서비스는 옛 커밋.
+      #       그런데 이 워크플로는 «푸시 성공 = 배포됨»으로 보고 초록불로 끝났다.
+      #       → 「검사가 통과라고 말하는데 실은 안 본 것」. 푸시가 아니라 «실서비스»를 재야 한다.
+      #
+      # ⚠️ 여기서 빨간불이 나면 배포가 안 나간 것이다. 고치는 법: main 에 새 커밋이 하나라도
+      #    얹히면 (PR 머지든 [deploy] 빈 커밋이든) 이 워크플로를 다시 돌려라. 같은 커밋을
+      #    다시 미는 것은 소용없다 — git 이 "Everything up-to-date" 로 끝나 웹훅이 안 간다.
+      - name: 진짜 나갔는지 확인 (실서비스 커밋 대조)
+        if: steps.holiday.outputs.skip != '1' && steps.check.outputs.skip != '1'
+        run: |
+          set -uo pipefail
+          head="$(git rev-parse HEAD)"
+          for i in $(seq 1 30); do
+            live="$(curl -fsS --max-time 10 "$HEALTH_URL" 2>/dev/null \
+                    | sed -n 's/.*"commit":"\([0-9a-f]\{7,40\}\)".*/\1/p' || true)"
+            if [ "$live" = "$head" ]; then
+              echo "✅ 실서비스 반영 확인 ($head) — ${i}번째 확인, 약 $((i / 2))분"
+              exit 0
+            fi
+            echo "  ($i/30) 실서비스='${live:-읽지 못함}' / 기다리는 커밋=$head"
+            sleep 30
+          done
+          echo "::error::푸시는 됐는데 15분이 지나도 실서비스가 안 바뀌었다 — 배포가 안 만들어졌다."
+          echo "main 에 새 커밋을 얹은 뒤 이 워크플로를 다시 돌려라(같은 커밋 재푸시는 무효)."
+          exit 1
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL || 'https://healwith.co.kr/api/health' }}
