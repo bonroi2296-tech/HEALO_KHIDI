@@ -53,7 +53,10 @@
 
 - **검증 방법(정직)**: 프로덕션 빌드(`next build --webpack`) + `next start` 를 띄우고 쿠키
   `healo_lang=ru`/`kz`·`Accept-Language`·메신저 봇 UA 4종으로 실측. 로그인 없이 열리는 9곳은
-  **Chromium 실브라우저 사진 + `document.title` 실값**으로 남겼다.
+  **Chromium 실브라우저 사진 + `document.title` 실값**으로 재서 PO 에게 냈다.
+  ⚠️ 그 사진은 «저장소에 없다» — 세션 임시폴더에서 만들어 대화로 전달했을 뿐이라 세션이 끝나면 사라진다.
+  다음에 같은 증거가 필요하면 다시 찍어야 한다(찍는 법: 프로덕션 빌드 기동 → Playwright 로
+  쿠키 healo_lang 을 심고 각 주소 방문 → `page.title()` + 스크린샷).
   ⚠️ 서버를 새로 띄울 때마다 **옛 프로세스를 kill 했는지 확인**했다 — 이번 세션에 옛 서버가
   살아 있어 「안 고쳐졌다」는 거짓 판독이 한 번 났다(고침은 이미 들어가 있었다).
 - **검증 못 함(정직)**: `/patient/*` 14곳 실화면 — 이 상자에 Supabase service_role 열쇠가 없어 로그인 불가.

@@ -121,7 +121,12 @@
 ### 화면 톤·i18n — 고치는 방식이 정해져 있어 오늘 안 건드림
 
 11. 🟢 **공개·어드민 화면의 「AI 만든 느낌」 금지 위반 잔재 4묶음**: ①문의 퍼널 큰 컬러 원(w-16 rounded-full+size 32) 3곳 + 💡 이모지 2곳(`app/inquiry/_components/UnifiedInquiryFunnel.jsx:492`·515·584·527·598) ②ReviewModal rounded-3xl+shadow-2xl+영어 제목 «All Reviews»(`src/components/Modals.jsx:32`·34) ③화상상담 대기·거부 화면의 ⏳·✕ 이모지 원(`app/consultation/[id]/page.jsx:3852`·3864) ④어드민 그라데이션 2곳(`app/admin/inquiries/_client/InquiryManager.jsx:284`, `app/admin/rag/documents/page.jsx:119`). **왜 안 고쳤나**: 전부 DESIGN.md 이전부터 있던 기존 부채이고, DESIGN.md change_authority 가 «기존 화면 자동 변경 금지»(PO 명시 키워드 필요) — 화면·취향은 PO 와 화면 보며 고치는 게 관례(2026-08-04 작업 리듬 결정). **트리거**: PO 가 「기본 톤 마이그레이션」류를 지시할 때의 후보 목록이 이것. ③의 teal-400 글씨색은 어두운 화면 정답이니 고치지 말 것. **재검토: PO 지시 시**
-12. 🟡 **i18n 번역 채우기 묶음** — 번역을 6개 언어로 새로 채워야 해서 별도 한 판 작업: ①환자·토큰 페이지 `metadata.title` 한국어 6곳(`app/patient/page.jsx:4`·consultations·symptoms·documents 각 :4 + `/claim/[token]`·`/survey/[token]`) — 러·카 환자 브라우저 탭에 한국어. 수단은 기존 `localizedMeta` 헬퍼(공개 페이지 ~20곳 사용 중) ②ru/kz 에만 있는 유령 키 62개(`src/lib/i18n/dictionary.js:10132` 등 — khidi.* 38·inquiry.* 22·intake.* 2, 현재 사용처 0 = 죽은 키. 삭제가 정답이나 khidi.* 의 유래 미확정이라 확인 후) ③면역병원 히어로 alt 한국어 1곳(`app/hospitals/immune/ImmuneHospitalClient.jsx:79` — 같은 파일 tr 래퍼로 1줄) ④`/no-access` 전면 한국어(`app/no-access/page.jsx:35` — 6개어 인라인 L={} 패턴 5분 작업, 같은 부류 HospitalGateClient·StaffPortalGate 는 이미 수리됨). **트리거**: 다음 i18n 세션에서 한 묶음으로 — ①·③·④는 즉시 가능, ②는 삭제 확인 후. **재검토: 2026-09-15**
+12. ✅ **[닫힘 2026-08-31] i18n 번역 채우기 묶음** — 네 갈래 «전부» 끝났다(신청서 #1547).
+    ①환자·토큰 화면 한국어 제목 → 29곳을 `localizedMeta` 로 언어화(원래 적힌 6곳보다 넓었다) ·
+    ②ru/kz 유령 키 62개 → 삭제(전수로는 15개 언어 436개) ·
+    ③면역병원 히어로 alt → 6개어 추가(한국어는 다수 표기 「면력한방병원」으로) ·
+    ④`/no-access` 전면 한국어 → 본문·제목 모두 6개어(실측: 한글 0자·키릴 758자).
+    ⚠️ 여기 적혀 있던 파일:줄 번호는 이제 안 맞는다 — 그 줄들은 주석이 됐다. 지금 자리는 각 화면의 `baseMeta`.
 
 > 📌 이 표의 값어치는 「안 고쳤다」가 아니라 **「왜 안 고쳤는지 + 언제 다시 볼지」** 다(위 #1262 표와 같은 규칙 — 날짜 없는 보류는 다시 안 본다).
 

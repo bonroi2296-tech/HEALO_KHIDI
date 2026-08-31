@@ -36,6 +36,7 @@ const MUST_GET_VISITOR_LOCALE = [
   "/account/password",
   "/no-access",
   "/app",
+  "/notifications",
 ];
 
 // 코디가 계정 없는 사람에게 보내는 토큰 링크.

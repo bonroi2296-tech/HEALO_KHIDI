@@ -6,7 +6,9 @@ import { localizedMeta } from "@/lib/i18n/metadata";
 //    (LiveKit 훅을 쓴다). 클라이언트 컴포넌트는 metadata·generateMetadata 를 내보낼 수 없으므로
 //    서버 경계가 필요하고, 그 경계가 여기다. 「page 로 옮기자」로 되돌리면 빌드가 깨진다.
 //
-// ⚠️ 왜 필요했나 (실측): proxy.ts 의 GUEST_LINK_PREFIXES 는 세 개다 — /claim/·/survey/·/consultation/.
+// ⚠️ 왜 필요했나 (실측): 이 주소는 proxy.ts 의 GUEST_LINK_PREFIXES 에 «원래 있었다» — 즉 본문 언어는
+//    이미 맞게 나왔고, 빠진 건 «제목·설명(metadata)» 쪽이었다. 둘을 헷갈리지 마라.
+//    (그 목록은 2026-08-31 에 /opinion/ 이 더해져 지금은 네 개다.)
 //    2026-08-31 오전에 앞의 둘만 언어화하고 여기를 빠뜨렸다. 러시아어 쿠키로 재 보니
 //    <title> 이 "healwith | Korea Cancer Care for International Patients"(영어)로 나왔다.
 //    셋 다 코디가 왓츠앱·텔레그램으로 환자에게 붙여 보내는 주소이고, 그중 이 방 링크를 제일 자주
