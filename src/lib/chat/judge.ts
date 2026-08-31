@@ -42,6 +42,15 @@ export interface JudgeInput {
    *   전체판을 항상 넘기면 "안 물었는데 가격 흘림" 을 판사가 못 잡는다.
    */
   officialReference?: string;
+  /**
+   * 이 턴에 시스템 프롬프트가 모델에게 «사실»로 준 세션 상태(generateReply.buildSessionFacts).
+   * 로그인 여부·게스트 30일 재개·첨부 못 읽음 같은 것은 RAG 컨텍스트에도 안내자료에도 없어서,
+   * 이 칸이 없으면 모델이 프롬프트대로 «정확히» 답해도 판사가 "컨텍스트에 없다"며 환각으로 찍는다.
+   * 실측(2026-08-31): 60일간 hallucination 53건 중 32건(60%)이 이 한 부류 — «로그인 안 했는데
+   * 저장돼?» 케이스가 7/02~8/30 매일 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx).
+   * 반성문 #179. ⚠️ officialReference 와 «칸을 따로» 쓴다 — 같은 예산을 나눠 쓰면 서로 밀어낸다.
+   */
+  sessionFacts?: string;
   lang: string;
   messageId?: string | null;
   threadId?: string | null;
@@ -72,6 +81,9 @@ export interface JudgeResult extends JudgeScores {
  */
 export const REFERENCE_BUDGET = 8000;
 
+/** 세션 상태 사실 잘림 한도. 실제로는 5줄 남짓(2026-08-31 기준 ~600자)이라 넉넉하다. */
+export const SESSION_FACTS_BUDGET = 2000;
+
 export function buildJudgePrompt(input: JudgeInput): string {
   const contextSection = input.context
     ? `\n\n[RETRIEVED CONTEXT]\n${input.context.slice(0, 3000)}`
@@ -83,16 +95,26 @@ export function buildJudgePrompt(input: JudgeInput): string {
     ? `\n\n[OFFICIAL REFERENCE — healwith 안내자료]\n${input.officialReference.slice(0, REFERENCE_BUDGET)}`
     : "";
 
+  // 세션 상태 사실도 «칸을 따로» 쓴다(위 두 칸과 같은 이유). 짧으므로 자르지 않는다.
+  const sessionSection = input.sessionFacts
+    ? `\n\n[SESSION FACTS — 이 대화의 실제 상태, 시스템이 응답 생성 시 모델에게 사실로 알려준 것]\n${input.sessionFacts.slice(0, SESSION_FACTS_BUDGET)}`
+    : "";
+
   return `당신은 healwith 의료관광 AI 챗봇의 품질 심사 판사입니다. 아래 사용자 질의와 AI 응답을 평가해 JSON을 반환하세요.
 
 [사용자 질의]
 ${input.query}
-${contextSection}${referenceSection}
+${contextSection}${referenceSection}${sessionSection}
 
 [AI 응답]
 ${input.response}
 
-⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT «와» OFFICIAL REFERENCE 둘 다다.
+⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 셋 다다.
+SESSION FACTS 는 이 대화의 «실제 시스템 동작»이다(로그인 여부, 게스트 30일 자동 재개,
+서버 즉시 저장, 첨부파일을 못 읽는다는 것 등). 응답이 이 칸의 내용을 그대로 안내했다면
+**환각이 아니다** — hallucination 으로 찍지 마라. 이 칸에 「30일」이 있으면 응답의 「30일」은 사실이다.
+거꾸로 이 칸과 «어긋나게» 말했다면(예: 게스트인데 "어느 기기에서나 열린다", 로그인 상태인데
+"이 기기에서만 유지된다", 첨부파일 내용을 읽은 것처럼 설명) 그건 환각이다.
 OFFICIAL REFERENCE 는 병원에서 받아 검증한 healwith 공식 자료다 — 거기 있는 금액·검사비·병원명·
 보조치료 항목(온열·미슬토·싸이모신·고용량 비타민C 등)을 응답이 그대로 인용했다면 **환각이 아니다**.
 hallucination / fabricated_price 로 찍지 마라.

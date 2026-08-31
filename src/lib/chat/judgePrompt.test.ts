@@ -22,7 +22,7 @@ import { describe, it, expect } from "vitest";
 import { buildJudgePrompt, REFERENCE_BUDGET } from "./judge";
 import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL, pickCareReference } from "./careReference";
 import { buildRegressionJudgeMessage, REGRESSION_DOC_LIST_ALLOWED } from "./regressionRunner";
-import { buildSystemPrompt } from "./generateReply";
+import { buildSystemPrompt, buildSessionFacts } from "./generateReply";
 
 /** 자료의 숫자를 일부러 하나도 안 쓴다 — 통과가 «자료 때문»이어야 한다. */
 const base = {
@@ -151,5 +151,93 @@ describe("pickCareReference — 시스템 프롬프트와 판사가 같은 판�
   it("안 물은 턴 = 축약판(금액 없음)", () => {
     expect(pickCareReference(false)).toBe(CARE_REFERENCE_MINIMAL);
     expect(pickCareReference(false)).not.toMatch(/\$[\d,]+/);
+  });
+});
+
+/**
+ * 세션 상태 사실 회귀 잠금 — 2026-08-31, 반성문 #179.
+ *
+ * 사고: #173 과 «같은 자»가 하나 더 비어 있었다. 로그인 여부·게스트 30일 자동 재개·첨부
+ *   못 읽음 같은 사실은 RAG 컨텍스트에도 안내자료에도 없고 시스템 프롬프트에만 있는데,
+ *   판사는 그 두 칸만 봤다 → 모델이 프롬프트대로 «정확히» 답해도 hallucination 으로 찍혔다.
+ *   실측: 60일간 hallucination 53건 중 32건(60%)이 «로그인 안 했는데 저장돼?» 한 케이스로,
+ *   7/02~8/30 매일 1건씩 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx COOKIE_MAX_AGE=30일).
+ *   2026-08-28 부터 hallucination 이 ALERT_ALWAYS_FLAGS 라 매일 코디에게 가짜 경보까지 나갔다.
+ *
+ * ⚠️ #173 과 같은 함정: 응답 문자열에 「30일」을 넣으면 «응답 때문에» 통과한다.
+ *   그래서 아래 응답에는 30일도 로그인도 안 쓰고, 검사는 SESSION FACTS 칸만 떼어내서 본다.
+ */
+describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
+  /** 사실 칸만 떼어낸다 — 응답·질문 때문에 통과하는 걸 막는다. */
+  function sessionBlock(prompt: string): string {
+    const i = prompt.indexOf("[SESSION FACTS");
+    if (i < 0) return "";
+    const j = prompt.indexOf("[AI 응답]", i);
+    return prompt.slice(i, j < 0 ? undefined : j);
+  }
+
+  /** 사실이 하나도 안 들어간 응답 — 통과가 «사실 주입 때문»이어야 한다. */
+  const neutral = {
+    query: "나 로그인 안 했는데 이거 저장돼? 창 닫으면 사라져?",
+    response: "코디네이터가 이어서 안내해 드리겠습니다.",
+    lang: "ko",
+  };
+
+  it("게스트 사실을 넘기면 판사 프롬프트에 30일 재개가 들어간다", () => {
+    const block = sessionBlock(
+      buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({ isLoggedIn: false }) }),
+    );
+    expect(block).toContain("30 days");
+    expect(block).toContain("GUEST");
+  });
+
+  it("로그인 상태는 «다른» 사실이 들어간다 — 두 경우가 안 섞인다", () => {
+    const block = sessionBlock(
+      buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({ isLoggedIn: true }) }),
+    );
+    expect(block).toContain("LOGGED IN");
+    expect(block).not.toContain("30 days");
+  });
+
+  it("첨부가 있으면 «못 읽는다»는 사실도 판사가 본다", () => {
+    const block = sessionBlock(
+      buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({ hasAttachments: true }) }),
+    );
+    expect(block).toMatch(/CANNOT open, see, or read/);
+  });
+
+  it("응시자(시스템 프롬프트)와 채점자가 «같은 문자열»을 본다", () => {
+    // 이게 이 시험의 핵심이다. 한쪽만 검사하면 프롬프트에 사실을 직접 써넣어도 초록으로 남고,
+    // 그 순간 판사는 그 사실을 못 봐서 #179 가 그대로 재발한다.
+    for (const session of [{ isLoggedIn: false }, { isLoggedIn: true }]) {
+      const facts = buildSessionFacts(session);
+      expect(facts.length).toBeGreaterThan(50);
+      // 채점자 쪽
+      expect(sessionBlock(buildJudgePrompt({ ...neutral, sessionFacts: facts }))).toContain(facts);
+      // 응시자 쪽 — buildSystemPrompt 가 같은 함수를 쓰는지.
+      expect(buildSystemPrompt("", false, false, [], {}, true, session, "ko")).toContain(facts);
+    }
+  });
+
+  it("컨텍스트·안내자료가 아무리 길어도 세션 사실을 밀어내지 않는다 (칸을 따로 쓴다)", () => {
+    const block = sessionBlock(
+      buildJudgePrompt({
+        ...neutral,
+        context: "가".repeat(50_000),
+        officialReference: CARE_REFERENCE,
+        sessionFacts: buildSessionFacts({ isLoggedIn: false }),
+      }),
+    );
+    expect(block).toContain("30 days");
+  });
+
+  it("사실을 안 넘긴 호출은 칸 자체가 없다 (기존 동작 보존)", () => {
+    expect(buildJudgePrompt(neutral)).not.toContain("[SESSION FACTS");
+  });
+
+  it("판사에게 «이것도 컨텍스트다»라고 명시한다 — 칸만 있고 규칙이 없으면 또 환각으로 찍는다", () => {
+    const prompt = buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({}) });
+    expect(prompt).toContain("SESSION FACTS");
+    expect(prompt).toMatch(/환각이 아니다/);
   });
 });

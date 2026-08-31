@@ -380,6 +380,34 @@ const STATIC_RULES = [
   "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
 ].join("\n");
 
+/**
+ * 이 턴에 모델이 «사실»로 받은 세션 상태(로그인 여부·게스트 30일 재개·첨부 못 읽음 등).
+ *
+ * 왜 따로 뺐나 (2026-08-31, 반성문 #179): 이 사실들은 RAG 컨텍스트에도 안내자료에도 없고
+ * 오직 시스템 프롬프트에만 있는데, 품질 판사(judge.ts)는 그 두 칸만 봤다.
+ * → 모델이 여기 적힌 대로 «정확히» 답해도 판사는 "컨텍스트에 없다"며 hallucination 으로 찍었다.
+ *   실측: 60일간 hallucination 53건 중 32건(60%)이 «로그인 안 했는데 저장돼?» 한 케이스,
+ *   7/02~8/30 매일 1건씩 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx COOKIE_MAX_AGE).
+ *   2026-08-28 부터 hallucination 이 ALERT_ALWAYS_FLAGS 라 매일 코디에게 가짜 경보까지 갔다.
+ * ⚠️ 프롬프트와 판사가 «같은 문자열»을 봐야 어긋나지 않는다 — 여기서 한 번만 조립하고
+ *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
+ */
+export function buildSessionFacts(session: ChatSession = {}): string {
+  const { isLoggedIn = false, hasAttachments = false } = session;
+  return [
+    hasAttachments
+      ? "- The patient uploaded document(s)/image(s) in this chat, but the assistant CANNOT open, see, or read their contents — it only knows files were received."
+      : "",
+    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    isLoggedIn
+      ? "- The patient is LOGGED IN: the conversation is linked to their account and reopens on ANY device from My Page."
+      : "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in.",
+    "- The assistant replies LIVE in this chat; a human coordinator follows up through the patient's contact detail.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
@@ -446,11 +474,13 @@ export function buildSystemPrompt(
     //    라는 출처가 붙어 암환자에게 나갈 수 있었다.** 근거 없는 답보다 나쁜 게 가짜 출처다.
     "",
     "SESSION & IDENTITY FACTS (about THIS conversation — answer any 'will I lose this / am I logged in / how do I get a reply' question with these FACTS, never guess or improvise):",
-    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    // ⚠️ 사실 자체는 buildSessionFacts 한 곳에서만 조립한다 — 품질 판사가 «같은 문자열»을 받아야
+    //    정확한 답이 환각으로 안 찍힌다(반성문 #179). 여기 직접 사실을 추가하지 마라.
+    buildSessionFacts(session),
     isLoggedIn
-      ? "- The patient is LOGGED IN. This conversation is linked to their account, so they can close it and return anytime, on ANY device, from their My Page. Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
-      : "- The patient is a GUEST (not logged in). This conversation also auto-resumes for 30 days on THIS browser/device via a secure cookie. So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. It only won't follow them to a DIFFERENT device unless they leave an email or sign in (optional, never demanded).",
-    "- You reply LIVE in this chat. NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
+      ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
+      : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. Leaving an email or signing in is optional, never demanded.",
+    "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now.",
     "",
     contactInThisChannel
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), the coordinator will reply RIGHT HERE in this same chat — this chat IS the contact channel. NEVER ask for an email, phone number, messenger ID, or preferred contact method, and never send them to a separate form. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up in this chat. Only ask for any of the 5 required documents still missing."
@@ -1032,6 +1062,8 @@ interface PreparedGeneration {
   ragScoring: string;
   /** 이 턴에 실제 주입된 안내자료 판(전체 or 가격 뺀 축약). 품질 판사에게 같은 걸 보여준다. */
   careReference: string;
+  /** 이 턴에 시스템 프롬프트가 «사실»로 준 세션 상태. 판사에게 같은 문자열을 보여준다(반성문 #179). */
+  sessionFacts: string;
 }
 
 async function prepareGeneration(
@@ -1114,6 +1146,7 @@ async function prepareGeneration(
     judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
     careReference: pickCareReference(docListAllowed),
+    sessionFacts: buildSessionFacts(session),
   };
 }
 
@@ -1164,7 +1197,7 @@ export async function generateChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       return {
@@ -1285,6 +1318,7 @@ export async function generateChatReply(
       response: finalReply,
       context: judgeContext || undefined,
       officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
       threadId: threadId ?? null,
@@ -1369,7 +1403,7 @@ export async function streamChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
@@ -1521,6 +1555,7 @@ export async function streamChatReply(
       response: fullText,
       context: judgeContext || undefined,
       officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,
       threadId: threadId ?? null,
