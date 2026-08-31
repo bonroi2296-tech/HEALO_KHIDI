@@ -159,17 +159,19 @@ describe("judge 배선 잠금 (반성문 #179)", () => {
   });
 
   it("판사 호출부 «개수»만큼 sessionFacts 가 전달된다", () => {
-    // 타입이 이미 막지만, 형태를 바꿔 우회하는 것까지 한 겹 더 본다.
+    // 타입이 이미 진짜 잠금을 한다. 이건 한 겹 더 보는 것뿐이라 «형태»에 관대해야 한다 —
+    // `sessionFacts,`(shorthand) 든 `sessionFacts: prep.sessionFacts` 든 둘 다 정당하다.
+    // 좁게 세면 «맞는 변경»에도 헛경보가 난다(5차 리뷰 지적).
     const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
-    const passed = (SRC.match(/^\s*sessionFacts,\s*$/gm) ?? []).length;
+    const passed = (SRC.match(/^\s*sessionFacts(,|:)/gm) ?? []).length;
     expect(calls).toBeGreaterThanOrEqual(2);
-    expect(passed).toBe(calls);
+    expect(passed).toBeGreaterThanOrEqual(calls);
   });
 
   it("안내자료(officialReference)도 호출부 개수만큼 전달된다 (#173 잠금 유지)", () => {
     const calls = (SRC.match(/runJudgeInBackground\(/g) ?? []).length;
-    const passed = (SRC.match(/^\s*officialReference: careReference,\s*$/gm) ?? []).length;
-    expect(passed).toBe(calls);
+    const passed = (SRC.match(/^\s*officialReference:/gm) ?? []).length;
+    expect(passed).toBeGreaterThanOrEqual(calls);
   });
 
   it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + prepareGeneration 1", () => {

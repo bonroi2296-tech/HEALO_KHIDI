@@ -101,7 +101,8 @@ export function buildJudgePrompt(input: JudgeInput): string {
     ? `\n\n[OFFICIAL REFERENCE — healwith 안내자료]\n${input.officialReference.slice(0, REFERENCE_BUDGET)}`
     : "";
 
-  // 세션 상태 사실도 «칸을 따로» 쓴다(위 두 칸과 같은 이유). 짧으므로 자르지 않는다.
+  // 세션 상태 사실도 «칸을 따로» 쓴다(위 두 칸과 같은 이유).
+  // ⚠️ 지금은 ~600자라 한도에 안 걸리지만 «자르기는 한다» — 사실을 길게 늘리면 조용히 잘린다.
   const sessionSection = input.sessionFacts
     ? `\n\n[SESSION FACTS — 이 대화의 실제 상태, 시스템이 응답 생성 시 모델에게 사실로 알려준 것]\n${input.sessionFacts.slice(0, SESSION_FACTS_BUDGET)}`
     : "";

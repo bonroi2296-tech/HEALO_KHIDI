@@ -188,6 +188,19 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     sessionFacts: undefined as string | undefined,
   };
 
+  it("🔒 사실 칸의 «네 줄»이 전부 살아 있다 — 한 줄이라도 사라지면 여기가 터진다", () => {
+    // golden 블록 시험은 «추가»는 잡지만 «삭제»는 못 잡는다(기대값이 buildSessionFacts
+    // 자신을 쓰므로 함께 줄어든다). 5차 독립 리뷰가 「서버 저장」 한 줄을 지우고
+    // 1,506건 전부 초록임을 실증했다 — 그 줄은 «창 닫으면 사라져?»에 답하는 첫 사실이고
+    // origin/main 부터 있던 문구다. 그래서 내용을 여기서 따로 잠근다.
+    const withAll = buildSessionFacts({ isLoggedIn: false, hasAttachments: true });
+    expect(withAll).toMatch(/saved on healwith's server the moment each message is sent/);
+    expect(withAll).toMatch(/CANNOT open, see, or read their contents/);
+    expect(withAll).toMatch(/auto-resumes for 30 days/);
+    expect(withAll).toMatch(/replies LIVE in this chat/);
+    expect(withAll.split("\n")).toHaveLength(4);
+  });
+
   it("게스트 사실을 넘기면 판사 프롬프트에 30일 재개가 들어간다", () => {
     const block = sessionBlock(
       buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({ isLoggedIn: false }) }),
@@ -355,6 +368,34 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
       const loggedIn = buildSessionFacts({ isLoggedIn: true });
       expect(loggedIn).toMatch(/LOGGED IN/);
       expect(loggedIn).not.toMatch(/account on file/i);
+    });
+
+    it("🔒 SESSION 블록에 «사실을 더 끼워 넣을 수» 없다 (golden — 5차 리뷰)", () => {
+      // 왜 이게 필요한가: 「응시자와 채점자가 같은 문자열을 본다」 시험은 `toContain(facts)` 라,
+      // 사실을 **블록 바로 뒤에 덧붙이면** facts 는 여전히 통째로 들어 있어 초록이었다.
+      // 5차 독립 리뷰가 새 사실 한 줄을 심어 1,506건 전부 초록임을 실증했다 —
+      // 그렇게 들어간 사실은 판사에게 안 넘어가고, 모델이 그대로 답하면 #179 가 그대로 재발한다.
+      // → 블록을 «통째로» 고정한다. 줄을 더하거나 빼면 여기가 즉시 터진다.
+      for (const session of [{}, { isLoggedIn: true }, { channel: "messenger" as const }]) {
+        const prompt = buildSystemPrompt("", false, false, [], {}, true, session, "ko");
+        const start = prompt.indexOf("SESSION & IDENTITY FACTS");
+        expect(start, "SESSION 블록 자체가 사라졌다").toBeGreaterThan(-1);
+        const expected = [
+          "SESSION & IDENTITY FACTS (about THIS conversation — answer any 'will I lose this / am I logged in / how do I get a reply' question with these FACTS, never guess or improvise):",
+          buildSessionFacts(session),
+          session.isLoggedIn
+            ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
+            : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY using ONLY the fact stated above, and do not add a device, browser, cookie or time limit that is not written there. Leaving an email or signing in is optional, never demanded.",
+          "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
+        ].join("\n");
+
+        // 블록 뒤에는 REGISTER/PROCEED 지시문이 빈 줄 없이 바로 이어지므로 «길이»로 자른다.
+        // 중간에 줄을 끼워 넣거나 빼거나 고치면 여기가 즉시 어긋난다.
+        // ⚠️ 여기가 터졌다면 둘 중 하나다:
+        //   ① 사실을 추가했다 → `buildSessionFacts` 안에 넣어라(그래야 판사도 본다).
+        //   ② 지시문을 고쳤다 → 위 기대값도 같이 고쳐라(고의 변경임을 남기는 자리다).
+        expect(prompt.slice(start, start + expected.length), JSON.stringify(session)).toBe(expected);
+      }
     });
 
     it("메신저에서도 판사가 같은 문자열을 본다", () => {
