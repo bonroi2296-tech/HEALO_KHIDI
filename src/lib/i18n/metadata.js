@@ -61,8 +61,16 @@ export function pickLocalized(obj, locale) {
 
 // 정적 metadata(base)에 요청 언어별 제목/설명을 입혀 반환. 공개페이지 generateMetadata에서 사용.
 // title은 absolute로 줘 루트 template "%s | healwith" 중복을 피한다. OG 제목/설명도 같이 언어화.
+//
+// 비공개 화면(/patient·/claim·/survey·/no-access)도 **이 함수를 그대로 쓴다.** 인자를 늘리거나
+// 별도 헬퍼를 만들면 안 된다 — src/lib/i18n/seoMeta.test.ts 의 정규식이 「인자 정확히 3개」를
+// 맞추므로, 모양이 달라지는 순간 그 화면들이 «ru/kz 키릴 검사»에서 경고 없이 빠진다.
+// 비공개 화면은 base 에 `alternates: null` 을 넣어 부른다 → 아래 스프레드로 살아남아
+// 루트 layout 이 물려주는 canonical/hreflang 을 «지운다»(noindex 화면의 SEO 오염 차단).
 export async function localizedMeta(base, titleKey, descKey) {
-  const { locale } = await getRequestLocale();
+  // ⚠️ 여기만 getUiLocale — x-locale 이 없는 비공개 화면(/patient·/no-access)에서도 쿠키 언어로
+  //    제목이 나와야 본문과 언어가 안 갈린다. 아래 localeAlternates 는 계속 x-locale 전용이다.
+  const locale = await getUiLocale();
   // og:url 은 여기서 넣는다 — 공개 페이지가 각자 openGraph 를 정의하면 layout 것이 통째로
   // 대체되므로, layout 에만 넣으면 전 페이지에서 사라진다(2026-08-28 실측으로 확인).
   const alt = await localeAlternates();
