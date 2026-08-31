@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from beyondk_style import (  # noqa: E402
+    save,
     deck, cover, chapter, statement, content, table, band, note, highlight,
     text, line, panel, picture, caption, stat, step, arrow, box, MARGIN, W,
     BLACK, WHITE, BODY, MUTED, PANEL, BRAND, BRAND_PALE, GREEN_L, GREEN_M, HEAVY, XBOLD, MED, REG, LIGHT,
@@ -426,5 +427,7 @@ statement(
 out_dir = os.path.join(ROOT, "docs", "presentations")
 os.makedirs(out_dir, exist_ok=True)
 out = os.path.join(out_dir, "KHIDI_중간보고_20260827.pptx")
-prs.save(out)
+# 🛑 prs.save() 를 쓰지 마라 — 그러면 «낱글자»만 고쳐지고 테마의 한글 글꼴은 맑은 고딕 그대로다.
+#    받은 사람이 한 글자만 새로 쳐도 거기서 깔이 어긋난다(2026-08-31 실측).
+save(prs, out)
 print(out, len(prs.slides._sldIdLst), "slides")

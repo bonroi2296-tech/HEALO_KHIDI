@@ -131,8 +131,6 @@ npm run lint:fix
 
 ## 관련 문서
 
-- [Legacy Cleanup 작업 기록](./LEGACY_CLEANUP_SUMMARY.md) (작성 예정)
-- [Project Structure](./PROJECT_STRUCTURE.md) (작성 예정)
 
 ---
 

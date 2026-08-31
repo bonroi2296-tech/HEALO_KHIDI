@@ -13,6 +13,39 @@
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
+/**
+ * 블록을 docs/ 에서 docs/archive/ 로 «한 칸 내려보내면» 그 안의 상대경로가 전부 깨진다.
+ *
+ * 왜 필요한가 (2026-08-31 실측): 보관소에서 죽은 상대링크 7건이 나왔는데 원인이 개별 오타가
+ * 아니라 «구조»였다 — 회전이 글을 옮기기만 하고 기준점이 바뀐 걸 안 고쳤다. 즉 손으로 고쳐도
+ * **다음 회전에서 또 생긴다.** 그래서 옮기는 그 자리에서 고친다.
+ *
+ * 안전장치: «docs/ 기준으로 실제 존재하는 파일»만 고친다. 그래서
+ *   `[`eed786e0`](...)` 같은 링크 모양의 딴것이나 `route.ts:157` 처럼 줄번호가 붙은 표기는
+ *   손대지 않는다(그런 건 원래도 파일을 가리키는 링크가 아니다).
+ */
+function 상대경로내리기(text, { count } = {}) {
+  let n = 0;
+  const out = text.replace(/\]\(([^)\s]+)\)/g, (whole, target) => {
+    if (/^(https?:|mailto:|#|\/)/.test(target)) return whole;
+    const [pathPart, frag] = target.split("#");
+    if (!pathPart) return whole;
+    let decoded;
+    try { decoded = decodeURIComponent(pathPart); } catch { return whole; }
+    // docs/ 기준으로 «있는» 파일만 대상 — 없으면 링크가 아니거나 이미 다른 기준이다.
+    if (!existsSync(`docs/${decoded}`)) return whole;
+    n += 1;
+    // `./FOO` → `../FOO` (「.././FOO」로 안 만든다 — 동작은 같지만 다음 사람이 오타로 읽는다)
+    // 🛑 target 이 아니라 pathPart 를 써라 — target 엔 #앵커가 붙어 있어 「#절#절」로 두 번 붙는다
+    //    (2026-08-31 시늉 시험에서 실제로 그렇게 났다).
+    const 정리 = pathPart.startsWith("./") ? pathPart.slice(2) : pathPart;
+    return `](../${정리}${frag ? "#" + frag : ""})`;
+  });
+  if (count) count.n = n;
+  return out;
+}
+
+
 const CTX = "docs/PROJECT_CONTEXT.md";
 const ARCHIVE = "docs/archive/PROJECT_CONTEXT_handoffs.md";
 // ⚠️ 표식이 두 종류다 — 옛 블록은 「## 🔖 세션 핸드오프」, 요즘 `/handoff` 스킬이 쓰는 건
@@ -52,8 +85,9 @@ if (blocks.length <= KEEP) {
 
 // 최신순 = 파일 위에서 아래. 앞 KEEP개 유지, 나머지 보관.
 const toArchive = blocks.slice(KEEP);
+const 링크수 = { n: 0 };
 const archiveText = toArchive
-  .map((b) => lines.slice(b.start, b.end).join("\n").replace(/\n+$/, ""))
+  .map((b) => 상대경로내리기(lines.slice(b.start, b.end).join("\n").replace(/\n+$/, ""), { count: 링크수 }))
   .join("\n\n");
 
 const firstHeader = lines[toArchive[0].start].trim();
@@ -97,4 +131,5 @@ if (markAt !== -1) {
 const newArchive = `${head.replace(/\n+$/, "")}\n\n${archiveText}\n\n---\n\n${rest}`.replace(/\n{4,}/g, "\n\n\n");
 writeFileSync(ARCHIVE, newArchive.endsWith("\n") ? newArchive : newArchive + "\n");
 
+if (링크수.n) console.log(`   ↳ 상대경로 ${링크수.n}개를 보관소 기준(../)으로 고쳤다.`);
 console.log(`\n✅ 회전 완료: ${toArchive.length}개 블록(${lastHeader} … ${firstHeader})을 ${ARCHIVE} 로 보관. PROJECT_CONTEXT엔 최신 ${KEEP}개만 남음.`);
