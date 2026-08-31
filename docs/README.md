@@ -32,7 +32,7 @@
 - 런북: [`RAG_RUNBOOK_V1.md`](./RAG_RUNBOOK_V1.md) · [`시술_자동생성_RUNBOOK.md`](./시술_자동생성_RUNBOOK.md)
 
 ## 🧭 계획·백로그
-- [`PLAN_DOC_COVIEW.md`](./PLAN_DOC_COVIEW.md) · [`PLAN_RAG_REVIEW_STAMP.md`](./PLAN_RAG_REVIEW_STAMP.md) · [`이어하기_백로그.md`](./이어하기_백로그.md)
+- [`PLAN_DOC_COVIEW.md`](./PLAN_DOC_COVIEW.md) · [`PLAN_RAG_REVIEW_STAMP.md`](./PLAN_RAG_REVIEW_STAMP.md) · [`이어하기_백로그.md`](./archive/이어하기_백로그.md) *(보관됨)*
 - 다국어: [`다국어_DB콘텐츠_번역_계획.md`](./다국어_DB콘텐츠_번역_계획.md)
 
 ## 🧑‍💼 대표님(비개발자)용

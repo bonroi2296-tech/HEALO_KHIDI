@@ -5,8 +5,10 @@
 > (큰 변경은 계획 먼저 — CLAUDE.md 규칙)
 
 ## 0. 로고 먼저
-- 후보 6종 프리뷰: 배포된 프리뷰 URL + **`/brand/logos.html`**
-- 파일: `public/brand/logos.html` (시안 SVG 인라인)
+- 후보 6종 프리뷰: ~~`/brand/logos.html`~~ — **2026-08-31 삭제**. 리브랜딩이 끝나 시안 비교가 필요 없어졌는데
+  `public/` 에 있어 실서비스 주소(`healwith.co.kr/brand/logos.html`)로 그대로 열리고 있었다
+  (`headers.html`·`headers2.html` 도 같이 지웠다). 필요하면 `git show HEAD~1:public/brand/logos.html` 로 꺼내라.
+- 확정된 자산은 그대로 남아 있다: `public/brand/wordmark*.svg` 4종
 - PO가 번호 고르면 → favicon / 헤더 로고 / OG 이미지 / 앱 아이콘 일괄 제작 후 적용.
 
 ## 1. 범위 (healo 등장 = 484파일·2045곳, 대소문자 무시)
