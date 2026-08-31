@@ -6,13 +6,23 @@
 
 import { headers } from "next/headers";
 
+import { localizedMeta } from "@/lib/i18n/metadata";
+
 import SurveyForm from "./_client/SurveyForm";
 
-export const metadata = {
-  title: "healwith 서비스 만족도 설문",
-  description: "healwith 서비스 이용 후 만족도 설문에 참여해 주세요.",
-  robots: { index: false },
-};
+// 제목·설명을 방문자 언어로 (2026-08-31). /claim 과 같은 이유로 여기는 «탭 제목»만이 아니다 —
+// 설문 링크는 코디가 메신저·메일로 보내므로 **미리보기 카드가 이 두 줄을 그대로 읽는다.**
+// 한국어 카드가 뜨면 러·카 환자 응답률이 그대로 깎이고, 그 응답률이 곧 KHIDI 정량지표
+// (사후관리 건수·만족도 점수)다. 옛 값은 "healwith 서비스 만족도 설문" — 앞의 브랜드가
+// 루트 template("%s | healwith")과 겹쳐 브랜드가 두 번 떴다(이제 사전 값 안에 한 번만).
+// ⚠️ alternates: null 은 지우지 마라 — 근거는 app/claim/[token]/page.jsx 주석과 같다.
+export async function generateMetadata() {
+  return localizedMeta(
+    { robots: { index: false, follow: false }, alternates: null },
+    "seo.survey.title",
+    "seo.survey.desc"
+  );
+}
 
 export default async function SurveyPage({ params }) {
   const { token } = await params;

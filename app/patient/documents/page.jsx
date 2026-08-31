@@ -1,10 +1,14 @@
 import DocumentsClient from "./DocumentsClient";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
-  title: "의료 문서 관리",
-  description: "Upload and manage your medical documents for consultation.",
-  robots: { index: false, follow: false },
-};
+// 언어화 경위·함정(«/patient 는 x-locale 이 안 붙는다»)은 app/patient/page.jsx 주석 참조.
+export async function generateMetadata() {
+  return localizedMeta(
+    { robots: { index: false, follow: false }, alternates: null },
+    "seo.patientDocs.title",
+    "seo.patientDocs.desc"
+  );
+}
 
 export default function DocumentsPage() {
   return <DocumentsClient />;
