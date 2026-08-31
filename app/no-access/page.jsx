@@ -22,12 +22,11 @@ import { t } from "@/lib/i18n";
 // ⚠️ /no-access 도 proxy.ts 의 PUBLIC_PREFIXES 밖이라 x-locale 이 안 붙는다 →
 //    localizedMeta 안쪽의 getUiLocale()(x-locale → healo_lang 쿠키 → en)이 필요하다.
 //    alternates: null 은 noindex 화면이 layout 의 canonical/hreflang 을 물려받지 않게 하는 문.
+// base 를 인라인 객체가 아니라 이름 붙인 상수로 두는 이유는 app/patient/page.jsx 주석 참조.
+const baseMeta = { robots: { index: false, follow: false }, alternates: null };
+
 export async function generateMetadata() {
-  return localizedMeta(
-    { robots: { index: false, follow: false }, alternates: null },
-    "seo.noAccess.title",
-    "seo.noAccess.desc"
-  );
+  return localizedMeta(baseMeta, "seo.noAccess.title", "seo.noAccess.desc");
 }
 
 // 「{영역} 전용」 치환 템플릿을 못 쓰는 이유: t(key, lang) 은 치환을 지원하지 않고, 무엇보다

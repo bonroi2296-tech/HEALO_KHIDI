@@ -14,12 +14,11 @@ import { localizedMeta } from "@/lib/i18n/metadata";
 //    구글이 피하라는 조합). null 이 그 상속을 끊는다.
 // ⚠️ 옛 값은 "진행 상황 — healwith" 였는데 루트 template("%s | healwith")이 또 붙어
 //    「… — healwith | healwith」로 브랜드가 두 번 떴다. 이제 브랜드는 사전 값 안에 한 번만 있다.
+// base 를 인라인 객체가 아니라 이름 붙인 상수로 두는 이유는 app/patient/page.jsx 주석 참조.
+const baseMeta = { robots: { index: false, follow: false }, alternates: null };
+
 export async function generateMetadata() {
-  return localizedMeta(
-    { robots: { index: false, follow: false }, alternates: null },
-    "seo.claim.title",
-    "seo.claim.desc"
-  );
+  return localizedMeta(baseMeta, "seo.claim.title", "seo.claim.desc");
 }
 
 export default async function ClaimPage({ params }) {

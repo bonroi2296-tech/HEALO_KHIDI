@@ -10,12 +10,13 @@ import { localizedMeta } from "@/lib/i18n/metadata";
 //    「x-locale 쓰면 되잖아」로 되돌리면 이 화면은 조용히 영어로 되돌아간다.
 // ⚠️ alternates: null 은 지우지 마라 — 루트 layout 이 물려주는 canonical/hreflang 을 «지운다».
 //    noindex 화면에 canonical 이 붙는 건 구글이 명시적으로 피하라는 조합이다.
+// ⚠️ base 는 반드시 «이름 붙인 상수»로 넘겨라 — 인라인 객체 리터럴로 쓰면 안 된다.
+//    seoMeta.test.ts 의 정규식이 `localizedMeta(식별자, "키", "키")` 모양을 맞추므로,
+//    인라인 객체를 넣으면 이 화면이 «ru/kz 키릴 검사»에서 경고 없이 빠진다(2026-08-31 실제로 밟음).
+const baseMeta = { robots: { index: false, follow: false }, alternates: null };
+
 export async function generateMetadata() {
-  return localizedMeta(
-    { robots: { index: false, follow: false }, alternates: null },
-    "seo.patientDash.title",
-    "seo.patientDash.desc"
-  );
+  return localizedMeta(baseMeta, "seo.patientDash.title", "seo.patientDash.desc");
 }
 
 export default function PatientPage() {

@@ -16,12 +16,11 @@ import SurveyForm from "./_client/SurveyForm";
 // (사후관리 건수·만족도 점수)다. 옛 값은 "healwith 서비스 만족도 설문" — 앞의 브랜드가
 // 루트 template("%s | healwith")과 겹쳐 브랜드가 두 번 떴다(이제 사전 값 안에 한 번만).
 // ⚠️ alternates: null 은 지우지 마라 — 근거는 app/claim/[token]/page.jsx 주석과 같다.
+// base 를 인라인 객체가 아니라 이름 붙인 상수로 두는 이유는 app/patient/page.jsx 주석 참조.
+const baseMeta = { robots: { index: false, follow: false }, alternates: null };
+
 export async function generateMetadata() {
-  return localizedMeta(
-    { robots: { index: false, follow: false }, alternates: null },
-    "seo.survey.title",
-    "seo.survey.desc"
-  );
+  return localizedMeta(baseMeta, "seo.survey.title", "seo.survey.desc");
 }
 
 export default async function SurveyPage({ params }) {
