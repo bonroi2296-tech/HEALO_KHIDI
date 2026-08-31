@@ -405,15 +405,22 @@ export function buildSessionFacts(session: ChatSession = {}): string {
   const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
 
   // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
-  //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 언제나 이어진다.
+  //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 이어진다.
   //    여기서 안 나누면 «없는 기능»을 약속하고, 그 거짓말이 판사에게 사실로 넘어간다.
+  // ⚠️ 분기를 «web 일 때만 쿠키»로 «긍정» 판정한다(«messenger 일 때만 아님»이 아니라).
+  //    DB `chat_threads.channel` 값은 "telegram"|"whatsapp"|"web" 이라, 다음 사람이
+  //    `channel: thread.channel` 이라고 넘기면 "telegram" 이 들어온다. 그때 미지의 값이
+  //    «쿠키 안내» 쪽으로 떨어지면 그게 곧 거짓말이다 → 모르는 값은 안전한 쪽으로 보낸다.
+  //    (정보가 조금 부족한 것은 괜찮지만, 없는 기능을 약속하는 것은 안 괜찮다.)
   const continuity = isLoggedIn
     ? "- The patient is LOGGED IN: the conversation is linked to their account and reopens on ANY device from My Page."
-    : channel === "messenger"
+    : channel === "web"
+    ? "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in."
     // 참인 사실만 적는다. 「쿠키는 없습니다」식 부정문을 넣으면 모델이 그걸 환자에게 그대로
     // 읊어 오히려 혼란을 준다 — 웹 전용 기능은 «말하지 않는 것»이 맞다.
-    ? "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history and continues right here whenever they come back, with no time limit."
-    : "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in.";
+    // ⚠️ 「기한 없음」도 안 쓴다: 코디가 스레드를 종료(resolved/closed)하면 다음 메시지는
+    //    새 스레드로 가서 이전 대화를 안 물고 온다 — 그건 «끊김 없음»이 아니다(2차 리뷰 지적).
+    : "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history, so they can come back to this same chat later.";
 
   return [
     hasAttachments

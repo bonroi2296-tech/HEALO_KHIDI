@@ -342,6 +342,11 @@ describe("왓츠앱 웹훅 계약", () => {
     // AI 세션 플래그: 이 채팅이 연락 채널(contactInThisChannel) — 연락처 되묻기 금지 계약
     const session = generateChatReply.mock.calls[0]?.[4];
     expect(session?.contactInThisChannel).toBe(true);
+    // 채널 표시 계약(반성문 #179) — 이 한 줄이 빠지면 AI 가 왓츠앱 환자에게 «없는 기능»인
+    // 「30일 브라우저 쿠키 재개」를 사실로 안내하고, 그 거짓말이 품질 판사에게 「사실 칸」으로
+    // 넘어가 환각 검출까지 통과한다. buildSessionFacts 쪽 시험은 순수함수만 보므로
+    // «값이 실제로 도달하는가»는 여기서만 잡힌다(2차 독립 리뷰 지적).
+    expect(session?.channel).toBe("messenger");
     expect(sendWhatsAppPatientMessage).toHaveBeenCalledWith("77471234567", "AI 답변");
   });
 
