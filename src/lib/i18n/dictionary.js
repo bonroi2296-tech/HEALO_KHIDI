@@ -151,7 +151,10 @@ export const DICTIONARY = {
     // 히어로 사진 대체텍스트. 3개월간 한국어로 하드코딩돼 있었다 — 이 파일이 useLang/t() 를 쓰면
     // check-content-consistency §7 이 파일 «전체»를 면제해서(같은 스크립트 :583) 한 줄만 남은 걸 못 봤다.
     // ⚠️ 지점명은 지어내지 말고 hospitalsPage.branch.gangseo.name 표기(강서/Кансо/江西)를 따른다.
-    //    원문의 「마곡」은 동 이름이라 사전 전체(구 이름)와 어긋나 환자가 다른 지점으로 읽는다.
+    //    원문은 「마곡」이었는데 사전 전체가 쓰는 구 이름(강서)으로 맞췄다 — 표기 통일이 이유다.
+    //    ⚠️ 2026-08-31 정정: 예전 이 자리에 「환자가 «다른 지점»으로 읽는다」고 적었는데 **거짓이다.**
+    //    마곡은 강서구 «안»의 동 이름이라 같은 곳이다(partnerHospitals.js:25 주소 =
+    //    「서울특별시 강서구 마곡중앙6로 93 (마곡동…)」). 없는 위험을 지어 적은 것이라 지운다.
     // ⚠️ 병원명 표기는 «이미 갈라져 있다» — 여기 한 줄로 통일하려 들지 마라(2026-08-31 실측 정정).
     //    실측: 라틴 표기 `Immune Hospital` 53곳 · 러시아어 표기 `Иммунная Клиника` 16곳이 동시에 산다
     //    (예: careJourney.partnerImmune*, hospitalsPage.branchesDesc). 즉 «6개어 전부 라틴»이 아니다.
@@ -2232,7 +2235,7 @@ export const DICTIONARY = {
     "immuneHospital.facilitiesTitle": "회복을 위한 공간",
     "immuneHospital.heroLede": "한방과 현대의학을 결합한 통합 면역치료 전문 병원. 2017년 개원 이후 누적 50,000+ 사례. 의료진·임상 영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다.",
     // 히어로 사진 대체텍스트 (경위·표기 근거는 en 블록 같은 자리 주석 참조)
-    "immuneHospital.heroPhotoAlt": "Immune Hospital 강서 본원 리셉션",
+    "immuneHospital.heroPhotoAlt": "면력한방병원 강서 본원 리셉션",
     "immuneHospital.philosophyBody": "Immune Hospital은 모든 암 회복 프로그램을 이 다섯 가지 원칙 위에 구성합니다. 개별 치료가 아닌, 서로 맞물려 작동하는 하나의 체계입니다.",
     "immuneHospital.philosophyEyebrow": "치료 철학",
     "immuneHospital.philosophyTitle": "ITCRN — 다섯 가지 원칙",
