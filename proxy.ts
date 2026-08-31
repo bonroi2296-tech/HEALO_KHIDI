@@ -59,7 +59,15 @@ function isPublicLocalePath(pathname: string) {
 
 // 토큰 링크로 «계정 없이» 들어오는 화면. SEO 대상이 아니라 URL 언어화는 안 하지만,
 // 방문자 본인 언어로는 보여야 한다(러/카 환자가 실제로 여는 유일한 화면들).
-const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/"];
+// ⚠️ 코디가 «로그인 없는 사람»에게 보내는 링크는 하나도 빠짐없이 여기 있어야 한다. 빠지면 그 화면만
+//    조용히 영어로 열린다 — 인증도 라우팅도 멀쩡하니 아무 검사도 안 걸린다.
+//    2026-08-31 추가: "/opinion/" (전문의 소견 요청, app/api/coordinator/opinions/route.ts:51).
+//    실측 — Accept-Language 가 무엇이든 <html lang="en"> 이었다(같은 요청으로 /claim 은 ru/kk 정상).
+//    src/lib/ga.ts:146 은 이미 네 주소를 «같은 부류»로 묶어 두고 있었다(여기만 셋이었다).
+//    ※ 앞의 셋은 환자가 받지만 **/opinion 은 한국 전문의가 받는다**(카톡). 그래도 같은 칸이 맞다 —
+//      이 분기가 하는 일은 「주소에 언어가 없는 로그인 없는 링크의 언어를 방문자에게서 알아내라」이지
+//      「환자용이냐」가 아니다. 한국어 화면에 lang="en" 이 박히던 것도 이걸로 같이 고쳐졌다.
+const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/", "/opinion/"];
 function detectLocale(request: NextRequest) {
   // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -230,10 +238,16 @@ export async function proxy(request: NextRequest) {
   //   실측(2026-07-27 프로덕션): /consultation/… 은 Accept-Language 가 ru·kk·ko 무엇이든
   //   전부 <html lang="en"> (같은 요청으로 /telemedicine 은 ru·kk 로 정상). 러/카 환자가
   //   상담방·만족도설문을 영어로 받고 있었다 = 핵심 타겟이 새는 지점.
-  // 고침: 이 두 경로도 detectLocale(쿠키 → Accept-Language(kk→kz) → en)을 태운다.
+  // 고침: 이 경로들도 detectLocale(쿠키 → Accept-Language(kk→kz) → en)을 태운다.
   //   감지 장치는 이미 있었고 잘 돈다 — 이 경로만 그 분기를 안 탔을 뿐이다.
-  // ⚠️ 인증 로직엔 영향 없다: 이 두 경로는 원래 아래 분기를 하나도 안 타고
+  // ⚠️ 인증 로직엔 영향 없다: 이 경로들은 원래 아래 분기를 하나도 안 타고
   //   맨 끝 NextResponse.next() 로 떨어진다(초대토큰 검증은 페이지·API 가 한다).
+  //   /opinion 을 넣을 때 다시 확인함(2026-08-31): 아래 인증 분기는 /admin·/hospital·/patient·
+  //   /agency·/clinic·/coordinator 여섯뿐이고 /opinion 은 어디에도 안 걸린다 — 즉 이 줄에 넣어도
+  //   «있던 검사가 사라지는» 일이 없다. 새 주소를 넣기 전에 이 대조를 반드시 다시 하라.
+  // 🔸 남은 한계(2026-08-31 실측): 메신저 미리보기 «봇»은 쿠키도 Accept-Language 도 안 보낸다
+  //   → 카드가 영어로 뜬다. 환자가 실제로 열면 Accept-Language 로 제 언어가 나온다(사람은 정상).
+  //   봇까지 맞추려면 링크에 ?lang= 를 붙여야 한다 → docs/KNOWN_ISSUES.md 참고.
   if (GUEST_LINK_PREFIXES.some((p) => pathname.startsWith(p))) {
     const locale = detectLocale(request);
     const headers = new Headers(request.headers);

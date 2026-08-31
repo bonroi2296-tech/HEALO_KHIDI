@@ -76,14 +76,91 @@ describe("공개 화면의 검색 제목·설명 언어화", () => {
     const missed: string[] = [];
     for (const file of META_FILES) {
       const src = fs.readFileSync(file, "utf8");
-      if (!src.includes("localizedMeta(")) continue;
-      if ([...src.matchAll(CALL)].length > 0) continue;
-      missed.push(path.relative(process.cwd(), file));
+      // ⚠️ «파일 단위»가 아니라 «호출 단위»로 센다 (2026-08-31 정정).
+      //    예전엔 파일에 걸리는 호출이 하나라도 있으면 통째로 통과시켰다 → 같은 파일의 «두 번째»
+      //    호출이 인라인 base 여도 조용히 빠졌다. 「하나도 빠짐없이」라는 이름과 실제 동작이 달랐다.
+      //    주석 안의 `localizedMeta(` 는 진짜 호출이 아니므로 주석을 먼저 걷어내고 센다.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+      const calls = (code.match(/\blocalizedMeta\(/g) || []).length;
+      const matched = [...code.matchAll(CALL)].length;
+      if (calls > matched) {
+        missed.push(`${path.relative(process.cwd(), file)}  (호출 ${calls}개 중 ${matched}개만 잡힘)`);
+      }
     }
     expect(
       missed,
       `\nlocalizedMeta 를 부르지만 검사에서 빠지는 화면:\n${missed.join("\n")}\n` +
         `→ base 를 인라인 객체가 아니라 이름 붙인 상수(const baseMeta = {…})로 넘겨라.\n`
+    ).toEqual([]);
+  });
+
+  /**
+   * ⚠️ 위 시험들의 «구멍»을 막는다 (2026-08-31 독립 감사 지적).
+   *
+   * 위 시험은 전부 **「이미 localizedMeta 를 부르는 화면」만** 본다. 그래서 어떤 화면이
+   * `export const metadata = { title: "Sign in" }` 로 **되돌아가면 그냥 목록에서 빠지고 전부 초록**이다.
+   * 즉 이 판의 본체(정적 제목 → 언어화)에 대한 잠금이 하나도 없었다 — 되돌리기가 공짜였다.
+   *
+   * 그래서 «반드시 언어화돼 있어야 하는 화면»을 이름으로 박는다. 화면을 지우거나 주소를 옮길 땐
+   * 이 목록도 같이 고쳐라(그게 의도적 변경이라는 증거가 된다).
+   * 새 환자·토큰 화면을 만들면 여기에 «추가»하라 — 안 그러면 다음 사람이 또 조용히 빠뜨린다.
+   */
+  const MUST_LOCALIZE = [
+    // 코디가 계정 없는 환자에게 보내는 토큰 링크 4종 (proxy.ts 의 GUEST_LINK_PREFIXES 와 한 벌)
+    "app/claim/[token]/page.jsx",
+    "app/survey/[token]/page.jsx",
+    "app/opinion/[token]/page.jsx",
+    "app/consultation/layout.jsx",
+    "app/inquiry/intake/layout.jsx",
+    // 로그인 벽 — /patient/* 로 가는 모든 링크가 여기로 튕긴다
+    "app/login/page.jsx",
+    "app/signup/page.jsx",
+    "app/find-id/page.jsx",
+    "app/forgot-password/page.jsx",
+    "app/reset-password/page.jsx",
+    "app/auth/confirm/page.jsx",
+    "app/account/password/page.jsx",
+    // 로그인한 환자 화면
+    "app/patient/page.jsx",
+    "app/patient/consultations/page.jsx",
+    "app/patient/symptoms/page.jsx",
+    "app/patient/documents/page.jsx",
+    "app/patient/account/page.jsx",
+    "app/patient/chat/page.jsx",
+    "app/patient/cost-estimates/page.jsx",
+    "app/patient/cost-estimates/[id]/page.jsx",
+    "app/patient/rebooking/page.jsx",
+    "app/patient/visa/page.jsx",
+    "app/patient/visa/applications/page.jsx",
+    "app/patient/visa/applications/[id]/page.jsx",
+    "app/patient/messages/page.jsx",
+    "app/patient/calendar/page.jsx",
+    // 그 밖에 사람이 보는 비공개·공개 화면
+    "app/no-access/page.jsx",
+    "app/education/page.jsx",
+    "app/app/page.jsx",
+  ];
+
+  it("정적 제목으로 되돌아간 화면이 없다 (이 판의 본체를 잠그는 시험)", () => {
+    const broken: string[] = [];
+    for (const rel of MUST_LOCALIZE) {
+      const abs = path.resolve(process.cwd(), rel);
+      if (!fs.existsSync(abs)) {
+        broken.push(`${rel} → 파일이 없다(주소를 옮겼으면 이 목록도 고쳐라)`);
+        continue;
+      }
+      const src = fs.readFileSync(abs, "utf8");
+      if (![...src.matchAll(CALL)].length) {
+        broken.push(`${rel} → localizedMeta(식별자,"키","키") 호출이 없다`);
+      }
+      if (/export\s+const\s+metadata\s*=/.test(src)) {
+        broken.push(`${rel} → 정적 export const metadata 가 되살아났다(언어 폴백을 안 탄다)`);
+      }
+    }
+    expect(
+      broken,
+      `\n언어화가 풀린 화면:\n${broken.join("\n")}\n` +
+        `→ 정적 문자열은 언어 폴백을 «전혀» 안 탄다. generateMetadata + localizedMeta 로 되돌려라.\n`
     ).toEqual([]);
   });
 
