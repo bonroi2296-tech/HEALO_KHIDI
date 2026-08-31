@@ -156,7 +156,9 @@ export default async function HospitalDetailPage({ params, searchParams }) {
   if (hospital) {
     const { name, description } = localizedHospitalText(hospital, partner, lc);
     const baseUrl = getBaseUrl();
-    const canonical = `${baseUrl}/hospitals/${hospital.slug || slug}`;
+    // canonical(=alternates)이 /{언어}/hospitals/… 이므로 구조화데이터도 같은 주소를 쓴다
+    // (예전엔 언어 없는 맨 주소라 308 로 튕기는 곳을 엔티티 url 로 가리키고 있었다).
+    const canonical = `${baseUrl}${locale ? `/${locale}` : ""}/hospitals/${hospital.slug || slug}`;
     const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
     const jsonLd = {
       "@context": "https://schema.org",
@@ -178,11 +180,14 @@ export default async function HospitalDetailPage({ params, searchParams }) {
           }
         : undefined,
     };
-    const breadcrumb = breadcrumbLd([
-      { name: "Home", url: "/" },
-      { name: "Hospitals", url: "/hospitals" },
-      { name, url: `/hospitals/${hospital.slug || slug}` },
-    ]);
+    const breadcrumb = breadcrumbLd(
+      [
+        { name: "Home", url: "/" },
+        { name: "Hospitals", url: "/hospitals" },
+        { name, url: `/hospitals/${hospital.slug || slug}` },
+      ],
+      locale,
+    );
     return (
       <>
         <script
@@ -213,18 +218,21 @@ export default async function HospitalDetailPage({ params, searchParams }) {
       name,
       description,
       image: folderOg ? [folderOg] : undefined,
-      url: `${baseUrl}/hospitals/${slug}`,
+      url: `${baseUrl}${locale ? `/${locale}` : ""}/hospitals/${slug}`,
       areaServed: "KR",
       ...(localizedAddress
         ? { address: { "@type": "PostalAddress", streetAddress: localizedAddress, addressCountry: "KR" } }
         : {}),
       ...(partner.phone ? { telephone: partner.phone } : {}),
     };
-    const partnerBreadcrumb = breadcrumbLd([
-      { name: "Home", url: "/" },
-      { name: "Hospitals", url: "/hospitals" },
-      { name, url: `/hospitals/${slug}` },
-    ]);
+    const partnerBreadcrumb = breadcrumbLd(
+      [
+        { name: "Home", url: "/" },
+        { name: "Hospitals", url: "/hospitals" },
+        { name, url: `/hospitals/${slug}` },
+      ],
+      locale,
+    );
     return (
       <>
         <script

@@ -22,8 +22,24 @@ const ORG_NAME = "healwith";
 export const ORG_ID = `${SITE_URL}/#organization`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
 
+/**
+ * 상대경로(/hospitals/x) → 절대 URL. locale 을 주면 언어 접두어를 붙인다.
+ *
+ * 왜 필요하나 (2026-08-31 감사): 구조화데이터의 url·빵부스러기 item 이 언어 없는 맨 주소였다.
+ * 그런데 실제로 200 을 주는 정규 주소는 /{언어}/… 이고 맨 주소는 308 로 튕긴다
+ * (proxy.ts). 즉 «canonical 은 /en/hospitals/x 라고 해놓고 구조화데이터는 /hospitals/x 를
+ * 가리키는» 상태 — 같은 페이지를 두 주소로 말하는 셈이라 엔티티 신호가 흐려진다.
+ * locale 이 없으면(내부도구 등) 예전과 똑같이 동작한다 = 안전한 기본값.
+ */
+export function absoluteUrl(path, locale) {
+  if (!path) return locale ? `${SITE_URL}/${locale}` : SITE_URL;
+  if (path.startsWith("http")) return path;
+  const clean = path === "/" ? "" : path;
+  return locale ? `${SITE_URL}/${locale}${clean}` : `${SITE_URL}${clean}`;
+}
+
 /** 빵부스러기(BreadcrumbList) — 검색결과에 경로 표시 */
-export function breadcrumbLd(items) {
+export function breadcrumbLd(items, locale) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -31,7 +47,7 @@ export function breadcrumbLd(items) {
       "@type": "ListItem",
       position: i + 1,
       name: it.name,
-      item: it.url?.startsWith("http") ? it.url : `${SITE_URL}${it.url || ""}`,
+      item: absoluteUrl(it.url, locale),
     })),
   };
 }
@@ -72,14 +88,15 @@ export function partnerHospitalLdList() {
 
 /**
  * 보험 가이드 페이지용 그래프: WebPage(주제=중증질환 보험의 한국 치료 커버) + BreadcrumbList.
- * @param {{ description?: string, url?: string }} [opts]
+ * @param {{ description?: string, url?: string, locale?: string }} [opts]
+ *        locale 을 주면 주소에 언어 접두어를 붙인다(canonical 과 일치).
  */
-export function insuranceGuideLd({ description, url = "/insurance" } = {}) {
+export function insuranceGuideLd({ description, url = "/insurance", locale } = {}) {
   const page = {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "Cancer treatment in Korea covered by critical-illness insurance",
-    url: `${SITE_URL}${url}`,
+    url: absoluteUrl(url, locale),
     description:
       description ||
       "How critical-illness insurance programs cover cancer treatment in Korea — coverage, process, and healwith's role as the Korea-side coordinator.",
@@ -87,18 +104,22 @@ export function insuranceGuideLd({ description, url = "/insurance" } = {}) {
     // 익명 Organization 이면 layout 의 브랜드 엔티티와 별개로 읽힘 → @id 참조로 연결.
     publisher: { "@id": ORG_ID },
   };
-  const crumbs = breadcrumbLd([
-    { name: "Home", url: "/" },
-    { name: "Insurance Guide", url: "/insurance" },
-  ]);
+  const crumbs = breadcrumbLd(
+    [
+      { name: "Home", url: "/" },
+      { name: "Insurance Guide", url: "/insurance" },
+    ],
+    locale,
+  );
   return [page, crumbs];
 }
 
 /**
  * 치료 여정 페이지용 그래프: MedicalBusiness(healwith — layout 브랜드 엔티티에 @id 로 병합) + BreadcrumbList.
- * 인자 없음: 회사 정체성(이름·설명·URL)은 layout.jsx 가 단일 SoR 이라 여기서 받지 않는다.
+ * 회사 정체성(이름·설명·URL)은 layout.jsx 가 단일 SoR 이라 여기서 받지 않는다.
+ * locale 은 빵부스러기 주소에만 쓴다(회사 노드는 주소를 선언하지 않으므로 영향 없음).
  */
-export function careJourneyLd() {
+export function careJourneyLd(locale) {
   const business = {
     "@context": "https://schema.org",
     "@type": "MedicalBusiness",
@@ -112,9 +133,12 @@ export function careJourneyLd() {
     // 실제 제휴/협진 병원 네트워크(실데이터)
     department: partnerHospitalLdList(),
   };
-  const crumbs = breadcrumbLd([
-    { name: "Home", url: "/" },
-    { name: "Care Journey", url: "/care-journey" },
-  ]);
+  const crumbs = breadcrumbLd(
+    [
+      { name: "Home", url: "/" },
+      { name: "Care Journey", url: "/care-journey" },
+    ],
+    locale,
+  );
   return [business, crumbs];
 }

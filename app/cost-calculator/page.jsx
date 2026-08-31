@@ -1,4 +1,5 @@
 import { getRequestLocale, localeAlternates, OG_LOCALE } from "@/lib/i18n/metadata";
+import { absoluteUrl, ORG_ID } from "@/lib/seo/structuredData";
 import CostCalculatorClient from "./CostCalculatorClient";
 
 // ─────────────────────────────────────────────────────────────
@@ -41,20 +42,26 @@ export async function generateMetadata() {
   };
 }
 
-const jsonLd = {
+// ⚠️ 두 가지가 요청마다 달라져야 해서 상수가 아니라 함수다(2026-08-31):
+//  ① url — canonical 이 /{언어}/cost-calculator 인데 여기만 맨 주소면 같은 페이지를 두 주소로 말한다.
+//  ② provider — 예전엔 이름만 적은 «익명 Organization» 이라 layout 의 브랜드 엔티티(#organization)와
+//     별개 회사로 읽혔다. @id 로 가리키면 한 회사로 병합돼 sameAs·설명 같은 브랜드 신호가 안 흩어진다.
+//     (같은 파일군의 insuranceGuideLd 는 이미 이렇게 하고 있었다 — 이제 방식이 하나로 맞는다.)
+const buildJsonLd = (locale) => ({
   "@context": "https://schema.org",
   "@type": "MedicalWebPage",
   name: "Cost of cancer treatment in Korea — healwith calculator",
   description: "Estimate the cost of cancer treatment in South Korea for patients from Russia, Kazakhstan and CIS.",
-  url: "https://healwith.co.kr/cost-calculator",
+  url: absoluteUrl("/cost-calculator", locale),
   about: { "@type": "MedicalCondition", name: "Cancer", alternateName: "Онкология" },
-  provider: { "@type": "Organization", name: "healwith", url: "https://healwith.co.kr" },
-};
+  provider: { "@id": ORG_ID },
+});
 
-export default function CostCalculatorPage() {
+export default async function CostCalculatorPage() {
+  const { locale } = await getRequestLocale();
   return (
     <>
-      <script id="jsonld-cost-calc" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script id="jsonld-cost-calc" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildJsonLd(locale)) }} />
       <CostCalculatorClient />
     </>
   );

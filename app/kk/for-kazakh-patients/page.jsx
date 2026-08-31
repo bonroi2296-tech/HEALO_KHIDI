@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { whatsappWithText } from "@/lib/siteSettings";
+import { ORG_ID } from "@/lib/seo/structuredData";
 
 // ─────────────────────────────────────────────────────────────
 // 카자흐어 의료관광 랜딩페이지 — 검색광고 착지 페이지도 겸한다
@@ -31,12 +32,13 @@ export const metadata = {
     "healwith Корея",
     "медициналық виза Корея",
   ],
+  // x-default 제거 사유는 짝 페이지(app/ru/for-russian-patients/page.jsx) 주석 참고 —
+  // 두 파일이 같이 움직여야 상호참조가 깨지지 않는다.
   alternates: {
     canonical: "/kk/for-kazakh-patients",
     languages: {
       kk: "/kk/for-kazakh-patients",
       ru: "/ru/for-russian-patients",
-      "x-default": "/",
     },
   },
   openGraph: {
@@ -71,11 +73,9 @@ const jsonLd = {
     name: "Онкология",
     alternateName: "Cancer",
   },
-  provider: {
-    "@type": "Organization",
-    name: "healwith",
-    url: "https://healwith.co.kr",
-  },
+  // @id 로 layout 의 브랜드 엔티티(#organization)를 가리킨다 — 예전처럼 이름만 적으면
+  // 검색엔진이 «별개 회사»로 읽어 브랜드 신호(sameAs·설명·서비스국가)가 둘로 쪼개진다.
+  provider: { "@id": ORG_ID },
 };
 
 const FAQ = [

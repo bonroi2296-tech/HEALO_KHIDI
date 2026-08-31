@@ -7,7 +7,14 @@ export default function robots() {
     "/admin",
     "/login",
     "/signup",
+    // 전환 퍼널·개인정보 입력 폼. 두 줄인 이유(2026-08-31 감사에서 잡힘):
+    // 공개 경로는 전부 /{언어}/… 로 서빙된다(proxy.ts 가 맨 주소를 308 로 보낸다).
+    // robots 규칙은 «접두어 일치»라 "/inquiry" 한 줄은 맨 주소만 막고 **/en/inquiry ·
+    // /ru/inquiry 는 하나도 안 막았다** — 사이트맵 주석엔 "robots 에서 차단"이라고 적혀 있어
+    // 문서와 현실이 몇 달간 어긋나 있었다. "/*/inquiry" 가 언어판 전부를 덮는다
+    // (하위 /inquiry/referral 도 같은 접두어라 함께 막힌다 — 역시 개인정보 폼이라 의도대로다).
     "/inquiry",
+    "/*/inquiry",
     "/consultation",
     "/hospital",
     "/coordinator",
@@ -30,29 +37,37 @@ export default function robots() {
     "/design-preview",
   ];
 
+  // 공개 콘텐츠 허용 목록 — **세 그룹(일반·Yandex·AI)이 같은 것을 봐야 한다.**
+  // 왜 상수로 뺐나 (2026-08-31 감사): 예전엔 이 목록이 `*` 그룹에만 있고 Yandex·AI 그룹은
+  // allow:["/"] 뿐이었다. robots 판정은 «가장 긴 일치 규칙이 이긴다» → 그 두 그룹에선
+  // Disallow "/hospital"(9자)이 Allow "/"(1자)를 이겨 **/hospitals 가 통째로 차단**됐다.
+  // (`*` 그룹만 Allow "/hospitals"(10자)를 갖고 있어 무사했다.)
+  // 한 곳만 고쳐지는 사고를 없애려고 목록을 하나로 합친다 — 새 공개 경로는 여기 한 줄.
+  const commonAllow = [
+    "/",
+    "/treatments",
+    "/hospitals",
+    "/specialties",
+    "/patient/education",
+    "/patient/visa",
+    "/about",
+    "/contact",
+    "/ru/for-russian-patients",
+    "/kk/for-kazakh-patients",
+  ];
+
   return {
     rules: [
       // ── 기본 크롤러 ───────────────────────────────────────────
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/treatments",
-          "/hospitals",
-          "/specialties",
-          "/patient/education",
-          "/patient/visa",
-          "/about",
-          "/contact",
-          "/ru/for-russian-patients",
-          "/kk/for-kazakh-patients",
-        ],
+        allow: commonAllow,
         disallow: commonDisallow,
       },
       // ── Yandex 검색 크롤러 — 명시적 허용 (crawl-delay 없음 권장) ──
       {
         userAgent: "Yandex",
-        allow: ["/"],
+        allow: commonAllow,
         disallow: commonDisallow,
         // crawlDelay: 1  ← Yandex 는 낮을수록 좋음; 필요 시 주석 해제
       },
@@ -88,7 +103,7 @@ export default function robots() {
           "Applebot-Extended", // Apple Intelligence
           "meta-externalagent", // Meta AI
         ],
-        allow: ["/"],
+        allow: commonAllow,
         disallow: commonDisallow,
       },
     ],

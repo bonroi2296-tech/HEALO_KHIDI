@@ -175,6 +175,8 @@ function cancerFaqLd(slug, lang) {
 
 export default async function TreatmentDetailPage({ params, searchParams }) {
   const { slug } = await params;
+  // 요청 언어 — 아래 두 분기(암종 / DB 치료)가 같이 쓴다(구조화데이터 주소에 언어를 붙이려고).
+  const { locale } = await getRequestLocale();
 
   // ── 암종 페이지 분기 ────────────────────────────────
   if (CANCER_SLUGS.includes(slug)) {
@@ -208,13 +210,17 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       },
     };
 
-    const breadcrumb = breadcrumbLd([
-      { name: "Home", url: "/" },
-      { name: "Treatments", url: "/treatments" },
-      { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
-    ]);
+    // 빵부스러기 주소에 언어를 붙인다 — canonical 이 /{언어}/treatments/… 인데 여기만
+    // 맨 주소면 같은 페이지를 두 주소로 말하게 된다(맨 주소는 308 로 튕긴다).
+    const breadcrumb = breadcrumbLd(
+      [
+        { name: "Home", url: "/" },
+        { name: "Treatments", url: "/treatments" },
+        { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
+      ],
+      locale,
+    );
 
-    const { locale } = await getRequestLocale();
     const faqLd = cancerFaqLd(slug, locale || "en");
 
     const content = (
@@ -246,7 +252,8 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     : null;
   if (!treatment) notFound();
   const baseUrl = getBaseUrl();
-  const canonical = `${baseUrl}/treatments/${treatment.slug || slug}`;
+  // canonical(=alternates)이 /{언어}/treatments/… 이므로 구조화데이터도 같은 주소를 쓴다.
+  const canonical = `${baseUrl}${locale ? `/${locale}` : ""}/treatments/${treatment.slug || slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "MedicalProcedure",
@@ -273,11 +280,14 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     areaServed: "KR",
     priceRange: treatment.price || undefined,
   };
-  const treatmentBreadcrumb = breadcrumbLd([
-    { name: "Home", url: "/" },
-    { name: "Treatments", url: "/treatments" },
-    { name: treatment.title, url: `/treatments/${treatment.slug || slug}` },
-  ]);
+  const treatmentBreadcrumb = breadcrumbLd(
+    [
+      { name: "Home", url: "/" },
+      { name: "Treatments", url: "/treatments" },
+      { name: treatment.title, url: `/treatments/${treatment.slug || slug}` },
+    ],
+    locale,
+  );
   const content = (
     <>
       <script
