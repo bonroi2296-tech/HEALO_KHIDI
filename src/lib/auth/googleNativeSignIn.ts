@@ -50,6 +50,32 @@ export function makeRawNonce(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * 실패했을 때 «어디서» 막혔는지 한 눈에 알 수 있는 짧은 꼬리표를 만든다.
+ *
+ * 🔴 왜 필요했나 (2026-08-31): PO 갤럭시에서 「Google 로그인에 실패했습니다」만 뜨고
+ *   원인을 알 길이 없었다. Supabase `auth_logs` 에는 시도 기록조차 없었고(=구글 창 단계에서
+ *   끊긴 것), SHA-1·패키지·OAuth 클라이언트는 콘솔에서 전부 정상으로 확인됐다.
+ *   **오류를 삼키고 있었기 때문에 그 다음을 못 좁혔다.**
+ *
+ * ⚠️ 이 꼬리표는 **앱 안에서만** 보인다 — 호출부가 `hasNativeGoogleSignIn()` 이 참일 때만
+ *    이 길을 타기 때문이다. 웹 사용자에게는 안 나온다.
+ *
+ * 🔎 자주 나오는 값과 뜻:
+ *   · `10` / `DEVELOPER_ERROR` → SHA-1·패키지 이름·클라이언트 ID 중 하나가 콘솔과 안 맞다
+ *   · `NO_CREDENTIAL` / `NoCredentialException` → 기기에 쓸 구글 계정이 없거나 Credential
+ *     Manager 가 못 찾았다(폰 설정에 계정이 있어도 난다)
+ *   · `16` / `CANCELED` → 사용자가 닫음(위 isGoogleCancel 이 먼저 걸러낸다)
+ *   · `google_no_id_token` → 창은 떴는데 토큰이 안 왔다
+ */
+export function describeGoogleError(err: unknown): string {
+  const e = err as { code?: string | number; message?: string; name?: string } | null;
+  const parts = [e?.code, e?.name, e?.message].filter(Boolean).map(String);
+  if (!parts.length) return String(err ?? "unknown").slice(0, 80);
+  // 같은 말이 code/name/message 에 겹쳐 오는 경우가 많아 중복을 지운다.
+  return [...new Set(parts)].join(" / ").slice(0, 120);
+}
+
 /** 사용자가 계정 선택 창을 그냥 닫은 경우 — 오류 안내를 띄우면 안 된다(정상 동작이다). */
 export function isGoogleCancel(err: unknown): boolean {
   const e = err as { code?: string | number; message?: string } | null;
@@ -76,9 +102,18 @@ export async function signInWithGoogleNative(supabase: {
   }
 
   const rawNonce = makeRawNonce();
+  // 🔴 `scopes` 를 넘기지 마라 (2026-08-31 실기기에서 이것 때문에 로그인이 통째로 막혔다).
+  //    부품의 GoogleProvider.java:466~484 를 보면:
+  //      ① email · profile · openid 는 **부품이 기본으로 넣는다** — 우리가 줄 필요가 없다.
+  //      ② 그런데 `scopes` 배열이 «있기만 하면» 내용과 무관하게 이렇게 거절한다:
+  //         「You CANNOT use scopes without modifying the main activity. Please follow the docs!」
+  //         (MainActivity 를 `ModifiedMainActivityForSocialLoginPlugin` 으로 바꿔야 통과한다)
+  //    우리는 기본 범위만 필요하므로 **안 넘기는 것이 정답**이다. 기능 손실 0.
+  //    ⚠️ 나중에 캘린더·드라이브 같은 «추가» 범위가 정말 필요해지면, 그때는 scopes 를 되살리는 게
+  //       아니라 **MainActivity 개조부터** 해야 한다(앱 재빌드 필요).
   const res = await SocialLogin.login({
     provider: "google",
-    options: { scopes: ["profile", "email"], nonce: rawNonce },
+    options: { nonce: rawNonce },
   });
 
   // 응답은 `{ provider, result }` 형태이고 토큰은 result 안에 있다(definitions.d.ts:724).

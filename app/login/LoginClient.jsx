@@ -217,8 +217,11 @@ export const LoginPage = ({ setView }) => {
                                     } catch (err) {
                                         // 계정 선택 창을 그냥 닫은 것은 오류가 아니다.
                                         if (!g.isGoogleCancel(err)) {
+                                            // 꼬리표를 같이 띄운다 — 이게 없으면 「실패했습니다」만 남아
+                                            // 원인을 못 좁힌다(2026-08-31 실제로 그래서 하루를 썼다).
+                                            // 앱 안에서만 보이는 분기라 웹 사용자에겐 안 나온다.
                                             console.error('[LoginPage] ❌ Google native sign-in failed:', err);
-                                            toast.error(t("login.googleError", langCode));
+                                            toast.error(`${t("login.googleError", langCode)} (${g.describeGoogleError(err)})`);
                                         }
                                         setOauthLoading(false);
                                     }

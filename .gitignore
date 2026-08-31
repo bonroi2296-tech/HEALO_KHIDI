@@ -202,3 +202,6 @@ verify-report/
 #     이 저장소는 공개(public)라 한 번 들어가면 지워도 이력에 남는다.
 #     `git add -f` 로 억지로 넣지 말 것.
 _병원자료/
+
+# 앱 전용 webDir — 빌드 때 scripts/prepare-native-webdir.mjs 가 만든다(정본은 public/offline.html)
+/native-webdir/

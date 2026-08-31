@@ -22,8 +22,14 @@ const config: CapacitorConfig = {
   appId: 'kr.co.healwith.app',
   appName: 'healwith',
   // SSR 앱이라 정적 번들이 없음 → server.url 로 라이브 사이트를 로드.
-  // webDir 는 Capacitor 가 형식상 요구하므로 기존 public 을 가리킴(실제 미사용).
-  webDir: 'public',
+  // 🔴 2026-08-31: 여기가 'public' 이라 **앱 파일이 79MB 였다.**
+  //    캡시터는 webDir 을 통째로 복사하는데, public 에는 웹사이트 사진이 74.6MB 들어 있다
+  //    (immune 43.9MB · images 15.1MB · doctors 15.0MB). 이 앱은 라이브로드라 화면도 사진도
+  //    server.url 에서 받으므로 **그 74MB 는 앱 안에서 한 번도 안 열린다.**
+  //    앱이 로컬에서 실제로 여는 것은 아래 errorPath(offline.html) 하나뿐이다.
+  //    → 그 파일만 담은 폴더를 빌드 때 만든다(`npm run cap:sync`, scripts/prepare-native-webdir.mjs).
+  //    ⚠️ 이 값을 'public' 으로 되돌리지 마라 — 설치 크기가 82.7MB 로 돌아간다.
+  webDir: 'native-webdir',
   server: {
     url: 'https://healwith.co.kr',
     androidScheme: 'https',

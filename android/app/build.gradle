@@ -16,8 +16,13 @@ android {
         // 9 = 2026-08-20 오전 게시분(뒤로가기 부품·입력칸 뒤바뀜·404 오진 수리).
         // 10 = 같은 날 오후. 「Apple 연결 중」에서 영영 멈추던 것(allowNavigation 비어 있어서
         //      애플 주소가 앱 밖 브라우저로 튕겨 나가 세션이 앱에 안 돌아왔다 — 아이폰·갤럭시 공통).
-        versionCode 10
-        versionName "1.0.9"
+        // 11 = 2026-08-31. 안드로이드 구글 로그인을 네이티브 창으로(웹 흐름은 PKCE 검증값이 갈려
+        //      끝까지 못 간다) + 앱 링크 지문 3개 못박음.
+        //      ⚠️ 이 줄을 안 올려서 8/30 에 Play 가 업로드를 거부했다: 「10 버전 코드는 이미
+        //      사용되었습니다」. Codemagic 은 이 값을 «자동으로 안 올린다» — 구우러 가기 «전»에
+        //      여기를 먼저 고쳐라.
+        versionCode 11
+        versionName "1.0.10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

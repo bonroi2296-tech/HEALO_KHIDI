@@ -135,3 +135,43 @@ describe("deflection-loop guards (regression lock)", () => {
     expect((SRC.match(/detectRepetitiveAssistant\((?:safeMessages|messages)\)/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+/**
+ * 품질 판사 배선 잠금 — 2026-08-31, 반성문 #179 (3차·4차 독립 리뷰).
+ *
+ * 3차: 이 PR 의 «존재 이유»인 배선(`runJudgeInBackground({ … sessionFacts … })`)을 무는
+ *   시험이 하나도 없었다. 그 두 줄을 지워도 1,499건 전부 초록이었다.
+ * 4차: 그래서 넣은 소스 정규식 시험이 **새 호출부를 못 봤다** — 들여쓰기가 다르거나
+ *   객체를 변수로 넘기면 정규식이 못 잡는데 「«모든» 호출부」라고 이름 붙어 있었다.
+ *   세 번째 호출부를 심어 1,505건 전부 초록임을 리뷰어가 실증했다.
+ *
+ * → **진짜 잠금은 타입이 한다**: `JudgeInput.sessionFacts` 는 선택 필드가 아니라
+ *   「키는 필수, 값은 undefined 허용」이라 **호출부가 이 칸을 빠뜨리면 `tsc` 가 막는다.**
+ *   아래 시험은 그 타입 계약이 «살아 있는지»와, 조립이 한 곳에서만 되는지를 지킨다
+ *   (형태에 기대는 검사는 우회되므로 개수 대조 하나만 남긴다).
+ */
+describe("judge 배선 잠금 (반성문 #179)", () => {
+  const JUDGE_SRC = readFileSync(path.resolve(__dirname, "judge.ts"), "utf8");
+
+  it("🔒 sessionFacts 는 «선택 필드가 아니다» — 이게 풀리면 호출부 누락을 tsc 가 못 잡는다", () => {
+    expect(JUDGE_SRC).toMatch(/sessionFacts: string \| undefined;/);
+    expect(JUDGE_SRC).not.toMatch(/sessionFacts\?:/);
+  });
+
+  it("판사 호출부 «전부»가 sessionFacts 를 넘긴다 — 호출 블록 안에서만 센다", () => {
+    // ⚠️ 처음엔 파일 전체에서 `sessionFacts` 줄을 세었는데, 인터페이스 필드 선언과
+    //    prepareGeneration 반환까지 같이 세어져 **진짜 배선 두 줄을 다 지워도 통과**했다
+    //    (6차 독립 리뷰 실증). 이제 «호출 블록 안»만 본다.
+    //    진짜 잠금은 타입(위 시험)이 하고, 이건 형태를 바꿔 우회하는 것까지 한 겹 더 보는 것이다.
+    const calls = SRC.match(/runJudgeInBackground\(\{[^}]*\}\)/g) ?? [];
+    expect(calls.length, "호출부를 못 찾았다(정규식이 낡았을 수 있다)").toBeGreaterThanOrEqual(2);
+    expect(calls.filter((c) => !/sessionFacts/.test(c))).toEqual([]);
+    expect(calls.filter((c) => !/officialReference/.test(c))).toEqual([]);
+  });
+
+  it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + prepareGeneration 1", () => {
+    // 호출부에서 buildSessionFacts 를 «다시» 부르면 시스템 프롬프트가 쓴 것과 어긋날 수 있다.
+    expect(SRC).toMatch(/sessionFacts: buildSessionFacts\(session\)/);
+    expect(SRC.match(/buildSessionFacts\(session\)/g)?.length).toBe(2);
+  });
+});

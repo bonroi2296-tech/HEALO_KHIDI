@@ -42,6 +42,21 @@ export interface JudgeInput {
    *   전체판을 항상 넘기면 "안 물었는데 가격 흘림" 을 판사가 못 잡는다.
    */
   officialReference?: string;
+  /**
+   * 이 턴에 시스템 프롬프트가 모델에게 «사실»로 준 세션 상태(generateReply.buildSessionFacts).
+   * 로그인 여부·게스트 30일 재개·첨부 못 읽음 같은 것은 RAG 컨텍스트에도 안내자료에도 없어서,
+   * 이 칸이 없으면 모델이 프롬프트대로 «정확히» 답해도 판사가 "컨텍스트에 없다"며 환각으로 찍는다.
+   * 실측(2026-08-31): 60일간 hallucination 53건 중 32건(60%)이 이 한 부류 — «로그인 안 했는데
+   * 저장돼?» 케이스가 7/02~8/30 매일 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx).
+   * 반성문 #179. ⚠️ officialReference 와 «칸을 따로» 쓴다 — 같은 예산을 나눠 쓰면 서로 밀어낸다.
+   *
+   * ⚠️ **선택 필드(`?`)가 아니라 「키는 필수, 값은 undefined 허용」이다.** 이유:
+   *   `?` 였을 때는 새 호출부가 이 칸을 «통째로 빠뜨려도» tsc 도 시험도 안 잡았다
+   *   (4차 독립 리뷰가 세 번째 호출부를 심어 1,505건 전부 초록임을 실증).
+   *   키를 필수로 두면 **호출부가 늘어나는 순간 컴파일이 막는다** — 텍스트 검사보다 훨씬 강하다.
+   *   판사에게 줄 사실이 정말 없는 자리(단위시험 등)는 `sessionFacts: undefined` 라고 «명시»하라.
+   */
+  sessionFacts: string | undefined;
   lang: string;
   messageId?: string | null;
   threadId?: string | null;
@@ -72,6 +87,9 @@ export interface JudgeResult extends JudgeScores {
  */
 export const REFERENCE_BUDGET = 8000;
 
+/** 세션 상태 사실 잘림 한도. 실제로는 5줄 남짓(2026-08-31 기준 ~600자)이라 넉넉하다. */
+export const SESSION_FACTS_BUDGET = 2000;
+
 export function buildJudgePrompt(input: JudgeInput): string {
   const contextSection = input.context
     ? `\n\n[RETRIEVED CONTEXT]\n${input.context.slice(0, 3000)}`
@@ -83,20 +101,41 @@ export function buildJudgePrompt(input: JudgeInput): string {
     ? `\n\n[OFFICIAL REFERENCE — healwith 안내자료]\n${input.officialReference.slice(0, REFERENCE_BUDGET)}`
     : "";
 
+  // 세션 상태 사실도 «칸을 따로» 쓴다(위 두 칸과 같은 이유).
+  // ⚠️ 지금은 ~600자라 한도에 안 걸리지만 «자르기는 한다» — 사실을 길게 늘리면 조용히 잘린다.
+  const sessionSection = input.sessionFacts
+    ? `\n\n[SESSION FACTS — 이 대화의 실제 상태, 시스템이 응답 생성 시 모델에게 사실로 알려준 것]\n${input.sessionFacts.slice(0, SESSION_FACTS_BUDGET)}`
+    : "";
+
   return `당신은 healwith 의료관광 AI 챗봇의 품질 심사 판사입니다. 아래 사용자 질의와 AI 응답을 평가해 JSON을 반환하세요.
 
 [사용자 질의]
 ${input.query}
-${contextSection}${referenceSection}
+${contextSection}${referenceSection}${sessionSection}
 
 [AI 응답]
 ${input.response}
 
-⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT «와» OFFICIAL REFERENCE 둘 다다.
-OFFICIAL REFERENCE 는 병원에서 받아 검증한 healwith 공식 자료다 — 거기 있는 금액·검사비·병원명·
-보조치료 항목(온열·미슬토·싸이모신·고용량 비타민C 등)을 응답이 그대로 인용했다면 **환각이 아니다**.
-hallucination / fabricated_price 로 찍지 마라.
-거꾸로, 위 두 칸에 «없는» 금액을 응답이 제시했다면 그건 fabricated_price 다.
+⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 셋 다다.
+
+【SESSION FACTS 칸에 대하여】 이 칸은 이 대화의 «실제 시스템 동작»이다(로그인 여부, 대화가
+어떻게 이어지는지, 서버 즉시 저장, 첨부파일을 못 읽는다는 것 등). 응답이 이 칸의 내용을 그대로
+안내했다면 **환각이 아니다** — hallucination 으로 찍지 마라. **대화 보관·재개 기간을 응답이
+말했을 때, 그 기간이 이 칸에 적힌 것과 같으면 사실이다.**
+⚠️ 이 봐주기는 «대화가 저장·재개되는 방식»에만 적용한다. 같은 숫자라도 **의료·체류·일정에 관한
+주장**(예: "비자로 30일 체류 가능", "수술 후 30일 내 재검", "입원 30일")은 이 칸이 근거가 못 된다 —
+그건 RETRIEVED CONTEXT 나 OFFICIAL REFERENCE 에 있어야 하고, 없으면 환각이다.
+거꾸로 이 칸과 «어긋나게» 말했다면 그건 환각이다 — 예: 이 칸이 «이 브라우저/기기에서 재개»라는데
+"어느 기기에서나 열린다"고 하거나, 로그인 상태라는데 "이 기기에서만 유지된다"고 하거나,
+이 칸에 없는 쿠키·기기·기간 제한을 지어내거나, 첨부파일 내용을 읽은 것처럼 설명하는 것.
+⚠️ 판정 기준은 «이 칸에 적힌 것»뿐이다 — 칸이 기기 얘기를 아예 안 하면(메신저 대화 등)
+기기·동기화에 관한 응답은 이 규칙으로 찍지 마라.
+
+【OFFICIAL REFERENCE 칸에 대하여】 병원에서 받아 검증한 healwith 공식 자료다 — 거기 있는
+금액·검사비·병원명·보조치료 항목(온열·미슬토·싸이모신·고용량 비타민C 등)을 응답이 그대로
+인용했다면 **환각이 아니다**. hallucination / fabricated_price 로 찍지 마라.
+거꾸로, **RETRIEVED CONTEXT 와 OFFICIAL REFERENCE 두 칸**에 «없는» 금액을 응답이 제시했다면
+그건 fabricated_price 다(SESSION FACTS 엔 금액이 없다 — 돈 판정의 근거가 될 수 없다).
 ⚠️ 단, 「없는 금액」은 «값»으로 판단하라 — 환율·단위·자릿수 표기만 바꾼 같은 값은 같은 값으로 본다.
   (예시 표기: ₩3M ↔ 300만원 ↔ 3 млн 은 같은 값 / $2,400 ↔ 2 400 ↔ 2,400 달러 도 같은 값. 표기 차이는 오탐 금지.)
 ⚠️ 반대로 「자료의 범위 안이니 괜찮다」로 봐주지도 마라 — 자료엔 범위(A~B)만 적혀 있는데 응답이

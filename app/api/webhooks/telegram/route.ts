@@ -569,6 +569,9 @@ export async function POST(request: NextRequest) {
 
         const r = await generateChatReply(toModelHistory(history), text, lang, thread.id, {
           isLoggedIn: false,
+          // 텔레그램엔 브라우저도 쿠키도 없다 → 「30일 쿠키 재개」를 사실로 말하면 거짓말이고,
+          // 그 거짓말이 품질 판사에게 「사실」로 넘어가 환각 검출까지 통과한다(반성문 #179 리뷰 지적).
+          channel: "messenger" as const,
           // 텔레그램은 이 창으로 항상 회신 가능 → "연락처 남겨달라" 거짓 게이트 방지.
           hasReachableContact: true,
           // 이 채팅 자체가 연락 채널 → 모델이 연락처·선호 채널을 되묻지 않게(실기기 2026-07-23 PO).
