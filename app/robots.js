@@ -41,8 +41,11 @@ export default function robots() {
         // 2026-08-31 삭제: "/patient/education"·"/patient/visa".
         //    실측 — 로그인 없이 열면 둘 다 **307 → /login** 이다(proxy.ts 가 /patient/* 를 먼저 막는다).
         //    즉 크롤러는 여기 적힌 화면을 «한 번도 본 적이 없고» 매번 Disallow 인 /login 에 부딪혔다.
-        //    같은 날 두 화면에 noindex 까지 붙었으니(app/patient/visa/page.jsx) 선언과 현실이
-        //    정반대가 됐다. 교육자료의 «진짜» 공개 지면은 /education 이고 그건 "/" 로 이미 열려 있다.
+        //    ⚠️ 정정(2026-08-31 재측정): 처음엔 「두 화면에 noindex 까지 붙었다」고 적었는데 **틀렸다.**
+        //    noindex 가 붙은 건 /patient/visa 하나뿐이고, /patient/education 은 본문 없는 리다이렉트
+        //    껍데기라 애초에 metadata 가 없다. 두 줄을 뺀 이유는 「noindex 라서」가 아니라
+        //    **둘 다 로그인 벽 뒤여서 크롤러가 한 번도 본 적이 없기 때문**이다.
+        //    교육자료의 «진짜» 공개 지면은 /education 이고 그건 "/" 로 이미 열려 있다.
         allow: [
           "/",
           "/treatments",

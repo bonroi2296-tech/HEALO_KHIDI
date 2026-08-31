@@ -965,19 +965,27 @@ adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  #
   봇은 ①②가 둘 다 없으니 항상 ③으로 떨어진다. **언어를 알 방법이 주소 안에 없다**는 게 근본 원인이다.
 - **고치는 법(다음 사람에게 — 한 벌로 해야 한다, 반쪽 금지)**:
   1. `detectLocale` 맨 앞에 `request.nextUrl.searchParams.get("lang")` 을 한 칸 넣는다(LOCALES 검증 필수).
-  2. 코디가 만드는 링크 생성부에 `?lang={환자언어}` 를 붙인다. 환자 언어는 대부분 그 자리에서 이미 복호화해
-     쓰고 있다 — `app/api/coordinator/opinions/route.ts:51` · `app/api/cron/consultation-reminders/route.ts:106` ·
-     `app/api/cron/dispatch-reminders/route.ts:193·232·260` 등. (`/inquiry/intake` 는 이미
-     `/{lang}/inquiry/intake` 라 **이 문제가 없다** — 그 방식이 정답의 본보기다.)
+  2. 코디가 만드는 링크 생성부에 `?lang={받는 사람 언어}` 를 붙인다. **아래가 전수다** —
+     ⚠️ 2026-08-31 재검증에서 처음 적은 목록이 «가장 중요한 둘을 빠뜨리고 있었다». 그대로 따라 했으면
+     상담방·소견만 고치고 코디가 제일 많이 보내는 진행상황·설문은 그대로 영어로 남았다.
+
+     | 링크 | 만드는 자리 | 받는 사람 |
+     |---|---|---|
+     | `/claim/{token}` 진행 상황 | `src/lib/inquiry/trackingLink.ts:36` | **환자** |
+     | `/survey/{token}` 만족도 설문 | `src/lib/surveys/generateSurveyToken.ts:131` | **환자** |
+     | `/consultation/{id}` 화상상담 방 | `app/api/cron/consultation-reminders/route.ts:106` · `app/api/cron/dispatch-reminders/route.ts:193·232·260` | **환자** |
+     | `/opinion/{token}` 전문의 소견 | `app/api/coordinator/opinions/route.ts:51` | ⚠️ **한국 전문의** — 환자 언어를 붙이면 «틀린다». 붙이려면 `ko` 이거나 아예 안 붙이는 게 맞다 |
+
+     (`/inquiry/intake` 는 이미 `/{lang}/inquiry/intake` 라 **이 문제가 없다** — 그 방식이 정답의 본보기다.)
   3. ①만 하고 ②를 안 하면 죽은 코드다. ②만 하고 ①을 안 하면 아무 효과가 없다.
 - **왜 이번 판에서 안 했나**: ②가 크론·메일 발송 경로를 건드린다. 「제목 언어화」 판에 발송 로직 변경을
   얹으면 문제가 생겼을 때 원인을 가르기 어렵다. **사람이 보는 화면은 이미 다 고쳐졌다**는 게 이 판의 경계다.
 
 ## 🔸 백오피스 탭 제목 60곳이 전부 똑같다 — 안 고쳤다 (2026-08-31 실측, 범위 밖으로 판단)
 
-- **무엇**: `/admin`·`/coordinator`·`/hospital`·`/agency`·`/clinic` 아래 화면 **60곳**의 브라우저 탭 제목이
-  전부 `healwith | Korea Cancer Care for International Patients` 로 같다. 전부 `"use client"` 라
-  자기 제목을 못 내보내고 루트 것을 물려받는다.
+- **무엇**: `/admin`·`/coordinator`·`/hospital`·`/agency`·`/clinic` 아래 화면 **72곳 중 57곳**(자기 제목을 못 내보내는 `"use client"` 화면)의 브라우저 탭 제목이
+  전부 `healwith | Korea Cancer Care for International Patients` 로 같다.
+  ⚠️ 처음엔 「60곳 전부 use client」라고 적었는데 **둘 다 틀렸다**(2026-08-31 재측정: 총 72곳 · use client 57곳).
 - **왜 지금 안 고쳤나**: 이번 판은 **환자가 보는 화면**을 고치는 판이다. 이 60곳은 한국 직원·코디가 쓰는
   내부 도구라 환자·검색·메신저 어디에도 안 나간다. 60곳에 사전 열쇳말 120개를 새로 다는 건 이 판의
   본래 범위(환자 언어 누수)를 두 배로 부풀린다.
