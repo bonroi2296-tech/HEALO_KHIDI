@@ -1,6 +1,6 @@
 import "server-only";
-import { headers } from "next/headers";
-import { LOCALES, DEFAULT_LOCALE } from "./config";
+import { headers, cookies } from "next/headers";
+import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "./config";
 import { t } from "./index";
 
 // 서버 메타데이터(hreflang·canonical·OG locale) 헬퍼.
@@ -21,6 +21,35 @@ export async function getRequestLocale() {
     locale: h.get("x-locale") || null,
     path: h.get("x-pathname") || "/",
   };
+}
+
+// ── UI 언어(탭 제목·화면 글자)용 — getRequestLocale 과 «일부러» 다른 함수다 ──────────────
+//
+// 왜 나눴나 (2026-08-31): getRequestLocale 은 두 가지를 겸하고 있었다.
+//   ① SEO 주소 언어(canonical·hreflang) — **주소가 진실**이라 x-locale 만 봐야 한다.
+//      없으면 null → localeAlternates 가 alternates 자체를 안 내보낸다(그게 안전장치다).
+//   ② UI 언어(<title>·본문) — **방문자가 진실**이라 x-locale 이 없어도 쿠키로 이어가야 한다.
+// 이 둘의 폴백 규칙이 서로 반대라, 한 함수에 쿠키 폴백을 넣으면 ①이 같이 감염된다:
+// x-locale 이 없는 비공개 경로 86개가 canonical+hreflang 을 새로 얻고, 게다가 그 경로엔
+// x-pathname 도 안 붙어서(proxy.ts 게스트 분기) canonical 이 「그 언어 홈」으로 잘못 찍힌다.
+// → 이득 6개 화면, 피해 86개 화면. 그래서 **함수를 나눴다. localeAlternates 는 손대지 마라.**
+//
+// ⚠️ 이게 필요한 진짜 이유(다음 세션이 「x-locale 쓰면 되잖아」로 되돌리기 쉽다):
+//   /patient/* · /no-access 는 proxy.ts 의 PUBLIC_PREFIXES 밖이라 **x-locale 이 안 붙는다.**
+//   거기서 getRequestLocale 을 쓰면 항상 DEFAULT_LOCALE(en) 으로 떨어져 «아무것도 안 고쳐진다».
+//   (/claim·/survey 는 GUEST_LINK_PREFIXES 라 x-locale 이 붙어 첫 단계에서 끝난다.)
+//
+// 순서·검증 기준은 app/layout.jsx 의 본문 언어 결정과 **같은 한 벌이어야 한다** — 갈리면
+// 「본문은 러시아어인데 탭 제목만 영어」가 그대로 되돌아온다. 그래서 layout 도 이 함수를 쓴다.
+// ⚠️ 검증은 LOCALES(활성 6개)로. LANG_OPTIONS(21개)로 하면 옛 healo_lang=vi 쿠키를 든
+//    방문자가 「본문 en · 탭 제목 vi」가 된다(KNOWN_ISSUES 의 그 함정).
+// 🔸 캐시 주의: 지금은 루트 레이아웃이 cookies()·headers() 를 부르므로 전 라우트가 동적 렌더라
+//    무해하다. 나중에 엣지 HTML 캐시를 켜면 <title> 도 쿠키 의존이 되므로 Vary: Cookie 가 필요하다.
+export async function getUiLocale() {
+  const fromHeader = (await headers()).get("x-locale");
+  if (LOCALES.includes(fromHeader)) return fromHeader;
+  const fromCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
+  return LOCALES.includes(fromCookie) ? fromCookie : DEFAULT_LOCALE;
 }
 
 // 다국어 객체({ko,en,ru,...})에서 요청 언어 → en 순으로 고른다. 값 없으면 null.
