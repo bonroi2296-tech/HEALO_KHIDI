@@ -406,6 +406,24 @@ async function 검사_앱미반영() {
   const 현재부품 = 부품목록(fs.readFileSync(path.join("android", "app", "capacitor.build.gradle"), "utf8"));
   const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
 
+  // ①-2 저장소 «안»의 어긋남: package.json 에는 있는데 gradle 에는 없는 부품.
+  //    🔴 2026-08-31 실제로 낼 뻔했다: 로컬 node_modules 에 `@capgo/capacitor-social-login` 이
+  //    설치돼 있지 않은 상태로 `npx cap sync` 를 돌렸더니, 캡시터가 gradle 을 «그 부품을 빼고»
+  //    다시 썼다. 그대로 커밋했으면 다음 판에서 구글 로그인이 조용히 사라진다.
+  //    ⚠️ 이건 «출시본 대조»로는 안 잡힌다 — 저장소 자체가 이미 틀어진 것이라 둘 다 없어진다.
+  let 빠진선언 = [];
+  try {
+    const deps = Object.keys(JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies || {});
+    const 부품이름 = (d) => d.replace(/^@/, "").replace("/", "-"); // @capgo/x → capgo-x
+    빠진선언 = deps
+      .filter((d) => /^@(capacitor|capgo|capawesome)\//.test(d))
+      .filter((d) => !/^@capacitor\/(android|ios|cli|core)$/.test(d)) // 플랫폼·도구는 부품이 아니다
+      .map(부품이름)
+      .filter((n) => !현재부품.includes(n));
+  } catch {
+    /* package.json 을 못 읽으면 이 항목만 건너뛴다 */
+  }
+
   // ② 커밋 목록 — «기준 커밋이 본판 역사에 실제로 있을 때만» 의미가 있다(위 🛑 참고).
   let 커밋 = null;
   let 범위못씀 = null;
@@ -427,8 +445,14 @@ async function 검사_앱미반영() {
     }
   }
 
-  const 볼것 = 안실린부품.length > 0 || (커밋 && 커밋.length > 0);
+  const 볼것 = 안실린부품.length > 0 || 빠진선언.length > 0 || (커밋 && 커밋.length > 0);
   const 조각 = [`스토어 판 ${폰} · 저장소 ${저장소}(${저장소이름})`];
+  if (빠진선언.length) {
+    조각.push(
+      `🔴 package.json 에는 있는데 capacitor.build.gradle 에 없는 부품 ${빠진선언.length}개: ${빠진선언.join(", ")} → 이대로 구우면 그 기능이 앱에서 «조용히» 빠진다. ` +
+        "부품을 설치한 상태에서 `npm run cap:sync` 를 다시 돌리고 gradle 변경을 커밋해라"
+    );
+  }
   if (안실린부품.length) 조각.push(`⚠️ 출시본에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 폰에서 죽어 있다`);
   else 조각.push(`부품 ${현재부품.length}개 전부 출시본에 있음`);
   if (커밋?.length) 조각.push(`그 뒤 네이티브 고침 ${커밋.length}건: ${커밋.slice(0, 3).join(" / ")}`);
