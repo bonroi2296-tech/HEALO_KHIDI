@@ -54,6 +54,27 @@ def text(s, x, y, w, h, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP):
     return tf
 
 
+def 글꼴박기(run, 이름):
+    """글꼴을 latin·ea(동아시아)·cs 세 칸에 함께 박는다.
+
+    왜: python-pptx 의 font.name 은 <a:latin> «만» 건드린다. 한글은 <a:ea> 를 따라가고
+    그게 비면 테마의 script="Hang" 값으로 떨어지는데, 그 기본값이 「맑은 고딕」이다.
+    그래서 만들 때는 멀쩡해 보여도 «새로 친 글자»가 맑은 고딕으로 바뀐다
+    (2026-08-31 실측 — 중간평가 발표자료에서 실제로 터졌다).
+
+    실측 재현(2026-08-31, python-pptx 1.0.2): 이 함수 «없이» 덱을 뽑으면
+    run 7개 / <a:latin> 7개 / **<a:ea> 0개**, 테마의 script="Hang" 은 「맑은 고딕」이었다.
+    """
+    from pptx.oxml.ns import qn
+    from lxml import etree
+    rPr = run._r.get_or_add_rPr()
+    for 태그 in ("a:ea", "a:cs"):
+        el = rPr.find(qn(태그))
+        if el is None:
+            el = etree.SubElement(rPr, qn(태그))
+        el.set("typeface", 이름)
+
+
 def line(tf, txt, size, color=BLACK, font=REG, first=False, before=0, align=None, spacing=None):
     p = tf.paragraphs[0] if first else tf.add_paragraph()
     if align:
@@ -65,6 +86,7 @@ def line(tf, txt, size, color=BLACK, font=REG, first=False, before=0, align=None
     r.text = txt
     r.font.size, r.font.name = Pt(size), font
     r.font.color.rgb = color
+    글꼴박기(r, font)
     return p
 
 
@@ -79,6 +101,7 @@ def rich(tf, parts, size=12, align=None, before=0, first=False):
         r.text = txt
         r.font.size, r.font.name = Pt(size), font
         r.font.color.rgb = color
+        글꼴박기(r, font)
     return p
 
 
@@ -199,9 +222,11 @@ def table(s, rows, x, y, widths, row_h=26, size=10.5, header=True, align_center=
                 p.alignment = PP_ALIGN.CENTER if align_center else PP_ALIGN.LEFT
                 p.line_spacing = 1.15
                 for r in p.runs:
+                    글꼴 = MED if (header and ri == 0) else REG
                     r.font.size = Pt(size)
-                    r.font.name = MED if (header and ri == 0) else REG
+                    r.font.name = 글꼴
                     r.font.color.rgb = BLACK
+                    글꼴박기(r, 글꼴)
     return tbl
 
 
@@ -253,3 +278,60 @@ def highlight(s, txt, x, y, size=11):
     tf = text(s, x + 6, y, wpx, h, anchor=MSO_ANCHOR.MIDDLE)
     tf.word_wrap = False
     line(tf, txt, size, WHITE, XBOLD, first=True)
+
+
+def save(prs, 경로, 제목글꼴=None, 본문글꼴=None):
+    """저장하면서 «테마의 한글 글꼴»까지 바꾼다. `prs.save()` 대신 이걸 써라.
+
+    왜 낱글자에 박는 것만으론 모자라나: 글꼴박기() 는 «이미 찍은 글자»만 고친다.
+    받은 사람이 슬라이드에 **한 글자라도 새로 치면** 그 글자는 테마를 따라가는데,
+    빈 발표자료의 테마는 한글이 script="Hang" → 「맑은 고딕」이다.
+    (2026-08-31 실측: 뽑은 파일의 theme1.xml 에 `script="Hang" typeface="맑은 고딕"` 2군데.)
+
+    ⚠️ 이 함수는 원래 `fix_theme_fonts` 라는 «저장소에 없는» 모듈을 불렀다. 그대로 가져왔으면
+    부르는 순간 ImportError 로 죽는다 — 그래서 밖을 안 부르고 여기서 직접 고치도록 다시 썼다.
+    """
+    import os
+    import shutil
+    import zipfile
+    from lxml import etree
+
+    prs.save(경로)
+    제목 = 제목글꼴 or XBOLD
+    본문 = 본문글꼴 or REG
+    A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+
+    def 테마고치기(xml_bytes):
+        root = etree.fromstring(xml_bytes)
+        for 이름, 글꼴 in (("majorFont", 제목), ("minorFont", 본문)):
+            블록 = root.find(f".//{{{A}}}fontScheme/{{{A}}}{이름}")
+            if 블록 is None:
+                continue
+            for 태그 in ("latin", "ea", "cs"):
+                el = 블록.find(f"{{{A}}}{태그}")
+                if el is None:
+                    el = etree.SubElement(블록, f"{{{A}}}{태그}")
+                el.set("typeface", 글꼴)
+            # script="Hang"(한글) 항목도 같이 — 이게 「맑은 고딕」의 진짜 출처다.
+            for f in 블록.findall(f"{{{A}}}font"):
+                if f.get("script") == "Hang":
+                    f.set("typeface", 글꼴)
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+
+    임시 = 경로 + ".tmp"
+    os.replace(경로, 임시)
+    try:
+        with zipfile.ZipFile(임시) as 원본, zipfile.ZipFile(경로, "w", zipfile.ZIP_DEFLATED) as 새것:
+            for item in 원본.infolist():
+                데이터 = 원본.read(item.filename)
+                if item.filename.startswith("ppt/theme/theme") and item.filename.endswith(".xml"):
+                    데이터 = 테마고치기(데이터)
+                새것.writestr(item, 데이터)
+    except Exception:
+        # 고치다 실패하면 «원래 파일»이라도 남긴다 — 빈 파일을 남기는 게 제일 나쁘다.
+        shutil.move(임시, 경로)
+        raise
+    finally:
+        if os.path.exists(임시):
+            os.remove(임시)
+    return 경로
