@@ -258,9 +258,18 @@ export async function autoScheduleReminders(
       const profile = profileById.get(userId);
       // 이메일은 profiles 가 아니라 auth.users 에 있다. 못 얻어도 userId 로 in_app 채널은 발송된다.
       let email: string | undefined;
+      // ⚠️ 이름도 «여기서» 가져온다 — profiles.full_name 을 그대로 믿으면 안 된다.
+      //    2026-08-26 마이그레이션(20260826_profiles_stop_storing_plaintext_name)이 그 칸을
+      //    «평문 개인정보라 더 이상 쌓지 않는다»며 전부 null 로 비웠고, 가입 자동장치도 안 채운다.
+      //    실측 2026-08-31: 프로필 24개 중 이름이 있는 건 **0개** — 그동안 등록 사용자 상담 알림이
+      //    이름 없이 나가고 있었다. 인증 표는 서비스 열쇠로만 열리므로 같은 값이 더 안전한 자리에만 남는다.
+      //    ↓ getUserById 는 이메일 때문에 어차피 부르던 것이라 호출이 늘지 않는다.
+      let name: string | undefined;
       try {
         const { data: authData } = await (supabaseAdmin as any).auth.admin.getUserById(userId);
         email = authData?.user?.email ?? undefined;
+        const meta = authData?.user?.user_metadata ?? {};
+        name = meta.full_name || meta.name || undefined;
       } catch {
         /* 이메일 조회 실패해도 in_app 리마인더는 나가므로 무시 */
       }
@@ -268,7 +277,8 @@ export async function autoScheduleReminders(
         userId,
         email,
         role: profile?.role ?? "user",
-        name: profile?.full_name ?? undefined,
+        // profiles 쪽은 «되돌림 대비» 폴백일 뿐이다(지금은 항상 null).
+        name: name ?? profile?.full_name ?? undefined,
         lang: userId === session.patient_id ? (session.patient_language ?? "ko") : "ko",
       });
     }

@@ -49,6 +49,14 @@ export const metadata = {
     type: "website",
     locale: "kk_KZ",
   },
+  // ⚠️ twitter 를 «반드시» 같이 둔다 — 이유는 app/ru/for-russian-patients/page.jsx 주석과 같다.
+  //    openGraph 만 정의하면 twitter 카드만 루트의 영어 문구로 나간다(2026-08-31 실측).
+  twitter: {
+    card: "summary_large_image",
+    title: "Кореядағы рак емдеу | healwith медициналық консьерж",
+    description:
+      "Оңтүстік Кореядағы онкологиялық емдеу. Immune Hospital: 50 000+ науқас, ITCR хаттамасы. Қазақ тілінде қолдау.",
+  },
 };
 
 const jsonLd = {

@@ -64,6 +64,16 @@ export const metadata = {
     type: "website",
     locale: "ru_RU",
   },
+  // ⚠️ twitter 를 «반드시» 같이 둔다 (2026-08-31 실측으로 추가).
+  //    openGraph 만 정의하면 twitter 는 루트 layout 것을 그대로 물려받는다 → 이 화면은
+  //    제목·og 가 러시아어인데 twitter 카드만 "healwith | Korea Cancer Care…"(영어)로 나갔다.
+  //    여기는 Yandex 색인 자산이자 광고 착지다 — 공유 카드가 영어면 클릭 전에 이탈한다.
+  twitter: {
+    card: "summary_large_image",
+    title: "Лечение рака в Корее | healwith — Медицинский консьерж",
+    description:
+      "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR. Поддержка на русском языке.",
+  },
 };
 
 const jsonLd = {

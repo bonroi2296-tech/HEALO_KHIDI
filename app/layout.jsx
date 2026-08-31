@@ -1,14 +1,13 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
-import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
+import { localeAlternates, OG_LOCALE, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
-import { LOCALES } from "@/lib/i18n/config";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
@@ -169,8 +168,11 @@ export default async function RootLayout({ children }) {
   //    「본문은 베트남어인데 <html lang="en">」 이 된다. 그 불일치는 브라우저 자동번역을
   //    부르는 조건이고, 자동번역은 우리가 아직 못 닫은 NotFoundError 8건의 유력 용의자다
   //    (POSTMORTEMS #133). 6개 밖의 옛 쿠키는 en 으로 떨어뜨리는 게 맞다.
-  const ssrLang = LOCALES.includes(cookieLang) ? cookieLang : null;
-  const lang = (await headers()).get("x-locale") || ssrLang || "en";
+  // ⚠️ 그 판정(x-locale → LOCALES 검증 쿠키 → en)은 **여기 인라인으로 두지 않는다.**
+  //    <title> 을 만드는 localizedMeta 도 같은 순서를 써야 「본문은 러시아어인데 탭 제목만
+  //    영어」가 안 생기는데, 사본을 두면 한쪽만 고쳐진다(2026-08-31 실제로 그 상태였다).
+  //    → 단일 구현 = src/lib/i18n/metadata.js 의 getUiLocale(). 여기 다시 베끼지 마라.
+  const lang = await getUiLocale();
   // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();

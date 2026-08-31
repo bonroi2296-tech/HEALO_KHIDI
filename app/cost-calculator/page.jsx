@@ -39,6 +39,15 @@ export async function generateMetadata() {
       locale: OG_LOCALE[lc] || "en_US",
       ...(alternates ? { url: alternates.canonical } : {}),
     },
+    // ⚠️ twitter 를 «반드시» openGraph 와 같이 채운다 (2026-08-31 실측으로 추가).
+    //    openGraph 만 정의하면 twitter 는 루트 layout 것을 물려받는다 → 제목·og 는 러시아어인데
+    //    twitter 카드만 "healwith | Korea Cancer Care…"(영어)로 나갔다.
+    //    이 화면은 ru/kz 유료 광고의 주요 착지다 — 공유 카드가 영어면 그 클릭을 그대로 잃는다.
+    twitter: {
+      card: "summary_large_image",
+      title: m.title,
+      description: m.desc,
+    },
   };
 }
 
