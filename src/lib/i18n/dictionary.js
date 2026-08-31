@@ -1339,6 +1339,39 @@ export const DICTIONARY = {
     "seo.inquiry.desc": "Start your inquiry with healwith — choose an AI assistant, a human coordinator, or the inquiry form to connect with Korean cancer care.",
     "seo.immune.title": "Immune Hospital — Integrated Cancer Immune Care in Korea | healwith",
     "seo.immune.desc": "Immune Hospital — Korean Medicine integrative immune therapy (ITCRN 5-axis) for cancer patients, healwith's core partner.",
+    // ── 비공개 화면(noindex)의 탭 제목·미리보기 (2026-08-31) ────────────────────────────
+    // 왜 사전에 넣나: 이 7개 화면은 `export const metadata = { title: "한국어" }` 정적 문자열이라
+    //   본문은 러시아어인데 브라우저 탭 제목만 한국어로 떴다. 특히 /claim·/survey 는 코디가
+    //   왓츠앱·텔레그램으로 환자에게 보내는 토큰 링크라 **메신저 미리보기 카드가 이 두 줄을 그대로 읽는다**
+    //   (검색에는 안 뜨지만 미리보기는 뜬다). 러/카 환자에게 한국어 카드가 뜨던 자리다.
+    // 제목에 「| healwith」를 값 안에 박는 이유: localizedMeta 가 title:{absolute} 로 주므로
+    //   루트 template("%s | healwith")이 안 붙는다 — 위 공개 seo.*.title 18개와 같은 관례다.
+    //   (덤으로 옛 "진행 상황 — healwith" + template = 「healwith 두 번」 중복이 닫힌다.)
+    "seo.patientDash.title": "My Care Dashboard | healwith",
+    "seo.patientDash.desc": "Your consultations, medical documents, symptom log and next steps with healwith — all in one place.",
+    "seo.patientConsults.title": "Video Consultation History | healwith",
+    "seo.patientConsults.desc": "Your past and upcoming video consultations with Korean specialists, with medical interpretation.",
+    "seo.patientSymptoms.title": "Symptom Log | healwith",
+    "seo.patientSymptoms.desc": "Record your symptoms day by day so your coordinator and doctor can follow your recovery.",
+    "seo.patientDocs.title": "Medical Documents | healwith",
+    "seo.patientDocs.desc": "Upload and manage the records your Korean doctor needs — imaging, pathology and discharge summaries.",
+    "seo.claim.title": "Your Care Progress | healwith",
+    "seo.claim.desc": "See where your case stands right now, and link it to your healwith patient account.",
+    "seo.survey.title": "Service Satisfaction Survey | healwith",
+    "seo.survey.desc": "2 minutes of feedback on your healwith experience — it shapes how we care for the next patient.",
+    "seo.noAccess.title": "Access Denied | healwith",
+    "seo.noAccess.desc": "This account doesn't have access to this area. Sign in with another account, or go back to healwith.",
+    // /no-access 본문 — PortalGate(app/_components/PortalGate.jsx)의 거절 카드와 «같은 사건»이라
+    // otherAccount·goHome 은 그쪽 GATE_TR 값을 문자 그대로 가져왔다. 두 화면이 다른 말을 하면 안 된다.
+    // ⚠️ heading 을 「{영역} 전용」 치환 템플릿으로 만들지 마라 — t() 는 치환을 지원하지 않고,
+    //    러/카는 명사를 슬롯에 끼우면 격이 깨진다(«관리자 전용» = только для администраторов, 생격 복수).
+    //    그래서 문장 통째로 2개다(admin / 그 외). AREA_LABEL 항목이 admin 하나뿐이라 이걸로 전수 커버.
+    "noAccess.headingAdmin": "Admins only",
+    "noAccess.headingGeneric": "You don't have access to this page",
+    "noAccess.body": "The account you're signed in with doesn't have access to this screen. If you used the wrong account, sign in again below.",
+    "noAccess.otherAccount": "Sign in with another account",
+    "noAccess.goCoordinator": "Go to coordinator portal",
+    "noAccess.goHome": "Back to home",
     "cta.freePlan": "Get Free Treatment Plan",
     "cta.badge": "Personal Concierge",
     "cta.title": "Get Your Free Treatment Plan",
