@@ -288,8 +288,52 @@ export async function proxy(request: NextRequest) {
   }
 
   // ========================================
+  // 로그인 벽 — «처음 오는» 방문자도 제 언어로 (2026-08-31)
+  // ========================================
+  // 왜 필요한가 (실측): `/patient/*` 는 전부 로그인 뒤라 코디가 보낸 딥링크를 누른 환자는
+  //   307 로 `/login` 에 도착한다. 그런데 `/login` 은 PUBLIC_PREFIXES 에도 GUEST_LINK_PREFIXES
+  //   에도 없어서 x-locale 이 안 붙고, getUiLocale 의 폴백은 «쿠키뿐»이라 **쿠키가 없는 첫
+  //   방문자는 통째로 영어**를 받았다 — Accept-Language 가 ru 든 kk 든 <html lang="en">.
+  //   즉 「두 번째 방문부터만 러시아어」였고, 초대 링크로 처음 오는 환자가 정확히 그 반대다.
+  //   (2026-08-31 실측: Accept-Language: ru 로 /patient/visa → /login 도착 → "Sign in | healwith")
+  //
+  // ⚠️ 왜 getUiLocale 에 Accept-Language 를 넣지 «않았나» — 그게 더 짧아 보이지만 틀린다.
+  //   서버 컴포넌트는 쿠키를 심을 수 없다. 서버만 Accept-Language 로 ru 를 그리면 클라이언트는
+  //   쿠키가 없어 en 으로 갈려 **hydration mismatch**(POSTMORTEMS #77)가 그대로 재현된다.
+  //   그래서 «쿠키를 심을 수 있는 유일한 자리»인 여기서 고친다 — 위 게스트 분기와 같은 방식이다.
+  //
+  // ⚠️ 여기 목록은 «인증 검사를 원래 안 타는» 화면만이어야 한다. 아래 인증 분기(/admin·/patient·
+  //   /hospital·/agency·/clinic·/coordinator)에 걸리는 경로를 넣으면 그 분기를 건너뛰어
+  //   **검사가 사라진다.** 넣기 전에 반드시 아래 분기 목록과 대조하라.
+  //   `/patient/*` 를 여기 넣지 않은 이유도 그것이고, 넣을 필요도 없다 — 환자는 `/login` 을
+  //   반드시 거치고 거기서 쿠키가 심어지므로 그다음 화면부터는 쿠키가 이어 준다.
+  //   `/auth/confirm` 만 넣고 `/auth/callback` 은 안 넣는다(OAuth 콜백은 손대지 않는다).
+  const VISITOR_LANG_PREFIXES = [
+    "/login",
+    "/signup",
+    "/find-id",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/confirm",
+    "/account/password",
+    "/no-access",
+    "/app",
+  ];
+  if (VISITOR_LANG_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    const locale = detectLocale(request);
+    const headers = new Headers(request.headers);
+    headers.set("x-locale", locale);
+    const res = NextResponse.next({ request: { headers } });
+    // 불변식(POSTMORTEMS #77): x-locale 을 주입하는 분기는 healo_lang 쿠키도 같이 심는다.
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
+    return res;
+  }
+
+  // ========================================
   // 예외 경로: 인증 없이 통과
   // ========================================
+  // ⚠️ /login·/signup 은 위 VISITOR_LANG_PREFIXES 가 «먼저» 잡아 같은 next() 를 돌려준다
+  //    (언어만 얹어서). 여기 남겨 두는 건 목록이 갈라졌을 때의 안전벨트다.
   const publicPaths = [
     "/login",
     "/signup",
