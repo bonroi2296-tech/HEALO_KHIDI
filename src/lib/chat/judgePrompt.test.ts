@@ -307,6 +307,36 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
       expect(buildSessionFacts({ isLoggedIn: false, channel: "web" })).toContain("30 days");
     });
 
+    it("🔴 «모르는» 채널 값은 거짓말 쪽으로 안 떨어진다 — 안전한 쪽으로 간다", () => {
+      // DB `chat_threads.channel` 값은 web|whatsapp|telegram|email|line 이다.
+      // 다음 사람이 `channel: thread.channel` 로 넘기면 "telegram" 이 들어오는데,
+      // Supabase 결과는 any 라 타입이 안 막는다. 그때 미지의 값이 «쿠키 안내» 쪽으로
+      // 떨어지면 그게 곧 거짓말이다 → 분기를 «web 일 때만»으로 «긍정» 판정해야 한다.
+      // (분기를 `!== "messenger"` 로 되돌리면 이 시험이 터진다 — 3차 리뷰 지적.)
+      // ⚠️ undefined(=칸 자체를 안 넘김)는 «모르는 값»이 아니라 웹 위젯의 정상 기본값이다
+      //    — 바로 아래·위 시험이 그쪽을 따로 잠근다. 여기서 재는 건 «잘못 채워진 값»이다.
+      for (const v of ["telegram", "whatsapp", "email", "line", "", null]) {
+        const facts = buildSessionFacts({ isLoggedIn: false, channel: v as any });
+        expect(facts, `channel=${String(v)}`).not.toMatch(/30 days/);
+        expect(facts, `channel=${String(v)}`).not.toMatch(/cookie/i);
+      }
+    });
+
+    it("연락처가 없으면 «코디가 연락처로 후속한다»를 사실로 주지 않는다", () => {
+      // 이 문장이 무조건이던 때는, 연락처가 하나도 없는 게스트에게 모델이
+      // "코디가 연락드리겠습니다"라고 답해도 판사가 「칸에 있으니 사실」로 통과시켰다
+      // — 2026-06-22 실제 컴플레인이 났던 거짓 약속이다(3차 리뷰 지적).
+      const noContact = buildSessionFacts({ isLoggedIn: false });
+      expect(noContact).toMatch(/NO way to reach this patient/);
+      expect(noContact).not.toMatch(/contact detail already on file/);
+
+      const onFile = buildSessionFacts({ isLoggedIn: false, hasReachableContact: true });
+      expect(onFile).toMatch(/contact detail already on file/);
+
+      const here = buildSessionFacts({ isLoggedIn: false, contactInThisChannel: true });
+      expect(here).toMatch(/follows up IN THIS SAME chat/);
+    });
+
     it("메신저에서도 판사가 같은 문자열을 본다", () => {
       const facts = buildSessionFacts({ channel: "messenger" });
       expect(sessionBlock(buildJudgePrompt({ ...neutral, sessionFacts: facts }))).toContain(facts);

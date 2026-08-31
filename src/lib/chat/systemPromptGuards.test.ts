@@ -135,3 +135,38 @@ describe("deflection-loop guards (regression lock)", () => {
     expect((SRC.match(/detectRepetitiveAssistant\((?:safeMessages|messages)\)/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+/**
+ * 품질 판사 배선 잠금 — 2026-08-31, 반성문 #179 (3차 독립 리뷰 지적).
+ *
+ * 이 PR 의 «존재 이유»는 판사에게 세션 사실을 넘기는 것인데, 정작 그 배선
+ * (`runJudgeInBackground({ … sessionFacts … })`) 을 무는 시험이 하나도 없었다.
+ * 리뷰어가 그 두 줄을 지우고 돌리니 **1,499건 전부 초록**이었다.
+ * `JudgeInput.sessionFacts` 가 선택 필드(`?`)라 typecheck 도 안 걸린다.
+ * 즉 리팩터 한 번에 #179 가 통째로 되살아나는데(정확한 답이 매일 환각으로 찍히고
+ * 코디에게 가짜 경보) 검사는 전부 초록인 상태였다.
+ *
+ * ⚠️ 「개수」가 아니라 «전부 넘기는가»를 잰다 — 새 진입점(새 채널·새 스트리밍 경로)을
+ *   추가하면서 이 칸만 빠뜨리는 것이 정확히 같은 사고이기 때문이다.
+ */
+describe("judge 배선 잠금 (반성문 #179)", () => {
+  const calls = SRC.match(/runJudgeInBackground\(\{[\s\S]*?\n {4}\}\)/g) ?? [];
+
+  it("판사 호출부가 실제로 잡힌다 (정규식이 망가지면 여기가 «먼저» 터진다)", () => {
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("«모든» 판사 호출부가 sessionFacts 를 넘긴다", () => {
+    expect(calls.filter((c) => !/\bsessionFacts\b/.test(c))).toEqual([]);
+  });
+
+  it("«모든» 판사 호출부가 안내자료(officialReference)도 같이 넘긴다 (#173 잠금 유지)", () => {
+    expect(calls.filter((c) => !/\bofficialReference\b/.test(c))).toEqual([]);
+  });
+
+  it("세션 사실은 한 곳에서만 조립된다 — 프롬프트용 1 + 판사용 1", () => {
+    // 호출부에서 buildSessionFacts 를 «다시» 부르면 시스템 프롬프트가 쓴 것과 어긋날 수 있다.
+    expect(SRC).toMatch(/sessionFacts: buildSessionFacts\(session\)/);
+    expect(SRC.match(/buildSessionFacts\(session\)/g)?.length).toBe(2);
+  });
+});

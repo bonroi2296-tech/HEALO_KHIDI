@@ -402,7 +402,13 @@ const STATIC_RULES = [
  *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
  */
 export function buildSessionFacts(session: ChatSession = {}): string {
-  const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
+  const {
+    isLoggedIn = false,
+    hasAttachments = false,
+    channel = "web",
+    hasReachableContact = false,
+    contactInThisChannel = false,
+  } = session;
 
   // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
   //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 이어진다.
@@ -422,13 +428,23 @@ export function buildSessionFacts(session: ChatSession = {}): string {
     //    새 스레드로 가서 이전 대화를 안 물고 온다 — 그건 «끊김 없음»이 아니다(2차 리뷰 지적).
     : "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history, so they can come back to this same chat later.";
 
+  // ⚠️ 후속 연락도 «사실»이라 세 갈래를 나눈다. 예전엔 무조건 「코디가 연락처로 후속한다」였는데,
+  //    연락처가 하나도 없는 게스트에게 그건 거짓 약속이고(2026-06-22 PO 재현으로 실제 컴플레인),
+  //    그 거짓말이 이 칸을 통해 판사에게 「사실」로 넘어가면 환각 검출까지 통과한다
+  //    (1차 리뷰가 잡은 «메신저에 쿠키 약속»과 똑같은 구조 — 3차 리뷰 지적).
+  const followUp = contactInThisChannel
+    ? "- The assistant replies LIVE here, and a human coordinator follows up IN THIS SAME chat — this chat is the contact channel."
+    : hasReachableContact
+    ? "- The assistant replies LIVE here, and a human coordinator follows up through the contact detail already on file."
+    : "- The assistant replies LIVE here. We currently have NO way to reach this patient outside this chat (no email, phone, or account on file), so a coordinator cannot follow up unless they leave a contact.";
+
   return [
     hasAttachments
       ? "- The patient uploaded document(s)/image(s) in this chat, but the assistant CANNOT open, see, or read their contents — it only knows files were received."
       : "",
     "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
     continuity,
-    "- The assistant replies LIVE in this chat; a human coordinator follows up through the patient's contact detail.",
+    followUp,
   ]
     .filter(Boolean)
     .join("\n");
