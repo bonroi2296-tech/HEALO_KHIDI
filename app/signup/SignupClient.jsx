@@ -154,8 +154,10 @@ export const SignUpPage = ({ setView }) => {
                     window.location.href = target || '/';
                 } catch (err) {
                     if (!g.isGoogleCancel(err)) {
+                        // 꼬리표를 같이 띄운다 — 이게 없으면 「실패했습니다」만 남아 원인을 못 좁힌다
+                        // (2026-08-31 실제로 그래서 하루를 썼다). 앱 안에서만 도는 분기다.
                         console.error('[SignUpPage] Google native sign-in failed:', err);
-                        toast.error(t('signup.googleError', lc));
+                        toast.error(`${t('signup.googleError', lc)} (${g.describeGoogleError(err)})`);
                     }
                     setOauthRedirecting(false);
                 }
