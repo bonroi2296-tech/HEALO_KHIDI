@@ -56,6 +56,27 @@ describe("공개 화면의 검색 제목·설명 언어화", () => {
     expect(keys.length).toBeGreaterThan(20);
   });
 
+  /**
+   * 위 정규식은 `localizedMeta(식별자, "키", "키")` 모양만 문다. 그래서 base 를 «인라인 객체»로
+   * 넘기면 — localizedMeta({ robots: … }, "키", "키") — 그 화면이 아래 키릴 검사에서 통째로,
+   * 그리고 «조용히» 빠진다. 2026-08-31 비공개 화면 7개를 언어화하며 실제로 밟은 함정이라
+   * 여기서 기계로 막는다. 고치는 법: base 를 `const baseMeta = {…}` 로 빼서 이름으로 넘길 것.
+   */
+  it("localizedMeta 를 부르는 화면은 하나도 빠짐없이 위 정규식에 잡힌다 (인라인 base 금지)", () => {
+    const missed: string[] = [];
+    for (const file of walk(APP_DIR)) {
+      const src = fs.readFileSync(file, "utf8");
+      if (!src.includes("localizedMeta(")) continue;
+      if ([...src.matchAll(CALL)].length > 0) continue;
+      missed.push(path.relative(process.cwd(), file));
+    }
+    expect(
+      missed,
+      `\nlocalizedMeta 를 부르지만 검사에서 빠지는 화면:\n${missed.join("\n")}\n` +
+        `→ base 를 인라인 객체가 아니라 이름 붙인 상수(const baseMeta = {…})로 넘겨라.\n`
+    ).toEqual([]);
+  });
+
   it.each(["ru", "kz"])("%s: 모든 열쇳말이 키릴 문자로 번역돼 있다 (영어 폴백 = 실패)", (lang) => {
     const broken: string[] = [];
     for (const { file, key } of keys) {
