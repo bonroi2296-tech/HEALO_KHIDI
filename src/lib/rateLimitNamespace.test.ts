@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import fs from "fs";
 import path from "path";
 
@@ -35,6 +35,12 @@ beforeEach(() => {
     data: [{ allowed: true, remaining: 4, reset_at: "2026-08-31T06:56:00.000Z" }],
     error: null,
   });
+  delete process.env.RATE_LIMIT_NAMESPACE;
+});
+
+// vitest 는 «파일»마다 모듈은 새로 만들지만 process.env 는 워커 프로세스가 공유한다.
+// 여기서 켜 둔 채 끝내면 뒤에 도는 다른 파일이 그 값을 물려받는다 — 치우고 나간다.
+afterAll(() => {
   delete process.env.RATE_LIMIT_NAMESPACE;
 });
 
