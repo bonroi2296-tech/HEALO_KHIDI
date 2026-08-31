@@ -7,7 +7,14 @@ export default function robots() {
     "/admin",
     "/login",
     "/signup",
+    // 전환 퍼널·개인정보 입력 폼. 두 줄인 이유(2026-08-31 감사에서 잡힘):
+    // 공개 경로는 전부 /{언어}/… 로 서빙된다(proxy.ts 가 맨 주소를 308 로 보낸다).
+    // robots 규칙은 «접두어 일치»라 "/inquiry" 한 줄은 맨 주소만 막고 **/en/inquiry ·
+    // /ru/inquiry 는 하나도 안 막았다** — 사이트맵 주석엔 "robots 에서 차단"이라고 적혀 있어
+    // 문서와 현실이 몇 달간 어긋나 있었다. "/*/inquiry" 가 언어판 전부를 덮는다
+    // (하위 /inquiry/referral 도 같은 접두어라 함께 막힌다 — 역시 개인정보 폼이라 의도대로다).
     "/inquiry",
+    "/*/inquiry",
     "/consultation",
     "/hospital",
     "/coordinator",
@@ -30,38 +37,48 @@ export default function robots() {
     "/design-preview",
   ];
 
+  // 공개 콘텐츠 허용 목록 — **세 그룹(일반·Yandex·AI)이 같은 것을 봐야 한다.**
+  //
+  // 왜 상수로 뺐나 (2026-08-31 감사): 예전엔 이 목록이 `*` 그룹에만 있고 Yandex·AI 그룹은
+  // allow:["/"] 뿐이었다. robots 판정은 «가장 긴 일치 규칙이 이긴다» → 그 두 그룹에선
+  // Disallow "/hospital"(9자)이 Allow "/"(1자)를 이겨 **/hospitals 가 통째로 차단**됐다.
+  // (`*` 그룹만 Allow "/hospitals"(10자)를 갖고 있어 무사했다.)
+  // 한 곳만 고쳐지는 사고를 없애려고 목록을 하나로 합친다 — 새 공개 경로는 여기 한 줄.
+  //
+  // ⚠️ 여기 목록은 «크롤을 여는» 게 아니라 «우리가 SEO 지면이라고 선언하는» 목록이다(#1547).
+  //    맨 위 "/" 가 이미 전부를 열어 두므로(막는 건 아래 disallow 뿐), 각 줄은 사실상 주석이다.
+  //    그래서 «없는 지면»을 적어두면 다음 사람이 그걸 지면으로 믿는다.
+  // 2026-08-31 삭제: "/patient/education"·"/patient/visa".
+  //    실측 — 로그인 없이 열면 둘 다 **307 → /login** 이다(proxy.ts 가 /patient/* 를 먼저 막는다).
+  //    즉 크롤러는 여기 적힌 화면을 «한 번도 본 적이 없고» 매번 Disallow 인 /login 에 부딪혔다.
+  //    ⚠️ 정정(2026-08-31 재측정): 처음엔 「두 화면에 noindex 까지 붙었다」고 적었는데 **틀렸다.**
+  //    noindex 가 붙은 건 /patient/visa 하나뿐이고, /patient/education 은 본문 없는 리다이렉트
+  //    껍데기라 애초에 metadata 가 없다. 두 줄을 뺀 이유는 「noindex 라서」가 아니라
+  //    **둘 다 로그인 벽 뒤여서 크롤러가 한 번도 본 적이 없기 때문**이다.
+  //    교육자료의 «진짜» 공개 지면은 /education 이고 그건 "/" 로 이미 열려 있다.
+  const commonAllow = [
+    "/",
+    "/treatments",
+    "/hospitals",
+    "/specialties",
+    "/about",
+    "/contact",
+    "/ru/for-russian-patients",
+    "/kk/for-kazakh-patients",
+  ];
+
   return {
     rules: [
       // ── 기본 크롤러 ───────────────────────────────────────────
       {
         userAgent: "*",
-        // ⚠️ 여기 목록은 «크롤을 여는» 게 아니라 «우리가 SEO 지면이라고 선언하는» 목록이다.
-        //    맨 위 "/" 가 이미 전부를 열어 두므로(막는 건 아래 disallow 뿐), 각 줄은 사실상 주석이다.
-        //    그래서 «없는 지면»을 적어두면 다음 사람이 그걸 지면으로 믿는다.
-        // 2026-08-31 삭제: "/patient/education"·"/patient/visa".
-        //    실측 — 로그인 없이 열면 둘 다 **307 → /login** 이다(proxy.ts 가 /patient/* 를 먼저 막는다).
-        //    즉 크롤러는 여기 적힌 화면을 «한 번도 본 적이 없고» 매번 Disallow 인 /login 에 부딪혔다.
-        //    ⚠️ 정정(2026-08-31 재측정): 처음엔 「두 화면에 noindex 까지 붙었다」고 적었는데 **틀렸다.**
-        //    noindex 가 붙은 건 /patient/visa 하나뿐이고, /patient/education 은 본문 없는 리다이렉트
-        //    껍데기라 애초에 metadata 가 없다. 두 줄을 뺀 이유는 「noindex 라서」가 아니라
-        //    **둘 다 로그인 벽 뒤여서 크롤러가 한 번도 본 적이 없기 때문**이다.
-        //    교육자료의 «진짜» 공개 지면은 /education 이고 그건 "/" 로 이미 열려 있다.
-        allow: [
-          "/",
-          "/treatments",
-          "/hospitals",
-          "/specialties",
-          "/about",
-          "/contact",
-          "/ru/for-russian-patients",
-          "/kk/for-kazakh-patients",
-        ],
+        allow: commonAllow,
         disallow: commonDisallow,
       },
       // ── Yandex 검색 크롤러 — 명시적 허용 (crawl-delay 없음 권장) ──
       {
         userAgent: "Yandex",
-        allow: ["/"],
+        allow: commonAllow,
         disallow: commonDisallow,
         // crawlDelay: 1  ← Yandex 는 낮을수록 좋음; 필요 시 주석 해제
       },
@@ -97,7 +114,7 @@ export default function robots() {
           "Applebot-Extended", // Apple Intelligence
           "meta-externalagent", // Meta AI
         ],
-        allow: ["/"],
+        allow: commonAllow,
         disallow: commonDisallow,
       },
     ],

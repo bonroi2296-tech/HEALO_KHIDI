@@ -337,6 +337,32 @@ export const CANCER_DETAILS = {
   },
 };
 
+/**
+ * 화면의 «장기 이름» → 상세 페이지 slug 단일 매핑.
+ *
+ * 왜 생겼나 (2026-08-31 감사): 홈·치료목록의 암종 카드는 stomach/breast/colon 처럼 «장기» 단위인데
+ * 상세 페이지는 digest/female 처럼 «묶음» 단위라 서로 이름이 안 맞았다. 그래서 카드가 전부
+ * /treatments 목록으로만 보냈고, **정작 만들어 둔 암종 상세 6쪽은 사이트 안에서 링크가 0개**였다
+ * (사이트맵에만 존재 = 구글이 발견해도 우선순위 최하). 이 표가 그 다리다.
+ *
+ * ⚠️ 카드를 추가하면 여기 한 줄도 같이 추가해라. 값은 반드시 CANCER_DETAILS 의 키여야 한다
+ *    (없는 키를 적으면 상세 페이지가 404 — scripts/check-cancer-i18n.mjs 와 같은 부류의 실수).
+ */
+export const ORGAN_TO_CANCER_SLUG = {
+  stomach: "digest",   // 대장 · 위암
+  colon: "digest",     // 대장 · 위암
+  breast: "female",    // 유방 · 자궁 · 난소암
+  liver: "liver",      // 간 · 담도 · 췌장암
+  lung: "lung",        // 폐암
+  thyroid: "thyroid",  // 갑상선암
+};
+
+/** 장기 이름으로 상세 경로를 만든다. 매핑이 없으면 목록으로(안전 폴백). */
+export function cancerDetailPath(organ) {
+  const slug = ORGAN_TO_CANCER_SLUG[organ];
+  return slug ? `/treatments/${slug}` : "/treatments";
+}
+
 // 이미지 경로 레지스트리 — 전부 /public/immune/ 로컬 경로 (외부 핫링크 없음)
 // 수집일: 2026-04-21(101개) + 2026-07-01(카드/합병증 36개, scripts/fetch-cancer-card-images.mjs)
 // 저작권: 면력한방병원 (자사 병원, 저작권 OK)

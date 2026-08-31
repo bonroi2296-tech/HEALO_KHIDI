@@ -128,6 +128,9 @@ export default async function sitemap() {
     // 가리키지 않아 **비상호 = 구글이 그 표기를 통째로 무시**했다. 게다가 x-default 가
     // 홈페이지를 가리켜 "이 러시아어 랜딩의 기본판은 영어 홈"이라는 잘못된 신호까지 줬다.
     // 번역판이 없으면 hreflang 을 안 다는 게 맞다(달아서 얻을 게 없고 잘못된 신호만 남음).
+    // 2026-08-31: 페이지 metadata 쪽은 이 결정을 반만 따르고 있었다 — x-default:"/" 가 남아 있어
+    // 여기 주석과 어긋났다. 그쪽에서 x-default 를 빼서 이제 «ru↔kk 상호 짝만» 남는다
+    // (그 짝은 서로를 가리키므로 유효). 사이트맵은 그대로 hreflang 없이 <loc> 만 낸다.
     { url: `${baseUrl}/ru/for-russian-patients`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9 },
     // localized() 는 언어 수만큼의 배열을 반환하므로 flat() 로 펼친다.

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { whatsappWithText } from "@/lib/siteSettings";
+import { ORG_ID } from "@/lib/seo/structuredData";
 
 // ─────────────────────────────────────────────────────────────
 // 러시아어 의료관광 랜딩페이지 — 검색광고 착지 페이지도 겸한다
@@ -42,12 +43,17 @@ export const metadata = {
     "медицинская виза Корея",
     "healwith Корея",
   ],
+  // ru ↔ kk 두 랜딩은 서로를 가리키므로(상호참조 성립) 그 짝만 남긴다.
+  // x-default 를 뺀 이유(2026-08-31): "/" 는 200 이 아니라 «감지 언어로 308 되는 주소»이고,
+  // 홈 쪽은 이 랜딩들을 되가리키지 않는다 = 비상호. hreflang 은 상호참조가 성립해야 유효해서
+  // 구글이 표기를 통째로 무시할 수 있고, 그 전에 「이 러시아어 랜딩의 기본판은 영어 홈」이라는
+  // 틀린 신호부터 준다. app/sitemap.js 가 같은 이유로 이 둘의 hreflang 을 이미 뺐는데
+  // 페이지 쪽만 안 따라와 있었다(문서-코드 어긋남).
   alternates: {
     canonical: "/ru/for-russian-patients",
     languages: {
       ru: "/ru/for-russian-patients",
       kk: "/kk/for-kazakh-patients",
-      "x-default": "/",
     },
   },
   openGraph: {
@@ -93,11 +99,9 @@ const jsonLd = {
     name: "Онкология",
     alternateName: "Cancer",
   },
-  provider: {
-    "@type": "Organization",
-    name: "healwith",
-    url: "https://healwith.co.kr",
-  },
+  // @id 로 layout 의 브랜드 엔티티(#organization)를 가리킨다 — 예전처럼 이름만 적으면
+  // 검색엔진이 «별개 회사»로 읽어 브랜드 신호(sameAs·설명·서비스국가)가 둘로 쪼개진다.
+  provider: { "@id": ORG_ID },
 };
 
 const FAQ = [
