@@ -56,10 +56,20 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 /** 실서비스 프로젝트 — 여기에는 «절대» 통을 만들지 않는다(이미 5개 있고, 만들 일도 없다). */
 const 실서비스_REF = "hvwwlkawaxabhtumjhrg";
 
-/** 실서비스 `attachments` 와 같은 설정. 다르게 만들면 «검사만 통과하고 실서비스에서 막히는» 짝이 생긴다. */
+/**
+ * 실서비스 `attachments` 와 같은 설정 — 단, **크기 상한은 뺀다.**
+ *
+ * 🛑 2026-08-31 실측: 실서비스와 똑같이 `fileSizeLimit: 209715200`(200MB)로 만들려다
+ *    `The object exceeded the maximum allowed size` 로 거부당했다. 검사 전용 프로젝트는
+ *    요금제가 달라 «프로젝트 전역 상한»이 그보다 낮다 — 통 하나가 그걸 넘을 수 없다.
+ *    → 상한을 안 주면 그 프로젝트의 기본값이 붙는다. 이 검사가 올리는 건 **60바이트 더미**라
+ *      상한이 얼마든 상관없고, 진짜 크기 판정은 통이 아니라 앱 코드가 한다
+ *      (`app/api/attachments/upload/route.ts` 의 `MAX_FILE_SIZE` = 200MB).
+ *    ⚠️ 즉 «검사가 실서비스보다 느슨해지는» 방향이 아니다 — 통 상한은 더 «빡빡»해질 뿐이고,
+ *      느슨해지면 안 되는 mime 목록은 아래처럼 실서비스와 똑같이 준다.
+ */
 const 통설정 = {
   public: false,
-  fileSizeLimit: 209715200, // 200MB
   allowedMimeTypes: [
     "image/jpeg", "image/png", "image/gif", "image/webp",
     "application/pdf", "application/msword",
