@@ -69,11 +69,34 @@ export function websiteLd() {
   };
 }
 
-/** 제휴/협진 병원 네트워크를 MedicalOrganization 배열로 (실데이터) */
+/**
+ * 제휴/협진 병원 네트워크를 «독립된 병원 엔티티 배열»로 (실데이터).
+ *
+ * ⚠️ 이 배열을 healwith 노드의 `department` 에 넣지 마라 (2026-09-01 감사에서 되돌림).
+ *    schema.org 의 department 정의는 «그 조직의 부서 — 서점 안의 약국, 빵집 안의 카페»다.
+ *    즉 예전 코드는 검색엔진과 답변엔진에게 **「신촌세브란스병원은 healwith 의 한 부서다」**
+ *    라고 말하고 있었다. 셋 다 사실이 아니다:
+ *      · healwith(보뉴아)는 병원이 아니라 **등록 외국인환자 유치업체**다 — 부서로 둘 병원이 없다.
+ *      · 화면은 같은 병원들을 「제휴 병원 / 협진 대학병원」이라고 정확히 적고 있었다
+ *        (app/home/HomeClient.jsx 의 badgePartner·badgeUniversity). 화면과 구조화데이터가
+ *        서로 다른 말을 하고 있었던 것.
+ *      · 남의 대학병원 4곳을 우리 소속으로 선언하는 건 표시광고 쪽에서도 안을 위험이 크다.
+ *
+ *    고친 방식: 관계를 «거짓으로» 적는 대신 **아무 관계도 적지 않는다.** 병원들은 같은
+ *    JSON-LD 배열의 «형제 노드»로 나가고(그 페이지에 실제로 보이는 병원들이라 정당하다),
+ *    「어떤 사이인가」는 화면 본문이 말한다(답변엔진은 어차피 본문을 읽는다).
+ *    schema.org 에는 «제휴사»를 뜻하는 조직 간 속성이 없다 — 억지로 memberOf·subOrganization
+ *    같은 걸 갖다 붙이면 department 와 똑같은 종류의 거짓말이 된다. 그래서 비워 둔다.
+ *
+ * @id 를 주는 이유: 형제 노드로 떼어 놓으면 식별자가 없는 «익명 노드»가 되어 검색엔진이
+ *    페이지마다 다른 병원으로 셀 수 있다. 우리 이름공간의 고정 식별자를 붙여 홈·치료여정에서
+ *    같은 엔티티로 합쳐지게 한다(병원 «본인»의 정체는 url = 각 병원 공식 사이트가 말한다).
+ */
 export function partnerHospitalLdList() {
   return getAllPartnerHospitals().map((h) => {
     const node = {
       "@type": h.badge === "university" ? "Hospital" : "MedicalClinic",
+      "@id": `${SITE_URL}/#hospital-${h.slug}`,
       name: h.name?.en || h.name?.ko,
       medicalSpecialty: "Oncology",
     };
@@ -130,8 +153,6 @@ export function careJourneyLd(locale) {
     "@id": ORG_ID,
     medicalSpecialty: "Oncology",
     availableLanguage: ["Korean", "English", "Russian", "Kazakh", "Chinese", "Japanese"],
-    // 실제 제휴/협진 병원 네트워크(실데이터)
-    department: partnerHospitalLdList(),
   };
   const crumbs = breadcrumbLd(
     [
@@ -140,5 +161,7 @@ export function careJourneyLd(locale) {
     ],
     locale,
   );
-  return [business, crumbs];
+  // 제휴/협진 병원은 healwith 의 «부서»가 아니라 형제 노드다 — 이유는 partnerHospitalLdList 주석.
+  // 이 화면(CareJourneyClient «제휴 병원 네트워크» 칸)에 실제로 보이는 병원들이라 게재 근거가 있다.
+  return [business, crumbs, ...partnerHospitalLdList()];
 }

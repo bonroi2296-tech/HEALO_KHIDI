@@ -148,10 +148,29 @@ export default function CancerDetailClient({ slug }) {
         <p className="mt-5 text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl">
           {l(cancer.intro)}
         </p>
-        {cancer.stats?.survivalImprovement && (
+        {/* 제휴 병원이 «자기 사이트에 적어 둔» 수치. 출처 줄은 장식이 아니라 이 칸의 조건이다 —
+            암 생존율 수치를 근거 없이 띄우면 우리는 병원도 아니면서 의학적 주장을 한 게 된다.
+            그래서 출처가 없으면 수치도 안 띄운다(아래 && 조건). 2026-09-01 감사. */}
+        {cancer.stats?.survivalImprovement && cancer.stats?.survivalImprovementSource && (
           <div className="mt-6 border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 max-w-xl">
             <p className="text-sm md:text-base text-teal-800 font-semibold leading-relaxed m-0">
               {l(cancer.stats.survivalImprovement)}
+            </p>
+            <p className="mt-2 text-[11px] md:text-xs text-teal-800/70 leading-relaxed m-0">
+              {l(cancer.stats.survivalImprovementSource)}
+              {cancer.stats.survivalImprovementSourceUrl && (
+                <>
+                  {" "}
+                  <a
+                    href={cancer.stats.survivalImprovementSourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-teal-800"
+                  >
+                    immunehospital.com
+                  </a>
+                </>
+              )}
             </p>
           </div>
         )}
