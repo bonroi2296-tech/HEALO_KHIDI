@@ -40,3 +40,20 @@
 | `work/e2e-selfcleanup` | `38a0a4ef5421e57b3e7b6355fb48ed1e70d30f35` | 2026-08-25 |
 | `work/khidi-capture` | `1e7196a369c6474f350667499a8cda58afa4a1ae` | 2026-07-29 |
 | `fix/ai-alert-and-smalltalk-gate` | `67fe739bf301e399e2e927ea30c5ee622841f40b` | 2026-08-28 |
+
+---
+
+## 2026-09-01 재검 — 그날 살아 있어서 목록에서 뺐던 가지 2개
+
+감사 시점(2026-08-31)엔 두 가지가 «작업 중»이라 판정을 미뤘다. 하루 지나 **주인 세션이 둘 다 끊겼으므로**
+(`computer_unreachable`, 2026-08-31 11:20~11:21) 「갇힌 작업이 있나」를 다시 쟀다. 방법 = **파일 해시 대조**
+(스쿼시 머지라 `git branch --merged` 로는 안 잡힌다).
+
+| 가지 | 본판과 다른 파일 | 판정 |
+|---|---|---|
+| `fix/google-nonce-hash` | `ios/App/CapApp-SPM/Package.swift` **1개뿐** | ✅ **살릴 것 없음.** 진짜 수리(`googleNativeSignIn.ts`)와 시험(`.test.ts`)은 본판과 **바이트까지 동일**(#1562 로 들어감). 남은 1개는 `npx cap sync ios` 가 다시 만드는 **생성 파일**이고, 다른 점은 ①`node_modules` 상대경로 깊이(PO PC 에서 만들어 역슬래시) ②`@capgo/capacitor-social-login` 항목 — 그 의존성은 **이미 본판 `package.json:109` 에 있다.** |
+| `local/main-mirror` | `scripts/ppt/beyondk_style.py` 1개 | ✅ **살릴 것 없음.** 이 파일의 내용은 #1565 에서 **다시 써서** 본판에 넣었다(본판에 `글꼴박기` 5곳). 갇힌 판은 저장소에 없는 모듈을 불러 그대로 쓰면 ImportError 였다. |
+
+🛑 **그런데 둘 다 위 삭제 목록에는 «안 넣었다».** 「살릴 게 없다」와 「지워도 된다」는 다른 판정이다.
+- `fix/google-nonce-hash` — **지금 살아 있는 세션**(`session_01JkUwMrhrb6AS7j4Dam9zyP`, 신청서 #1570 작업 중)이 **이 가지에서 갈라져 나갔다.** 그쪽이 끝난 뒤에 판단할 것.
+- `local/main-mirror` — 이름·커밋 제목(「작업 자동 저장」)으로 보아 **PO PC 의 자동저장 훅이 미는 거울 가지**로 보인다. 지웠을 때 그 훅이 어떻게 되는지 이 상자에서는 못 쟀다.
