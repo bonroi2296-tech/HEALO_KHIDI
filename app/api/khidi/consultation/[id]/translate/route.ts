@@ -138,6 +138,10 @@ export async function GET(
       .from("consultation_translations")
       .select("*", { count: "exact" })
       .eq("session_id", consultationId)
+      // 화면의 「번역 기록」은 확정 자막만 본다. 중간 자막(is_partial)은 같은 발화의
+      // 앞토막이 여러 줄이라 섞으면 기록 패널이 같은 말로 도배된다 — DB 에는 남기되
+      // (품질 측정용, 2026-09-01 PO 지시) 화면엔 안 올린다.
+      .eq("is_partial", false)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 

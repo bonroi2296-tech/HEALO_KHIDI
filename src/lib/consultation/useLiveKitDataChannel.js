@@ -4,7 +4,11 @@
  * 자기 음성 STT 결과를 DataChannel로 다른 참가자에게 전송하고,
  * 상대방이 보낸 STT 결과를 수신해 콜백으로 전달합니다.
  *
- * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts, interim?, utter? }
+ * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts, interim?, utter?, src?, srcLang? }
+ *   src / srcLang = 화자가 «실제로 말한» 원문과 그 언어. 예전엔 번역문(text)만 보내서, 받는
+ *   쪽 기록 패널의 원문 칸이 통째로 비었다 — 같은 회의에서 내 발화는 「원어+번역」 두 줄로,
+ *   상대 발화는 「번역」 한 줄로 보여 표시가 들쭉날쭉했다(2026-09-01 PO 제보 «어떨 땐 원어
+ *   없이 한글만, 어떨 땐 원어랑 섞여»). 구버전 클라는 이 필드를 안 보내므로 예전처럼 동작한다.
  *   name = 화자 표시 이름 (LiveKit 참가자 이름) — 같은 역할이 여럿이어도 자막에서 화자 구분
  *   interim = true 면 "말하는 중" 부분 자막 — 수신측은 화면 슬롯만 갱신하고 기록하지 않는다
  *   (확정 자막이 같은 화자 슬롯을 교체). 구버전 클라는 이 필드를 몰라 확정처럼 표시하지만
@@ -55,6 +59,9 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           ts: msg.ts,
           interim: !!msg.interim,
           utter: typeof msg.utter === "number" ? msg.utter : undefined,
+          // 화자가 실제로 말한 원문(구버전 클라는 안 보냄 → undefined)
+          src: typeof msg.src === "string" && msg.src.trim() ? msg.src : undefined,
+          srcLang: typeof msg.srcLang === "string" ? msg.srcLang : undefined,
           participantIdentity: participant?.identity,
         });
       } catch {
@@ -74,6 +81,7 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
    * @param {string} lang  — "ko" | "ru" | "en" etc.
    * @param {string} role  — "doctor" | "patient" | "coordinator"
    * @param {object} [opts] — { interim?: boolean } 말하는 중 부분 자막이면 true
+   *   { src, srcLang } 화자가 실제로 말한 원문·그 언어 — 받는 쪽 기록 패널의 원문 칸에 들어간다.
    */
   const publishSubtitle = useCallback(
     async (text, lang, role, opts = {}) => {
@@ -91,6 +99,8 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           ts: Date.now(),
           ...(opts.interim ? { interim: true } : {}),
           ...(typeof opts.utter === "number" ? { utter: opts.utter } : {}),
+          // 원문도 같이 — 이게 없으면 받는 쪽 기록에 원문 칸이 빈 줄로 남는다.
+          ...(opts.src ? { src: opts.src, srcLang: opts.srcLang || undefined } : {}),
         });
         const data = ENCODER.encode(msg);
         // ⚠️ livekit-client v2 의 DataPublishOptions 는 { reliable: boolean } 를 받는다.

@@ -30,6 +30,14 @@ import { isAllowedOrigin } from "@/lib/security/allowedOrigin";
 
 const MAX_TEXT_LENGTH = 2000;
 
+/**
+ * 한 번역에 허용할 출력 예산. **모델의 «생각» 토큰이 여기 같이 들어간다** —
+ * 실측(2026-09-01)에서 생각만 477~483 을 썼으므로 번역문 몫을 따로 남겨둬야 한다.
+ */
+const TRANSLATE_MAX_TOKENS = 2000;
+/** 그래도 잘렸을 때 한 번 더 부를 예산. 긴 발화 한 덩이(원문 700자)까지 흡수한다. */
+const TRANSLATE_MAX_TOKENS_RETRY = 4000;
+
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean",
   ru: "Russian",
@@ -171,12 +179,41 @@ export async function POST(request: NextRequest) {
       prompt: `${contextBlock}Text to translate:
 ${text}`,
       temperature: 0.1,
-      maxOutputTokens: 500,
+      // ⚠️ 이 예산에는 모델의 «생각(thinking)» 토큰이 같이 들어간다. 예전 값 500 은
+      //   생각이 477~483 을 먹고 번역문에 20 토큰(약 30자)만 남겨, 문장이 한가운데서
+      //   끊긴 자막이 그대로 화면·DB·회의록에 저장됐다.
+      //   2026-09-01 실회의 실측: 119줄 중 12줄(10%)이 잘렸고, 한 덩이가 긴 브라우저
+      //   받아쓰기 쪽은 49줄 중 12줄(24%). 잘린 6줄을 같은 설정으로 재현하니 6/6 이
+      //   finishReason=length 였다. 짧은 줄(원문 57자)도 잘렸다 — 길이 문제가 아니다.
+      //   ✗ 생각 끄기(thinkingBudget:0)로는 못 고친다: 같은 실측에서 0 을 줘도 생각을
+      //     211 쓴 호출이 있었고(지시가 항상 먹지 않는다), 생각을 끈 쪽은 오역도 늘었다
+      //     («медтуризм»을 「일반 관광객은 아닙니다」로).
+      //   ○ 예산을 올리는 쪽은 5케이스 전부 stop 으로 끝났고 지연도 늘지 않았다.
+      maxOutputTokens: TRANSLATE_MAX_TOKENS,
     };
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절 흡수.
     // 실시간 통역 자막이라 400 하나에 회의 전체가 벙어리가 된다.
     const gen = (a: any) => callGeminiWithCompat((p) => generateText(p as any), a);
-    const { text: translated } = await gen(genArgs);
+    let { text: translated, finishReason } = await gen(genArgs);
+
+    // 그래도 예산에 걸려 잘렸으면 한 번 더 — 이번엔 예산을 넉넉히 준다.
+    // 이 검사가 없으면 «잘린 줄»과 «정상 줄»을 시스템이 구별하지 못한다(그게 12줄이 조용히
+    // 새어 나간 이유다 — 신호는 응답에 같이 오는데 읽지 않고 버렸다).
+    if (finishReason === "length") {
+      const wide = await gen({ ...genArgs, maxOutputTokens: TRANSLATE_MAX_TOKENS_RETRY }).catch(
+        () => null
+      );
+      if (wide?.text?.trim()) {
+        translated = wide.text;
+        finishReason = wide.finishReason;
+      }
+      // 두 번째도 잘렸으면 그 사실을 남긴다 — 조용히 통과시키면 다음에 또 못 찾는다.
+      if (finishReason === "length") {
+        console.warn(
+          `[translate-realtime] 번역이 예산에 걸려 잘림 (원문 ${text.length}자, ${sourceLang}→${targetLang})`
+        );
+      }
+    }
 
     let translatedText = translated.trim();
 
@@ -191,13 +228,17 @@ ${text}`,
     }
 
     // Save to DB if consultationId provided (fire-and-forget)
-    // 추임새 정리로 번역이 비면 기록도 남기지 않음. partial(중간 자막)도 기록 안 함.
-    if (consultationId && translatedText && partial !== true) {
+    // 추임새 정리로 번역이 비면 기록도 남기지 않음.
+    // 중간 자막(partial)도 남긴다 — 하단 자막에 실제로 뭐가 떴는지 되짚을 방법이 없어
+    // 품질을 잴 수가 없었다(2026-09-01 PO 지시, 당분간). 확정 자막과는 is_partial 로 갈라
+    // 저장하므로 회의록·통계(is_partial=false 만 본다)는 오염되지 않는다.
+    if (consultationId && translatedText) {
       saveTranslationLog(consultationId, {
         originalText: text,
         translatedText,
         sourceLang,
         targetLang,
+        isPartial: partial === true,
         speakerRole: speakerRole || "unknown",
         // 「어느 받아쓰기가 이 글을 만들었나」 — 클라이언트가 알려주지만 아는 값만 통과시킨다.
         // 이 라우트는 브라우저 받아쓰기가 기본이고, 서버 받아쓰기 폴백도 여기로 올 수 있다.
@@ -234,6 +275,7 @@ async function saveTranslationLog(
     speakerRole: string;
     sttEngine: string;
     speakerName?: string | null;
+    isPartial?: boolean;
   }
 ) {
   const { getSupabaseServerClient } = await import(
@@ -248,6 +290,11 @@ async function saveTranslationLog(
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
       stt_engine: data.sttEngine,
+      // 「누가 말했나(역할)」 — 예전엔 받아놓고 안 넣었다. 그래서 새로고침하면 모든 줄이
+      // unknown 이 되어 내 말과 상대 말이 화면에서 구분되지 않았다(2026-09-01 PO 제보).
+      speaker_role: data.speakerRole,
+      // 「말하는 중 흐른 중간 자막인가」 — 확정 자막만 세는 곳은 false 만 본다.
+      is_partial: data.isPartial === true,
       // 화자 이름(환자 실명)은 «암호문 칸»으로 — 평문 speaker_name 은 2026-08-14 감사에서 닫았다.
       // 8/07 작업본이 평문 칸에 쓰고 있었고(그때는 아직 감사 전), 옮겨 심으면서 되살아날 뻔했다.
       ...encryptTranscriptRow({

@@ -101,6 +101,9 @@ export async function POST(
         "source_lang, speaker_name, speaker_name_encrypted, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
       )
       .eq("session_id", consultationId)
+      // 말하는 중 흐른 중간 자막은 뺀다 — 같은 발화의 앞토막이 여러 줄 들어와
+      // 요약이 같은 말을 반복하게 된다(2026-09-01 중간 자막 저장을 켜면서 같이 막음).
+      .eq("is_partial", false)
       .order("created_at", { ascending: true });
     // 복호화 실패한 줄은 source_text·translated_text 가 둘 다 null 이 되므로 제외한다.
     // ⚠️ 원문만 보고 거르면 안 된다: 실시간 통역(live_translate) 경로는 «번역문만» 준다

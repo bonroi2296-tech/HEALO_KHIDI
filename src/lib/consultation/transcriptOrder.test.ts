@@ -112,6 +112,18 @@ describe("isSameSpeakerRun — 연속 발화 묶기", () => {
     ).toBe(true);
   });
 
+  // speaker_role 은 «그 줄을 저장한 기기» 기준이라 같은 사람의 발화도 self/other 로 갈린다:
+  // 내 화면에 실시간으로 쌓인 줄은 other, 상대 기기가 저장해 폴링으로 돌아온 같은 줄은 self.
+  // 예전 규칙(role 도 같아야 묶음)에선 한 사람이 두 사람처럼 쪼개져 보였다(2026-09-01).
+  it("이름이 같으면 speaker_role 이 달라도 묶는다", () => {
+    expect(
+      isSameSpeakerRun(
+        { speaker_name: "Assel", speaker_role: "other", created_at: at("04") },
+        { speaker_name: "Assel", speaker_role: "self", created_at: at("11") }
+      )
+    ).toBe(true);
+  });
+
   it("사람이 바뀌면 안 묶는다 (여기가 눈에 띄어야 하는 지점)", () => {
     expect(
       isSameSpeakerRun(

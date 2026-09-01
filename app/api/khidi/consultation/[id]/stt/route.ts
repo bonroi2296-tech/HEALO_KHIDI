@@ -259,9 +259,12 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           },
         ],
         temperature: 0,
-        // 응답 지연은 사실상 «출력 토큰 수»가 좌우한다. 부분 조각은 1~2초짜리라
-        // 나올 글자도 적으므로 상한을 낮춰 꼬리 지연(장황한 응답)을 잘라낸다.
-        maxOutputTokens: isPartial ? 300 : 800,
+        // ⚠️ 이 예산에는 모델의 «생각» 토큰이 같이 들어간다 — 실측(2026-09-01)에서 생각만
+        //   380~855 를 썼다. 예전 값(300/800)은 생각이 다 먹고 JSON 이 잘려 나와
+        //   **파싱 실패 → 조각 통째로 폐기**로 이어진다(자막이 잘리는 게 아니라 아예 안 뜬다).
+        //   상한을 올려도 느려지지 않는다: 지연을 만드는 건 «실제로 뱉은 토큰 수»지 천장이
+        //   아니다(같은 실측에서 천장 500→2000 으로 올리자 오히려 11.4초→4.5초).
+        maxOutputTokens: isPartial ? 1500 : 2500,
       });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
@@ -306,7 +309,8 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
           },
         ],
         temperature: 0,
-        maxOutputTokens: 400,
+        // 위와 같은 이유 — 생각 토큰이 이 예산을 함께 쓴다. 400 이면 전사문이 나올 자리가 없다.
+        maxOutputTokens: 1500,
       });
       const runs = texts.map((text) => {
         const raw = (text || "").trim();
@@ -330,14 +334,19 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
     //    그걸 그대로 저장하면 **원문을 번역문이라고 기록**하게 된다(2026-07-20 실측 ko→ko 13건).
     //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
     //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
+    //
+    // 중간 조각(isPartial)도 남긴다 — 하단 자막에 실제로 뭐가 떴는지 되짚을 방법이 없어
+    // 품질을 잴 수가 없었다(2026-09-01 PO 지시, 당분간). is_partial 로 칸을 갈라 저장하므로
+    // 회의록·통계(is_partial=false 만 본다)는 오염되지 않는다.
     const effectiveSrc = detectedLang || lang;
-    if (!isPartial && transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (transcript && translated && targetLang && effectiveSrc !== targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
         sourceLang: detectedLang || lang,
         targetLang,
         speakerName,
+        isPartial,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
@@ -358,6 +367,7 @@ async function saveTranslationLog(
     sourceLang: string;
     targetLang: string;
     speakerName?: string | null;
+    isPartial?: boolean;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -371,6 +381,12 @@ async function saveTranslationLog(
       target_lang: data.targetLang,
       // 이 라우트로 들어온 줄은 정의상 «서버 받아쓰기» 다 — 클라이언트 값을 믿지 않는다.
       stt_engine: STT_ENGINES.SERVER,
+      // 이 라우트는 «올린 사람 자신의 마이크» 소리다 — 그 기기 기준으로는 self.
+      // (화면의 「나/상대」 판정은 이 값이 아니라 화자 «이름»을 내 이름과 대조해서 한다.
+      //  같은 줄을 두 사람이 보는데 role 은 DB 에 하나만 남기 때문이다.)
+      speaker_role: "self",
+      // 「말하는 중 흐른 중간 자막인가」 — 확정 자막만 세는 곳은 false 만 본다.
+      is_partial: data.isPartial === true,
       // 화자 이름(환자 실명)도 암호문 칸에 — 예전엔 speaker_name 평문으로 줄마다 쌓였다(2026-08-14 감사).
       ...encryptTranscriptRow({
         sourceText: data.originalText,
