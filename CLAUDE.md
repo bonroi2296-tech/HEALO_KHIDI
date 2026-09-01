@@ -179,7 +179,7 @@ npm run e2e:smoke          # 실제 여정 최소 검증 (playwright @smoke)
 - 전용 검사 30여 개(`check:i18n`·`check:err-exposure`·`check:migrations`·`check:schema-refs` 등)는 `npm run` 으로 목록 확인 — **건드린 영역 것만** 골라 돌려라.
 
 - **「머지는 자유, 배포만 하루 한 번」** (2026-07-28 PO 결정). PR은 바로 머지해도 실서비스 빌드가 안 돈다 — KST 오후 3시 창구(**Vercel 예약**)가 main 최신 커밋으로 그날 것을 한 건에 묶어 빌드한다. ⚠️ `production` 브랜치는 2026-07-31 이후 안 쓰니 **배포 여부 판정에 쓰지 마라**.
-- **머지했다 ≠ 실서비스에 나갔다.** 「배포됐다」고 말하기 전에 창구가 돌았는지 확인해라.
+- **머지했다 ≠ 실서비스에 나갔다.** 판정은 창구 예약 시각이 아니라 `/api/health` 의 `commit` 으로 — 예비는 2~3시간 늦는다.
 - 긴급 배포는 커밋 제목에 `[deploy]`. **프리뷰는 완전 차단 — 화면 확인은 로컬 + 화면 사진으로 하고, 프리뷰는 PO가 요청할 때만 연다** (2026-07-31 PO 지시, 여는 절차는 `docs/rules/DEPLOY.md`).
 - OS: Windows 11 / Shell: **PowerShell 이 기본**, bash도 가능 — 문법 섞지 말 것.
 
