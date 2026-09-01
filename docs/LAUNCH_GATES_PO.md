@@ -177,7 +177,10 @@ E2E 자동검사를 위해 5개 테스트계정(`patient·coordinator·admin·ag
 
 ⚠️ `gemini-flash-latest` 는 **자동 최신 별칭**이라 구글이 모델을 옮기면 단가가 바뀐다 — 2026-07-20 에 실제로 **입력 단가가 5배** 올랐다. 상한이 없으면 사고 시 피해가 예전 추정보다 크다.
 
-💡 **덤으로 풀 수 있는 것**: 유료가 확정됐으므로 `GEMINI_PII_BILLING_CONFIRMED=true`(Vercel 설정값)를 켜면 **AI 상담 회의록 요약**(`app/api/khidi/consultation/[id]/summarize/route.ts:79` 에서 이 값만 기다리는 중)이 살아난다. ⚠️ **어시는 Vercel 설정값을 읽을 수 없어 이미 켜졌는지 모른다** — 켜져 있는지만 알려주면 된다.
+✅ **이미 풀렸다(2026-09-01 실측 확인).** `GEMINI_PII_BILLING_CONFIRMED=true` 가 프로덕션에 설정돼 있어 **AI 상담 회의록 요약이 살아 있다.**
+- **확인 방법(다음에도 이걸로)**: Vercel 설정값을 직접 읽을 수는 없지만, **실서비스에 물어보면 된다** — 자막이 0건인 시험 상담으로 `POST /api/khidi/consultation/<id>/summarize` 를 부르면, 가드에 막히면 `503 billing_required`, 통과하면 `422 no_transcript` 가 온다. 실제로 **422** 가 왔다. AI 호출까지 가지 않으므로 비용도 안 든다.
+- ⚠️ **로컬 `.env.local` 에는 이 값이 없다** → 개발 서버에서는 여전히 503 이다. 로컬에서 막힌 것을 「기능이 꺼져 있다」로 읽지 마라.
+- 예전 서술(「어시는 Vercel 설정값을 읽을 수 없어 이미 켜졌는지 모른다 — 켜져 있는지만 알려주면 된다」)은 **PO 손이 필요 없다는 뜻으로 정정한다.**
 
 ---
 
