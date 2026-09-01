@@ -26,6 +26,7 @@ import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { transcriptsAgree } from "@/lib/consultation/transcriptAgreement";
 
@@ -110,26 +111,52 @@ function sttModelFor(lang: string, targetLang?: string, isPartial?: boolean): st
   return "gemini-flash-latest";
 }
 
+/** 한 호출이 이 출력 토큰을 넘으면 로그에 남긴다(막지는 않는다) — 「너무 많이 쓰면 알려줘」(PO). */
+const STT_OUTPUT_WARN_TOKENS = Number(process.env.STT_OUTPUT_WARN_TOKENS || 4000);
+
+/** 호출 1건의 사용량을 남긴다. 상한을 안 거는 대신 «얼마나 쓰는지»는 반드시 잰다. */
+function recordSttUsage(modelId: string, res: any, meta: Record<string, unknown>) {
+  void logAiUsage({
+    surface: "consult_stt",
+    model: modelId,
+    usage: res?.usage,
+    providerMetadata: res?.providerMetadata,
+    meta: { ...meta, finish_reason: res?.finishReason ?? null },
+  });
+  const out = Number(res?.usage?.outputTokens ?? 0);
+  if (out > STT_OUTPUT_WARN_TOKENS) {
+    console.warn(`[consultation/stt] 출력 토큰 과다: ${out} (${modelId}, ${JSON.stringify(meta)})`);
+  }
+}
+
 async function genWithFallback(
   modelId: string,
-  args: { messages: any; temperature: number; maxOutputTokens: number }
+  // ⚠️ maxOutputTokens 를 «안 넘긴다»(2026-09-01 PO 지시, 당분간). 이 예산에는 모델의
+  //   «생각» 토큰이 같이 들어가서, 예전 값(300/400/800)은 생각이 다 먹고 JSON 이 잘려
+  //   나왔다 → 파싱 실패 → 조각 통째로 폐기(= 자막이 아예 안 뜬다).
+  //   대신 위 recordSttUsage 로 실제 사용량을 재고, 비용 backstop 은 aiGuard 일일 호출
+  //   상한과 Google 콘솔 spend cap 이 맡는다.
+  args: { messages: any; temperature: number; maxOutputTokens?: number },
+  usageMeta: Record<string, unknown> = {}
 ): Promise<string> {
   try {
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절을 흡수.
     // 자막은 실시간이라 400 한 번에 통째로 끊기면 회의가 못 돌아간다.
-    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
+    const res = await callGeminiWithCompat((p) => generateText(p as any), {
       model: google(modelId) as any,
       ...args,
     });
-    return text || "";
+    recordSttUsage(modelId, res, usageMeta);
+    return (res as any).text || "";
   } catch (e) {
     // Pro 등 비-Flash 모델이 실패하면(별칭 오류·쿼터 등) Flash 로 1회 폴백 — kz 자막이 끊기지 않게.
     if (modelId !== "gemini-flash-latest") {
-      const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
+      const res = await callGeminiWithCompat((p) => generateText(p as any), {
         model: google("gemini-flash-latest") as any,
         ...args,
       });
-      return text || "";
+      recordSttUsage("gemini-flash-latest", res, { ...usageMeta, fallback_from: modelId });
+      return (res as any).text || "";
     }
     throw e;
   }
@@ -204,12 +231,13 @@ export async function POST(
     //   대신 그 조각엔 대조가 안 걸렸다는 뜻이므로 기록에 남긴다.
     const askModel = async (
       modelId: string,
-      genArgs: { messages: any; temperature: number; maxOutputTokens: number }
+      genArgs: { messages: any; temperature: number; maxOutputTokens?: number },
+      usageMeta: Record<string, unknown> = {}
     ): Promise<string[]> => {
-      if (isPartial) return [await genWithFallback(modelId, genArgs)];
+      if (isPartial) return [await genWithFallback(modelId, genArgs, usageMeta)];
       const settled = await Promise.allSettled([
-        genWithFallback(modelId, genArgs),
-        genWithFallback(modelId, genArgs),
+        genWithFallback(modelId, genArgs, usageMeta),
+        genWithFallback(modelId, genArgs, { ...usageMeta, run: 2 }),
       ]);
       const ok = settled
         .filter((s): s is PromiseFulfilledResult<string> => s.status === "fulfilled")
@@ -259,13 +287,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           },
         ],
         temperature: 0,
-        // ⚠️ 이 예산에는 모델의 «생각» 토큰이 같이 들어간다 — 실측(2026-09-01)에서 생각만
-        //   380~855 를 썼다. 예전 값(300/800)은 생각이 다 먹고 JSON 이 잘려 나와
-        //   **파싱 실패 → 조각 통째로 폐기**로 이어진다(자막이 잘리는 게 아니라 아예 안 뜬다).
-        //   상한을 올려도 느려지지 않는다: 지연을 만드는 건 «실제로 뱉은 토큰 수»지 천장이
-        //   아니다(같은 실측에서 천장 500→2000 으로 올리자 오히려 11.4초→4.5초).
-        maxOutputTokens: isPartial ? 1500 : 2500,
-      });
+      }, { partial: isPartial, kind: "transcribe_translate", lang, target: targetLang });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
       const runs = texts.map((text) => {
@@ -309,9 +331,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
           },
         ],
         temperature: 0,
-        // 위와 같은 이유 — 생각 토큰이 이 예산을 함께 쓴다. 400 이면 전사문이 나올 자리가 없다.
-        maxOutputTokens: 1500,
-      });
+      }, { partial: isPartial, kind: "transcribe_only", lang });
       const runs = texts.map((text) => {
         const raw = (text || "").trim();
         return { transcript: raw === "[NO_SPEECH]" ? "" : raw };

@@ -18,6 +18,7 @@ import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { detectLanguage } from "@/lib/translate";
 import { looksLikeLeakedTranslation } from "@/lib/consultation/translateOutputGuard";
 import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
@@ -31,12 +32,13 @@ import { isAllowedOrigin } from "@/lib/security/allowedOrigin";
 const MAX_TEXT_LENGTH = 2000;
 
 /**
- * 한 번역에 허용할 출력 예산. **모델의 «생각» 토큰이 여기 같이 들어간다** —
- * 실측(2026-09-01)에서 생각만 477~483 을 썼으므로 번역문 몫을 따로 남겨둬야 한다.
+ * 한 번역이 이 출력 토큰 수를 넘으면 로그에 눈에 띄게 남긴다(막지는 않는다).
+ * 실측(2026-09-01) 정상 범위는 출력 600~900 토큰(생각 380~855 + 번역문)이라 그 약 5배.
+ * env 로 조절 가능 — 「너무 많이 쓰면 알려줘」(PO)의 기준선.
  */
-const TRANSLATE_MAX_TOKENS = 2000;
-/** 그래도 잘렸을 때 한 번 더 부를 예산. 긴 발화 한 덩이(원문 700자)까지 흡수한다. */
-const TRANSLATE_MAX_TOKENS_RETRY = 4000;
+const TRANSLATE_OUTPUT_WARN_TOKENS = Number(
+  process.env.TRANSLATE_OUTPUT_WARN_TOKENS || 4000
+);
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean",
@@ -179,40 +181,53 @@ export async function POST(request: NextRequest) {
       prompt: `${contextBlock}Text to translate:
 ${text}`,
       temperature: 0.1,
-      // ⚠️ 이 예산에는 모델의 «생각(thinking)» 토큰이 같이 들어간다. 예전 값 500 은
+      // ⚠️ 출력 토큰 상한을 «걸지 않는다»(2026-09-01 PO 지시, 당분간).
+      //   왜: 이 예산에는 모델의 «생각(thinking)» 토큰이 같이 들어간다. 예전 값 500 은
       //   생각이 477~483 을 먹고 번역문에 20 토큰(약 30자)만 남겨, 문장이 한가운데서
-      //   끊긴 자막이 그대로 화면·DB·회의록에 저장됐다.
-      //   2026-09-01 실회의 실측: 119줄 중 12줄(10%)이 잘렸고, 한 덩이가 긴 브라우저
-      //   받아쓰기 쪽은 49줄 중 12줄(24%). 잘린 6줄을 같은 설정으로 재현하니 6/6 이
-      //   finishReason=length 였다. 짧은 줄(원문 57자)도 잘렸다 — 길이 문제가 아니다.
-      //   ✗ 생각 끄기(thinkingBudget:0)로는 못 고친다: 같은 실측에서 0 을 줘도 생각을
-      //     211 쓴 호출이 있었고(지시가 항상 먹지 않는다), 생각을 끈 쪽은 오역도 늘었다
-      //     («медтуризм»을 「일반 관광객은 아닙니다」로).
-      //   ○ 예산을 올리는 쪽은 5케이스 전부 stop 으로 끝났고 지연도 늘지 않았다.
-      maxOutputTokens: TRANSLATE_MAX_TOKENS,
+      //   끊긴 자막이 그대로 화면·DB·회의록에 저장됐다(실회의 119줄 중 12줄, 10%).
+      //   상한을 어디에 두든 «생각이 먼저 먹는» 구조는 그대로라, 아예 안 걸고 실제로
+      //   얼마나 쓰는지 재는 쪽으로 바꿨다 → 아래 logAiUsage + 과다 호출 경고.
+      //   비용 backstop 은 위의 checkConsultationAiGuard(일일 호출 상한)와 Google 콘솔
+      //   spend cap 이 맡는다.
+      //   ✗ 생각 끄기(thinkingBudget:0)는 답이 아니다: 실측에서 0 을 줘도 생각을 211 쓴
+      //     호출이 있었고(지시가 항상 먹지 않는다), 생각을 끈 쪽은 오역도 늘었다.
     };
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절 흡수.
     // 실시간 통역 자막이라 400 하나에 회의 전체가 벙어리가 된다.
     const gen = (a: any) => callGeminiWithCompat((p) => generateText(p as any), a);
-    let { text: translated, finishReason } = await gen(genArgs);
+    const first = await gen(genArgs);
+    let { text: translated, finishReason } = first;
 
-    // 그래도 예산에 걸려 잘렸으면 한 번 더 — 이번엔 예산을 넉넉히 준다.
-    // 이 검사가 없으면 «잘린 줄»과 «정상 줄»을 시스템이 구별하지 못한다(그게 12줄이 조용히
-    // 새어 나간 이유다 — 신호는 응답에 같이 오는데 읽지 않고 버렸다).
+    // 상한을 안 걸었으므로 여기 걸리는 일은 거의 없다. 그래도 남겨 둔다 — 모델 기본
+    // 상한에 부딪히는 경우가 있으면 «조용히 잘린 자막»이 아니라 로그로 드러나야 한다.
     if (finishReason === "length") {
-      const wide = await gen({ ...genArgs, maxOutputTokens: TRANSLATE_MAX_TOKENS_RETRY }).catch(
-        () => null
+      console.warn(
+        `[translate-realtime] 번역이 모델 기본 상한에 걸려 잘림 (원문 ${text.length}자, ${sourceLang}→${targetLang})`
       );
-      if (wide?.text?.trim()) {
-        translated = wide.text;
-        finishReason = wide.finishReason;
-      }
-      // 두 번째도 잘렸으면 그 사실을 남긴다 — 조용히 통과시키면 다음에 또 못 찾는다.
-      if (finishReason === "length") {
-        console.warn(
-          `[translate-realtime] 번역이 예산에 걸려 잘림 (원문 ${text.length}자, ${sourceLang}→${targetLang})`
-        );
-      }
+    }
+
+    // 얼마나 쓰는지 «잰다» — 상한을 없앤 대신 이게 있어야 한다. 예전엔 이 라우트가
+    // 사용량을 아예 안 남겨서, 통역이 토큰을 얼마나 먹는지 물어도 답할 수가 없었다.
+    void logAiUsage({
+      surface: "consult_translate",
+      model: process.env.TRANSLATE_MODEL || "gemini-flash-latest",
+      usage: (first as any).usage,
+      providerMetadata: (first as any).providerMetadata,
+      meta: {
+        consultation_id: consultationId ? String(consultationId) : null,
+        source_chars: text.length,
+        partial: partial === true,
+        finish_reason: finishReason ?? null,
+      },
+    });
+
+    // 한 번 번역에 비정상적으로 많이 쓴 경우를 눈에 띄게 남긴다(기준: 실측 평균의 약 5배).
+    // 정상 범위는 출력 600~900 토큰(생각 380~855 + 번역문)이다.
+    const outTokens = Number((first as any)?.usage?.outputTokens ?? 0);
+    if (outTokens > TRANSLATE_OUTPUT_WARN_TOKENS) {
+      console.warn(
+        `[translate-realtime] 출력 토큰 과다: ${outTokens} (원문 ${text.length}자, ${sourceLang}→${targetLang}, 상담 ${consultationId ?? "-"})`
+      );
     }
 
     let translatedText = translated.trim();
