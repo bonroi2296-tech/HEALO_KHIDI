@@ -1142,6 +1142,26 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             </div>
           )}
 
+          {/* 🔴 AI 로 무엇이·누구에게 가는지 «항상» 보이게 (2026-09-01 애플 3차 반려로 추가).
+              애플 5.1.1(i)·5.1.2(i): 「무엇을 보내는지 설명하고, 누구에게 보내는지 밝히고,
+              보내기 전에 동의를 받아라. **약관·방침에만 적는 것으로는 부족하다.**」
+
+              ⚠️ 우리 동의 게이트는 원래도 그 셋을 다 충족한다(ConsentGate·IdentificationForm,
+                 6개 언어). 그런데 심사관은 **그 화면을 볼 수 없었다** — 우리가 회신에 적어 준
+                 데모 계정이 「기존 문의와 예정된 상담이 있는」 계정이라, 쿠키 복구로 threadId 가
+                 잡히면서 `needsIdentification`·`needsConsent` 가 둘 다 false 가 된다
+                 (동의 기록이 이미 있으니 백필 게이트도 안 뜬다).
+              → 동의를 «이미 한» 사용자에게도 대화창 위에 상시 노출한다. 심사관이 어느 계정으로
+                들어와도 이 줄은 반드시 보인다.
+              문구는 게이트가 쓰던 것을 그대로 재사용한다(6개 언어가 이미 있고, 두 곳이 갈리면 안 된다). */}
+          <div className="mb-2 flex items-start gap-2 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-left">
+            <Bot size={13} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-teal-900">
+              {t("chat.identify.privacyNote", langCode) ||
+                "Your messages are sent to Google Gemini (USA) to generate answers. Google does not use them to train its models. We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
+            </p>
+          </div>
+
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-2xl p-3 sm:p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
