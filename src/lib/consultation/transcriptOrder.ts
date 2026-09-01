@@ -75,12 +75,21 @@ export function dedupeAgainstShown<T extends Row>(
  */
 export function isSameSpeakerRun(prev: Row | undefined, cur: Row, gapMs = 120000): boolean {
   if (!prev) return false;
-  if ((prev.speaker_role || "") !== (cur.speaker_role || "")) return false;
   // 이름 비교는 대소문자·공백 차이를 무시한다 — 끊겨서 다시 들어온 사람이 이름을 다시 치면
   // «Эльдар» → «эльдар» 처럼 한 글자만 달라지는데, 그걸로 묶기가 끊기면 같은 사람이
   // 두 사람처럼 보인다(2026-07-29 실측). 색 배정도 같은 규칙(speakerColor.speakerKey).
   const norm = (v?: string | null) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
-  if (norm(prev.speaker_name) !== norm(cur.speaker_name)) return false;
+  const pn = norm(prev.speaker_name);
+  const cn = norm(cur.speaker_name);
+  // 이름을 아는 줄끼리는 «이름»만으로 판정한다. speaker_role 은 «그 줄을 저장한 기기» 기준이라
+  // 같은 사람의 발화도 어느 줄이냐에 따라 self/other 로 갈린다(내 화면에 실시간으로 쌓인 줄 vs
+  // 상대 기기가 저장해 폴링으로 돌아온 줄). role 까지 같기를 요구하면 한 사람이 두 사람처럼
+  // 쪼개져 보인다(2026-09-01, speaker_role 을 실제로 저장하기 시작하면서 드러난 부류).
+  if (pn || cn) {
+    if (pn !== cn) return false;
+  } else if ((prev.speaker_role || "") !== (cur.speaker_role || "")) {
+    return false;
+  }
   return (
     new Date(cur.created_at || 0).getTime() - new Date(prev.created_at || 0).getTime() < gapMs
   );

@@ -18,6 +18,7 @@ import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { detectLanguage } from "@/lib/translate";
 import { looksLikeLeakedTranslation } from "@/lib/consultation/translateOutputGuard";
 import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
@@ -29,6 +30,24 @@ import { STT_ENGINES, normalizeSttEngine } from "@/lib/consultation/sttEngine";
 import { isAllowedOrigin } from "@/lib/security/allowedOrigin";
 
 const MAX_TEXT_LENGTH = 2000;
+
+/**
+ * 한 번역이 이 출력 토큰 수를 넘으면 로그에 눈에 띄게 남긴다(막지는 않는다).
+ * 실측(2026-09-01) 정상 범위는 출력 600~900 토큰(생각 380~855 + 번역문)이라 그 약 5배.
+ * 「너무 많이 쓰면 알려줘」(PO)의 기준선. **0 을 주면 경고를 끈다** — 예전 형태
+ * (`Number(env || 4000)`)는 "0" 이 truthy 문자열이라 0 으로 읽혀 «모든 호출이 경고»가 됐다.
+ */
+const TRANSLATE_OUTPUT_WARN_TOKENS = Number(
+  process.env.TRANSLATE_OUTPUT_WARN_TOKENS ?? 4000
+);
+
+/**
+ * 말하는 중 흐른 «중간 자막»을 DB 에 남길지. 2026-09-01 PO 지시로 «당분간» 켠다
+ * (하단 자막 품질을 재려면 뭐가 떴는지 되짚을 수 있어야 한다).
+ * ⚠️ 임시 조치이므로 코드가 아니라 **설정으로** 끌 수 있게 둔다 — env 를 "0" 으로 두면
+ *    예전처럼 확정 자막만 남는다. 안 그러면 되돌릴 때 라우트 두 개를 다시 고쳐야 한다.
+ */
+const SAVE_PARTIAL_SUBTITLES = process.env.SAVE_PARTIAL_SUBTITLES !== "0";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean",
@@ -171,11 +190,58 @@ export async function POST(request: NextRequest) {
       prompt: `${contextBlock}Text to translate:
 ${text}`,
       temperature: 0.1,
-      maxOutputTokens: 500,
+      // ⚠️ 출력 토큰 상한을 «걸지 않는다»(2026-09-01 PO 지시, 당분간).
+      //   왜: 이 예산에는 모델의 «생각(thinking)» 토큰이 같이 들어간다. 예전 값 500 은
+      //   생각이 477~483 을 먹고 번역문에 20 토큰(약 30자)만 남겨, 문장이 한가운데서
+      //   끊긴 자막이 그대로 화면·DB·회의록에 저장됐다(실회의 119줄 중 12줄, 10%).
+      //   상한을 어디에 두든 «생각이 먼저 먹는» 구조는 그대로라, 아예 안 걸고 실제로
+      //   얼마나 쓰는지 재는 쪽으로 바꿨다 → 아래 logAiUsage + 과다 호출 경고.
+      //   비용 backstop 은 위의 checkConsultationAiGuard(일일 호출 상한)와 Google 콘솔
+      //   spend cap 이 맡는다.
+      //   ✗ 생각 끄기(thinkingBudget:0)는 답이 아니다: 실측에서 0 을 줘도 생각을 211 쓴
+      //     호출이 있었고(지시가 항상 먹지 않는다), 생각을 끈 쪽은 오역도 늘었다.
     };
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절 흡수.
     // 실시간 통역 자막이라 400 하나에 회의 전체가 벙어리가 된다.
-    const gen = (a: any) => callGeminiWithCompat((p) => generateText(p as any), a);
+    const rawGen = (a: any) => callGeminiWithCompat((p) => generateText(p as any), a);
+    /**
+     * 모델을 부르고 «그 호출의 사용량을 반드시 남긴다».
+     * ⚠️ 헬퍼로 감싼 이유: 이 라우트는 누출 가드로 한 번 더 부를 수 있는데, 예전엔 첫 호출만
+     *   기록해 재시도분이 집계에서 통째로 빠졌다. 상한을 없앤 지금은 그 누락이 곧
+     *   「얼마나 쓰는지 모른다」가 된다 — 부르는 자리마다 이 헬퍼를 쓴다.
+     */
+    const gen = async (a: any, extraMeta: Record<string, unknown> = {}) => {
+      const res: any = await rawGen(a);
+      void logAiUsage({
+        surface: "consult_translate",
+        model: process.env.TRANSLATE_MODEL || "gemini-flash-latest",
+        usage: res?.usage,
+        providerMetadata: res?.providerMetadata,
+        meta: {
+          consultation_id: consultationId ? String(consultationId) : null,
+          source_chars: text.length,
+          partial: partial === true,
+          finish_reason: res?.finishReason ?? null,
+          ...extraMeta,
+        },
+      });
+      // 한 번 번역에 비정상적으로 많이 쓴 경우를 눈에 띄게 남긴다.
+      // 실측(2026-09-01) 정상 범위는 출력 600~900 토큰(생각 380~855 + 번역문).
+      const out = Number(res?.usage?.outputTokens ?? 0);
+      if (TRANSLATE_OUTPUT_WARN_TOKENS > 0 && out > TRANSLATE_OUTPUT_WARN_TOKENS) {
+        console.warn(
+          `[translate-realtime] 출력 토큰 과다: ${out} (원문 ${text.length}자, ${sourceLang}→${targetLang}, 상담 ${consultationId ?? "-"})`
+        );
+      }
+      // 상한을 안 걸었으므로 여기 걸리는 일은 거의 없다. 그래도 남겨 둔다 — 모델 기본
+      // 상한에 부딪히는 경우가 있으면 «조용히 잘린 자막»이 아니라 로그로 드러나야 한다.
+      if (res?.finishReason === "length") {
+        console.warn(
+          `[translate-realtime] 번역이 모델 기본 상한에 걸려 잘림 (원문 ${text.length}자, ${sourceLang}→${targetLang})`
+        );
+      }
+      return res;
+    };
     const { text: translated } = await gen(genArgs);
 
     let translatedText = translated.trim();
@@ -184,20 +250,24 @@ ${text}`,
     // 이 조각은 버린다(빈 출력 취급 = 아래 저장·자막이 스킵됨). 추임새-빈출력 경로와 동일.
     // ponytail: 재시도 1회면 대개 복구된다. 여전히 누출이면 자막을 빼는 게 쓰레기를 띄우는 것보다 안전.
     if (looksLikeLeakedTranslation(translatedText, targetLang)) {
-      const retry = await gen(genArgs).catch(() => null);
+      const retry = await gen(genArgs, { retry: "leak_guard" }).catch(() => null);
       const retried = (retry?.text || "").trim();
       translatedText =
         retried && !looksLikeLeakedTranslation(retried, targetLang) ? retried : "";
     }
 
     // Save to DB if consultationId provided (fire-and-forget)
-    // 추임새 정리로 번역이 비면 기록도 남기지 않음. partial(중간 자막)도 기록 안 함.
-    if (consultationId && translatedText && partial !== true) {
+    // 추임새 정리로 번역이 비면 기록도 남기지 않음.
+    // 중간 자막(partial)도 남긴다 — 하단 자막에 실제로 뭐가 떴는지 되짚을 방법이 없어
+    // 품질을 잴 수가 없었다(2026-09-01 PO 지시, 당분간). 확정 자막과는 is_partial 로 갈라
+    // 저장하므로 회의록·통계(is_partial=false 만 본다)는 오염되지 않는다.
+    if (consultationId && translatedText && (SAVE_PARTIAL_SUBTITLES || partial !== true)) {
       saveTranslationLog(consultationId, {
         originalText: text,
         translatedText,
         sourceLang,
         targetLang,
+        isPartial: partial === true,
         speakerRole: speakerRole || "unknown",
         // 「어느 받아쓰기가 이 글을 만들었나」 — 클라이언트가 알려주지만 아는 값만 통과시킨다.
         // 이 라우트는 브라우저 받아쓰기가 기본이고, 서버 받아쓰기 폴백도 여기로 올 수 있다.
@@ -234,6 +304,7 @@ async function saveTranslationLog(
     speakerRole: string;
     sttEngine: string;
     speakerName?: string | null;
+    isPartial?: boolean;
   }
 ) {
   const { getSupabaseServerClient } = await import(
@@ -248,6 +319,11 @@ async function saveTranslationLog(
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
       stt_engine: data.sttEngine,
+      // 「누가 말했나(역할)」 — 예전엔 받아놓고 안 넣었다. 그래서 새로고침하면 모든 줄이
+      // unknown 이 되어 내 말과 상대 말이 화면에서 구분되지 않았다(2026-09-01 PO 제보).
+      speaker_role: data.speakerRole,
+      // 「말하는 중 흐른 중간 자막인가」 — 확정 자막만 세는 곳은 false 만 본다.
+      is_partial: data.isPartial === true,
       // 화자 이름(환자 실명)은 «암호문 칸»으로 — 평문 speaker_name 은 2026-08-14 감사에서 닫았다.
       // 8/07 작업본이 평문 칸에 쓰고 있었고(그때는 아직 감사 전), 옮겨 심으면서 되살아날 뻔했다.
       ...encryptTranscriptRow({

@@ -999,8 +999,12 @@ export default function ConsultationRoomPage() {
   // 내 표시 이름 (MicStateBridge 가 채움) — 서버 STT 에 넘겨 회의록에 화자로 남긴다.
   // ref 로도 들고 있는 이유: STT 녹음 사이클은 effect 안에서 돌아 최신 state 를 못 읽는다.
   const myNameRef = useRef("");
+  // 기록 패널이 「이 줄이 내 말인가」를 이름으로 대조하려면 렌더가 읽을 수 있어야 한다
+  // (ref 만으로는 이름이 채워져도 다시 그려지지 않는다).
+  const [myName, setMyNameState] = useState("");
   const setMyName = useCallback((n) => {
     myNameRef.current = n || "";
+    setMyNameState(n || "");
   }, []);
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
@@ -1434,7 +1438,13 @@ export default function ConsultationRoomPage() {
       // 덮는 순서 역전을 수신측이 걸러낼 근거(독립리뷰 #1).
       if (publishSubtitleRef.current) {
         // ⚠️ 상대에겐 «이번 조각»만 보낸다 — 합친 문장을 보내면 상대 화면에 앞부분이 두 번 뜬다.
-        publishSubtitleRef.current(incoming.translated, targetLang, myRole, { utter });
+        //   원문(src)도 같은 조각 기준으로 함께 보낸다 — 이게 없으면 상대 기록 패널의 원문 칸이
+        //   빈 줄로 남아, 한 회의 안에서 내 발화는 「원어+번역」, 상대 발화는 「번역」만 보였다.
+        publishSubtitleRef.current(incoming.translated, targetLang, myRole, {
+          utter,
+          src: incoming.source,
+          srcLang: srcLangOverride || myLang,
+        });
       }
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
@@ -1586,7 +1596,7 @@ export default function ConsultationRoomPage() {
   const remoteUtterRef = useRef(new Map());
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
-    ({ text, lang, role, name, participantIdentity, interim, utter }) => {
+    ({ text, lang, role, name, participantIdentity, interim, utter, src, srcLang }) => {
       // ── 내가 「자막」을 안 켰으면 안 띄운다 (2026-08-07 PO 제보) ──
       // 자막은 **방 전체에** 뿌려지므로, 상대 한 명만 켜도 안 켠 사람 화면에 자막이 올라왔다.
       // PO 실사용: 노트북에서만 자막을 켰는데 PC 화면에 «지 멋대로» 자막이 뜸.
@@ -1642,9 +1652,13 @@ export default function ConsultationRoomPage() {
         ...prev.slice(-1999),
         {
           id: Date.now(),
-          original_text: "",
+          // 화자가 실제로 말한 원문 — 보내주는 버전이면 채워지고, 구버전 클라면 빈 값.
+          // 예전엔 무조건 빈 값이라 상대 발화만 원문 칸이 없었다(2026-09-01 PO 제보).
+          original_text: src || "",
           translated_text: text,
-          source_language: lang,
+          // 원문 언어는 «화자가 말한 언어»다. lang 은 번역 «결과» 언어(= 내 언어)라
+          // 그대로 쓰면 기록에 「한국어 → 한국어」로 남는다.
+          source_language: srcLang || lang,
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name,
@@ -3196,6 +3210,8 @@ export default function ConsultationRoomPage() {
               fd.append("context", JSON.stringify(contextForApi(convoContextRef.current)));
               // 화자 이름 — 없으면 회의록에 «(이름없음)» 으로 남는다(2026-08-03 실측 38줄).
               if (myNameRef.current) fd.append("speakerName", myNameRef.current);
+              // 이 소리는 «내 마이크»다(청취 모드는 상대 트랙을 other 로 보낸다).
+              fd.append("speakerRole", "self");
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
@@ -4481,8 +4497,17 @@ export default function ConsultationRoomPage() {
                       // 화자 구분은 **4중 신호**로 — 색 점 하나로는 훑기 어렵다는 PO 지적(2026-07-27).
                       //   ①왼쪽 굵은 색 띠 ②이니셜 아바타(색 원) ③색 배지에 박힌 이름 ④연속 발화 묶기.
                       // 이름을 모르는 줄(옛 기록)은 전부 회색 — 다른 사람인 척하지 않는다.
-                      const isSelf = trans.speaker_role === "self";
-                      const known = !isSelf && !!trans.speaker_name;
+                      // 「내 말인가」는 **이름**으로 대조한다 — speaker_role 은 «그 줄을 저장한
+                      // 기기» 기준이라(상대 기기가 저장한 줄도 self 로 남는다) 내 화면에서
+                      // 상대 발화가 「나」로 보인다. 이름이 없을 때만 role 로 폴백한다.
+                      const isSelf =
+                        myName && trans.speaker_name
+                          ? trans.speaker_name === myName
+                          : trans.speaker_role === "self";
+                      // 이름이 있으면 «내 말이든 상대 말이든» 색과 이름을 준다. 예전엔 내 발화를
+                      // 색 없는 회색으로만 그려, 두 사람이 번갈아 말하면 누가 누군지 구분되지
+                      // 않았다(2026-09-01 PO 제보 «화자 구분이 제대로 안 된다»).
+                      const known = !!trans.speaker_name;
                       const sc = known ? speakerColor(trans.speaker_name) : null;
                       const label = trans.speaker_name || (isSelf ? c.you : c.speakerUnknown);
                       // 같은 사람이 이어 말하면 이름줄을 생략 — 이름이 바뀌는 지점만 눈에 띈다.
@@ -4497,8 +4522,25 @@ export default function ConsultationRoomPage() {
                             aria-hidden="true"
                           />
                           <div className="flex-1 min-w-0">
-                            {!sameAsPrev && (
-                              <div className="flex items-center justify-between gap-2 mb-1">
+                            {/* 이름줄은 화자가 바뀔 때만, **시각은 매 줄** 그린다.
+                                예전엔 이 줄 전체를 !sameAsPrev 로 감싸, 같은 사람이 이어 말하면
+                                시각이 통째로 사라졌다 — 한 사람이 길게 말하는 회의에선 대부분의
+                                줄에 시각이 없었다(2026-09-01 PO 제보 «시간대별로 출력이 안 된다»). */}
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              {sameAsPrev ? (
+                                /* 이어지는 줄에도 «누가 말했는지»는 남긴다 — 이름을 통째로
+                                   지우면 한 사람이 길게 말할 때 화면 대부분이 이름 없는 줄이
+                                   되어 누구 말인지 읽히지 않는다(2026-09-01 PO 제보 «화자 구분이
+                                   제대로 안 된다»). 아바타만 빼고 배지를 흐리게 그려서, 화자가
+                                   «바뀌는 지점»은 여전히 도드라지게 둔다. */
+                                <span
+                                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate opacity-50 ${
+                                    known ? sc.chip : "bg-gray-700 text-gray-300"
+                                  }`}
+                                >
+                                  {label}
+                                </span>
+                              ) : (
                                 <span className="flex items-center gap-1.5 min-w-0">
                                   {/* ② 이니셜 아바타 */}
                                   <span
@@ -4509,24 +4551,25 @@ export default function ConsultationRoomPage() {
                                   >
                                     {speakerInitial(label)}
                                   </span>
-                                  {/* ③ 색 배지에 박힌 이름 */}
+                                  {/* ③ 색 배지에 박힌 이름 (내 말이면 「나」를 덧붙여 구분) */}
                                   <span
                                     className={`text-[11px] font-semibold px-1.5 py-0.5 rounded truncate ${
                                       known ? sc.chip : "bg-gray-700 text-gray-300"
                                     }`}
                                   >
                                     {label}
+                                    {isSelf && trans.speaker_name ? ` (${c.you})` : ""}
                                   </span>
                                 </span>
-                                <span className="text-[10px] text-gray-600 shrink-0">
-                                  {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-                            )}
+                              )}
+                              <span className="text-[10px] text-gray-600 shrink-0">
+                                {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })}
+                              </span>
+                            </div>
                             <div className="border border-gray-700 rounded-lg p-2.5 hover:border-gray-600 transition">
                               {/* 원문이 있을 때만 원문 칸을 그린다. 실시간 통역(live_translate)
                                   경로는 «번역문만» 주므로, 원문 칸을 늘 그리면 빈 줄이 남는다

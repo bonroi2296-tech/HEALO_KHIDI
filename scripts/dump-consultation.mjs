@@ -90,18 +90,34 @@ console.log(`시작 ${s.started_at} / 종료 ${s.ended_at} / 상태 ${s.status}\
 const notes = decrypt(s.notes_encrypted) ?? s.notes;
 if (notes) console.log(`## 코디 메모\n${notes}\n`);
 
+// 말하는 중 흐른 «중간 자막»은 기본으로 뺀다 — 같은 발화의 앞토막이 여러 줄이라 읽기 어렵다.
+// 하단 자막에 실제로 뭐가 떴는지 봐야 할 때만 --with-partial 로 켠다(품질 측정용).
+const withPartial = args.includes("--with-partial");
+
 const { data: rows } = await db
   .from("consultation_translations")
-  .select("created_at, speaker_name, source_lang, target_lang, source_text, source_text_encrypted, translated_text, translated_text_encrypted")
+  // ⚠️ speaker_name 은 2026-08-14 감사 이후 «암호문 칸»에만 들어간다. 평문 칸만 읽으면
+  //    화자가 전부 「?」로 나온다(2026-09-01 실측: 119줄 전부 이름이 있는데 다 ? 로 찍혔다).
+  .select(
+    "created_at, speaker_name, speaker_name_encrypted, speaker_role, stt_engine, is_partial, source_lang, target_lang, source_text, source_text_encrypted, translated_text, translated_text_encrypted"
+  )
   .eq("session_id", sessionId)
   .order("created_at", { ascending: true });
 
-console.log(`## 자막 ${rows.length}줄  (⚠️ 받아쓰기 오류·지어낸 말이 섞일 수 있다 — 그대로 옮기지 마라)\n`);
-for (const r of rows) {
+const shown = withPartial ? rows : rows.filter((r) => !r.is_partial);
+const partialCount = rows.length - shown.length;
+console.log(
+  `## 자막 ${shown.length}줄` +
+    (partialCount ? ` (+ 중간 자막 ${partialCount}줄 숨김 — 보려면 --with-partial)` : "") +
+    `  (⚠️ 받아쓰기 오류·지어낸 말이 섞일 수 있다 — 그대로 옮기지 마라)\n`
+);
+for (const r of shown) {
   const src = decrypt(r.source_text_encrypted) ?? r.source_text ?? "";
   const dst = decrypt(r.translated_text_encrypted) ?? r.translated_text ?? "";
+  const who = decrypt(r.speaker_name_encrypted) ?? r.speaker_name ?? "?";
   const t = new Date(r.created_at).toISOString().slice(11, 19);
-  console.log(`[${t}] ${r.speaker_name ?? "?"} (${r.source_lang}→${r.target_lang})`);
+  const tag = [r.stt_engine, r.is_partial ? "중간자막" : null].filter(Boolean).join("/");
+  console.log(`[${t}] ${who} (${r.source_lang}→${r.target_lang}${tag ? `, ${tag}` : ""})`);
   console.log(`  원문: ${src}`);
   if (dst && dst !== src) console.log(`  번역: ${dst}`);
 }

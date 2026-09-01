@@ -36,6 +36,11 @@ for (let from = 0; from < LIMIT; from += 1000) {
     .select(
       "session_id, source_lang, source_text, source_text_encrypted, speaker_name, speaker_name_encrypted, translated_text, translated_text_encrypted, created_at"
     )
+    // ⚠️ 말하는 중 흐른 «중간 자막»은 뻐다(2026-09-01 부터 DB 에 남기기 시작했다).
+    //    중간 자막은 정의상 같은 발화의 앞토막이라, 섞으면 «붙일 수 있는 쌍»이 인위적으로
+    //    늘어나 이어붙이기 점수가 왜곡된다. 이 스크립트가 재는 것은
+    //    «확정 자막끼리 얼마나 잘 이어지나» 다.
+    .eq("is_partial", false)
     .order("created_at", { ascending: false })
     .range(from, Math.min(from + 999, LIMIT - 1));
   if (error) {

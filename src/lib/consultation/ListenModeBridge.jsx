@@ -469,6 +469,8 @@ function startPipeline({
     fd.append("targetLang", live.targetLang);
     fd.append("context", JSON.stringify(ctx));
     fd.append("speakerName", name || "");
+    // 이 소리는 «상대 참가자의 마이크»다 — 서버가 self 로 오해하면 상대 발화가 내 말로 남는다.
+    fd.append("speakerRole", "other");
     if (partial) fd.append("partial", "1");
     // ponytail: 「기록은 먼저 들어온 한 대만」을 2026-08-04 에 넣었다가 **같은 날 되돌렸다.**
     //   자가감사에서 교환이 안 맞는 걸로 나왔다:
