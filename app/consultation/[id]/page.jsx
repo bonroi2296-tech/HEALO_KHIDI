@@ -3210,6 +3210,8 @@ export default function ConsultationRoomPage() {
               fd.append("context", JSON.stringify(contextForApi(convoContextRef.current)));
               // 화자 이름 — 없으면 회의록에 «(이름없음)» 으로 남는다(2026-08-03 실측 38줄).
               if (myNameRef.current) fd.append("speakerName", myNameRef.current);
+              // 이 소리는 «내 마이크»다(청취 모드는 상대 트랙을 other 로 보낸다).
+              fd.append("speakerRole", "self");
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }

@@ -111,8 +111,18 @@ function sttModelFor(lang: string, targetLang?: string, isPartial?: boolean): st
   return "gemini-flash-latest";
 }
 
-/** 한 호출이 이 출력 토큰을 넘으면 로그에 남긴다(막지는 않는다) — 「너무 많이 쓰면 알려줘」(PO). */
-const STT_OUTPUT_WARN_TOKENS = Number(process.env.STT_OUTPUT_WARN_TOKENS || 4000);
+/**
+ * 한 호출이 이 출력 토큰을 넘으면 로그에 남긴다(막지는 않는다) — 「너무 많이 쓰면 알려줘」(PO).
+ * **0 을 주면 경고를 끈다** — `Number(env || 4000)` 형태면 "0" 이 truthy 라 0 으로 읽혀
+ * 오히려 모든 호출이 경고를 찍는다.
+ */
+const STT_OUTPUT_WARN_TOKENS = Number(process.env.STT_OUTPUT_WARN_TOKENS ?? 4000);
+
+/**
+ * 말하는 중 흐른 «중간 자막»을 DB 에 남길지(2026-09-01 PO 지시, 당분간).
+ * 임시 조치이므로 코드가 아니라 설정으로 끈다 — env 를 "0" 으로 두면 확정 자막만 남는다.
+ */
+const SAVE_PARTIAL_SUBTITLES = process.env.SAVE_PARTIAL_SUBTITLES !== "0";
 
 /** 호출 1건의 사용량을 남긴다. 상한을 안 거는 대신 «얼마나 쓰는지»는 반드시 잰다. */
 function recordSttUsage(modelId: string, res: any, meta: Record<string, unknown>) {
@@ -124,7 +134,7 @@ function recordSttUsage(modelId: string, res: any, meta: Record<string, unknown>
     meta: { ...meta, finish_reason: res?.finishReason ?? null },
   });
   const out = Number(res?.usage?.outputTokens ?? 0);
-  if (out > STT_OUTPUT_WARN_TOKENS) {
+  if (STT_OUTPUT_WARN_TOKENS > 0 && out > STT_OUTPUT_WARN_TOKENS) {
     console.warn(`[consultation/stt] 출력 토큰 과다: ${out} (${modelId}, ${JSON.stringify(meta)})`);
   }
 }
@@ -180,9 +190,17 @@ export async function POST(
     const contextBlock = parseContext(formData.get("context"));
     // 화자 표시 이름 — 기록에 "누가 말했나"를 남긴다(없던 컬럼, 2026-07-27).
     const speakerName = String(formData.get("speakerName") || "").trim().slice(0, 80) || null;
-    // partial=1 → 말하는 중 조각. 화면에만 띄우고 기록·DB 에는 남기지 않는다
-    // (같은 발화가 조각 수만큼 기록에 쌓이면 회의록이 통째로 오염된다).
+    // partial=1 → 말하는 중 조각. 확정 자막과 «칸을 갈라»(is_partial) 저장하고,
+    // 회의록·번역 기록 조회는 확정본만 본다(2026-09-01 부터 품질 측정용으로 남긴다).
     const isPartial = String(formData.get("partial") || "") === "1";
+    // 「이 오디오가 누구 목소리인가」 — 이 라우트로 오는 소리가 항상 내 마이크는 아니다.
+    // 청취 모드(ListenModeBridge)는 «상대 참가자의 마이크 트랙»을 녹음해 같은 라우트로 보낸다.
+    // self 로 못박으면 상대 발화가 「내 말」로 저장돼, 이름이 없는 줄에서 화면이 상대를
+    // 「나」로 표시하고 두 사람의 말이 한 덩이로 묶인다. 아는 값만 통과시키고, 안 알려주면
+    // null 로 둔다 — 모르는 것을 self 라고 단정하지 않는다.
+    const speakerRoleRaw = String(formData.get("speakerRole") || "").trim();
+    const speakerRole =
+      speakerRoleRaw === "self" || speakerRoleRaw === "other" ? speakerRoleRaw : null;
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -359,7 +377,13 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
     // 품질을 잴 수가 없었다(2026-09-01 PO 지시, 당분간). is_partial 로 칸을 갈라 저장하므로
     // 회의록·통계(is_partial=false 만 본다)는 오염되지 않는다.
     const effectiveSrc = detectedLang || lang;
-    if (transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (
+      transcript &&
+      translated &&
+      targetLang &&
+      effectiveSrc !== targetLang &&
+      (SAVE_PARTIAL_SUBTITLES || !isPartial)
+    ) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
@@ -367,6 +391,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
         targetLang,
         speakerName,
         isPartial,
+        speakerRole,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
@@ -388,6 +413,7 @@ async function saveTranslationLog(
     targetLang: string;
     speakerName?: string | null;
     isPartial?: boolean;
+    speakerRole?: "self" | "other" | null;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -401,10 +427,11 @@ async function saveTranslationLog(
       target_lang: data.targetLang,
       // 이 라우트로 들어온 줄은 정의상 «서버 받아쓰기» 다 — 클라이언트 값을 믿지 않는다.
       stt_engine: STT_ENGINES.SERVER,
-      // 이 라우트는 «올린 사람 자신의 마이크» 소리다 — 그 기기 기준으로는 self.
-      // (화면의 「나/상대」 판정은 이 값이 아니라 화자 «이름»을 내 이름과 대조해서 한다.
-      //  같은 줄을 두 사람이 보는데 role 은 DB 에 하나만 남기 때문이다.)
-      speaker_role: "self",
+      // 「누가 말했나(역할)」 — 클라이언트가 알려준 값만 쓴다. 이 라우트엔 내 마이크(self)와
+      // 청취 모드가 녹음한 상대 마이크(other)가 «둘 다» 들어온다.
+      // (화면의 「나/상대」 판정은 이 값보다 화자 «이름»을 먼저 본다 — 같은 줄을 두 사람이
+      //  보는데 role 은 DB 에 하나만 남기 때문이다. 이 값은 이름이 없을 때의 폴백이다.)
+      speaker_role: data.speakerRole ?? null,
       // 「말하는 중 흐른 중간 자막인가」 — 확정 자막만 세는 곳은 false 만 본다.
       is_partial: data.isPartial === true,
       // 화자 이름(환자 실명)도 암호문 칸에 — 예전엔 speaker_name 평문으로 줄마다 쌓였다(2026-08-14 감사).
