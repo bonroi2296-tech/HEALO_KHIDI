@@ -31,10 +31,15 @@ test.describe("/treatments 암종 페이지", () => {
     await page.goto("/treatments");
     await page.waitForLoadState("domcontentloaded");
 
-    // /treatments 는 암종을 펼침 카드로 보여주고 상세 슬러그 링크 대신 /intake 사전상담 CTA 로
-    // 유도하는 설계(상세 링크 없음). 페이지가 actionable 한지 = CTA 버튼 존재로 검증(ko/en 무관).
+    // 페이지가 actionable 한지 = 사전상담 CTA 존재로 검증(ko/en 무관).
+    //
+    // 🛑 «링크»로 찾는다. 버튼이 아니다 — 2026-08-31 #1564 가 이 CTA 를 router.push 버튼에서
+    //    <Link>(=<a href>)로 바꿨는데 이 검사는 role:"button" 인 채였다. 화면은 멀쩡했고
+    //    검사만 낡아서, 본판 E2E 가 6회 연속 빨간불이었다(2026-09-02 규명).
+    //    되돌아가지 않게 role 을 link 로 못 박는다: 버튼으로 되돌리면 크롤러가 따라갈 주소가
+    //    다시 사라진다 = #1564 가 고친 «고아 페이지» 회귀다. 여기서 실패하는 게 맞다.
     await expect(
-      page.getByRole("button", { name: /사전상담 시작하기|Start Pre-consultation/i }).first()
+      page.getByRole("link", { name: /사전상담 시작하기|Start Pre-consultation/i }).first()
     ).toBeVisible({ timeout: 20_000 });
   });
 
