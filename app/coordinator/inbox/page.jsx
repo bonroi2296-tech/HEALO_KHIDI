@@ -67,6 +67,37 @@ export default function CoordinatorInboxPage() {
     setLoading(false);
   }
 
+  /**
+   * 「시험」 표시를 떼어 진짜 문의로 되돌린다.
+   * 접수 시점 판정이 틀리는 경우가 실제로 있어서 사람이 고칠 길을 둔다(2026-09-02 PO 요청).
+   * 실적 집계가 걸린 값이라 되묻고 나서 바꾼다.
+   */
+  async function markReal(id) {
+    if (!window.confirm(
+      `문의 #${id} 의 「시험」 표시를 뗍니다.\n\n` +
+      `코디 목록에 그대로 남고, KHIDI 실적에도 잡히게 됩니다.`
+    )) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch(`/api/coordinator/inquiries/${id}/test-flag`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ isTest: false }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j?.error || "failed");
+      load();
+    } catch (e) {
+      console.error("[inbox] test-flag error:", e);
+      window.alert("표시를 바꾸지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+  }
+
   const filtered = items.filter((item) => {
     if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
     if (filter === "step2_done") return !!item.step2_completed_at;
