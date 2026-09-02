@@ -33,9 +33,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // 본문 파싱은 try 밖에서 따로 — 빈 본문으로 오는 건 대개 «화면을 떠나며 브라우저가 요청을
+  // 끊은 것»이라(코디 인박스의 병원 매칭 fetch 가 그렇다) 서버 고장이 아니다. 아래 공용 catch 에
+  // 맡기면 500 + 스택이 남아 진짜 고장을 찾을 때 로그가 오염된다(2026-09-01 E2E 로그에서 발견).
+  let payload: any;
   try {
-    const payload = await request.json();
+    payload = await request.json();
+  } catch {
+    return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
 
+  try {
     if (!payload.cancerType) {
       return Response.json(
         { ok: false, error: "cancerType is required" },

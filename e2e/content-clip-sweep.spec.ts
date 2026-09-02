@@ -46,6 +46,10 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
 
 
   const failures: string[] = [];
+  // 🛑 «못 연 이유»를 반드시 모은다. 예전엔 goto 실패를 조용히 continue 로 넘겨서, 아래 형해화
+  //    가드가 걸렸을 때 남는 정보가 「32 < 49」 숫자 두 개뿐이었다 — 어느 페이지가 왜 안 열렸는지
+  //    알 길이 없어 6회 연속 빨간불을 아무도 못 읽었다(2026-09-02 규명).
+  const unopened: string[] = [];
   let scanned = 0;
   for (const vp of [
     { name: "desktop", width: 1440, height: 900 },
@@ -57,10 +61,29 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
     // 첫 컴파일이 느려 30초 (독립 리뷰 A1·D3)
     const gotoTimeout = process.env.E2E_SKIP_SERVER === "1" ? 15_000 : 30_000;
     for (const p of paths) {
-      try {
-        await page.goto(p, { waitUntil: "domcontentloaded", timeout: gotoTimeout });
-      } catch {
-        continue; // 안 열리는 페이지는 sitemap-health 몫 — 여기선 잘림만 본다
+      // 한 번은 다시 걸어본다. dev 서버는 힙 80% 에 닿으면 «스스로 재시작»하고, 그 순간에 걸린
+      // 요청은 즉시 오류를 받는다(playwright.config 의 webServer 주석에 실측이 있다).
+      // 이 검사는 전역 재시도를 끈(retries:0) 66회 스윕이라, 재시작 한 번이 남은 페이지를 통째로
+      // 쓸어 스캔이 절반으로 줄었다 — 2026-09-01 러너 실측 32/62(내 PC·실서비스에선 62/62 통과).
+      let opened = false;
+      let lastErr: unknown = null;
+      for (const attempt of [0, 1]) {
+        try {
+          await page.goto(p, { waitUntil: "domcontentloaded", timeout: gotoTimeout });
+          opened = true;
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (attempt === 0) await page.waitForTimeout(3000); // 재시작이면 몇 초면 다시 뜬다
+        }
+      }
+      if (!opened) {
+        // 안 열리는 페이지 «자체»는 sitemap-health 몫 — 여기선 잘림만 본다.
+        // 다만 이유는 남긴다(아래 형해화 가드가 걸렸을 때 이게 유일한 단서다).
+        unopened.push(
+          `[${vp.name}] ${p} — ${String((lastErr as Error)?.message ?? lastErr).split(/\r?\n/)[0]}`
+        );
+        continue;
       }
       await page.waitForTimeout(1500); // hydration + 데이터 fetch 여유
       // 스캐너 자체의 예외는 삼키지 않는다 — 조용히 죽은 가드 방지 (독립 리뷰 A2)
@@ -74,9 +97,10 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
   }
 
   // 대부분 페이지가 안 열려 스캔이 형해화됐는데 초록으로 끝나는 것 방지 (독립 리뷰 A2)
-  expect(scanned, "스캔된 페이지가 너무 적음 — 가드가 형해화됨").toBeGreaterThanOrEqual(
-    Math.floor(paths.length * 2 * 0.8)
-  );
+  expect(
+    scanned,
+    `스캔된 페이지가 너무 적음 — 가드가 형해화됨. 못 연 ${unopened.length}건:\n${unopened.join("\n")}`
+  ).toBeGreaterThanOrEqual(Math.floor(paths.length * 2 * 0.8));
 
   expect(
     failures,
