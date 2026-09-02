@@ -75,7 +75,6 @@ Return ONLY JSON:
  "fields": {
    "lastName": null, "firstName": null, "birthDate": "YYYY-MM-DD" or null,
    "sex": "female"|"male"|null, "passportNo": null,
-   "email": null, "phone": null,
    "nationality": "KZ"|"RU"|"UZ"|"KG"|"MN"|"CN"|"JP"|"KR"|"OTHER"|null,
    "diagnosisNameRaw": null, "icdCode": null,
    "diagnosisDate": "YYYY-MM" or null, "onsetDate": null, "stage": "I"|"II"|"III"|"IV"|null,
@@ -96,20 +95,9 @@ Rules:
   at the bottom of a passport). Never return the Cyrillic form, never return both, never join them with
   a slash. Measured 2026-08-14: 1 run in 3 returned "ТАТЕПБАЕВА / TATEPBAYEVA" - that value on a referral
   form does not match the passport and the hospital rejects the registration.
-  There is often NO passport in the upload. In that case still take the Latin spelling from ANY document
-  that prints one - a medical report header, a lab slip, an insurance card, a referral letter. Only when
-  no document anywhere prints a Latin spelling do you return null. Do NOT transliterate Cyrillic
-  yourself: your guess would differ from the passport and the hospital would reject the registration.
-- CONTACT: "email" and "phone" are the patient's own contact details when a document prints them
-  (patient information blocks on medical reports and referral letters usually do). Copy them exactly.
-  Return null for a HOSPITAL's or a DOCTOR's email/phone - only the patient's own. If a document shows
-  several patient phone numbers, take the one from the most recent document. Phone keeps its country
-  code and digits as printed.
-- NATIONALITY: from a passport's 3-letter country code (KAZ->KZ, RUS->RU, UZB->UZ, KGZ->KG,
-  MNG->MN, CHN->CN, JPN->JP, KOR->KR; anything else -> "OTHER"), or from a citizenship field that a
-  document states explicitly (e.g. "Гражданство: Казахстан"). Never infer it from the language a
-  medical record happens to be written in, and never from the country the hospital is in - Russian-language
-  records are routine across all of Central Asia.
+- NATIONALITY: only from a passport's 3-letter country code (KAZ->KZ, RUS->RU, UZB->UZ, KGZ->KG,
+  MNG->MN, CHN->CN, JPN->JP, KOR->KR; anything else -> "OTHER"). Never infer it from the language a
+  medical record happens to be written in - Russian-language records are routine across all of Central Asia.
 - If unsure of the kind, use "unknown".
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
@@ -120,9 +108,6 @@ date rather than guessing. A wrong date of birth gets the patient rejected at ho
 // AI 가 채울 수 있는 칸 목록. 여기 없는 이름을 지어내도 받지 않는다.
 const FILLABLE = new Set([
   "lastName", "firstName", "birthDate", "sex", "passportNo", "nationality",
-  // 연락처 — 의료 문서의 환자 정보란에 적혀 있는 경우가 많다. 여권이 없어도 이 두 칸은 채워진다
-  // (2026-09-02 PO: 「여권 안 줬더니 연락처·기본 정보가 안 채워지더라」).
-  "email", "phone",
   "diagnosisNameRaw", "icdCode", "diagnosisDate", "onsetDate", "stage",
   "chiefComplaint", "testsAndTreatments", "localDoctorOpinion",
   "pastHistoryNote", "medications", "familyHistory",
@@ -141,13 +126,6 @@ function cleanFields(raw: any): Record<string, string> {
     if (k === "sex" && val !== "female" && val !== "male") continue;
     if (k === "stage" && !STAGES.has(val)) continue;
     if (k === "nationality" && !NATIONS.has(val)) continue;   // 목록에 없는 값은 버린다
-    // 연락처는 «화면·서버가 받아주는 모양»일 때만 채운다. 모양이 틀린 값을 채우면
-    // 칸은 차 있는데 보내기 단추가 막히고, 환자 눈엔 이유가 안 보인다.
-    if (k === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) continue;
-    if (k === "phone") {
-      const digits = val.replace(/\D/g, "");
-      if (digits.length < 7 || digits.length > 20 || val.length > 30) continue;
-    }
     out[k] = val;
   }
   return out;
