@@ -24,8 +24,8 @@ android {
         //      2026-08-31: 11 은 이미 내부 테스트에 게시됐다(1.0.10). 훑기가 «지금 구우면
         //      Play 가 거부한다»고 잡아줘서 굽기 전에 미리 올려 둔다 — 다음 판이 12 다.
         //      그 판에 처음 들어가는 것: 앱 용량 82.7MB → 8MB(#1546, 사진 74.6MB 제외).
-        versionCode 12
-        versionName "1.0.11"
+        versionCode 13
+        versionName "1.0.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
