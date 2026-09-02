@@ -31,6 +31,7 @@ import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import { readFollowUps } from "@/lib/inquiry/followUps";
 import { readBriefMap, briefSig, generateCaseBrief } from "@/lib/inquiry/caseBrief";
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -185,8 +186,10 @@ async function signAttachments(atts: any): Promise<
         //   화면의 «내려받기» 표시(HTML download)는 **다른 서버의 파일에는 안 먹힌다.**
         //   그래서 그림은 저장 창이 안 뜨고 그냥 탭에 열려 버렸다(.rar 처럼 못 여는 것만 우연히 잘 됐다).
         //   저장소에 «이건 내려받는 파일»이라고 표시해 달라고 부탁하는 주소를 따로 받는다.
-        const dn = await store.createSignedUrl(a.path, 3600, { download: String(a?.name || "첨부파일") });
-        downloadUrl = dn.data?.signedUrl || url;
+        //   ⚠️ supabase-js 의 `{ download: 이름 }` 옵션은 쓰지 않는다 — 주소를 두 번 인코딩해
+        //   러시아어·한글 이름이 `%D0%98…` 라는 글자 그대로 저장된다(2026-09-02 PO 제보, 실측 확인).
+        //   같은 서명에 이름만 붙이면 되므로 서명 호출도 한 번으로 줄었다.
+        downloadUrl = withDownloadName(url, String(a?.name || "첨부파일")) || url;
       }
       // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
       const imaging = isImagingBundle(a);
