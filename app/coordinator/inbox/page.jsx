@@ -39,6 +39,8 @@ export default function CoordinatorInboxPage() {
   const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
   // 시연·점검용. 기본은 꺼짐 = 평소 화면 그대로(시험 문의는 안 보인다).
   const [showTest, setShowTest] = useState(false);
+  // 최근 24시간에 시험으로 분류돼 «숨은» 건수. 숨기는 건 맞지만 숨겼다는 사실은 보여야 한다.
+  const [hiddenTest, setHiddenTest] = useState(0);
 
   useEffect(() => {
     load();
@@ -58,6 +60,7 @@ export default function CoordinatorInboxPage() {
       const result = await res.json();
       if (!res.ok || !result.ok) throw new Error(result.error || "fetch_failed");
       setItems(result.items || []);
+      setHiddenTest(result.hiddenTestCount || 0);
     } catch (e) {
       console.error("[inbox] fetch error:", e);
     }
@@ -83,6 +86,17 @@ export default function CoordinatorInboxPage() {
           <p className="text-gray-500 text-sm mt-1">{L.inboxSubtitle}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* 숨긴 건 맞지만 «숨겼다는 사실»은 보여야 한다 — 안 그러면 「접수가 안 됐다」로 읽힌다.
+              (2026-09-02: 진짜 환자 문의 #291 이 회사 도메인 연락처 탓에 시험으로 찍혀 통째로 사라졌다) */}
+          {!showTest && hiddenTest > 0 && (
+            <button
+              onClick={() => setShowTest(true)}
+              className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition"
+              title="시험으로 분류돼 목록에서 빠진 문의입니다. 눌러서 함께 보기"
+            >
+              최근 24시간에 시험으로 분류돼 숨은 문의 {hiddenTest}건
+            </button>
+          )}
           {/* 시연·점검용 — 켜면 시험 문의도 함께 보인다(각 줄에 「시험」 표가 붙는다). */}
           <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none">
             <input

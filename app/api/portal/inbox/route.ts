@@ -51,6 +51,21 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
+    // 최근 24시간에 «시험으로 분류돼 숨은» 건수. 목록에는 안 넣고 숫자만 알린다.
+    // 왜: 2026-09-02 진짜 환자 문의(#291)가 회사 도메인 연락처 때문에 시험으로 찍혀
+    //     코디 화면에서 통째로 사라졌고, 접수 화면은 「접수 완료」라고 떠서
+    //     «안 들어왔다»로 읽혔다. 숨기는 것 자체는 옳지만 «숨겼다는 사실»은 보여야 한다.
+    let hiddenTestCount = 0;
+    if (!includeTest) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from("inquiries")
+        .select("id", { count: "exact", head: true })
+        .eq("is_test", true)
+        .gte("created_at", since);
+      hiddenTestCount = count || 0;
+    }
+
     const items = (data || []).map((i: any) => ({
       id: i.id,
       name:
@@ -76,7 +91,7 @@ export async function GET(request: NextRequest) {
       is_test: i.is_test === true,
     }));
 
-    return Response.json({ ok: true, items });
+    return Response.json({ ok: true, items, hiddenTestCount });
   } catch (err: any) {
     console.error("[portal/inbox] error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
