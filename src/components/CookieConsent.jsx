@@ -66,6 +66,11 @@ export default function CookieConsent() {
     localStorage.setItem("healo_cookie_consent", level);
     setShow(false);
     if (level === "all") window.dispatchEvent(new Event("cookie-consent-granted"));
+    // 「배너가 닫혔다」는 «분석을 허용했다»와 다른 신호다 — 둘 중 무엇을 눌렀든 발화한다.
+    //   PWA 설치 안내(InstallPrompt)가 이걸 기다렸다가 그제서야 뜬다.
+    //   왜: 첫 방문자 화면에 동의 배너·설치 안내·하단 탭이 «동시에» 떠서 세로 45%를 먹었다
+    //   (2026-09-02 폰 실측). 서로 비켜 앉기는 하지만 쌓이면 핵심 문구와 CTA 가 잘린다.
+    window.dispatchEvent(new Event("cookie-consent-closed"));
   };
 
   if (!show) return null;
