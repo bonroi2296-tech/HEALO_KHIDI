@@ -243,10 +243,16 @@ export default function CoordinatorInboxPage() {
                           {item.name || "—"}
                         </span>
                         {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
+                        {/* 누르면 「시험」 표시가 떨어져 진짜 문의로 돌아온다. 줄 전체가 상세로
+                            가는 클릭을 물고 있으므로 stopPropagation 이 없으면 상세로 튕긴다. */}
                         {item.is_test && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 shrink-0">
-                            시험
-                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markReal(item.id); }}
+                            title="시험으로 분류돼 목록에서 숨겨진 문의입니다. 누르면 표시가 떨어져 실적에도 잡힙니다."
+                            className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 shrink-0 transition"
+                          >
+                            시험 ✕
+                          </button>
                         )}
                         {item.agency_id && (
                           <span
