@@ -404,7 +404,15 @@ async function 검사_앱미반영() {
 
   // ① 부품 대조 — 가장 확실한 신호. 저장소엔 있는데 출시본엔 없는 부품 = 폰에서 «그 기능이 죽어 있다».
   const 현재부품 = 부품목록(fs.readFileSync(path.join("android", "app", "capacitor.build.gradle"), "utf8"));
-  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+  // 🔑 «아이폰 코드가 아예 안 부르는 부품»은 빼고 잰다. 안 빼면 영원히 안 꺼지는 「볼 것」이 된다 —
+  //    부품을 넣어도 코드가 안 쓰니 상태가 안 바뀌고, 다음 사람은 그걸 「고쳐야 할 것」으로 읽는다.
+  //    2026-09-02 실측: @capgo/capacitor-social-login 이 그랬다. 그 부품을 부르는 유일한 문(門)이
+  //    src/lib/isNativeApp.ts 의 hasNativeGoogleSignIn() 인데 첫 줄이 `if (!isAndroidApp()) return false`
+  //    라, 아이폰에서는 부품이 실려 있어도 절대 안 불린다(화면은 useGoogleBlockedInApp 으로 안내문을
+  //    띄워 막아 둔다). 즉 «부품이 없어 죽은 기능»이 아니라 «아이폰용으로 아직 안 만든 기능»이다.
+  //    ⚠️ 아이폰 네이티브 구글 로그인을 만들면 그 가드가 풀린다 → 그때 baseline 의 이 목록도 비워라.
+  const 안쓰는부품 = new Set(기준.안쓰는부품 || []);
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p) && !안쓰는부품.has(p));
 
   // ①-2 저장소 «안»의 어긋남: package.json 에는 있는데 gradle 에는 없는 부품.
   //    🔴 2026-08-31 실제로 낼 뻔했다: 로컬 node_modules 에 `@capgo/capacitor-social-login` 이
@@ -541,7 +549,15 @@ async function 검사_아이폰미반영() {
     // 부품 목록을 «반쪽»으로 얻었을 때 통과로 위장하지 않는다 — 위 함수 주석의 🔴 참고.
     return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", String(e.message));
   }
-  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+  // 🔑 «아이폰 코드가 아예 안 부르는 부품»은 빼고 잰다. 안 빼면 영원히 안 꺼지는 「볼 것」이 된다 —
+  //    부품을 넣어도 코드가 안 쓰니 상태가 안 바뀌고, 다음 사람은 그걸 「고쳐야 할 것」으로 읽는다.
+  //    2026-09-02 실측: @capgo/capacitor-social-login 이 그랬다. 그 부품을 부르는 유일한 문(門)이
+  //    src/lib/isNativeApp.ts 의 hasNativeGoogleSignIn() 인데 첫 줄이 `if (!isAndroidApp()) return false`
+  //    라, 아이폰에서는 부품이 실려 있어도 절대 안 불린다(화면은 useGoogleBlockedInApp 으로 안내문을
+  //    띄워 막아 둔다). 즉 «부품이 없어 죽은 기능»이 아니라 «아이폰용으로 아직 안 만든 기능»이다.
+  //    ⚠️ 아이폰 네이티브 구글 로그인을 만들면 그 가드가 풀린다 → 그때 baseline 의 이 목록도 비워라.
+  const 안쓰는부품 = new Set(기준.안쓰는부품 || []);
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p) && !안쓰는부품.has(p));
   const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
 
   const 볼것 = 안실린부품.length > 0;
@@ -550,7 +566,8 @@ async function 검사_아이폰미반영() {
     조각.push(`⚠️ 그 판에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 아이폰에서 죽어 있다`);
     조각.push("아이폰 앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
   } else {
-    조각.push(`부품 ${현재부품.length}개 전부 그 판에 있음`);
+    조각.push(`부품 ${현재부품.length - 안쓰는부품.size}개 전부 그 판에 있음`);
+    if (안쓰는부품.size) 조각.push(`(아이폰 코드가 안 부르는 부품 ${안쓰는부품.size}개는 셈에서 뺐다: ${[...안쓰는부품].join(", ")})`);
   }
 
   // 안드로이드 쪽과 같은 이유로 경보에서는 뺀다 — 몇 주씩 이어지는 «정상» 상태다.

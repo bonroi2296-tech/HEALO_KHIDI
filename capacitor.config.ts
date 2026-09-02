@@ -125,6 +125,33 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
+    // 우리가 «실제로 쓰는» 소셜 로그인만 켠다 — 구글(안드로이드)·애플(아이폰·안드로이드).
+    //
+    // 🔴 왜 명시해야 하나 (2026-09-02 실측). 이 블록이 없으면 부품이 자기 기본값을 쓰는데,
+    //    그 기본값은 **네 공급자를 전부 켠다**(`scripts/configure-dependencies.js` 의
+    //    `defaultProviders`). 그래서 안 쓰는 페이스북 SDK 가 앱에 실렸고, 그 SDK 가 매니페스트에
+    //    광고 ID 권한 4개를 끌고 들어왔다 —
+    //      com.google.android.gms.permission.AD_ID · ACCESS_ADSERVICES_AD_ID
+    //      · ACCESS_ADSERVICES_ATTRIBUTION · ACCESS_ADSERVICES_CUSTOM_AUDIENCE
+    //    그 결과 Play 가 「광고 ID 선언이 불완전함」으로 **프로덕션 검토 제출을 막았다**(판 12·13).
+    //    앱에 페이스북 앱 번호가 없어 그 SDK 는 초기화조차 못 했다 = 기능 0, 비용만 있었다.
+    //
+    // 🛑 **`android/gradle.properties` 에 `socialLogin.facebook.include=false` 를 적지 마라 —
+    //    안 먹는다.** 부품은 «자기 폴더»의 gradle.properties 를 보고, 그 파일은 `npx cap sync`
+    //    때 이 블록을 읽어 hook 스크립트가 «다시 쓴다». 앱 쪽 gradle.properties 는 쳐다보지 않는다.
+    //    (판 13 을 그렇게 구웠다가 권한이 그대로인 것을 AAB 매니페스트 실측으로 잡았다.)
+    //
+    //    웹사이트 메타 픽셀(`app/AnalyticsWrapper.jsx`)과는 무관하다 — 그건 브라우저 자바스크립트다.
+    //    나중에 «앱 설치 광고»를 돌리려면 facebook 을 true 로 되돌리고, 페이스북 앱 번호를 넣고,
+    //    데이터 보안 양식·개인정보 방침에 광고 ID 항목을 반영해야 한다(셋을 같이 해야 한다).
+    SocialLogin: {
+      providers: {
+        google: true,
+        apple: true,
+        facebook: false,
+        twitter: false,
+      },
+    },
     // ⚠️ Keyboard 블록을 통째로 뺐다 (2026-07-28, PO 실기기에서 로그인 불가로 발견).
     //    - `resizeOnFullScreen: true` 는 «웹뷰가 키보드에 맞춰 안 줄어들던» 옛 안드로이드 버그용
     //      우회책인데, 캡시터 8 의 SystemBars 가 이미 키보드 여백(IME inset)을 스스로 처리한다.
