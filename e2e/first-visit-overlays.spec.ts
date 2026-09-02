@@ -68,7 +68,11 @@ test.describe("첫 방문 홈 — 안내창이 겹쳐 쌓이지 않는다", () =
     }
 
     // 홈의 주 행동 단추가 «스크롤 없이» 보여야 한다 — 가려지면 시연에서 제일 먼저 티가 난다.
-    const cta = page.getByRole("link", { name: /Бесплатная консультация|무료 상담|Free consultation/i }).first();
+    //   ⚠️ 언어마다 문구가 다르다. 한국어는 「무료 사전상담 신청」이라 「무료 상담」으로 찾으면
+    //   못 잡는다(2026-09-02 실측에서 실제로 «안 보인다»로 잘못 판정했다).
+    const cta = page
+      .getByRole("link", { name: /Бесплатная консультация|무료 사전상담|Free consultation|Тегін кеңес/i })
+      .first();
     await expect(cta, "홈 첫 화면에 주 행동 단추가 안 보인다").toBeVisible();
   });
 });
