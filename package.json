@@ -172,6 +172,6 @@
   "overrides": {
     "sharp": "^0.35.0",
     "postcss": "^8.5.12",
-    "fast-uri": "^3.1.5"
+    "fast-uri": "^3.1.7"
   }
 }
