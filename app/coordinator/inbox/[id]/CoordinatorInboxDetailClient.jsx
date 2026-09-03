@@ -41,6 +41,16 @@ function isImagingBundle(a) {
   return /\.(zip|rar|dcm)$/.test(n) || t.includes("zip") || t.includes("rar") || t.includes("dicom");
 }
 
+// 음성 메모인가 — 왓츠앱은 ogg, 아이폰 음성 메모는 m4a, 구형 안드로이드는 amr 로 온다.
+// 판독 창구가 아는 «대표 이름»으로 맞춰 보낸다(별칭을 그대로 보내면 창구가 안 받는다).
+const VOICE_MIME = {
+  mp3: "audio/mpeg", m4a: "audio/mp4", mp4a: "audio/mp4", "3gp": "audio/mp4",
+  wav: "audio/wav", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg",
+  webm: "audio/webm", amr: "audio/amr",
+};
+const voiceMime = (name) => VOICE_MIME[String(name || "").split(".").pop()?.toLowerCase()] || null;
+const isVoiceFile = (name) => !!voiceMime(name);
+
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
   reviewing: "bg-blue-100 text-blue-700",
@@ -593,6 +603,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     } finally {
       setStaffUploading(false);
       setStaffProgress(0);
+    }
+  }
+
+  /**
+   * 음성 메모를 글로 옮기고 요약한다 — 코디가 «듣지 않고» 처리할 수 있게.
+   * 계기: 2026-09-02 PO — 「아셀님이 음성파일로 받으니 듣고 분석하는 데 시간이 너무 오래 걸림」.
+   * 결과는 화면에만 둔다(저장하지 않는다). 다시 보려면 다시 누른다 — 한 번에 몇백 원 수준이고,
+   * 저장하면 «언제 적 요약인지» 관리해야 하는데 그럴 값어치가 아직 없다.
+   */
+  async function analyzeVoice(path, name) {
+    if (!path) return;
+    setVoiceNotes((p) => ({ ...p, [path]: { loading: true } }));
+    try {
+      const res = await fetch("/api/inquiry/classify-doc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path, type: voiceMime(name) }),
+      });
+      const j = await res.json();
+      if (!j?.ok || j.skipped) throw new Error(j?.skipped || j?.error || "failed");
+      setVoiceNotes((p) => ({ ...p, [path]: { data: j } }));
+    } catch (e) {
+      console.error("[voice] analyze error:", e);
+      setVoiceNotes((p) => ({ ...p, [path]: { error: String(e?.message || e) } }));
     }
   }
 
