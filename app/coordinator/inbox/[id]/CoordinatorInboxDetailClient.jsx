@@ -20,6 +20,7 @@ import { describeUpload } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
+import { fullPatientName } from "@/lib/inquiry/patientName";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
@@ -939,7 +940,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   }
 
   const fullName =
-    [inquiry.first_name, inquiry.last_name].filter(Boolean).join(" ").trim() || L.ibNameUnknown;
+    fullPatientName(inquiry.first_name, inquiry.last_name) || L.ibNameUnknown;
   const step2Done = !!inquiry.step2_completed_at;
   const cancer =
     (inquiry.cancer_type ? cancerTypeLabelL(inquiry.cancer_type, lang) : "") ||
