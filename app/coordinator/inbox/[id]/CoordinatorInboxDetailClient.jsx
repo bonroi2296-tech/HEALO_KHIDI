@@ -12,7 +12,7 @@ import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Mic,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
@@ -1433,6 +1433,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       >
                         <Video size={14} /> {openImaging === path ? "닫기" : "영상 보기"}
                       </button>
+                    ) : isVoiceFile(name) ? (
+                      /* 소리는 번역 단추가 소용없다(원문이 글이 아니다) — 대신 «듣지 않고 읽게» 한다. */
+                      <button
+                        type="button"
+                        onClick={() => analyzeVoice(path, name)}
+                        disabled={!path || voiceNotes[path]?.loading}
+                        title="음성을 글로 옮기고 요약합니다. 듣지 않아도 됩니다."
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                      >
+                        {voiceNotes[path]?.loading ? (
+                          <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mic size={14} />
+                        )}
+                        {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 정리" : "음성 정리"}
+                      </button>
                     ) : (
                     <>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
@@ -1493,6 +1509,73 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       />
                     </div>
                   )}
+                  {/* 음성 정리 결과 — 듣지 않고 읽는 칸. 저장하지 않고 화면에만 둔다. */}
+                  {voiceNotes[path]?.error && (
+                    <div className="border-t border-gray-100 bg-amber-50/60 px-3 py-3">
+                      <p className="text-sm text-amber-800">
+                        {voiceNotes[path].error === "too_large"
+                          ? "음성이 너무 깁니다(12MB 넘음). 나눠서 올려주세요."
+                          : voiceNotes[path].error === "unsupported_type"
+                          ? "이 형식은 아직 못 읽습니다."
+                          : "음성을 읽지 못했습니다. 잠시 뒤 다시 눌러주세요."}
+                      </p>
+                    </div>
+                  )}
+                  {voiceNotes[path]?.data && (() => {
+                    const v = voiceNotes[path].data;
+                    return (
+                      <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3 space-y-3">
+                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                          <Sparkles size={12} className="text-teal-600" />
+                          기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요
+                          {v.language && <span className="ml-auto">말: {v.language}</span>}
+                        </div>
+
+                        {v.summaryKo && (
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            {v.summaryKo}
+                          </p>
+                        )}
+
+                        {/* 🛑 이 칸이 요약보다 중요하다 — 흐리게 말한 병기·날짜를 확정으로 처리하면
+                            그게 그대로 병원에 나간다. 눈에 띄게 둔다. */}
+                        {v.uncertain?.length > 0 && (
+                          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p className="text-[11px] font-semibold text-amber-800 mb-1">
+                              확실하지 않은 것 — 그대로 쓰지 마세요
+                            </p>
+                            <ul className="space-y-0.5">
+                              {v.uncertain.map((u, k) => (
+                                <li key={k} className="text-xs text-amber-900">· {u}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {v.askNext?.length > 0 && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1">다음에 확인할 것</p>
+                            <ul className="space-y-0.5">
+                              {v.askNext.map((a, k) => (
+                                <li key={k} className="text-xs text-gray-700">· {a}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {v.transcript && (
+                          <details className="group">
+                            <summary className="cursor-pointer text-xs text-teal-700 hover:underline select-none">
+                              들린 그대로 보기 ({v.transcript.length}자)
+                            </summary>
+                            <p className="mt-2 text-xs text-gray-600 whitespace-pre-wrap leading-relaxed border-l-2 border-gray-200 pl-3">
+                              {v.transcript}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
