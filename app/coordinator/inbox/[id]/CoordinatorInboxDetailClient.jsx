@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -1625,7 +1625,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
+                  /* 🛑 목록을 손으로 베끼지 마라 — 바로 위 안내 문구는 uploadPolicy 를 읽는데
+                     이 칸만 베껴 둬서, 형식을 하나 더해도 «안내엔 뜨는데 고를 수는 없는» 상태가 됐다
+                     (2026-09-03: 음성을 더하다 발견). 규칙은 한 곳(uploadPolicy)에만 둔다. */
+                  accept={`${UPLOAD_POLICY.medicalDoc.accept},${UPLOAD_POLICY.imaging.accept}`}
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
