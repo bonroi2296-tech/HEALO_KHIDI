@@ -125,6 +125,41 @@ where dates are written DAY.MONTH.YEAR. So "07.08.1992" means 7 August 1992 -> "
 NOT 8 July. If the day/month order is genuinely ambiguous and unmarked, return null for that
 date rather than guessing. A wrong date of birth gets the patient rejected at hospital registration.`;
 
+// 음성용 프롬프트. 서류와 «다른 것»을 요구한다 — 서류는 인쇄된 값을 베끼는 일이고,
+// 음성은 말한 사람이 더듬고 스스로 고치기 때문에 «무엇이 확실하지 않은지»가 함께 나와야 한다.
+// 🛑 확실하지 않은 값을 칸에 채우지 마라. 실측(2026-09-02): 환자가 「3기라고 들었는데 정확히는
+//    모르겠다」고 한 것을 stage 칸에 넣지 않고 uncertain 으로 보냈다 — 이 동작이 유지돼야 한다.
+const AUDIO_PROMPT = `This is a voice message from a patient or a partner agency about a cancer patient.
+A medical coordinator must be able to act on it WITHOUT listening to the audio.
+
+🛑 Rules
+- Write only what is actually said. Never invent. Use "[불명]" for parts you cannot hear.
+- If the speaker corrects themselves, use the LAST value they said, and record the correction in "uncertain".
+- If the speaker hedges ("I think", "I'm not sure", "about"), do NOT put that value in "fields".
+  Put it in "uncertain" instead. A hedged staging or date must never look confirmed.
+- Do not give medical opinions or advice. Only report what was said.
+- "summaryKo" is Korean, everything else keeps the speaker's own language.
+
+Return ONLY JSON:
+{"kind":"voice_memo",
+ "confidence":0..1,
+ "language":"language actually spoken",
+ "transcript":"verbatim, in the spoken language, including filler words",
+ "summaryKo":"3~5 lines in Korean — what a coordinator reads in 5 seconds",
+ "fields": {
+   "lastName": null, "firstName": null, "birthDate": "YYYY-MM-DD" or null,
+   "sex": "female"|"male"|null, "email": null, "phone": null,
+   "diagnosisNameRaw": null, "icdCode": null,
+   "diagnosisDate": "YYYY-MM" or null, "stage": "I"|"II"|"III"|"IV"|null,
+   "chiefComplaint": null, "testsAndTreatments": null, "medications": null,
+   "pastHistoryNote": null, "familyHistory": null
+ },
+ "uncertain":["what was hedged or self-corrected, and why it is uncertain"],
+ "askNext":["what the coordinator should confirm or reply to next"]}
+
+DATES — speakers from Russia and Central Asia say day, then month. Return null rather than guessing
+an ambiguous date. A wrong date of birth gets the patient rejected at hospital registration.`;
+
 // AI 가 채울 수 있는 칸 목록. 여기 없는 이름을 지어내도 받지 않는다.
 const FILLABLE = new Set([
   "lastName", "firstName", "birthDate", "sex", "passportNo", "nationality",
@@ -199,6 +234,7 @@ export async function POST(request: NextRequest) {
   if (!ACCEPT.has(type)) {
     return Response.json({ ok: true, skipped: "unsupported_type", kind: "unknown" });
   }
+  const isAudio = AUDIO_TYPES.has(type);
 
   // 보낼 조각들. 작은 서류는 원본 그대로(글자 데이터가 살아 있어 정확하다),
   // 큰 서류는 «가벼운 쪽 그림»으로 다시 그려서 보낸다.
@@ -213,6 +249,10 @@ export async function POST(request: NextRequest) {
     const buf = Buffer.from(await dl.data.arrayBuffer());
     if (buf.length <= MAX_BYTES) {
       parts = [{ inline_data: { mime_type: type, data: buf.toString("base64") } }];
+    } else if (isAudio) {
+      // 소리는 «쪽으로 다시 그릴» 수가 없다. 12MB 를 넘으면 그대로 접는다
+      // (왓츠앱 음성은 1분에 약 0.5MB 라 20분이 넘어야 걸린다).
+      return Response.json({ ok: true, skipped: "too_large", kind: "voice_memo" });
     } else {
       // 130.9MB 짜리 순수 스캔이 여기서 살아난다(실측 → 6.4MB).
       const shrunk = await renderForAi(buf, type);
@@ -232,7 +272,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: PROMPT }, ...parts] }],
+          contents: [{ parts: [{ text: isAudio ? AUDIO_PROMPT : PROMPT }, ...parts] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
         // 종류만 판별할 땐 5~8초면 됐는데, 칸까지 뽑게 하니 응답이 길어져 45초를 넘기는
@@ -249,11 +289,32 @@ export async function POST(request: NextRequest) {
     try { parsed = JSON.parse(raw); } catch { /* 형식이 깨졌으면 «판별 못 함»으로 */ }
 
     // AI 가 목록에 없는 종류를 지어내면 받지 않는다.
-    const kind = isKnownKind(parsed?.kind) ? parsed.kind : "unknown";
+    const kind = isAudio
+      ? "voice_memo"                                        // 소리는 종류가 정해져 있다
+      : isKnownKind(parsed?.kind) ? parsed.kind : "unknown";
     const fields = cleanFields(parsed?.fields);
+
+    // 소리에서만 나오는 것들. 목록 길이·글자 수를 여기서 잘라 «화면이 감당할 크기»로 넘긴다.
+    const line = (v: any, max: number) =>
+      typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
+    const list = (v: any, n: number, max: number) =>
+      Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim())
+        .slice(0, n).map((x) => x.trim().slice(0, max)) : [];
+
     return Response.json({
       ok: true,
       kind,
+      ...(isAudio
+        ? {
+            language: line(parsed?.language, 40),
+            transcript: line(parsed?.transcript, 20000),
+            summaryKo: line(parsed?.summaryKo, 2000),
+            // ⚠️ 「확실하지 않은 것」은 요약보다 먼저 읽혀야 한다 — 흐리게 말한 병기·날짜를
+            //    확정으로 처리하면 그게 그대로 병원에 나간다.
+            uncertain: list(parsed?.uncertain, 12, 300),
+            askNext: list(parsed?.askNext, 12, 300),
+          }
+        : {}),
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
       patientName: parsed?.patient_name ?? null,
       docDate: parsed?.doc_date ?? null,
