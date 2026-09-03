@@ -41,6 +41,10 @@ export const DOC_KINDS = [
     K("referral.doc.passport") },
   { value: "imaging_file", needed: false, label:
     K("referral.doc.imaging_file") },
+  // 음성 메모 — 환자·에이전시가 왓츠앱·텔레그램으로 «말로» 병력을 보내는 경로가 실제로 있다.
+  // 서류가 아니라 소리라 needed 에는 안 넣는다(없다고 재촉할 것이 아니다).
+  { value: "voice_memo", needed: false, label:
+    K("referral.doc.voice_memo") },
   { value: "other", needed: false, label:
     K("referral.doc.other") },
   // 「판별 못 함」은 «누가» 못 했단 건지·«내가 뭐해야 하는지»를 안 알려준다(2026-08-14 PO:

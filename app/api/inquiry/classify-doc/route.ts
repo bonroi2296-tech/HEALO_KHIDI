@@ -51,8 +51,16 @@ const MAX_BYTES = 12 * 1024 * 1024;
 const BUCKET = "attachments";
 const PATH_OK = /^inquiry\/[a-f0-9-]{36}_[A-Za-z0-9._-]{1,200}$/;
 
+// 음성 메모도 읽는다(2026-09-02 PO). 환자·에이전시가 왓츠앱·텔레그램으로 «말로» 병력을 보내는
+// 경로가 실제로 있고, 코디가 그걸 일일이 듣고 정리하느라 시간을 쓰고 있었다.
+// 대표 이름만 둔다 — 별칭(audio/x-m4a 등)은 올릴 때 normalizeMime 이 이미 모아준다.
+const AUDIO_TYPES = new Set([
+  "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/webm", "audio/amr",
+]);
+
 const ACCEPT = new Set([
   "application/pdf", "image/jpeg", "image/png", "image/webp",
+  ...AUDIO_TYPES,
 ]);
 
 export const maxDuration = 300; // 큰 서류는 다시 그리기 4초 + AI 8초 (실측 130.9MB 기준)
