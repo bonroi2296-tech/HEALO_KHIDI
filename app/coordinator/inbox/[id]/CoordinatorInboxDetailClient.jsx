@@ -558,6 +558,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
   const [openImaging, setOpenImaging] = useState(null); // 펼쳐 놓은 CT 묶음의 경로
+  // 음성 정리 결과 — 경로별 {loading} | {data} | {error}. 화면에만 두고 저장하지 않는다.
+  const [voiceNotes, setVoiceNotes] = useState({});
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {

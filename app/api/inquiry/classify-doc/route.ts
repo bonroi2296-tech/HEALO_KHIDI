@@ -138,7 +138,9 @@ A medical coordinator must be able to act on it WITHOUT listening to the audio.
 - If the speaker hedges ("I think", "I'm not sure", "about"), do NOT put that value in "fields".
   Put it in "uncertain" instead. A hedged staging or date must never look confirmed.
 - Do not give medical opinions or advice. Only report what was said.
-- "summaryKo" is Korean, everything else keeps the speaker's own language.
+- "transcript" keeps the speaker's own language, verbatim. "summaryKo", "uncertain" and "askNext"
+  are all written in KOREAN - they are read on a Korean-language coordinator screen. Keep medical
+  terms and drug names in their original form inside the Korean text (트라스투주맙 / trastuzumab).
 
 Return ONLY JSON:
 {"kind":"voice_memo",
