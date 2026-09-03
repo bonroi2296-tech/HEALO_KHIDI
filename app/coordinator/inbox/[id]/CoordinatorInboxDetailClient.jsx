@@ -1526,7 +1526,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     return (
                       <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3 space-y-3">
                         <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                          <Sparkles size={12} className="text-teal-600" />
+                          {/* teal-600 은 3.74:1 로 대비 기준(4.5:1) 미달이라 안 쓴다 — DESIGN.md */}
+                          <Sparkles size={12} className="text-teal-700" />
                           기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요
                           {v.language && <span className="ml-auto">말: {v.language}</span>}
                         </div>
