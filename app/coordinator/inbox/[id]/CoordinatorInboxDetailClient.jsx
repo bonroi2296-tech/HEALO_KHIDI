@@ -21,7 +21,7 @@ import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { fullPatientName } from "@/lib/inquiry/patientName";
-import { DOC_FIELD_LABELS, kindLabel } from "@/lib/inquiry/docKinds";
+import { DOC_FIELD_LABELS } from "@/lib/inquiry/docKinds";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
@@ -1566,12 +1566,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                             🛑 보여주기만 한다. 환자가 적은 칸을 자동으로 덮지 않는다. */}
                         {v.fields && Object.keys(v.fields).length > 0 && (
                           <div>
-                            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">
-                              서류에서 읽은 값
-                              {v.kind && v.kind !== "unknown" && (
-                                <span className="ml-1.5 font-normal text-gray-500">({kindLabel(v.kind, lang)})</span>
-                              )}
-                            </p>
+                            {/* 서류 종류(v.kind)는 여기 안 적는다 — 이 화면은 브라우저에서 그려지는데
+                                kindLabel 이 쓰는 사전이 클라이언트에 안 실려 한국어 화면에도 영어로 떨어진다
+                                (2026-09-04 실측: 「Other document」). 종류는 위 첨부 줄에 이미 붙어 있다. */}
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">서류에서 읽은 값</p>
                             <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
                               {Object.entries(v.fields).map(([k, val]) => (
                                 <div key={k} className="flex gap-2 text-xs">
