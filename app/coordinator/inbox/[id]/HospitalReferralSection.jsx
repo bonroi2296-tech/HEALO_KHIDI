@@ -22,8 +22,18 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { NATIONALITY_NAMES } from "@/lib/khidi/nationality";
 
 const isBlank = (v) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
-// 한글이 하나라도 있으면 이미 우리말이다 — 다시 옮길 필요 없다.
-const hasKo = (s) => /[가-힣]/.test(String(s || ""));
+// 이미 우리말인가 — «비율»로 본다.
+// 🛑 「한 글자라도 한글이면 우리말」로 되돌리지 마라. 판독기가 러시아어 원문을 옮겨 적다가
+//    한글을 한두 글자 섞어 놓는 일이 실제로 있다(2026-09-04 실측: 검사 소견 4,263자 안에
+//    「Гепа토мегалия」가 있었고, 그 한 글자 때문에 소견 전체가 번역을 건너뛰어 러시아어인 채로
+//    세브란스에 나갈 뻔했다). 한글이 글자의 3분의 1을 넘을 때만 우리말로 친다.
+const hasKo = (s) => {
+  const t = String(s || "");
+  const ko = (t.match(/[가-힣]/g) || []).length;
+  if (!ko) return false;
+  const letters = [...t].filter((c) => !/\s/.test(c)).length;
+  return ko * 3 >= letters;
+};
 // 라틴 글자만 있으면 이미 영어로 볼 수 있다(사람 이름·파일 이름 포함).
 // 키릴(러시아어)이 섞여 있으면 영문 양식에 그대로 못 낸다. 코드값으로 본다 —
 // 정규식에 백슬래시로 범위를 적으면 이스케이프가 풀려 제어문자가 박힌다(2026-09-04 실측).
