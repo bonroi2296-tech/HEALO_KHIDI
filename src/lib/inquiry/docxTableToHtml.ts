@@ -21,11 +21,28 @@ const esc = (s: string) =>
 function paraText(pXml: string): string {
   let out = "";
   for (const m of pXml.matchAll(/<w:(t|br|tab)\b([^>]*)(?:\/>|>([\s\S]*?)<\/w:\1>)/g)) {
-    if (m[1] === "t") out += m[3] ?? "";
+    if (m[1] === "t") out += unesc(m[3] ?? "");
     else if (m[1] === "br") out += "\n";
     else out += "\t";
   }
   return out;
+}
+
+/**
+ * XML 엔티티를 «본디 글자»로 되돌린다.
+ *
+ * 왜 필요한가: 여기서 꺼낸 글자는 곧바로 esc() 를 한 번 더 거친다. 되돌리지 않으면
+ * 원본에 있던 `&amp;` 가 `&amp;amp;` 가 되어 화면에 「&amp;」로 보인다(이중 이스케이프).
+ * 🛑 순서를 바꾸지 마라 — `&amp;` 를 «마지막»에 풀어야 `&amp;lt;` 가 `<` 로 뒤집히지 않는다.
+ *    되돌린 결과는 어차피 esc() 가 다시 막으므로 이 함수만으로 태그가 새어 나가지 않는다.
+ */
+function unesc(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 /** 칸 하나의 글자 — 문단 사이는 줄바꿈이다. */
