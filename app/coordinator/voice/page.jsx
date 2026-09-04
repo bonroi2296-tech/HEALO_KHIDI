@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect } from "@/lib/uploadAttachment";
+import { DOC_FIELD_LABELS } from "@/lib/inquiry/docKinds";
 
 // 판독 창구가 아는 «대표 이름»으로 맞춰 보낸다(별칭을 그대로 보내면 안 받는다).
 const VOICE_MIME = {
@@ -31,13 +32,6 @@ const VOICE_MIME = {
 const voiceMime = (name) => VOICE_MIME[String(name || "").split(".").pop()?.toLowerCase()] || null;
 const VOICE_LABEL = "MP3 · M4A · WAV · OGG · WebM · AMR";
 
-const FIELD_LABELS = {
-  lastName: "성", firstName: "이름", birthDate: "생년월일", sex: "성별",
-  email: "이메일", phone: "전화", diagnosisNameRaw: "진단명", icdCode: "진단코드",
-  diagnosisDate: "진단시기", stage: "병기", chiefComplaint: "주호소",
-  testsAndTreatments: "검사·치료", medications: "복용약",
-  pastHistoryNote: "과거력", familyHistory: "가족력",
-};
 
 export default function CoordinatorVoicePage() {
   const [phase, setPhase] = useState("idle");   // idle | uploading | reading | saving | error
@@ -352,7 +346,7 @@ export default function CoordinatorVoicePage() {
                           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                             {Object.entries(it.fields).filter(([, v]) => v).map(([k, v]) => (
                               <div key={k} className="flex gap-2 text-xs">
-                                <dt className="shrink-0 text-gray-500 w-24">{FIELD_LABELS[k] || k}</dt>
+                                <dt className="shrink-0 text-gray-500 w-24">{DOC_FIELD_LABELS[k] || k}</dt>
                                 <dd className="text-gray-800 break-words">{String(v)}</dd>
                               </div>
                             ))}

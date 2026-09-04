@@ -73,3 +73,18 @@ export function missingKinds(docs = []) {
   const have = new Set(docs.map((d) => d?.kind).filter(Boolean));
   return NEEDED_KINDS.filter((k) => !have.has(k));
 }
+
+/**
+ * 판독기가 서류·음성에서 뽑아낸 값의 «사람이 읽는 이름».
+ *
+ * 왜 여기 두나 (2026-09-04): 같은 표를 코디 문의 상세와 음성 보관함 두 곳이 그린다.
+ * 각자 베껴 두면 칸을 하나 늘릴 때 한쪽만 고쳐져 「어떤 화면에선 안 보이는 값」이 생긴다.
+ * 판독 창구(app/api/inquiry/classify-doc)의 FILLABLE 과 짝이다 — 거기 칸을 늘리면 여기도 늘려라.
+ */
+export const DOC_FIELD_LABELS = {
+  lastName: "성", firstName: "이름", birthDate: "생년월일", sex: "성별",
+  email: "이메일", phone: "전화", nationality: "국적",
+  diagnosisNameRaw: "진단명", icdCode: "진단코드", diagnosisDate: "진단시기", stage: "병기",
+  chiefComplaint: "주호소", testsAndTreatments: "검사·치료", medications: "복용약",
+  pastHistoryNote: "과거력", familyHistory: "가족력", localDoctorOpinion: "현지 주치의 소견",
+};

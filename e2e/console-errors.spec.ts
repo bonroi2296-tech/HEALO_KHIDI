@@ -65,12 +65,31 @@ test.describe("화면이 내는 오류 @smoke", () => {
       await loginAs(page, role);
 
       const found: string[] = [];
+      const pending: Promise<void>[] = [];
       const onMsg = (m: ConsoleMessage) => {
         if (m.type() !== "error" && m.type() !== "warning") return;
         const text = m.text();
         if (NOISE.test(text)) return;
         if (!REAL_ERROR.test(text)) return;
-        found.push(`${page.url().replace(/^https?:\/\/[^/]+/, "")} → ${text.replace(/\s+/g, " ").slice(0, 200)}`);
+        const where = page.url().replace(/^https?:\/\/[^/]+/, "");
+        const head = text.replace(/\s+/g, " ").slice(0, 200);
+        // React 는 «Encountered two children with the same key, `%s`» 처럼 값을 «따로» 넘긴다.
+        // 첫 인자만 적으면 화면에 %s 만 남아 «어떤 키가 겹쳤는지»를 영영 못 본다 — 실제로
+        // 2026-09-04 에 이 경고 하나를 두고 로컬 재현을 네 번 시도했고 끝내 못 좁혔다.
+        // 그래서 나머지 인자를 풀어 붙인다(값이 안 풀리면 조용히 넘어간다 — 시험을 못 죽인다).
+        pending.push(
+          (async () => {
+            let extra = "";
+            try {
+              const args = m.args().slice(1);
+              if (args.length) {
+                const vals = await Promise.all(args.map((a) => a.jsonValue().catch(() => "?")));
+                extra = ` [값: ${vals.map((v) => JSON.stringify(v)).join(", ").slice(0, 200)}]`;
+              }
+            } catch { /* 인자 못 읽어도 경고 자체는 남긴다 */ }
+            found.push(`${where} → ${head}${extra}`);
+          })(),
+        );
       };
       page.on("console", onMsg);
       page.on("pageerror", (e) => found.push(`${page.url()} → [예외] ${e.message.slice(0, 200)}`));
@@ -82,6 +101,8 @@ test.describe("화면이 내는 오류 @smoke", () => {
         expect(new URL(page.url()).pathname, `${path} 에서 로그인 화면으로 튕겼다 — 세션 확인 필요`).not.toContain("/login");
       }
       page.off("console", onMsg);
+      // 인자 풀이는 비동기라 여기서 마저 기다린다 — 안 기다리면 «값» 칸이 빈 채로 판정한다.
+      await Promise.all(pending);
 
       expect(
         [...new Set(found)],

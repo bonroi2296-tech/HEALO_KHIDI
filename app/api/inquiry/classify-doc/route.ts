@@ -48,8 +48,17 @@ const MAX_BYTES = 12 * 1024 * 1024;
 // 이 주소는 «서류 안의 진단명·이름·여권번호»를 돌려준다. 아무 주소나 받으면
 // 남의 서류를 읽힐 수 있다 → 문의 첨부 폴더만 허용한다.
 // (경로 자체는 난수 UUID 가 박혀 있어 찍어맞힐 수 없다 — src/lib/storage/directUpload.ts)
+//
+// 세 갈래를 다 받는다 (2026-09-04). 서류가 들어오는 통로가 셋인데 이 규칙이 첫째만 알고 있어서
+// 나머지 둘은 판독을 «불러도 거부»당했다(file_required). 실제 피해: 문의 #302 는 환자 링크로
+// PDF 3건이 올라왔는데 값이 하나도 안 뽑혀 코디 화면이 전부 「비어 있음」이었다.
+//   ① inquiry/<난수>_이름            — 의뢰서 접수 폼
+//   ② inquiry/<문의번호>/patient/<난수>_이름 — 환자 본인 링크(claim)
+//   ③ inquiry/<문의번호>/staff/<난수>_이름   — 코디가 환자 대신 올린 것
+// 🔒 어느 갈래든 «파일 이름 앞의 난수 UUID»가 그대로 열쇠 노릇을 한다. 문의번호는 순번이라
+//    찍어맞힐 수 있지만 난수는 못 맞힌다 — 넓힌 만큼의 위험은 없다.
 const BUCKET = "attachments";
-const PATH_OK = /^inquiry\/[a-f0-9-]{36}_[A-Za-z0-9._-]{1,200}$/;
+const PATH_OK = /^inquiry\/(?:\d{1,12}\/(?:patient|staff)\/)?[a-f0-9-]{36}_[A-Za-z0-9._-]{1,200}$/;
 
 // 음성 메모도 읽는다(2026-09-02 PO). 환자·에이전시가 왓츠앱·텔레그램으로 «말로» 병력을 보내는
 // 경로가 실제로 있고, 코디가 그걸 일일이 듣고 정리하느라 시간을 쓰고 있었다.
@@ -89,7 +98,8 @@ Return ONLY JSON:
    "diagnosisDate": "YYYY-MM" or null, "onsetDate": null, "stage": "I"|"II"|"III"|"IV"|null,
    "chiefComplaint": null, "testsAndTreatments": null, "localDoctorOpinion": null,
    "pastHistoryNote": null, "medications": null, "familyHistory": null
- }}
+ },
+ "glossary":[{"term":"the medical term as printed","plain":"one short Korean sentence explaining what it is"}]}
 
 Rules:
 - Use null for anything not stated in the document. Do NOT infer, do NOT guess, do NOT translate.
@@ -119,6 +129,14 @@ Rules:
   medical record happens to be written in, and never from the country the hospital is in - Russian-language
   records are routine across all of Central Asia.
 - If unsure of the kind, use "unknown".
+
+GLOSSARY — the coordinators are not medical professionals, and these reports are dense with
+abbreviations they have no way to look up (ВРВП / ИГХ / НПВ / OLGA / McCormack / F IV / cT2N1M0 …).
+For every drug, test, procedure, scoring system or abbreviation that appears in the document, add one
+entry explaining WHAT IT IS in plain Korean, one short sentence. Include the original term as printed.
+🛑 Explain the term ONLY. Never say what it means FOR THIS PATIENT, whether it is good or bad news,
+or what should be done — that is medical advice and it is forbidden here. Skip terms an ordinary
+Korean adult already knows (병원, 수술, 검사, CT). At most 12 entries, the least familiar ones first.
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
 where dates are written DAY.MONTH.YEAR. So "07.08.1992" means 7 August 1992 -> "1992-08-07",
@@ -323,16 +341,19 @@ export async function POST(request: NextRequest) {
             //    확정으로 처리하면 그게 그대로 병원에 나간다.
             uncertain: list(parsed?.uncertain, 12, 300),
             askNext: list(parsed?.askNext, 12, 300),
-            // 의료 용어 풀이 — 코디는 의료인이 아니다(2026-09-04 PO).
-            // 「용어가 무엇인가」만 담긴다. 이 환자에게 어떤 의미인지는 프롬프트가 금지하고 있다.
-            glossary: Array.isArray(parsed?.glossary)
-              ? parsed.glossary
-                  .filter((g: any) => g && typeof g.term === "string" && typeof g.plain === "string")
-                  .slice(0, 12)
-                  .map((g: any) => ({ term: g.term.trim().slice(0, 80), plain: g.plain.trim().slice(0, 300) }))
-              : [],
           }
         : {}),
+      // 의료 용어 풀이 — 코디는 의료인이 아니다(2026-09-04 PO: 「여기도 의료용어는 쉽게 풀이해줘」).
+      // ⚠️ 소리·서류 «둘 다» 나가야 한다. 처음엔 소리 블록 안에 뒀다가, 서류를 읽어도 이 칸이
+      //    늘 빈 채로 오는 것을 실측으로 잡았다(2026-09-04). 프롬프트만 고치고 여기를 안 옮기면
+      //    「고친 것처럼 보이는데 안 고쳐진 상태」가 된다.
+      // 「용어가 무엇인가」만 담긴다. 이 환자에게 어떤 의미인지는 프롬프트가 금지하고 있다.
+      glossary: Array.isArray(parsed?.glossary)
+        ? parsed.glossary
+            .filter((g: any) => g && typeof g.term === "string" && typeof g.plain === "string")
+            .slice(0, 12)
+            .map((g: any) => ({ term: g.term.trim().slice(0, 80), plain: g.plain.trim().slice(0, 300) }))
+        : [],
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
       patientName: parsed?.patient_name ?? null,
       docDate: parsed?.doc_date ?? null,
