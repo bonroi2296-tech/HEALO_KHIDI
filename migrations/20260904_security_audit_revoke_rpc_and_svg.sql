@@ -34,6 +34,14 @@ set allowed_mime_types = array_remove(allowed_mime_types, 'image/svg+xml')
 where id = 'images';
 
 -- ─────────────────────────────────────────────────────────────────
+-- 3) 트리거 함수의 search_path 고정 (린터 경고 function_search_path_mutable)
+--
+-- 이 함수는 SECURITY INVOKER 이고 본문이 `NEW.updated_at = now()` 뿐이다.
+-- now() 는 pg_catalog 소속이라 search_path 와 무관 → 실제 하이재킹 위험은 사실상 없다.
+-- 부작용이 없으므로 표준대로 고정만 해 둔다.
+alter function public.touch_playbook_responses_updated_at() set search_path = '';
+
+-- ─────────────────────────────────────────────────────────────────
 -- 되재는 법 (적용 확인용)
 --   select has_function_privilege('anon', p.oid, 'EXECUTE')          -- false 여야 함
 --        , has_function_privilege('service_role', p.oid, 'EXECUTE')  -- true 여야 함
