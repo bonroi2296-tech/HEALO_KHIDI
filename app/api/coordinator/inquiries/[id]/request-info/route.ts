@@ -12,9 +12,10 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { randomUUID } from "node:crypto";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
@@ -115,6 +116,15 @@ export async function POST(
       .from("inquiries")
       .update({ info_requested_at: new Date().toISOString() } as any)
       .eq("id", id);
+
+    // 접속기록(법정 의무): 환자 연락처를 복호화해 안내 메일을 보낸 작업이다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "VIEW_INQUIRY",
+        inquiryIds: [Number(id)],
+        metadata: { screen: "request_info", emailSent, lang },
+      })
+    );
 
     return Response.json({
       ok: true,

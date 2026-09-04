@@ -7,10 +7,11 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 // AI상담(게스트) 리드의 이름·이메일·전화는 chat/start 에서 AES-256-GCM 암호화 저장된다
@@ -91,6 +92,15 @@ export async function GET(request: NextRequest) {
     }
 
     const threads = Array.isArray(data) ? data.map(decryptThreadGuestPii) : data;
+
+    // 접속기록(법정 의무): 게스트 이름·이메일을 복호화해 보여주는 목록이다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "chat_threads", count: Array.isArray(threads) ? threads.length : 0 },
+      })
+    );
+
     return Response.json({ ok: true, threads, total: count ?? 0 });
   } catch (err: any) {
     console.error("[GET /api/admin/chat/threads] Unexpected:", err.message);

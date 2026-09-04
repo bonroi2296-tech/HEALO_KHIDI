@@ -13,10 +13,11 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 const BUCKET = "attachments";
 // 저장소 경로는 «우리 업로드 창구가 만든 모양»만 받는다 — 남의 파일 경로를 넣지 못하게.
@@ -60,6 +61,14 @@ export async function GET(request: NextRequest) {
       fields: r.fields || {},
       glossary: r.glossary || [],
     }));
+    // 접속기록(법정 의무): 상담 음성메모 요약(의료 민감정보)을 복호화해 보여준다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "voice_notes", count: items.length },
+      })
+    );
+
     return Response.json({ ok: true, items });
   } catch (err: any) {
     console.error("[voice-notes] error:", err.message);

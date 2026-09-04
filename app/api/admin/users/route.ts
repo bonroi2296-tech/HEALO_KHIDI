@@ -10,10 +10,11 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 const STAFF_ROLES = ["coordinator", "admin"];
 
@@ -142,6 +143,14 @@ export async function GET(request: NextRequest) {
         consultation_count: countByPatient[u.id] || 0,
       }))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // 접속기록(법정 의무): 환자 계정 목록 — 이메일 등 PII 를 복호화해 보여준다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "patient_accounts", count: patients.length },
+      })
+    );
 
     return Response.json({ ok: true, patients, total: patients.length });
   } catch (err: any) {

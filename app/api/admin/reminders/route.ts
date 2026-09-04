@@ -9,8 +9,9 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
@@ -43,6 +44,14 @@ export async function GET(request: NextRequest) {
       ...r,
       recipient_address: decryptMaybe(r.recipient_address),
     }));
+    // 접속기록(법정 의무): 수신 주소(연락처 PII)를 복호화해 보여주는 목록이다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "reminders", count: items.length, decrypted: "recipient_address" },
+      })
+    );
+
     return Response.json({ ok: true, items });
   } catch (err: any) {
     console.error("[admin/reminders] error:", err.message);

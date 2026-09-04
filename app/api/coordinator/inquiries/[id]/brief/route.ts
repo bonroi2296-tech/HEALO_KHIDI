@@ -7,10 +7,11 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin, decryptReferralData } from "@/lib/security/decryptForAdmin";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { generateCaseBrief, briefSig, normalizeBriefLang, readBriefMap } from "@/lib/inquiry/caseBrief";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 
@@ -106,6 +107,15 @@ export async function POST(
     } catch (e: any) {
       console.error("[coordinator/brief] cache write error:", e?.message);
     }
+
+    // 접속기록(법정 의무): 케이스 브리프는 환자 PII·의료정보를 복호화해 만든다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "VIEW_INQUIRY",
+        inquiryIds: [Number(id)],
+        metadata: { screen: "case_brief" },
+      })
+    );
 
     return Response.json({ ok: true, brief: result.brief, unreadableCount: result.unreadableCount });
   } catch (e: any) {
