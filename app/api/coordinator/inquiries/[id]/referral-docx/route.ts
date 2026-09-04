@@ -24,6 +24,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return new Response(new Uint8Array(out), {
       headers: {
         "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fname)}`,
+        "content-disposition": contentDisposition(fname),
         "cache-control": "no-store",
       },
     });
