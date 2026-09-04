@@ -29,6 +29,7 @@ import path from "node:path";
 import JSZip from "jszip";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 const MAX_LEN = 4000;
 
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return new Response(new Uint8Array(out), {
       headers: {
         "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fname)}`,
+        "content-disposition": contentDisposition(fname),
         "cache-control": "no-store",
       },
     });
