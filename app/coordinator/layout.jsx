@@ -9,7 +9,7 @@ import {
   Settings, MessageSquarePlus, ArrowLeft, Mic,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { useCoordinatorL } from '@/lib/i18n/coordinator';
+import { useCoordinatorL, useEnsureBackofficeLangCookie } from '@/lib/i18n/coordinator';
 import PortalGate, { usePortalContext } from '../_components/PortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 import PushOptInBanner from '../_components/PushOptInBanner';
@@ -71,20 +71,7 @@ function CoordinatorShell({ children }) {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // 백오피스 언어 쿠키를 «없으면» 기본값(ko)으로 심는다 — 화면 동작은 그대로고, 서버가
-  // 이 쿠키를 보고 한국어 사전을 같이 실어 주기 때문이다(app/layout.jsx).
-  // 왜 필요 (2026-09-04 실측): 스위처를 한 번도 안 만진 코디는 쿠키가 없어 브라우저에 영어
-  // 사전만 실렸고, 사전을 거치는 문구가 한국어 화면에도 영어로 떨어졌다 — 의뢰서 카드 라벨이
-  // 「Date of Birth」·「MEDICAL HISTORY & MEDICATIONS」, 서류 종류가 「Other document」.
-  // 🛑 여기서 쿠키를 안 심고 서버가 그냥 ko 를 얹게 하면 «공개 화면 방문자 전원»이 쓰지도 않는
-  //    한국어 사전 100KB 를 받는다(첫 화면 HTML 392KB 중 100KB 가 사전이다).
-  useEffect(() => {
-    try {
-      if (!document.cookie.split(";").some((r) => r.trim().startsWith("healo_bo_lang="))) {
-        setBackofficeLangCookie("ko");
-      }
-    } catch { /* 쿠키가 막힌 브라우저 — 영어로 보이지만 화면은 정상 동작한다 */ }
-  }, []);
+  useEnsureBackofficeLangCookie();
 
   // 개선 요청함이 「어느 화면에서 불편했는지」를 자동으로 붙일 수 있게 직전 화면을 남긴다.
   // 요청함 자신은 빼야 한다 — 안 그러면 전부 「/coordinator/requests 에서 적음」이 된다.
