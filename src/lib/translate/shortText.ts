@@ -143,15 +143,25 @@ export async function translateNotes(
   const shortOnes = misses.filter((t) => t.length <= CHUNK_CHARS);
 
   for (const whole of longOnes) {
-    const pieces = splitByLines(whole, CHUNK_CHARS);
+    // 조각은 한 통보다 «더 작게» 잡는다 — 답이 원문보다 길어질 수 있고, 조각이 클수록
+    // 모델이 항목을 통째로 빠뜨리는 일이 잦다(2026-09-04 실측).
+    const pieces = splitByLines(whole, 1200);
     // 조각도 캐시에 남겨야 다음부터 0원이다 — 해시가 없으면 저장 단계에서 통째로 버려진다.
     for (const piece of pieces) if (!hashOf.has(piece)) hashOf.set(piece, sha256(piece));
     const got: Record<string, string> = {};
-    for (const piece of pieces) {
-      try {
-        await translateBatch([piece], lang, model, hashOf, got);
-      } catch (err) {
-        console.error("[translateNotes] long piece failed:", (err as Error)?.message?.slice(0, 160));
+    // 두 번까지 해 본다. 모델이 답에서 항목을 통째로 빠뜨려도 «예외가 아니라» 조용한 누락이라
+    // (translateBatch 는 못 받은 항목을 그냥 건너뛴다) 한 번만 부르면 그 조각만 원문으로 남는다.
+    // 2026-09-04 실측: 검사 소견을 다섯 조각으로 나눴더니 세 조각만 돌아와 앞 두 서류가
+    // 러시아어인 채로 남았다.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const todo = pieces.filter((p) => !got[p]);
+      if (!todo.length) break;
+      for (const piece of todo) {
+        try {
+          await translateBatch([piece], lang, model, hashOf, got);
+        } catch (err) {
+          console.error("[translateNotes] long piece failed:", (err as Error)?.message?.slice(0, 160));
+        }
       }
     }
     // 한 조각도 못 옮겼으면 그 글은 손대지 않는다(화면이 원문을 그대로 보여준다).
