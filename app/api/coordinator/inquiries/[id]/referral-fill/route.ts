@@ -31,9 +31,15 @@ const ENCRYPTED = new Set([
   "chiefComplaint", "testsAndTreatments", "localDoctorOpinion",
   "pastHistoryNote", "medications", "familyHistory",
 ]);
-const PLAIN = new Set(["sex", "icdCode", "stage"]);
+const PLAIN = new Set(["sex", "icdCode", "stage", "nationality"]);
 // 판독기가 줄 수 있는 칸만 받는다. 여기 없는 이름은 조용히 버린다.
+// ⚠️ 여기 빠뜨리면 «판독은 됐는데 화면은 계속 비어 있는» 상태가 된다. 2026-09-04 PO 지적:
+//    「이 케이스 왜 국적이 비어 있냐 카자흐스탄이라면서」 — 판독기는 여권·진료기록에서 KZ 를
+//    뽑고 있었는데 이 목록에 nationality 가 없어 조용히 버려지고 있었다.
 const ALLOWED = new Set([...ENCRYPTED, ...PLAIN]);
+
+// 문의 본표에도 같이 써야 하는 칸 — 코디 목록·KHIDI 집계가 intake_data 가 아니라 이 컬럼을 본다.
+const ALSO_ON_INQUIRY: Record<string, string> = { nationality: "nationality" };
 
 const MAX_LEN = 4000;
 const isBlank = (v: unknown) =>
@@ -59,7 +65,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   try {
     const { data: row, error: readErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, intake_data, cancer_type")
+      .select("id, intake_data, cancer_type, nationality")
       .eq("id", id)
       .single();
     if (readErr || !row) {
@@ -92,9 +98,16 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!current.version) current.version = "referral_v1";
     current._filledFromDocs = marks;
 
+    // 몇몇 값은 문의 본표 컬럼에도 같이 넣는다 — 코디 목록·KHIDI 집계가 그 컬럼을 본다.
+    // 🛑 본표에 이미 값이 있으면 덮지 않는다(여기서도 «빈 칸만» 규칙을 지킨다).
+    const patchInquiry: Record<string, unknown> = { intake_data: current };
+    for (const [k, col] of Object.entries(ALSO_ON_INQUIRY)) {
+      if (filled.includes(k) && isBlank((row as any)[col])) patchInquiry[col] = current[k];
+    }
+
     const { error: upErr } = await supabaseAdmin
       .from("inquiries")
-      .update({ intake_data: current })
+      .update(patchInquiry)
       .eq("id", id);
     if (upErr) {
       console.error("[referral-fill] update error:", upErr.message);

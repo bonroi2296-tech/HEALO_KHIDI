@@ -7,10 +7,17 @@
  *   코디가 러시아어 검사지를 읽고, 병원 양식을 열고, 칸을 하나씩 옮겨 적고 있었다.
  *   값은 이미 문의 안에 다 있다 — 옮겨 적는 일만 남았던 것이다.
  *
+ * 🛑 `cell` 은 «원본 docx 안의 표 칸 번호»다. 이 번호로 원본 파일에 값을 꽂아 넣는다
+ *    (app/api/coordinator/inquiries/[id]/referral-docx). 원본을 새로 받으면 이 번호부터 다시 재라.
+ *    번호를 세는 법은 그 창구 주석에 적어 뒀다.
  * 🛑 양식은 «병원이 준 원본»을 그대로 따른다. 칸을 빼거나 이름을 바꾸지 마라 —
  *    병원 담당자가 자기 양식으로 못 알아보면 되돌아온다.
- *    원본 위치: 04. 환자 서류/대학병원 의뢰서/ (docx 2종, 2026-09-04 읽어 옮김)
+ *    원본 위치: src/assets/hospital-forms/*.docx (2026-09-04 PO 가 준 파일 그대로)
  * 🛑 값이 없으면 «지어내지 말고» 빈칸으로 둔다. 의뢰서의 빈칸은 「아직 못 받았다」는 정보다.
+ *
+ * ⚠️ 2026-09-04: 처음엔 이 표를 «문서를 눈으로 읽어» 옮겼다가 이대 양식의 「연락처」·「성별」·
+ *    「여권번호」 세 칸을 통째로 빠뜨렸다(표 병합 때문에 추출기가 건너뛴 칸이었다).
+ *    지금 표는 docx 안의 표 칸을 «전수로 세어» 맞춘 것이다. 눈으로 옮기지 마라.
  */
 
 /** 문의에서 값을 꺼내는 이름. src/lib/inquiry/referralSchema.js 의 칸 이름과 같다. */
@@ -19,52 +26,61 @@ export const HOSPITAL_FORMS = [
     id: "ewha",
     name: { ko: "이대서울병원 (이화의료원)", en: "Ewha Womans University Medical Center" },
     title: { ko: "이화의료원 환자 진료의뢰서", en: "Patient Request Form" },
-    // 이 병원 양식은 «한글 + 영문 병기»다. 원본 그대로 둔다.
+    file: "ewha.docx",
+    // 이 병원 양식은 «한글 + 영문 병기»다. 내용도 영어로 낸다.
     bilingual: true,
-    // 이 병원에 낼 때 내용은 어느 말로 적나. 양식이 영문 병기라 영어로 낸다.
     contentLang: "en",
     rows: [
-      { field: "patientName",       ko: "환자명",                          en: "Patient Name" },
-      { field: "birthDate",         ko: "생년월일",                        en: "Date of Birth" },
-      { field: "nationality",       ko: "국적",                            en: "Nationality" },
-      { field: "diagnosisNameRaw",  ko: "진단명",                          en: "Diagnosis" },
-      { field: "chiefComplaint",    ko: "주 증상",                         en: "Chief complaint" },
-      { field: "onsetDate",         ko: "발병 시기",                       en: "Time of onset" },
-      { field: "diagnosisDate",     ko: "진단 시기",                       en: "Time of diagnosis" },
-      { field: "testsAndTreatments", ko: "현재 시행한 검사와 치료 내용",    en: "Tests and treatments performed" },
-      { field: "pastHistoryNote",   ko: "과거력",                          en: "Medical history" },
-      { field: "familyHistory",     ko: "가족력",                          en: "Family medical history" },
-      { field: "medications",       ko: "복용중인 약물",                   en: "List of medications" },
-      { field: "localDoctorOpinion", ko: "현지 의사 소견",                 en: "Local doctor's medical opinion" },
+      { field: "patientName",        cell: 1,  ko: "환자명",                          en: "Patient Name" },
+      { field: "contact",            cell: 3,  ko: "연락처",                          en: "Contact Number" },
+      { field: "birthDate",          cell: 5,  ko: "생년월일",                        en: "Date of Birth" },
+      { field: "sex",                cell: 7,  ko: "성별",                            en: "Gender" },
+      { field: "nationality",        cell: 9,  ko: "국적",                            en: "Nationality" },
+      { field: "passportNo",         cell: 11, ko: "여권번호",                        en: "Passport Number" },
+      { field: "diagnosisNameRaw",   cell: 13, ko: "진단명",                          en: "Diagnosis" },
+      { field: "chiefComplaint",     cell: 15, ko: "주 증상",                         en: "Chief complaint" },
+      { field: "onsetDate",          cell: 17, ko: "발병 시기",                       en: "Time of onset" },
+      { field: "diagnosisDate",      cell: 19, ko: "진단 시기",                       en: "Time of diagnosis" },
+      { field: "testsAndTreatments", cell: 21, ko: "현재 시행한 검사와 치료 내용",     en: "Tests and treatments performed" },
+      { field: "pastHistoryNote",    cell: 23, ko: "과거력",                          en: "Medical history" },
+      { field: "familyHistory",      cell: 25, ko: "가족력",                          en: "Family medical history" },
+      { field: "medications",        cell: 27, ko: "복용중인 약물",                   en: "List of medications" },
+      { field: "localDoctorOpinion", cell: 29, ko: "현지 의사 소견",                  en: "Local doctor's medical opinion" },
       // 우리 문의 칸에 «없는» 값이다. 지어내지 않고 빈칸으로 둔다 — 코디가 환자에게 물어 채운다.
-      { field: null, ko: "코로나 백신 접종 여부 (백신명/차수)", en: "COVID-19 vaccination status (vaccine / doses)" },
-      { field: "attachmentList",    ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
+      { field: null, cell: 31, ko: "코로나 백신 접종 여부 (백신명/차수)", en: "COVID-19 vaccination status (vaccine / doses)" },
+      // 33번 칸엔 「유/무」 선택지가 이미 인쇄돼 있다 — 덮어쓰지 않고 파일 이름만 아래에 덧붙인다.
+      { field: "attachmentList", cell: 33, append: true, ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
     ],
   },
   {
     id: "severance",
     name: { ko: "세브란스병원", en: "Severance Hospital" },
     title: { ko: "세브란스 병원 환자 의뢰서", en: "Severance Hospital Patient Referral" },
+    file: "severance.docx",
     bilingual: false,
     // 양식이 한글이라 내용도 한국어로 낸다.
     contentLang: "ko",
     rows: [
-      { field: "patientName",       ko: "환자 성명", hint: { ko: "(성, 이름)" } },
-      { field: "nationality",       ko: "국적" },
-      { field: "birthDate",         ko: "생년월일", hint: { ko: "(연도/월/일)" } },
-      { field: "sex",               ko: "성별" },
-      { field: "contact",           ko: "연락처(선택사항)" },
-      { field: "pastHistoryNote",   ko: "과거력",
+      { field: "patientName",        cell: 3,  ko: "환자 성명", hint: { ko: "(성, 이름)" } },
+      { field: "nationality",        cell: 9,  ko: "국적" },
+      { field: "birthDate",          cell: 12, ko: "생년월일", hint: { ko: "(연도/월/일)" } },
+      { field: "sex",                cell: 18, ko: "성별" },
+      // Mobile:/E-mail: 이 이미 인쇄된 칸이라 그 뒤에 덧붙인다.
+      { field: "phone",              cell: 21, append: true, ko: "연락처 — 휴대전화" },
+      { field: "email",              cell: 24, append: true, ko: "연락처 — 이메일" },
+      { field: "pastHistoryNote",    cell: 26, ko: "과거력",
         hint: { ko: "고혈압, 결핵, 당뇨, 간염, 알레르기, 수술 여부 등을 기재해 주세요" } },
-      { field: "diagnosisNameRaw",  ko: "현재 진단명" },
-      { field: "chiefComplaint",    ko: "주 호소",
+      { field: "diagnosisNameRaw",   cell: 30, ko: "현재 진단명" },
+      { field: "chiefComplaint",     cell: 32, ko: "주 호소",
         hint: { ko: "현재 가장 불편하거나 통증이 있는 부위 및 양상을 기재해 주세요" } },
-      { field: "localDoctorOpinion", ko: "현재 주치의 소견",
+      { field: "localDoctorOpinion", cell: 36, ko: "현재 주치의 소견",
         hint: { ko: "현지에서 권고 받은 치료에 대해 기재해주세요" } },
-      { field: "attachmentList",    ko: "검사 결과",
+      // 40번 칸엔 첨부 안내문이 인쇄돼 있다 — 덮지 않고 파일 이름을 덧붙인다.
+      { field: "attachmentList",     cell: 40, append: true, ko: "검사 결과",
         hint: { ko: "이메일에 첨부합니다. JPG·MS·DICOM 가능, EXE 불가. 용량이 크면 대용량 링크로 보냅니다." } },
-      { field: "medications",       ko: "현재 복용 약물" },
-      { field: "referralPurpose",   ko: "의뢰 목적" },
+      // 42번 칸엔 「없음」이 인쇄돼 있다 — 약이 있으면 «덮어» 써야 한다(덧붙이면 「없음 …」이 된다).
+      { field: "medications",        cell: 42, ko: "현재 복용 약물" },
+      { field: "referralPurpose",    cell: 44, ko: "의뢰 목적" },
     ],
   },
 ];

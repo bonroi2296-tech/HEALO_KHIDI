@@ -235,9 +235,20 @@ export default function HospitalReferralSection({ values, attachments = [] }) {
               <button
                 type="button"
                 onClick={print}
-                className="inline-flex items-center gap-1.5 rounded-md bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-800"
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
               >
                 <Printer size={14} /> 인쇄 · PDF
+              </button>
+              {/* 병원이 준 «원본 워드 양식» 그대로 값만 채워 내려준다(2026-09-04 PO:
+                  「docx 그대로 줘야 바로 약간 손보고 보내지」). 새로 그리는 게 아니라 원본을 채운다. */}
+              <button
+                type="button"
+                onClick={downloadDocx}
+                disabled={docxBusy}
+                className="inline-flex items-center gap-1.5 rounded-md bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:opacity-50"
+              >
+                {docxBusy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                {docxBusy ? "만드는 중…" : "양식 파일(Word) 받기"}
               </button>
             </div>
           </div>
