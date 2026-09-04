@@ -90,6 +90,23 @@ export function hostOf(raw: unknown): string | null {
   }
 }
 
+/**
+ * 승격해도 되는 스레드인가 — 코디가 «연락할 수단»이 하나라도 있어야 한다.
+ *
+ * 왜 (2026-09-02 실측): 이름·이메일·전화가 전부 빈 채로 3턴을 넘겨 승격된 문의가
+ * 코디 인박스에 「빈칸 줄」로 쌓였다(#274·#275·#280·#286). 넷 다 한국어 「접수해줘」 한 마디였고
+ * **진짜 문의였던 적은 0건**이다. 연락 수단이 없으면 응대 자체가 불가능하니 실적 문의가 못 된다.
+ *
+ * is_test 로 덮지 않고 «승격을 미루는» 이유: 스레드는 살아 있으므로 환자가 이름이나 연락처를
+ * 하나라도 주면 다음 턴에 저절로 승격된다. 놓치는 게 아니라 기다리는 것이다.
+ *
+ * 메신저 봇(텔레그램·왓츠앱)은 대화창 자체가 연락 수단이라 제외한다.
+ */
+export function threadHasContactPoint(thread: any): boolean {
+  if (thread?.channel === "telegram" || thread?.channel === "whatsapp") return true;
+  return Boolean(thread?.guest_name || thread?.guest_email || thread?.guest_phone);
+}
+
 async function promoteThreadToInquiry(
   thread: any,
   intake: any,
@@ -98,6 +115,7 @@ async function promoteThreadToInquiry(
   clientIp: string | null = null
 ) {
   if (thread?.inquiry_id) return; // 이미 승격됨
+  if (!threadHasContactPoint(thread)) return; // 연락 수단이 생길 때까지 대기
 
   // 테스트/실적 분리(PR #501): 폼 경로(step1·create)와 동일하게 '생성 시점' 판정.
   // 이 경로만 판정이 빠져 내부 테스트 대화가 KHIDI 실적 문의로 집계되던 구멍(2026-07-02 전수 감사).
