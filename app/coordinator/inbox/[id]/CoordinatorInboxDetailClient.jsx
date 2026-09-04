@@ -33,6 +33,7 @@ import FollowUpsSection from "./FollowUpsSection";
 import ProgressSection from "./ProgressSection";
 import HospitalMatchSection from "./HospitalMatchSection";
 import ReferralSection from "./ReferralSection";
+import HospitalReferralSection from "./HospitalReferralSection";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -1447,6 +1448,36 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           </Card>
         );
       })()}
+
+      {/* 병원 의뢰서 — 병원마다 다른 양식에 우리 값을 채워 준다(2026-09-04 PO).
+          값은 «문의에 이미 있는 것»만 쓴다. 없는 칸은 빈칸으로 두고 몇 칸인지 세어 준다. */}
+      <HospitalReferralSection
+        lang={lang}
+        attachments={Array.isArray(inquiry.attachments) ? inquiry.attachments : []}
+        values={{
+          patientName: fullName,
+          nationality: inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "",
+          email: inquiry.email || "",
+          phone: inquiry.phone || inquiry.contact_id || "",
+          // 나머지는 의뢰서 칸(intake_data) — 서류에서 채운 값도 여기 들어와 있다.
+          ...(inquiry.referral && typeof inquiry.referral === "object"
+            ? {
+                birthDate: inquiry.referral.birthDate || "",
+                sex: inquiry.referral.sex === "female" ? "여성" : inquiry.referral.sex === "male" ? "남성" : "",
+                diagnosisNameRaw: inquiry.referral.diagnosisNameRaw || "",
+                chiefComplaint: inquiry.referral.chiefComplaint || "",
+                onsetDate: inquiry.referral.onsetDate || "",
+                diagnosisDate: inquiry.referral.diagnosisDate || "",
+                testsAndTreatments: inquiry.referral.testsAndTreatments || "",
+                pastHistoryNote: inquiry.referral.pastHistoryNote || "",
+                familyHistory: inquiry.referral.familyHistory || "",
+                medications: inquiry.referral.medications || "",
+                localDoctorOpinion: inquiry.referral.localDoctorOpinion || "",
+                referralPurpose: inquiry.referral.referralPurpose || "",
+              }
+            : {}),
+        }}
+      />
 
       {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
       <ReferralSection
