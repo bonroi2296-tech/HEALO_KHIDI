@@ -642,6 +642,69 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     }
   }
 
+  /**
+   * 붙어 있는 «서류 전부»를 한 번에 읽어 의뢰서의 빈 칸을 메운다.
+   *
+   * 계기 2026-09-04 PO: 「읽기 버튼을 문서별로 하지 말고 의뢰서에 넣는게 좋지 않겠니? 한번에 다 읽게」
+   *                     「아니면 빠진거만 다시 읽게 하거나」
+   * 파일마다 눌러야 하면 서류가 대여섯 개일 때 그만큼 눌러야 하고, 값이 어느 파일에서 나왔는지
+   * 코디가 머릿속에서 합쳐야 한다. 그 합치는 일을 여기서 한다.
+   *
+   * 합치는 규칙 — 값이 겹치면 «최신 서류»가 이긴다.
+   *   이 묶음에는 병원도 날짜도 다른 서류가 섞여 들어오고 서로 어긋난다(2026-08-14 실측:
+   *   같은 파일이 15일자엔 cT4N1M1, 28일자엔 cT3NxM1). 평균을 내거나 먼저 나온 값을 쓰면 틀린다.
+   *   판독기가 준 doc_date 로 오름차순 정렬해 덮어쓰면 마지막(=최신) 값이 남는다.
+   *
+   * 🛑 여기서는 «화면에 보여주기»만 한다. 환자가 이미 적은 칸은 ReferralSection 이 건드리지 않고,
+   *    저장도 하지 않는다 — 기계가 읽은 값이라 코디가 원본과 대조한 뒤에 쓴다.
+   */
+  const [docScan, setDocScan] = useState(null);   // null | {loading} | {data} | {error}
+  async function scanAllDocs() {
+    const list = (inquiry?.attachments || []).filter(
+      (a) => a?.path && !isVoiceFile(a.name || a.path) && !isImagingBundle(a),
+    );
+    if (!list.length) { setDocScan({ error: "no_docs" }); return; }
+
+    setDocScan({ loading: true, done: 0, total: list.length });
+    const results = [];
+    for (const a of list) {
+      try {
+        const res = await fetch("/api/inquiry/classify-doc", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ path: a.path, type: a.type || "application/pdf" }),
+        });
+        const j = await res.json();
+        if (j?.ok) results.push({ ...j, _name: a.name || a.path });
+      } catch (e) {
+        console.error("[docScan] read error:", e);
+      }
+      setDocScan((p) => ({ ...p, done: (p?.done || 0) + 1 }));
+    }
+    if (!results.length) { setDocScan({ error: "all_failed" }); return; }
+
+    // 오래된 것부터 덮어써서 «최신 값»이 남게 한다. 날짜가 없는 건 가장 오래된 것으로 친다.
+    results.sort((x, y) => String(x.docDate || "").localeCompare(String(y.docDate || "")));
+    const fields = {};
+    const from = {};                       // 칸마다 «어느 파일에서 나왔나» — 코디가 원본을 찾아갈 수 있게
+    const glossary = [];
+    const seenTerm = new Set();
+    for (const r of results) {
+      for (const [k, v] of Object.entries(r.fields || {})) {
+        if (v == null || v === "") continue;
+        fields[k] = v;
+        from[k] = r._name;
+      }
+      for (const g of r.glossary || []) {
+        const key = String(g.term || "").toLowerCase();
+        if (!key || seenTerm.has(key)) continue;
+        seenTerm.add(key);
+        glossary.push(g);
+      }
+    }
+    setDocScan({ data: { fields, from, glossary: glossary.slice(0, 20), readCount: results.length } });
+  }
+
   // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
   const [attLoadingPath, setAttLoadingPath] = useState(null);
   async function viewAttachment(path) {
@@ -1357,7 +1420,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       })()}
 
       {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
-      <ReferralSection referral={inquiry.referral} lang={lang} />
+      <ReferralSection referral={inquiry.referral} lang={lang} scan={docScan} onScan={scanAllDocs} />
 
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
