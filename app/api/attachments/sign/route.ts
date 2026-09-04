@@ -23,6 +23,7 @@ import { NextRequest } from "next/server";
 import { pathAuthorized } from "@/lib/security/attachmentAuth";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -34,7 +35,13 @@ export async function POST(request: NextRequest) {
     // download=원본파일명 이면 Content-Disposition: attachment 로 바로 다운로드(원본 이름 보존).
     // 없으면 종전대로 미리보기(새 탭). 헤더 인젝션 방지로 개행·따옴표 제거 + 길이 캡.
     const downloadName = body?.download ? String(body.download).replace(/[\r\n"\\]/g, "").slice(0, 200) : null;
-    const signOpts = downloadName ? { download: downloadName } : undefined;
+    // ⚠️ supabase-js 의 `{ download: 이름 }` 옵션을 쓰면 안 된다 — 주소를 «두 번» 인코딩한다.
+    //   러시아어 «История болезни.docx» 가 `%D0%98…` 라는 글자 그대로 저장됐다(2026-09-02 PO 제보).
+    //   실측: 옵션을 쓰면 주소가 `download=%25D0%2598…`(`%` 가 `%25` 로 한 번 더) 가 되고,
+    //   저장소는 그걸 그대로 `filename*=UTF-8` 에 넣어 브라우저가 퍼센트 문자열을 이름으로 쓴다.
+    //   → 서명만 받고 이름은 우리가 붙인다(withDownloadName = URL.searchParams, 인코딩 1회).
+    const withName = (url: string | null | undefined) =>
+      (downloadName ? withDownloadName(url, downloadName) : url) as string;
 
     // path 는 항상 필수. inquiryId·publicToken 은 비회원(공개 토큰) 경로에서만 필수.
     if (!path) {
@@ -68,12 +75,12 @@ export async function POST(request: NextRequest) {
     if (adminAuth.isAdmin) {
       const { data: signed, error: signErr } = await supabaseAdmin.storage
         .from("attachments")
-        .createSignedUrl(path, 300, signOpts);
+        .createSignedUrl(path, 300);
       if (signErr) {
         console.error("[api/attachments/sign] admin signed URL error:", signErr);
         return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
       }
-      return Response.json({ ok: true, signedUrl: signed.signedUrl });
+      return Response.json({ ok: true, signedUrl: withName(signed.signedUrl) });
     }
 
     // staff(코디·의사) 도 모든 문의 첨부 열람 권한 — 인박스에서 에이전시/환자 첨부 조회.
@@ -82,12 +89,12 @@ export async function POST(request: NextRequest) {
     if (portalAuth.success) {
       const { data: signed, error: signErr } = await supabaseAdmin.storage
         .from("attachments")
-        .createSignedUrl(path, 300, signOpts);
+        .createSignedUrl(path, 300);
       if (signErr) {
         console.error("[api/attachments/sign] staff signed URL error:", signErr);
         return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
       }
-      return Response.json({ ok: true, signedUrl: signed.signedUrl });
+      return Response.json({ ok: true, signedUrl: withName(signed.signedUrl) });
     }
 
     // ── 비회원: inquiryId + publicToken 필수 ──
@@ -145,7 +152,7 @@ export async function POST(request: NextRequest) {
     // 모든 검증 통과 → signed URL 발급 (만료 5분)
     const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
       .from("attachments")
-      .createSignedUrl(path, 300, signOpts); // 5분 = 300초
+      .createSignedUrl(path, 300); // 5분 = 300초
 
     if (signedUrlError) {
       console.error("[api/attachments/sign] signed URL error:", signedUrlError);
@@ -158,7 +165,7 @@ export async function POST(request: NextRequest) {
     console.log("[api/attachments/sign] success:", { inquiryId, path: path.substring(0, 30) + "..." });
     return Response.json({
       ok: true,
-      signedUrl: signedUrlData.signedUrl,
+      signedUrl: withName(signedUrlData.signedUrl),
     });
   } catch (error: any) {
     console.error("[api/attachments/sign] error:", error);

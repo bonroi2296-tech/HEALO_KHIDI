@@ -36,6 +36,7 @@ import {
 import { fetchTestInquiryIds } from "@/lib/khidi/testData";
 import { readSessionNotes } from "@/lib/khidi/consultationNotes";
 import { createClient } from "@supabase/supabase-js";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 // ============================================================
 // 템플릿 파일 경로 (원본 — 읽기 전용)
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        "Content-Disposition": contentDisposition(filename),
         "Content-Length": String((buffer as unknown as Buffer).byteLength),
         "Cache-Control": "no-store",
       },

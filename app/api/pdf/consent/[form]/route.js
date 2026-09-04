@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { safeEqual } from "@/lib/security/safeEqual";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 const FORM_MAP = {
   personal: "PersonalInfoConsent",
@@ -64,7 +65,8 @@ export async function POST(request, context) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        // 환자 이름이 키릴·한글이면 헤더에 그대로 못 싣는다(요청이 500 으로 죽었다 — 2026-09-02 실측).
+        "Content-Disposition": contentDisposition(filename),
         "Cache-Control": "no-store",
       },
     });
@@ -98,7 +100,7 @@ export async function GET(request, context) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="healwith-Consent-${form}-sample.pdf"`,
+        "Content-Disposition": contentDisposition(`healwith-Consent-${form}-sample.pdf`, "inline"),
       },
     });
   } catch (err) {

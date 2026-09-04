@@ -21,6 +21,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { safeEqual } from "@/lib/security/safeEqual";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 export async function POST(request) {
   try {
@@ -59,7 +60,7 @@ export async function POST(request) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": contentDisposition(filename),
         "Cache-Control": "no-store",
       },
     });
@@ -118,7 +119,7 @@ export async function GET(request) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="healwith-Quotation-sample.pdf"`,
+      "Content-Disposition": contentDisposition("healwith-Quotation-sample.pdf", "inline"),
     },
   });
 }
