@@ -1602,6 +1602,23 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           </div>
                         )}
 
+                        {/* 코디는 의료인이 아니다 — 서류에 나온 용어가 «무엇인지»만 풀어 준다
+                            (2026-09-04 PO: 「여기도 의료용어는 쉽게 풀이해줘」). 음성 보관함과 같은 칸.
+                            🛑 «이 환자에게 무슨 뜻인지»는 담지 않는다 — 그건 의료 조언이다. */}
+                        {v.glossary?.length > 0 && (
+                          <section className="rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
+                            <p className="text-xs font-bold text-teal-800 mb-1.5">이 말이 무슨 뜻이냐면</p>
+                            <dl className="space-y-1">
+                              {v.glossary.map((g, k) => (
+                                <div key={k} className="text-xs">
+                                  <dt className="inline font-semibold text-teal-900">{g.term}</dt>
+                                  <dd className="inline text-gray-700"> — {g.plain}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </section>
+                        )}
+
                         {v.askNext?.length > 0 && (
                           <div>
                             <p className="text-[11px] font-semibold text-gray-600 mb-1">다음에 확인할 것</p>

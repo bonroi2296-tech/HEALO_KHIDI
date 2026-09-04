@@ -98,7 +98,8 @@ Return ONLY JSON:
    "diagnosisDate": "YYYY-MM" or null, "onsetDate": null, "stage": "I"|"II"|"III"|"IV"|null,
    "chiefComplaint": null, "testsAndTreatments": null, "localDoctorOpinion": null,
    "pastHistoryNote": null, "medications": null, "familyHistory": null
- }}
+ },
+ "glossary":[{"term":"the medical term as printed","plain":"one short Korean sentence explaining what it is"}]}
 
 Rules:
 - Use null for anything not stated in the document. Do NOT infer, do NOT guess, do NOT translate.
@@ -128,6 +129,14 @@ Rules:
   medical record happens to be written in, and never from the country the hospital is in - Russian-language
   records are routine across all of Central Asia.
 - If unsure of the kind, use "unknown".
+
+GLOSSARY — the coordinators are not medical professionals, and these reports are dense with
+abbreviations they have no way to look up (ВРВП / ИГХ / НПВ / OLGA / McCormack / F IV / cT2N1M0 …).
+For every drug, test, procedure, scoring system or abbreviation that appears in the document, add one
+entry explaining WHAT IT IS in plain Korean, one short sentence. Include the original term as printed.
+🛑 Explain the term ONLY. Never say what it means FOR THIS PATIENT, whether it is good or bad news,
+or what should be done — that is medical advice and it is forbidden here. Skip terms an ordinary
+Korean adult already knows (병원, 수술, 검사, CT). At most 12 entries, the least familiar ones first.
 
 DATES — read carefully. These documents come from Russia, Kazakhstan and other CIS countries,
 where dates are written DAY.MONTH.YEAR. So "07.08.1992" means 7 August 1992 -> "1992-08-07",
