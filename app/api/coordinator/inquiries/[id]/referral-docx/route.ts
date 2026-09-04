@@ -31,7 +31,9 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
 import { docxTableToHtml } from "@/lib/inquiry/docxTableToHtml";
 
-const MAX_LEN = 4000;
+// 검사 소견은 길다 — CT 판독지 한 장이 1,800자, 서류 세 장을 모으면 4,300자였다(2026-09-04 실측).
+// 4,000자로 두면 마지막 검사가 문장 중간에서 잘린 채 병원에 나간다.
+const MAX_LEN = 20000;
 
 /** docx XML 에 넣을 수 있게 다듬는다. 줄바꿈은 워드의 줄바꿈 태그로. */
 function xmlText(raw: string): string {
