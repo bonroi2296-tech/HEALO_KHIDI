@@ -62,11 +62,24 @@ export interface DetectTestInput {
 
 /** 문의가 테스트인지 판정. 트리거 하나라도 해당하면 true. */
 /**
- * 우리 회사 주소로 «연락받겠다»고 적힌 문의는 시험이다 — 환자가 우리 주소로 문의할 일은 없다.
- * (2026-08-18 실측: 「보내기」를 확인하려고 admin@healwith.co.kr 로 넣었더니 진짜 문의 #118 로 저장됐다.)
- * 🛑 «연락 이메일»에만 본다. 로그인 계정에 적용하면 코디가 넣은 진짜 문의가 시험이 된다(위 참고).
+ * 🚫 폐기(2026-09-04). 옛 규칙: 「연락 이메일이 healwith.co.kr 이면 시험」.
+ *
+ * 왜 뺐나: 전제가 틀렸다. 2026-08-18 에 이 규칙을 넣을 때의 근거는 «환자가 우리 회사 주소로
+ *   문의할 일은 없다» 였는데, 실제로는 **코디·PO 가 환자를 대신해 회사 주소로 대리 접수**한다.
+ *   그래서 진짜 환자 문의 #291·#302 가 이 규칙 하나에 걸려 시험으로 찍혔고, KHIDI 실적
+ *   집계에서 통째로 빠질 뻔했다(PO 2026-09-04: 「healwith.co.kr 으로도 접수할 수 있는데」).
+ *
+ * 이 판정이 틀리는 두 방향은 값이 다르다:
+ *   ① 진짜를 시험으로 → 실적에서 «조용히» 사라진다. 아무도 모르고, 목표 12건 중 1건이 8%다.
+ *   ② 시험을 진짜로 → 문의함에 그대로 보이고, 코디가 「시험으로 표시」를 누르면 끝난다.
+ *   ①이 훨씬 비싸므로, 애매하면 진짜로 두고 사람이 걷어내는 쪽을 택한다.
+ *
+ * 봇·자동시험은 이 규칙 없이도 그대로 걸린다 — 전용 도메인(healo-test.invalid)·시험 계정
+ * (test.com)·텔레그램 딥링크 표식·왓츠앱 번호 목록이 각자 잡는다. 회사 도메인을 쓰는 봇은 없다.
+ *
+ * 🛑 되살리지 마라. 되살리려면 「코디가 대리 접수할 때 무엇을 적는가」부터 다시 재고,
+ *    그 주소를 예외로 빼는 방법까지 같이 가져와라.
  */
-export const OWN_COMPANY_DOMAINS = ["healwith.co.kr"];
 
 export function detectInquiryIsTest(input: DetectTestInput): boolean {
   const officeIps = input.officeIps ?? parseList(process.env.TEST_OFFICE_IPS);
@@ -78,7 +91,6 @@ export function detectInquiryIsTest(input: DetectTestInput): boolean {
   if (input.manual === true) return true;
   if (isOfficeIp(input.ip, officeIps)) return true;
   if (isTestEmail(input.email, testDomains)) return true;
-  if (isTestEmail(input.email, OWN_COMPANY_DOMAINS)) return true;   // 연락 이메일에만
   if (isTestEmail(input.accountEmail, testDomains)) return true;
   return false;
 }
