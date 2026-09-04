@@ -31,6 +31,12 @@ export default function InstallPrompt({ lang = "en" }) {
   const pathname = usePathname() || "/";
   const [deferred, setDeferred] = useState(null); // beforeinstallprompt 이벤트(안드/데스크톱)
   const [iosHint, setIosHint] = useState(false);
+  // 쿠키 동의 배너가 «아직 떠 있는 동안»에는 이 카드를 띄우지 않는다 — 한 번에 하나씩.
+  //   2026-09-02 폰 실측(러시아어·iPhone 12): 첫 방문 화면에서 동의 배너·이 카드·하단 탭이
+  //   동시에 떠 세로 **45%** 를 먹었고, 하필 홈의 핵심 문구와 「무료 상담」 단추가 잘렸다
+  //   (한 번 동의하면 18% 로 줄지만, 현장 시연은 늘 «처음 여는 폰»이다).
+  //   서로 비켜 앉게는 이미 돼 있다(--cookie-banner-h) — 문제는 겹침이 아니라 «쌓임»이었다.
+  const [consentClosed, setConsentClosed] = useState(false);
 
   useEffect(() => {
     // 🍎 스토어 앱(Capacitor) 안이면 아예 뜨면 안 된다 — 2026-08-14 아이폰 화면 실측으로 발견.
@@ -52,13 +58,22 @@ export default function InstallPrompt({ lang = "en" }) {
       if (isIOS && isSafari) setIosHint(true);
     } catch { /* 비공개 모드 등 localStorage 막힘 — 무시 */ }
 
+    // 동의 배너의 「순서 양보」 — 이미 동의했으면 곧바로, 아직이면 배너가 닫힐 때까지 기다린다.
+    //   localStorage 가 막힌 브라우저(비공개 모드 등)에서는 배너 쪽도 못 뜨므로 기다리지 않는다.
+    try {
+      if (localStorage.getItem("healo_cookie_consent")) setConsentClosed(true);
+    } catch { setConsentClosed(true); }
+
     const onPrompt = (e) => { e.preventDefault(); setDeferred(e); }; // 크롬: 설치 가능해지면 발화
     const onInstalled = () => { setDeferred(null); try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} };
+    const onConsentClosed = () => setConsentClosed(true);
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener("cookie-consent-closed", onConsentClosed);
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("cookie-consent-closed", onConsentClosed);
     };
   }, []);
 
@@ -80,6 +95,7 @@ export default function InstallPrompt({ lang = "en" }) {
   const [, barePath] = splitLocale(pathname);
   if (HIDE_ON.some((p) => barePath.startsWith(p))) return null;
   if (!deferred && !iosHint) return null;
+  if (!consentClosed) return null; // 동의 배너가 먼저다 — 둘이 같이 뜨지 않는다
 
   // ⚠️ 아래 여백(bottom)은 인라인이 아니라 «클래스»로 준다 — 화면 폭에 따라 달라야 하고
   //    두 가지를 반드시 피해야 하기 때문이다(2026-08-03 실측으로 둘 다 실제로 겹쳤다):
