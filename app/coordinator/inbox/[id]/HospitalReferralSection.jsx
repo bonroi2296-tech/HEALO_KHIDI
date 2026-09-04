@@ -39,7 +39,11 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
   // 세브란스 양식은 한글, 이대 양식은 영문 병기 → 병원마다 낼 말이 다르다.
   // 🛑 원문으로 되돌리는 길을 남긴다. 옮긴 글로 «의료 판단»을 하면 안 되고, 병원이 원문을
   //    요구할 때도 있다.
-  const [translated, setTranslated] = useState(true);
+  // 어느 말로 낼까 — "ko" | "en" | "raw"(환자가 낸 그대로).
+  // 2026-09-04 PO: 「영문버전, 한글버전 따로 만들 수 있게도 해줘」.
+  //   병원마다 기본이 있지만(이대=영어·세브란스=한국어) 같은 병원에도 두 벌이 필요할 때가 있다 —
+  //   병원엔 영문으로 내고 우리 기록엔 한글로 남기는 식. null 이면 그 병원 기본을 따른다.
+  const [langPick, setLangPick] = useState(null);
   // 언어별로 나눠 담는다: { ko: { 원문: 번역문 }, en: {...} }
   // 🛑 언어를 열쇠 문자열에 «이어붙이지» 마라 — 그렇게 했다가 제어문자가 섞여 저장은 되는데
   //    화면은 계속 원문이었다(2026-09-04 실측: tmap 에 5칸이 찼는데 옮긴 칸은 0이었다).
@@ -78,7 +82,7 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     if (field === "patientName") return values.patientName || "";
     // 성별·국적은 번역기를 안 태운다(옮길 글이 아니라 «정해진 값»이다). 대신 양식 언어에 맞는
     // 표기를 여기서 고른다 — 영문 병기 양식에 「남성」·「카자흐스탄」이 들어가면 안 어울린다.
-    const lang = form?.contentLang || "ko";
+    const lang = langPick && langPick !== "raw" ? langPick : (form?.contentLang || "ko");
     if (field === "sex") return (lang === "en" ? values.sexEn : values.sex) || "";
     if (field === "nationality") return (lang === "en" ? values.nationalityEn : values.nationality) || "";
     if (field === "contact") {
@@ -93,7 +97,10 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     return isBlank(v) ? "" : String(v);
   }
 
-  const target = form?.contentLang || "ko";
+  // 고른 말이 있으면 그것을, 없으면 병원 기본을 쓴다. "raw" 는 옮기지 않는다는 뜻.
+  const pick = langPick || form?.contentLang || "ko";
+  const showRaw = pick === "raw";
+  const target = showRaw ? (form?.contentLang || "ko") : pick;
   // 옮길 값 — 이미 그 말인 것, 이름·파일 목록·날짜처럼 옮길 것이 없는 칸은 뺀다.
   const NO_TRANSLATE = new Set(["patientName", "birthDate", "onsetDate", "diagnosisDate", "contact", "attachmentList", "nationality", "sex"]);
   const rawRows = form ? form.rows.map((r) => ({ ...r, raw: valueOf(r.field) })) : [];
@@ -103,18 +110,18 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     .map((r) => r.raw);
 
   useEffect(() => {
-    if (!form || !translated) return;
+    if (!form || showRaw) return;
     const box = tmap[target] || {};
     const todo = needTr.filter((s) => !box[String(s).trim()]);
     if (todo.length) translate(target, todo);
     // needTr 은 매 렌더 새 배열이라 «내용»으로 비교한다 — 안 그러면 무한 재요청이 된다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.id, translated, needTr.join("|"), target, translate]);
+  }, [form?.id, showRaw, needTr.join("|"), target, translate]);
 
   const rows = rawRows.map((r) => ({
     ...r,
-    value: translated && r.raw && (tmap[target] || {})[r.raw.trim()] ? tmap[target][r.raw.trim()] : r.raw,
-    wasTranslated: !!(translated && r.raw && (tmap[target] || {})[r.raw.trim()]),
+    value: !showRaw && r.raw && (tmap[target] || {})[r.raw.trim()] ? tmap[target][r.raw.trim()] : r.raw,
+    wasTranslated: !!(!showRaw && r.raw && (tmap[target] || {})[r.raw.trim()]),
   }));
   const emptyCount = rows.filter((r) => !r.value).length;
   const trCount = rows.filter((r) => r.wasTranslated).length;
@@ -301,16 +308,27 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
               )}
             </p>
             <div className="flex gap-2">
-              {/* 병원 언어로 옮긴 글 ⇄ 환자가 낸 원문. 판단은 원문으로 해야 하니 길을 남긴다. */}
-              <button
-                type="button"
-                onClick={() => setTranslated((v) => !v)}
-                disabled={tBusy}
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-              >
-                {tBusy ? <Loader2 size={14} className="animate-spin" /> : <Languages size={14} />}
-                {translated ? "원문 보기" : target === "ko" ? "한국어로 보기" : "영어로 보기"}
-              </button>
+              {/* 어느 말로 낼까 — 한 병원에도 두 벌이 필요할 때가 있다(2026-09-04 PO).
+                  「원문」은 환자가 낸 그대로 — 판단은 원문으로 해야 하니 길을 남긴다. */}
+              <div className="inline-flex overflow-hidden rounded-md border border-gray-200" role="group" aria-label="문서 언어">
+                {[
+                  { key: "ko", label: "한국어" },
+                  { key: "en", label: "English" },
+                  { key: "raw", label: "원문" },
+                ].map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => setLangPick(o.key)}
+                    disabled={tBusy}
+                    className={`px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                      pick === o.key ? "bg-teal-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {tBusy && pick === o.key ? <Loader2 size={12} className="inline animate-spin" /> : null} {o.label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={copy}
