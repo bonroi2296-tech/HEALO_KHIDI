@@ -29,6 +29,7 @@ const CT = {
   brandRoleAdminView: { ko: "관리자 · 코디 화면", en: "Admin · coordinator view", ru: "Админ · экран координатора", kz: "Әкімші · үйлестіруші экраны", zh: "管理员 · 协调员画面", ja: "管理者 · コーディネーター画面" },
   backToAdmin: { ko: "어드민 화면으로", en: "Back to admin", ru: "К админ-панели", kz: "Әкімші экранына", zh: "返回管理员画面", ja: "管理者画面へ" },
   navDashboard: { ko: "대시보드", en: "Dashboard", ru: "Панель", kz: "Басқару тақтасы", zh: "仪表盘", ja: "ダッシュボード" },
+  navVoice: { ko: "음성 정리", en: "Voice notes", ru: "Голосовые заметки", kz: "Дауыстық жазбалар", zh: "语音整理", ja: "音声整理" },
   navInbox: { ko: "문의함", en: "Inbox", ru: "Входящие", kz: "Кіріс жәшігі", zh: "收件箱", ja: "受信箱" },
   navChat: { ko: "AI 상담 리드", en: "AI chat leads", ru: "AI-лиды чата", kz: "AI чат лидтері", zh: "AI 咨询线索", ja: "AIチャットリード" },
   navCases: { ko: "의뢰·케이스/병원배정", en: "Cases / Hospital assignment", ru: "Кейсы / Назначение больницы", kz: "Кейстер / Аурухана тағайындау", zh: "病例 / 医院分配", ja: "ケース / 病院割当" },
