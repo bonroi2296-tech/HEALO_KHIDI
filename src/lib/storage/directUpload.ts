@@ -75,6 +75,21 @@ export function sanitizeFileName(name: string): string {
 }
 
 /**
+ * 같은 음성 파일을 브라우저마다 다른 이름으로 부른다 — 대표 이름 하나로 모은다.
+ * .3gp 는 이름만 다를 뿐 속은 MP4 와 같은 상자(ftyp)라 audio/mp4 로 묶는다.
+ * .opus 는 속이 Ogg 상자라 audio/ogg 로 묶는다.
+ */
+const AUDIO_ALIAS: Record<string, string> = {
+  "audio/x-m4a": "audio/mp4",
+  "audio/m4a": "audio/mp4",
+  "audio/3gpp": "audio/mp4",
+  "audio/x-wav": "audio/wav",
+  "audio/wave": "audio/wav",
+  "audio/vnd.wave": "audio/wav",
+  "audio/opus": "audio/ogg",
+};
+
+/**
  * 확장자만 있고 브라우저가 MIME 을 못 알아본 경우 보정.
  * .dcm(의료영상)은 표준 MIME 이 없어 브라우저가 빈 문자열로 준다 — 병원 CD 자료가 이 경우.
  */
@@ -82,6 +97,7 @@ export function normalizeMime(name: string, declared: string): string {
   // 브라우저마다 다른 이름으로 오는 것을 «앞머리 검사가 아는 이름»으로 맞춘다. 안 맞추면 sign 은 통과하고
   // commit 의 앞머리 검사가 mime_mismatch 로 지운다 — 환자 눈엔 「올렸는데 사라짐」(독립 리뷰 3건 지적).
   if (declared === "application/x-rar-compressed") return "application/vnd.rar";
+  if (AUDIO_ALIAS[declared]) return AUDIO_ALIAS[declared];
   if (declared === "application/octet-stream") {
     if (/\.rar$/i.test(name)) return "application/vnd.rar";
     if (/\.zip$/i.test(name)) return "application/zip";
@@ -89,6 +105,14 @@ export function normalizeMime(name: string, declared: string): string {
   }
   if (declared) return declared;
   if (/\.dcm$/i.test(name)) return "application/dicom";
+  // 음성·텍스트 — 윈도우·안드로이드는 .m4a·.amr 의 형식 이름을 아예 안 준다(빈 문자열).
+  if (/\.mp3$/i.test(name)) return "audio/mpeg";
+  if (/\.(m4a|mp4a|3gp|3gpp)$/i.test(name)) return "audio/mp4";
+  if (/\.wav$/i.test(name)) return "audio/wav";
+  if (/\.(ogg|oga|opus)$/i.test(name)) return "audio/ogg";
+  if (/\.webm$/i.test(name)) return "audio/webm";
+  if (/\.amr$/i.test(name)) return "audio/amr";
+  if (/\.txt$/i.test(name)) return "text/plain";
   // 확장자가 «아예 없는» 파일도 DICOM 으로 본다. 병원 CD 의 낱개 파일이 그렇다
   // (2026-08-18 실측: Z01·Z02… 601개, 전부 확장자 없음). 틀렸으면 서버의 앞머리 검사가
   // 128바이트째 "DICM" 이 없다고 잡아 지운다 — 여기서 관대해도 문이 열리지는 않는다.

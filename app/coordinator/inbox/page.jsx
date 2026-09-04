@@ -39,6 +39,8 @@ export default function CoordinatorInboxPage() {
   const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
   // 시연·점검용. 기본은 꺼짐 = 평소 화면 그대로(시험 문의는 안 보인다).
   const [showTest, setShowTest] = useState(false);
+  // 최근 24시간에 시험으로 분류돼 «숨은» 건수. 숨기는 건 맞지만 숨겼다는 사실은 보여야 한다.
+  const [hiddenTest, setHiddenTest] = useState(0);
 
   useEffect(() => {
     load();
@@ -58,10 +60,42 @@ export default function CoordinatorInboxPage() {
       const result = await res.json();
       if (!res.ok || !result.ok) throw new Error(result.error || "fetch_failed");
       setItems(result.items || []);
+      setHiddenTest(result.hiddenTestCount || 0);
     } catch (e) {
       console.error("[inbox] fetch error:", e);
     }
     setLoading(false);
+  }
+
+  /**
+   * 「시험」 표시를 떼어 진짜 문의로 되돌린다.
+   * 접수 시점 판정이 틀리는 경우가 실제로 있어서 사람이 고칠 길을 둔다(2026-09-02 PO 요청).
+   * 실적 집계가 걸린 값이라 되묻고 나서 바꾼다.
+   */
+  async function markReal(id) {
+    if (!window.confirm(
+      `문의 #${id} 의 「시험」 표시를 뗍니다.\n\n` +
+      `코디 목록에 그대로 남고, KHIDI 실적에도 잡히게 됩니다.`
+    )) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch(`/api/coordinator/inquiries/${id}/test-flag`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ isTest: false }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j?.error || "failed");
+      load();
+    } catch (e) {
+      console.error("[inbox] test-flag error:", e);
+      window.alert("표시를 바꾸지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
   }
 
   const filtered = items.filter((item) => {
@@ -83,6 +117,17 @@ export default function CoordinatorInboxPage() {
           <p className="text-gray-500 text-sm mt-1">{L.inboxSubtitle}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* 숨긴 건 맞지만 «숨겼다는 사실»은 보여야 한다 — 안 그러면 「접수가 안 됐다」로 읽힌다.
+              (2026-09-02: 진짜 환자 문의 #291 이 회사 도메인 연락처 탓에 시험으로 찍혀 통째로 사라졌다) */}
+          {!showTest && hiddenTest > 0 && (
+            <button
+              onClick={() => setShowTest(true)}
+              className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition"
+              title="시험으로 분류돼 목록에서 빠진 문의입니다. 눌러서 함께 보기"
+            >
+              최근 24시간에 시험으로 분류돼 숨은 문의 {hiddenTest}건
+            </button>
+          )}
           {/* 시연·점검용 — 켜면 시험 문의도 함께 보인다(각 줄에 「시험」 표가 붙는다). */}
           <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none">
             <input
@@ -198,10 +243,16 @@ export default function CoordinatorInboxPage() {
                           {item.name || "—"}
                         </span>
                         {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
+                        {/* 누르면 「시험」 표시가 떨어져 진짜 문의로 돌아온다. 줄 전체가 상세로
+                            가는 클릭을 물고 있으므로 stopPropagation 이 없으면 상세로 튕긴다. */}
                         {item.is_test && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 shrink-0">
-                            시험
-                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markReal(item.id); }}
+                            title="시험으로 분류돼 목록에서 숨겨진 문의입니다. 누르면 표시가 떨어져 실적에도 잡힙니다."
+                            className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 shrink-0 transition"
+                          >
+                            시험 ✕
+                          </button>
                         )}
                         {item.agency_id && (
                           <span
