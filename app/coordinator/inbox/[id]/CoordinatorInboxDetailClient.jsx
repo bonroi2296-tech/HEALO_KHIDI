@@ -21,7 +21,7 @@ import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { fullPatientName } from "@/lib/inquiry/patientName";
-import { DOC_FIELD_LABELS } from "@/lib/inquiry/docKinds";
+import { DOC_FIELD_LABELS, kindLabel } from "@/lib/inquiry/docKinds";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
@@ -609,19 +609,29 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   }
 
   /**
-   * 음성 메모를 글로 옮기고 요약한다 — 코디가 «듣지 않고» 처리할 수 있게.
-   * 계기: 2026-09-02 PO — 「아셀님이 음성파일로 받으니 듣고 분석하는 데 시간이 너무 오래 걸림」.
+   * 붙어 있는 자료를 판독기에 넣어 «읽어»준다 — 음성이면 글+요약, 서류면 안에 적힌 값.
+   *
+   * 계기 ① 2026-09-02 PO — 「아셀님이 음성파일로 받으니 듣고 분석하는 데 시간이 너무 오래 걸림」.
+   *      ② 2026-09-04 PO — 「문서도 올렸는데 아무런 값도 추출을 못한거야?」
+   *
+   * ②의 진짜 원인: 서류를 읽는 코드가 «의뢰서 접수 폼»에만 붙어 있었다. 환자 본인 링크(claim)나
+   * 코디 대리 업로드로 들어온 서류는 판독을 아예 안 탔고(category 가 "other" 로 고정 저장),
+   * 게다가 판독 창구의 경로 규칙이 접수 폼 모양 하나만 알아서 «불러도 거부»했다.
+   * 실제 피해: 문의 #302 는 PDF 3건이 붙어 있는데 코디 화면의 값 칸이 전부 「비어 있음」이었다.
+   * (그 3건을 지금 규칙으로 다시 읽히니 생년월일·진단명·주호소·검사·소견이 전부 나왔다.)
+   *
    * 결과는 화면에만 둔다(저장하지 않는다). 다시 보려면 다시 누른다 — 한 번에 몇백 원 수준이고,
    * 저장하면 «언제 적 요약인지» 관리해야 하는데 그럴 값어치가 아직 없다.
+   * 🛑 뽑아낸 값을 환자가 적은 칸에 «자동으로» 덮어쓰지 않는다 — 기계가 읽은 것이라 코디가 본 뒤에 쓴다.
    */
-  async function analyzeVoice(path, name) {
+  async function analyzeVoice(path, name, mime) {
     if (!path) return;
     setVoiceNotes((p) => ({ ...p, [path]: { loading: true } }));
     try {
       const res = await fetch("/api/inquiry/classify-doc", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ path, type: voiceMime(name) }),
+        body: JSON.stringify({ path, type: voiceMime(name) || mime || "application/pdf" }),
       });
       const j = await res.json();
       if (!j?.ok || j.skipped) throw new Error(j?.skipped || j?.error || "failed");
@@ -1453,6 +1463,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       </button>
                     ) : (
                     <>
+                    {/* 「읽기」 — 서류 안의 값(생년월일·진단명·검사·소견)을 뽑아 아래에 편다.
+                        번역과 다른 일이다: 번역은 «문서 전체를 옮기는 것», 이건 «칸에 넣을 값을 골라내는 것». */}
+                    <button
+                      type="button"
+                      onClick={() => analyzeVoice(path, name, a?.type)}
+                      disabled={!path || voiceNotes[path]?.loading}
+                      title="서류 안의 값(생년월일·진단명·검사·소견 등)을 뽑아 봅니다. 환자가 적은 칸을 덮어쓰지는 않습니다."
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                    >
+                      {voiceNotes[path]?.loading ? (
+                        <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 읽기" : "읽기"}
+                    </button>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
                     <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label={L.atLangGroup}>
                       {OUT_LANGS.map((o) => (
@@ -1530,9 +1556,32 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <div className="flex items-center gap-2 text-[11px] text-gray-500">
                           {/* teal-600 은 3.74:1 로 대비 기준(4.5:1) 미달이라 안 쓴다 — DESIGN.md */}
                           <Sparkles size={12} className="text-teal-700" />
-                          기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요
+                          {isVoiceFile(name)
+                            ? "기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요"
+                            : "기계가 서류를 읽은 것입니다 — 환자 칸에 옮기기 전에 원본과 대조해 주세요"}
                           {v.language && <span className="ml-auto">말: {v.language}</span>}
                         </div>
+
+                        {/* 서류에서 뽑아낸 값 — 이게 「문서 올렸는데 값이 안 채워진다」의 답이다(2026-09-04 PO).
+                            🛑 보여주기만 한다. 환자가 적은 칸을 자동으로 덮지 않는다. */}
+                        {v.fields && Object.keys(v.fields).length > 0 && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">
+                              서류에서 읽은 값
+                              {v.kind && v.kind !== "unknown" && (
+                                <span className="ml-1.5 font-normal text-gray-500">({kindLabel(v.kind, lang)})</span>
+                              )}
+                            </p>
+                            <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                              {Object.entries(v.fields).map(([k, val]) => (
+                                <div key={k} className="flex gap-2 text-xs">
+                                  <dt className="shrink-0 w-20 text-gray-500">{DOC_FIELD_LABELS[k] || k}</dt>
+                                  <dd className="min-w-0 flex-1 text-gray-800 break-words">{String(val)}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </div>
+                        )}
 
                         {v.summaryKo && (
                           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
