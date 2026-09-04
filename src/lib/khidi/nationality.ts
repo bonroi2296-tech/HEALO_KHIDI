@@ -62,12 +62,21 @@ export const NATIONALITY_NAMES_L: Record<string, Record<string, string>> = {
 
 const OTHER_NAT: Record<string, string> = { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" };
 
-/** 국적 코드 → 언어별 표기. 미등록 코드는 원문 유지, 빈 값은 "기타". */
+/**
+ * 국적 코드 → 언어별 표기. 빈 값도, 목록에 없는 코드도 "기타"로 묶는다.
+ *
+ * 🛑 나라를 하나씩 늘리지 마라(2026-09-04 PO): 「모든 국적을 다 표기할 수도 없고」.
+ *    이 목록은 우리가 «실제로 유치하는» 중앙아시아·CIS 중심이고, 그 밖은 «기타»로 충분하다.
+ *    다만 코드는 괄호로 남긴다 — 「기타」만 뜨면 코디가 어느 나라 환자인지 알 방법이 없어진다
+ *    (2026-09-04 실측: 에티오피아 난민 케이스 #87 이 화면에 「ET」라는 날코드로 떠 있었다).
+ */
 export function nationalityLabelL(raw: string | null | undefined, lang = "en"): string {
-  if (!raw) return OTHER_NAT[lang] || OTHER_NAT.en;
+  const other = OTHER_NAT[lang] || OTHER_NAT.en;
+  if (!raw) return other;
   const v = raw.trim();
-  if (!v) return OTHER_NAT[lang] || OTHER_NAT.en;
+  if (!v) return other;
   const row = NATIONALITY_NAMES_L[v.toUpperCase()];
   if (row) return row[lang] || row.en || row.ko || v;
-  return v;
+  // 2~3글자 국가코드로 보이면 「기타(ET)」, 그 밖의 잡값이면 그냥 「기타」.
+  return /^[A-Za-z]{2,3}$/.test(v) ? `${other}(${v.toUpperCase()})` : other;
 }
