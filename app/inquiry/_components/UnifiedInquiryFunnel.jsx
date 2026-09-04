@@ -159,7 +159,8 @@ export default function UnifiedInquiryFunnel() {
 
   // Step 1 폼
   const [form1, setForm1] = useState({
-    name: "",
+    lastName: "",
+    firstName: "",
     nationality: "",
     email: "", // 필수 — 동일인 통합 기준
     phoneDial: "", // 전화 국가번호 (선택)
@@ -192,7 +193,6 @@ export default function UnifiedInquiryFunnel() {
         if (!data.ok) return;
         setForm1((prev) => ({
           ...prev,
-          name: data.guest_name || prev.name,
           email: data.guest_email || prev.email,
           phone: data.guest_phone || prev.phone,
           nationality: data.guest_country || prev.nationality,
@@ -212,8 +212,8 @@ export default function UnifiedInquiryFunnel() {
         if (!session?.access_token) return; // 게스트 — 그냥 빈 폼
         const user = session.user || {};
         const md = user.user_metadata || {};
-        const acctName =
-          [md.first_name, md.last_name].filter(Boolean).join(" ") || md.full_name || md.name || "";
+        // 🛑 계정의 full_name·name 은 한 덩어리라 성·이름을 가를 수 없다 — 자동으로 채우지 않는다.
+        //    성/이름이 «따로» 있을 때만 각 칸에 넣는다(아래 setForm1).
 
         let p = {};
         try {
@@ -230,7 +230,8 @@ export default function UnifiedInquiryFunnel() {
         if (cancelled) return;
         setForm1((prev) => ({
           ...prev,
-          name: prev.name || acctName || p.name || "",
+          lastName: prev.lastName || md.last_name || "",
+          firstName: prev.firstName || md.first_name || "",
           email: prev.email || user.email || "",
           nationality: prev.nationality || p.nationality || "",
           // 지난 접수 번호는 국가번호가 이미 붙은 통짜 문자열 → 국가번호 칸은 OTHER 로 두고 그대로 보여준다.
@@ -257,7 +258,8 @@ export default function UnifiedInquiryFunnel() {
   // 전화는 선택 — 입력했을 때만 국가번호도 필요 (OTHER면 번호에 +코드 직접 입력)
   const phoneNeedsDial = form1.phone.trim().length > 0 && form1.phoneDial === "";
   const step1Valid =
-    form1.name.trim().length > 0 &&
+    form1.lastName.trim().length > 0 &&
+    form1.firstName.trim().length > 0 &&
     form1.nationality !== "" &&
     form1.email.trim().length > 0 &&
     !phoneNeedsDial &&
@@ -281,7 +283,8 @@ export default function UnifiedInquiryFunnel() {
         blocked_by: phoneNeedsDial ? "phone_dial" : "required_field",
         // 어느 칸이 비었는지까지 (여러 개면 쉼표로).
         missing: [
-          form1.name.trim() ? null : "name",
+          form1.lastName.trim() ? null : "lastName",
+          form1.firstName.trim() ? null : "firstName",
           form1.nationality ? null : "nationality",
           form1.email.trim() ? null : "email",
           form1.preferredLanguage ? null : "language",
@@ -312,9 +315,13 @@ export default function UnifiedInquiryFunnel() {
     safeEvent(GA_EVENTS.STEP1_ATTEMPTED);
 
     try {
-      const nameParts = form1.name.trim().split(/\s+/);
-      const firstName = nameParts[0] || form1.name.trim();
-      const lastName = nameParts.slice(1).join(" ") || null;
+      // 🛑 예전엔 이름을 한 칸으로 받아 «앞 토막 = 이름»으로 잘랐다. 카자흐·러시아 사람은
+      //    성을 먼저 쓰기 때문에 성과 이름이 통째로 뒤바뀐 채 저장됐다(2026-09-03 실측:
+      //    옛 퍼널로 들어온 진짜 문의 4건이 «전부» 같은 방향으로 뒤집혀 있었다).
+      //    화면이 「이름 + 성」 순으로 붙여 보여줘서 겉으로는 맞아 보였고, 그래서 오래 안 드러났다.
+      //    이제 칸을 나눠서 받는다 — 추측이 없어야 병원 등록·여권 대조에서 거부되지 않는다.
+      const firstName = form1.firstName.trim();
+      const lastName = form1.lastName.trim() || null;
 
       // 전화는 선택 — 입력했을 때만 국가번호 + 번호 합쳐서 저장. OTHER면 사용자가 +코드 직접 입력.
       const hasPhone = form1.phone.trim().length > 0;
@@ -1061,19 +1068,33 @@ export default function UnifiedInquiryFunnel() {
       </div>
 
       <div className="space-y-5">
-        {/* 성함 */}
-        <div>
-          <label htmlFor="funnel-name" className="block text-sm font-bold text-gray-700 mb-1.5">
-            {tl("nameLabel", lang)} <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="funnel-name"
-            type="text"
-            value={form1.name}
-            onChange={(e) => setForm1((p) => ({ ...p, name: e.target.value }))}
-            placeholder={tl("namePlaceholder", lang)}
-            className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
-          />
+        {/* 성함 — 성과 이름을 «따로» 받는다. 한 칸으로 받아 잘라 넣으면 CIS 환자(성을 먼저 쓴다)의
+            성·이름이 통째로 뒤바뀐다(2026-09-03 실측 4건). 병원 등록은 두 칸을 각각 쓴다. */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="funnel-last-name" className="block text-sm font-bold text-gray-700 mb-1.5">
+              {tl("lastNameLabel", lang)} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="funnel-last-name"
+              type="text"
+              value={form1.lastName}
+              onChange={(e) => setForm1((p) => ({ ...p, lastName: e.target.value }))}
+              className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+            />
+          </div>
+          <div>
+            <label htmlFor="funnel-first-name" className="block text-sm font-bold text-gray-700 mb-1.5">
+              {tl("firstNameLabel", lang)} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="funnel-first-name"
+              type="text"
+              value={form1.firstName}
+              onChange={(e) => setForm1((p) => ({ ...p, firstName: e.target.value }))}
+              className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+            />
+          </div>
         </div>
 
         {/* 국적 */}

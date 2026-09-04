@@ -11,6 +11,7 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { fullPatientName } from "@/lib/inquiry/patientName";
 
 // staff(코디·관리자) 전용 인박스라 실명 표시 — 마스킹하면 문의 많을 때 식별 불가(PO 요청 2026-06-23).
 function decryptName(enc: string | null | undefined): string {
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     const items = (data || []).map((i: any) => ({
       id: i.id,
       name:
-        [decryptName(i.first_name), decryptName(i.last_name)].filter(Boolean).join(" ").trim() ||
+        fullPatientName(decryptName(i.first_name), decryptName(i.last_name)) ||
         "(이름 미상)",
       nationality: i.nationality || null,
       cancer_type: i.cancer_type || null,
