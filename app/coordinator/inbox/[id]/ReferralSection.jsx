@@ -187,6 +187,22 @@ export default function ReferralSection({ referral, lang, scan, onScan }) {
         ));
       })()}
 
+      {/* 코디는 의료인이 아니다 — 읽어 온 서류에 나온 용어가 «무엇인지»만 풀어 준다(2026-09-04 PO).
+          🛑 «이 환자에게 무슨 뜻인지»는 담지 않는다 — 그건 의료 조언이다. */}
+      {scan?.data?.glossary?.length > 0 && (
+        <section className="mt-4 rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
+          <p className="mb-1.5 text-xs font-bold text-teal-800">{ui("glossary", lang)}</p>
+          <dl className="space-y-1">
+            {scan.data.glossary.map((g, i) => (
+              <div key={i} className="text-xs">
+                <dt className="inline font-semibold text-teal-900">{g.term}</dt>
+                <dd className="inline text-gray-700"> — {g.plain}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       {/* 서류 — 종류(AI 추정 또는 사람이 고친 값)·크기·200MB 초과 시 링크. 열람은 첨부 카드에서. */}
       {(env.length > 0 || cd) && (
         <div className="mt-4">
