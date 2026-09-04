@@ -34,14 +34,11 @@ const DIR = "inquiry";
 // 영상(병원 CD) 형식은 uploadPolicy 의 imaging 규칙을 그대로 끌어다 쓴다.
 // 화면과 서버가 «다른 목록»을 들고 있으면 「화면에선 골라지는데 서버가 막는」 반쪽이 된다.
 // ⚠️ 위장 검사(verifyUploaded)는 그대로 둔다 — 공개 창구라 확장자·MIME 만 믿으면 안 된다.
+// 의료서류·음성·텍스트는 medicalDoc 규칙을 그대로 끌어다 쓴다. 예전엔 여기에 목록을 손으로
+// 베껴 뒀는데, 그러면 uploadPolicy 에 형식을 하나 더해도 이 창구만 «모르는» 상태가 된다
+// (2026-09-02: 음성·TXT 를 더하다 발견).
 const ALLOWED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ...UPLOAD_POLICY.medicalDoc.mimes,
   ...UPLOAD_POLICY.imaging.mimes,
 ]);
 

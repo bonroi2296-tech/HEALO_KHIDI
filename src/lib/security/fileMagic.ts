@@ -24,7 +24,14 @@ export type AllowedMimeType =
   | "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   | "application/dicom"
   | "application/zip"
-  | "application/vnd.rar";
+  | "application/vnd.rar"
+  | "audio/mpeg"
+  | "audio/mp4"
+  | "audio/wav"
+  | "audio/ogg"
+  | "audio/webm"
+  | "audio/amr"
+  | "text/plain";
 
 export interface MagicCheckResult {
   ok: boolean;
@@ -149,6 +156,59 @@ export function verifyFileMagic(
     buffer[131] === 0x4d
   ) {
     return check(declaredMime, "application/dicom");
+  }
+
+  // ── 음성 ─────────────────────────────────────────────────────────
+  // MP3: "ID3" 태그로 시작하거나, 태그 없이 프레임부터 시작(첫 11비트가 전부 1).
+  // JPEG(FF D8 …)는 위에서 이미 걸러졌으므로 여기서 겹치지 않는다.
+  if (
+    (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) ||
+    (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0)
+  ) {
+    return check(declaredMime, "audio/mpeg");
+  }
+
+  // M4A(아이폰 음성 메모)·3GP: 오프셋 4에 "ftyp" — MP4 계열 상자.
+  if (
+    buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70
+  ) {
+    return check(declaredMime, "audio/mp4");
+  }
+
+  // WAV: RIFF....WAVE (WebP 도 RIFF 로 시작하지만 9~12번째가 "WEBP" 라 위에서 갈린다)
+  if (
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x41 && buffer[10] === 0x56 && buffer[11] === 0x45
+  ) {
+    return check(declaredMime, "audio/wav");
+  }
+
+  // OGG(왓즈앱·텔레그램 음성): "OggS"
+  if (buffer[0] === 0x4f && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) {
+    return check(declaredMime, "audio/ogg");
+  }
+
+  // WebM/Matroska: EBML 머리 1A 45 DF A3
+  if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
+    return check(declaredMime, "audio/webm");
+  }
+
+  // AMR(구형 안드로이드 녹음): "#!AMR"
+  if (
+    buffer[0] === 0x23 && buffer[1] === 0x21 && buffer[2] === 0x41 &&
+    buffer[3] === 0x4d && buffer[4] === 0x52
+  ) {
+    return check(declaredMime, "audio/amr");
+  }
+
+  // ── 텍스트 메모 ──────────────────────────────────────────────────
+  // 🛑 txt 에는 «머리 표식이 없다» — 어떤 바이트로도 「이건 텍스트다」라고 단정할 수 없다.
+  //    그래서 반대로 «실행파일이 아님»을 확인한다: 앞 512바이트에 NUL(0x00)이 하나도 없으면 텍스트로 본다.
+  //    (git 이 이진/텍스트를 가르는 것과 같은 기준. exe·ELF·오피스 문서는 앞머리에 NUL 이 반드시 섞인다.)
+  //    ⚠️ 반드시 «맨 마지막»에 둔다 — 앞의 표식 검사들이 먼저 제 형식을 집어가야 하고,
+  //    선언이 정확히 text/plain 일 때만 이 길로 온다.
+  if (declaredMime === "text/plain" && !buffer.includes(0x00)) {
+    return { ok: true, detectedMime: "text/plain" };
   }
 
   return {
