@@ -341,16 +341,19 @@ export async function POST(request: NextRequest) {
             //    확정으로 처리하면 그게 그대로 병원에 나간다.
             uncertain: list(parsed?.uncertain, 12, 300),
             askNext: list(parsed?.askNext, 12, 300),
-            // 의료 용어 풀이 — 코디는 의료인이 아니다(2026-09-04 PO).
-            // 「용어가 무엇인가」만 담긴다. 이 환자에게 어떤 의미인지는 프롬프트가 금지하고 있다.
-            glossary: Array.isArray(parsed?.glossary)
-              ? parsed.glossary
-                  .filter((g: any) => g && typeof g.term === "string" && typeof g.plain === "string")
-                  .slice(0, 12)
-                  .map((g: any) => ({ term: g.term.trim().slice(0, 80), plain: g.plain.trim().slice(0, 300) }))
-              : [],
           }
         : {}),
+      // 의료 용어 풀이 — 코디는 의료인이 아니다(2026-09-04 PO: 「여기도 의료용어는 쉽게 풀이해줘」).
+      // ⚠️ 소리·서류 «둘 다» 나가야 한다. 처음엔 소리 블록 안에 뒀다가, 서류를 읽어도 이 칸이
+      //    늘 빈 채로 오는 것을 실측으로 잡았다(2026-09-04). 프롬프트만 고치고 여기를 안 옮기면
+      //    「고친 것처럼 보이는데 안 고쳐진 상태」가 된다.
+      // 「용어가 무엇인가」만 담긴다. 이 환자에게 어떤 의미인지는 프롬프트가 금지하고 있다.
+      glossary: Array.isArray(parsed?.glossary)
+        ? parsed.glossary
+            .filter((g: any) => g && typeof g.term === "string" && typeof g.plain === "string")
+            .slice(0, 12)
+            .map((g: any) => ({ term: g.term.trim().slice(0, 80), plain: g.plain.trim().slice(0, 300) }))
+        : [],
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
       patientName: parsed?.patient_name ?? null,
       docDate: parsed?.doc_date ?? null,
