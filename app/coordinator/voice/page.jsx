@@ -184,7 +184,7 @@ export default function CoordinatorVoicePage() {
       <div className="space-y-3">
         <div>
           <label htmlFor="voice-source" className="block text-sm font-semibold text-gray-700 mb-1.5">
-            누가 보낸 음성인가요? <span className="font-normal text-gray-400">(선택 — 나중에 찾을 때 씁니다)</span>
+            누가 보낸 음성인가요? <span className="font-normal text-gray-500">(선택: 나중에 찾을 때 씁니다)</span>
           </label>
           <input
             id="voice-source"
@@ -219,11 +219,11 @@ export default function CoordinatorVoicePage() {
                   : phase === "reading" ? "듣고 정리하는 중… (1분 음성에 약 10초)"
                   : "보관하는 중…"}
               </p>
-              <p className="text-xs text-gray-400">{fileName}</p>
+              <p className="text-xs text-gray-500">{fileName}</p>
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Upload size={22} className="mx-auto text-gray-400" />
+              <Upload size={22} className="mx-auto text-gray-500" />
               <p className="text-sm font-semibold text-gray-700">여기에 음성을 끌어다 놓거나 눌러서 고르세요</p>
               <p className="text-xs text-gray-500">{VOICE_LABEL} · 최대 200MB</p>
             </div>
@@ -240,7 +240,7 @@ export default function CoordinatorVoicePage() {
       {/* 보관함 */}
       <div>
         <h2 className="text-sm font-bold text-gray-700 mb-2">
-          보관된 음성 {items.length > 0 && <span className="text-gray-400 font-normal">({items.length})</span>}
+          보관된 음성 {items.length > 0 && <span className="text-gray-500 font-normal">({items.length})</span>}
         </h2>
 
         {loading ? (
@@ -263,12 +263,12 @@ export default function CoordinatorVoicePage() {
                       onClick={() => setOpenId(open ? null : it.id)}
                       className="flex-1 min-w-0 flex items-center gap-2 text-left"
                     >
-                      {open ? <ChevronDown size={16} className="text-gray-400 shrink-0" />
-                            : <ChevronRight size={16} className="text-gray-400 shrink-0" />}
+                      {open ? <ChevronDown size={16} className="text-gray-500 shrink-0" />
+                            : <ChevronRight size={16} className="text-gray-500 shrink-0" />}
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-gray-800 truncate">
                           {it.sourceLabel || it.fileName}
-                          {it.language && <span className="ml-2 text-[11px] font-normal text-gray-400">{it.language}</span>}
+                          {it.language && <span className="ml-2 text-[11px] font-normal text-gray-500">{it.language}</span>}
                         </p>
                         <p className="text-xs text-gray-500 truncate">
                           {new Date(it.createdAt).toLocaleString("ko-KR")}
@@ -279,7 +279,7 @@ export default function CoordinatorVoicePage() {
                     <button
                       onClick={() => remove(it.id, it.sourceLabel || it.fileName)}
                       title="지우기"
-                      className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                      className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition"
                     >
                       <Trash2 size={15} />
                     </button>

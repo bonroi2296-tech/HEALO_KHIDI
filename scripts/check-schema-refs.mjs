@@ -29,6 +29,7 @@ const EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 const PUBLIC_TABLES = new Set([
   "content_overrides", "content_change_log", // 코디 콘텐츠 편집(2026-07-23 추가)
   "consultation_recordings", // 상담 녹화 대장(2026-07-28 추가 — 기능은 스위치 뒤 꺼짐)
+  "voice_notes", // 코디 음성 메모 보관함(2026-09-04 추가)
   "hospitals", "treatments", "site_settings", "inquiries", "chat_threads",
   "chat_messages", "inquiry_events", "admin_audit_logs", "admin_notification_logs",
   "rag_documents", "rag_chunks", "hospital_users", "hospital_leads", "crawl_jobs",
