@@ -185,7 +185,16 @@ export default async function RootLayout({ children }) {
   //    옛 언어 쿠키(vi 등)를 든 사용자도 하이드레이션 뒤엔 LangContext 가 그 언어로 바꾸므로
   //    그 사전이 없으면 글자가 빈칸이 된다. 서버 렌더 언어(6개)와 혼동 금지.
   const dictCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
-  const clientLangs = [lang, dictCookieLang]
+  // 백오피스(코디·어드민)는 공개 화면과 «다른 언어 쿠키»를 쓴다(healo_bo_lang, 기본 ko).
+  // 그 사전을 안 실어서 코디 화면의 일부 문구가 한국어 화면에도 영어로 떨어져 있었다
+  // (2026-09-04 실측: 의뢰서 카드 라벨이 「Date of Birth」·「MEDICAL HISTORY & MEDICATIONS」,
+  //  서류 종류가 「Other document」. 사전을 거치는 문구만 그랬고 화면 대부분은 멀쩡해서
+  //  「가끔 영어가 섞인다」로만 보였다).
+  // 쿠키가 «없을 때»도 백오피스는 ko 로 도므로(useBackofficeLang 의 기본값) ko 를 채워 넣는다 —
+  // 안 그러면 스위처를 한 번도 안 만진 사람이 계속 영어를 본다.
+  const boCookie = (await cookies()).get("healo_bo_lang")?.value;
+  const boLang = LANG_OPTIONS.some((l) => l.code === boCookie) ? boCookie : "ko";
+  const clientLangs = [lang, dictCookieLang, boLang]
     .filter((v, i, a) => v && a.indexOf(v) === i);
 
   return (
