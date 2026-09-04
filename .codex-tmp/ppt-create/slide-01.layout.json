@@ -1,0 +1,424 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/2hu4ul",
+    "id": "2hu4ul",
+    "slide": 1,
+    "layoutId": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#1F2933",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Malgun Gothic"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kb2pk3qt",
+      "id": "1",
+      "bbox": [
+        54,
+        42,
+        220,
+        42
+      ],
+      "geometry": "rect",
+      "text": "HEALO",
+      "textPreview": "HEALO",
+      "resolvedFontSize": 23,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 23,
+        "typeface": "Malgun Gothic",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "HEALO"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "HEALO",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 23,
+            "typeface": "Malgun Gothic",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "HEALO",
+              "fontSize": 23,
+              "typeface": "Malgun Gothic",
+              "color": "#FFFFFF",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jqtoby98",
+      "id": "2",
+      "bbox": [
+        54,
+        236,
+        820,
+        150
+      ],
+      "geometry": "rect",
+      "text": "정량 부진을 숨기지 않고,\n계속 지원의 근거를 증명합니다",
+      "textPreview": "정량 부진을 숨기지 않고, | 계속 지원의 근거를 증명합니다",
+      "resolvedFontSize": 46,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 46,
+        "typeface": "Malgun Gothic",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "정량 부진을 숨기지 않고,"
+          },
+          {
+            "index": 2,
+            "text": "계속 지원의 근거를 증명합니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "정량 부진을 숨기지 않고,",
+          "lineSpacingPercent": 105000,
+          "resolvedTextStyle": {
+            "fontSize": 46,
+            "typeface": "Malgun Gothic",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.05
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "정량 부진을 숨기지 않고,",
+              "fontSize": 46,
+              "typeface": "Malgun Gothic",
+              "color": "#FFFFFF",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.05
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "계속 지원의 근거를 증명합니다",
+          "lineSpacingPercent": 105000,
+          "resolvedTextStyle": {
+            "fontSize": 46,
+            "typeface": "Malgun Gothic",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.05
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "계속 지원의 근거를 증명합니다",
+              "fontSize": 46,
+              "typeface": "Malgun Gothic",
+              "color": "#FFFFFF",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.05
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ipk7it8n",
+      "id": "3",
+      "bbox": [
+        56,
+        416,
+        160,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#FFFFFF",
+      "lineWidth": 2
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xob698r2",
+      "id": "4",
+      "bbox": [
+        58,
+        454,
+        800,
+        60
+      ],
+      "geometry": "rect",
+      "text": "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스\n중간평가 발표자료 · 발표일: [확인 필요: 평가일]",
+      "textPreview": "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스 | 중간평가 발표자료 · 발표일: [확인 필요: 평가일]",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 17,
+        "typeface": "Malgun Gothic",
+        "color": "#DDE3EA",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스"
+          },
+          {
+            "index": 2,
+            "text": "중간평가 발표자료 · 발표일: [확인 필요: 평가일]"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#DDE3EA",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "카자흐스탄 암환자 대상 ICT 기반 사전상담·사후관리 통합 의료연계 서비스",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#DDE3EA",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "중간평가 발표자료 · 발표일: [확인 필요: 평가일]",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#DDE3EA",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "중간평가 발표자료 · 발표일: [확인 필요: 평가일]",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#DDE3EA",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wn2pg3qh",
+      "id": "5",
+      "bbox": [
+        58,
+        628,
+        760,
+        26
+      ],
+      "geometry": "rect",
+      "text": "주관 본로이 · 참여 면력한방병원, 신촌면력한방병원",
+      "textPreview": "주관 본로이 · 참여 면력한방병원, 신촌면력한방병원",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#C9D1DA",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "주관 본로이 · 참여 면력한방병원, 신촌면력한방병원"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "주관 본로이 · 참여 면력한방병원, 신촌면력한방병원",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#C9D1DA",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "주관 본로이 · 참여 면력한방병원, 신촌면력한방병원",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#C9D1DA",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

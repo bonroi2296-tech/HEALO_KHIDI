@@ -30,6 +30,7 @@ import JSZip from "jszip";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
 import { docxTableToHtml } from "@/lib/inquiry/docxTableToHtml";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 // 검사 소견은 길다 — CT 판독지 한 장이 1,800자, 서류 세 장을 모으면 4,300자였다(2026-09-04 실측).
 // 4,000자로 두면 마지막 검사가 문장 중간에서 잘린 채 병원에 나간다.
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return new Response(new Uint8Array(out), {
       headers: {
         "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fname)}`,
+        "content-disposition": contentDisposition(fname),
         "cache-control": "no-store",
       },
     });

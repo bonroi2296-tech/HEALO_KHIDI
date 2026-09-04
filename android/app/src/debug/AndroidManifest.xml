@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  시험용(디버그) 빌드에만 붙는 매니페스트 — 릴리스(스토어에 올리는 판)에는 **들어가지 않는다.**
+
+  왜 있나 (2026-08-31):
+    앱은 라이브로드라 `server.url` 이 가리키는 곳의 웹 코드를 받는다. 그래서 「고친 코드가
+    실제로 로그인을 끝까지 통과시키는가」를 **배포하지 않고** 확인하려면 앱이 내 PC 의
+    dev 서버(`http://localhost:3000`, `adb reverse` 로 연결)를 보게 해야 한다.
+    그런데 안드로이드는 평문 http 를 기본으로 막는다 → 시험용 빌드에만 열어 준다.
+
+  ⚠️ 이 파일은 `src/debug/` 에 있으므로 `assembleRelease` 에는 병합되지 않는다.
+     스토어 판에는 평문 통신이 절대 열리지 않는다.
+
+  쓰는 법:
+    1. npm run cap:sync
+    2. android/app/src/main/assets/capacitor.config.json 의 server.url 을
+       "http://localhost:3000" 으로 (그 파일은 .gitignore 대상이라 커밋 안 된다)
+    3. gradlew assembleDebug && adb install -r ...
+    4. adb reverse tcp:3000 tcp:3000 && npm run dev
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+</manifest>

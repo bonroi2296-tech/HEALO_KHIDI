@@ -1,0 +1,1256 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/hp47xy",
+    "id": "hp47xy",
+    "slide": 22,
+    "layoutId": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Malgun Gothic"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/g3upwva5",
+      "id": "1",
+      "bbox": [
+        54,
+        40,
+        1010,
+        64
+      ],
+      "geometry": "rect",
+      "text": "부록: 핵심 예상 질의응답",
+      "textPreview": "부록: 핵심 예상 질의응답",
+      "resolvedFontSize": 34,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 34,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "부록: 핵심 예상 질의응답"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "부록: 핵심 예상 질의응답",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 34,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "부록: 핵심 예상 질의응답",
+              "fontSize": 34,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/f2lonq9k",
+      "id": "2",
+      "bbox": [
+        56,
+        104,
+        1050,
+        32
+      ],
+      "geometry": "rect",
+      "text": "유치 0건, 차별성, 지원금 대비 산출은 반드시 먼저 준비합니다",
+      "textPreview": "유치 0건, 차별성, 지원금 대비 산출은 반드시 먼저 준비합니다",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 17,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "유치 0건, 차별성, 지원금 대비 산출은 반드시 먼저 준비합니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "유치 0건, 차별성, 지원금 대비 산출은 반드시 먼저 준비합니다",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "유치 0건, 차별성, 지원금 대비 산출은 반드시 먼저 준비합니다",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/e1cnulsf",
+      "id": "3",
+      "bbox": [
+        1180,
+        42,
+        46,
+        28
+      ],
+      "geometry": "rect",
+      "text": "22",
+      "textPreview": "22",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Malgun Gothic",
+        "color": "#7B8794",
+        "alignment": "right",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "22"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "22",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Malgun Gothic",
+            "color": "#7B8794",
+            "alignment": "right",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "22",
+              "fontSize": 13,
+              "typeface": "Malgun Gothic",
+              "color": "#7B8794",
+              "alignment": "right",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/psn6t0r2",
+      "id": "4",
+      "bbox": [
+        54,
+        144,
+        1172,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D9DEE5",
+      "lineWidth": 1.2
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/orep0vah",
+      "id": "5",
+      "bbox": [
+        70,
+        170,
+        28,
+        28
+      ],
+      "geometry": "rect",
+      "text": "Q",
+      "textPreview": "Q",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#2F80ED",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Q"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Q",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#2F80ED",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Q",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#2F80ED",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/365orq9w",
+      "id": "6",
+      "bbox": [
+        104,
+        168,
+        500,
+        34
+      ],
+      "geometry": "rect",
+      "text": "유치 실적이 0건인데 이 사업이 계속 지원받을 가치가 있습니까?",
+      "textPreview": "유치 실적이 0건인데 이 사업이 계속 지원받을 가치가 있습니까?",
+      "resolvedFontSize": 17.31,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.96,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "유치 실적이 0건인데 이 사업이 계속 지원받을 가치가 있습니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "유치 실적이 0건인데 이 사업이 계속 지원받을 가치가 있습니까?",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "유치 실적이 0건인데 이 사업이 계속 지원받을 가치가 있습니까?",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/25w7ylsb",
+      "id": "7",
+      "bbox": [
+        104,
+        204,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "0건은 인정합니다. 그러나 시험데이터를 제외한 실문의가 6건으로 아직 모수가 얇고, 그 6건은 의무기록 접수와 병원 검토까지 진행됐습니다. 잔여기간에는 환자군과 채널을 바꿔 전환 모수를 만드는 데 집중하겠습니다.",
+      "textPreview": "0건은 인정합니다. 그러나 시험데이터를 제외한 실문의가 6건으로 아직 모수가 얇고, 그 6건은 의무기록 접수와 병원 검토까지 진행됐습니다. 잔여기간에는 환자군과 채널을 바꿔 전환 모수를 만드는 데 집중하겠습니다.",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "0건은 인정합니다. 그러나 시험데이터를 제외한 실문의가 6건으로 아직 모수가"
+          },
+          {
+            "index": 2,
+            "text": "얇고, 그 6건은 의무기록 접수와 병원 검토까지 진행됐습니다. 잔여기간에는"
+          },
+          {
+            "index": 3,
+            "text": "환자군과 채널을 바꿔 전환 모수를 만드는 데 집중하겠습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "0건은 인정합니다. 그러나 시험데이터를 제외한 실문의가 6건으로 아직 모수가 얇고, 그 6건은 의무기록 접수와 병원 검토까지 진행됐습니다. 잔여기간에는 환자군과 채널을 바꿔 전환 모수를 만드는 데 집중하겠습니다.",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "0건은 인정합니다. 그러나 시험데이터를 제외한 실문의가 6건으로 아직 모수가 얇고, 그 6건은 의무기록 접수와 병원 검토까지 진행됐습니다. 잔여기간에는 환자군과 채널을 바꿔 전환 모수를 만드는 데 집중하겠습니다.",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/dw76xkry",
+      "id": "8",
+      "bbox": [
+        70,
+        330,
+        28,
+        28
+      ],
+      "geometry": "rect",
+      "text": "Q",
+      "textPreview": "Q",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#2F80ED",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Q"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Q",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#2F80ED",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Q",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#2F80ED",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cvep4fad",
+      "id": "9",
+      "bbox": [
+        104,
+        328,
+        500,
+        34
+      ],
+      "geometry": "rect",
+      "text": "기존 의료관광 에이전시와 무엇이 다릅니까?",
+      "textPreview": "기존 의료관광 에이전시와 무엇이 다릅니까?",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "기존 의료관광 에이전시와 무엇이 다릅니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "기존 의료관광 에이전시와 무엇이 다릅니까?",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "기존 의료관광 에이전시와 무엇이 다릅니까?",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/250zqho3",
+      "id": "10",
+      "bbox": [
+        104,
+        364,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "기존 에이전시는 송출 중심이지만 HEALO는 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과지표 집계까지 운영 데이터로 묶습니다. 사람 상담 기록을 AI 학습자료로 축적하는 점도 차별점입니다.",
+      "textPreview": "기존 에이전시는 송출 중심이지만 HEALO는 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과지표 집계까지 운영 데이터로 묶습니다. 사람 상담 기록을 AI 학습자료로 축적하는 점도 차별점입니다.",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "기존 에이전시는 송출 중심이지만 HEALO는 사전상담, 의무기록 번역, 원격협진,"
+          },
+          {
+            "index": 2,
+            "text": "사후관리, 성과지표 집계까지 운영 데이터로 묶습니다. 사람 상담 기록을 AI"
+          },
+          {
+            "index": 3,
+            "text": "학습자료로 축적하는 점도 차별점입니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "기존 에이전시는 송출 중심이지만 HEALO는 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과지표 집계까지 운영 데이터로 묶습니다. 사람 상담 기록을 AI 학습자료로 축적하는 점도 차별점입니다.",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "기존 에이전시는 송출 중심이지만 HEALO는 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과지표 집계까지 운영 데이터로 묶습니다. 사람 상담 기록을 AI 학습자료로 축적하는 점도 차별점입니다.",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3690z25o",
+      "id": "11",
+      "bbox": [
+        670,
+        170,
+        28,
+        28
+      ],
+      "geometry": "rect",
+      "text": "Q",
+      "textPreview": "Q",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#2F80ED",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Q"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Q",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#2F80ED",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Q",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#2F80ED",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/47ihs769",
+      "id": "12",
+      "bbox": [
+        704,
+        168,
+        500,
+        34
+      ],
+      "geometry": "rect",
+      "text": "지원금 7,000만원 대비 산출이 무엇입니까?",
+      "textPreview": "지원금 7,000만원 대비 산출이 무엇입니까?",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "지원금 7,000만원 대비 산출이 무엇입니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "지원금 7,000만원 대비 산출이 무엇입니까?",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "지원금 7,000만원 대비 산출이 무엇입니까?",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/p8ri1cnu",
+      "id": "13",
+      "bbox": [
+        704,
+        204,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 파일 213개 규모의 운영 시스템을 구축했습니다. 외주 개발비 없이 자체 구축했고, 보안과 AI 품질관리까지 포함했습니다.",
+      "textPreview": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 파일 213개 규모의 운영 시스템을 구축했습니다. 외주 개발비 없이 자체 구축했고, 보안과 AI 품질관리까지 포함했습니다.",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 파일"
+          },
+          {
+            "index": 2,
+            "text": "213개 규모의 운영 시스템을 구축했습니다. 외주 개발비 없이 자체 구축했고,"
+          },
+          {
+            "index": 3,
+            "text": "보안과 AI 품질관리까지 포함했습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 파일 213개 규모의 운영 시스템을 구축했습니다. 외주 개발비 없이 자체 구축했고, 보안과 AI 품질관리까지 포함했습니다.",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 파일 213개 규모의 운영 시스템을 구축했습니다. 외주 개발비 없이 자체 구축했고, 보안과 AI 품질관리까지 포함했습니다.",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q90zuh4z",
+      "id": "14",
+      "bbox": [
+        670,
+        330,
+        28,
+        28
+      ],
+      "geometry": "rect",
+      "text": "Q",
+      "textPreview": "Q",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#2F80ED",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Q"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Q",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#2F80ED",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Q",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#2F80ED",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ra903m5k",
+      "id": "15",
+      "bbox": [
+        704,
+        328,
+        500,
+        34
+      ],
+      "geometry": "rect",
+      "text": "사전상담 7건은 왜 목표 120건 대비 낮습니까?",
+      "textPreview": "사전상담 7건은 왜 목표 120건 대비 낮습니까?",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "사전상담 7건은 왜 목표 120건 대비 낮습니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "사전상담 7건은 왜 목표 120건 대비 낮습니까?",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "사전상담 7건은 왜 목표 120건 대비 낮습니까?",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cb2hwrm5",
+      "id": "16",
+      "bbox": [
+        704,
+        364,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "목표는 유치 12건에 대해 사전 5회와 사후 5회를 합산한 구조입니다. 유치가 아직 0건이므로 사후관리 실적도 0건이며, 현재는 실제 문의 6건에서 가능한 사전상담과 소견 전달만 집계했습니다.",
+      "textPreview": "목표는 유치 12건에 대해 사전 5회와 사후 5회를 합산한 구조입니다. 유치가 아직 0건이므로 사후관리 실적도 0건이며, 현재는 실제 문의 6건에서 가능한 사전상담과 소견 전달만 집계했습니다.",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "목표는 유치 12건에 대해 사전 5회와 사후 5회를 합산한 구조입니다. 유치가"
+          },
+          {
+            "index": 2,
+            "text": "아직 0건이므로 사후관리 실적도 0건이며, 현재는 실제 문의 6건에서 가능한"
+          },
+          {
+            "index": 3,
+            "text": "사전상담과 소견 전달만 집계했습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "목표는 유치 12건에 대해 사전 5회와 사후 5회를 합산한 구조입니다. 유치가 아직 0건이므로 사후관리 실적도 0건이며, 현재는 실제 문의 6건에서 가능한 사전상담과 소견 전달만 집계했습니다.",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "목표는 유치 12건에 대해 사전 5회와 사후 5회를 합산한 구조입니다. 유치가 아직 0건이므로 사후관리 실적도 0건이며, 현재는 실제 문의 6건에서 가능한 사전상담과 소견 전달만 집계했습니다.",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/dcbi5wnq",
+      "id": "17",
+      "bbox": [
+        54,
+        666,
+        880,
+        22
+      ],
+      "geometry": "rect",
+      "text": "자료 기준: 2026-08-31 실측 및 사용자 제공 근거",
+      "textPreview": "자료 기준: 2026-08-31 실측 및 사용자 제공 근거",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Malgun Gothic",
+        "color": "#7B8794",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "자료 기준: 2026-08-31 실측 및 사용자 제공 근거"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "자료 기준: 2026-08-31 실측 및 사용자 제공 근거",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Malgun Gothic",
+            "color": "#7B8794",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "자료 기준: 2026-08-31 실측 및 사용자 제공 근거",
+              "fontSize": 12,
+              "typeface": "Malgun Gothic",
+              "color": "#7B8794",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

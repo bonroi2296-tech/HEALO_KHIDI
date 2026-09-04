@@ -1,0 +1,792 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/lh0qn7",
+    "id": "lh0qn7",
+    "slide": 11,
+    "layoutId": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Malgun Gothic"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "9839a3f1-f048-43cd-bb5f-86d4a7b53b4e",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "1b8549e6-7ca8-43cd-88eb-f1ca0da6e472",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2dsnatkv",
+      "id": "1",
+      "bbox": [
+        54,
+        40,
+        1010,
+        64
+      ],
+      "geometry": "rect",
+      "text": "원격협진은 진료가 아닌 상담·정보제공 범위에서 실증했습니다",
+      "textPreview": "원격협진은 진료가 아닌 상담·정보제공 범위에서 실증했습니다",
+      "resolvedFontSize": 34,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 34,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "원격협진은 진료가 아닌 상담·정보제공 범위에서 실증했습니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "원격협진은 진료가 아닌 상담·정보제공 범위에서 실증했습니다",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 34,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "원격협진은 진료가 아닌 상담·정보제공 범위에서 실증했습니다",
+              "fontSize": 34,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/p0j6lo36",
+      "id": "2",
+      "bbox": [
+        56,
+        104,
+        1050,
+        32
+      ],
+      "geometry": "rect",
+      "text": "2027년 5월 시행 전까지 법적 표현을 분명히 구분합니다",
+      "textPreview": "2027년 5월 시행 전까지 법적 표현을 분명히 구분합니다",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 17,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "2027년 5월 시행 전까지 법적 표현을 분명히 구분합니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "2027년 5월 시행 전까지 법적 표현을 분명히 구분합니다",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "2027년 5월 시행 전까지 법적 표현을 분명히 구분합니다",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4za5c321",
+      "id": "3",
+      "bbox": [
+        1180,
+        42,
+        46,
+        28
+      ],
+      "geometry": "rect",
+      "text": "11",
+      "textPreview": "11",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Malgun Gothic",
+        "color": "#7B8794",
+        "alignment": "right",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "11"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "11",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Malgun Gothic",
+            "color": "#7B8794",
+            "alignment": "right",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "11",
+              "fontSize": 13,
+              "typeface": "Malgun Gothic",
+              "color": "#7B8794",
+              "alignment": "right",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fa14fel4",
+      "id": "4",
+      "bbox": [
+        54,
+        144,
+        1172,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D9DEE5",
+      "lineWidth": 1.2
+    },
+    {
+      "order": 5,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/zyhc3atg",
+      "id": "5",
+      "bbox": [
+        74,
+        178,
+        620,
+        350
+      ],
+      "geometry": "roundRect",
+      "alt": "2026년 8월 4일 원격협진 화상상담 캡처",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 1714"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "41a72440-ef7f-4c59-8b90-b53516b808d6",
+        "contentType": "image/png",
+        "byteLength": 1428901
+      }
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hcjmho3a",
+      "id": "6",
+      "bbox": [
+        735,
+        188,
+        390,
+        120
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#F8FAFC",
+      "lineColor": "#D9DEE5",
+      "lineWidth": 1
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gba58j2p",
+      "id": "7",
+      "bbox": [
+        757,
+        206,
+        346,
+        30
+      ],
+      "geometry": "rect",
+      "text": "현재 표현",
+      "textPreview": "현재 표현",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Malgun Gothic",
+        "color": "#287D3C",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "현재 표현"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "현재 표현",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Malgun Gothic",
+            "color": "#287D3C",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "현재 표현",
+              "fontSize": 21,
+              "typeface": "Malgun Gothic",
+              "color": "#287D3C",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/76h4bel8",
+      "id": "8",
+      "bbox": [
+        757,
+        244,
+        346,
+        48
+      ],
+      "geometry": "rect",
+      "text": "사전상담, 정보 제공, 치료 가능성 검토, 원격협진 시스템 실증",
+      "textPreview": "사전상담, 정보 제공, 치료 가능성 검토, 원격협진 시스템 실증",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "사전상담, 정보 제공, 치료 가능성 검토, 원격협진"
+          },
+          {
+            "index": 2,
+            "text": "시스템 실증"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "사전상담, 정보 제공, 치료 가능성 검토, 원격협진 시스템 실증",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "사전상담, 정보 제공, 치료 가능성 검토, 원격협진 시스템 실증",
+              "fontSize": 15,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/658n29kn",
+      "id": "9",
+      "bbox": [
+        735,
+        336,
+        390,
+        120
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#F8FAFC",
+      "lineColor": "#D9DEE5",
+      "lineWidth": 1
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gn6xgn2d",
+      "id": "10",
+      "bbox": [
+        757,
+        354,
+        346,
+        30
+      ],
+      "geometry": "rect",
+      "text": "피해야 할 표현",
+      "textPreview": "피해야 할 표현",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Malgun Gothic",
+        "color": "#B42318",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "피해야 할 표현"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "피해야 할 표현",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Malgun Gothic",
+            "color": "#B42318",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "피해야 할 표현",
+              "fontSize": 21,
+              "typeface": "Malgun Gothic",
+              "color": "#B42318",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/h8fe9sjy",
+      "id": "11",
+      "bbox": [
+        757,
+        392,
+        346,
+        48
+      ],
+      "geometry": "rect",
+      "text": "온라인 진료 제공, 원격진료 완료, 초진·처방 제공",
+      "textPreview": "온라인 진료 제공, 원격진료 완료, 초진·처방 제공",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Malgun Gothic",
+        "color": "#52606D",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "온라인 진료 제공, 원격진료 완료, 초진·처방 제공"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "온라인 진료 제공, 원격진료 완료, 초진·처방 제공",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Malgun Gothic",
+            "color": "#52606D",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "온라인 진료 제공, 원격진료 완료, 초진·처방 제공",
+              "fontSize": 15,
+              "typeface": "Malgun Gothic",
+              "color": "#52606D",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ulofedk7",
+      "id": "12",
+      "bbox": [
+        735,
+        508,
+        400,
+        54
+      ],
+      "geometry": "rect",
+      "text": "진료 주체는 유치의료기관 소속 의사이며, HEALO는 플랫폼·유치업자로 구분합니다.",
+      "textPreview": "진료 주체는 유치의료기관 소속 의사이며, HEALO는 플랫폼·유치업자로 구분합니다.",
+      "resolvedFontSize": 19.57,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Malgun Gothic",
+        "color": "#0A0A0A",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.93,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "진료 주체는 유치의료기관 소속 의사이며,"
+          },
+          {
+            "index": 2,
+            "text": "HEALO는 플랫폼·유치업자로 구분합니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "진료 주체는 유치의료기관 소속 의사이며, HEALO는 플랫폼·유치업자로 구분합니다.",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Malgun Gothic",
+            "color": "#0A0A0A",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "진료 주체는 유치의료기관 소속 의사이며, HEALO는 플랫폼·유치업자로 구분합니다.",
+              "fontSize": 21,
+              "typeface": "Malgun Gothic",
+              "color": "#0A0A0A",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fmxw7i1s",
+      "id": "13",
+      "bbox": [
+        54,
+        666,
+        880,
+        22
+      ],
+      "geometry": "rect",
+      "text": "근거: 의료해외진출법 개정 시행 전 법령상 표현 제한",
+      "textPreview": "근거: 의료해외진출법 개정 시행 전 법령상 표현 제한",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Malgun Gothic",
+        "color": "#7B8794",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "근거: 의료해외진출법 개정 시행 전 법령상 표현 제한"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "근거: 의료해외진출법 개정 시행 전 법령상 표현 제한",
+          "lineSpacingPercent": 115000,
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Malgun Gothic",
+            "color": "#7B8794",
+            "alignment": "left",
+            "lineSpacing": 1.15
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "근거: 의료해외진출법 개정 시행 전 법령상 표현 제한",
+              "fontSize": 12,
+              "typeface": "Malgun Gothic",
+              "color": "#7B8794",
+              "alignment": "left",
+              "lineSpacing": 1.15
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

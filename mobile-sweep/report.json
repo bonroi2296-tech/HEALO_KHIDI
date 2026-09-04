@@ -1,0 +1,135 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/treatments",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/hospitals",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/telemedicine",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/visa",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 ()",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/insurance",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/stories",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/search",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/login",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/signup",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/forgot-password",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/inquiry",
+    "status": 200,
+    "problems": [],
+    "errors": []
+  },
+  {
+    "route": "/partners",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/terms",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  },
+  {
+    "route": "/privacy",
+    "status": 200,
+    "problems": [],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+    ]
+  }
+]

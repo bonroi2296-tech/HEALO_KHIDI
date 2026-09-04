@@ -1,0 +1,853 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/wmdtp0",
+    "id": "wmdtp0",
+    "slide": 15,
+    "layoutId": "89fc02b7-30bd-49a8-be47-eaeaf0383eda",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Malgun Gothic"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "89fc02b7-30bd-49a8-be47-eaeaf0383eda",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ad0zetof",
+      "id": "1",
+      "bbox": [
+        64,
+        48,
+        1030,
+        58
+      ],
+      "geometry": "rect",
+      "text": "가장 어려운 질문은 먼저 답합니다",
+      "textPreview": "가장 어려운 질문은 먼저 답합니다",
+      "resolvedFontSize": 34,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 34,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "가장 어려운 질문은 먼저 답합니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "가장 어려운 질문은 먼저 답합니다",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 34,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "가장 어려운 질문은 먼저 답합니다",
+              "fontSize": 34,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/x0ripon6",
+      "id": "2",
+      "bbox": [
+        66,
+        112,
+        900,
+        28
+      ],
+      "geometry": "rect",
+      "text": "길게 변명하지 않고, 인정 후 계획으로 연결합니다",
+      "textPreview": "길게 변명하지 않고, 인정 후 계획으로 연결합니다",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 17,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "길게 변명하지 않고, 인정 후 계획으로 연결합니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "길게 변명하지 않고, 인정 후 계획으로 연결합니다",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "길게 변명하지 않고, 인정 후 계획으로 연결합니다",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wzihg36l",
+      "id": "3",
+      "bbox": [
+        1172,
+        54,
+        44,
+        24
+      ],
+      "geometry": "rect",
+      "text": "15",
+      "textPreview": "15",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "right",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "15"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "15",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "right",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "15",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "right",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/j2t0ry5c",
+      "id": "4",
+      "bbox": [
+        64,
+        156,
+        1152,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/y1kzitor",
+      "id": "5",
+      "bbox": [
+        110,
+        210,
+        450,
+        42
+      ],
+      "geometry": "rect",
+      "text": "유치 0건인데 계속 지원 가치가 있습니까?",
+      "textPreview": "유치 0건인데 계속 지원 가치가 있습니까?",
+      "resolvedFontSize": 23,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 23,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "유치 0건인데 계속 지원 가치가 있습니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "유치 0건인데 계속 지원 가치가 있습니까?",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 23,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "유치 0건인데 계속 지원 가치가 있습니까?",
+              "fontSize": 23,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/l4bit8n2",
+      "id": "6",
+      "bbox": [
+        650,
+        210,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "0건은 인정합니다. 다만 실문의 6건에서 의무기록 접수와 의료진 검토까지 운영 흐름을 검증했고, 남은 기간에는 환자군·채널·보험 장벽을 조정해 전환 가능한 모수를 만들겠습니다.",
+      "textPreview": "0건은 인정합니다. 다만 실문의 6건에서 의무기록 접수와 의료진 검토까지 운영 흐름을 검증했고, 남은 기간에는 환자군·채널·보험 장벽을 조정해 전환 가능한 모수를 만들겠습니다.",
+      "resolvedFontSize": 14.38,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.8,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "0건은 인정합니다. 다만 실문의 6건에서 의무기록 접수와 의료진 검토까지"
+          },
+          {
+            "index": 2,
+            "text": "운영 흐름을 검증했고, 남은 기간에는 환자군·채널·보험 장벽을 조정해 전환"
+          },
+          {
+            "index": 3,
+            "text": "가능한 모수를 만들겠습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "0건은 인정합니다. 다만 실문의 6건에서 의무기록 접수와 의료진 검토까지 운영 흐름을 검증했고, 남은 기간에는 환자군·채널·보험 장벽을 조정해 전환 가능한 모수를 만들겠습니다.",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "0건은 인정합니다. 다만 실문의 6건에서 의무기록 접수와 의료진 검토까지 운영 흐름을 검증했고, 남은 기간에는 환자군·채널·보험 장벽을 조정해 전환 가능한 모수를 만들겠습니다.",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/k32hk36x",
+      "id": "7",
+      "bbox": [
+        110,
+        298,
+        1040,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 1
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/z6pgfeps",
+      "id": "8",
+      "bbox": [
+        110,
+        355,
+        450,
+        42
+      ],
+      "geometry": "rect",
+      "text": "기존 에이전시와 무엇이 다릅니까?",
+      "textPreview": "기존 에이전시와 무엇이 다릅니까?",
+      "resolvedFontSize": 23,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 23,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "기존 에이전시와 무엇이 다릅니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "기존 에이전시와 무엇이 다릅니까?",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 23,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "기존 에이전시와 무엇이 다릅니까?",
+              "fontSize": 23,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/e5gz69o7",
+      "id": "9",
+      "bbox": [
+        650,
+        355,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "일회성 송출 중개가 아니라 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과집계를 하나의 운영 데이터로 묶습니다.",
+      "textPreview": "일회성 송출 중개가 아니라 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과집계를 하나의 운영 데이터로 묶습니다.",
+      "resolvedFontSize": 17.75,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.99,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "일회성 송출 중개가 아니라 사전상담, 의무기록 번역, 원격협진,"
+          },
+          {
+            "index": 2,
+            "text": "사후관리, 성과집계를 하나의 운영 데이터로 묶습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "일회성 송출 중개가 아니라 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과집계를 하나의 운영 데이터로 묶습니다.",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "일회성 송출 중개가 아니라 사전상담, 의무기록 번역, 원격협진, 사후관리, 성과집계를 하나의 운영 데이터로 묶습니다.",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0nm5kvah",
+      "id": "10",
+      "bbox": [
+        110,
+        443,
+        1040,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 1
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/lov6t0b2",
+      "id": "11",
+      "bbox": [
+        110,
+        500,
+        450,
+        42
+      ],
+      "geometry": "rect",
+      "text": "지원금 대비 산출이 무엇입니까?",
+      "textPreview": "지원금 대비 산출이 무엇입니까?",
+      "resolvedFontSize": 23,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 23,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "지원금 대비 산출이 무엇입니까?"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "지원금 대비 산출이 무엇입니까?",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 23,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "지원금 대비 산출이 무엇입니까?",
+              "fontSize": 23,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/y14nilsr",
+      "id": "12",
+      "bbox": [
+        650,
+        500,
+        500,
+        58
+      ],
+      "geometry": "rect",
+      "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 213개 규모의 운영 시스템을 자체 개발했습니다.",
+      "textPreview": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 213개 규모의 운영 시스템을 자체 개발했습니다.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개,"
+          },
+          {
+            "index": 2,
+            "text": "테스트 213개 규모의 운영 시스템을 자체 개발했습니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 213개 규모의 운영 시스템을 자체 개발했습니다.",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "20.7만 LOC, API 229개, 화면 140개, DB 마이그레이션 159개, 테스트 213개 규모의 운영 시스템을 자체 개발했습니다.",
+              "fontSize": 18,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/z2dorqtc",
+      "id": "13",
+      "bbox": [
+        110,
+        588,
+        1040,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 1
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8r65ofat",
+      "id": "14",
+      "bbox": [
+        64,
+        666,
+        800,
+        20
+      ],
+      "geometry": "rect",
+      "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+      "textPreview": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+      "resolvedFontSize": 11,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 11,
+        "typeface": "Malgun Gothic",
+        "color": "#8290A2",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "기준: 2026-08-31 실측 및 사용자 제공 자료"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 11,
+            "typeface": "Malgun Gothic",
+            "color": "#8290A2",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+              "fontSize": 11,
+              "typeface": "Malgun Gothic",
+              "color": "#8290A2",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

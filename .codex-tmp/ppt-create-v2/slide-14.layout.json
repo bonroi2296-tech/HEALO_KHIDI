@@ -1,0 +1,959 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/yq3q90",
+    "id": "yq3q90",
+    "slide": 14,
+    "layoutId": "89fc02b7-30bd-49a8-be47-eaeaf0383eda",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Malgun Gothic"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "89fc02b7-30bd-49a8-be47-eaeaf0383eda",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "0cce02b2-87f9-47a1-a292-7d410be96a6a",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7uhkne5c",
+      "id": "1",
+      "bbox": [
+        64,
+        48,
+        1030,
+        58
+      ],
+      "geometry": "rect",
+      "text": "계속 지원의 근거는 ‘완료된 기반’과 ‘수정된 실행계획’입니다",
+      "textPreview": "계속 지원의 근거는 ‘완료된 기반’과 ‘수정된 실행계획’입니다",
+      "resolvedFontSize": 34,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 34,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "계속 지원의 근거는 ‘완료된 기반’과 ‘수정된 실행계획’입니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "계속 지원의 근거는 ‘완료된 기반’과 ‘수정된 실행계획’입니다",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 34,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "계속 지원의 근거는 ‘완료된 기반’과 ‘수정된 실행계획’입니다",
+              "fontSize": 34,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/svqlwj6x",
+      "id": "2",
+      "bbox": [
+        66,
+        112,
+        900,
+        28
+      ],
+      "geometry": "rect",
+      "text": "유치 실적 0건 자체를 부정하지 않습니다",
+      "textPreview": "유치 실적 0건 자체를 부정하지 않습니다",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 17,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "유치 실적 0건 자체를 부정하지 않습니다"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "유치 실적 0건 자체를 부정하지 않습니다",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 17,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "유치 실적 0건 자체를 부정하지 않습니다",
+              "fontSize": 17,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/twz2pon2",
+      "id": "3",
+      "bbox": [
+        1172,
+        54,
+        44,
+        24
+      ],
+      "geometry": "rect",
+      "text": "14",
+      "textPreview": "14",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Malgun Gothic",
+        "color": "#6B7280",
+        "alignment": "right",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "14"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "14",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Malgun Gothic",
+            "color": "#6B7280",
+            "alignment": "right",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "14",
+              "fontSize": 14,
+              "typeface": "Malgun Gothic",
+              "color": "#6B7280",
+              "alignment": "right",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/i5o3q9of",
+      "id": "4",
+      "bbox": [
+        64,
+        156,
+        1152,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jqxkje50",
+      "id": "5",
+      "bbox": [
+        115,
+        220,
+        340,
+        40
+      ],
+      "geometry": "rect",
+      "text": "완료된 기반",
+      "textPreview": "완료된 기반",
+      "resolvedFontSize": 29.76,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 30,
+        "typeface": "Malgun Gothic",
+        "color": "#287D3C",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.99,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "완료된 기반"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "완료된 기반",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 30,
+            "typeface": "Malgun Gothic",
+            "color": "#287D3C",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "완료된 기반",
+              "fontSize": 30,
+              "typeface": "Malgun Gothic",
+              "color": "#287D3C",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kr6lsj6l",
+      "id": "6",
+      "bbox": [
+        115,
+        285,
+        360,
+        170
+      ],
+      "geometry": "rect",
+      "text": "플랫폼 구축\n6개 언어\n원격협진 실증\n의료진 소견 전달\n파트너 접점",
+      "textPreview": "플랫폼 구축 | 6개 언어 | 원격협진 실증 | 의료진 소견 전달 | 파트너 접점",
+      "resolvedFontSize": 22.14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 26,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.85,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 5,
+        "lines": [
+          {
+            "index": 1,
+            "text": "플랫폼 구축"
+          },
+          {
+            "index": 2,
+            "text": "6개 언어"
+          },
+          {
+            "index": 3,
+            "text": "원격협진 실증"
+          },
+          {
+            "index": 4,
+            "text": "의료진 소견 전달"
+          },
+          {
+            "index": 5,
+            "text": "파트너 접점"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "플랫폼 구축",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "플랫폼 구축",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "6개 언어",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "6개 언어",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 3,
+          "text": "원격협진 실증",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "원격협진 실증",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 4,
+          "text": "의료진 소견 전달",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "의료진 소견 전달",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 5,
+          "text": "파트너 접점",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "파트너 접점",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5sf2l4n6",
+      "id": "7",
+      "bbox": [
+        620,
+        210,
+        0,
+        285
+      ],
+      "geometry": "line",
+      "lineColor": "#D8DEE8",
+      "lineWidth": 2
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/a143mpoj",
+      "id": "8",
+      "bbox": [
+        730,
+        220,
+        360,
+        40
+      ],
+      "geometry": "rect",
+      "text": "수정된 실행계획",
+      "textPreview": "수정된 실행계획",
+      "resolvedFontSize": 29.76,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 30,
+        "typeface": "Malgun Gothic",
+        "color": "#2563EB",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.99,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "수정된 실행계획"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "수정된 실행계획",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 30,
+            "typeface": "Malgun Gothic",
+            "color": "#2563EB",
+            "bold": true,
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "수정된 실행계획",
+              "fontSize": 30,
+              "typeface": "Malgun Gothic",
+              "color": "#2563EB",
+              "bold": true,
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/v2dkfu54",
+      "id": "9",
+      "bbox": [
+        730,
+        285,
+        380,
+        170
+      ],
+      "geometry": "rect",
+      "text": "환자군 재설정\n직접 유입 확대\n보험 채널 보완\n사후관리 실증\n성과 증빙 정리",
+      "textPreview": "환자군 재설정 | 직접 유입 확대 | 보험 채널 보완 | 사후관리 실증 | 성과 증빙 정리",
+      "resolvedFontSize": 22.14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 26,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 0.85,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 5,
+        "lines": [
+          {
+            "index": 1,
+            "text": "환자군 재설정"
+          },
+          {
+            "index": 2,
+            "text": "직접 유입 확대"
+          },
+          {
+            "index": 3,
+            "text": "보험 채널 보완"
+          },
+          {
+            "index": 4,
+            "text": "사후관리 실증"
+          },
+          {
+            "index": 5,
+            "text": "성과 증빙 정리"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "환자군 재설정",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "환자군 재설정",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "직접 유입 확대",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "직접 유입 확대",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 3,
+          "text": "보험 채널 보완",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "보험 채널 보완",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 4,
+          "text": "사후관리 실증",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "사후관리 실증",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 5,
+          "text": "성과 증빙 정리",
+          "lineSpacingPercent": 128000,
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "alignment": "left",
+            "lineSpacing": 1.28
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "성과 증빙 정리",
+              "fontSize": 26,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "alignment": "left",
+              "lineSpacing": 1.28
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/j6p8fap8",
+      "id": "10",
+      "bbox": [
+        110,
+        558,
+        1060,
+        42
+      ],
+      "geometry": "rect",
+      "text": "잔여기간 지원은 구축비가 아니라 유치 전환 검증비로 설명해야 합니다.",
+      "textPreview": "잔여기간 지원은 구축비가 아니라 유치 전환 검증비로 설명해야 합니다.",
+      "resolvedFontSize": 25,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 25,
+        "typeface": "Malgun Gothic",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "shrinkText",
+        "autoFitScale": 1,
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "잔여기간 지원은 구축비가 아니라 유치 전환 검증비로 설명해야 합니다."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "잔여기간 지원은 구축비가 아니라 유치 전환 검증비로 설명해야 합니다.",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 25,
+            "typeface": "Malgun Gothic",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "center",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "잔여기간 지원은 구축비가 아니라 유치 전환 검증비로 설명해야 합니다.",
+              "fontSize": 25,
+              "typeface": "Malgun Gothic",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "center",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/i5g76p8n",
+      "id": "11",
+      "bbox": [
+        64,
+        666,
+        800,
+        20
+      ],
+      "geometry": "rect",
+      "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+      "textPreview": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+      "resolvedFontSize": 11,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 11,
+        "typeface": "Malgun Gothic",
+        "color": "#8290A2",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "wrap": "square",
+        "autoFit": "none",
+        "insets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "기준: 2026-08-31 실측 및 사용자 제공 자료"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+          "lineSpacingPercent": 112000,
+          "resolvedTextStyle": {
+            "fontSize": 11,
+            "typeface": "Malgun Gothic",
+            "color": "#8290A2",
+            "alignment": "left",
+            "lineSpacing": 1.12
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "기준: 2026-08-31 실측 및 사용자 제공 자료",
+              "fontSize": 11,
+              "typeface": "Malgun Gothic",
+              "color": "#8290A2",
+              "alignment": "left",
+              "lineSpacing": 1.12
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}
