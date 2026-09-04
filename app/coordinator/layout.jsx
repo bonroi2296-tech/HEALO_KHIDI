@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
-  Settings, MessageSquarePlus, ArrowLeft,
+  Settings, MessageSquarePlus, ArrowLeft, Mic,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
@@ -27,6 +27,8 @@ const NAV_ITEMS = [
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
   // 인테이크 메뉴 제거(2026-07-15 PO): 상담 일정과 중복 + '의사 배정' 노-옵이라 상담 일정으로 통합.
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
+  // 왓츠앱·텔레그램으로 받은 음성을 «문의를 만들기 전에» 듣지 않고 읽는 자리(2026-09-04 PO).
+  { id: 'voice', labelKey: 'navVoice', label: '음성 정리', icon: Mic, href: '/coordinator/voice' },
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
