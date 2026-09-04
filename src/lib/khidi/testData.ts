@@ -122,10 +122,9 @@ export function resolveTestDomains(): string[] {
   //   그래서 사후 그물이 아니라 «만드는 시점»에서 막아야 한다.
   //   healo-test.invalid 는 이미 이 저장소가 내부 전용으로 쓰는 도메인이다
   //   (scripts/dev-login-as.mjs 의 허용 목록과 같은 뜻).
-  //   🛑 여기(공용 목록)에 우리 회사 도메인(healwith.co.kr)을 넣지 마라 — 2026-08-19 독립 리뷰:
-  //   이 목록은 «로그인 계정(accountEmail)»에도, 야간 감사(findTestPollutedInquiryIds)에도 쓰인다.
-  //   코디가 자기 계정(@healwith.co.kr)으로 넣은 «진짜 환자 문의»가 전부 시험이 되고, 야간 감사가
-  //   지난 것까지 소급해 뒤집는다. 회사 도메인은 아래 OWN_COMPANY_DOMAINS 로 «환자가 적은 연락 이메일»에만.
+  //   🛑 여기에 우리 회사 도메인(healwith.co.kr)을 넣지 마라. 코디·PO 가 환자를 대신해 그 주소로
+  //   대리 접수하기 때문에, 넣으면 «진짜 환자 문의»가 통째로 시험이 되고 야간 감사가 지난 것까지
+  //   소급해 뒤집는다(2026-09-04 실측: #291·#302 가 그렇게 걸렸다. 위 detectInquiryIsTest 주석 참고).
   return fromEnv.length > 0 ? fromEnv : ["test.com", "healo-test.invalid"];
 }
 
