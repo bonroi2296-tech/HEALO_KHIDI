@@ -190,10 +190,11 @@ export default async function RootLayout({ children }) {
   // (2026-09-04 실측: 의뢰서 카드 라벨이 「Date of Birth」·「MEDICAL HISTORY & MEDICATIONS」,
   //  서류 종류가 「Other document」. 사전을 거치는 문구만 그랬고 화면 대부분은 멀쩡해서
   //  「가끔 영어가 섞인다」로만 보였다).
-  // 쿠키가 «없을 때»도 백오피스는 ko 로 도므로(useBackofficeLang 의 기본값) ko 를 채워 넣는다 —
-  // 안 그러면 스위처를 한 번도 안 만진 사람이 계속 영어를 본다.
+  // 🛑 쿠키가 «있을 때만» 더한다. 사전 하나가 100KB 라(2026-09-04 실측: 첫 화면 HTML 392KB 중
+  //    100KB) 없을 때 ko 를 기본으로 얹으면 러시아 환자까지 한국어 사전 100KB 를 받는다.
+  //    쿠키는 백오피스 레이아웃이 첫 진입에 심는다(app/coordinator·admin layout).
   const boCookie = (await cookies()).get("healo_bo_lang")?.value;
-  const boLang = LANG_OPTIONS.some((l) => l.code === boCookie) ? boCookie : "ko";
+  const boLang = LANG_OPTIONS.some((l) => l.code === boCookie) ? boCookie : null;
   const clientLangs = [lang, dictCookieLang, boLang]
     .filter((v, i, a) => v && a.indexOf(v) === i);
 
