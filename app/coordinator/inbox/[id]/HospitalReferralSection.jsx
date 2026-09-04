@@ -89,10 +89,6 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
       const rows = [values.phone && `Mobile: ${values.phone}`, values.email && `E-mail: ${values.email}`];
       return rows.filter(Boolean).join("\n");
     }
-    if (field === "attachmentList") {
-      if (!attachments.length) return "";
-      return attachments.map((a) => a?.name).filter(Boolean).join("\n");
-    }
     const v = values[field];
     return isBlank(v) ? "" : String(v);
   }
@@ -102,7 +98,7 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
   const showRaw = pick === "raw";
   const target = showRaw ? (form?.contentLang || "ko") : pick;
   // 옮길 값 — 이미 그 말인 것, 이름·파일 목록·날짜처럼 옮길 것이 없는 칸은 뺀다.
-  const NO_TRANSLATE = new Set(["patientName", "birthDate", "onsetDate", "diagnosisDate", "contact", "attachmentList", "nationality", "sex"]);
+  const NO_TRANSLATE = new Set(["patientName", "birthDate", "onsetDate", "diagnosisDate", "contact", "nationality", "sex"]);
   const rawRows = form ? form.rows.map((r) => ({ ...r, raw: valueOf(r.field) })) : [];
   const needTr = rawRows
     .filter((r) => r.raw && !NO_TRANSLATE.has(r.field))
@@ -118,11 +114,23 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.id, showRaw, needTr.join("|"), target, translate]);
 
-  const rows = rawRows.map((r) => ({
-    ...r,
-    value: !showRaw && r.raw && (tmap[target] || {})[r.raw.trim()] ? tmap[target][r.raw.trim()] : r.raw,
-    wasTranslated: !!(!showRaw && r.raw && (tmap[target] || {})[r.raw.trim()]),
-  }));
+  // 첨부 파일 이름 — 번역하지 않는다(옮기면 병원이 메일에서 그 파일을 못 찾는다).
+  const fileList = attachments.map((a) => a?.name).filter(Boolean).join("
+");
+  const filesLabel = target === "en" ? "Attached files:" : "첨부 파일:";
+
+  const rows = rawRows.map((r) => {
+    const tr = !showRaw && r.raw ? (tmap[target] || {})[r.raw.trim()] : null;
+    let value = tr || r.raw;
+    // withFiles 칸은 «설명 + 파일 목록»이다. 설명이 없으면 파일 목록만 나온다.
+    // 🛑 파일 이름만 넣던 자리다(2026-09-04 PO: 「검사 결과도 파일만 첨부할 게 아니라
+    //    설명을 해줘야지」). 설명을 빼지 마라 — 병원은 파일을 열기 «전»에 이 칸을 읽는다.
+    if (r.withFiles && fileList) value = value ? `${value}
+
+${filesLabel}
+${fileList}` : fileList;
+    return { ...r, value, wasTranslated: !!tr };
+  });
   const emptyCount = rows.filter((r) => !r.value).length;
   const trCount = rows.filter((r) => r.wasTranslated).length;
 
