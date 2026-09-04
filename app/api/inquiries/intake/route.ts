@@ -119,10 +119,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 「없는 문의」와 「토큰 불일치」를 같은 답으로 — 다르게 답하면 문의 ID 존재 여부가 샌다.
     if (!row) {
       return Response.json(
-        { ok: false, error: "inquiry_not_found" },
-        { status: 404 }
+        { ok: false, error: "invalid_public_token" },
+        { status: 403 }
       );
     }
 

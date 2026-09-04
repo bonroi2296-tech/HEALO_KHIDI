@@ -24,10 +24,21 @@ import { pathAuthorized } from "@/lib/security/attachmentAuth";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { withDownloadName } from "@/lib/documents/sharedDocMeta";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
   try {
+    // 공개(비회원) 토큰으로도 닿는 경로인데 이 라우트만 상한이 없었다 (2026-09-04 감사:
+    // 공개 도달 가능한 7개 중 유일하게 빠져 있었다). 다른 공개 라우트와 같은 DB 공유 카운터를 쓴다.
+    const clientIp = getClientIp(request);
+    const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.ATTACHMENT_SIGN);
+    if (!rl.allowed) {
+      return Response.json(
+        { ok: false, error: "rate_limited" },
+        { status: 429, headers: getRateLimitHeaders(rl) }
+      );
+    }
     const body = await request.json().catch(() => ({}));
     const inquiryId = body?.inquiryId != null ? (typeof body.inquiryId === "string" ? body.inquiryId : String(body.inquiryId)) : null;
     const path = body?.path ? String(body.path) : null;
@@ -122,11 +133,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 🛑 「없는 문의」와 「토큰 불일치」를 다르게 답하면 안 된다 — 문의 ID 가 순차라 1번부터
+    //    훑으면 «어느 번호에 문의가 있는지»가 세어진다(= 접수 건수가 샌다).
+    //    inquiries/claim 은 이미 전부 같은 답으로 통일해 뒀는데 여기만 갈라져 있었다.
     if (!inquiryData) {
-      console.error("[api/attachments/sign] inquiry not found:", inquiryId);
       return Response.json(
-        { ok: false, error: "inquiry_not_found" },
-        { status: 404 }
+        { ok: false, error: "invalid_public_token" },
+        { status: 403 }
       );
     }
 
@@ -142,7 +155,9 @@ export async function POST(request: NextRequest) {
 
     const ok = pathAuthorized(path, inquiryData.attachments ?? []);
     if (!ok) {
-      console.error("[api/attachments/sign] path not authorized:", { attachments: inquiryData.attachments, requestedPath: path });
+      // ⚠️ attachments 를 통째로 찍으면 «파일 이름»이 로그에 남는다 — 실제로 환자 이름·병명이
+      //    든 이름이 올라온다(「История болезни.docx」). 진단에 필요한 건 개수뿐이다.
+      console.error("[api/attachments/sign] path not authorized:", { attachmentCount: Array.isArray(inquiryData.attachments) ? inquiryData.attachments.length : 0 });
       return Response.json(
         { ok: false, error: "path_not_authorized" },
         { status: 403 }

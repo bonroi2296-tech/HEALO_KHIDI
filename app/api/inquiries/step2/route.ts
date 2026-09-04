@@ -101,8 +101,9 @@ export async function POST(request: NextRequest) {
         }
       | null;
 
+    // 「없는 문의」와 「토큰 불일치」를 같은 답으로 — 다르게 답하면 문의 ID 존재 여부가 샌다.
     if (fetchErr || !existing) {
-      return Response.json({ ok: false, error: "inquiry_not_found" }, { status: 404 });
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
 
     // IDOR 방지: 토큰 불일치면 거부 (남의 문의 변조 차단)
