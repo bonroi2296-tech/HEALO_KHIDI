@@ -18,6 +18,8 @@ import PushOptInBanner from '../_components/PushOptInBanner';
 // 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
 const NAV_ITEMS = [
   { id: 'dashboard', labelKey: 'navDashboard', icon: LayoutDashboard, href: '/coordinator' },
+  // 왓츠앱·텔레그램으로 받은 음성을 «문의를 만들기 전에» 듣지 않고 읽는 자리(2026-09-04 PO).
+  { id: 'voice', labelKey: 'navVoice', label: '음성 정리', icon: Mic, href: '/coordinator/voice' },
   { id: 'inbox', labelKey: 'navInbox', icon: Inbox, href: '/coordinator/inbox' },
   { id: 'chat', labelKey: 'navChat', icon: Bot, href: '/coordinator/chat' },
   { id: 'cases', labelKey: 'navCases', icon: Building2, href: '/coordinator/cases' },
@@ -27,8 +29,6 @@ const NAV_ITEMS = [
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
   // 인테이크 메뉴 제거(2026-07-15 PO): 상담 일정과 중복 + '의사 배정' 노-옵이라 상담 일정으로 통합.
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
-  // 왓츠앱·텔레그램으로 받은 음성을 «문의를 만들기 전에» 듣지 않고 읽는 자리(2026-09-04 PO).
-  { id: 'voice', labelKey: 'navVoice', label: '음성 정리', icon: Mic, href: '/coordinator/voice' },
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
