@@ -20,7 +20,7 @@ import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { containsKorean, detectLanguage } from "@/lib/translate";
+import { detectLanguage } from "@/lib/translate";
 
 const MODEL = "gemini-flash-latest";
 const TARGET_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
@@ -41,6 +41,23 @@ export function isNoteTargetLang(v: unknown): v is NoteTargetLang {
 
 function sha256(s: string): string {
   return createHash("sha256").update(s, "utf8").digest("hex");
+}
+
+/**
+ * 이미 우리말인가 — «비율»로 본다.
+ *
+ * 🛑 `containsKorean`(한 글자라도 한글이면 참)으로 되돌리지 마라. 서류 판독기가 러시아어 원문을
+ *    옮겨 적다가 한글을 한두 글자 섞어 놓는 일이 실제로 있다. 2026-09-04 실측: 검사 소견
+ *    4,217자 안에 「Гепа토мегалия」가 있었고, 그 한 글자 때문에 소견 전체가 «이미 한국어»로
+ *    분류돼 번역 목록에서 통째로 빠졌다. 창구는 200 을 주고 다른 6건은 다 번역되니 아무도
+ *    실패를 몰랐고, 러시아어 그대로 세브란스 의뢰서에 실릴 뻔했다.
+ *    같은 함정이 화면 쪽(HospitalReferralSection)에도 있었다 — 두 곳 다 고쳤다.
+ */
+function isMostlyKorean(s: string): boolean {
+  const ko = (s.match(/[가-힣]/g) || []).length;
+  if (!ko) return false;
+  const letters = [...s].filter((c) => !/\s/.test(c)).length;
+  return ko * 3 >= letters;
 }
 
 function getModel() {
@@ -69,7 +86,7 @@ export async function translateNotes(
       (texts || [])
         .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
         .map((t) => t.trim())
-        .filter((t) => (lang === "ko" ? !containsKorean(t) : detectLanguage(t) !== lang)),
+        .filter((t) => (lang === "ko" ? !isMostlyKorean(t) : detectLanguage(t) !== lang)),
     ),
   );
   if (uniq.length === 0) return {};
