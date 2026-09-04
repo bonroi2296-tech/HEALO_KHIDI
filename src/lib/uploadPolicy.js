@@ -26,14 +26,28 @@ export const UPLOAD_POLICY = {
   // 🛑 DICOM 은 «확장자가 없는» 경우가 흔하다. 2026-08-18 실측(환자 CD 601개): 파일 이름이
   //    Z01·Z02… 로 확장자가 아예 없었고, 128바이트째에 "DICM" 이 있어야 DICOM 이다.
   //    그래서 확장자·브라우저 형식만 믿으면 안 되고, 서버의 앞머리 검사(fileMagic)가 진짜 문지기다.
+  // 🔊 음성·텍스트도 받는다(2026-09-02 PO 지시). 환자가 증상을 글로 적기 어려울 때 음성 메모를
+  //    보내는 경로가 실제로 있다(왓즈앱·텔레그램 음성은 ogg, 아이폰 음성 메모는 m4a, 구형 안드로이드는 amr).
+  //    ⚠️ 여기 «별칭»(audio/x-m4a 등)도 함께 적는 이유: 화면 검사(checkFile)는 브라우저가 준
+  //    file.type 을 그대로 보기 때문이다. 서버로 갈 때는 normalizeMime 이 대표 이름 하나로 모은다
+  //    — 안 모으면 sign 은 통과하고 앞머리 검사가 지워서 「올렸는데 사라짐」이 된다.
   medicalDoc: {
-    exts: ["PDF", "JPG", "PNG", "WebP", "Word", "DICOM"],
-    accept: ".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.dcm,application/pdf,image/jpeg,image/png,image/gif,image/webp,application/dicom",
+    exts: ["PDF", "JPG", "PNG", "WebP", "Word", "DICOM", "MP3", "M4A", "TXT"],
+    accept: ".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.dcm,.mp3,.m4a,.wav,.ogg,.oga,.opus,.webm,.amr,.txt,application/pdf,image/jpeg,image/png,image/gif,image/webp,application/dicom,audio/*,text/plain",
     mimes: [
       "application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/dicom",
+      // 음성 — 앞이 대표 이름, 뒤는 브라우저가 대신 보내는 별칭.
+      "audio/mpeg",
+      "audio/mp4", "audio/x-m4a", "audio/m4a",
+      "audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave",
+      "audio/ogg", "audio/opus",
+      "audio/webm",
+      "audio/amr", "audio/3gpp",
+      // 텍스트 메모
+      "text/plain",
     ],
     maxBytes: MAX_DOC_BYTES,
   },
