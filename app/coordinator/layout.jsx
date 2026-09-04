@@ -29,6 +29,8 @@ const NAV_ITEMS = [
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
   // 인테이크 메뉴 제거(2026-07-15 PO): 상담 일정과 중복 + '의사 배정' 노-옵이라 상담 일정으로 통합.
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
+  // (여기 있던 「음성 정리」는 대시보드 밑으로 옮겼다 — 2026-09-04 PO: 「음성 정리를 대시보드 밑으로
+  //  올려줘. 문의함 위에」. 본판과 이 작업본이 각자 이 줄을 넣어 합칠 때 두 개가 됐었다.)
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
