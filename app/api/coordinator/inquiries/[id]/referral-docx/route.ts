@@ -24,7 +24,6 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
