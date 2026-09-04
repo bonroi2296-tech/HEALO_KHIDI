@@ -163,7 +163,13 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
         body: JSON.stringify({ fields: { [editField]: v }, from: { [editField]: "코디 입력" } }),
       });
       const j = await res.json();
-      if (!j?.ok || !j.filled?.length) throw new Error(j?.error || "failed");
+      if (!j?.ok) throw new Error(j?.error || "failed");
+      // ⚠️ filled 가 비어도 «실패»가 아니다 — 그 사이 다른 사람이 같은 칸을 채웠으면
+      //    창구가 「이미 있음」으로 건너뛰고 skipped 에 넣는다. 그때 「저장하지 못했습니다」를
+      //    띄우면 실제로는 값이 있는데 코디가 계속 다시 누른다(2026-09-04 실측으로 잡음).
+      if (!j.filled?.length && j.skipped?.length) {
+        window.alert("그 사이 다른 값이 들어와 있어 덮어쓰지 않았습니다. 화면을 새로 고쳐 확인해 주세요.");
+      }
       setEditField(null);
       setEditText("");
       onSaved?.();          // 부모가 문의를 다시 읽어 화면을 갱신한다
