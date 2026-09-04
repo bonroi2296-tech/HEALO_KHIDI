@@ -43,7 +43,9 @@ const ALLOWED = new Set([...ENCRYPTED, ...PLAIN]);
 // 문의 본표에도 같이 써야 하는 칸 — 코디 목록·KHIDI 집계가 intake_data 가 아니라 이 컬럼을 본다.
 const ALSO_ON_INQUIRY: Record<string, string> = { nationality: "nationality" };
 
-const MAX_LEN = 4000;
+// 검사 소견은 길다 — CT 판독지 한 장이 1,800자, 서류 세 장을 모으면 4,300자였다(2026-09-04 실측).
+// 4,000자로 두면 마지막 검사가 문장 중간에서 잘린 채 병원에 나간다.
+const MAX_LEN = 20000;
 const isBlank = (v: unknown) =>
   v == null || v === "" || (Array.isArray(v) && v.length === 0);
 
@@ -61,6 +63,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
   const incoming = body?.fields && typeof body.fields === "object" ? body.fields : null;
   const from = body?.from && typeof body.from === "object" ? body.from : {};
+  // 이미 값이 있어도 갈아 끼울 칸. 화면이 «명시적으로» 지정한 것만 받는다.
+  const overwrite = new Set<string>(
+    Array.isArray(body?.overwrite) ? body.overwrite.filter((k: unknown) => typeof k === "string") : [],
+  );
   if (!incoming) return Response.json({ ok: false, error: "invalid_body" }, { status: 400 });
 
   const id = Number(rawId);
@@ -83,7 +89,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       if (!ALLOWED.has(key)) continue;
       if (isBlank(raw)) continue;
       // ① 이미 차 있으면 건드리지 않는다 — 화면이 아니라 여기서 판정한다.
-      if (!isBlank(current[key])) { skipped.push(key); continue; }
+      //    예외는 «모으는 칸»뿐이다(overwrite): 서류를 새로 받으면 검사 목록은 처음부터 다시
+      //    만들어야 한다. 덧붙이기가 아니라 통째로 갈아 끼우는 것이라 같은 서류를 두 번 읽어도
+      //    내용이 겹치지 않는다(2026-09-04 PO: 「검사 결과도 설명을 해줘야지」).
+      if (!isBlank(current[key]) && !overwrite.has(key)) { skipped.push(key); continue; }
       const text = String(raw).trim().slice(0, MAX_LEN);
       if (!text) continue;
       current[key] = ENCRYPTED.has(key) ? encryptStringNullable(text) : text;
