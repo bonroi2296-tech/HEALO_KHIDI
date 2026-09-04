@@ -68,9 +68,10 @@ export const HOSPITAL_FORMS = [
       { field: "nationality",        cell: 9,  ko: "국적" },
       { field: "birthDate",          cell: 12, ko: "생년월일", hint: { ko: "(연도/월/일)" } },
       { field: "sex",                cell: 18, ko: "성별" },
-      // Mobile:/E-mail: 이 이미 인쇄된 칸이라 그 뒤에 덧붙인다.
-      { field: "phone",              cell: 21, append: true, ko: "연락처 — 휴대전화" },
-      { field: "email",              cell: 24, append: true, ko: "연락처 — 이메일" },
+      // Mobile:/E-mail: 이 이미 인쇄된 칸이라 그 뒤에 «같은 줄로» 덧붙인다(inline).
+      // 🛑 inline 을 빼지 마라 — 새 문단이 되어 「E-mail:」 아래 한 줄 떨어져 나온다(2026-09-04 실측).
+      { field: "phone",              cell: 21, append: true, inline: true, ko: "연락처 — 휴대전화" },
+      { field: "email",              cell: 24, append: true, inline: true, ko: "연락처 — 이메일" },
       { field: "pastHistoryNote",    cell: 26, ko: "과거력",
         hint: { ko: "고혈압, 결핵, 당뇨, 간염, 알레르기, 수술 여부 등을 기재해 주세요" } },
       { field: "diagnosisNameRaw",   cell: 30, ko: "현재 진단명" },

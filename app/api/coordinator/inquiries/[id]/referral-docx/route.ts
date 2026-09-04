@@ -55,12 +55,19 @@ function xmlText(raw: string): string {
  *  - append : 인쇄된 문구는 두고 그 아래에 문단을 하나 더 붙인다
  * 문단(<w:p>)의 서식(<w:pPr>)은 원본 것을 그대로 물려받는다 — 글꼴·정렬이 안 튄다.
  */
-function fillCell(cellXml: string, value: string, append: boolean): string {
+function fillCell(cellXml: string, value: string, append: boolean, inline = false): string {
   const runXml = `<w:r>${xmlText(value)}</w:r>`;
 
   if (append) {
-    // 마지막 문단을 복제해 서식을 물려받고, 안의 run 만 새 것으로 바꾼다.
     const paras = [...cellXml.matchAll(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)];
+    // inline: 인쇄된 문구와 «같은 줄»에 이어 붙인다. 「E-mail:」 뒤에 주소가 와야 하는 칸이다.
+    // 2026-09-04 실측: 새 문단으로 붙였더니 워드에서 「E-mail:」 아래 한 줄 떨어져 나왔다.
+    if (inline && paras.length) {
+      const m = paras[paras.length - 1];
+      const withRun = m[0].replace(/<\/w:p>$/, `<w:r>${xmlText(` ${value}`)}</w:r></w:p>`);
+      return cellXml.slice(0, m.index) + withRun + cellXml.slice(m.index! + m[0].length);
+    }
+    // 그 밖에는 문단을 하나 더 붙인다. 마지막 문단의 서식(<w:pPr>)을 물려받아 글꼴이 안 튄다.
     const last = paras.length ? paras[paras.length - 1][0] : "<w:p></w:p>";
     const pPr = /<w:pPr>[\s\S]*?<\/w:pPr>/.exec(last)?.[0] || "";
     const newPara = `<w:p>${pPr}${runXml}</w:p>`;
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     for (const job of jobs) {
       const m = cells[job.cell];
-      const filled = fillCell(m[0], job.value, job.append === true);
+      const filled = fillCell(m[0], job.value, job.append === true, job.inline === true);
       xml = xml.slice(0, m.index) + filled + xml.slice(m.index! + m[0].length);
     }
 
