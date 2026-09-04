@@ -30,6 +30,7 @@ import path from "node:path";
 import JSZip from "jszip";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 const MAX_LEN = 4000;
 

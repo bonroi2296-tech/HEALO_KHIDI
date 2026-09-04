@@ -224,6 +224,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── 구글 캘린더에 같은 일정 등록 ────────────────────────────────────────
+    // 상담을 잡아도 구글 캘린더에는 안 떠서, 캘린더만 보고는 그 주 일정을 알 수 없었다(PO 요청).
+    // best-effort — 실패해도 상담 생성은 성공시킨다. env 미설정이면 무음으로 넘어간다.
+    // 🛑 환자 이름·연락처는 넣지 않는다. 구글 서버에 평문으로 남는다.
+    try {
+      const { createCalendarEvent } = await import("@/lib/calendar/googleCalendar");
+      const { siteUrl } = await import("@/lib/siteUrl");
+      await createCalendarEvent({
+        summary: isTestSession ? "[상담·시험] 화상상담" : "[상담] 화상상담",
+        startsAt: scheduledAt,
+        durationMinutes: 30,
+        colorId: "7",
+        description: [
+          `상담 번호: ${data.id}`,
+          `코디 화면: ${siteUrl()}/coordinator/consultations`,
+          "초대 링크는 아직 발급 전이다. 발급하면 상대에게 메일이 나간다.",
+        ].join("\n"),
+      });
+    } catch (calErr: any) {
+      console.warn("[consultation] 캘린더 등록 실패:", calErr?.message);
+    }
+
     return Response.json({ ok: true, data });
   } catch (error: any) {
     console.error("[api/khidi/consultation] Exception:", error?.message);
