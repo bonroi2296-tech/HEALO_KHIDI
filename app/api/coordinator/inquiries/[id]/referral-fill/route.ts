@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const { error: upErr } = await supabaseAdmin
       .from("inquiries")
-      .update(patchInquiry)
+      .update(patchInquiry as any)
       .eq("id", id);
     if (upErr) {
       console.error("[referral-fill] update error:", upErr.message);

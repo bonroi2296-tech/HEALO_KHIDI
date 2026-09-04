@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback } from "react";
 import { FileText, Copy, Check, Printer, Languages, Loader2, Download } from "lucide-react";
 import { HOSPITAL_FORMS } from "@/lib/inquiry/hospitalReferralForms";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { NATIONALITY_NAMES } from "@/lib/khidi/nationality";
 
 const isBlank = (v) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
 // 한글이 하나라도 있으면 이미 우리말이다 — 다시 옮길 필요 없다.
@@ -28,7 +29,7 @@ const hasKo = (s) => /[가-힣]/.test(String(s || ""));
 // 정규식에 백슬래시로 범위를 적으면 이스케이프가 풀려 제어문자가 박힌다(2026-09-04 실측).
 const looksLatin = (s) => ![...String(s || "")].some((c) => c.charCodeAt(0) > 0x2ff);
 
-export default function HospitalReferralSection({ inquiryId, values, attachments = [] }) {
+export default function HospitalReferralSection({ inquiryId, values, attachments = [], onSaved }) {
   const [openId, setOpenId] = useState(null);
   const [copied, setCopied] = useState(false);
   const form = HOSPITAL_FORMS.find((f) => f.id === openId) || null;
@@ -137,6 +138,42 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
    * 병원이 준 원본 워드 양식에 값만 채워 내려받는다.
    * 화면이 이미 계산해 둔 값(번역 포함)을 그대로 보낸다 — 서버가 다시 번역하면 화면과 달라진다.
    */
+  /**
+   * 비어 있는 칸을 «그 자리에서» 적어 채운다.
+   *
+   * 왜 (2026-09-04 PO): 「이 케이스 왜 국적이 비어 있냐 카자흐스탄이라면서. 의뢰목적도 비어있고」
+   *   실측해 보니 둘 다 «서류에서 나올 수 없는 값»이었다 — 국적은 여권이 없으면 서류에 안 적혀
+   *   있고(판독기는 추론을 금지하고 있다), 의뢰 목적은 애초에 우리가 정하는 것이다.
+   *   그런데 코디가 적을 자리가 없어서 영영 빈칸이었다. 여기서 적는다.
+   * 🛑 이미 값이 있는 칸은 여기서 안 건드린다 — 고치는 일은 원래 화면(의뢰서 카드)의 몫이다.
+   */
+  const [editField, setEditField] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  async function saveField() {
+    const v = editText.trim();
+    if (!v || !editField) return;
+    setEditBusy(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ fields: { [editField]: v }, from: { [editField]: "코디 입력" } }),
+      });
+      const j = await res.json();
+      if (!j?.ok || !j.filled?.length) throw new Error(j?.error || "failed");
+      setEditField(null);
+      setEditText("");
+      onSaved?.();          // 부모가 문의를 다시 읽어 화면을 갱신한다
+    } catch (e) {
+      console.error("[hospital-form] field save error:", e);
+      window.alert("저장하지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+    setEditBusy(false);
+  }
+
   const [docxBusy, setDocxBusy] = useState(false);
   async function downloadDocx() {
     if (!form) return;
@@ -306,6 +343,49 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
                     <td className="px-3 py-2">
                       {r.value ? (
                         <span className="whitespace-pre-wrap break-words text-gray-900">{r.value}</span>
+                      ) : editField === r.field ? (
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {/* 국적은 «나라 코드»(KZ·RU…)로 저장해야 한다 — 화면·집계가 그 코드로
+                              나라 이름을 만든다. 손으로 「카자흐스탄」이라 적으면 코드가 아니라서
+                              그대로 「기타」가 된다(2026-09-04 실측). 그래서 고르기로 받는다. */}
+                          {r.field === "nationality" ? (
+                            <select
+                              autoFocus
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                            >
+                              <option value="">나라를 고르세요</option>
+                              {Object.entries(NATIONALITY_NAMES).map(([code, ko]) => (
+                                <option key={code} value={code}>{ko}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              autoFocus
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveField(); if (e.key === "Escape") setEditField(null); }}
+                              placeholder="여기에 적으세요"
+                              className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                            />
+                          )}
+                          <button type="button" onClick={saveField} disabled={editBusy || !editText.trim()}
+                            className="rounded bg-teal-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-40">
+                            {editBusy ? "저장 중" : "저장"}
+                          </button>
+                          <button type="button" onClick={() => setEditField(null)}
+                            className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600">취소</button>
+                        </span>
+                      ) : r.field ? (
+                        <button
+                          type="button"
+                          onClick={() => { setEditField(r.field); setEditText(""); }}
+                          className="italic text-gray-500 underline decoration-dotted underline-offset-2 hover:text-teal-700"
+                          title="눌러서 직접 적습니다"
+                        >
+                          비어 있음 — 눌러서 적기
+                        </button>
                       ) : (
                         <span className="italic text-gray-500">비어 있음</span>
                       )}
