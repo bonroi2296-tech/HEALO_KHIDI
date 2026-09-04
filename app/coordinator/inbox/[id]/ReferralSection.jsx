@@ -12,7 +12,7 @@
  * 쓴다(코디가 편집기로 문구를 고치면 여기도 같이 바뀐다). 빈 칸은 숨기지 않고 «비어 있음»으로 세운다 —
  * 코디가 «뭘 더 받아야 하나»를 이 카드 하나로 보게.
  */
-import { SECTIONS, lab } from "@/lib/inquiry/referralSchema";
+import { SECTIONS, lab, ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import { kindLabel } from "@/lib/inquiry/docKinds";
 import { stageLabel } from "@/lib/inquiry/intakeLabels";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
@@ -107,7 +107,10 @@ export default function ReferralSection({ referral, lang, scan, onScan, onSaveSc
       const shown = display(f, referral[f.name], lang);
       if (shown) filled++; else empty++;
       // 비어 있는 칸에만 서류에서 읽은 값을 얹는다. 판독기 칸 이름은 의뢰서 스키마와 같다.
-      const guess = !shown && !isEmpty(scanned[f.name]) ? display(f, scanned[f.name], lang) : null;
+      // 예외는 «모으는 칸»이다 — 서류가 늘면 검사 목록도 길어져야 하므로, 이미 값이 있어도
+      // 새로 읽은 것이 «다르면» 보여준다. 안 그러면 첫 서류에서 들어간 한 줄이 영영 남는다.
+      const fresh = !isEmpty(scanned[f.name]) ? display(f, scanned[f.name], lang) : null;
+      const guess = fresh && (!shown || (ACCUMULATE_FIELDS.has(f.name) && fresh !== shown)) ? fresh : null;
       if (guess) guessed++;
       // 라벨 없는 칸(예: 병력 설명 글칸)은 «바로 앞 칸 이름 — 설명»으로 부른다
       let label = lab(f.label, lang);

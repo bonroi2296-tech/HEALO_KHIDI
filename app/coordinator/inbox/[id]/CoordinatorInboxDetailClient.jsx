@@ -34,6 +34,7 @@ import ProgressSection from "./ProgressSection";
 import HospitalMatchSection from "./HospitalMatchSection";
 import ReferralSection from "./ReferralSection";
 import HospitalReferralSection from "./HospitalReferralSection";
+import { ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -53,16 +54,6 @@ const VOICE_MIME = {
 };
 const voiceMime = (name) => VOICE_MIME[String(name || "").split(".").pop()?.toLowerCase()] || null;
 const isVoiceFile = (name) => !!voiceMime(name);
-
-/**
- * 서류를 여러 장 읽었을 때 «덮어쓰면 틀리는» 칸.
- *
- * 진단명·병기는 최신 한 장이 정답이다(서류끼리 어긋나면 최근 것을 쓴다). 그런데 「시행한 검사와
- * 치료」는 다르다 — CT 판독지·혈액검사·내시경 결과가 각각 다른 파일에 있고, 병원은 그 셋을 다
- * 봐야 한다. 2026-09-04 실측: 세 파일에서 982·1,786·1,434자가 나왔는데 마지막 하나만 남고
- * 나머지는 버려졌다. 그래서 이 칸은 파일 이름을 머리에 달아 이어 붙인다.
- */
-const ACCUMULATE = new Set(["testsAndTreatments"]);
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -703,7 +694,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     for (const r of results) {
       for (const [k, v] of Object.entries(r.fields || {})) {
         if (v == null || v === "") continue;
-        if (ACCUMULATE.has(k)) {
+        if (ACCUMULATE_FIELDS.has(k)) {
           // 🛑 덮어쓰지 마라 — 파일마다 «다른 검사»가 들어 있다. CT 판독지 한 장, 혈액검사 한 장,
           //    내시경 한 장이면 셋 다 병원에 나가야 한다. 2026-09-04 실측: 세 파일에서 각각
           //    982·1,786·1,434자가 나왔는데 마지막 것 하나만 남고 나머지는 버려지고 있었다.
@@ -746,7 +737,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         body: JSON.stringify({
           fields: docScan.data.fields,
           from: docScan.data.from,
-          overwrite: [...ACCUMULATE].filter((k) => docScan.data.fields[k]),
+          overwrite: [...ACCUMULATE_FIELDS].filter((k) => docScan.data.fields[k]),
         }),
       });
       const j = await res.json();
