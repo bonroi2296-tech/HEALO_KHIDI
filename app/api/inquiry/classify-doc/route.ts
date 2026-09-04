@@ -123,11 +123,22 @@ Rules:
   Return null for a HOSPITAL's or a DOCTOR's email/phone - only the patient's own. If a document shows
   several patient phone numbers, take the one from the most recent document. Phone keeps its country
   code and digits as printed.
-- NATIONALITY: from a passport's 3-letter country code (KAZ->KZ, RUS->RU, UZB->UZ, KGZ->KG,
-  MNG->MN, CHN->CN, JPN->JP, KOR->KR; anything else -> "OTHER"), or from a citizenship field that a
-  document states explicitly (e.g. "Гражданство: Казахстан"). Never infer it from the language a
-  medical record happens to be written in, and never from the country the hospital is in - Russian-language
-  records are routine across all of Central Asia.
+- NATIONALITY: there is usually NO passport in the upload, so do not stop at the passport. Take it from
+  ANY of these, in this order of preference:
+    1. a passport's 3-letter country code (KAZ->KZ, RUS->RU, UZB->UZ, KGZ->KG, MNG->MN, CHN->CN,
+       JPN->JP, KOR->KR; anything else -> "OTHER");
+    2. a citizenship field a document states explicitly ("Гражданство: Казахстан");
+    3. the patient's OWN residential address printed on a medical record or referral letter
+       ("Адрес проживания", "прописка", "мекенжайы") - the country of that address;
+    4. a national identity or insurance number that only one country issues, printed for THIS patient:
+       ИИН + ОСМС (Kazakhstan), СНИЛС + ОМС (Russia), ЖШШН (Kyrgyzstan), ПИНФЛ (Uzbekistan).
+       A patient enrolled in a country's compulsory health insurance is a resident of that country.
+  🛑 Still forbidden, because they are about the DOCUMENT and not about the patient:
+    · the language the record happens to be written in - Russian-language records are routine across
+      all of Central Asia, and a Russian-language report does not make the patient Russian;
+    · the country the hospital or laboratory sits in, on its own - patients cross borders for care.
+  If two sources disagree, prefer the passport, then the citizenship field. If nothing above appears,
+  return null - do not guess.
 - If unsure of the kind, use "unknown".
 
 GLOSSARY — the coordinators are not medical professionals, and these reports are dense with
