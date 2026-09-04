@@ -113,16 +113,26 @@ export async function requireAdminAuth(
       console.error("[requireAdminAuth] Audit log failed:", err.message);
     });
 
-    // 403 응답 반환 (운영에서도 힌트 제공: Vercel env / Supabase role)
+    // 403 응답 — 밖으로는 «코드형»만 낸다.
+    //
+    // 🛑 예전엔 운영에서도 hint 로 «Vercel: ADMIN_EMAIL_ALLOWLIST 설정. Supabase:
+    //    app_metadata.role = admin» 을 내보냈다. 편의로 넣은 것인데, 이 헬퍼를 쓰는
+    //    라우트가 82개라 **미인증자가 아무 admin API 만 찔러도** 호스팅(Vercel)·
+    //    인증 백엔드(Supabase)·«권한을 정하는 환경변수 이름»·«판정 필드»까지 다 알 수 있었다
+    //    (2026-09-05 실서비스 실측으로 확인). 공격자에겐 어디를 노릴지 알려주는 정찰 정보다.
+    //    설정 방법은 사람이 코드·문서에서 보면 되지, 401/403 응답이 알려줄 일이 아니다.
+    //    (CLAUDE.md 보안 규칙: API 응답에 내부 정보 금지 — 코드형만.)
+    // hint 는 개발 환경에서만 남긴다. 아래 debug 와 같은 취급.
     const response: Record<string, unknown> = {
       ok: false,
       error: "unauthorized",
       detail: "관리자 권한이 필요합니다",
-      hint: "Vercel: ADMIN_EMAIL_ALLOWLIST 설정. Supabase: 사용자 app_metadata.role = admin",
     };
 
-    if (process.env.NODE_ENV !== "production" && authResult.debug) {
-      response.debug = authResult.debug;
+    if (process.env.NODE_ENV !== "production") {
+      response.hint =
+        "Vercel: ADMIN_EMAIL_ALLOWLIST 설정. Supabase: 사용자 app_metadata.role = admin";
+      if (authResult.debug) response.debug = authResult.debug;
     }
 
     return {
