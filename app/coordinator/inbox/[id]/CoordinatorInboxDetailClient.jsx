@@ -705,6 +705,35 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setDocScan({ data: { fields, from, glossary: glossary.slice(0, 20), readCount: results.length } });
   }
 
+  /**
+   * 찾은 값을 의뢰서에 «저장»한다 — 2026-09-04 PO: 「한번 채우면 저장 안되니? 매번 불러와야해?」
+   * 화면에만 두면 새로고침할 때마다 다시 읽혀야 하고(그때마다 AI 비용), 다른 사람이 그 케이스를
+   * 열면 아무것도 안 보인다.
+   * 🛑 «비어 있는 칸인가»는 창구가 다시 판정한다 — 화면이 낡은 값을 들고 있을 수 있다.
+   */
+  const [fillSaving, setFillSaving] = useState(false);
+  async function saveScanned() {
+    if (!docScan?.data) return;
+    setFillSaving(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ fields: docScan.data.fields, from: docScan.data.from }),
+      });
+      const j = await res.json();
+      if (!j?.ok) throw new Error(j?.error || "failed");
+      setDocScan(null);        // 저장했으면 «찾은 값» 칸은 접는다 — 이제 의뢰서 본문에 있다
+      await load();
+    } catch (e) {
+      console.error("[referral-fill] save error:", e);
+      window.alert("저장하지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+    setFillSaving(false);
+  }
+
   // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
   const [attLoadingPath, setAttLoadingPath] = useState(null);
   async function viewAttachment(path) {
@@ -1420,7 +1449,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       })()}
 
       {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
-      <ReferralSection referral={inquiry.referral} lang={lang} scan={docScan} onScan={scanAllDocs} />
+      <ReferralSection
+        referral={inquiry.referral}
+        lang={lang}
+        scan={docScan}
+        onScan={scanAllDocs}
+        onSaveScan={saveScanned}
+        saving={fillSaving}
+      />
 
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}

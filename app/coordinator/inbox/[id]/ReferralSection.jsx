@@ -43,7 +43,10 @@ const UI = {
   scanAgain: { ko: "다시 찾기", en: "Search again", ru: "Искать снова", kz: "Қайта іздеу", zh: "重新查找", ja: "もう一度探す" },
   scanning:  { ko: "서류 읽는 중… ({d}/{t})", en: "Reading documents… ({d}/{t})", ru: "Чтение документов… ({d}/{t})", kz: "Құжаттар оқылуда… ({d}/{t})", zh: "正在读取资料…（{d}/{t}）", ja: "書類を読んでいます…（{d}/{t}）" },
   fromDoc:   { ko: "서류에서", en: "from document", ru: "из документа", kz: "құжаттан", zh: "来自资料", ja: "書類から" },
-  scanNote:  { ko: "기계가 서류에서 읽은 값입니다 — 환자 칸에 옮기기 전에 원본과 대조해 주세요. 저장되지 않습니다.", en: "Read from the documents by machine — check against the originals before using. Not saved.", ru: "Прочитано из документов машиной — сверьте с оригиналами. Не сохраняется.", kz: "Машина құжаттардан оқыды — түпнұсқамен салыстырыңыз. Сақталмайды.", zh: "由机器从资料中读取 — 使用前请与原件核对。不会保存。", ja: "機械が書類から読み取った値です — 原本と照合してください。保存されません。" },
+  scanNote:  { ko: "기계가 서류에서 읽은 값입니다 — 원본과 대조한 뒤 저장해 주세요. 아직 저장 전입니다.", en: "Read from the documents by machine — check against the originals, then save. Not saved yet.", ru: "Прочитано из документов машиной — сверьте с оригиналами и сохраните. Пока не сохранено.", kz: "Машина құжаттардан оқыды — түпнұсқамен салыстырып, сақтаңыз. Әлі сақталмаған.", zh: "由机器从资料中读取 — 与原件核对后请保存。尚未保存。", ja: "機械が書類から読み取った値です — 原本と照合してから保存してください。まだ保存されていません。" },
+  saveFill:  { ko: "이 값으로 채우기", en: "Save these values", ru: "Сохранить эти значения", kz: "Осы мәндерді сақтау", zh: "保存这些值", ja: "この値で保存" },
+  saving:    { ko: "저장하는 중…", en: "Saving…", ru: "Сохранение…", kz: "Сақталуда…", zh: "正在保存…", ja: "保存中…" },
+  savedFrom: { ko: "서류에서 채움", en: "filled from document", ru: "заполнено из документа", kz: "құжаттан толтырылған", zh: "从资料补全", ja: "書類から補完" },
   scanNone:  { ko: "붙어 있는 서류가 없습니다.", en: "No documents attached.", ru: "Документов нет.", kz: "Құжат жоқ.", zh: "没有附件资料。", ja: "添付書類がありません。" },
   scanFail:  { ko: "서류를 읽지 못했습니다. 잠시 뒤 다시 눌러주세요.", en: "Could not read the documents. Try again shortly.", ru: "Не удалось прочитать документы. Попробуйте позже.", kz: "Құжаттарды оқу мүмкін болмады. Кейінірек қайталаңыз.", zh: "无法读取资料，请稍后重试。", ja: "書類を読み取れませんでした。しばらくして再度お試しください。" },
   scanFound: { ko: "서류 {n}건을 읽어 빈 칸 {m}개를 찾았습니다", en: "Read {n} documents, found {m} blank fields", ru: "Прочитано документов: {n}, найдено пустых полей: {m}", kz: "{n} құжат оқылды, {m} бос өріс табылды", zh: "已读取{n}份资料，补全{m}个空白项", ja: "{n}件の書類から空欄{m}件を見つけました" },
@@ -78,13 +81,15 @@ function display(f, v, lang) {
  * @param scan   null | {loading, done, total} | {data:{fields, from, glossary, readCount}} | {error}
  * @param onScan 「빈 칸을 서류에서 찾기」를 눌렀을 때. 판독·합치기는 부모가 한다.
  */
-export default function ReferralSection({ referral, lang, scan, onScan }) {
+export default function ReferralSection({ referral, lang, scan, onScan, onSaveScan, saving }) {
   if (!referral || referral.version !== "referral_v1") return null;
 
   // 서류에서 읽어 온 값. 환자가 «이미 적은» 칸은 여기서도 안 건드린다 — 빈 칸에만 얹는다
   // (2026-09-04 PO: 「빠진거만 다시 읽게 하거나」).
   const scanned = scan?.data?.fields || {};
   const scannedFrom = scan?.data?.from || {};
+  // 지난번에 서류에서 채워 «저장한» 칸의 출처 (창구가 intake_data._filledFromDocs 에 남긴다).
+  const savedMarks = referral._filledFromDocs && typeof referral._filledFromDocs === "object" ? referral._filledFromDocs : {};
 
   const rows = [];   // { sec, label, value, guess, from }
   let filled = 0, empty = 0, guessed = 0;
@@ -102,7 +107,9 @@ export default function ReferralSection({ referral, lang, scan, onScan }) {
       // 라벨 없는 칸(예: 병력 설명 글칸)은 «바로 앞 칸 이름 — 설명»으로 부른다
       let label = lab(f.label, lang);
       if (!label) { const prev = rows[rows.length - 1]; label = ui("noteOf", lang, { f: prev?.label || "" }); }
-      rows.push({ sec: lab(sec.title, lang), label, value: shown, guess, from: guess ? scannedFrom[f.name] : null });
+      // 저장까지 된 값이면 「누가 적었나」를 계속 밝힌다 — 기계가 읽은 값과 환자가 적은 값은 무게가 다르다.
+      const savedFrom = shown ? savedMarks[f.name] : null;
+      rows.push({ sec: lab(sec.title, lang), label, value: shown, guess, savedFrom, from: guess ? scannedFrom[f.name] : null });
     }
   }
 
@@ -143,11 +150,25 @@ export default function ReferralSection({ referral, lang, scan, onScan }) {
         </p>
       )}
       {scan?.data && (
-        <div className="mt-2 rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2">
-          <p className="text-xs font-semibold text-teal-800">
-            {ui("scanFound", lang, { n: scan.data.readCount, m: guessed })}
-          </p>
-          <p className="mt-0.5 text-[11px] text-gray-600">{ui("scanNote", lang)}</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-teal-800">
+              {ui("scanFound", lang, { n: scan.data.readCount, m: guessed })}
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-600">{ui("scanNote", lang)}</p>
+          </div>
+          {/* 저장해야 남는다 — 안 그러면 새로고침마다 다시 읽혀야 하고 남이 열면 안 보인다(2026-09-04 PO). */}
+          {onSaveScan && guessed > 0 && (
+            <button
+              type="button"
+              onClick={onSaveScan}
+              disabled={saving}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:opacity-50"
+            >
+              {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />}
+              {saving ? ui("saving", lang) : ui("saveFill", lang)}
+            </button>
+          )}
         </div>
       )}
 
@@ -168,7 +189,14 @@ export default function ReferralSection({ referral, lang, scan, onScan }) {
                   {/* 세 가지 상태: ①환자가 적음 ②비었는데 서류에서 찾음 ③그냥 빔.
                       ②는 «환자가 적은 값»과 눈으로 구별돼야 한다 — 색과 배지로 가른다. */}
                   {r.value ? (
-                    <dd className="min-w-0 break-words whitespace-pre-wrap text-gray-900">{r.value}</dd>
+                    <dd className="min-w-0 break-words whitespace-pre-wrap text-gray-900">
+                      {r.value}
+                      {r.savedFrom && (
+                        <span className="ml-1.5 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">
+                          {ui("savedFrom", lang)} · {r.savedFrom}
+                        </span>
+                      )}
+                    </dd>
                   ) : r.guess ? (
                     <dd className="min-w-0 break-words whitespace-pre-wrap text-teal-900">
                       {r.guess}
