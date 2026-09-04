@@ -1458,6 +1458,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         values={{
           patientName: fullName,
           nationality: inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "",
+          // 영문 병기 양식(이대)에는 영어 표기로 낸다 — 「카자흐스탄」·「남성」이 들어가면 안 어울린다.
+          nationalityEn: inquiry.nationality ? nationalityLabelL(inquiry.nationality, "en") : "",
           email: inquiry.email || "",
           phone: inquiry.phone || inquiry.contact_id || "",
           // 나머지는 의뢰서 칸(intake_data) — 서류에서 채운 값도 여기 들어와 있다.
@@ -1465,6 +1467,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             ? {
                 birthDate: inquiry.referral.birthDate || "",
                 sex: inquiry.referral.sex === "female" ? "여성" : inquiry.referral.sex === "male" ? "남성" : "",
+                sexEn: inquiry.referral.sex === "female" ? "Female" : inquiry.referral.sex === "male" ? "Male" : "",
                 diagnosisNameRaw: inquiry.referral.diagnosisNameRaw || "",
                 chiefComplaint: inquiry.referral.chiefComplaint || "",
                 onsetDate: inquiry.referral.onsetDate || "",

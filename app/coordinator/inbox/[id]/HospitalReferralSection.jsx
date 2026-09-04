@@ -76,6 +76,11 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
   function valueOf(field) {
     if (!field) return "";                       // 우리 문의에 없는 칸(예: 코로나 백신) — 빈칸으로 둔다
     if (field === "patientName") return values.patientName || "";
+    // 성별·국적은 번역기를 안 태운다(옮길 글이 아니라 «정해진 값»이다). 대신 양식 언어에 맞는
+    // 표기를 여기서 고른다 — 영문 병기 양식에 「남성」·「카자흐스탄」이 들어가면 안 어울린다.
+    const lang = form?.contentLang || "ko";
+    if (field === "sex") return (lang === "en" ? values.sexEn : values.sex) || "";
+    if (field === "nationality") return (lang === "en" ? values.nationalityEn : values.nationality) || "";
     if (field === "contact") {
       const rows = [values.phone && `Mobile: ${values.phone}`, values.email && `E-mail: ${values.email}`];
       return rows.filter(Boolean).join("\n");
