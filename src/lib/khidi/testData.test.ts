@@ -201,18 +201,27 @@ describe("idsToInFilter", () => {
   });
 });
 
-describe("우리 회사 주소로 넣은 문의는 시험이다", () => {
-  // 🛑 2026-08-18: 「보내기」 확인하려고 admin@healwith.co.kr 로 넣었더니 진짜 문의 #118 로
-  //    저장됐다. 환자가 우리 회사 주소로 문의할 일은 없다 — 그건 전부 우리 시험이다.
+describe("우리 회사 주소로 넣은 문의도 «진짜 문의»다 (2026-09-04 뒤집음)", () => {
+  // 2026-08-18 에는 반대였다 — 「환자가 우리 주소로 문의할 일은 없다」고 보고 시험으로 찍었다.
+  // 그 전제가 틀렸다: 코디·PO 가 환자를 대신해 회사 주소로 «대리 접수»한다. 그래서 진짜 환자
+  // 문의 #291·#302 가 이 규칙 하나에 걸려 KHIDI 실적에서 빠질 뻔했다.
+  // (PO 2026-09-04: 「healwith.co.kr 으로도 접수할 수 있는데」)
   it.each(["admin@healwith.co.kr", "moon@healwith.co.kr", "AdMin@HealWith.co.KR"])(
-    "%s → 시험",
-    (email) => { expect(detectInquiryIsTest({ email })).toBe(true); }
+    "%s → 진짜 문의",
+    (email) => { expect(detectInquiryIsTest({ email })).toBe(false); }
   );
   it("환자 주소는 그대로 진짜 문의", () => {
     expect(detectInquiryIsTest({ email: "aigerim@mail.ru" })).toBe(false);
   });
-  it("🛑 코디 «계정»이 회사 도메인이어도 환자 문의는 진짜다 (연락 이메일에만 본다)", () => {
-    // 독립 리뷰(2026-08-19): 계정에도 적용하면 코디가 넣은 진짜 문의가 전부 시험이 되고 야간 감사가 소급한다
+  it("코디 «계정»이 회사 도메인이어도 환자 문의는 진짜다", () => {
     expect(detectInquiryIsTest({ email: "aigerim@mail.ru", accountEmail: "coordinator@healwith.co.kr" })).toBe(false);
+  });
+
+  // 🛑 회사 도메인을 뺐다고 봇까지 새면 안 된다 — 봇이 타는 길은 그대로 막혀 있어야 한다.
+  it("봇·시험 계정은 회사 도메인 규칙 없이도 여전히 시험", () => {
+    expect(detectInquiryIsTest({ email: "e2e-test@healo-test.invalid" })).toBe(true);
+    expect(detectInquiryIsTest({ email: "hong@test.com" })).toBe(true);
+    expect(detectInquiryIsTest({ email: "patient@gmail.com", accountEmail: "agency@test.com" })).toBe(true);
+    expect(detectInquiryIsTest({ manual: true })).toBe(true);
   });
 });

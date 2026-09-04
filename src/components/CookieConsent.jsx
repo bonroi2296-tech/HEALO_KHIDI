@@ -66,24 +66,36 @@ export default function CookieConsent() {
     localStorage.setItem("healo_cookie_consent", level);
     setShow(false);
     if (level === "all") window.dispatchEvent(new Event("cookie-consent-granted"));
+    // 「배너가 닫혔다」는 «분석을 허용했다»와 다른 신호다 — 둘 중 무엇을 눌렀든 발화한다.
+    //   PWA 설치 안내(InstallPrompt)가 이걸 기다렸다가 그제서야 뜬다.
+    //   왜: 첫 방문자 화면에 동의 배너·설치 안내·하단 탭이 «동시에» 떠서 세로 45%를 먹었다
+    //   (2026-09-02 폰 실측). 서로 비켜 앉기는 하지만 쌓이면 핵심 문구와 CTA 가 잘린다.
+    window.dispatchEvent(new Event("cookie-consent-closed"));
   };
 
   if (!show) return null;
 
   return (
-    <div ref={boxRef} className="fixed bottom-0 left-0 right-0 z-[9999] pb-safe-area bg-white border-t border-gray-200 shadow-2xl p-4 md:p-6 animate-in slide-in-from-bottom">
-      <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-4">
-        <div className="flex-1 text-sm text-gray-600">
-          <p className="font-semibold text-gray-900 mb-1">{tr("title")}</p>
-          <p>{tr("body")}{" "}
-            <a href={localeHref("/cookies", lang)} className="touch-inline text-teal-700 underline">{tr("learnMore")}</a>
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => accept("essential")} className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+    // 제목 줄은 «눈»에서 뺐다 — 버튼 두 개가 이미 무슨 창인지 말해 준다.
+    //   스크린리더에는 그대로 남긴다(aria-label) — 소리로 듣는 사람에겐 맥락이 필요하다.
+    //   왜: 폰·러시아어 첫 화면에서 이 배너가 161px(세로 24%)를 먹어 홈의 「무료 상담」
+    //   단추 자리를 밀어냈다(2026-09-02 실측). 제목 한 줄 + 본문 한 줄이 그 대부분이었다.
+    <div
+      ref={boxRef}
+      role="region"
+      aria-label={tr("title")}
+      className="fixed bottom-0 left-0 right-0 z-[9999] pb-safe-area bg-white border-t border-gray-200 shadow-2xl px-4 py-3 md:p-6 animate-in slide-in-from-bottom"
+    >
+      <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+        <p className="flex-1 text-sm text-gray-600">
+          {tr("body")}{" "}
+          <a href={localeHref("/cookies", lang)} className="touch-inline text-teal-700 underline">{tr("learnMore")}</a>
+        </p>
+        <div className="flex gap-2 shrink-0 self-stretch md:self-auto">
+          <button onClick={() => accept("essential")} className="flex-1 md:flex-none px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
             {tr("essentialOnly")}
           </button>
-          <button onClick={() => accept("all")} className="px-4 py-2 text-sm font-bold text-white bg-teal-700 rounded-lg hover:bg-teal-800 transition">
+          <button onClick={() => accept("all")} className="flex-1 md:flex-none px-4 py-2 text-sm font-bold text-white bg-teal-700 rounded-lg hover:bg-teal-800 transition">
             {tr("acceptAll")}
           </button>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import PortalGate from "../_components/PortalGate";
+import { useEnsureBackofficeLangCookie } from "@/lib/i18n/coordinator";
 import { AdminNav } from "./_components/AdminNav";
 import ManualDrawer from "../_components/ManualDrawer";
 import PushOptInBanner from "../_components/PushOptInBanner";
@@ -9,6 +10,8 @@ import PushOptInBanner from "../_components/PushOptInBanner";
 // 어드민 문지기만 한국어 고정이라 길 잘못 든 외국인 스태프가 왜 못 들어가는지 못 읽었다.
 // 「코디 화면으로 가기」 링크는 그대로 둔다 — 코디 계정이 /admin 을 눌렀을 때의 갈 곳이다.
 export default function AdminLayout({ children }) {
+  // 서버가 이 쿠키를 보고 한국어 사전을 같이 실어 준다 — 없으면 화면 일부가 영어로 떨어진다.
+  useEnsureBackofficeLangCookie();
   return (
     <PortalGate
       endpoint="/api/admin/whoami"

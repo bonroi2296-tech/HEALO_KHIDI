@@ -17,8 +17,8 @@
  * 누락 안전장치: 특정 언어에 값이 없으면 en → ko 순으로 폴백해 빈 화면이 안 나온다.
  */
 
-import { useSyncExternalStore, useMemo } from "react";
-import { getBackofficeLangFromCookie } from "./index";
+import { useSyncExternalStore, useMemo, useEffect } from "react";
+import { getBackofficeLangFromCookie, setBackofficeLangCookie } from "./index";
 
 const CT = {
   // ── 레이아웃 / 내비게이션 ─────────────────────────────
@@ -821,3 +821,24 @@ export function useDateLocale() {
 }
 
 export default CT;
+
+/**
+ * 백오피스 언어 쿠키가 «없으면» 기본값(ko)으로 심는다. 코디·어드민 레이아웃에서 한 번 부른다.
+ *
+ * 왜 필요 (2026-09-04 실측): 서버는 이 쿠키를 보고 브라우저에 실을 사전을 고른다(app/layout.jsx).
+ * 스위처를 한 번도 안 만진 스태프는 쿠키가 없어 «영어 사전만» 실렸고, 사전을 거치는 문구가
+ * 한국어 화면에도 영어로 떨어졌다 — 의뢰서 카드 라벨이 「Date of Birth」·
+ * 「MEDICAL HISTORY & MEDICATIONS」, 서류 종류가 「Other document」.
+ * 화면 대부분은 이 파일의 문구 묶음(L)을 써서 멀쩡했기 때문에 「가끔 영어가 섞인다」로만 보였다.
+ *
+ * 🛑 서버가 그냥 ko 를 얹게 하는 쪽으로 고치지 마라 — 그러면 «공개 화면 방문자 전원»이 쓰지도 않는
+ *    한국어 사전 100KB 를 받는다(2026-09-04 실측: 첫 화면 HTML 392KB 중 사전이 100KB).
+ * 🛑 에이전시·병원 포털에는 붙이지 마라 — 그쪽은 러시아어 사용자다.
+ */
+export function useEnsureBackofficeLangCookie() {
+  useEffect(() => {
+    try {
+      if (!getBackofficeLangFromCookie()) setBackofficeLangCookie("ko");
+    } catch { /* 쿠키가 막힌 브라우저 — 영어로 보이지만 화면은 정상 동작한다 */ }
+  }, []);
+}

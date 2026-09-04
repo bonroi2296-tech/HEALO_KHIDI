@@ -45,29 +45,49 @@ export default function FollowUpsSection({ inquiryId }) {
   useEffect(() => { load(); }, [load]);
 
   // ── 한국어로 보기 ──
-  // 환자가 러시아어로 보낸 글이 여기 그대로 뜬다. **저절로 안 바꾼다** — 누를 때만.
+  // 환자가 러시아어로 보낸 글이 여기 그대로 뜬다.
+  // 2026-09-04 PO: 「접수 후 추가 정보도 한글로 번역해줘」 → 누를 때만 바꾸던 것을
+  //   «들어오면 알아서» 로 바꿨다. 코디는 한국인이라 러시아어 글은 매번 눌러야 읽혔고,
+  //   그 한 번의 클릭이 「읽지 않고 넘어가는」 이유가 된다.
+  //   원문이 필요하면 「원문 보기」로 되돌린다 — 판단은 원문으로 해야 하니 길은 남긴다.
   // 한글이 하나도 없는 줄만 대상으로 본다(이미 한국어인 줄을 보내면 값만 나간다).
-  const [showTr, setShowTr] = useState(false);
+  const [showTr, setShowTr] = useState(true);
   const [tmap, setTmap] = useState({});
   const [tBusy, setTBusy] = useState(false);
   const foreign = items.map((f) => f.text).filter((s) => s && !/[가-힣]/.test(s));
   const shown = (s) => (showTr && tmap[String(s || "").trim()]) || s;
 
-  async function toggleTranslate() {
-    if (showTr) return setShowTr(false);
-    if (Object.keys(tmap).length) return setShowTr(true);
+  const fetchTranslations = useCallback(async (texts) => {
+    if (!texts.length) return false;
     setTBusy(true);
     try {
       const res = await authFetch("/api/coordinator/notes/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lang: "ko", texts: foreign }),
+        body: JSON.stringify({ lang: "ko", texts }),
       });
       const d = await res.json();
-      if (d.ok && d.map && Object.keys(d.map).length) { setTmap(d.map); setShowTr(true); }
+      if (d.ok && d.map && Object.keys(d.map).length) { setTmap((p) => ({ ...p, ...d.map })); return true; }
     } catch { /* 실패하면 원문 그대로 — 화면은 안 끊긴다 */ } finally {
       setTBusy(false);
     }
+    return false;
+  }, [authFetch]);
+
+  // 외국어 글이 «새로 들어오면» 알아서 옮긴다. 이미 옮긴 줄은 다시 안 보낸다(번역 비용·응답시간).
+  // 서버에 캐시가 있어(note_translations) 같은 글은 두 번째부터 공짜다.
+  useEffect(() => {
+    const todo = foreign.filter((s) => !tmap[String(s || "").trim()]);
+    if (todo.length) fetchTranslations(todo);
+    // foreign 은 매 렌더 새 배열이라 «내용»으로 비교한다 — 안 그러면 무한 재요청이 된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foreign.join("|"), fetchTranslations]);
+
+  async function toggleTranslate() {
+    if (showTr) return setShowTr(false);
+    const todo = foreign.filter((s) => !tmap[String(s || "").trim()]);
+    if (todo.length) await fetchTranslations(todo);
+    setShowTr(true);
   }
 
   async function add() {
