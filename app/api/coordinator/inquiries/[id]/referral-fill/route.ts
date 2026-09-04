@@ -30,6 +30,8 @@ const ENCRYPTED = new Set([
   "passportNo", "birthDate", "diagnosisNameRaw", "diagnosisDate", "onsetDate",
   "chiefComplaint", "testsAndTreatments", "localDoctorOpinion",
   "pastHistoryNote", "medications", "familyHistory",
+  // 코디가 손으로 적는 칸 — 서류에서는 안 나온다(의뢰 목적은 우리가 정하는 것이다).
+  "referralPurpose",
 ]);
 const PLAIN = new Set(["sex", "icdCode", "stage", "nationality"]);
 // 판독기가 줄 수 있는 칸만 받는다. 여기 없는 이름은 조용히 버린다.
