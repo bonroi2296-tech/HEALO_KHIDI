@@ -98,7 +98,12 @@ export default function ReferralSection({ referral, lang, scan, onScan, onSaveSc
     for (const f of sec.fields) {
       if (SHOWN_ELSEWHERE.has(f.name)) continue;
       if (f.type === "note") continue;
-      if (f.showIf && !f.showIf(referral)) continue;
+      // showIf 는 «환자가 채우는 화면»의 규칙이다(예: 과거력을 하나도 안 골랐으면 설명 칸을 안 연다).
+      // 읽는 화면에서까지 그대로 적용하면 «값이 있는데 안 보이는 칸»이 생긴다 — 2026-09-04 실측:
+      // 서류에서 pastHistoryNote 를 채워 저장했는데 화면에 안 떠서 「어디 갔지」가 됐다.
+      // 값이 있으면(저장분이든 서류에서 찾은 것이든) 조건을 무시하고 보여준다.
+      const hasAnything = !isEmpty(referral[f.name]) || !isEmpty(scanned[f.name]);
+      if (f.showIf && !f.showIf(referral) && !hasAnything) continue;
       const shown = display(f, referral[f.name], lang);
       if (shown) filled++; else empty++;
       // 비어 있는 칸에만 서류에서 읽은 값을 얹는다. 판독기 칸 이름은 의뢰서 스키마와 같다.
