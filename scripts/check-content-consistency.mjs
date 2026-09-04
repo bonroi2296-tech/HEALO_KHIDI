@@ -174,6 +174,16 @@ const XSS_INNERHTML_BASELINE = {
   // 실행 경로가 애초에 남지 않는다. script·style·iframe·object·embed 는 내용까지 지운다.
   // 파일을 올리는 사람도 우리 코디다(직원 전용 창구).
   "app/claim/[token]/ClaimClient.jsx": 1,
+  // 0 → 1 (2026-09-04): 병원 의뢰서 미리보기 — 병원이 준 워드 양식을 «그 구조 그대로» 그린다.
+  // 감사 결과 안전 — 이 HTML 은 **서버가 통째로 지어낸 것**이다(src/lib/inquiry/docxTableToHtml.ts):
+  //   · 나가는 태그는 그 파일이 만드는 table·colgroup·col·tbody·tr·td·br 뿐이고,
+  //     원본 XML 의 태그는 **한 개도 통과시키지 않는다**(정규식으로 «글자만» 꺼낸다).
+  //   · 속성은 colspan·rowspan·class="sh"·style="width:NN%" 넷뿐이고 전부 «숫자·고정 문자열»이다.
+  //   · 칸 글자는 전부 esc() 를 거친다(& < > "). 그래서 onerror·href·onclick 이 들어갈 자리가 없다.
+  // 값의 출처가 환자 서류(AI 판독)라 «사용자 입력»이 맞다. 그래서 두 겹으로 막혀 있다 —
+  // 값이 XML 에 들어갈 때 한 번(referral-docx 의 xmlText), 화면에 나올 때 한 번(esc).
+  // `<script>` 를 넣어 보면 화면에 «글자로» 보인다.
+  "app/coordinator/inbox/[id]/HospitalReferralSection.jsx": 1,
   "app/page.jsx": 1,
   // 5 → 6 (2026-08-03): 늘어난 1건은 head 의 「스토어 앱 웹뷰인가」 표식 스크립트.
   // 감사 결과 안전 — 통짜 문자열 상수 하나이고 변수·요청값·사용자 입력이 **한 글자도 안 섞인다**

@@ -22,8 +22,18 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { NATIONALITY_NAMES } from "@/lib/khidi/nationality";
 
 const isBlank = (v) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
-// 한글이 하나라도 있으면 이미 우리말이다 — 다시 옮길 필요 없다.
-const hasKo = (s) => /[가-힣]/.test(String(s || ""));
+// 이미 우리말인가 — «비율»로 본다.
+// 🛑 「한 글자라도 한글이면 우리말」로 되돌리지 마라. 판독기가 러시아어 원문을 옮겨 적다가
+//    한글을 한두 글자 섞어 놓는 일이 실제로 있다(2026-09-04 실측: 검사 소견 4,263자 안에
+//    「Гепа토мегалия」가 있었고, 그 한 글자 때문에 소견 전체가 번역을 건너뛰어 러시아어인 채로
+//    세브란스에 나갈 뻔했다). 한글이 글자의 3분의 1을 넘을 때만 우리말로 친다.
+const hasKo = (s) => {
+  const t = String(s || "");
+  const ko = (t.match(/[가-힣]/g) || []).length;
+  if (!ko) return false;
+  const letters = [...t].filter((c) => !/\s/.test(c)).length;
+  return ko * 3 >= letters;
+};
 // 라틴 글자만 있으면 이미 영어로 볼 수 있다(사람 이름·파일 이름 포함).
 // 키릴(러시아어)이 섞여 있으면 영문 양식에 그대로 못 낸다. 코드값으로 본다 —
 // 정규식에 백슬래시로 범위를 적으면 이스케이프가 풀려 제어문자가 박힌다(2026-09-04 실측).
@@ -89,10 +99,6 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
       const rows = [values.phone && `Mobile: ${values.phone}`, values.email && `E-mail: ${values.email}`];
       return rows.filter(Boolean).join("\n");
     }
-    if (field === "attachmentList") {
-      if (!attachments.length) return "";
-      return attachments.map((a) => a?.name).filter(Boolean).join("\n");
-    }
     const v = values[field];
     return isBlank(v) ? "" : String(v);
   }
@@ -102,7 +108,7 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
   const showRaw = pick === "raw";
   const target = showRaw ? (form?.contentLang || "ko") : pick;
   // 옮길 값 — 이미 그 말인 것, 이름·파일 목록·날짜처럼 옮길 것이 없는 칸은 뺀다.
-  const NO_TRANSLATE = new Set(["patientName", "birthDate", "onsetDate", "diagnosisDate", "contact", "attachmentList", "nationality", "sex"]);
+  const NO_TRANSLATE = new Set(["patientName", "birthDate", "onsetDate", "diagnosisDate", "contact", "nationality", "sex"]);
   const rawRows = form ? form.rows.map((r) => ({ ...r, raw: valueOf(r.field) })) : [];
   const needTr = rawRows
     .filter((r) => r.raw && !NO_TRANSLATE.has(r.field))
@@ -118,13 +124,25 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.id, showRaw, needTr.join("|"), target, translate]);
 
-  const rows = rawRows.map((r) => ({
-    ...r,
-    value: !showRaw && r.raw && (tmap[target] || {})[r.raw.trim()] ? tmap[target][r.raw.trim()] : r.raw,
-    wasTranslated: !!(!showRaw && r.raw && (tmap[target] || {})[r.raw.trim()]),
-  }));
+  // 첨부 파일 이름 — 번역하지 않는다(옮기면 병원이 메일에서 그 파일을 못 찾는다).
+  const fileList = attachments.map((a) => a?.name).filter(Boolean).join("\n");
+  const filesLabel = target === "en" ? "Attached files:" : "첨부 파일:";
+
+  const rows = rawRows.map((r) => {
+    const tr = !showRaw && r.raw ? (tmap[target] || {})[r.raw.trim()] : null;
+    let value = tr || r.raw;
+    // withFiles 칸은 «설명 + 파일 목록»이다. 설명이 없으면 파일 목록만 나온다.
+    // 🛑 파일 이름만 넣던 자리다(2026-09-04 PO: 「검사 결과도 파일만 첨부할 게 아니라
+    //    설명을 해줘야지」). 설명을 빼지 마라 — 병원은 파일을 열기 «전»에 이 칸을 읽는다.
+    if (r.withFiles && fileList) value = value ? `${value}\n\n${filesLabel}\n${fileList}` : fileList;
+    return { ...r, value, wasTranslated: !!tr };
+  });
   const emptyCount = rows.filter((r) => !r.value).length;
   const trCount = rows.filter((r) => r.wasTranslated).length;
+  // 빈칸 중 «코디가 적을 수 있는» 것. contact 는 전화·이메일을 합쳐 만든 칸이고,
+  // attachmentsOnly 는 파일 목록 자리라 둘 다 저장할 칸이 없다. field 가 없는 칸(코로나 백신)도 같다.
+  const NOT_EDITABLE = new Set(["contact", "attachmentsOnly"]);
+  const emptyRows = rows.filter((r) => !r.value && r.field && !NOT_EDITABLE.has(r.field));
 
   function plainText() {
     if (!form) return "";
@@ -192,13 +210,60 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
     setEditBusy(false);
   }
 
+  /**
+   * 미리보기 — 화면에 «원본 양식을 채운 결과»를 그대로 그린다.
+   *
+   * 왜 (2026-09-04 PO): 「니가 대충 만든 양식 말고 실제 각 병원 양식 그대로에다가 텍스트
+   *   붙여줄 수 없냐. 지금 좀 이상해, 얼기설기 비슷한데 좀 다르잖아」
+   *   전에는 이 화면이 표를 «새로 그렸다». 칸 병합·2단 배치·인쇄된 안내 문구가 원본과
+   *   달라서, 코디가 화면에서 본 것과 병원에 나가는 파일이 서로 다르게 보였다.
+   * 🛑 표를 여기서 다시 그리지 마라. 화면과 파일이 «같은 XML»에서 나와야 어긋나지 않는다.
+   */
+  const [preview, setPreview] = useState(null);
+  const [pvBusy, setPvBusy] = useState(false);
+
   const [docxBusy, setDocxBusy] = useState(false);
+  /** 창구에 보낼 값 — 화면이 이미 계산해 둔 것(번역·파일 목록 포함)을 그대로 보낸다. */
+  function buildPayload() {
+    const payload = {};
+    for (const r of rows) if (r.field && r.value) payload[r.field] = r.value;
+    return payload;
+  }
+
+  // 값이나 언어가 바뀔 때마다 «채운 양식»을 다시 받아 그린다. 번역이 도는 중에는 기다린다 —
+  // 안 그러면 원문으로 한 번 그렸다가 번역문으로 또 그려서 화면이 두 번 튄다.
+  const previewSig = form ? JSON.stringify([form.id, pick, rows.map((r) => [r.field, r.value])]) : "";
+  useEffect(() => {
+    if (!form) { setPreview(null); return; }
+    if (tBusy) return;
+    let dead = false;
+    (async () => {
+      setPvBusy(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-docx`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+          body: JSON.stringify({ hospital: form.id, values: buildPayload(), lang: pick, format: "html" }),
+        });
+        const j = await res.json();
+        if (!dead && j?.ok) setPreview({ heading: j.heading || "", table: j.table || "" });
+      } catch (e) {
+        console.error("[hospital-form] preview error:", e);
+      } finally {
+        if (!dead) setPvBusy(false);
+      }
+    })();
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewSig, tBusy, inquiryId]);
+
   async function downloadDocx() {
     if (!form) return;
     setDocxBusy(true);
     try {
-      const payload = {};
-      for (const r of rows) if (r.field && r.value) payload[r.field] = r.value;
+      const payload = buildPayload();
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-docx`, {
@@ -229,33 +294,23 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
 
   // 인쇄는 «새 창에 표만» 띄운다. 이 화면을 그대로 인쇄하면 왼쪽 메뉴·단추까지 종이에 나온다.
   function print() {
-    if (!form) return;
+    if (!form || !preview?.table) return;
     const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
-    const trs = rows
-      .map((r) => {
-        const label = form.bilingual && r.en
-          ? `${esc(r.ko)}<br><span class="en">${esc(r.en)}</span>`
-          : esc(r.ko);
-        const hint = r.hint?.ko ? `<div class="hint">${esc(r.hint.ko)}</div>` : "";
-        return `<tr><th>${label}</th><td>${esc(r.value).replace(/\n/g, "<br>")}${hint}</td></tr>`;
-      })
-      .join("");
+    // 화면에 그린 «그 표»를 그대로 인쇄한다 — 여기서 표를 다시 만들면 또 어긋난다.
+    const title = preview.heading || form.title.ko;
     const w = window.open("", "_blank", "noopener,width=900,height=1000");
     if (!w) { window.alert("팝업이 막혀 있습니다. 주소창 옆에서 팝업을 허용해 주세요."); return; }
     w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8">
-<title>${esc(form.bilingual ? `${form.title.ko} (${form.title.en})` : form.title.ko)}</title>
+<title>${esc(title)}</title>
 <style>
-  body{font:14px/1.7 "Malgun Gothic","맑은 고딕",sans-serif;margin:32px;color:#111}
-  h1{font-size:18px;margin:0 0 18px;text-align:center}
-  table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid #666;padding:9px 11px;vertical-align:top;text-align:left}
-  th{width:210px;background:#f5f5f5;font-weight:600}
-  .en{font-weight:400;color:#555;font-size:12px}
-  .hint{color:#777;font-size:11px;margin-top:5px}
-  @media print{body{margin:14mm}}
+  body{font:13px/1.65 "Malgun Gothic","맑은 고딕",sans-serif;margin:14mm;color:#111}
+  h1{font-size:15px;margin:0 0 12px;text-align:center}
+  table.docx{width:100%;border-collapse:collapse;table-layout:fixed}
+  table.docx td{border:1px solid #666;padding:7px 9px;vertical-align:top;word-break:break-word}
+  table.docx td.sh{background:#f2f2f2;font-weight:600}
 </style></head><body>
-<h1>${esc(form.bilingual ? `${form.title.ko} (${form.title.en})` : form.title.ko)}</h1>
-<table>${trs}</table>
+${preview.heading ? `<h1>${esc(preview.heading)}</h1>` : ""}
+${preview.table}
 </body></html>`);
     w.document.close();
     w.focus();
@@ -358,73 +413,86 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-gray-200">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100">
-                {rows.map((r, i) => (
-                  <tr key={i} className="align-top">
-                    <th className="w-52 bg-gray-50 px-3 py-2 text-left font-medium text-gray-700">
-                      {r.ko}
-                      {form.bilingual && r.en && (
-                        <span className="mt-0.5 block text-[11px] font-normal text-gray-500">{r.en}</span>
-                      )}
-                    </th>
-                    <td className="px-3 py-2">
-                      {r.value ? (
-                        <span className="whitespace-pre-wrap break-words text-gray-900">{r.value}</span>
-                      ) : editField === r.field ? (
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          {/* 국적은 «나라 코드»(KZ·RU…)로 저장해야 한다 — 화면·집계가 그 코드로
-                              나라 이름을 만든다. 손으로 「카자흐스탄」이라 적으면 코드가 아니라서
-                              그대로 「기타」가 된다(2026-09-04 실측). 그래서 고르기로 받는다. */}
-                          {r.field === "nationality" ? (
-                            <select
-                              autoFocus
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
-                            >
-                              <option value="">나라를 고르세요</option>
-                              {Object.entries(NATIONALITY_NAMES).map(([code, ko]) => (
-                                <option key={code} value={code}>{ko}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              autoFocus
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === "Enter") saveField(); if (e.key === "Escape") setEditField(null); }}
-                              placeholder="여기에 적으세요"
-                              className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
-                            />
-                          )}
-                          <button type="button" onClick={saveField} disabled={editBusy || !editText.trim()}
-                            className="rounded bg-teal-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-40">
-                            {editBusy ? "저장 중" : "저장"}
-                          </button>
-                          <button type="button" onClick={() => setEditField(null)}
-                            className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600">취소</button>
-                        </span>
-                      ) : r.field ? (
-                        <button
-                          type="button"
-                          onClick={() => { setEditField(r.field); setEditText(""); }}
-                          className="italic text-gray-500 underline decoration-dotted underline-offset-2 hover:text-teal-700"
-                          title="눌러서 직접 적습니다"
-                        >
-                          비어 있음 — 눌러서 적기
-                        </button>
-                      ) : (
-                        <span className="italic text-gray-500">비어 있음</span>
-                      )}
-                      {r.hint?.ko && <span className="mt-1 block text-[11px] text-gray-500">{r.hint.ko}</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* 병원이 준 «원본 양식» 그대로 — 칸 병합·2단 배치·인쇄된 안내 문구까지 원본이다.
+              값을 채운 뒤의 XML 을 서버가 표로 옮겨 준다(같은 XML 로 워드 파일도 만든다). */}
+          <div className="docx-preview overflow-x-auto rounded-lg border border-gray-200 bg-white p-4">
+            {preview?.heading && <div className="docx-heading">{preview.heading}</div>}
+            {preview?.table ? (
+              <div dangerouslySetInnerHTML={{ __html: preview.table }} />
+            ) : (
+              <p className="py-6 text-center text-xs text-gray-500">
+                <Loader2 size={14} className="mr-1.5 inline animate-spin" />
+                {tBusy ? "병원 언어로 옮기는 중입니다…" : "양식을 채우는 중입니다…"}
+              </p>
+            )}
+            {pvBusy && preview?.table && (
+              <p className="mt-2 text-right text-[11px] text-gray-500">
+                <Loader2 size={11} className="mr-1 inline animate-spin" />새로 채우는 중
+              </p>
+            )}
           </div>
+
+          {/* 아직 못 받은 칸 — 원본 표 안에는 빈칸으로 두고(그게 병원이 받을 모습이다),
+              적을 자리는 표 밖에 둔다. 2026-09-04 PO: 「이 케이스 왜 국적이 비어 있냐」 */}
+          {emptyRows.length > 0 && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs font-semibold text-amber-900">
+                아직 못 받은 칸 {emptyRows.length}개 — 눌러서 그 자리에서 적을 수 있습니다.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {emptyRows.map((r) => (
+                  <button
+                    key={r.field}
+                    type="button"
+                    onClick={() => { setEditField(r.field); setEditText(""); }}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                      editField === r.field
+                        ? "border-teal-700 bg-teal-700 text-white"
+                        : "border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                    }`}
+                  >
+                    {r.ko}
+                  </button>
+                ))}
+              </div>
+              {editField && (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  {/* 국적은 «나라 코드»(KZ·RU…)로 저장해야 한다 — 화면·집계가 그 코드로 나라
+                      이름을 만든다. 손으로 「카자흐스탄」이라 적으면 코드가 아니라서 그대로
+                      「기타」가 된다(2026-09-04 실측). 그래서 고르기로 받는다. */}
+                  {editField === "nationality" ? (
+                    <select
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                    >
+                      <option value="">나라를 고르세요</option>
+                      {Object.entries(NATIONALITY_NAMES).map(([code, ko]) => (
+                        <option key={code} value={code}>{ko}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveField(); if (e.key === "Escape") setEditField(null); }}
+                      placeholder={`${emptyRows.find((r) => r.field === editField)?.ko || ""} — 여기에 적으세요`}
+                      className="min-w-0 flex-1 rounded border border-teal-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                    />
+                  )}
+                  <button type="button" onClick={saveField} disabled={editBusy || !editText.trim()}
+                    className="rounded bg-teal-700 px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-40">
+                    {editBusy ? "저장 중" : "저장"}
+                  </button>
+                  <button type="button" onClick={() => setEditField(null)}
+                    className="rounded border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600">취소</button>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       )}
     </section>

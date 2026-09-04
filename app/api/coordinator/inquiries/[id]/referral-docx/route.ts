@@ -29,9 +29,12 @@ import path from "node:path";
 import JSZip from "jszip";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
+import { docxTableToHtml } from "@/lib/inquiry/docxTableToHtml";
 import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
-const MAX_LEN = 4000;
+// 검사 소견은 길다 — CT 판독지 한 장이 1,800자, 서류 세 장을 모으면 4,300자였다(2026-09-04 실측).
+// 4,000자로 두면 마지막 검사가 문장 중간에서 잘린 채 병원에 나간다.
+const MAX_LEN = 20000;
 
 /** docx XML 에 넣을 수 있게 다듬는다. 줄바꿈은 워드의 줄바꿈 태그로. */
 function xmlText(raw: string): string {
@@ -53,12 +56,19 @@ function xmlText(raw: string): string {
  *  - append : 인쇄된 문구는 두고 그 아래에 문단을 하나 더 붙인다
  * 문단(<w:p>)의 서식(<w:pPr>)은 원본 것을 그대로 물려받는다 — 글꼴·정렬이 안 튄다.
  */
-function fillCell(cellXml: string, value: string, append: boolean): string {
+function fillCell(cellXml: string, value: string, append: boolean, inline = false): string {
   const runXml = `<w:r>${xmlText(value)}</w:r>`;
 
   if (append) {
-    // 마지막 문단을 복제해 서식을 물려받고, 안의 run 만 새 것으로 바꾼다.
     const paras = [...cellXml.matchAll(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)];
+    // inline: 인쇄된 문구와 «같은 줄»에 이어 붙인다. 「E-mail:」 뒤에 주소가 와야 하는 칸이다.
+    // 2026-09-04 실측: 새 문단으로 붙였더니 워드에서 「E-mail:」 아래 한 줄 떨어져 나왔다.
+    if (inline && paras.length) {
+      const m = paras[paras.length - 1];
+      const withRun = m[0].replace(/<\/w:p>$/, `<w:r>${xmlText(` ${value}`)}</w:r></w:p>`);
+      return cellXml.slice(0, m.index) + withRun + cellXml.slice(m.index! + m[0].length);
+    }
+    // 그 밖에는 문단을 하나 더 붙인다. 마지막 문단의 서식(<w:pPr>)을 물려받아 글꼴이 안 튄다.
     const last = paras.length ? paras[paras.length - 1][0] : "<w:p></w:p>";
     const pPr = /<w:pPr>[\s\S]*?<\/w:pPr>/.exec(last)?.[0] || "";
     const newPara = `<w:p>${pPr}${runXml}</w:p>`;
@@ -110,8 +120,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     for (const job of jobs) {
       const m = cells[job.cell];
-      const filled = fillCell(m[0], job.value, job.append === true);
+      const filled = fillCell(m[0], job.value, job.append === true, job.inline === true);
       xml = xml.slice(0, m.index) + filled + xml.slice(m.index! + m[0].length);
+    }
+
+    // 화면 미리보기 — 파일을 만들지 않고 «채운 양식»을 HTML 표로 돌려준다.
+    // 왜 (2026-09-04 PO): 「니가 대충 만든 양식 말고 실제 각 병원 양식 그대로에다가 텍스트
+    //   붙여줄 수 없냐. 얼기설기 비슷한데 좀 다르잖아」 — 화면 표를 따로 그리면 원본과 어긋난다.
+    //   같은 XML 을 화면도 보고 파일도 받으므로 둘이 다를 수가 없다.
+    if (body?.format === "html") {
+      const { heading, table } = docxTableToHtml(xml);
+      return Response.json({ ok: true, heading, table }, { headers: { "cache-control": "no-store" } });
     }
 
     zip.file("word/document.xml", xml);

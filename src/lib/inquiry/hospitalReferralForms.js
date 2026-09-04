@@ -49,7 +49,10 @@ export const HOSPITAL_FORMS = [
       // 우리 문의 칸에 «없는» 값이다. 지어내지 않고 빈칸으로 둔다 — 코디가 환자에게 물어 채운다.
       { field: null, cell: 31, ko: "코로나 백신 접종 여부 (백신명/차수)", en: "COVID-19 vaccination status (vaccine / doses)" },
       // 33번 칸엔 「유/무」 선택지가 이미 인쇄돼 있다 — 덮어쓰지 않고 파일 이름만 아래에 덧붙인다.
-      { field: "attachmentList", cell: 33, append: true, ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
+      // 검사 «내용»은 위 21번 칸(현재 시행한 검사와 치료)에 이미 들어간다. 여기는 「자료가 있나」 칸이다.
+      // 🛑 field 를 null 로 되돌리지 마라 — 워드 파일로 내려받을 때 이 칸이 통째로 빠진다
+      //    (화면은 field 가 있는 칸만 서버로 보낸다). 값은 없고 파일 목록만 붙는 칸이다.
+      { field: "attachmentsOnly", withFiles: true, cell: 33, append: true, ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
     ],
   },
   {
@@ -65,9 +68,10 @@ export const HOSPITAL_FORMS = [
       { field: "nationality",        cell: 9,  ko: "국적" },
       { field: "birthDate",          cell: 12, ko: "생년월일", hint: { ko: "(연도/월/일)" } },
       { field: "sex",                cell: 18, ko: "성별" },
-      // Mobile:/E-mail: 이 이미 인쇄된 칸이라 그 뒤에 덧붙인다.
-      { field: "phone",              cell: 21, append: true, ko: "연락처 — 휴대전화" },
-      { field: "email",              cell: 24, append: true, ko: "연락처 — 이메일" },
+      // Mobile:/E-mail: 이 이미 인쇄된 칸이라 그 뒤에 «같은 줄로» 덧붙인다(inline).
+      // 🛑 inline 을 빼지 마라 — 새 문단이 되어 「E-mail:」 아래 한 줄 떨어져 나온다(2026-09-04 실측).
+      { field: "phone",              cell: 21, append: true, inline: true, ko: "연락처 — 휴대전화" },
+      { field: "email",              cell: 24, append: true, inline: true, ko: "연락처 — 이메일" },
       { field: "pastHistoryNote",    cell: 26, ko: "과거력",
         hint: { ko: "고혈압, 결핵, 당뇨, 간염, 알레르기, 수술 여부 등을 기재해 주세요" } },
       { field: "diagnosisNameRaw",   cell: 30, ko: "현재 진단명" },
@@ -75,8 +79,12 @@ export const HOSPITAL_FORMS = [
         hint: { ko: "현재 가장 불편하거나 통증이 있는 부위 및 양상을 기재해 주세요" } },
       { field: "localDoctorOpinion", cell: 36, ko: "현재 주치의 소견",
         hint: { ko: "현지에서 권고 받은 치료에 대해 기재해주세요" } },
-      // 40번 칸엔 첨부 안내문이 인쇄돼 있다 — 덮지 않고 파일 이름을 덧붙인다.
-      { field: "attachmentList",     cell: 40, append: true, ko: "검사 결과",
+      // 40번 칸엔 첨부 안내문이 인쇄돼 있다 — 덮지 않고 그 아래에 덧붙인다.
+      // 🛑 여기에 «파일 이름만» 넣지 마라(2026-09-04 PO: 「검사 결과도 파일만 첨부할 게 아니라
+      //    설명을 해줘야지」). 세브란스 양식에는 이대의 「현재 시행한 검사와 치료」에 해당하는
+      //    칸이 따로 없다 — 그래서 서류에서 뽑아 둔 testsAndTreatments 가 통째로 버려지고
+      //    있었다. 이 칸이 그 자리다. 파일 목록은 설명 뒤에 붙는다(withFiles).
+      { field: "testsAndTreatments", withFiles: true, cell: 40, append: true, ko: "검사 결과",
         hint: { ko: "이메일에 첨부합니다. JPG·MS·DICOM 가능, EXE 불가. 용량이 크면 대용량 링크로 보냅니다." } },
       // 42번 칸엔 「없음」이 인쇄돼 있다 — 약이 있으면 «덮어» 써야 한다(덧붙이면 「없음 …」이 된다).
       { field: "medications",        cell: 42, ko: "현재 복용 약물" },

@@ -34,6 +34,7 @@ import ProgressSection from "./ProgressSection";
 import HospitalMatchSection from "./HospitalMatchSection";
 import ReferralSection from "./ReferralSection";
 import HospitalReferralSection from "./HospitalReferralSection";
+import { ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -693,6 +694,15 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     for (const r of results) {
       for (const [k, v] of Object.entries(r.fields || {})) {
         if (v == null || v === "") continue;
+        if (ACCUMULATE_FIELDS.has(k)) {
+          // 🛑 덮어쓰지 마라 — 파일마다 «다른 검사»가 들어 있다. CT 판독지 한 장, 혈액검사 한 장,
+          //    내시경 한 장이면 셋 다 병원에 나가야 한다. 2026-09-04 실측: 세 파일에서 각각
+          //    982·1,786·1,434자가 나왔는데 마지막 것 하나만 남고 나머지는 버려지고 있었다.
+          const line = `[${r._name}]\n${String(v).trim()}`;
+          fields[k] = fields[k] ? `${fields[k]}\n\n${line}` : line;
+          from[k] = from[k] ? `${from[k]}, ${r._name}` : r._name;
+          continue;
+        }
         fields[k] = v;
         from[k] = r._name;
       }
@@ -722,7 +732,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
         method: "PATCH",
         headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ fields: docScan.data.fields, from: docScan.data.from }),
+        // 모으는 칸은 이미 값이 있어도 갈아 끼운다 — 서류를 새로 받으면 검사 목록을 처음부터
+        // 다시 만들어야 한다. 덧붙이기가 아니라 통째 교체라 두 번 읽어도 겹치지 않는다.
+        body: JSON.stringify({
+          fields: docScan.data.fields,
+          from: docScan.data.from,
+          overwrite: [...ACCUMULATE_FIELDS].filter((k) => docScan.data.fields[k]),
+        }),
       });
       const j = await res.json();
       if (!j?.ok) throw new Error(j?.error || "failed");
