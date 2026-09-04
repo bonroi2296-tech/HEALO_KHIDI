@@ -118,7 +118,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     // 파일 이름은 «환자 이름 + 병원». 한글이 들어가므로 RFC 5987 로 붙인다.
     const who = String(values.patientName || `문의${rawId}`).replace(/[^\w가-힣 .-]/g, "").slice(0, 40) || `문의${rawId}`;
-    const fname = `${who}_${form.name.ko.replace(/[^\w가-힣]/g, "")}_의뢰서.docx`;
+    // 어느 말로 만든 것인지 이름에 붙인다 — 한 병원에 한글판·영문판을 같이 만들면
+    // 파일 이름이 같아 나중에 어느 것인지 못 가린다(2026-09-04 PO: 두 벌 만들게 해달라).
+    const langTag = body?.lang === "en" ? "영문" : body?.lang === "raw" ? "원문" : "한글";
+    const fname = `${who}_${form.name.ko.replace(/[^\w가-힣]/g, "")}_의뢰서_${langTag}.docx`;
     console.info(`[referral-docx] #${rawId} ${form.id} by ${auth.email || auth.userId}`);
 
     return new Response(new Uint8Array(out), {

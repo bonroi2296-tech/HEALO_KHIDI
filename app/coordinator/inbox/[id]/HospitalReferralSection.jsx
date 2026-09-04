@@ -204,7 +204,7 @@ export default function HospitalReferralSection({ inquiryId, values, attachments
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-docx`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ hospital: form.id, values: payload }),
+        body: JSON.stringify({ hospital: form.id, values: payload, lang: pick }),
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
       const blob = await res.blob();
