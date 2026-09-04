@@ -141,6 +141,23 @@ Rules:
   return null - do not guess.
 - If unsure of the kind, use "unknown".
 
+WHAT EACH FIELD HOLDS — a hospital referral form is built from these, and a doctor reads them before
+opening any attachment. A field that holds only a name ("Abdominal CT") tells the receiving hospital
+nothing. Still copy, never interpret: what follows says WHICH parts of the report to copy, not to
+add anything of your own.
+- "testsAndTreatments": every examination, procedure and treatment ALREADY performed, each WITH ITS
+  RESULT. For each one: what was done, when, and what the report says it showed - sizes, counts, lab
+  values, the radiologist's or pathologist's findings, the drug and dose given, the operation
+  performed. Copy the report's own findings text. If the upload contains a radiology report, a lab
+  table or a pathology report, its findings belong HERE. Never reduce this to the name of the test
+  or to the contrast agent used. One line per test, in the source language.
+- "diagnosisNameRaw": the diagnosis itself as the document states it (with its staging and codes),
+  not the reasoning that led to it.
+- "chiefComplaint": the patient's own complaints as recorded (жалобы), copied.
+- "localDoctorOpinion": what the local doctor recommends or plans next (рекомендовано, план),
+  copied.
+- "pastHistoryNote": prior illnesses, operations, allergies and relevant life history (анамнез).
+
 GLOSSARY — the coordinators are not medical professionals, and these reports are dense with
 abbreviations they have no way to look up (ВРВП / ИГХ / НПВ / OLGA / McCormack / F IV / cT2N1M0 …).
 For every drug, test, procedure, scoring system or abbreviation that appears in the document, add one

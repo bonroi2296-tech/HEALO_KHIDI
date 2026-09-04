@@ -370,3 +370,36 @@ html[data-healo-native="1"]:not([data-healo-google-native="1"]) .app-google-lock
     background: white !important;
   }
 }
+
+/* ===== 병원 의뢰서 미리보기 =====
+   병원이 준 워드 양식(docx)의 표를 «구조 그대로» 화면에 그린다.
+   2026-09-04 PO: 「실제 각 병원 양식 그대로에다가 텍스트 붙여줄 수 없냐. 얼기설기 비슷한데
+   좀 다르잖아」 — 표를 우리가 새로 그리면 칸 병합·인쇄된 안내 문구가 원본과 어긋난다.
+   HTML 은 서버(src/lib/inquiry/docxTableToHtml.ts)가 만든다. 여기 있는 건 그 표의 옷이다. */
+.docx-preview table.docx {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #111827;
+}
+.docx-preview table.docx td {
+  border: 1px solid #9ca3af;
+  padding: 7px 9px;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* 원본에서 «바탕색이 칠해진» 칸 = 대개 라벨 칸이다. 워드가 칠한 대로 따라간다. */
+.docx-preview table.docx td.sh {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+.docx-preview .docx-heading {
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: #111827;
+}

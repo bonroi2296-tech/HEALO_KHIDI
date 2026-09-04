@@ -50,7 +50,9 @@ export const HOSPITAL_FORMS = [
       { field: null, cell: 31, ko: "코로나 백신 접종 여부 (백신명/차수)", en: "COVID-19 vaccination status (vaccine / doses)" },
       // 33번 칸엔 「유/무」 선택지가 이미 인쇄돼 있다 — 덮어쓰지 않고 파일 이름만 아래에 덧붙인다.
       // 검사 «내용»은 위 21번 칸(현재 시행한 검사와 치료)에 이미 들어간다. 여기는 「자료가 있나」 칸이다.
-      { field: null, withFiles: true, cell: 33, append: true, ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
+      // 🛑 field 를 null 로 되돌리지 마라 — 워드 파일로 내려받을 때 이 칸이 통째로 빠진다
+      //    (화면은 field 가 있는 칸만 서버로 보낸다). 값은 없고 파일 목록만 붙는 칸이다.
+      { field: "attachmentsOnly", withFiles: true, cell: 33, append: true, ko: "영상 및 혈액/병리 검사 자료 여부", en: "Medical imaging and laboratory/pathological data" },
     ],
   },
   {

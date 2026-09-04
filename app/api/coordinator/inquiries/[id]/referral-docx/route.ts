@@ -29,6 +29,7 @@ import path from "node:path";
 import JSZip from "jszip";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findForm } from "@/lib/inquiry/hospitalReferralForms";
+import { docxTableToHtml } from "@/lib/inquiry/docxTableToHtml";
 
 const MAX_LEN = 4000;
 
@@ -111,6 +112,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       const m = cells[job.cell];
       const filled = fillCell(m[0], job.value, job.append === true);
       xml = xml.slice(0, m.index) + filled + xml.slice(m.index! + m[0].length);
+    }
+
+    // 화면 미리보기 — 파일을 만들지 않고 «채운 양식»을 HTML 표로 돌려준다.
+    // 왜 (2026-09-04 PO): 「니가 대충 만든 양식 말고 실제 각 병원 양식 그대로에다가 텍스트
+    //   붙여줄 수 없냐. 얼기설기 비슷한데 좀 다르잖아」 — 화면 표를 따로 그리면 원본과 어긋난다.
+    //   같은 XML 을 화면도 보고 파일도 받으므로 둘이 다를 수가 없다.
+    if (body?.format === "html") {
+      const { heading, table } = docxTableToHtml(xml);
+      return Response.json({ ok: true, heading, table }, { headers: { "cache-control": "no-store" } });
     }
 
     zip.file("word/document.xml", xml);
