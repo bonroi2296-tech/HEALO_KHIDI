@@ -157,7 +157,15 @@ Return ONLY JSON:
    "pastHistoryNote": null, "familyHistory": null
  },
  "uncertain":["what was hedged or self-corrected, and why it is uncertain"],
- "askNext":["what the coordinator should confirm or reply to next"]}
+ "askNext":["what the coordinator should confirm or reply to next"],
+ "glossary":[{"term":"the medical term as it was said","plain":"one short Korean sentence explaining what it is"}]}
+
+GLOSSARY — the coordinators are not medical professionals. For every drug, test, procedure or
+abbreviation that appears in the audio (트라스투주맙 / ИГХ / PET-CT / РМЖ / cT2N1M0 …), add one entry
+explaining WHAT IT IS in plain Korean, one short sentence. Include the original term as spoken.
+🛑 Explain the term ONLY. Never say what it means FOR THIS PATIENT, whether it is good or bad news,
+or what should be done — that is medical advice and it is forbidden here. Skip terms an ordinary
+Korean adult already knows (병원, 수술, 검사). At most 12 entries.
 
 DATES — speakers from Russia and Central Asia say day, then month. Return null rather than guessing
 an ambiguous date. A wrong date of birth gets the patient rejected at hospital registration.`;
@@ -315,6 +323,14 @@ export async function POST(request: NextRequest) {
             //    확정으로 처리하면 그게 그대로 병원에 나간다.
             uncertain: list(parsed?.uncertain, 12, 300),
             askNext: list(parsed?.askNext, 12, 300),
+            // 의료 용어 풀이 — 코디는 의료인이 아니다(2026-09-04 PO).
+            // 「용어가 무엇인가」만 담긴다. 이 환자에게 어떤 의미인지는 프롬프트가 금지하고 있다.
+            glossary: Array.isArray(parsed?.glossary)
+              ? parsed.glossary
+                  .filter((g: any) => g && typeof g.term === "string" && typeof g.plain === "string")
+                  .slice(0, 12)
+                  .map((g: any) => ({ term: g.term.trim().slice(0, 80), plain: g.plain.trim().slice(0, 300) }))
+              : [],
           }
         : {}),
       confidence: typeof parsed?.confidence === "number" ? parsed.confidence : null,
