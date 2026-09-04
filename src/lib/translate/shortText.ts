@@ -7,7 +7,8 @@
  *
  * 설계:
  *   - (원문해시, 대상언어)로 note_translations 에 캐시 → 같은 문구는 두 번 호출 안 함(비용↓).
- *   - 한글이 없는 텍스트는 번역하지 않고 건너뜀(이미 상대 언어이거나 숫자·ID 등).
+ *   - 이미 그 언어인 텍스트는 건너뜀. 「한국어인가」는 «비율»로 본다 — 한 글자 섞였다고
+ *     건너뛰면 러시아어 소견 전체가 통째로 빠진다(isMostlyKorean 주석 참고).
  *   - 여러 문장을 한 번의 Gemini 호출로 묶어 번역(라운드트립·비용 최소화).
  *   - 키/모델 실패는 조용히 빈 결과 → 화면은 원문 폴백(끊기지 않게).
  */
@@ -53,7 +54,7 @@ function sha256(s: string): string {
  *    실패를 몰랐고, 러시아어 그대로 세브란스 의뢰서에 실릴 뻔했다.
  *    같은 함정이 화면 쪽(HospitalReferralSection)에도 있었다 — 두 곳 다 고쳤다.
  */
-function isMostlyKorean(s: string): boolean {
+export function isMostlyKorean(s: string): boolean {
   const ko = (s.match(/[가-힣]/g) || []).length;
   if (!ko) return false;
   const letters = [...s].filter((c) => !/\s/.test(c)).length;
@@ -199,7 +200,7 @@ export async function translateNotes(
  * 긴 글을 «줄 경계»로 잘라 조각으로 만든다. 조각을 `\n` 으로 다시 이으면 원문이 된다.
  * 한 줄 자체가 limit 보다 길면 그 줄이 조각 하나가 된다(줄 가운데를 자르면 문장이 깨진다).
  */
-function splitByLines(text: string, limit: number): string[] {
+export function splitByLines(text: string, limit: number): string[] {
   const lines = text.split("\n");
   const pieces: string[] = [];
   let cur: string[] = [];
