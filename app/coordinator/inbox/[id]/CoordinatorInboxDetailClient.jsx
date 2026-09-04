@@ -12,11 +12,11 @@ import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Mic,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -40,6 +40,16 @@ function isImagingBundle(a) {
   const t = String(a?.type || "").toLowerCase();
   return /\.(zip|rar|dcm)$/.test(n) || t.includes("zip") || t.includes("rar") || t.includes("dicom");
 }
+
+// 음성 메모인가 — 왓츠앱은 ogg, 아이폰 음성 메모는 m4a, 구형 안드로이드는 amr 로 온다.
+// 판독 창구가 아는 «대표 이름»으로 맞춰 보낸다(별칭을 그대로 보내면 창구가 안 받는다).
+const VOICE_MIME = {
+  mp3: "audio/mpeg", m4a: "audio/mp4", mp4a: "audio/mp4", "3gp": "audio/mp4",
+  wav: "audio/wav", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg",
+  webm: "audio/webm", amr: "audio/amr",
+};
+const voiceMime = (name) => VOICE_MIME[String(name || "").split(".").pop()?.toLowerCase()] || null;
+const isVoiceFile = (name) => !!voiceMime(name);
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -558,6 +568,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
   const [openImaging, setOpenImaging] = useState(null); // 펼쳐 놓은 CT 묶음의 경로
+  // 음성 정리 결과 — 경로별 {loading} | {data} | {error}. 화면에만 두고 저장하지 않는다.
+  const [voiceNotes, setVoiceNotes] = useState({});
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
@@ -591,6 +603,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     } finally {
       setStaffUploading(false);
       setStaffProgress(0);
+    }
+  }
+
+  /**
+   * 음성 메모를 글로 옮기고 요약한다 — 코디가 «듣지 않고» 처리할 수 있게.
+   * 계기: 2026-09-02 PO — 「아셀님이 음성파일로 받으니 듣고 분석하는 데 시간이 너무 오래 걸림」.
+   * 결과는 화면에만 둔다(저장하지 않는다). 다시 보려면 다시 누른다 — 한 번에 몇백 원 수준이고,
+   * 저장하면 «언제 적 요약인지» 관리해야 하는데 그럴 값어치가 아직 없다.
+   */
+  async function analyzeVoice(path, name) {
+    if (!path) return;
+    setVoiceNotes((p) => ({ ...p, [path]: { loading: true } }));
+    try {
+      const res = await fetch("/api/inquiry/classify-doc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path, type: voiceMime(name) }),
+      });
+      const j = await res.json();
+      if (!j?.ok || j.skipped) throw new Error(j?.skipped || j?.error || "failed");
+      setVoiceNotes((p) => ({ ...p, [path]: { data: j } }));
+    } catch (e) {
+      console.error("[voice] analyze error:", e);
+      setVoiceNotes((p) => ({ ...p, [path]: { error: String(e?.message || e) } }));
     }
   }
 
@@ -1397,6 +1433,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       >
                         <Video size={14} /> {openImaging === path ? "닫기" : "영상 보기"}
                       </button>
+                    ) : isVoiceFile(name) ? (
+                      /* 소리는 번역 단추가 소용없다(원문이 글이 아니다) — 대신 «듣지 않고 읽게» 한다. */
+                      <button
+                        type="button"
+                        onClick={() => analyzeVoice(path, name)}
+                        disabled={!path || voiceNotes[path]?.loading}
+                        title="음성을 글로 옮기고 요약합니다. 듣지 않아도 됩니다."
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                      >
+                        {voiceNotes[path]?.loading ? (
+                          <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mic size={14} />
+                        )}
+                        {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 정리" : "음성 정리"}
+                      </button>
                     ) : (
                     <>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
@@ -1457,6 +1509,74 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       />
                     </div>
                   )}
+                  {/* 음성 정리 결과 — 듣지 않고 읽는 칸. 저장하지 않고 화면에만 둔다. */}
+                  {voiceNotes[path]?.error && (
+                    <div className="border-t border-gray-100 bg-amber-50/60 px-3 py-3">
+                      <p className="text-sm text-amber-800">
+                        {voiceNotes[path].error === "too_large"
+                          ? "음성이 너무 깁니다(12MB 넘음). 나눠서 올려주세요."
+                          : voiceNotes[path].error === "unsupported_type"
+                          ? "이 형식은 아직 못 읽습니다."
+                          : "음성을 읽지 못했습니다. 잠시 뒤 다시 눌러주세요."}
+                      </p>
+                    </div>
+                  )}
+                  {voiceNotes[path]?.data && (() => {
+                    const v = voiceNotes[path].data;
+                    return (
+                      <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3 space-y-3">
+                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                          {/* teal-600 은 3.74:1 로 대비 기준(4.5:1) 미달이라 안 쓴다 — DESIGN.md */}
+                          <Sparkles size={12} className="text-teal-700" />
+                          기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요
+                          {v.language && <span className="ml-auto">말: {v.language}</span>}
+                        </div>
+
+                        {v.summaryKo && (
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            {v.summaryKo}
+                          </p>
+                        )}
+
+                        {/* 🛑 이 칸이 요약보다 중요하다 — 흐리게 말한 병기·날짜를 확정으로 처리하면
+                            그게 그대로 병원에 나간다. 눈에 띄게 둔다. */}
+                        {v.uncertain?.length > 0 && (
+                          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p className="text-[11px] font-semibold text-amber-800 mb-1">
+                              확실하지 않은 것 — 그대로 쓰지 마세요
+                            </p>
+                            <ul className="space-y-0.5">
+                              {v.uncertain.map((u, k) => (
+                                <li key={k} className="text-xs text-amber-900">· {u}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {v.askNext?.length > 0 && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1">다음에 확인할 것</p>
+                            <ul className="space-y-0.5">
+                              {v.askNext.map((a, k) => (
+                                <li key={k} className="text-xs text-gray-700">· {a}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {v.transcript && (
+                          <details className="group">
+                            <summary className="cursor-pointer text-xs text-teal-700 hover:underline select-none">
+                              들린 그대로 보기 ({v.transcript.length}자)
+                            </summary>
+                            <p className="mt-2 text-xs text-gray-600 whitespace-pre-wrap leading-relaxed border-l-2 border-gray-200 pl-3">
+                              {v.transcript}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
@@ -1506,7 +1626,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
+                  /* 🛑 목록을 손으로 베끼지 마라 — 바로 위 안내 문구는 uploadPolicy 를 읽는데
+                     이 칸만 베껴 둬서, 형식을 하나 더해도 «안내엔 뜨는데 고를 수는 없는» 상태가 됐다
+                     (2026-09-03: 음성을 더하다 발견). 규칙은 한 곳(uploadPolicy)에만 둔다. */
+                  accept={`${UPLOAD_POLICY.medicalDoc.accept},${UPLOAD_POLICY.imaging.accept}`}
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
