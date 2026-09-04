@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { FileText, Copy, Check, Printer, Languages, Loader2 } from "lucide-react";
+import { FileText, Copy, Check, Printer, Languages, Loader2, Download } from "lucide-react";
 import { HOSPITAL_FORMS } from "@/lib/inquiry/hospitalReferralForms";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -28,7 +28,7 @@ const hasKo = (s) => /[가-힣]/.test(String(s || ""));
 // 정규식에 백슬래시로 범위를 적으면 이스케이프가 풀려 제어문자가 박힌다(2026-09-04 실측).
 const looksLatin = (s) => ![...String(s || "")].some((c) => c.charCodeAt(0) > 0x2ff);
 
-export default function HospitalReferralSection({ values, attachments = [] }) {
+export default function HospitalReferralSection({ inquiryId, values, attachments = [] }) {
   const [openId, setOpenId] = useState(null);
   const [copied, setCopied] = useState(false);
   const form = HOSPITAL_FORMS.find((f) => f.id === openId) || null;
@@ -131,6 +131,45 @@ export default function HospitalReferralSection({ values, attachments = [] }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch { /* 클립보드가 막힌 브라우저 — 표를 직접 긁어 복사한다 */ }
+  }
+
+  /**
+   * 병원이 준 원본 워드 양식에 값만 채워 내려받는다.
+   * 화면이 이미 계산해 둔 값(번역 포함)을 그대로 보낸다 — 서버가 다시 번역하면 화면과 달라진다.
+   */
+  const [docxBusy, setDocxBusy] = useState(false);
+  async function downloadDocx() {
+    if (!form) return;
+    setDocxBusy(true);
+    try {
+      const payload = {};
+      for (const r of rows) if (r.field && r.value) payload[r.field] = r.value;
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-docx`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ hospital: form.id, values: payload }),
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const blob = await res.blob();
+      // 파일 이름은 서버가 정한다(환자 이름 + 병원). 헤더에서 꺼내 쓴다.
+      const cd = res.headers.get("content-disposition") || "";
+      const m = /filename\*=UTF-8''([^;]+)/.exec(cd);
+      const name = m ? decodeURIComponent(m[1]) : "의뢰서.docx";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) {
+      console.error("[hospital-form] docx error:", e);
+      window.alert("양식 파일을 만들지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+    setDocxBusy(false);
   }
 
   // 인쇄는 «새 창에 표만» 띄운다. 이 화면을 그대로 인쇄하면 왼쪽 메뉴·단추까지 종이에 나온다.

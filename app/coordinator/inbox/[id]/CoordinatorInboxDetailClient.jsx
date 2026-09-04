@@ -1452,6 +1452,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       {/* 병원 의뢰서 — 병원마다 다른 양식에 우리 값을 채워 준다(2026-09-04 PO).
           값은 «문의에 이미 있는 것»만 쓴다. 없는 칸은 빈칸으로 두고 몇 칸인지 세어 준다. */}
       <HospitalReferralSection
+        inquiryId={inquiryId}
         attachments={Array.isArray(inquiry.attachments) ? inquiry.attachments : []}
         values={{
           patientName: fullName,
