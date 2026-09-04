@@ -113,10 +113,39 @@ export async function translateNotes(
    * 나눠 부른 것도 각각 캐시에 남으므로 다음부터는 어차피 0원이다.
    */
   const CHUNK_CHARS = 2000;
+
+  /**
+   * 🛑 항목 «하나»가 상한을 넘으면 위 규칙으로는 못 나눈다 — 통짜로 한 통이 되고, 그 통의 답이
+   *    잘려 그 글만 조용히 사라진다. 2026-09-04 실측: 서류 세 장에서 모은 검사 소견 4,217자를
+   *    보냈더니 같이 보낸 짧은 글 6건은 다 돌아오고 «그 하나만» 응답에 없었다. 화면은 실패를
+   *    모르니 러시아어 원문을 그대로 두었고, 그대로 두면 세브란스에 러시아어로 나간다.
+   * 그래서 긴 글은 «줄 경계»로 쪼개 따로 보내고, 번역문을 줄로 다시 잇는다. 줄 단위라 원문의
+   * 구조가 그대로 남고, 조각도 각각 캐시에 들어가 다음부터는 0원이다.
+   */
+  const longOnes = misses.filter((t) => t.length > CHUNK_CHARS);
+  const shortOnes = misses.filter((t) => t.length <= CHUNK_CHARS);
+
+  for (const whole of longOnes) {
+    const pieces = splitByLines(whole, CHUNK_CHARS);
+    // 조각도 캐시에 남겨야 다음부터 0원이다 — 해시가 없으면 저장 단계에서 통째로 버려진다.
+    for (const piece of pieces) if (!hashOf.has(piece)) hashOf.set(piece, sha256(piece));
+    const got: Record<string, string> = {};
+    for (const piece of pieces) {
+      try {
+        await translateBatch([piece], lang, model, hashOf, got);
+      } catch (err) {
+        console.error("[translateNotes] long piece failed:", (err as Error)?.message?.slice(0, 160));
+      }
+    }
+    // 한 조각도 못 옮겼으면 그 글은 손대지 않는다(화면이 원문을 그대로 보여준다).
+    if (!pieces.some((p) => got[p])) continue;
+    out[whole] = pieces.map((p) => got[p] ?? p).join("\n");
+  }
+
   const chunks: string[][] = [];
   let cur: string[] = [];
   let curLen = 0;
-  for (const t of misses) {
+  for (const t of shortOnes) {
     if (cur.length && curLen + t.length > CHUNK_CHARS) {
       chunks.push(cur);
       cur = [];
@@ -137,6 +166,28 @@ export async function translateNotes(
   }
 
   return out;
+}
+
+/**
+ * 긴 글을 «줄 경계»로 잘라 조각으로 만든다. 조각을 `\n` 으로 다시 이으면 원문이 된다.
+ * 한 줄 자체가 limit 보다 길면 그 줄이 조각 하나가 된다(줄 가운데를 자르면 문장이 깨진다).
+ */
+function splitByLines(text: string, limit: number): string[] {
+  const lines = text.split("\n");
+  const pieces: string[] = [];
+  let cur: string[] = [];
+  let len = 0;
+  for (const ln of lines) {
+    if (cur.length && len + ln.length + 1 > limit) {
+      pieces.push(cur.join("\n"));
+      cur = [];
+      len = 0;
+    }
+    cur.push(ln);
+    len += ln.length + 1;
+  }
+  if (cur.length) pieces.push(cur.join("\n"));
+  return pieces;
 }
 
 /** 한 통 번역 → `out` 에 채우고 캐시에 적는다. 실패하면 던진다(호출부가 그 통만 버린다). */
