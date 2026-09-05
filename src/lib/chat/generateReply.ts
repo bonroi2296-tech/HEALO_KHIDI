@@ -277,13 +277,11 @@ export interface ChatSession {
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
-<<<<<<< HEAD
   // 이 호출이 «사람의 상담»이 아니라 AI 자가시험(회귀 테스트)인가.
   // true 면 ①실서비스 Judge(ai_response_evaluations 적재 + 코디 긴급알림)를 건너뛰고
   // ②AI 비용을 public_chat 이 아니라 regression_generate 표면으로 기록한다.
   // 시험 트래픽이 실서비스 품질지표·알림에 섞이면 KPI 가 오염된다(2026-08-21).
   isRegressionTest?: boolean;
-=======
   /**
    * 대화가 벌어지는 자리. 기본값 "web"(사이트 안 채팅 위젯).
    * ⚠️ **「게스트 30일 자동 재개」는 web 에서만 참이다** — 그건 브라우저 쿠키
@@ -293,7 +291,6 @@ export interface ChatSession {
    * 판사에게 「사실」로 넘어가 환각 검출을 통과한다(2026-08-31 독립 리뷰 지적).
    */
   channel?: "web" | "messenger";
->>>>>>> origin/main
 }
 
 
@@ -589,6 +586,12 @@ export interface ChatReplyResult {
   reply: string;
   ragChunks: any[];
   error?: string;
+  /**
+   * 이 답을 만들 때 «실제로» 쓴 안내자료(docListAllowed 판정 결과가 반영된 것).
+   * AI 자가시험의 채점자가 이걸 그대로 받아야 «답이 본 자료»와 «판사가 본 자료»가 같아진다.
+   * 안 맞으면 판사가 답에 없던 가격을 「지어낸 것」으로 보거나 그 반대가 된다(2026-08-24 #1460).
+   */
+  careReference?: string;
   /** critical 레드라인 적발로 답변이 안전 대체된 경우의 flag 목록(없으면 통과) */
   redlineBlocked?: string[];
   _analytics?: {
@@ -1581,6 +1584,7 @@ export async function streamChatReply(
     const result: ChatReplyResult = {
       reply: fullText,
       ragChunks,
+      careReference,
       ...(emptyError ? { error: emptyError } : {}),
       _analytics: {
         retrievedPatternIds,
