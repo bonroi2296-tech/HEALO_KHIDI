@@ -282,6 +282,10 @@ export interface ChatSession {
   // ②AI 비용을 public_chat 이 아니라 regression_generate 표면으로 기록한다.
   // 시험 트래픽이 실서비스 품질지표·알림에 섞이면 KPI 가 오염된다(2026-08-21).
   isRegressionTest?: boolean;
+  // 자동 점검(smoke-chat)·E2E 가 만든 대화인가. true 면 판사(품질 채점·코디 긴급알림)만 건너뛴다.
+  // 비용 표면은 그대로 public_chat — 회귀 자가시험과 달리 실서비스 키로 나간 돈이라 숨기지 않는다.
+  // 근거·식별 방법: src/lib/chat/syntheticThread.ts (2026-09-06 실측: 30일 문제 표시 16건 중 실환자 0건).
+  isSyntheticTest?: boolean;
   /**
    * 대화가 벌어지는 자리. 기본값 "web"(사이트 안 채팅 위젯).
    * ⚠️ **「게스트 30일 자동 재개」는 web 에서만 참이다** — 그건 브라우저 쿠키
@@ -1370,7 +1374,7 @@ export async function generateChatReply(
     };
 
     // Judge: 메인 응답 흐름 차단 없이 백그라운드 평가
-    if (!session.isRegressionTest) runJudgeInBackground({
+    if (!session.isRegressionTest && !session.isSyntheticTest) runJudgeInBackground({
       query: safeQuery,
       response: finalReply,
       context: judgeContext || undefined,
@@ -1608,7 +1612,7 @@ export async function streamChatReply(
     });
 
     // Judge: 메인 흐름 차단 없이 백그라운드 평가
-    if (!session.isRegressionTest) runJudgeInBackground({
+    if (!session.isRegressionTest && !session.isSyntheticTest) runJudgeInBackground({
       query: safeQuery,
       response: fullText,
       context: judgeContext || undefined,

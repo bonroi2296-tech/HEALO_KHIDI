@@ -60,7 +60,8 @@ const ROUTES = [
 // 소문자로 시작하는 라틴 단어를 품은 «문장»만 잡는다(위 주석). 단어 = 라틴 글자로 시작하는 토큰.
 function isEnglishSentence(s: string): boolean {
   if (/[Ѐ-ӿ가-힣]/.test(s)) return false;
-  const words = s.split(/\s+/).filter((w) => /^[A-Za-z][A-Za-z'’\-\/&·.,:;()]*$/.test(w));
+  // «/» 로도 가른다 — 「KRW/session」 이 한 토큰으로 묶여 «단어 2개 미만»으로 빠져나갔다(2026-09-06 zh·ja 스캔에서 발견).
+  const words = s.split(/[\s\/]+/).filter((w) => /^[A-Za-z][A-Za-z'’\-&·.,:;()]*$/.test(w));
   if (words.length < 2) return false;
   return words.some((w) => /^[a-z]/.test(w));
 }

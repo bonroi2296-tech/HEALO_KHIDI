@@ -34,7 +34,9 @@ describe("AI 자가시험은 실서비스 경로를 탄다 (회귀 잠금)", () 
     expect(SRC).toMatch(/isRegressionTest: true/);
     const GEN = readFileSync(path.resolve(__dirname, "generateReply.ts"), "utf8");
     // 표시가 있으면 실서비스 Judge(코디 긴급알림 + ai_response_evaluations 적재)를 건너뛴다
-    const guarded = GEN.match(/if \(!session\.isRegressionTest\) runJudgeInBackground\(/g) ?? [];
+    // 2026-09-06: 점검·E2E 표시(isSyntheticTest)가 같은 조건에 && 로 붙었다(syntheticThread.ts) — 회귀 표시가
+    // 조건의 «첫 자리»에 남아 있는지만 잠근다. 다른 표시가 더 붙어도 이 시험은 안 깨진다.
+    const guarded = GEN.match(/if \(!session\.isRegressionTest[^)]*\) runJudgeInBackground\(/g) ?? [];
     expect(guarded.length).toBe(2); // generateChatReply · streamChatReply 양쪽
   });
 });

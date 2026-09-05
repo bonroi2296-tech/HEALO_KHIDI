@@ -24,6 +24,7 @@ import {
   logPlaybookUsage,
   modelBypassKind,
 } from "@/lib/chat/generateReply";
+import { isSyntheticThread } from "@/lib/chat/syntheticThread";
 import { generateTriage } from "@/lib/chat/triage";
 import { scanRedlines, redlineCorrectionNotice } from "@/lib/chat/safetyGuard";
 import {
@@ -262,6 +263,8 @@ export async function POST(request: NextRequest) {
               hasReachableContact: reachable,
               // 이번 턴 첨부 or 과거 첨부 스레드 → "파일 못 읽음" 하드룰 (첨부 내용 환각 방지)
               hasAttachments: hasAttachments || !!threadMeta.has_attachments,
+              // 점검·E2E 대화는 판사에서 뺀다(코디 긴급알림 오발·품질 화면 오염 방지). 판정은 syntheticThread.ts.
+              isSyntheticTest: isSyntheticThread(threadMeta),
             }
           );
           aiReply = r.reply;

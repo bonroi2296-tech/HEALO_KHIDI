@@ -156,6 +156,6 @@ export const HOME_CONTENT = {
     viewTreatments: { ko: "암종별 상세 치료 안내 보기", en: "View detailed treatment guides", ru: "Подробные руководства по лечению", kz: "Емдеу нұсқаулықтарын көру", zh: "查看各癌种详细治疗指南", ja: "がん種別の詳細治療ガイドを見る" },
     onlineInquiry: { ko: "온라인 문의", en: "Online Inquiry", ru: "Онлайн-запрос", kz: "Онлайн сұрау", zh: "在线咨询", ja: "オンラインお問い合わせ" },
     badgePartner: { ko: "제휴 병원", en: "Partner", ru: "Партнёр", kz: "Серіктес", zh: "合作", ja: "提携" },
-    badgeUniversity: { ko: "협진 대학병원", en: "University", ru: "Университет", kz: "Университет", zh: "大学医院", ja: "大学病院" },
+    badgeUniversity: { ko: "협진 대학병원", en: "University", ru: "Университетская клиника", kz: "Университет клиникасы", zh: "大学医院", ja: "大学病院" },
   },
 };

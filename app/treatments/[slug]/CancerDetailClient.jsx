@@ -15,6 +15,7 @@ const CANCER_ICONS = {
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
+import { priceUnitLabel } from "@/lib/i18n/priceUnit";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
@@ -436,9 +437,10 @@ export default function CancerDetailClient({ slug }) {
                         <span className="text-xs font-semibold text-gray-600">
                           {/* 숫자 표기는 고정(en-US) — 인자 없는 toLocaleString() 은 서버(Node)와 브라우저(ru-RU 는 "250 000")가
                               다르게 찍어 러·카 방문자마다 hydration 불일치가 났다(2026-09-05 dev 실측, CancerDetailClient:416). */}
+                          {/* 단위(«KRW/session»)는 사전 글자로 — 6개 언어 전부 영어로 새던 것(2026-09-06, priceUnit.js). */}
                           {typeof therapy.price.amount === "number"
-                            ? `${therapy.price.amount.toLocaleString("en-US")} ${therapy.price.unit}`
-                            : `${therapy.price.amount} ${therapy.price.unit || ""}`}
+                            ? `${therapy.price.amount.toLocaleString("en-US")} ${priceUnitLabel(therapy.price.unit, lang)}`
+                            : `${therapy.price.amount} ${priceUnitLabel(therapy.price.unit, lang)}`}
                         </span>
                       </div>
                     )}
