@@ -2,6 +2,7 @@ import "server-only";
 import { headers, cookies } from "next/headers";
 import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "./config";
 import { t } from "./index";
+import { ogLocaleFields } from "./ogLocale";
 
 // 서버 메타데이터(hreflang·canonical·OG locale) 헬퍼.
 // 미들웨어가 넘긴 x-locale(현재 언어)·x-pathname(언어 뗀 경로)을 읽어 생성한다.
@@ -12,7 +13,8 @@ const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.k
 // BCP47 표기 (kz→kk) + OG locale 태그
 // export: JSON-LD 의 inLanguage 도 같은 표기를 써야 한다(사본 금지 — 내부코드 kz 를 그대로 내보내면 잘못된 언어태그).
 export const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
-export const OG_LOCALE = { en: "en_US", ko: "ko_KR", ru: "ru_RU", kz: "kk_KZ", zh: "zh_CN", ja: "ja_JP" };
+// OG_LOCALE·ogLocaleFields 의 정본은 ./ogLocale.js(순수 모듈) — 여기서는 되내보내기만 한다.
+export { OG_LOCALE, ogLocaleFields } from "./ogLocale";
 
 // locale=null 이면 언어화 안 된 요청(내부도구·게스트 등) — 미들웨어가 x-locale 안 붙임.
 export async function getRequestLocale() {
@@ -85,7 +87,8 @@ export async function localizedMeta(base, titleKey, descKey) {
   //   og:url 은 공개 화면(base.openGraph 있음)에만 넣는다. 비공개 화면은 x-pathname 이 없어
   //   canonical 이 «그 언어 홈»으로 잘못 찍히기 때문이다(2026-08-31 독립 리뷰 지적).
   const ogBase = base.openGraph ?? {};
-  const openGraph = { ...ogBase, title, description };
+  // og:locale 도 «항상» 요청 언어로 (2026-09-06 실측: 페이지 base 의 "en_US" 가 러시아어 홈까지 덮었다).
+  const openGraph = { ...ogBase, title, description, ...ogLocaleFields(locale) };
   if (base.openGraph) openGraph.url = (await localeAlternates())?.canonical;
   // ⚠️ 미리보기 «썸네일»도 같이 챙긴다. Next 는 opengraph-image 파일을 «그 세그먼트»에만 자동으로
   //   붙이는데(루트에만 app/opengraph-image.js 가 있다), 페이지가 openGraph 를 정의하는 순간

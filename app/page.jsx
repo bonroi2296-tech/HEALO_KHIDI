@@ -64,8 +64,8 @@ const baseMeta = {
     description:
       "Video pre-consultation with Korea's top oncologists · 6-language interpretation · Full-journey concierge from diagnosis to follow-up.",
     type: "website",
-    locale: "en_US",
-    alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
+    // locale·alternateLocale 은 localizedMeta 가 요청 언어로 채운다 — 여기 고정값을 두면
+    // 그게 이긴다(2026-09-06 실측: /ru 가 og:locale=en_US 로 나갔다).
   },
   twitter: {
     card: "summary_large_image",

@@ -7,7 +7,7 @@ import {
 } from "@/lib/data/hospitals";
 import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
-import { localeAlternates, getRequestLocale, pickLocalized } from "@/lib/i18n/metadata";
+import { localeAlternates, getRequestLocale, pickLocalized, ogLocaleFields } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }) {
         title: name,
         description,
         alternates: hospitalAlt,
-        openGraph: { title: name, description, type: "article", images: ogImages, url: hospitalAlt.canonical },
+        openGraph: { title: name, description, type: "article", images: ogImages, url: hospitalAlt.canonical, ...ogLocaleFields(lc) },
         twitter: ogImages ? { card: "summary_large_image", title: name, description, images: [ogImg] } : undefined,
       };
     }
@@ -98,6 +98,7 @@ export async function generateMetadata({ params }) {
       url: dbAlt.canonical,
       type: "article",
       images: ogImages,
+      ...ogLocaleFields(lc),
     },
     twitter: {
       card: ogImages ? "summary_large_image" : "summary",

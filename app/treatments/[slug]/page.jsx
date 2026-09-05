@@ -12,7 +12,7 @@ import {
   CANCER_IMAGES,
   CANCER_FAQ,
 } from "@/lib/data/immuneCancerDetails";
-import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
+import { localeAlternates, getRequestLocale, ogLocaleFields } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
 const UUID_REGEX =
@@ -62,13 +62,13 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
+  const { locale } = await getRequestLocale();
+  const lc = locale || "en";
 
   // 암종 상세 페이지 메타
   if (CANCER_SLUGS.includes(slug)) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) return {};
-    const { locale } = await getRequestLocale();
-    const lc = locale || "en";
     const name = cancer.title?.[lc] || cancer.title?.en || cancer.title?.ko;
     const title = name; // 루트 template "%s | healwith"가 접미사 자동 추가
     const description = (cancer.intro?.[lc] || cancer.intro?.en || cancer.intro?.ko || "").slice(0, 160);
@@ -106,6 +106,7 @@ export async function generateMetadata({ params }) {
         url: alt?.canonical || `/treatments/${slug}`,
         type: "article",
         images: [{ url: ogImg }],
+        ...ogLocaleFields(lc),
       },
       twitter: {
         card: "summary_large_image",
@@ -144,6 +145,7 @@ export async function generateMetadata({ params }) {
       url: canonical,
       type: "article",
       images: ogImages,
+      ...ogLocaleFields(lc),
     },
     twitter: {
       card: ogImages ? "summary_large_image" : "summary",
