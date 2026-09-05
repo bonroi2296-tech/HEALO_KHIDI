@@ -29,6 +29,14 @@ import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { transcriptsAgree } from "@/lib/consultation/transcriptAgreement";
+import {
+  bcp47For,
+  noteTranscribeFailure,
+  transcribeCoolingDown,
+  transcribeExperimentModel,
+  transcribeViaInteractions,
+} from "@/lib/consultation/transcribeInteractions";
+import type { SttEngine } from "@/lib/consultation/sttEngine";
 
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024;
 
@@ -65,6 +73,29 @@ const NO_INVENTION = `TRANSCRIBE ONLY WHAT IS ACTUALLY AUDIBLE. This is a medica
 - NEVER add a person's name, nationality, hospital, diagnosis, or greeting that you did not actually hear, even when the domain makes it plausible.
 - If the audio is only silence, breathing, background noise, or music, return the empty result — do NOT produce "Здравствуйте"/"안녕하세요" or any filler phrase.
 - When in doubt, output LESS. A short faithful fragment is correct; a fluent invented sentence is a failure.`;
+
+/**
+ * 모델이 돌려준 «한 줄 JSON»({"t","x","l"} 또는 {"x","l"})을 읽는다. 코드펜스로 감싸도 벗긴다.
+ * 두 경로(오디오→Flash 단일 호출 / 받아쓰기 전용→Flash 번역)가 같은 계약을 쓰므로 파서는 하나다 —
+ * 실패 시 «조각을 버릴지, 원문만 내보낼지»는 각 경로가 정한다.
+ */
+function parseSttJson(text: string): { ok: boolean; t: string; x: string; l: string } {
+  const cleaned = (text || "").replace(/```(?:json)?/g, "").trim();
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  if (!m) return { ok: false, t: "", x: "", l: "" };
+  try {
+    const j = JSON.parse(m[0]);
+    const l = String(j.l || "").trim().toLowerCase();
+    return {
+      ok: true,
+      t: String(j.t || "").trim(),
+      x: String(j.x || "").trim(),
+      l: LANG_NAMES[l] ? l : "",
+    };
+  } catch {
+    return { ok: false, t: "", x: "", l: "" };
+  }
+}
 
 // 대화 문맥(직전 발화) — 클라이언트 링버퍼에서 FormData 로 전달. 전사(동음이의)·번역(대명사)
 // 양쪽 정확도에 기여. 개수·길이 상한으로 프롬프트 오염 방지.
@@ -239,6 +270,112 @@ export async function POST(
 
     let detectedLang = "";
 
+    // ── 실험 경로(2026-09-05, PO 「지금 실험 착수」): 받아쓰기 «전용» 모델 Gemini 3.5 Transcribe ──
+    // env STT_TRANSCRIBE_MODEL 이 비어 있으면(기본) 이 블록은 통째로 건너뛴다 = 실서비스 동작 0 변화.
+    // 켜면: 받아쓰기는 Interactions API(별도 엔드포인트, 생각 토큰 없음·kk-KZ 명시) → 번역만 기존 Flash.
+    // «받아쓰기»가 실패하거나 응답 모양이 다르면 아래 기존 Flash 경로로 떨어진다(+ 잠시 쉼).
+    // «번역»만 실패하면 원문만 내보낸다 — 성공한 받아쓰기를 버리고 오디오를 다시 전사하지 않는다.
+    // 결과는 지역변수에 모았다가 전부 끝난 뒤에만 transcript/translated 에 옮긴다 —
+    // 도중에 옮기면 실패 뒤 Flash 경로가 «대조 검사를 안 거친 글»을 그대로 남길 수 있다.
+    // 대조 검사(2회 호출 합의)는 이 경로엔 안 건다: 전용 모델의 지어냄 성향은 미측정이라 «첫 실회의에서 잰다».
+    // 켜는 법·재는 법·한계: docs/KNOWN_ISSUES.md 「2026-09-05 트렌드 스캔 발견」 ②.
+    let experimentHandled = false;
+    let sttEngineUsed: SttEngine = STT_ENGINES.SERVER;
+    const transcribeModel = transcribeExperimentModel();
+    if (transcribeModel && !transcribeCoolingDown()) {
+      let r: Awaited<ReturnType<typeof transcribeViaInteractions>> | null = null;
+      try {
+        r = await transcribeViaInteractions({
+          model: transcribeModel,
+          audio: buf,
+          mimeType: mediaType,
+          // 후보 언어 힌트 = 설정 언어 + 도착 언어(같은 마이크를 두 언어가 쓸 수 있다). 중복·모르는 코드는 빠진다.
+          languageCodes: [bcp47For(lang), targetLang ? bcp47For(targetLang) : ""],
+        });
+      } catch (e: any) {
+        noteTranscribeFailure();
+        console.warn(
+          `[consultation/stt] transcribe 받아쓰기 호출 실패 → Flash 경로로 폴백(잠시 쉼): ${String(e?.message || e).slice(0, 160)}`
+        );
+      }
+      if (r) {
+        void logAiUsage({
+          surface: "consult_stt",
+          model: transcribeModel,
+          promptTokens: r.usage?.promptTokens ?? null,
+          completionTokens: r.usage?.completionTokens ?? null,
+          meta: {
+            kind: "transcribe_interactions",
+            engine: "transcribe",
+            partial: isPartial,
+            lang,
+            target: targetLang || null,
+            audio_bytes: buf.byteLength,
+            elapsed_ms: r.elapsedMs,
+            status: r.status,
+            text_found: r.found,
+          },
+        });
+        if (!r.found) {
+          // 문서 예시와 다른 응답 모양 — 조용히 빈 자막을 내지 말고 기존 경로로. 첫 실호출에서 모양을 잡는 용도.
+          noteTranscribeFailure();
+          console.warn(
+            `[consultation/stt] transcribe 응답에 text 조각 없음 (status=${r.status}, keys=${r.topKeys.join(",")}) → Flash 경로로 폴백(잠시 쉼)`
+          );
+        } else {
+          const expTranscript = r.text;
+          let expTranslated = "";
+          let expDetected = "";
+          if (expTranscript && targetLang && targetLang !== lang) {
+            // 번역만 Flash — 받아쓴 «글»을 넘기므로 오디오 경로보다 싸고, 생각 토큰이 잘라먹을 오디오 해석이 없다.
+            const targetName = LANG_NAMES[targetLang];
+            try {
+              const out = await genWithFallback(
+                "gemini-flash-latest",
+                {
+                  messages: [
+                    {
+                      role: "user",
+                      content: [
+                        {
+                          type: "text",
+                          text: `${contextBlock}The following is a verbatim transcript from a medical teleconsultation (Korea–CIS oncology care). The speaker most likely speaks ${langName}, but DETECT the language actually used (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
+If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate it into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles). Do NOT add, omit, or complete anything.
+Transcript:
+${expTranscript}
+Respond with ONLY this JSON on one line, no markdown, no code fences:
+{"x":"<translation>","l":"<detected language code>"}`,
+                        },
+                      ],
+                    },
+                  ],
+                  temperature: 0,
+                },
+                { partial: isPartial, kind: "translate_after_transcribe", lang, target: targetLang }
+              );
+              const p = parseSttJson(out);
+              if (p.ok) {
+                expTranslated = p.x;
+                expDetected = p.l;
+              }
+              // 파싱 실패면 원문만 — «덜 보이는 것»이 «안 보이는 것»보다 낫다. 화면은 translated 가 비면 번역 API 로 한 번 더 간다.
+            } catch (e: any) {
+              console.warn(
+                `[consultation/stt] transcribe 뒤 번역 실패 — 원문만 내보낸다(받아쓰기는 성공): ${String(e?.message || e).slice(0, 160)}`
+              );
+            }
+          } else if (targetLang === lang) {
+            expTranslated = expTranscript;
+          }
+          transcript = expTranscript;
+          translated = expTranslated;
+          detectedLang = expDetected;
+          experimentHandled = true;
+          sttEngineUsed = STT_ENGINES.SERVER_TRANSCRIBE;
+        }
+      }
+    }
+
     // ── 지어냄 거르개: 확정 자막은 «두 번 물어 답이 닮았을 때만» 채택한다 ──
     //
     // 왜: 모델은 말이 없는 조각을 받으면 침묵하지 않고 그럴듯한 진료 문장을 만든다
@@ -286,6 +423,8 @@ export async function POST(
       return false;
     };
 
+    // 실험 경로가 처리했으면 기존 Flash 경로는 건너뛴다(들여쓰기는 diff 를 작게 두려고 안 바꿨다).
+    if (!experimentHandled) {
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
       // 언어 자동 감지: 화자가 설정 언어(lang)와 다른 언어를 말해도(같은 방 마이크에
@@ -318,21 +457,11 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
       const runs = texts.map((text) => {
-        const cleaned = (text || "").replace(/```(?:json)?/g, "").trim();
-        const m = cleaned.match(/\{[\s\S]*\}/);
-        if (!m) return { transcript: "", translated: "", detectedLang: "" }; // 파싱 실패 — 조각 폐기
-        try {
-          const j = JSON.parse(m[0]);
-          const l = String(j.l || "").trim().toLowerCase();
-          return {
-            transcript: String(j.t || "").trim(),
-            translated: String(j.x || "").trim(),
-            detectedLang: LANG_NAMES[l] ? l : "",
-          };
-        } catch {
-          // 파싱 실패 — 조각 폐기 (깨진 텍스트를 자막으로 내보내는 것보다 안전)
-          return { transcript: "", translated: "", detectedLang: "" };
-        }
+        // 파싱 실패 — 조각 폐기 (깨진 텍스트를 자막으로 내보내는 것보다 안전)
+        const p = parseSttJson(text);
+        return p.ok
+          ? { transcript: p.t, translated: p.x, detectedLang: p.l }
+          : { transcript: "", translated: "", detectedLang: "" };
       });
       if (agreedOrEmpty(runs)) {
         transcript = runs[0].transcript;
@@ -367,6 +496,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
       // 같은 언어면 자막 파이프라인이 그대로 표시할 수 있게 번역=원문
       if (targetLang === lang) translated = transcript;
     }
+    } // !experimentHandled
 
     // 2차 필터: 모델이 프롬프트 지시를 어기고 추임새만 전사해 와도 자막으로 안 내보냄
     if (transcript && isFillerOnly(transcript)) {
@@ -401,12 +531,20 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
         speakerName,
         isPartial,
         speakerRole,
+        sttEngine: sttEngineUsed,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
     }
 
-    return Response.json({ ok: true, transcript, translated, detectedLang: detectedLang || lang });
+    return Response.json({
+      ok: true,
+      transcript,
+      translated,
+      detectedLang: detectedLang || lang,
+      // 실험 측정용 — 어느 경로가 답했나(클라이언트는 몰라도 된다).
+      engine: experimentHandled ? "transcribe" : "flash",
+    });
   } catch (err: any) {
     console.error("[consultation/stt] error:", err?.message?.slice(0, 200));
     return Response.json({ ok: false, error: "stt_failed" }, { status: 500 });
@@ -423,6 +561,8 @@ async function saveTranslationLog(
     speakerName?: string | null;
     isPartial?: boolean;
     speakerRole?: "self" | "other" | null;
+    /** 어느 길이 만들었나 — 실험 경로(server_transcribe)와 기존(server_gemini)을 같은 회의 안에서도 가른다. */
+    sttEngine?: SttEngine;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -435,7 +575,7 @@ async function saveTranslationLog(
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
       // 이 라우트로 들어온 줄은 정의상 «서버 받아쓰기» 다 — 클라이언트 값을 믿지 않는다.
-      stt_engine: STT_ENGINES.SERVER,
+      stt_engine: data.sttEngine ?? STT_ENGINES.SERVER,
       // 「누가 말했나(역할)」 — 클라이언트가 알려준 값만 쓴다. 이 라우트엔 내 마이크(self)와
       // 청취 모드가 녹음한 상대 마이크(other)가 «둘 다» 들어온다.
       // (화면의 「나/상대」 판정은 이 값보다 화자 «이름»을 먼저 본다 — 같은 줄을 두 사람이
