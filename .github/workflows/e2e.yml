@@ -617,6 +617,14 @@ jobs:
           E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
           E2E_HOSPITAL_EMAIL: ${{ secrets.E2E_HOSPITAL_EMAIL }}
           E2E_HOSPITAL_PASSWORD: ${{ secrets.E2E_HOSPITAL_PASSWORD }}
+          # 2026-09-05: 위 2026-08-27 과 «같은 유형이 두 번째». 이번엔 저장소 열쇠 둘이
+          # 여기에만 빠져 있어서 첨부 파일이름 검사 6건이 「없는 값」으로 죽고
+          # 야간 잡이 빨간불이 됐다(이슈 #1616). 실서비스는 멀쩡했다.
+          # ⚠️ 야간은 «실서비스» 를 보므로 E2E 전용 DB 가 아니라 실서비스 것을 쓴다
+          #    (아래 「시험 문의 정리」 단계와 같은 값이라야 올린 것을 지울 수 있다).
+          # 재발 방지 = `npm run check:workflow-env`.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       # 검사가 «통과했을 때만» 자기가 만든 시험 문의를 치운다 (PO 지시 2026-08-25:
       # 「테스트하고 이상 없으면 정리해, 너무 지저분해진다」).
