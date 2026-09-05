@@ -90,7 +90,16 @@ let sanityFailed = 0;
 for (const p of PATHS) {
   const page = await context.newPage();
   try {
-    const resp = await page.goto(BASE + p, { waitUntil: "networkidle", timeout: 60000 });
+    // ⚠️ waitUntil 을 「통신이 완전히 멈출 때까지(networkidle)」로 두지 마라 (2026-09-06 실측 — 같은 함정을
+    //    mobile-sweep.mjs 가 2026-08-14 에 이미 적어 뒀는데 여기는 그대로였다).
+    //    로그인 뒤 화면(어드민·코디·환자)은 알림 폴링·실시간 통신이 «계속» 이어져 networkidle 이 영영 안 온다.
+    //    그래서 주간 감사(audit-live.yml)의 로그인 뒤 잡이 08-17·08-24·08-31 세 번 연속 22개 화면 전부
+    //    「Timeout 60000ms exceeded」= ⛔측정실패로 끝났고, 접근성은 3주간 한 화면도 안 재졌다.
+    //    → 문서가 그려지면(domcontentloaded) 통신이 «잠깐이라도» 잦아들 때까지만 기다리고(상한 15초),
+    //      그래도 이어지면 그냥 잰다. 빈 화면을 재는 위험은 바로 아래 «렌더 검증»(노드·글자수 하한)이 막는다.
+    const resp = await page.goto(BASE + p, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000); // 지연 렌더·애니메이션이 끝난 뒤에 잰다
     const status = resp?.status() ?? 0;
     const render = await page.evaluate(() => ({
       nodes: document.body ? document.body.querySelectorAll("*").length : 0,
