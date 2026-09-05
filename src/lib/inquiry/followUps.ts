@@ -17,8 +17,9 @@ type StoredFollowUp = { id?: string; at?: string; by?: string; text_encrypted?: 
 
 export const FOLLOWUP_MAX_LEN = 4000;
 
-/** 환자가 «진행상황 링크에서» 직접 보낸 것의 표시. 이 값으로 코디 글과 환자 글을 가른다. */
-export const BY_PATIENT_LINK = "환자(진행상황 링크)";
+/** 환자 글 표시값의 정본은 patientMessages.ts(순수·클라이언트에서도 씀). 여기선 되내보내기만. */
+import { BY_PATIENT_LINK } from "./patientMessages";
+export { BY_PATIENT_LINK };
 const MAX_ITEMS = 50;
 
 /** 저장된 것 → 읽을 수 있는 글. 복호화가 안 되는 줄은 조용히 빼지 않고 표시를 남긴다. */

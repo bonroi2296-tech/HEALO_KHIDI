@@ -7,7 +7,7 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
@@ -186,7 +186,9 @@ export async function GET(
 
     // 감사로그: staff(코디·관리자)가 환자 PII(복호화된 이름·연락처·의료상세)를 열람했음 기록.
     // 정부 의료데이터 과제 추적성(GDPR/PIPA·복호화 열람 감사). 실패해도 본 응답은 진행.
-    void logAdminAction({
+    // 2026-09-05 부터 이 기록이 목록의 「환자 새 글 · 안 읽음」 배지를 떨어뜨리는 근거다 — `void` 로
+    // 흘리면 서버리스가 응답 직후 얼어 INSERT 가 증발할 수 있으니 응답 뒤 실행을 보장하는 after() 로.
+    after(() => logAdminAction({
       adminEmail: auth.email || `staff:${auth.userId || "unknown"}`,
       adminUserId: auth.userId,
       action: "VIEW_INQUIRY",
@@ -194,7 +196,7 @@ export async function GET(
       ipAddress: getIpFromRequest(request),
       userAgent: getUserAgentFromRequest(request),
       metadata: { surface: "coordinator_inbox_detail", role: auth.appRole || (auth.isAdmin ? "admin" : "staff") },
-    });
+    }));
 
     return Response.json({ ok: true, inquiry });
   } catch (e: any) {

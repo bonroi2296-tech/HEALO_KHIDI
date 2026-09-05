@@ -109,6 +109,10 @@ const CT = {
   inboxColMatch: { ko: "매칭 정확도", en: "Match accuracy", ru: "Точность подбора", kz: "Сәйкестік дәлдігі", zh: "匹配准确度", ja: "マッチング精度" },
   inboxStepOneOnly: { ko: "Step 1만", en: "Step 1 only", ru: "Только этап 1", kz: "Тек 1-кезең", zh: "仅步骤 1", ja: "ステップ1のみ" },
   inboxDelayedDays: { ko: "{n}일째 정체", en: "Stalled {n}d", ru: "Застой {n} дн.", kz: "{n} күн тоқтап тұр", zh: "已停滞 {n} 天", ja: "{n}日間停滞" },
+  // 환자가 진행상황 링크로 남긴 글을 직원이 아직 안 열어봤을 때(2026-09-05: 이게 안 떠서 이틀 방치).
+  inboxFilterPatientUnread: { ko: "환자 새 글", en: "New from patient", ru: "Новое от пациента", kz: "Пациенттен жаңа хабар", zh: "患者新留言", ja: "患者から新着" },
+  inboxPatientUnreadToday: { ko: "환자 새 글 · 오늘", en: "New from patient · today", ru: "Новое от пациента · сегодня", kz: "Пациенттен жаңа хабар · бүгін", zh: "患者新留言 · 今天", ja: "患者から新着 · 今日" },
+  inboxPatientUnreadDays: { ko: "환자 새 글 · {n}일째 안 읽음", en: "New from patient · unread {n}d", ru: "Новое от пациента · не прочитано {n} дн.", kz: "Пациенттен жаңа хабар · {n} күн оқылмаған", zh: "患者新留言 · {n} 天未读", ja: "患者から新着 · {n}日間未読" },
   badgeAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
   agencyReferral: { ko: "에이전시 의뢰", en: "Agency referral", ru: "Направление от агентства", kz: "Агенттік жолдамасы", zh: "代理机构转介", ja: "代理店からの紹介" },
   invStatusReceived: { ko: "접수됨", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "已接收", ja: "受付済み" },

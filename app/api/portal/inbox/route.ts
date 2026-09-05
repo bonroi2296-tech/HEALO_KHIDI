@@ -12,6 +12,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { fullPatientName } from "@/lib/inquiry/patientName";
+import { latestPatientNoteAt, latestStaffNoteAt, patientUnreadSince } from "@/lib/inquiry/patientMessages";
 
 // staff(코디·관리자) 전용 인박스라 실명 표시 — 마스킹하면 문의 많을 때 식별 불가(PO 요청 2026-06-23).
 function decryptName(enc: string | null | undefined): string {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from("inquiries")
       .select(
-        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, is_test, agencies(name)"
+        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, is_test, follow_ups, agencies(name)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -67,6 +68,39 @@ export async function GET(request: NextRequest) {
       hiddenTestCount = count || 0;
     }
 
+    // 환자가 «진행상황 링크»로 남긴 글을 직원이 아직 안 봤나 — 본문은 안 풀고 시각·작성자만 본다.
+    // ⚠️ follow_ups 열 전체(암호문 포함)를 200건까지 끌어온다. 실측 2026-09-05: 문의 50건 중 3건·합계 1.3KB 라
+    //    지금은 문제 없다. **총량이 수 MB 를 넘으면** DB 트리거로 유지하는 patient_note_at/staff_note_at 열로
+    //    옮겨라(독립 리뷰 지적 — 측정하고 «지금은 안 한다»로 결정).
+    // 「봤다」 = 글 «뒤»에 상세를 열었다(감사로그 VIEW_INQUIRY) 또는 직원 글을 붙였다.
+    // 왜 (2026-09-05): 환자 글이 왔는데 목록 어디에도 안 떠서 열람 0·답 0 으로 이틀이 갔다.
+    const patientNoteAt = new Map<number, string>();
+    for (const i of data || []) {
+      const at = latestPatientNoteAt((i as any).follow_ups);
+      if (at) patientNoteAt.set(Number((i as any).id), at);
+    }
+    const lastViewAt = new Map<number, string>();
+    if (patientNoteAt.size > 0) {
+      const ids = [...patientNoteAt.keys()];
+      const since = [...patientNoteAt.values()].sort()[0];
+      const { data: views, error: viewErr } = await supabaseAdmin
+        .from("admin_audit_logs")
+        .select("inquiry_ids, created_at")
+        .eq("action", "VIEW_INQUIRY")
+        .gte("created_at", since)
+        .overlaps("inquiry_ids", ids);
+      // 조회가 실패하면 «안 읽음»으로 보이게 둔다 — 조용히 읽음 처리되는 것보다 낫다.
+      if (viewErr) console.warn("[portal/inbox] 열람 기록 조회 실패(안 읽음으로 표시):", viewErr.message);
+      for (const v of (views as any[]) || []) {
+        for (const raw of v?.inquiry_ids || []) {
+          const id = Number(raw);
+          if (!patientNoteAt.has(id) || typeof v?.created_at !== "string") continue;
+          const prev = lastViewAt.get(id);
+          if (!prev || Date.parse(v.created_at) > Date.parse(prev)) lastViewAt.set(id, v.created_at);
+        }
+      }
+    }
+
     const items = (data || []).map((i: any) => ({
       id: i.id,
       name:
@@ -90,6 +124,13 @@ export async function GET(request: NextRequest) {
       agency_name: i.agencies?.name || null,
       // 시험 문의는 화면에서 «시험» 표를 달아야 한다 — 켜서 봤다가 진짜로 착각하면 그게 더 나쁘다.
       is_test: i.is_test === true,
+      // 환자가 직접 남긴 최신 글의 시각 · 그 글을 직원이 아직 안 봤으면 그 시각(아니면 null). 본문은 안 나간다.
+      patient_note_at: patientNoteAt.get(Number(i.id)) ?? null,
+      patient_unread_since: patientUnreadSince(
+        patientNoteAt.get(Number(i.id)) ?? null,
+        lastViewAt.get(Number(i.id)) ?? null,
+        latestStaffNoteAt(i.follow_ups)
+      ),
     }));
 
     return Response.json({ ok: true, items, hiddenTestCount });
