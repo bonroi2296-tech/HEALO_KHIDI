@@ -7,6 +7,7 @@
 
 import "server-only";
 import { getSupabaseServerClient } from "@/lib/data/supabaseServerClient";
+import { formatColdLeadLine } from "@/lib/inquiry/coldLeads";
 
 export type NotificationPriority = "low" | "normal" | "high" | "urgent";
 
@@ -355,6 +356,108 @@ export interface UnclosedConsultationsNotice {
   oldestDays: number;
 }
 
+export interface PatientMessageNotice {
+  inquiryId: number;
+}
+
+/**
+ * 환자가 «진행상황 링크»로 글을 남겼을 때 코디 + 어드민 종(bell) 알림.
+ *
+ * 왜 (2026-09-05 실측): 이 경로(/api/inquiries/claim/submit)는 글을 follow_ups 에 붙이기만 하고
+ *   아무에게도 안 알렸다. 문의 #302 환자가 9/4 에 글을 남겼는데 열람 기록 0·답 0 으로 이틀이 갔다.
+ *   환자가 말을 걸었는데 조용한 것은 유치 실패로 직행한다. 새 문의 알림과 같은 길로 보낸다.
+ * 디듀프 없음 — 글 한 건이 한 알림이다(환자가 두 번 쓰면 두 번 울려야 한다). Fail-safe.
+ */
+export async function notifyStaffPatientMessage(notice: PatientMessageNotice): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) return;
+    const title = `💬 환자가 글을 남겼어요 #${notice.inquiryId}`;
+    const body = "진행상황 링크로 추가 내용이 도착했어요. 확인하고 답을 주세요.";
+    await Promise.allSettled([
+      broadcastInAppNotification(coordinators, {
+        type: "patient_message", title, body, priority: "high",
+        link: `/coordinator/inbox/${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId },
+      }),
+      broadcastInAppNotification(admins, {
+        type: "patient_message", title, body, priority: "high",
+        link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId },
+      }),
+    ]);
+  } catch {
+    /* fail-safe */
+  }
+}
+
+/**
+ * «최근 cooldownDays 안에 같은 type 알림을 이미 받은 직원»을 뺀 목록.
+ * 열람 여부가 아니라 **발송 시각** 기준(안 읽음 기준이면 첫 발송 뒤 영구 침묵 — 2026-07-20 적발).
+ * 조회가 실패하면 디듀프를 포기하고 전원에게 보낸다 — 도배보다 미발송이 더 나쁘다.
+ */
+async function staffNotRecentlyNotified(
+  type: string,
+  staff: string[],
+  cooldownDays: number
+): Promise<string[]> {
+  if (staff.length === 0) return [];
+  const since = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000).toISOString();
+  const supabase = getSupabaseServerClient();
+  const { data: existing, error } = await (supabase as any)
+    .from("notifications")
+    .select("user_id")
+    .eq("type", type)
+    .gte("created_at", since)
+    .in("user_id", staff);
+  if (error) console.warn(`[inApp] ${type} 디듀프 조회 실패(그대로 발송):`, error.message);
+  const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
+  return staff.filter((id) => !alreadyNotified.has(id));
+}
+
+export const COLD_LEAD_NUDGE_COOLDOWN_DAYS = 7;
+
+export interface ColdLeadsNotice {
+  /** 식은 문의 — 번호·멈춘 일수만(개인정보 없음). 오래 멈춘 순. */
+  leads: { id: number; days: number }[];
+  thresholdDays: number;
+}
+
+/**
+ * 상담 단계에서 오래 멈춘 문의(식은 리드)가 있을 때 코디 + 어드민 종(bell) 알림 — 매일 크론.
+ *
+ * 왜 (2026-09-05 실측): 유치 후보 4건 중 3건이 24·32일째 무동작인데 어디에도 안 떴다. 코디 화면엔
+ *   「며칠째」가 없고 침묵 감지 크론은 치료 «후» 환자만 본다. 유치 «전» 단계는 아무도 안 세고 있었다.
+ * 디듀프: unclosed 넛지와 같은 이유로 «최근 7일 안에 받은 직원에게는 다시 안 보낸다»(주 1회).
+ *   안 읽음 기준이면 영구 침묵하므로 시간창 기준. 재알림 때마다 최신 목록으로 다시 뜬다.
+ * Fail-safe: throw 안 함.
+ */
+export async function notifyStaffColdLeads(notice: ColdLeadsNotice): Promise<void> {
+  try {
+    if (!notice.leads.length) return;
+    const { admins, coordinators } = await getStaffIdsByRole();
+    const staff = [...admins, ...coordinators];
+    if (staff.length === 0) return;
+
+    const targets = await staffNotRecentlyNotified("lead_cold", staff, COLD_LEAD_NUDGE_COOLDOWN_DAYS);
+    if (targets.length === 0) return;
+
+    const list = formatColdLeadLine(notice.leads);
+    await broadcastInAppNotification(targets, {
+      type: "lead_cold",
+      title: `🧊 식은 문의 ${notice.leads.length}건`,
+      body:
+        `유치 전 단계에서 ${notice.thresholdDays}일 넘게 아무 움직임이 없는 문의예요: ${list}. ` +
+        `연락하거나, 끝난 건이면 보류·종결로 바꿔 주세요(그래야 목록에서 빠져요).`,
+      priority: "high",
+      link: "/coordinator/inbox",
+      payload: { leads: notice.leads.slice(0, 50), thresholdDays: notice.thresholdDays },
+    });
+  } catch {
+    /* fail-safe */
+  }
+}
+
 /** 같은 직원에게 넛지를 다시 보내기까지의 최소 간격(일). */
 export const UNCLOSED_NUDGE_COOLDOWN_DAYS = 7;
 
@@ -390,22 +493,10 @@ export async function notifyStaffUnclosedConsultations(
     const staff = [...admins, ...coordinators];
     if (staff.length === 0) return;
 
-    // 최근 쿨다운 기간 안에 이미 받은 직원은 제외(종 도배 방지).
-    // 열람 여부가 아니라 **발송 시각** 기준 — 이유는 위 주석 참조.
-    const since = new Date(
-      Date.now() - UNCLOSED_NUDGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
-    const supabase = getSupabaseServerClient();
-    const { data: existing, error } = await (supabase as any)
-      .from("notifications")
-      .select("user_id")
-      .eq("type", "consultation_unclosed")
-      .gte("created_at", since)
-      .in("user_id", staff);
-    // 조회가 실패하면 디듀프를 포기하고 그냥 보낸다 — 도배보다 미발송이 더 나쁘다.
-    if (error) console.warn("[inApp] unclosed 디듀프 조회 실패(그대로 발송):", error.message);
-    const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
-    const targets = staff.filter((id) => !alreadyNotified.has(id));
+    // 최근 쿨다운 기간 안에 이미 받은 직원은 제외(종 도배 방지) — 발송 시각 기준, 이유는 위 주석.
+    const targets = await staffNotRecentlyNotified(
+      "consultation_unclosed", staff, UNCLOSED_NUDGE_COOLDOWN_DAYS
+    );
     if (targets.length === 0) return;
 
     await broadcastInAppNotification(targets, {
