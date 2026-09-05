@@ -336,6 +336,16 @@ export const RATE_LIMITS = {
     apiName: 'normalize',
   },
   
+  // 첨부 «서명 URL 발급» 전용 통 — 2026-09-04 신설.
+  // 왜 나눴나: 문의 상세 한 화면에서 첨부 개수만큼 연속 호출된다. 접수용 5회 통(INQUIRY)에
+  // 얹으면 첨부 6개짜리 문의를 여는 것만으로 정작 「보내기」가 429 를 맞는다(DOC_CLASSIFY 와 같은 사유).
+  // 30회로 잡아도 토큰 추측 방어는 그대로다 — 1분에 30번 찍어서 맞힐 수 있는 UUID 가 아니다.
+  ATTACHMENT_SIGN: {
+    windowMs: 60 * 1000,
+    maxRequests: 30,
+    apiName: 'attachment_sign',
+  },
+
   // Admin API: 1분당 100회 (관리자는 여러 페이지 빠르게 조회 가능)
   ADMIN: {
     windowMs: 60 * 1000,

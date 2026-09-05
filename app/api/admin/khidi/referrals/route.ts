@@ -13,10 +13,11 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 function maskName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
@@ -86,6 +87,14 @@ export async function GET(request: NextRequest) {
     const valid = referrals.filter((r) => r.status !== "cancelled");
     const completed = referrals.filter((r) => r.status === "completed");
     const rate = valid.length > 0 ? Math.round((completed.length / valid.length) * 1000) / 10 : 0;
+
+    // 접속기록(법정 의무): 의뢰 목록에 환자 정보를 복호화해 담는다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "khidi_referrals", count: referrals.length },
+      })
+    );
 
     return NextResponse.json({
       ok: true,

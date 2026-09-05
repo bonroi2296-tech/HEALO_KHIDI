@@ -9,10 +9,11 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, caseStatusOrder, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
 
@@ -111,6 +112,15 @@ export async function GET(request: NextRequest) {
         assigned_hospitals: assignedByInquiry.get(r.id) || [],
       };
     }));
+
+    // 접속기록(법정 의무): 케이스 보드는 환자 이름·보험정보를 복호화해 담는다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        inquiryIds: cases.map((c: any) => c.id),
+        metadata: { screen: "case_board", count: cases.length },
+      })
+    );
 
     return NextResponse.json({
       ok: true,

@@ -14,11 +14,12 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { pct, maskName } from "@/lib/khidi/funnelMetrics";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 const DAY = 86_400_000;
 
@@ -167,6 +168,15 @@ export async function GET(request: NextRequest) {
         auto: r.outcome_updated_by == null,
         note: r.outcome_note || null,
       }))
+    );
+
+    // 접속기록(법정 의무): 대기·확정 목록에 환자 이름을 복호화해 담았다 — 누가 어느 문의를 봤는지 남긴다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        inquiryIds: [...pending.map((p: any) => p.id), ...admitted.map((a: any) => a.id)],
+        metadata: { screen: "conversion_funnel", pending: pending.length, admitted: admitted.length },
+      })
     );
 
     return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], bySource: sourceRows || [], byArrival: arrivalRows || [], arrivalAxis, pending, admitted });

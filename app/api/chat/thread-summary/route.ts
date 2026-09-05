@@ -41,8 +41,9 @@ export async function GET(request: NextRequest) {
       .eq("id", threadId)
       .maybeSingle();
 
+    // 「없는 스레드」와 「토큰 불일치」를 같은 답으로 — 다르게 답하면 스레드 존재 여부가 샌다.
     if (error || !data) {
-      return Response.json({ ok: false, error: "thread_not_found" }, { status: 404 });
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
     // 소유권: 토큰 불일치면 PII 반환 거부
     if (!data.public_token || String(data.public_token) !== String(publicToken)) {

@@ -8,10 +8,11 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
@@ -103,6 +104,14 @@ export async function GET(request: NextRequest) {
       guest_email: decryptMaybe(f.guest_email),
       message_content: messageContents[f.message_id] ?? null,
     }));
+
+    // 접속기록(법정 의무): 게스트 이메일을 복호화해 보여준다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        metadata: { screen: "ai_feedback", decrypted: "guest_email" },
+      })
+    );
 
     return Response.json({
       ok: true,

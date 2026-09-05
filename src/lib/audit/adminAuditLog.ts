@@ -187,6 +187,17 @@ export const AUDIT_METADATA_ALLOWED_KEYS = [
   "reason",     // ✅ requireAdminAuth에서 사용
   "path",       // ✅ requireAdminAuth에서 사용
   "method",     // ✅ requireAdminAuth에서 사용
+  // ✅ PII 열람 접속기록(logPiiAccess) — 「어느 화면에서 봤나」가 법정 기록의 «수행업무»를
+  //    구체화한다. path 만으론 같은 API 를 쓰는 화면이 구분되지 않는다.
+  //    값은 우리가 코드에 박는 고정 문자열(case_board·voice_notes 등)이라 PII 가 아니다.
+  "screen",
+  "decrypted",  // ✅ 무엇을 복호화해 보여줬나(컬럼 «이름»만. 값이 아니다)
+  "pending",    // ✅ 전환 깔때기 목록 건수
+  "admitted",   // ✅ 전환 깔때기 목록 건수
+  "emailSent",  // ✅ 안내메일 발송 여부
+  "lang",       // ✅ 발송 언어
+  "from",       // ✅ 집계 조회 기간
+  "to",         // ✅ 집계 조회 기간
   // ✅ 상담 초대 토큰 발급 추적 (2026-07-24 권한 감사 C 보완 — CREATE_CONSULTATION_INVITE)
   //    consultation_id 는 uuid(PII 아님). 미등록 시 sanitize가 조용히 드롭해 추적성이 무산된다(독립 리뷰 C1).
   "consultation_id",

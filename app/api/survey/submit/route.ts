@@ -116,6 +116,14 @@ export async function POST(request: NextRequest) {
     });
 
   if (insertErr) {
+    // 23505 = UNIQUE 위반. 위의 survey.responded 검사는 «읽고 나서 쓰는» 구조라
+    // 동시에 두 번 제출하면 둘 다 통과한다(둘 다 responded=false 를 읽는다).
+    // 그래서 DB 에 survey_responses_one_per_survey(survey_id UNIQUE)를 걸어 뒀고,
+    // 경합에서 진 쪽이 여기로 온다 — 이건 «장애»가 아니라 «이미 응답함»이다.
+    // (막지 않으면 같은 링크로 응답을 여러 번 밀어넣어 만족도 KPI 를 부풀릴 수 있다.)
+    if ((insertErr as { code?: string }).code === "23505") {
+      return Response.json({ ok: false, error: "already_responded" }, { status: 409 });
+    }
     console.error("[api/survey/submit] insert error:", insertErr.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }

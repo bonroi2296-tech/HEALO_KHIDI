@@ -10,10 +10,11 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { fetchTestInquiryIds } from "@/lib/khidi/testData";
 
 const DAY = 86_400_000;
@@ -121,6 +122,14 @@ export async function GET(request: NextRequest) {
     const followCount = consultations.filter((c) => c.유형 === "사후관리" && c.상태 === "completed").length;
     const refValid = referrals.filter((r) => r.상태 !== "cancelled").length;
     const refDone = referrals.filter((r) => r.상태 === "completed").length;
+
+    // 접속기록(법정 의무): KHIDI 증빙 집계에 환자 정보를 복호화해 담는다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "EXPORT_INQUIRIES",
+        metadata: { screen: "khidi_evidence", from, to },
+      })
+    );
 
     return NextResponse.json({
       ok: true,

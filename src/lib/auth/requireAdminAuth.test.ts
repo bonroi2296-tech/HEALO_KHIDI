@@ -9,7 +9,7 @@
  * - 인증 실패 시 audit log 기록
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { NextRequest } from "next/server";
 
 vi.mock("server-only", () => ({}));
@@ -188,5 +188,53 @@ describe("requireAdminAuth — 권한 상승 방어 (사전 회귀)", () => {
     if (!result.success) {
       expect(result.response.status).toBe(403);
     }
+  });
+});
+
+describe("requireAdminAuth — 거부 응답이 내부 정보를 흘리지 않는다", () => {
+  // 2026-09-05 실서비스 실측: 거부 응답에 hint 로 «Vercel: ADMIN_EMAIL_ALLOWLIST 설정.
+  // Supabase: app_metadata.role = admin» 이 나갔다. 이 헬퍼를 쓰는 라우트가 82개라
+  // 미인증자가 아무 admin API 만 찔러도 호스팅·인증 백엔드·권한 환경변수 이름·판정 필드를
+  // 전부 알 수 있었다. 운영에선 «코드형»만 나가야 한다(CLAUDE.md 보안 규칙).
+  // NODE_ENV 는 그냥 대입이 안 먹는다(읽기 전용). vitest 의 stubEnv 를 쓴다.
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  beforeEach(() => {
+    mockRateLimit.mockReturnValue({ allowed: true, remaining: 99, resetAt: Date.now() + 60_000 });
+    mockCheckAdminAuth.mockResolvedValue({
+      isAdmin: false,
+      userId: "someone",
+      email: "someone@example.com",
+      error: "not_admin",
+      debug: { probe: "should-not-leak" },
+    });
+  });
+
+  it("운영(production)에선 hint·debug 를 내보내지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const result = await requireAdminAuth(makeRequest());
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    const body = await result.response.json();
+    expect(body.error).toBe("unauthorized");
+    expect(body.hint).toBeUndefined();
+    expect(body.debug).toBeUndefined();
+    // 환경변수 이름·판정 필드가 본문 어디에도 없어야 한다.
+    expect(JSON.stringify(body)).not.toMatch(/ADMIN_EMAIL_ALLOWLIST|app_metadata/);
+  });
+
+  it("개발에선 hint 를 남긴다(디버깅 편의)", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    const result = await requireAdminAuth(makeRequest());
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    const body = await result.response.json();
+    expect(body.hint).toContain("ADMIN_EMAIL_ALLOWLIST");
   });
 });

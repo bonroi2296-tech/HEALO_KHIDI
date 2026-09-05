@@ -9,11 +9,12 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { fullPatientName } from "@/lib/inquiry/patientName";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 
 // staff(코디·관리자) 전용 화면이라 실명 표시 — 마스킹하면 문의 많을 때 식별 불가(PO 요청 2026-06-23).
 function decryptName(enc: string | null | undefined): string {
@@ -57,6 +58,15 @@ export async function GET(request: NextRequest) {
       status: i.status || null,
       created_at: i.created_at,
     }));
+
+    // 접속기록(법정 의무): 환자 이름을 «복호화해서» 보여준 조회다 — 누가 어느 문의를 봤는지 남긴다.
+    after(() =>
+      logPiiAccess(request, auth, {
+        action: "LIST_INQUIRIES",
+        inquiryIds: inquiries.map((i) => i.id),
+        metadata: { count: inquiries.length, decrypted: "patient_name" },
+      })
+    );
 
     return Response.json({ ok: true, inquiries });
   } catch (err: any) {
