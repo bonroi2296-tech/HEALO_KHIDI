@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeLocaleParam, pickGuestLocale, withLang } from "./guestLinkLang";
+import { normalizeLocaleParam, pickGuestLocale, resolveGuestLocale, withLang } from "./guestLinkLang";
 
 describe("normalizeLocaleParam", () => {
   it("6개 언어만, kk→kz, 지역 꼬리·대소문자 무시", () => {
@@ -43,5 +43,14 @@ describe("pickGuestLocale — 쿠키 → ?lang → Accept-Language → en", () =
   });
   it("쿠키가 이상값이면 무시한다", () => {
     expect(pickGuestLocale({ cookie: "xx", acceptLanguage: "ja" })).toBe("ja");
+  });
+});
+
+describe("resolveGuestLocale — 어디서 왔는지도 알려준다(쿠키 심는 기간이 갈린다)", () => {
+  it("source", () => {
+    expect(resolveGuestLocale({ cookie: "ko", langParam: "ru" }).source).toBe("cookie");
+    expect(resolveGuestLocale({ langParam: "ru" }).source).toBe("param");
+    expect(resolveGuestLocale({ acceptLanguage: "ru" }).source).toBe("header");
+    expect(resolveGuestLocale({}).source).toBe("default");
   });
 });

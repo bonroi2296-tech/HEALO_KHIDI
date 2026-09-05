@@ -27,6 +27,7 @@ describe("toTrackingLang", () => {
   it("활성 6개 언어는 그대로", () => {
     expect(toTrackingLang("ru")).toBe("ru");
     expect(toTrackingLang("KZ")).toBe("kz");
+    expect(toTrackingLang("kk")).toBe("kz"); // ISO 코드도 내부 코드로 — 주소의 ?lang 과 같은 자(독립 리뷰 2026-09-05)
   });
 
   it("모르는 언어·빈 값은 영어로", () => {

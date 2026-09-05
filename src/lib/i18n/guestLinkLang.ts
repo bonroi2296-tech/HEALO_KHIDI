@@ -36,14 +36,25 @@ export interface GuestLocaleInput {
   acceptLanguage?: string | null;
 }
 
-/** proxy.ts 의 detectLocale 이 쓰는 판정. 쿠키 → ?lang → Accept-Language(첫 항목, kk→kz) → en. */
-export function pickGuestLocale(input: GuestLocaleInput): string {
+export type GuestLocaleSource = "cookie" | "param" | "header" | "default";
+
+/**
+ * proxy.ts 의 detectLocale 이 쓰는 판정 + «어디서 왔나». 쿠키 → ?lang → Accept-Language(첫 항목, kk→kz) → en.
+ * source 가 "param" 이면 proxy 는 쿠키를 **세션 동안만** 심는다(1년 고정 금지) — 쿠키 없는 직원이 환자 링크를
+ * 눌렀다고 다음 날까지 화면이 그 언어로 남으면 안 된다(독립 리뷰 2026-09-05). 환자는 다음에도 같은 링크로 온다.
+ */
+export function resolveGuestLocale(input: GuestLocaleInput): { locale: string; source: GuestLocaleSource } {
   const fromCookie = normalizeLocaleParam(input.cookie);
-  if (fromCookie) return fromCookie;
+  if (fromCookie) return { locale: fromCookie, source: "cookie" };
   const fromParam = normalizeLocaleParam(input.langParam);
-  if (fromParam) return fromParam;
+  if (fromParam) return { locale: fromParam, source: "param" };
   const first = (input.acceptLanguage || "").split(",")[0];
   const fromHeader = normalizeLocaleParam(first);
-  if (fromHeader) return fromHeader;
-  return DEFAULT_LOCALE;
+  if (fromHeader) return { locale: fromHeader, source: "header" };
+  return { locale: DEFAULT_LOCALE, source: "default" };
+}
+
+/** 언어만 필요할 때. */
+export function pickGuestLocale(input: GuestLocaleInput): string {
+  return resolveGuestLocale(input).locale;
 }

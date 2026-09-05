@@ -20,7 +20,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE, isLegacyLanding } from "@/lib/i18n/config";
-import { pickGuestLocale } from "@/lib/i18n/guestLinkLang";
+import { resolveGuestLocale } from "@/lib/i18n/guestLinkLang";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -69,15 +69,18 @@ function isPublicLocalePath(pathname: string) {
 //      이 분기가 하는 일은 「주소에 언어가 없는 로그인 없는 링크의 언어를 방문자에게서 알아내라」이지
 //      「환자용이냐」가 아니다. 한국어 화면에 lang="en" 이 박히던 것도 이걸로 같이 고쳐졌다.
 const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/", "/opinion/"];
-function detectLocale(request: NextRequest) {
+function detectLocaleWithSource(request: NextRequest) {
   // 순서·이유는 src/lib/i18n/guestLinkLang.ts 머리 주석:
   //   ①직접 고른 언어(healo_lang 쿠키) → ②링크에 실린 ?lang(보낸 사람이 아는 받는 사람 언어 — 메신저
   //   미리보기 봇은 쿠키도 Accept-Language 도 없어서 이게 유일한 단서다, 2026-09-05) → ③브라우저 언어(kk→kz) → ④en.
-  return pickGuestLocale({
+  return resolveGuestLocale({
     cookie: request.cookies.get(LOCALE_COOKIE)?.value,
     langParam: request.nextUrl.searchParams.get("lang"),
     acceptLanguage: request.headers.get("accept-language"),
   });
+}
+function detectLocale(request: NextRequest) {
+  return detectLocaleWithSource(request).locale;
 }
 
 /**
@@ -249,13 +252,15 @@ export async function proxy(request: NextRequest) {
   //   → 카드가 영어로 뜬다. 환자가 실제로 열면 Accept-Language 로 제 언어가 나온다(사람은 정상).
   //   봇까지 맞추려면 링크에 ?lang= 를 붙여야 한다 → docs/KNOWN_ISSUES.md 참고.
   if (GUEST_LINK_PREFIXES.some((p) => pathname.startsWith(p))) {
-    const locale = detectLocale(request);
+    const { locale, source } = detectLocaleWithSource(request);
     const headers = new Headers(request.headers);
     headers.set("x-locale", locale);
     const res = NextResponse.next({ request: { headers } });
     // 불변식(POSTMORTEMS #77): x-locale 을 주입하는 분기는 healo_lang 쿠키도 같이 심는다.
     // 안 그러면 서버는 ru 로 그리고 클라는 쿠키가 없어 en 으로 갈려 hydration mismatch.
-    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
+    // ⚠️ 링크의 ?lang 에서 온 언어는 «세션 동안만»(maxAge 없음) — 쿠키 없는 직원이 환자 링크를 눌렀다고
+    //    1년짜리 쿠키로 화면이 그 언어에 묶이면 안 된다(독립 리뷰 2026-09-05). 환자는 다음에도 같은 링크로 온다.
+    res.cookies.set(LOCALE_COOKIE, locale, source === "param" ? { path: "/" } : { path: "/", maxAge: 31536000 });
     return res;
   }
 

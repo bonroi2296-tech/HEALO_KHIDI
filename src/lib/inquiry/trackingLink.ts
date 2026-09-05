@@ -10,15 +10,15 @@
  * 주소 자체는 새로 만들지 않는다 — inquiries.public_token 이 이미 모든 문의에 자동으로 붙는다.
  */
 
-import { withLang } from "@/lib/i18n/guestLinkLang";
+import { normalizeLocaleParam, withLang } from "@/lib/i18n/guestLinkLang";
 
 export type TrackingLang = "ko" | "en" | "ru" | "kz" | "zh" | "ja";
 
 export const TRACKING_LANGS: TrackingLang[] = ["ko", "en", "ru", "kz", "zh", "ja"];
 
+/** 6개 언어로 정규화(kk→kz 포함), 모르면 en. 주소의 ?lang 과 메일 본문 언어가 «같은 자»로 나오게 한 곳에 위임한다(독립 리뷰 2026-09-05). */
 export function toTrackingLang(raw?: string | null): TrackingLang {
-  const v = (raw || "").toString().toLowerCase();
-  return (TRACKING_LANGS as string[]).includes(v) ? (v as TrackingLang) : "en";
+  return (normalizeLocaleParam(raw) as TrackingLang | null) || "en";
 }
 
 /**
