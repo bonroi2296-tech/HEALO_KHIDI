@@ -65,3 +65,18 @@
 | `work/appstore-tablet-shots` | `b3495b68f5d0` | 2026-07-29 |
 | `work/handoff-0729-cmd` | `559305c7b1a7` | 2026-07-29 |
 | `work/khidi-capture` | `1e7196a369c6` | 2026-07-29 |
+
+## 3차 — 신청서가 «합쳐진 뒤에» 커밋이 더 붙었던 것
+
+`fix/security-audit-20260904` 는 신청서 [#1615](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1615) 가 합쳐진 뒤에도 커밋이 7개 더 붙어 본판보다 앞서 있었다.
+**「신청서가 머지됐다」와 「그 작업본이 다 반영됐다」는 다른 말**이라는 실례다.
+
+다시 재보니 **미반영 줄 0** — 마지막 1건(anon RPC 회수)은 그 세션이 [#1622](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1622) 로 따로 냈고 그것도 합쳐졌다.
+
+| 작업본 | 마지막 커밋 SHA | 미반영 |
+|---|---|---|
+| `fix/security-audit-20260904` | `b765f8e77f5b` | 0줄 |
+
+🛑 **남기는 것 하나**: `fix/push-notification-icon` 은 지우지 않는다. 국내 에이전시 연락처
+조사표(29곳)가 들어 있고 **PO 판단으로 그대로 두기로 했다**(2026-09-05).
+
