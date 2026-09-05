@@ -5,6 +5,8 @@
  * 수집일: 2026-04-21
  * 저작권: 면력한방병원 (자사 병원, 저작권 OK)
  *
+ * 2026-09-05: name 에 kz·zh·ja 추가(ko·en·ru 는 그대로). 암종 페이지 5축 태그·JSON-LD(immuneCancerDetails.js)가 이 name 을
+ *   «정본»으로 참조한다 — 같은 치료법을 두 파일에서 따로 번역하지 않는다(독립 리뷰 2026-09-05). ⚠️ kz·zh·ja 는 AI 번역, 코디 검수 전엔 「제안」.
  * 구조: ITCRN 5축 기준으로 정리
  *   I — Immunity (면역)
  *   T — Temperature (체온)
@@ -18,7 +20,7 @@ export const IMMUNE_THERAPIES = {
   thymosin: {
     id: "thymosin",
     axis: "immunity",
-    name: { ko: "싸이모신α1 요법", en: "Thymosin α1 Therapy", ru: "Терапия Тимозин-α1" },
+    name: { ko: "싸이모신α1 요법", en: "Thymosin α1 Therapy", ru: "Терапия Тимозин-α1", kz: "Тимозин α1 терапиясы", zh: "胸腺肽α1疗法", ja: "サイモシンα1療法" },
     category: { ko: "세포면역", en: "Cellular Immunity" },
     description: {
       ko: "흉선에서 생성되는 펩타이드 호르몬으로, T세포와 NK세포를 직접 활성화시켜 암세포를 공격합니다. 항암치료 후 저하된 면역 기능 회복에 핵심적 역할을 합니다.",
@@ -40,7 +42,7 @@ export const IMMUNE_THERAPIES = {
   mistletoe: {
     id: "mistletoe",
     axis: "immunity",
-    name: { ko: "미슬토 요법", en: "Mistletoe Therapy", ru: "Терапия Омелой" },
+    name: { ko: "미슬토 요법", en: "Mistletoe Therapy", ru: "Терапия Омелой", kz: "Омела терапиясы", zh: "槲寄生疗法", ja: "ミスルトー（ヤドリギ）療法" },
     category: { ko: "세포면역", en: "Cellular Immunity" },
     description: {
       ko: "유럽 겨우살이(Viscum album) 추출물로 제조된 항암 보조 주사제. NK세포와 T림프구 활성화로 면역력을 높이고 항암제 부작용을 줄여줍니다.",
@@ -58,7 +60,7 @@ export const IMMUNE_THERAPIES = {
   immunocyanin: {
     id: "immunocyanin",
     axis: "immunity",
-    name: { ko: "이뮤노시아닌", en: "Immunocyanin (KLH)", ru: "Иммуноцианин" },
+    name: { ko: "이뮤노시아닌", en: "Immunocyanin (KLH)", ru: "Иммуноцианин", kz: "Иммуноцианин (KLH)", zh: "免疫蓝蛋白 (Immunocyanin)", ja: "イムノシアニン" },
     category: { ko: "세포면역", en: "Cellular Immunity" },
     description: {
       ko: "해양 연체동물에서 추출한 고분자 단백질로 강력한 면역 자극 효과를 가집니다. 비특이적 면역 강화와 항암 치료 보조로 사용됩니다.",
@@ -70,7 +72,7 @@ export const IMMUNE_THERAPIES = {
   nkCell: {
     id: "nkCell",
     axis: "immunity",
-    name: { ko: "NK세포치료제", en: "NK Cell Therapy", ru: "НК-клеточная Терапия" },
+    name: { ko: "NK세포치료제", en: "NK Cell Therapy", ru: "НК-клеточная Терапия", kz: "NK жасушалық терапия", zh: "NK细胞疗法", ja: "NK細胞療法" },
     category: { ko: "세포면역", en: "Cellular Immunity" },
     description: {
       ko: "자연살해세포(Natural Killer Cell)를 활성화하여 암세포를 직접 공격하는 면역 치료입니다. 수술 후 잔존 암세포 관리에 효과적입니다.",
@@ -84,7 +86,7 @@ export const IMMUNE_THERAPIES = {
   immunoPlus: {
     id: "immunoPlus",
     axis: "immunity",
-    name: { ko: "면역플러스 (황기 부정단)", en: "Immune Plus (Astragalus Formula)", ru: "Иммун Плюс" },
+    name: { ko: "면역플러스 (황기 부정단)", en: "Immune Plus (Astragalus Formula)", ru: "Иммун Плюс", kz: "Иммун Плюс (астрагал негізіндегі шөп қоспасы)", zh: "免疫加强方（黄芪扶正丹）", ja: "免疫プラス（黄耆扶正丹）" },
     category: { ko: "체액면역", en: "Humoral Immunity" },
     description: {
       ko: "한방 면역 강화 처방. 황기(Astragalus) 등 면역 증강 한약재를 조합한 맞춤 처방으로, 체액면역 강화와 기력 회복을 돕습니다.",
@@ -96,7 +98,7 @@ export const IMMUNE_THERAPIES = {
   glutamine: {
     id: "glutamine",
     axis: "immunity",
-    name: { ko: "글루타민 주사", en: "Glutamine Injection", ru: "Инъекция Глутамина" },
+    name: { ko: "글루타민 주사", en: "Glutamine Injection", ru: "Инъекция Глутамина", kz: "Глутамин инъекциясы", zh: "谷氨酰胺注射", ja: "グルタミン注射" },
     category: { ko: "체액면역", en: "Humoral Immunity" },
     description: {
       ko: "면역세포의 주요 에너지원인 글루타민을 직접 공급하여 점막 면역 기능을 강화합니다. 항암치료 중 구내염, 장 점막 손상에 효과적입니다.",
@@ -108,7 +110,7 @@ export const IMMUNE_THERAPIES = {
   anticancerImmune: {
     id: "anticancerImmune",
     axis: "immunity",
-    name: { ko: "항암면역증강제", en: "Anti-cancer Immune Enhancer", ru: "Иммуностимулятор при Онкологии" },
+    name: { ko: "항암면역증강제", en: "Anti-cancer Immune Enhancer", ru: "Иммуностимулятор при Онкологии", kz: "Онкологиядағы иммунды күшейткіш", zh: "抗癌免疫增强剂", ja: "抗がん免疫増強剤" },
     category: { ko: "세포면역", en: "Cellular Immunity" },
     description: {
       ko: "항암치료 중 저하된 면역 기능을 보완하는 보조 치료제. 항암제의 효과를 최대화하면서 부작용은 최소화합니다.",
@@ -121,7 +123,7 @@ export const IMMUNE_THERAPIES = {
   hyperthermia: {
     id: "hyperthermia",
     axis: "temperature",
-    name: { ko: "고주파온열암치료", en: "High-Frequency Hyperthermia", ru: "Высокочастотная Гипертермия" },
+    name: { ko: "고주파온열암치료", en: "High-Frequency Hyperthermia", ru: "Высокочастотная Гипертермия", kz: "Жоғары жиілікті гипертермия", zh: "高频热疗", ja: "高周波温熱療法" },
     description: {
       ko: "8MHz 고주파 전류를 암세포 부위에 집중시켜 42~43°C로 국소 가열합니다. 암세포는 정상 세포보다 열에 취약하므로 사멸을 유도하며, 항암제와 병행 시 시너지 효과가 있습니다.",
       en: "Concentrates 8MHz high-frequency current on cancer cell areas to locally heat to 42-43°C. Cancer cells are more heat-sensitive than normal cells, inducing their death with synergistic effects when combined with chemotherapy.",
@@ -143,7 +145,7 @@ export const IMMUNE_THERAPIES = {
   infraredHeat: {
     id: "infraredHeat",
     axis: "temperature",
-    name: { ko: "적외선온열요법", en: "Infrared Thermotherapy", ru: "Инфракрасная Термотерапия" },
+    name: { ko: "적외선온열요법", en: "Infrared Thermotherapy", ru: "Инфракрасная Термотерапия", kz: "Инфрақызыл термотерапия", zh: "红外线温热疗法", ja: "赤外線温熱療法" },
     description: {
       ko: "근적외선을 이용한 전신 온열 요법. 기관지 염증 완화, 혈액 순환 개선, 피로 회복에 효과적입니다. 폐암 수술 후 호흡 재활에도 활용됩니다.",
       en: "Whole-body thermotherapy using near-infrared. Effective for bronchial inflammation relief, blood circulation improvement, and fatigue recovery.",
@@ -155,7 +157,7 @@ export const IMMUNE_THERAPIES = {
   lymphDrainage: {
     id: "lymphDrainage",
     axis: "circulation",
-    name: { ko: "림프도수 마사지", en: "Lymphatic Drainage Massage", ru: "Лимфодренажный Массаж" },
+    name: { ko: "림프도수 마사지", en: "Lymphatic Drainage Massage", ru: "Лимфодренажный Массаж", kz: "Лимфодренаж массажы", zh: "淋巴引流按摩", ja: "リンパドレナージマッサージ" },
     description: {
       ko: "숙련된 치료사가 림프관을 따라 마사지하여 림프액 순환을 돕습니다. 수술 후 림프절 제거로 발생하는 림프부종 치료에 필수적이며, 방치 시 평생 통증과 신경저림이 지속될 수 있습니다.",
       en: "Skilled therapists massage along lymph vessels to assist lymph circulation. Essential for treating post-surgical lymphedema; untreated lymphedema can cause lifelong pain and nerve tingling.",
@@ -167,7 +169,7 @@ export const IMMUNE_THERAPIES = {
   ict: {
     id: "ict",
     axis: "circulation",
-    name: { ko: "침전기물리치료 (ICT)", en: "Acupuncture-Electrophysical Therapy (ICT)", ru: "Иглоэлектрофизиотерапия" },
+    name: { ko: "침전기물리치료 (ICT)", en: "Acupuncture-Electrophysical Therapy (ICT)", ru: "Иглоэлектрофизиотерапия", kz: "Ине-электрофизиотерапия (ICT)", zh: "电针物理治疗 (ICT)", ja: "鍼電気物理療法（ICT）" },
     description: {
       ko: "침치료와 전기자극을 결합한 치료법. 혈액 및 림프 순환을 개선하고, 통증 완화와 조직 회복을 돕습니다.",
       en: "A treatment combining acupuncture and electrical stimulation to improve blood and lymph circulation, relieve pain, and aid tissue recovery.",
@@ -180,7 +182,7 @@ export const IMMUNE_THERAPIES = {
   selenium: {
     id: "selenium",
     axis: "resistibility",
-    name: { ko: "셀레늄 요법", en: "Selenium Therapy", ru: "Терапия Селеном" },
+    name: { ko: "셀레늄 요법", en: "Selenium Therapy", ru: "Терапия Селеном", kz: "Селен терапиясы", zh: "硒疗法", ja: "セレン療法" },
     description: {
       ko: "비타민E의 약 2,000배에 달하는 항산화력을 가진 필수 미네랄. 활성산소 억제, DNA 손상 방지, 암세포 사멸 유도 기전이 있습니다. 항암치료 중 세포 손상 최소화에 사용됩니다.",
       en: "An essential mineral with approximately 2,000 times the antioxidant power of vitamin E. Has mechanisms for suppressing free radicals, preventing DNA damage, and inducing cancer cell death.",
@@ -200,7 +202,7 @@ export const IMMUNE_THERAPIES = {
   glutathione: {
     id: "glutathione",
     axis: "resistibility",
-    name: { ko: "글루타치온", en: "Glutathione", ru: "Глутатион" },
+    name: { ko: "글루타치온", en: "Glutathione", ru: "Глутатион", kz: "Глутатион", zh: "谷胱甘肽", ja: "グルタチオン" },
     description: {
       ko: "체내 강력한 항산화제로, 항암치료 후 세포 손상을 복구하고 간 해독 기능을 지원합니다. 피부 개선과 면역력 강화에도 효과적입니다.",
       en: "A powerful antioxidant that repairs cell damage after chemotherapy and supports liver detoxification. Also effective for skin improvement and immune enhancement.",
@@ -212,7 +214,7 @@ export const IMMUNE_THERAPIES = {
   highVitaminC: {
     id: "highVitaminC",
     axis: "resistibility",
-    name: { ko: "고농도 비타민 요법", en: "High-Dose Vitamin Therapy", ru: "Высокодозная Витаминная Терапия" },
+    name: { ko: "고농도 비타민 요법", en: "High-Dose Vitamin Therapy", ru: "Высокодозная Витаминная Терапия", kz: "Жоғары дозалы дәрумен терапиясы", zh: "高剂量维生素疗法", ja: "高濃度ビタミン療法" },
     description: {
       ko: "고농도 비타민C를 정맥 주사로 직접 공급. 항산화 작용으로 암세포 성장 억제, 면역 강화, 항암 피로 회복에 사용됩니다.",
       en: "Directly delivers high-concentration vitamin C via IV. Used for cancer cell growth inhibition through antioxidant action, immune enhancement, and chemotherapy fatigue recovery.",
@@ -224,7 +226,7 @@ export const IMMUNE_THERAPIES = {
   placentaExtract: {
     id: "placentaExtract",
     axis: "resistibility",
-    name: { ko: "태반추출물", en: "Placenta Extract (Laennec/Melsmon)", ru: "Экстракт Плаценты" },
+    name: { ko: "태반추출물", en: "Placenta Extract (Laennec/Melsmon)", ru: "Экстракт Плаценты", kz: "Плацента сығындысы (Laennec/Melsmon)", zh: "胎盘提取物 (Laennec/Melsmon)", ja: "プラセンタエキス（ラエンネック／メルスモン）" },
     description: {
       ko: "인태반 추출물(라이넥/멜스몬 등)로 세포 재생, 면역 조절, 간 기능 개선 효과가 있습니다. 수술 후 회복 기간 단축에 사용됩니다.",
       en: "Human placenta extract (Laennec/Melsmon etc.) with cell regeneration, immune regulation, and liver function improvement effects. Used to shorten post-surgical recovery periods.",
@@ -236,7 +238,7 @@ export const IMMUNE_THERAPIES = {
   chefLive: {
     id: "chefLive",
     axis: "nutrition",
-    name: { ko: "셰프 라이브 코너", en: "Chef Live Station", ru: "Живая Кухня Шефа" },
+    name: { ko: "셰프 라이브 코너", en: "Chef Live Station", ru: "Живая Кухня Шефа", kz: "Аспаздың тікелей дайындау бұрышы", zh: "厨师现场烹饪区", ja: "シェフのライブキッチン" },
     description: {
       ko: "전담 셰프가 환자 상태에 맞게 즉석에서 조리하는 맞춤 식단 코너. 30종 이상의 메뉴 중 선택 가능하며, 항암 맞춤, 저잔사, 위절제 식이 등 질환별 특화 메뉴가 있습니다.",
       en: "A dedicated chef station where food is prepared fresh according to each patient's condition. 30+ menu options with cancer-specific, low-residue, post-gastrectomy specialized menus.",
@@ -282,7 +284,7 @@ export const IMMUNE_THERAPIES = {
   lowResidueDiet: {
     id: "lowResidueDiet",
     axis: "nutrition",
-    name: { ko: "저잔사 치료식이", en: "Low-Residue Therapeutic Diet", ru: "Низкошлаковая Лечебная Диета" },
+    name: { ko: "저잔사 치료식이", en: "Low-Residue Therapeutic Diet", ru: "Низкошлаковая Лечебная Диета", kz: "Аз қалдықты емдік диета", zh: "低渣治疗饮食", ja: "低残渣治療食" },
     description: {
       ko: "대장·위 절제 수술 후 장에 부담을 최소화하는 식이요법. 소화가 잘 되고 장 자극이 적은 음식으로 구성됩니다.",
       en: "Diet therapy that minimizes intestinal burden after colorectal or gastric resection surgery.",
@@ -294,7 +296,7 @@ export const IMMUNE_THERAPIES = {
   gastrectomyDiet: {
     id: "gastrectomyDiet",
     axis: "nutrition",
-    name: { ko: "위절제 치료식이 (덤핑증후군 관리)", en: "Post-Gastrectomy Diet (Dumping Syndrome Management)", ru: "Диета после Гастрэктомии" },
+    name: { ko: "위절제 치료식이 (덤핑증후군 관리)", en: "Post-Gastrectomy Diet (Dumping Syndrome Management)", ru: "Диета после Гастрэктомии", kz: "Асқазан резекциясынан кейінгі диета (демпинг-синдромды бақылау)", zh: "胃切除术后饮食（倾倒综合征管理）", ja: "胃切除後治療食（ダンピング症候群の管理）" },
     description: {
       ko: "위절제 후 발생하는 덤핑증후군(식사 직후 어지럼·저혈당)을 예방하는 소량 다회 식이 프로그램. 단순당 제한, 수분과 식사 분리 등 맞춤 관리를 제공합니다.",
       en: "A small, frequent meal program to prevent dumping syndrome (dizziness/hypoglycemia immediately after eating) after gastrectomy.",
@@ -306,7 +308,7 @@ export const IMMUNE_THERAPIES = {
   lowIodideDiet: {
     id: "lowIodideDiet",
     axis: "nutrition",
-    name: { ko: "저요오드 식이", en: "Low-Iodine Diet", ru: "Низкойодная Диета" },
+    name: { ko: "저요오드 식이", en: "Low-Iodine Diet", ru: "Низкойодная Диета", kz: "Йоды аз диета", zh: "低碘饮食", ja: "低ヨウ素食" },
     description: {
       ko: "갑상선암 수술 후 방사성요오드 치료 전에 실시하는 저요오드 식이. 방사성요오드 치료 효과를 극대화하기 위해 요오드 섭취를 제한합니다.",
       en: "Low-iodine diet before radioiodine therapy after thyroid cancer surgery, restricting iodine intake to maximize treatment effectiveness.",

@@ -18,7 +18,10 @@
  */
 
 // 공통 치료 축 — 모든 암종 공통 적용
+import { IMMUNE_THERAPIES as T } from "./immuneTherapies.js"; // 확장자 필수 — 순수 node(검사 스크립트)도 이 파일을 읽는다
+
 // 5축(ITCRN) — 2026-09-05 부터 모든 잎(제목·설명·근거·요법 태그·항암 지원)이 6개 언어다.
+//   치료법 이름은 immuneTherapies.js 의 name 을 «정본»으로 참조한다(같은 페이지의 치료 카드·JSON-LD 와 같은 표기).
 //   전엔 evidence/methods/cellular/humoral/programs/chemoSupport.before·during·after 24개가 한국어 문자열이라
 //   화면(CancerDetailClient)이 lang==="ko" 일 때만 그렸고, 제목·설명도 kz·zh·ja 11칸·ru 5칸이 비어 영어로 폴백됐다.
 //   ⚠️ 번역은 세션(AI)이 했다 — 의료 용어라 **코디네이터(원어민) 검수 전까지는 「제안」이다**(docs/rules/I18N_QUALITY.md §3).
@@ -34,17 +37,8 @@ export const ITCRN_FRAMEWORK = {
       zh: "同时激活细胞免疫与体液免疫，恢复因手术或化疗而减弱的免疫系统",
       ja: "細胞性免疫と液性免疫を同時に活性化し、手術や抗がん剤治療で弱った免疫系の回復を支えます",
     },
-    cellular: [
-      { ko: "싸이모신알파1 요법", en: "Thymosin α1 therapy", ru: "Терапия тимозином α1", kz: "Тимозин α1 терапиясы", zh: "胸腺肽α1疗法", ja: "サイモシンα1療法" },
-      { ko: "미슬토 요법", en: "Mistletoe therapy", ru: "Терапия омелой", kz: "Омела терапиясы", zh: "槲寄生疗法", ja: "ミスルトー（ヤドリギ）療法" },
-      { ko: "이뮤노시아닌", en: "Immunocyanin (KLH)", ru: "Иммуноцианин", kz: "Иммуноцианин", zh: "免疫蓝蛋白 (Immunocyanin)", ja: "イムノシアニン" },
-      { ko: "NK세포치료제", en: "NK cell therapy", ru: "Терапия NK-клетками", kz: "NK жасушалық терапия", zh: "NK细胞疗法", ja: "NK細胞療法" },
-      { ko: "항암면역증강제", en: "Anticancer immune enhancers", ru: "Иммуностимуляторы при онкологии", kz: "Онкологиядағы иммунды күшейткіштер", zh: "抗癌免疫增强剂", ja: "抗がん免疫増強剤" },
-    ],
-    humoral: [
-      { ko: "글루타민 주사", en: "Glutamine injection", ru: "Инъекции глутамина", kz: "Глутамин инъекциясы", zh: "谷氨酰胺注射", ja: "グルタミン注射" },
-      { ko: "면역플러스 (황기 부정단 처방)", en: "Immune Plus (Astragalus-based herbal formula)", ru: "Иммуно-плюс (травяная формула на основе астрагала)", kz: "Иммуно-плюс (астрагал негізіндегі шөп қоспасы)", zh: "免疫加强方（黄芪扶正丹处方）", ja: "免疫プラス（黄耆扶正丹処方）" },
-    ],
+    cellular: [T.thymosin.name, T.mistletoe.name, T.immunocyanin.name, T.nkCell.name, T.anticancerImmune.name],
+    humoral: [T.glutamine.name, T.immunoPlus.name],
     evidence: {
       ko: "싸이모신α1: T세포 및 NK세포 활성화, 암세포 직접 파괴 기전",
       en: "Thymosin α1: activates T cells and NK cells; direct cancer-cell-killing mechanism",
@@ -64,10 +58,7 @@ export const ITCRN_FRAMEWORK = {
       zh: "通过热疗诱导癌细胞凋亡，并增强化疗效果",
       ja: "温熱療法でがん細胞の死滅を促し、抗がん剤の効果を高めます",
     },
-    methods: [
-      { ko: "고주파온열암치료", en: "Radiofrequency hyperthermia (oncothermia)", ru: "Радиочастотная гипертермия", kz: "Радиожиілікті гипертермия", zh: "射频热疗", ja: "高周波温熱療法" },
-      { ko: "적외선온열요법", en: "Infrared thermotherapy", ru: "Инфракрасная термотерапия", kz: "Инфрақызыл термотерапия", zh: "红外线温热疗法", ja: "赤外線温熱療法" },
-    ],
+    methods: [T.hyperthermia.name, T.infraredHeat.name],
     evidence: {
       ko: "고주파온열 + 항암제 병행 시 생존기간 유의미 증가 (해외 임상)",
       en: "RF hyperthermia combined with chemotherapy: significantly longer survival in overseas clinical studies",
@@ -87,10 +78,7 @@ export const ITCRN_FRAMEWORK = {
       zh: "改善淋巴与血液循环，减轻水肿、促进代谢废物排出并支持组织恢复",
       ja: "リンパ・血液の循環を改善し、むくみや老廃物の排出、組織の回復を支えます",
     },
-    methods: [
-      { ko: "림프도수 마사지", en: "Manual lymphatic drainage", ru: "Ручной лимфодренаж", kz: "Қолмен жасалатын лимфодренаж", zh: "手法淋巴引流", ja: "リンパドレナージ（徒手）" },
-      { ko: "침전기물리치료", en: "Electroacupuncture physiotherapy", ru: "Электроакупунктура и физиотерапия", kz: "Электроакупунктура және физиотерапия", zh: "电针物理治疗", ja: "電気鍼・物理療法" },
-    ],
+    methods: [T.lymphDrainage.name, T.ict.name],
   },
   resistibility: {
     title: { ko: "저항성 (Resistibility)", en: "Resistibility", ru: "Сопротивляемость", kz: "Төзімділік (Resistibility)", zh: "抵抗力 (Resistibility)", ja: "抵抗力 (Resistibility)" },
@@ -102,12 +90,8 @@ export const ITCRN_FRAMEWORK = {
       zh: "通过抗氧化与排毒疗法，将细胞损伤降至最低",
       ja: "抗酸化・解毒療法で細胞のダメージを最小限に抑えます",
     },
-    methods: [
-      { ko: "셀레늄 요법 (비타민E의 2,000배 항산화)", en: "Selenium therapy (antioxidant capacity about 2,000× vitamin E)", ru: "Терапия селеном (антиоксидантная активность в 2 000 раз выше витамина E)", kz: "Селен терапиясы (антиоксиданттық белсенділігі E дәруменінен 2 000 есе жоғары)", zh: "硒疗法（抗氧化能力约为维生素E的2,000倍）", ja: "セレン療法（ビタミンEの約2,000倍の抗酸化力）" },
-      { ko: "글루타치온", en: "Glutathione", ru: "Глутатион", kz: "Глутатион", zh: "谷胱甘肽", ja: "グルタチオン" },
-      { ko: "고농도 비타민 요법", en: "High-dose vitamin therapy", ru: "Высокодозная витаминотерапия", kz: "Жоғары дозалы дәрумен терапиясы", zh: "高剂量维生素疗法", ja: "高濃度ビタミン療法" },
-      { ko: "태반추출물", en: "Placenta extract", ru: "Экстракт плаценты", kz: "Плацента сығындысы", zh: "胎盘提取物", ja: "プラセンタエキス" },
-    ],
+    // 「비타민E의 2,000배 항산화」 꼬리는 카드 이름 정본(셀레늄 요법)에 맞춰 태그에서 뺐다 — 근거는 치료 카드 설명이 든다.
+    methods: [T.selenium.name, T.glutathione.name, T.highVitaminC.name, T.placentaExtract.name],
   },
   nutrition: {
     title: { ko: "영양 (Nutrition)", en: "Nutrition", ru: "Питание", kz: "Тамақтану (Nutrition)", zh: "营养 (Nutrition)", ja: "栄養 (Nutrition)" },
@@ -120,11 +104,12 @@ export const ITCRN_FRAMEWORK = {
       ja: "30種類以上のオーダーメイド治療食とシェフのライブキッチンで、患者さま一人ひとりの状態に合わせた食事を提供",
     },
     programs: [
-      { ko: "저잔사 치료식이 (대장/위 수술 후)", en: "Low-residue therapeutic diet (after colorectal/gastric surgery)", ru: "Лечебная диета с низким содержанием клетчатки (после операций на кишечнике/желудке)", kz: "Аз қалдықты емдік диета (ішек/асқазан отасынан кейін)", zh: "低渣治疗饮食（结直肠/胃手术后）", ja: "低残渣治療食（大腸・胃手術後）" },
-      { ko: "위절제 치료식이 (덤핑증후군 관리)", en: "Post-gastrectomy diet (dumping syndrome management)", ru: "Диета после резекции желудка (контроль демпинг-синдрома)", kz: "Асқазан резекциясынан кейінгі диета (демпинг-синдромды бақылау)", zh: "胃切除术后治疗饮食（倾倒综合征管理）", ja: "胃切除後治療食（ダンピング症候群の管理）" },
-      { ko: "저요오드 식이 (갑상선)", en: "Low-iodine diet (thyroid)", ru: "Диета с низким содержанием йода (щитовидная железа)", kz: "Йоды аз диета (қалқанша без)", zh: "低碘饮食（甲状腺）", ja: "低ヨウ素食（甲状腺）" },
+      T.lowResidueDiet.name,
+      T.gastrectomyDiet.name,
+      T.lowIodideDiet.name,
+      // 아래 셋은 치료법 카드가 없는 «식단 코너»라 여기서만 정의한다
       { ko: "맞춤 면역 회복 선택식 (30+ 종)", en: "Customized immune-recovery menu (30+ options)", ru: "Индивидуальное меню для восстановления иммунитета (30+ блюд)", kz: "Иммунитетті қалпына келтіруге арналған жеке мәзір (30+ тағам)", zh: "个性化免疫恢复自选餐（30余种）", ja: "オーダーメイド免疫回復選択食（30種以上）" },
-      { ko: "셰프 라이브 코너", en: "Chef live station", ru: "Живая кухня шеф-повара", kz: "Аспаздың тікелей дайындау бұрышы", zh: "厨师现场烹饪区", ja: "シェフのライブキッチン" },
+      T.chefLive.name,
       { ko: "항암 맞춤 코너", en: "Chemotherapy-tailored station", ru: "Меню, адаптированное под химиотерапию", kz: "Химиотерапияға бейімделген мәзір бұрышы", zh: "化疗期专属餐区", ja: "抗がん剤治療対応コーナー" },
       { ko: "제철 과일 코너", en: "Seasonal fruit station", ru: "Сезонные фрукты", kz: "Маусымдық жемістер бұрышы", zh: "时令水果区", ja: "旬の果物コーナー" },
     ],
