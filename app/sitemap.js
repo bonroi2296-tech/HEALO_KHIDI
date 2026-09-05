@@ -6,6 +6,7 @@ import {
   REDIRECTED_TREATMENT_SLUGS,
 } from "@/lib/data/partnerHospitals";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { siteUrl } from "@/lib/siteUrl";
 
 const DEFAULT_LIMIT = 1000;
 
@@ -20,19 +21,20 @@ export const dynamic = "force-dynamic";
 // 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
 // now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
 // ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
-const STATIC_LASTMOD = new Date("2026-08-20"); // 2026-08-20: 전 페이지 내부 링크를 언어별 주소로 교체(#1428)
+// 2026-09-05: 암종 상세 6쪽(/treatments/{female,digest,liver,lung,thyroid,etc}) 5축·JSON-LD 를 6개 언어로(#1647).
+//   ⚠️ IndexNow 크론(/api/cron/indexnow)이 평일엔 이 날짜가 3일 안일 때만 정적 페이지를 보낸다 — 정적 페이지를
+//   의미 있게 고친 PR 은 이 날짜를 «같이» 올려라(안 올리면 월요일 전체 제출까지 엔진이 모른다).
+//   (2026-08-20: 전 페이지 내부 링크를 언어별 주소로 교체 #1428)
+const STATIC_LASTMOD = new Date("2026-09-05");
 
 // kz(내부코드) → kk(BCP47). hreflang 표기용.
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
-// ⚠️ NEXT_PUBLIC_SITE_URL 를 Vercel(Production·Preview)에 반드시 설정할 것.
-// 미설정 시에도 localhost 가 검색엔진에 노출되지 않도록 실도메인으로 폴백.
-// 도메인 변경(healwith.co.kr) 시 이 env 값만 바꾸면 sitemap/robots/canonical 전부 반영.
-const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
-
+// 기준 주소 정본은 src/lib/siteUrl.ts 하나다(env 를 trim·scheme 검사·끝 슬래시 제거까지 해서 준다).
+// 왜 (2026-09-05 독립 리뷰): 여기서 env 원문을 따로 읽으면 IndexNow 크론(siteUrl() 로 host 를 정함)과 어긋나
+//   끝 슬래시 하나로 `//ru` 주소 170개를 엔진에 보내거나, scheme 이 빠지면 전부 걸러져 «영원히 0건»이 된다.
 export default async function sitemap() {
-  const baseUrl = getBaseUrl();
+  const baseUrl = siteUrl();
   const now = new Date();
 
   // 빌드 시점에 환경 변수가 없을 수 있으므로 먼저 체크
