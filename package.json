@@ -18,6 +18,7 @@
     "test:regression": "tsx --conditions=react-server scripts/run-regression-tests.ts",
     "test:coverage": "vitest run --coverage",
     "check:content": "node scripts/check-content-consistency.mjs",
+    "check:workflow-env": "node scripts/check-workflow-env.mjs --selftest && node scripts/check-workflow-env.mjs",
     "check:completeness": "node scripts/check-completeness.mjs",
     "check:supabase-io": "node scripts/check-supabase-io.mjs",
     "optimize:images": "node scripts/optimize-images.mjs",
