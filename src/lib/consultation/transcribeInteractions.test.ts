@@ -2,7 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   bcp47For,
   buildTranscribeRequest,
+  joinTextParts,
+  noteTranscribeFailure,
   parseTranscribeResponse,
+  resetTranscribeCooldown,
+  transcribeCoolingDown,
 } from "./transcribeInteractions";
 
 describe("bcp47For", () => {
@@ -35,6 +39,10 @@ describe("buildTranscribeRequest — REST 본문(snake_case)", () => {
       language_codes: ["ko-KR", "kk-KZ"],
       custom_vocabulary: ["면력한방병원"],
     });
+  });
+  it("같은 언어끼리 회의면 같은 코드가 두 번 와도 한 번만 보낸다", () => {
+    const b = buildTranscribeRequest({ model: "m", audioBase64: "x", mimeType: "audio/webm", languageCodes: ["ko-KR", "ko-KR"] }) as any;
+    expect(b.generation_config.transcription_config.language_codes).toEqual(["ko-KR"]);
   });
   it("용어는 100개까지만", () => {
     const vocab = Array.from({ length: 150 }, (_, i) => `t${i}`);
@@ -93,5 +101,28 @@ describe("parseTranscribeResponse — 문서의 REST 응답 예시 기준", () =
     expect(parseTranscribeResponse({ steps: [], usage: { input_tokens: 120, output_tokens: 8 } }).usage).toEqual({ promptTokens: 120, completionTokens: 8 });
     expect(parseTranscribeResponse({ steps: [], usage_metadata: { prompt_token_count: "5", candidates_token_count: 2 } }).usage).toEqual({ promptTokens: 5, completionTokens: 2 });
     expect(parseTranscribeResponse({ steps: [], usage: { foo: 1 } }).usage).toBeNull();
+  });
+});
+
+describe("joinTextParts — 조각 잇기", () => {
+  it("한중일 경계는 붙이고, 그 외는 한 칸 띄운다", () => {
+    expect(joinTextParts(["今日は", "病院に"])).toBe("今日は病院に");
+    expect(joinTextParts(["Hello", "world"])).toBe("Hello world");
+    expect(joinTextParts(["안녕하세요", "доктор"])).toBe("안녕하세요 доктор");
+  });
+  it("빈 조각은 건너뛰고 줄바꿈은 살린다", () => {
+    expect(joinTextParts(["", "a  b", "  ", "c"])).toBe("a b c");
+    expect(joinTextParts(["a", "b\n c"])).toBe("a b\nc");
+  });
+});
+
+describe("실패 뒤 쉬기(cooldown)", () => {
+  it("실패를 적으면 그 시간 동안 실험을 건너뛰고, 지나면 다시 탄다", () => {
+    resetTranscribeCooldown();
+    expect(transcribeCoolingDown(1_000)).toBe(false);
+    noteTranscribeFailure(1_000, 5_000);
+    expect(transcribeCoolingDown(2_000)).toBe(true);
+    expect(transcribeCoolingDown(6_000)).toBe(false);
+    resetTranscribeCooldown();
   });
 });

@@ -16,6 +16,8 @@ export const STT_ENGINES = {
   BROWSER: "browser_webspeech",
   /** 서버 받아쓰기(Gemini 멀티모달, 전사+번역 1회) → /[id]/stt */
   SERVER: "server_gemini",
+  /** 서버 받아쓰기 «전용 모델» 실험(Gemini 3.5 Transcribe, 번역은 Flash) → /[id]/stt, env STT_TRANSCRIBE_MODEL (2026-09-05) */
+  SERVER_TRANSCRIBE: "server_transcribe",
   /** 맞장구 사전(받아쓰기는 브라우저, 번역만 사전 매칭) → /[id]/translate */
   BACKCHANNEL: "backchannel_dict",
   /** 실시간 통역 모델의 원문 자막(agents/live-translate) — 아직 기본 꺼짐 */

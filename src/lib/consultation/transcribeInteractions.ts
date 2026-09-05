@@ -6,6 +6,7 @@
  * 무엇이 다른가: «생각(thinking)» 토큰이 없다(9/01 자막 잘림의 뿌리가 구조적으로 없다) ·
  *   카자흐어(kk-KZ) 명시 지원 · 단가 파일 기준 분당 약 $0.005.
  * 켜는 법: env `STT_TRANSCRIBE_MODEL=gemini-3.5-transcribe`. 비어 있으면(기본) 라우트가 이 모듈을 안 부른다.
+ * 실패 처리: 호출 실패·응답 모양 불일치면 라우트가 기존 Flash 경로로 떨어지고, 이 모듈은 60초(env) 동안 실험을 쉰다.
  * 한계·미검증: 이 상자엔 API 키가 없어 **실호출 0회**. 요청·응답 모양은 공식 문서의 REST 예시
  *   (`steps[].content[].text`) 기준이고, 모양이 다르면 `found=false` 로 돌려 라우트가 기존 Flash 경로로 떨어진다.
  *   usage(토큰) 키 이름은 문서에 없어 후보 이름 여러 개를 관대하게 읽는다 — 첫 실호출 뒤 하나로 좁혀라.
@@ -56,7 +57,8 @@ export function buildTranscribeRequest(o: TranscribeRequestOpts): Record<string,
     input: [{ type: "audio", data: o.audioBase64, mime_type: o.mimeType }],
   };
   const tc: Record<string, unknown> = {};
-  const langs = (o.languageCodes || []).filter(Boolean);
+  // 같은 언어끼리 회의(설정어 = 도착어)면 같은 코드가 두 번 들어온다 — 중복은 거른다.
+  const langs = Array.from(new Set((o.languageCodes || []).filter(Boolean)));
   if (langs.length) tc.language_codes = langs;
   const vocab = (o.customVocabulary || []).filter(Boolean).slice(0, 100);
   if (vocab.length) tc.custom_vocabulary = vocab;
@@ -114,7 +116,46 @@ export function parseTranscribeResponse(json: unknown): ParsedTranscribe {
     texts.push(j.output_text);
   }
   const usage = readUsage(j.usage ?? j.usage_metadata ?? j.usageMetadata);
-  return { text: texts.join(" ").replace(/\s+/g, " ").trim(), found, status, usage, topKeys };
+  return { text: joinTextParts(texts), found, status, usage, topKeys };
+}
+
+const CJK_EDGE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/;
+
+/**
+ * text 조각 잇기. 한중일 글자 경계는 붙이고(띄어쓰기 없는 문자), 그 외는 한 칸 띄운다.
+ * 공백은 같은 줄 안에서만 합치고 줄바꿈은 살린다(모델이 화자 전환을 줄로 나눌 수 있다).
+ */
+export function joinTextParts(parts: string[]): string {
+  let out = "";
+  for (const raw of parts) {
+    const part = String(raw ?? "");
+    if (!part.trim()) continue;
+    if (!out) {
+      out = part;
+      continue;
+    }
+    const glue = CJK_EDGE.test(out.slice(-1)) || CJK_EDGE.test(part.trimStart().charAt(0)) ? "" : " ";
+    out += glue + part;
+  }
+  return out
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .trim();
+}
+
+// ── 실패 뒤 잠깐 쉬기(인스턴스 안에서만) ──
+// 왜: 엔드포인트가 느리거나 죽으면 «조각마다» 상한까지 기다린 뒤 Flash 로 가므로 자막이 회의 내내 늦는다.
+//   한 번 실패하면 잠시 실험을 건너뛰어 기존 경로만 타게 한다. 서버리스라 인스턴스별이고 그걸로 충분하다.
+let skipUntil = 0;
+export function transcribeCoolingDown(now: number = Date.now()): boolean {
+  return now < skipUntil;
+}
+export function noteTranscribeFailure(now: number = Date.now(), cooldownMs?: number): void {
+  const ms = cooldownMs ?? Number(process.env.STT_TRANSCRIBE_COOLDOWN_MS || 60_000);
+  skipUntil = now + (Number.isFinite(ms) && ms > 0 ? ms : 60_000);
+}
+export function resetTranscribeCooldown(): void {
+  skipUntil = 0;
 }
 
 export interface TranscribeCallOpts {
@@ -144,7 +185,9 @@ export async function transcribeViaInteractions(
     customVocabulary: opts.customVocabulary ?? customVocabularyFromEnv(),
   });
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 25_000);
+  // 실시간 자막 예산 안에서 끊는다(기존 Flash 호출 실측 4~5초). 넘기면 실패로 보고 기존 경로로.
+  const timeoutMs = opts.timeoutMs ?? Number(process.env.STT_TRANSCRIBE_TIMEOUT_MS || 10_000);
+  const timer = setTimeout(() => ctrl.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10_000);
   const t0 = Date.now();
   try {
     const res = await fetch(INTERACTIONS_ENDPOINT, {
