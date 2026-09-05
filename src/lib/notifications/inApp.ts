@@ -391,6 +391,30 @@ export async function notifyStaffPatientMessage(notice: PatientMessageNotice): P
   }
 }
 
+/**
+ * «최근 cooldownDays 안에 같은 type 알림을 이미 받은 직원»을 뺀 목록.
+ * 열람 여부가 아니라 **발송 시각** 기준(안 읽음 기준이면 첫 발송 뒤 영구 침묵 — 2026-07-20 적발).
+ * 조회가 실패하면 디듀프를 포기하고 전원에게 보낸다 — 도배보다 미발송이 더 나쁘다.
+ */
+async function staffNotRecentlyNotified(
+  type: string,
+  staff: string[],
+  cooldownDays: number
+): Promise<string[]> {
+  if (staff.length === 0) return [];
+  const since = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000).toISOString();
+  const supabase = getSupabaseServerClient();
+  const { data: existing, error } = await (supabase as any)
+    .from("notifications")
+    .select("user_id")
+    .eq("type", type)
+    .gte("created_at", since)
+    .in("user_id", staff);
+  if (error) console.warn(`[inApp] ${type} 디듀프 조회 실패(그대로 발송):`, error.message);
+  const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
+  return staff.filter((id) => !alreadyNotified.has(id));
+}
+
 export const COLD_LEAD_NUDGE_COOLDOWN_DAYS = 7;
 
 export interface ColdLeadsNotice {
@@ -415,19 +439,7 @@ export async function notifyStaffColdLeads(notice: ColdLeadsNotice): Promise<voi
     const staff = [...admins, ...coordinators];
     if (staff.length === 0) return;
 
-    const since = new Date(
-      Date.now() - COLD_LEAD_NUDGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
-    const supabase = getSupabaseServerClient();
-    const { data: existing, error } = await (supabase as any)
-      .from("notifications")
-      .select("user_id")
-      .eq("type", "lead_cold")
-      .gte("created_at", since)
-      .in("user_id", staff);
-    if (error) console.warn("[inApp] lead_cold 디듀프 조회 실패(그대로 발송):", error.message);
-    const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
-    const targets = staff.filter((id) => !alreadyNotified.has(id));
+    const targets = await staffNotRecentlyNotified("lead_cold", staff, COLD_LEAD_NUDGE_COOLDOWN_DAYS);
     if (targets.length === 0) return;
 
     const list = formatColdLeadLine(notice.leads);
@@ -481,22 +493,10 @@ export async function notifyStaffUnclosedConsultations(
     const staff = [...admins, ...coordinators];
     if (staff.length === 0) return;
 
-    // 최근 쿨다운 기간 안에 이미 받은 직원은 제외(종 도배 방지).
-    // 열람 여부가 아니라 **발송 시각** 기준 — 이유는 위 주석 참조.
-    const since = new Date(
-      Date.now() - UNCLOSED_NUDGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
-    const supabase = getSupabaseServerClient();
-    const { data: existing, error } = await (supabase as any)
-      .from("notifications")
-      .select("user_id")
-      .eq("type", "consultation_unclosed")
-      .gte("created_at", since)
-      .in("user_id", staff);
-    // 조회가 실패하면 디듀프를 포기하고 그냥 보낸다 — 도배보다 미발송이 더 나쁘다.
-    if (error) console.warn("[inApp] unclosed 디듀프 조회 실패(그대로 발송):", error.message);
-    const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
-    const targets = staff.filter((id) => !alreadyNotified.has(id));
+    // 최근 쿨다운 기간 안에 이미 받은 직원은 제외(종 도배 방지) — 발송 시각 기준, 이유는 위 주석.
+    const targets = await staffNotRecentlyNotified(
+      "consultation_unclosed", staff, UNCLOSED_NUDGE_COOLDOWN_DAYS
+    );
     if (targets.length === 0) return;
 
     await broadcastInAppNotification(targets, {

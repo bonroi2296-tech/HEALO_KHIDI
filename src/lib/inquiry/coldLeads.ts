@@ -13,21 +13,20 @@
  *   단계가 비어 있어도(아무도 안 건드린 새 문의) 활성으로 본다 — 그게 제일 먼저 식는 건이다.
  */
 
+import { CASE_STATUS_STEPS, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
+
 export const COLD_LEAD_DAYS_DEFAULT = 7;
 
-/** 이 단계면 «유치 전 진행 중»이 아니다 — 세지 않는다. */
-export const NOT_ACTIVE_CASE_STATUSES: ReadonlySet<string> = new Set([
-  "on_hold",
-  "closed",
-  "lost",
-  "cancelled",
-  "canceled",
-  "completed",
-  "admitted",
-  "treatment",
-  "aftercare",
-  "done",
-]);
+/**
+ * «유치 전 진행 중»이 아닌 단계 — 세지 않는다. 손으로 적지 않고 단일 정의(CASE_STATUS_STEPS)에서
+ * 끌어낸다: 입국·치료 중(4) 이후(사후관리·완료)와 보류. DB CHECK 제약이 허용하는 7개 키가 전부이므로
+ * 여기 없는 철자는 저장될 수 없다(독립 리뷰 2026-09-05: 손 목록엔 DB 에 없는 값 9개가 있고
+ * 정작 저장되는 `follow_up` 이 빠져 있었다). 구 9단계 별칭(hospital_review 등)은 신단계로 풀어 판정.
+ */
+export const COLD_LEAD_LAST_ACTIVE_ORDER = 3; // preparation(일정·비자 준비)까지가 «유치 전»
+export const NOT_ACTIVE_CASE_STATUSES: ReadonlySet<string> = new Set(
+  CASE_STATUS_STEPS.filter((s) => s.order > COLD_LEAD_LAST_ACTIVE_ORDER).map((s) => s.key)
+);
 
 export interface ColdLeadInput {
   id: number;
@@ -90,7 +89,8 @@ export function lastActivityMs(row: ColdLeadInput): number | null {
 export function isActiveLead(row: ColdLeadInput): boolean {
   if (row.is_test === true) return false;
   if (row.outcome && String(row.outcome).trim()) return false;
-  const cs = (row.case_status || "").trim().toLowerCase();
+  const raw = (row.case_status || "").trim().toLowerCase();
+  const cs = OLD_KEY_ALIASES[raw] || raw;
   if (cs && NOT_ACTIVE_CASE_STATUSES.has(cs)) return false;
   return true;
 }

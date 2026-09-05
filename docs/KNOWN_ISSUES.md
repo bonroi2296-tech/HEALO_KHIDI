@@ -52,7 +52,9 @@ PO 지시(**「안 본 게 왜 있어 다 봐」**)로 전수 판정했다. 「1
 
 **원인**(둘 다 시스템): ①환자 글 경로 `app/api/inquiries/claim/submit/route.ts` 가 `follow_ups` 에 붙이기만 하고 **알림을 아무에게도 안 보냈다**(새 문의는 종·메일 다 울리는데 «추가 글»만 조용). ②유치 «전» 단계(접수·상담·병원검토)의 무동작을 세는 곳이 **없었다** — `detect-silent-patients` 는 치료 «후» 환자의 증상 보고만 본다. 코디 화면에도 「며칠째」가 없다.
 
-**고친 것**: ①`notifyStaffPatientMessage` — 코디·어드민 종 알림(`patient_message`, 디듀프 없음: 글 1건 = 알림 1건, 저장 뒤 fire-and-forget 이라 응답을 안 막는다). ②`/api/cron/detect-cold-leads`(매일 00:30 UTC = 09:30 KST, `vercel.json`) — 마지막 움직임(생성·상태·케이스이력·후속글·상담세션 중 최신) 기준 **7일**(`COLD_LEAD_DAYS`) 넘은 비시험·결과없음·«끝난 단계 아님» 문의를 모아 종 알림 하나(`lead_cold`), 직원별 **주 1회** 디듀프(안 읽음 기준이면 영구 침묵이라 시간창 기준). 판정은 순수 함수 `src/lib/inquiry/coldLeads.ts`(단위시험 8건, 이날 실측 모양 재현) + 크론 계약시험 3건.
+**고친 것**: ①`notifyStaffPatientMessage` — 코디·어드민 종 알림(`patient_message`, 디듀프 없음: 글 1건 = 알림 1건, 저장 뒤 fire-and-forget 이라 응답을 안 막는다). ②`/api/cron/detect-cold-leads`(매일 00:30 UTC = 09:30 KST, `vercel.json`) — 마지막 움직임(생성·상태·케이스이력·후속글·상담세션 중 최신) 기준 **7일**(`COLD_LEAD_DAYS`) 넘은 비시험·결과없음·«끝난 단계 아님» 문의를 모아 종 알림 하나(`lead_cold`), 직원별 **주 1회** 디듀프(안 읽음 기준이면 영구 침묵이라 시간창 기준). 판정은 순수 함수 `src/lib/inquiry/coldLeads.ts`(단위시험 9건, 이날 실측 모양 재현) + 크론 계약시험 3건.
+
+🔑 **독립 리뷰(`/code-review`)가 잡은 것 3건 — 전부 고침**: ①「끝난 단계」 목록을 손으로 적어 **DB 에 없는 값 9개**를 넣고 정작 저장되는 `follow_up`(사후관리)을 빠뜨렸다 → 단일 정의 `CASE_STATUS_STEPS` 에서 `order > 3` 로 끌어내고 구 별칭도 풀어 판정. ②알림을 `void` 로 흘리면 서버리스가 응답 직후 얼어 INSERT 가 증발할 수 있다 → `after()`(저장소 관례). ③주 1회 디듀프 14줄이 unclosed 넛지와 복붙 → `staffNotRecentlyNotified` 하나로. **교훈: 상태값 목록은 손으로 적지 말고 정의에서 끌어내라.**
 
 **확인 못 한 것**: 실DB 실행(크론 비밀키 없음). **다음 세션**: 배포 뒤 Vercel 크론 로그 `[cron/detect-cold-leads] checked=… cold=…` 한 줄 + 코디 종에 「🧊 식은 문의」가 떴는지. 🔑 **단서(단정 아님)**: «무동작 24일» 은 코디가 손을 놓은 것일 수도, 환자가 이미 다른 데서 치료를 시작해 끝난 건인데 **보류 처리를 안 해서** 살아 보이는 것일 수도 있다 — 크론 알림 본문에 「끝난 건이면 보류·종결로 바꿔 달라」를 같이 적은 이유.
 

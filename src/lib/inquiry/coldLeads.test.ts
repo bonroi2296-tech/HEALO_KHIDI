@@ -4,6 +4,7 @@ import {
   isActiveLead,
   lastActivityMs,
   latestFollowUpAt,
+  NOT_ACTIVE_CASE_STATUSES,
   selectColdLeads,
 } from "./coldLeads";
 
@@ -32,12 +33,23 @@ describe("lastActivityMs — 마지막 움직임은 여러 시각 중 «가장 �
   });
 });
 
+describe("NOT_ACTIVE_CASE_STATUSES", () => {
+  it("단일 정의(CASE_STATUS_STEPS)에서 나온다 — 치료·사후관리·완료·보류, 그 외는 «유치 전»", () => {
+    expect([...NOT_ACTIVE_CASE_STATUSES].sort()).toEqual(["completed", "follow_up", "on_hold", "treatment"]);
+  });
+});
+
 describe("isActiveLead — 유치 «전» 진행 중인 것만", () => {
   it("시험·결과 있음·보류/종결/유치 단계는 뺀다", () => {
     expect(isActiveLead({ id: 1, created_at: daysAgo(1), is_test: true })).toBe(false);
     expect(isActiveLead({ id: 2, created_at: daysAgo(1), outcome: "lost" })).toBe(false);
     expect(isActiveLead({ id: 3, created_at: daysAgo(1), case_status: "on_hold" })).toBe(false);
-    expect(isActiveLead({ id: 4, created_at: daysAgo(1), case_status: "Admitted" })).toBe(false);
+    expect(isActiveLead({ id: 4, created_at: daysAgo(1), case_status: "follow_up" })).toBe(false);
+    expect(isActiveLead({ id: 41, created_at: daysAgo(1), case_status: "Treatment" })).toBe(false);
+    expect(isActiveLead({ id: 42, created_at: daysAgo(1), case_status: "completed" })).toBe(false);
+    // 구 9단계 별칭은 신단계로 풀어 판정 — 과거 이력 원문이 그대로 남아 있을 수 있다
+    expect(isActiveLead({ id: 43, created_at: daysAgo(1), case_status: "hospital_review" })).toBe(true);
+    expect(isActiveLead({ id: 44, created_at: daysAgo(1), case_status: "visa_prep" })).toBe(true);
   });
   it("단계가 비어 있는 새 문의도 활성이다(제일 먼저 식는 건)", () => {
     expect(isActiveLead({ id: 5, created_at: daysAgo(1), case_status: null })).toBe(true);
