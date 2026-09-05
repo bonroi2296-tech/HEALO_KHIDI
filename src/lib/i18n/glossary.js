@@ -89,7 +89,7 @@ export const GLOSSARY = [
     use: { ru: "медицинский перевод", kz: "медициналық аударма" },
     avoid: { ru: ["машинный перевод"], kz: ["машиналық аударма"] },
     // 「이 글은 기계가 옮긴 것」이라고 «일부러» 알리는 화면 — 여기서 машинный перевод 는 정확한 말이다.
-    exceptKeys: ["claimPage.machineTranslated", "status.translating"],
+    exceptKeys: ["status.translating"], // claimPage.machineTranslated 는 2026-09-06 단추 삭제와 함께 사라졌다
   },
 
   // ── 아래부터는 「제안」 — 원어민 코디네이터 확정 대기 (경고만 뜬다) ──

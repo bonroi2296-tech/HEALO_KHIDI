@@ -403,10 +403,12 @@ function OpinionItem({ opinion, patientLang }) {
       )}
 
       {/* 공개 — 접수 시점에 AI 초벌 번역(환자 언어) → 코디 교정 → 공개해야만 노출.
-          2026-08-05 부터 대상이 «에이전시 + 환자 본인»이다(환자 진행상황 링크에 글로 뜬다). */}
+          대상은 «에이전시 포털»뿐이다. 2026-08-05~09-05 사이엔 환자 진행상황 링크에도 «소견서 모양»으로
+          떴는데, 2026-08-18 PO 결정(«제2 의료소견서 화면 빼자 — 공식 문서로») 이 2026-09-06 에 본판에 들어오면서
+          환자에게는 공식 문서(「환자에게 보이기」)로만 간다. 이 문구를 다시 «환자에게 보인다»로 돌리지 마라. */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
         <p className="text-[11px] text-blue-700 mb-1.5">
-          환자·에이전시에 보낼 확정본
+          에이전시에 보낼 확정본
           {preTranslated ? L.soPublishAuto : L.soPublishManual}
         </p>
         <textarea

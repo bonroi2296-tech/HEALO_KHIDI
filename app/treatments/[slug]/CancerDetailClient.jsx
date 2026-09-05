@@ -167,7 +167,8 @@ export default function CancerDetailClient({ slug }) {
                     rel="noopener noreferrer"
                     className="underline underline-offset-2 hover:text-teal-800"
                   >
-                    immunehospital.com
+                    {/* 라벨은 주소에서 — 다른 출처를 넣었는데 «immunehospital.com» 이라 뜨면 안 된다(독립 리뷰) */}
+                    {new URL(cancer.stats.survivalImprovementSourceUrl).hostname}
                   </a>
                 </>
               )}

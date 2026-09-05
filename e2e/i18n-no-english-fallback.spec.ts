@@ -22,7 +22,8 @@ const ALLOW: (string | RegExp)[] = [
   /^Photos by( Unsplash)?$/, // 교육 화면 사진 출처 — 링크 앞 텍스트 노드가 「Photos by」 로 잘려 온다
   /Republic of Korea$/, // 꼬리말 사업자 주소(법정 표기, 영어 고정) — 「Room 613, 385 Gangseo-ro, … Seoul, Republic of Korea」
   /^Room: /, // 원격협진 화면의 방 이름 예시 「Room: khidi-xxxx」
-  /healwith/i,
+  /^© .+ All rights reserved\.$/, // 꼬리말 저작권 문구 — 외국어 화면은 로마자 법정 표기로 고정(src/lib/siteSettings.js 주석)
+  /^healwith(\.co\.kr)?$/i, // 브랜드 «단독» 노드만 — 브랜드가 든 영어 문장까지 봐주면 안 된다(독립 리뷰)
   /^https?:\/\//,
   /@/, // 이메일
   /Wi-Fi|Smart TV/i,
@@ -70,8 +71,10 @@ function isAllowed(s: string) {
 for (const [loc, tag] of [["ru", "@smoke "], ["kz", ""]] as const) {
   for (const route of ROUTES) {
     test(`${tag}@i18n-leak /${loc}${route === "/" ? "" : route} — ${loc} 화면에 영어 문장 누출 없음`, async ({ page }) => {
-      await page.goto(`/${loc}${route === "/" ? "" : route}`, { waitUntil: "domcontentloaded" });
+      const resp = await page.goto(`/${loc}${route === "/" ? "" : route}`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(800);
+      // 빈 화면·오류 화면을 «누출 0건»으로 통과시키지 않는다(a11y-scan 과 같은 이유 — 독립 리뷰).
+      expect(resp?.status() ?? 0, "화면이 열리지 않았다").toBeLessThan(400);
       const texts: string[] = await page.evaluate(() => {
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         const out = new Set<string>();
@@ -80,12 +83,14 @@ for (const [loc, tag] of [["ru", "@smoke "], ["kz", ""]] as const) {
           const el = n.parentElement as HTMLElement | null;
           if (!el) continue;
           if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(el.tagName)) continue;
-          if (el.offsetParent === null && el.tagName !== "BODY") continue; // 숨김 제외
+          // 숨김 제외 — offsetParent 는 position:fixed 요소(쿠키 띠·챗 단추)에서도 null 이라 쓰지 않는다
+          if (el.getClientRects().length === 0) continue;
           const t = (n.textContent || "").trim();
           if (t) out.add(t.length > 120 ? t.slice(0, 120) + "…" : t);
         }
         return [...out];
       });
+      expect(texts.length, "보이는 글자가 너무 적다 — 그려지지 않은 화면을 재고 있다").toBeGreaterThan(20);
       const real = texts.filter((s) => isEnglishSentence(s) && !isAllowed(s));
       expect(
         real,

@@ -5,7 +5,7 @@ import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
-import { localeAlternates, OG_LOCALE, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
+import { localeAlternates, ogLocaleFields, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
@@ -39,7 +39,9 @@ export async function generateMetadata() {
   if (!locale) return baseMetadata;
   const alternates = await localeAlternates();
   // openGraph 를 따로 정의하지 않는 페이지용 기본 og:url (정의하는 페이지는 각자 넣는다).
-  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US", url: alternates?.canonical };
+  // locale 만 바꾸고 alternateLocale 을 고정 목록으로 두면 «자기 자신이 alternate 에 들어가고 en_US 가 빠진다»
+  // (2026-09-06 독립 리뷰) → 같은 헬퍼로 둘 다 요청 언어 기준.
+  const og = { ...baseMetadata.openGraph, ...ogLocaleFields(locale), url: alternates?.canonical };
   return { ...baseMetadata, alternates, openGraph: og };
 }
 
