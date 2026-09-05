@@ -11,12 +11,18 @@
 -- NULL 은 통과(미입력=정상). 상한은 일부러 안 건다 — 의료비 상한을 우리가 정할 수 없다.
 
 alter table public.hospital_leads
+  drop constraint if exists hospital_leads_quoted_price_sane;
+
+alter table public.hospital_leads
   add constraint hospital_leads_quoted_price_sane
   check (
     (quoted_price_min is null or quoted_price_min >= 0)
     and (quoted_price_max is null or quoted_price_max >= 0)
     and (quoted_price_min is null or quoted_price_max is null or quoted_price_min <= quoted_price_max)
   );
+
+alter table public.treatments
+  drop constraint if exists treatments_price_sane;
 
 alter table public.treatments
   add constraint treatments_price_sane
