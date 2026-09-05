@@ -73,25 +73,34 @@ for (const [loc, tag] of [["ru", "@smoke "], ["kz", ""]] as const) {
   for (const route of ROUTES) {
     test(`${tag}@i18n-leak /${loc}${route === "/" ? "" : route} — ${loc} 화면에 영어 문장 누출 없음`, async ({ page }) => {
       const resp = await page.goto(`/${loc}${route === "/" ? "" : route}`, { waitUntil: "domcontentloaded" });
-      await page.waitForTimeout(800);
       // 빈 화면·오류 화면을 «누출 0건»으로 통과시키지 않는다(a11y-scan 과 같은 이유 — 독립 리뷰).
       expect(resp?.status() ?? 0, "화면이 열리지 않았다").toBeLessThan(400);
-      const texts: string[] = await page.evaluate(() => {
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        const out = new Set<string>();
-        let n: Node | null;
-        while ((n = walker.nextNode())) {
-          const el = n.parentElement as HTMLElement | null;
-          if (!el) continue;
-          if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(el.tagName)) continue;
-          // 숨김 제외 — offsetParent 는 position:fixed 요소(쿠키 띠·챗 단추)에서도 null 이라 쓰지 않는다
-          if (el.getClientRects().length === 0) continue;
-          const t = (n.textContent || "").trim();
-          if (t) out.add(t.length > 120 ? t.slice(0, 120) + "…" : t);
-        }
-        return [...out];
-      });
-      expect(texts.length, "보이는 글자가 너무 적다 — 그려지지 않은 화면을 재고 있다").toBeGreaterThan(20);
+      const collect = () =>
+        page.evaluate(() => {
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          const out = new Set<string>();
+          let n: Node | null;
+          while ((n = walker.nextNode())) {
+            const el = n.parentElement as HTMLElement | null;
+            if (!el) continue;
+            if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(el.tagName)) continue;
+            // 숨김 제외 — offsetParent 는 position:fixed 요소(쿠키 띠·챗 단추)에서도 null 이라 쓰지 않는다
+            if (el.getClientRects().length === 0) continue;
+            const t = (n.textContent || "").trim();
+            if (t) out.add(t.length > 120 ? t.slice(0, 120) + "…" : t);
+          }
+          return [...out];
+        });
+      // 고정 0.8초 대기가 아니라 «본문이 그려질 때까지» 기다린다. 2026-09-05 CI 실측: /ru/inquiry/referral 의
+      // 폼은 클라이언트가 그리는데 CI 러너가 느린 날 0.8초 안에 껍데기(머리·꼬리말 20줄)만 있어 재시도 3번 다 빨간불.
+      // 로컬(빠름)에선 같은 판이 27줄. 문턱은 그대로 두고 기다리는 방식만 바꾼다.
+      await expect
+        .poll(async () => (await collect()).length, {
+          timeout: 20_000,
+          message: "보이는 글자가 너무 적다 — 그려지지 않은 화면을 재고 있다",
+        })
+        .toBeGreaterThan(20);
+      const texts: string[] = await collect();
       const real = texts.filter((s) => isEnglishSentence(s) && !isAllowed(s));
       expect(
         real,
