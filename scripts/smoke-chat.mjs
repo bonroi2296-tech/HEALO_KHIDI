@@ -122,6 +122,19 @@ async function cleanup() {
 
 async function main() {
   console.log(`▶ AI 챗 스모크 테스트 @ ${BASE_URL}`);
+
+  // 🛑 실서비스를 향하는데 «치울 열쇠»가 없으면 시작조차 하지 않는다.
+  //    2026-09-05 실측: 열쇠 없이 실서비스로 돌렸더니 시험 스레드 2개가 그대로 남았고
+  //    (경고는 나왔지만 「치우는 법」이 없어 그냥 지나쳤다) 나중에 손으로 SQL 3벌을 돌려 치웠다.
+  //    FK 순서(playbook_usage_events → chat_messages → chat_threads)를 모르면 그마저 막힌다.
+  //    → 「경고하고 더럽히기」보다 「시작 전에 멈추기」가 싸다.
+  const 실서비스 = /healwith\.co\.kr|healo-khidi\.vercel\.app/.test(BASE_URL);
+  if (실서비스 && (!SB_URL || !SB_KEY)) {
+    console.error("❌ 실서비스를 향하는데 정리 열쇠가 없다 — 시험 스레드가 실서비스에 남는다.");
+    console.error("   이렇게 돌려라:  node --env-file=.env.local scripts/smoke-chat.mjs");
+    console.error("   (로컬 대상이면 BASE_URL=http://localhost:3000 으로 두면 이 관문을 안 탄다)");
+    process.exit(1);
+  }
   let passed = 0, total = 0;
 
   // TEST A: 연락처 없이 접수 → 거짓 접수완료 금지 + 연락처 요청
