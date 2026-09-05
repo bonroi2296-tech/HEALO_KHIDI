@@ -16,6 +16,7 @@
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logOperational } from "../operationalLog";
 import { getActiveRecipients, maskPhone, updateRecipientStats } from "./recipients";
+import { adminBaseUrl } from "./adminBaseUrl";
 import { sendEmail } from "../email/sendEmail";
 
 /**
@@ -76,7 +77,7 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
   
   // 관리자 페이지 링크 (환경변수로 설정 가능)
   // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크. 문의번호는 본문에 표기됨.
-  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+  const adminUrl = adminBaseUrl();
   message += `\n확인(목록): ${adminUrl}/admin/inquiries`;
 
   return message;
@@ -89,7 +90,7 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
 function generateAdminEmail(payload: AdminNotificationPayload): { subject: string; html: string; text: string } {
   const urgency = payload.leadQuality === "hot" ? "🔥 긴급" : "📬";
   // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크. 문의번호는 본문에 표기됨.
-  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+  const adminUrl = adminBaseUrl();
   const inquiryUrl = `${adminUrl}/admin/inquiries`;
 
   const subject = `[healwith] ${urgency} New inquiry received #${payload.inquiryId}`;

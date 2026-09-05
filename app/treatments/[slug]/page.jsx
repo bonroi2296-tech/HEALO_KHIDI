@@ -10,8 +10,8 @@ import CancerDetailClient from "./CancerDetailClient";
 import {
   CANCER_DETAILS,
   CANCER_IMAGES,
-  CANCER_FAQ,
-} from "@/lib/data/immuneCancerDetails";
+  CANCER_FAQ } from "@/lib/data/immuneCancerDetails";
+import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
 import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
@@ -183,23 +183,20 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) notFound();
 
-    // MedicalCondition JSON-LD
+    // MedicalCondition JSON-LD — 화면과 «같은 언어»로(2026-09-05). 전엔 name·description·possibleTreatment 가
+    // 전부 한국어 고정이라 러·카 페이지의 구조화데이터가 한국어였다(검색봇·AI 답변엔진이 그 언어로 못 읽는다).
+    // possibleTreatment 는 손 목록 대신 치료법 정본(IMMUNE_THERAPIES, id 로 지목)에서 뽑는다 — 화면 카드·5축 태그와 같은 표기.
+    // (배열 위치로 지목하면 데이터 순서가 바뀔 때 조용히 다른 치료법을 가리킨다 — 독립 리뷰 2026-09-05)
+    const L = (o) => o?.[locale] || o?.en || o?.ko || "";
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "MedicalCondition",
-      name: cancer.title.ko,
-      alternateName: [cancer.title.en, cancer.title.ru].filter(Boolean),
-      description: cancer.intro.ko,
-      possibleTreatment: [
-        "싸이모신α1 요법",
-        "미슬토 요법",
-        "NK세포치료제",
-        "고주파온열암치료",
-        "림프도수 마사지",
-        "셀레늄 요법",
-        "고농도 비타민 요법",
-        "면역플러스 (황기 부정단)",
-      ],
+      name: L(cancer.title),
+      alternateName: [...new Set([cancer.title.en, cancer.title.ru, cancer.title.ko].filter((x) => x && x !== L(cancer.title)))],
+      description: L(cancer.intro),
+      possibleTreatment: ["thymosin", "mistletoe", "nkCell", "hyperthermia", "lymphDrainage", "selenium", "highVitaminC", "immunoPlus"]
+        .map((id) => L(IMMUNE_THERAPIES[id]?.name))
+        .filter(Boolean),
       relevantSpecialty: {
         "@type": "MedicalSpecialty",
         name: "Oncology",
