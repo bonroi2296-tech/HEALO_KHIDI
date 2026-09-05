@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
         try {
           const { subject, html, text } = renderInquiryReceivedEmail({
             recipientName: data.firstName || undefined,
-            trackUrl: trackingUrl(siteUrl(), row.public_token),
+            trackUrl: trackingUrl(siteUrl(), row.public_token, data.preferredLanguage || data.spokenLanguage),
             lang: toTrackingLang(data.preferredLanguage || data.spokenLanguage),
           });
           const res = await sendEmail({

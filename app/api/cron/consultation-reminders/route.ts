@@ -20,6 +20,7 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { timingSafeEqual } from "node:crypto";
 import { siteUrl } from "@/lib/siteUrl";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -103,14 +104,14 @@ export async function GET(request: NextRequest) {
 
       // 리마인더는 token 이 아닌 '이전 메일 확인' 안내 + 직접 문의 링크
       // TODO: 보다 나은 UX 는 새 토큰 발급해 새 링크 발송
-      const inviteUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${session.id}`;
-
       try {
         // guest = 환자 대표수신자(통합 링크) → 환자언어. patient 도 동일. 그 외(의료진)는 ko.
         const lang: any =
           token.role === "patient" || token.role === "guest"
             ? session.patient_language || "ru"
             : "ko";
+        // ?lang= : 받는 사람 언어를 주소에 싣는다(메신저 미리보기 봇용, 2026-09-05)
+        const inviteUrl = withLang(`${baseUrl.replace(/\/$/, "")}/consultation/${session.id}`, lang);
         const { subject, html, text } = renderConsultationInviteEmail({
           recipientName: token.invitee_name || undefined,
           inviteUrl,

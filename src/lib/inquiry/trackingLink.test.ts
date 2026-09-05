@@ -15,12 +15,19 @@ describe("trackingUrl", () => {
   it("기준 주소 끝의 슬래시가 겹치지 않는다", () => {
     expect(trackingUrl("https://healwith.co.kr/", "abc-123")).toBe("https://healwith.co.kr/claim/abc-123");
   });
+  it("받는 사람 언어는 ?lang= 로 싣는다(메신저 미리보기 봇용) — kk→kz, 모르면 안 붙인다", () => {
+    expect(trackingUrl("https://healwith.co.kr", "abc-123", "ru")).toBe("https://healwith.co.kr/claim/abc-123?lang=ru");
+    expect(trackingUrl("https://healwith.co.kr", "abc-123", "kk")).toBe("https://healwith.co.kr/claim/abc-123?lang=kz");
+    expect(trackingUrl("https://healwith.co.kr", "abc-123", "xx")).toBe("https://healwith.co.kr/claim/abc-123");
+    expect(trackingUrl("https://healwith.co.kr", "abc-123", null)).toBe("https://healwith.co.kr/claim/abc-123");
+  });
 });
 
 describe("toTrackingLang", () => {
   it("활성 6개 언어는 그대로", () => {
     expect(toTrackingLang("ru")).toBe("ru");
     expect(toTrackingLang("KZ")).toBe("kz");
+    expect(toTrackingLang("kk")).toBe("kz"); // ISO 코드도 내부 코드로 — 주소의 ?lang 과 같은 자(독립 리뷰 2026-09-05)
   });
 
   it("모르는 언어·빈 값은 영어로", () => {

@@ -18,6 +18,7 @@ import { renderConsultationInviteEmail } from "@/lib/email/templates/consultatio
 import { buildConsultationIcs } from "@/lib/email/icsInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { siteUrl } from "@/lib/siteUrl";
+import { normalizeLocaleParam } from "@/lib/i18n/guestLinkLang";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer", "guest"];
@@ -39,10 +40,11 @@ export async function POST(
   // 대상 상담이 실제로 존재하는지 확인(없는 id로 토큰 생성 방지)
   // + 예약시각을 같이 읽는다 — 만료가 미팅보다 먼저 오지 않게 하는 데 쓰임(아래 resolveInviteExpiry)
   let sessionScheduledAt: string | null = null;
+  let sessionPatientLang: string | null = null; // 링크 ?lang 과 메일 언어를 «같은 자»로 — 아래 한 번만 정한다
   {
     const { data: sessionRows, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
-      .select("id, scheduled_at")
+      .select("id, scheduled_at, patient_language")
       .eq("id", consultationId)
       .limit(1);
     // 조회 자체가 실패한 걸 "상담 없음(404)"으로 보고하면 안 된다 — 스태프는 멀쩡한 상담을
@@ -58,6 +60,7 @@ export async function POST(
       );
     }
     sessionScheduledAt = (sessionRows[0] as any)?.scheduled_at ?? null;
+    sessionPatientLang = (sessionRows[0] as any)?.patient_language ?? null;
   }
 
   let body: any;
@@ -125,7 +128,13 @@ export async function POST(
     // 환자에게 나가는 진료 입장 링크는 정본 도메인 고정 — request origin 을 쓰면 스태프가
     // admin 을 배포 임시주소(.vercel.app)로 열었을 때 그 주소가 환자 첫 링크로 샌다(피싱처럼
     // 보여 안 누름). 토큰은 공용 프로덕션 DB 라 어느 배포에서 만들어도 healwith.co.kr 에서 유효.
-    const inviteUrl = result.inviteUrl(siteUrl());
+    // 받는 사람 언어 — 주소의 ?lang 과 메일 본문이 «같은 자»에서 나온다(독립 리뷰 2026-09-05: 따로 정하면 kk 가
+    // 주소에선 kz, 메일에선 ko 로 갈렸다). 본문 lang(kk→kz 정규화) → 환자·게스트면 세션의 환자 언어 → 의료진은 ko.
+    // 주소에 싣는 이유: 코디가 왓츠앱·텔레그램에 붙여넣을 때 미리보기 봇이 제 언어 카드를 만들게.
+    const linkLang: string =
+      normalizeLocaleParam((body as any).lang) ??
+      (role === "patient" || role === "guest" ? normalizeLocaleParam(sessionPatientLang) || "ru" : "ko");
+    const inviteUrl = result.inviteUrl(siteUrl(), linkLang);
 
     // 이메일 자동 발송 (해소된 수신 이메일 있을 때만 — 명시 입력 또는 환자계정 폴백)
     let emailSent = false;
@@ -177,12 +186,7 @@ export async function POST(
           }
         }
 
-        const preferredLang =
-          typeof body.lang === "string" && ["ko", "en", "ru", "kz", "zh", "ja"].includes(body.lang)
-            ? body.lang
-            : role === "patient" || role === "guest"
-            ? sessionAny?.patient_language || "ru"
-            : "ko";
+        const preferredLang = linkLang; // 위에서 한 번 정한 값 — 주소와 메일이 갈리지 않게
 
         const { subject, html, text } = renderConsultationInviteEmail({
           recipientName: body.inviteeName,

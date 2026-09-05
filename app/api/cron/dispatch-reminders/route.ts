@@ -28,6 +28,7 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationReminderEmail } from "@/lib/email/templates/consultationReminder";
 import { siteUrl } from "@/lib/siteUrl";
 import { sendKakaoAlimtalk, KAKAO_TEMPLATES } from "@/lib/notifications/kakao";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 // ── 인증 ─────────────────────────────────────────────────────
 function verifyCronSecret(header: string | null): boolean {
@@ -190,7 +191,8 @@ async function dispatchEmail(
 
   // 입장 URL
   const baseUrl = siteUrl();
-  const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
+  // ?lang= : 받는 사람 언어를 주소에(메신저 미리보기 봇용, 2026-09-05). rawLang 은 kz 표기라 그대로 넘긴다.
+  const joinUrl = withLang(`${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`, rawLang);
 
   const { subject, html, text } = renderConsultationReminderEmail({
     recipientName: payload.name ?? undefined,
@@ -229,7 +231,7 @@ async function dispatchKakao(
   });
 
   const baseUrl = siteUrl();
-  const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
+  const joinUrl = withLang(`${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`, payload.lang);
 
   const result = await sendKakaoAlimtalk({
     to: phone,
@@ -257,7 +259,7 @@ async function dispatchInApp(
 
   const payload = row.payload as Record<string, string>;
   const baseUrl = siteUrl();
-  const link = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
+  const link = withLang(`${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`, payload.lang);
 
   // ⚠️ 2026-07-28: 이 문구가 **한국어로 박혀 있었다.** 환자는 러시아·카자흐어권인데
   //    「30분 후 상담 시작」이 한글로 갔다(전수 조사에서 발각). 활성 6개 언어로 분기한다.

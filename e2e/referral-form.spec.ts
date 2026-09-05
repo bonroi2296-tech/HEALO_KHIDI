@@ -64,7 +64,8 @@ test.describe("환자 의뢰서 @smoke", () => {
     await send.click();
     await expect(page.locator("#track-url")).toBeVisible({ timeout: 20000 });
     const track = await page.locator("#track-url").getAttribute("href");
-    expect(track, "진행 링크(/claim/…)가 나와야 한다").toMatch(/\/claim\/[0-9a-f-]{36}$/);
+    // 2026-09-05 부터 받는 사람 언어가 ?lang= 로 붙는다(메신저 미리보기 봇용) — 있어도 없어도 통과
+    expect(track, "진행 링크(/claim/…)가 나와야 한다").toMatch(/\/claim\/[0-9a-f-]{36}(?:\?lang=[a-z]{2})?$/);
 
     // 보낸 뒤엔 임시저장이 남아 있으면 안 된다 — 다음에 열었을 때 보낸 내용이 되살아난다.
     // 🛑 «바로» 재지 마라 — 0.4초 뒤에 쓰는 자동저장이 아직 남아 있으면 지운 것을 되살린다

@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
     // 접수 확인 + 진행상황 주소 — 「접수되면 들어온 그 채널로 주소를 돌려준다」(PO 2026-08-03).
     // after(): 응답 뒤에도 함수를 살려 발송이 잘리지 않게 한다(서버리스 freeze 방지).
     // 메일이 실패해도 접수는 성공이다 — 그래서 삼킨다.
-    const track = trackingUrl(siteUrl(), row.public_token);
+    const track = trackingUrl(siteUrl(), row.public_token, d.patientLang);
     after(async () => {
       try {
         const { subject, html, text } = renderInquiryReceivedEmail({

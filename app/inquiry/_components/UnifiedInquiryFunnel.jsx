@@ -29,6 +29,7 @@ import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
 import GoogleInAppNotice from "@/components/auth/GoogleInAppNotice";
 import { isNativeApp, hasNativeGoogleSignIn } from "@/lib/isNativeApp";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -1322,7 +1323,8 @@ function TrackBox({ token, lang, emailed }) {
   // 서버 렌더 때는 origin 을 모른다 → 클라이언트에서만 그린다(빈 주소 노출 방지).
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   if (!origin) return null;
-  const url = `${origin}/claim/${token}`;
+  // ?lang= : 환자가 이 주소를 메신저에 붙여 가족에게 보내도 미리보기 카드가 제 언어로 뜬다(2026-09-05).
+  const url = withLang(`${origin}/claim/${token}`, lang);
 
   async function copy() {
     try {
