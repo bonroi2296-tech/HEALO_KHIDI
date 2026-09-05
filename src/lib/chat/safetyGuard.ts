@@ -80,14 +80,39 @@ interface RulePattern {
 //      몇 건 걸리는지 재라.** 전체의 몇 %를 넘으면 그건 탐지가 아니라 오탐이다(이번 건은 30%였다).
 const KO_TARGET = String.raw`(?:암|암세포|종양)(?:을|를|이|가|은|는|도)?`;
 /** 총체성 부사 — 「모두·전부」는 정상 술기 설명에 흔해 일부러 뺐다(원칙 ①) */
-const KO_TOTAL = String.raw`(?:완전히|싹|깨끗이)`;
+// 2026-09-05: 「완전하게」·「완전 제거」(부사 변형)·「말끔히」 추가 — 2차 독립 리뷰가 남긴 잔여 구멍
+const KO_TOTAL = String.raw`(?:완전(?:히|하게)?|싹|깨끗이|말끔히)`;
 /**
  * 부정·완화 꼬리 제외(원칙 ⑥). 매칭된 동사 **뒤 18자 이내(같은 문장 안)** 에 이런 말이 오면
  * 완치 「주장」이 아니라 설명·면책·경고다 — 오히려 AI가 잘하고 있는 문장이라 막으면 안 된다.
  *   예) "완전히 제거하지 **못하는** 경우도 있습니다" · "사라졌다고 **단정**할 수 없습니다"
  *       "완치를 **보장**한다고 **광고**하는 곳은 **피하**셔야 합니다"(← AI가 환자에게 사기 경고 중)
  */
-const KO_HEDGE = String.raw`(?![^.?!\n]{0,18}(?:않|못|아닙|아니|어렵|없습니다|없어요|없다|는지|단정|장담|보장할|다릅|달라|재발|광고|피하|주의))`;
+//   2026-09-05 실측(실제 AI 문장): "수술의 목표는 암을 완전히 제거하는 것이지만, 병기에 따라 불가능한" ·
+//   "암을 완전히 제거하기 위해 수술 범위를" 이 걸렸다 → 「지만·위해·위한·목표·목적·불가능·경우」 추가, 창 18→24자.
+const KO_HEDGE = String.raw`(?![^.?!\n]{0,24}(?:않|못|아닙|아니|어렵|없습니다|없어요|없다|는지|단정|장담|보장할|다릅|달라|재발|광고|피하|주의|지만|위해|위한|목표|목적|불가능|경우|기보다))`;
+
+// ── 부정·완화 꼬리(언어별) — 위 KO_HEDGE 와 같은 역할. 값을 고칠 땐 두 코퍼스로 다시 재라(설계 원칙 ⑦). ──
+/** en: 앞 40자 안의 부정·회피·인용 동사("not / cannot / no treatment can / beware of / claims to / the goal is to") */
+const EN_NEG = String.raw`(?<!(?:^|[.!?]\s*)(?:no|not|never|nobody|none)\b[^.?!\n]{0,120})(?<!\b(?:not|cannot|can't|never|no|nobody|none|nor|neither|without|won't|don't|doesn't|isn't|aren't|wasn't|unable|impossible|rather|beware|avoid|wary|instead|claim\w*|promis\w*|advertis\w*|goal|aim\w*|try|tries|trying|attempt\w*|hope\w*|intend\w*|designed)\b[^.?!\n]{0,56})`;
+/** en: 뒤 20자 안의 부정·통계어 */
+const EN_HEDGE = String.raw`(?![^.?!\n]{0,20}\b(?:cannot|can't|not|never|no\s+one|nobody|impossible|isn't|aren't|rates?|survival|percentages?)\b)`;
+/** ru: 앞 34자 안의 부정·회피·인용("не / никто / нельзя / остерегайтесь / обещают") — 단어 경계는 비문자로 잰다(\b 는 키릴에서 죽는다) */
+const RU_NEG = String.raw`(?<!(?:^|[.!?]\s*)(?:нет|никто|ни\s+один|ни\s+одна|ни\s+одно)[^\p{L}][^.?!\n]{0,120})(?<!(?:^|[^\p{L}])(?:не|нет|ни|никто|никогда|нельзя|невозможно|без|остерегайтесь|избегайте|вместо|обещ\p{L}*|утвержда\p{L}*|заявля\p{L}*)[^\p{L}][^.?!\n]{0,56})`;
+const RU_HEDGE = String.raw`(?![^.?!\n]{0,20}(?:никто|нельзя|невозможно|(?<!\p{L})не(?!\p{L})|(?<!\p{L})нет(?!\p{L})))`;
+/** kk: 대상·확정어·긍정 활용형 — 부정은 어미(емде-ме-йді)와 «емес» 로 오므로 긍정형만 열거한다 */
+const KZ_TARGET = String.raw`(?:қатерлі\s*)?(?:ісік|обыр|рак)\p{L}*`;
+const KZ_CERT = String.raw`(?:толық(?:тай|ымен)?|кепілдік\p{L}*|100\s*%|міндетті\s*түрде|сөзсіз|мүлдем|біржола)`;
+const KZ_CURE_V = String.raw`(?:емде(?:йді|йміз|ймін|йсіз|йсіңіз|йтін|п\s*(?:шығар|жібер|кет|жаз)(?:ады|амыз|асыз|атын|еді|еміз|есіз|етін|ып|іп))|жаз(?:ады|амыз|асыз|атын|ып)|жазыл(?:ады|амыз|асыз|атын|ып)|айығ(?:ады|амыз|асыз|атын|ып)|сауығ(?:ады|амыз|асыз|атын|ып))(?!\p{L})`;
+/** kk: 뒤 48자 안의 «емес(아니다)/жоқ/алмайды/болмайды/деп(인용)» — «немесе(또는)» 속 емес 는 세지 않는다 */
+const KZ_HEDGE = String.raw`(?![^.?!\n]{0,48}(?:(?<!\p{L})емес|жоқ|алмайды|алмаймыз|болмайды|бермейді|саналмайды|(?<!\p{L})деп(?!\p{L})|мүмкін\s*емес|күмән|сақ\s*бол))`;
+/** zh: 바로 앞 한 글자 부정(不/没/无/非) + 앞 24자 안의 부정·회피·인용·가능성 어구 */
+const ZH_NEG = String.raw`(?<![不没无非]\s*)(?<!(?:不能|无法|不可能|不会|不一定|未必|难以|并不能|并非|并不|没有|不应|无人能|不保证|不能保证|无法保证|不做|不得|不敢|谁也不能|谁都不能|声称|宣称|承诺|保证能|警惕|小心|以为|自称|号称|吹嘘|不要相信|别相信|不是|可能|也许|或许|有时|部分|有些|目的是|目标是)[^。.!?！？\n]{0,24})`;
+const ZH_HEDGE = String.raw`(?![^。.!?！？\n]{0,10}(?:的说法|的承诺|的宣传|的广告|的机构|的方法|的独立手段|是不|并不|不了|吗|？))`;
+/** ja: 따옴표 바로 뒤(인용)는 뺀다 */
+const JA_QUOTE = String.raw`(?<![「『“"])`;
+/** ja: 뒤 18자 안의 부정·완화("ません / とは限らない / わけではない / お約束できない / 」 / 困難 / 可能性 / こともあります") */
+const JA_HEDGE = String.raw`(?![^。.!?！？\n]{0,18}(?:ません|ない|ぬ|とは限|できな|できま|わけでは|わけには|保証はでき|お約束|約束|」|』|”|と断言|と断定|と保証|困難|難し|場合|可能性|こともあ|ことがあ|ものではな|ではなく|ではあり|とされ))`;
 
 const CURE_CLAIM: RulePattern[] = [
   // ko: 완치 보장/가능/확실/시켜 · (완전히) 암을 치료/제거 · 암이 없어짐/사라짐 · 암을 근치합니다 · 반드시 낫 · 100% 완치
@@ -95,8 +120,8 @@ const CURE_CLAIM: RulePattern[] = [
   // 대상 + 완치 활용형("암을 완치해 드립니다"·"암은 완치될 수 있습니다")
   //   ※ `드[리립려]` — "드립니다"는 드리+ㅂ니다 축약이라 글자 '드리'가 없다(원칙 ⑤가 여기서 또 물었다)
   { flag: "cure_claim", re: new RegExp(String.raw`${KO_TARGET}\s*완치(?:해\s*드[리립려]|시켜|시킬|됩니다|될\s*수\s*있)${KO_HEDGE}`) },
-  // 총체성 부사 + 치료/제거 — 부사가 대상 뒤에 오는 어순
-  { flag: "cure_claim", re: new RegExp(String.raw`${KO_TARGET}\s*${KO_TOTAL}\s*(?:치료|제거|없애|사라지)${KO_HEDGE}`) },
+  // 총체성 부사 + 치료/제거 — 부사가 대상 뒤에 오는 어순. 사이 10자까지 삽입구 허용("암을 부작용 없이 완전히 제거", 2026-09-05)
+  { flag: "cure_claim", re: new RegExp(String.raw`${KO_TARGET}[^.?!\n]{0,10}?${KO_TOTAL}\s*(?:치료|제거|없애|사라지)${KO_HEDGE}`) },
   // 같은 주장, 부사가 앞으로 빠진 어순("완전히 암을 제거합니다")
   { flag: "cure_claim", re: new RegExp(String.raw`${KO_TOTAL}\s*${KO_TARGET}\s*(?:치료|제거|없애|사라지)${KO_HEDGE}`) },
   // 없애/없어지/사라지는 부사 없이도 완치 뉘앙스(축약형 포함 — 원칙 ⑤)
@@ -107,34 +132,69 @@ const CURE_CLAIM: RulePattern[] = [
   //   (1차: 근치절제술·근치 수술이 샜다 / 2차: 열거를 늘려도 「암 근치를 목표로」가 계속 걸렸다).
   //   → 열거를 포기하고 **주장 어미**를 요구한다. 이러면 "암을 근치합니다"만 걸리고 임상 용어는 다 통과한다.
   { flag: "cure_claim", re: new RegExp(String.raw`${KO_TARGET}\s*(?:${KO_TOTAL}\s*)?근치(?:합니다|해\s*드[리립려]|시켜|시킵|시킬|됩니다|될\s*수\s*있)${KO_HEDGE}`) },
-  { flag: "cure_claim", re: /(?:반드시|무조건|틀림없이)\s*(?:낫|완치|치료)/ },
+  { flag: "cure_claim", re: new RegExp(String.raw`(?:반드시|무조건|틀림없이)\s*(?:낫|완치|치료)${KO_HEDGE}`) },
   { flag: "cure_claim", re: new RegExp(String.raw`100\s*%\s*(?:완치|치료|회복|제거)${KO_HEDGE}`) },
-  // en: guaranteed/complete cure · cure your cancer · will cure
-  { flag: "cure_claim", re: /\b(?:guarantee\w*|100\s*%|complet\w+|fully)\b[^.?!\n]{0,30}\b(?:cure|heal|eliminat\w+|remov\w+)\b/i },
-  { flag: "cure_claim", re: /\b(?:cure|heal|eliminate)s?\b[^.?!\n]{0,20}\b(?:your\s+)?cancer\b/i },
-  { flag: "cure_claim", re: /\bcancer\b[^.?!\n]{0,20}\bwill\s+be\s+(?:cured|gone|eliminated)\b/i },
-  // ru: гаранти… излеч/выздоров · полностью вылеч · вылеч/излеч … рак · 100%
-  { flag: "cure_claim", re: /гаранти\p{L}*[^.?!\n]{0,30}(?:излеч\p{L}*|выздоров\p{L}*|вылеч\p{L}*)/iu },
-  { flag: "cure_claim", re: /(?:полностью|100\s*%)[^.?!\n]{0,20}(?:вылеч\p{L}*|излеч\p{L}*)/iu },
-  // 🔴 2026-08-03: 이 줄은 **죽어 있었다**(반성문 #167). `вылеч\w+` 의 `\w+` 는 **한 글자 이상 필수**인데
-  //   JS 의 `\w` 는 ASCII 전용이라 키릴 문자 뒤에서 절대 매칭되지 않는다 → 규칙 전체가 동작 안 함.
-  //   그 결과 **"Мы вылечим ваш рак"(우리가 당신의 암을 낫게 해드립니다)** 이 검사기를 그냥 통과했다.
-  //   러시아·CIS 가 주력 시장인데 **단정형 완치 광고가 무방비**였다(«полностью»·«гаранти» 가 낀 것만 걸렸음).
-  //   ※ 같은 함정이 `DRUG_ADVICE` 에는 이미 주석으로 적혀 있었다(반성문 #65 — 비ASCII 뒤 `\b` 금지).
-  //     **한 카테고리에서 배운 걸 나머지 카테고리로 쓸어담지 않아서** 여기 그대로 남아 있었다.
-  //   ※ `\w+` → `\w*` 로 바꾸면 살아나지만 "устранении симптомов рака"(증상 완화) 같은 정상 문장이
-  //     걸린다 → **활용 어미를 명시**한다(실측: 위반 5건 전부 탐지 · 정상 4건 오탐 0).
-  { flag: "cure_claim", re: /(?:вылеч|излеч|устран)(?:им|ит|ат|ят|ите|аем|яем|ает|яет|ивает|иваем|ивают)[^.?!\n]{0,20}рак/i },
-  // kk: толық/кепілдік … емде(у/йді)/жазылу · қатерлі ісікті … жою/емдеу
-  { flag: "cure_claim", re: /(?:толық|кепілдік|100\s*%)[^.?!\n]{0,25}(?:емде\p{L}*|жазыл\p{L}*|айығ\p{L}*)/iu },
-  { flag: "cure_claim", re: /қатерлі\s*ісік[^.?!\n]{0,20}(?:жою|жойыл\p{L}*|толық\s*емде\p{L}*)/iu },
-  // zh: (保证|一定|100%|完全|彻底)(治愈|治好|根治) · 治愈/根治癌症
-  { flag: "cure_claim", re: /(?:保证|一定|100\s*%|完全|彻底)\s*(?:治愈|治好|根治|消除)/ },
-  { flag: "cure_claim", re: /(?:治愈|治好|根治)\s*癌(?:症)?/ },
-  // ja: (必ず|100%|完全に|確実に)(治る|完治|治療) · がんが治る · 完治を保証
-  { flag: "cure_claim", re: /(?:必ず|100\s*%|完全に|確実に)[^.?!\n]{0,8}(?:治[るり]|完治|治療)/ },
-  { flag: "cure_claim", re: /(?:がん|癌)\s*(?:が|を)?\s*(?:完治|治[るり]|消え)/ },
-  { flag: "cure_claim", re: /完治\s*を?\s*保証/ },
+  // ─────────────────────────────────────────────────────────────
+  // ⚠️ 2026-09-05 전면 재작성 — en·ru·kk·zh·ja 는 «부정·완화 꼬리»를 하나도 안 보고 있었다.
+  //   실측: 실제 AI 답변 문장 143개(en 33·ru 27·kz 27·zh 26·ja 30)에 돌리니 en 20·ru 19·kz 33·zh 31·ja 13건이 걸렸는데
+  //   **전부 "완치를 보장하지 않는다"는 거절 문장**이었다 — "cannot completely cure cancer", "не гарантируют полного
+  //   излечения", "толық емдемейді", "无法保证完全治愈癌症", "「必ず治る」とお約束することはできません".
+  //   한국어만 KO_HEDGE 가 있었다. 결과: 외국인 환자에겐 AI 가 «가장 안전하게» 답할수록 «부정확할 수 있다» 딱지가 붙고
+  //   (스트리밍) 통째로 코디 이관 문구로 대체됐다(비스트리밍). 주 시장(ru·kz)에서 정확히 거꾸로 동작한 것.
+  //   설계 — 한국어 원칙 ①~⑦을 그대로 옮긴다:
+  //     · 앞 32~40자 안의 부정어(lookbehind) + 뒤 20~48자 안의 완화 꼬리(lookahead)는 «주장»이 아니다.
+  //     · 「완전히·fully」류 총체성 부사는 암·종양 «대상»이 같은 문장에 있을 때만(상처가 «완전히 낫는다»는 정상).
+  //     · 「보장·100%」류 확정어는 대상 없이도 잡는다.
+  //     · 따옴표 안(「」“”)의 문구는 «남의 주장을 인용해 경고하는 것»이라 뺀다(ja·zh).
+  //     · 카자흐어는 부정이 어미(-ме-/-ма-)와 «емес»로 온다 → 긍정 활용형만 열거하고 «емес/жоқ/деп» 꼬리를 본다.
+  //   측정·시험: 두 코퍼스(우리 번역 문장 9,241개 · 실제 AI 문장 169개)에서 cure_claim 오탐 0 + 위반 예문 전건 탐지.
+  // ─────────────────────────────────────────────────────────────
+  // en
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:guarantee\w*|100\s*%)\b[^.?!\n]{0,30}\b(?:cur(?:e|ed|es|ing)|heal\w*|eliminat\w+|remov\w+|eradicat\w+|remission)\b${EN_HEDGE}`, "i") },
+  // 총체성 부사 + 동사 — 뒤 24자 안에 암·종양 대상이 있어야("wound to fully heal" 은 정상)
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:complet\w+|fully|totally|permanently|entirely)\s+(?:cur(?:e|ed|es|ing)|heal\w*|eliminat\w+|remov\w+|eradicat\w+|destroy\w*)\b(?=[^.?!\n]{0,24}\b(?:cancer|tumou?rs?|disease|carcinoma|malignan\w*|metasta\w*)\b)${EN_HEDGE}`, "i") },
+  // 대상이 앞에 오는 어순: "the tumor is completely removed / cancer will be completely gone"
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:cancer|tumou?rs?|carcinoma)\b[^.?!\n]{0,24}\b(?:will\s+be\s+|is\s+|are\s+|be\s+)?(?:complet\w+|fully|totally|permanently|entirely)\s+(?:cured|healed|eliminated|removed|eradicated|destroyed|gone)\b${EN_HEDGE}`, "i") },
+  // cure/heal/eliminate + cancer(질병) — "cancer cells/care/rate" 같은 정상 복합어는 뺀다
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:cure|heal|eliminate|eradicate)s?\b[^.?!\n]{0,20}\b(?:your\s+|the\s+|all\s+)?cancer\b(?!\s*(?:cells?|patients?|care|treatments?|centers?|hospitals?|types?|stages?|risks?|screening|research|journey|therap\w*|specialists?|surgery|surgeries))${EN_HEDGE}`, "i") },
+  // cancer ... will be (completely) cured/gone
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\bcancer\b[^.?!\n]{0,20}\bwill\s+(?:be\s+)?(?:\w+ly\s+)?(?:cured|gone|eliminated|eradicated|disappear|vanish)\b${EN_HEDGE}`, "i") },
+  // cancer-free 약속 — "cancer-free survival"(통계 용어)은 뺀다
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:will\s+(?:be|become|make\s+you|leave\s+you)|makes?\s+you|leaves?\s+you|guarantee\w*|promis\w*)\b[^.?!\n]{0,20}\bcancer-?\s?free\b(?!\s*(?:survival|rate|interval|period))${EN_HEDGE}`, "i") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\bcancer-?\s?free\b\s+(?:forever|for\s+good|permanently|for\s+life)\b`, "i") },
+  // 100% remission/success rate
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b100\s*%\s*(?:remission|cure\s+rate|success\s+rate|recovery)\b${EN_HEDGE}`, "i") },
+  // destroys/kills all cancer cells (permanently)
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:destroy|kill|eliminat|eradicat|remov|wipe\s+out)\w*\s+(?:all|every|100\s*%\s*of)\s+(?:the\s+|your\s+)?(?:cancer|tumou?r)(?:\s*cells?)?\b${EN_HEDGE}`, "i") },
+  // eradicate/eliminate the tumor completely (부사가 뒤로 가는 어순)
+  { flag: "cure_claim", re: new RegExp(String.raw`${EN_NEG}\b(?:eradicat|eliminat|remov|destroy|cur)\w*\s+(?:the\s+|your\s+|all\s+)?(?:tumou?rs?|cancer)\b[^.?!\n]{0,12}\b(?:completely|entirely|permanently|forever|for\s+good|once\s+and\s+for\s+all)\b${EN_HEDGE}`, "i") },
+  // ru
+  { flag: "cure_claim", re: new RegExp(String.raw`${RU_NEG}гаранти\p{L}*[^.?!\n]{0,30}(?:излеч\p{L}*|выздоров\p{L}*|вылеч\p{L}*)${RU_HEDGE}`, "iu") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${RU_NEG}(?:полностью|100\s*%|навсегда)[^.?!\n]{0,20}(?:вылеч\p{L}*|излеч\p{L}*)${RU_HEDGE}`, "iu") },
+  // 활용 어미를 명시한다 — `\w+` 는 키릴 뒤에서 죽고(반성문 #167), `\w*` 는 "устранении симптомов рака"(정상)를 잡는다.
+  { flag: "cure_claim", re: new RegExp(String.raw`${RU_NEG}(?:вылеч|излеч|устран)(?:им|ит|ат|ят|ите|аем|яем|ает|яет|ивает|иваем|ивают)[^.?!\n]{0,20}рак${RU_HEDGE}`, "iu") },
+  // избавим от рака · рак исчезнет/уйдёт (навсегда)
+  { flag: "cure_claim", re: new RegExp(String.raw`${RU_NEG}избав\p{L}*[^.?!\n]{0,12}от\s+рака${RU_HEDGE}`, "iu") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${RU_NEG}рак\p{L}*[^.?!\n]{0,12}(?:исчезн\p{L}*|уйд[её]т|пройд[её]т)${RU_HEDGE}`, "iu") },
+  // kk — 긍정 활용형만(емдемейді·жоймайды 같은 부정 어미는 형태에서 빠진다) + «емес/жоқ/деп» 꼬리
+  { flag: "cure_claim", re: new RegExp(String.raw`${KZ_TARGET}[^.?!\n]{0,24}${KZ_CERT}\s*${KZ_CURE_V}${KZ_HEDGE}`, "iu") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${KZ_CERT}[^.?!\n]{0,24}${KZ_TARGET}[^.?!\n]{0,16}${KZ_CURE_V}${KZ_HEDGE}`, "iu") },
+  // ісікті жояды — «없앤다/파괴한다»는 부사 없이도 주장이다(жоя-·жой- 활용형, 2026-09-05 구멍)
+  { flag: "cure_claim", re: new RegExp(String.raw`${KZ_TARGET}[^.?!\n]{0,20}(?:${KZ_CERT}\s*)?жо(?:яды|ямыз|ясыз|ямын|ятын|йды|йылады|йылды|йып)(?!\p{L})${KZ_HEDGE}`, "iu") },
+  // кепілдік/100% + 낫다 (명사형 포함: "толық емдеуге кепілдік береміз")
+  { flag: "cure_claim", re: new RegExp(String.raw`(?:кепілдік\p{L}*|100\s*%)[^.?!\n]{0,25}(?:емде|жазыл|айығ|сауығ)\p{L}*${KZ_HEDGE}`, "iu") },
+  { flag: "cure_claim", re: new RegExp(String.raw`(?:емде|жазыл|айығ|сауығ)\p{L}*[^.?!\n]{0,12}кепілдік\s*бер(?:еміз|емін|еді|іледі)(?!\p{L})${KZ_HEDGE}`, "iu") },
+  // zh — 확정어 + (조동사) + 치유 동사 · 치유 동사 + 癌症 · 彻底消灭癌细胞 · 肿瘤会(完全)消失
+  { flag: "cure_claim", re: new RegExp(String.raw`${ZH_NEG}(?:保证|一定|100\s*%|完全|彻底|肯定|必定|绝对)\s*(?:能|能够|可以|会|将)?\s*(?:治愈|治好|根治|消除|消灭|清除|痊愈)${ZH_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${ZH_NEG}(?:治愈|治好|根治|痊愈)\s*(?:您的|你的|所有|各种)?\s*癌(?:症)?${ZH_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${ZH_NEG}(?:(?:彻底|完全)\s*(?:消灭|清除|杀死|杀灭|根除)\s*(?:所有|全部)?\s*(?:癌细胞|肿瘤|癌症)|(?:消灭|清除|杀死|杀灭|根除)\s*(?:所有|全部|一切)\s*(?:的\s*)?(?:癌细胞|肿瘤))${ZH_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${ZH_NEG}(?:肿瘤|癌细胞|癌症)\s*(?:会|将|能|可以|一定|必定|都)?\s*(?:完全|彻底|全部)\s*(?:消失|消除|清除)${ZH_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${ZH_NEG}(?:肿瘤|癌症)\s*(?:会|将|就会)\s*消失${ZH_HEDGE}`, "u") },
+  // ja — 확정 부사(必ず·確実に·絶対に·100%)는 대상 없이도, 「完全に」는 がん·腫瘍 대상이 있을 때만. 따옴표 안 인용은 뺀다.
+  { flag: "cure_claim", re: new RegExp(String.raw`${JA_QUOTE}(?:必ず|確実に|絶対に|100\s*%)[^。.!?！？\n]{0,12}(?:治[るりし]|完治|良くな|よくな|消え|なくな)${JA_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`(?:がん|癌|腫瘍)[^。.!?！？\n]{0,16}${JA_QUOTE}(?:完全に|すべて|全て|根こそぎ|確実に|必ず|100\s*%)\s*(?:治[るりし]|完治|治癒|消え|なくな|取り除|除去|消し去|消滅|根絶)${JA_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${JA_QUOTE}(?:腫瘍|がん|癌)\s*(?:が|は)\s*(?:必ず|完全に|すべて)?\s*(?:消え|なくなり)(?:ます|る)${JA_HEDGE}`, "u") },
+  { flag: "cure_claim", re: new RegExp(String.raw`${JA_QUOTE}完治\s*を?\s*保証${JA_HEDGE}`, "u") },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -270,7 +330,8 @@ export function redlineCorrectionNotice(lang: string): string {
  * @returns flags(중복제거), critical(위반 존재), hits(매칭 구간)
  */
 export function scanRedlines(text: string): RedlineScanResult {
-  const src = (text || "").normalize("NFC");
+  // 마크다운 강조(**·__·`)는 지우고 본다 — "**암**을 완전히 제거" 처럼 굵게 표기가 명사와 조사 사이에 끼면 놓쳤다(2026-09-05).
+  const src = (text || "").normalize("NFC").replace(/\*\*|__|`/g, "");
   const hits: RedlineHit[] = [];
   const criticalFlags = new Set<string>();
   const softFlags = new Set<string>();
