@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeLocaleParam, pickGuestLocale, resolveGuestLocale, withLang } from "./guestLinkLang";
+import { acceptLanguageCandidates, normalizeLocaleParam, pickGuestLocale, resolveGuestLocale, withLang } from "./guestLinkLang";
 
 describe("normalizeLocaleParam", () => {
   it("6개 언어만, kk→kz, 지역 꼬리·대소문자 무시", () => {
@@ -52,5 +52,27 @@ describe("resolveGuestLocale — 어디서 왔는지도 알려준다(쿠키 심�
     expect(resolveGuestLocale({ langParam: "ru" }).source).toBe("param");
     expect(resolveGuestLocale({ acceptLanguage: "ru" }).source).toBe("header");
     expect(resolveGuestLocale({}).source).toBe("default");
+  });
+});
+
+describe("Accept-Language — 첫 항목만 보지 않는다 (2026-09-06)", () => {
+  it("⭐ 우크라이나어 다음 러시아어면 러시아어 — 영어로 떨어지던 것", () => {
+    expect(pickGuestLocale({ acceptLanguage: "uk-UA,uk;q=0.9,ru;q=0.5" })).toBe("ru");
+  });
+  it("우즈벡·키르기스 브라우저: 둘째가 카자흐어면 카자흐어, 러시아어면 러시아어", () => {
+    expect(pickGuestLocale({ acceptLanguage: "uz,kk;q=0.8,ru;q=0.6" })).toBe("kz");
+    expect(pickGuestLocale({ acceptLanguage: "ky-KG,ru;q=0.8" })).toBe("ru");
+  });
+  it("q 값이 적힌 순서보다 앞선다", () => {
+    expect(pickGuestLocale({ acceptLanguage: "ru;q=0.4,ja;q=0.9" })).toBe("ja");
+    expect(acceptLanguageCandidates("ru;q=0.4,ja;q=0.9,en")).toEqual(["en", "ja", "ru"]);
+  });
+  it("q=0 은 거부라 건너뛴다 · 빈 값은 en", () => {
+    expect(pickGuestLocale({ acceptLanguage: "ru;q=0,ja;q=0.5" })).toBe("ja");
+    expect(pickGuestLocale({ acceptLanguage: "" })).toBe("en");
+    expect(acceptLanguageCandidates(null)).toEqual([]);
+  });
+  it("우리가 없는 언어만 있으면 en (독일어 브라우저)", () => {
+    expect(pickGuestLocale({ acceptLanguage: "de-DE,de;q=0.9,fr;q=0.8" })).toBe("en");
   });
 });

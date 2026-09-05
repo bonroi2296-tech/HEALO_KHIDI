@@ -10,6 +10,11 @@
 > 2026-08-03 PO: *«프로벨르라고 해서 다 빼라는게 아니고, GA4 설정 같은 경우는 나중에 우리 서비스에 GA4 붙일 때 참고해야하니깐 그걸 정확하게 인지하라는거야»*
 > ↳ **왜 2가 아니라 4인가(2026-07-21 상향)**: 병렬 세션이 하루 3개씩 핸드오프를 쓰면서 **당일 작업이 반나절 만에 창고로 밀려나** 다음 세션 시작 훅에 안 뜨는 일이 실제로 났다(머지 6건짜리 세션이 통째로 증발할 뻔함). 병렬 세션 수보다 넉넉해야 "오늘 것"이 남는다.
 
+> **📌 중간 저장 (2026-09-06 새벽 후속 3 · #1648 에 2건 더: 브라우저 언어 «둘째 항목» · 사전 정보 입력 오류문)**
+> · **첫 방문 언어 감지가 브라우저 언어 목록의 «첫 항목»만 봤다** — `uk-UA,ru;q=0.5`(우크라이나어 다음 러시아어, CIS 에 흔함) 가 영어로 떨어졌다(로컬 실측). `guestLinkLang.ts` 가 q 순서로 전부 훑게 → uk→ru · uz,kk→kz · ky,ru→ru 실측. 게스트 링크(/survey 등)도 같은 함수라 같이 고쳐졌다. 시험 +6.
+> · `/inquiry/intake` 의 환자용 오류문 2개(「Missing inquiryId or token.」·「Failed to save.」) 영어 고정 → 6개 언어. 환자용 화면 전수에서 영어 고정 toast·alert 는 이 2개뿐이었다.
+> · **확인만 한 것(전부 조용)**: Vercel 24시간 오류 = %2f 탐침·MINIMAL(배포 전) 뿐 · Supabase 보안 자문 경고 1(vector public, 기존) · 성능 자문 WARN 12(중복 인덱스 2 = DROP 이라 PO 확인, `KNOWN_ISSUES` 에 적음) · 바깥 링크 9개 중 8개 200(mofa 는 이 상자에서 응답 없음) · 속성 글자(placeholder 등) ru·kz 0 · 채팅 진입 0 · 환자 이메일 5종 6개 언어.
+>
 > **📌 중간 저장 (2026-09-06 새벽 후속 2 · 같은 작업본 #1648 에 2건 더 + 재발 검사 2개)**
 > · **일본어 화면 5쪽이 폰 폭(390px)에서 가로로 넘쳤다**(/ja/hospitals/immune · telemedicine · care-journey · insurance · partners, 로컬 iPhone 12 실측). 글자 탓이 아니라 전역 CSS — `src/index.css` 의 `body { word-break: keep-all }` 이 «전 언어»에 걸려 띄어쓰기 없는 일·중 문단이 못 끊겼다(`InsuranceClient` 는 2026-07 에 이미 「zh/ja 는 넘친다」고 적고 ko 에만 걸었는데, body 규칙이 그 위를 덮었다). → `html:lang(ko) body` 에만 keep-all. 비밀번호·아이디 찾기 화면의 요소별 `break-keep` 10개도 걷음(ko 는 body 가 이미 덮는다). 재스캔 ja·zh·ko 57쪽 넘침 0. 재발 검사 `e2e/mobile-no-overflow.spec.ts`(야간, ja·zh·ru 15쪽).
 > · **404 가 러·카·중·일 방문자에게 영어로**: 제목 「Page not found」 고정 + 쿠키 없는 첫 방문(공유된 옛 링크)은 본문까지 영어 — proxy 가 `/ru/없는-주소` 에 x-locale 을 안 붙였다. → proxy `hasLocale` 분기(주소 언어로 404, 쿠키는 안 심음) + `app/not-found.jsx` generateMetadata(언어별 제목·noindex). 6개 언어 curl 실측 제 언어. 재발 검사 `e2e/not-found-locale.spec.ts`(@smoke, 쿠키 없이 ru·kz·ja).

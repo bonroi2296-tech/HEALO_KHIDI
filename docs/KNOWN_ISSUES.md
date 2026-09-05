@@ -1,5 +1,14 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟠 2026-09-06 자율 품질 세션(#1648)에서 «남긴 것» — PO 판단 1건 + 코디 1건 + DB 위생 2건
+
+> 고친 것은 신청서 [#1648](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1648) 본문 ①~⑩. 여기는 «일부러 안 건드린 것»만.
+
+- **🟠 PO 판단 — 러·카 화면에서 면력한방병원을 뭐라 부를지.** 지금 한 사이트 안에 4가지가 섞여 있다: «Иммунная Клиника»(홈·치료여정·partnerHospitals) / «Immune Hospital»(병원 상세·암종 상세) / «Myeonryeok клиникасы»(비용 계산기 kz) / DB 병원 표 ru 이름은 «Клиника корейской медицины Мённёк»·«Мённёк Клиника…»·«Иммунная Клиника — Сондон» 셋. 환자는 이걸 서로 다른 병원으로 읽는다. 용어집(`src/lib/i18n/glossary.js` `term.immuneHospital`)이 «PO 확정 전 경고만»으로 잡아 두고 있어 세션이 못 정한다 — 정해지면 `check:i18n-quality` 의 B(kz 자리 러시아어) 6건·D 70건이 한 번에 닫힌다.
+- **🟡 코디 검수 — 2026-09-06 새로 넣은 ru·kz·zh·ja 번역**(면력한방병원 소개 103줄 · 치료법 설명 25칸 · 한의학 FAQ 5문답 · 가격 단위 · 404 · 사전 정보 입력 오류문). AI 번역이라 원어민 검수 전엔 「제안」(`docs/rules/I18N_QUALITY.md` §3).
+- **🟡 DB 위생(성능 자문, 2026-09-06 Supabase advisors 실측)** — 실서비스 피해 0, 손대려면 DROP 이라 PO 확인 규칙에 걸려 안 함: ①`chat_messages` 의 같은 인덱스 2개(`idx_chat_messages_thread_created` = `idx_chat_messages_thread_id_created_at`) ②`consultation_sessions` 의 같은 인덱스 2개(`idx_consultation_scheduled` = `idx_consultation_sessions_scheduled_at`). 하나씩 지우면 쓰기마다 인덱스 갱신 1번씩 준다. 그 외 자문은 정보 등급(안 쓰는 인덱스 75·RLS 정책 없는 service_role 전용 표 24)이고 보안 자문은 경고 1건(`vector` 확장이 public 스키마 — 구조적, 이전과 동일).
+- **🔎 확인 못 함** — `/visa` 의 바깥 링크 `overseas.mofa.go.kr/ru-ko/index.do` 가 이 상자(클라우드 프록시)에서는 응답 없음(000). 한국 정부 사이트가 해외 IP 를 막는 부류일 가능성이 크다 — PO 로컬(한국 IP)에서 한 번 열어보면 끝. 나머지 바깥 링크 8개는 200.
+
 ## ✅ [닫힘] 원격 작업본 전수 감사 — 45개 전부 판정했다 (2026-09-05)
 
 PO 지시(**「안 본 게 왜 있어 다 봐」**)로 전수 판정했다. 「12개 봤다」가 전부가 아니었다.
