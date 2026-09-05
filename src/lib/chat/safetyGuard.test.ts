@@ -90,6 +90,11 @@ const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
   { desc: "ko 완전 제거(부사 변형)", text: "암 완전 제거가 가능합니다.", flag: "cure_claim" },
   { desc: "ko 삽입구", text: "암을 부작용 없이 완전히 제거합니다.", flag: "cure_claim" },
   { desc: "ko 굵게 표기가 명사와 조사 사이", text: "**암**을 완전히 제거해 드립니다.", flag: "cure_claim" },
+  // 독립 리뷰(2026-09-05): `100\s*%` 뒤의 \b 가 공백 앞에서 절대 안 맞아 «100% cure» 가 새고 있었다
+  { desc: "en 100% cure(% 뒤 공백)", text: "This treatment offers a 100% cure.", flag: "cure_claim" },
+  { desc: "en will be completely cured(약속형)", text: "With our program your cancer will be completely cured.", flag: "cure_claim" },
+  { desc: "en cures this type of cancer", text: "Our therapy cures this type of cancer.", flag: "cure_claim" },
+  { desc: "zh 彻底消除肿瘤", text: "本疗法可以彻底消除肿瘤。", flag: "cure_claim" },
 ];
 
 // 정상(critical=false 기대) — 오탐 방지
@@ -174,6 +179,17 @@ const SAFE: { desc: string; text: string }[] = [
   { desc: "ko 완전히 제거하는 것이지만 불가능", text: "수술의 목표는 암을 완전히 제거하는 것이지만, 병기에 따라 불가능한 경우도 있습니다." },
   { desc: "ko 완전히 제거하기 위해", text: "암을 완전히 제거하기 위해 수술 범위를 넓히기도 합니다." },
   { desc: "ko 굵게 + 재발", text: "**암**을 완전히 제거했다고 해도 재발할 수 있습니다." },
+  // ── 독립 리뷰(2026-09-05)가 뚫은 «임상 설명» 문장 — 조건·과거 보고·명사구·가능성은 주장이 아니다 ──
+  { desc: "en if … completely removed(조건)", text: "If the tumor is completely removed during surgery, the prognosis is generally better." },
+  { desc: "en was completely removed(과거 보고)", text: "The tumor was completely removed and the margins were clear." },
+  { desc: "en cure rates for cancer(명사구)", text: "Cure rates for cancer vary by stage." },
+  { desc: "en a cure for cancer(명사구)", text: "Research into a cure for cancer continues worldwide." },
+  { desc: "ru если … полностью удалена(조건)", text: "Если опухоль полностью удалена, шансы на излечение рака выше." },
+  { desc: "ja 取り除くことを目指します(목표)", text: "手術ではがんを完全に取り除くことを目指します。" },
+  { desc: "zh 副作用完全消除(대상이 암 아님)", text: "副作用完全消除后可以出院。" },
+  { desc: "zh 治愈癌症的可能性(가능성)", text: "早期发现时治愈癌症的可能性较高。" },
+  { desc: "ko 제거하면 예후(조건)", text: "종양을 완전히 제거하면 예후가 좋아집니다." },
+  { desc: "ko 제거되면 보조 항암(조건)", text: "종양이 완전히 제거되면 보조 항암치료를 고려합니다." },
 ];
 
 describe("safetyGuard 규칙 기반 0층 — 위반 탐지(6개 언어)", () => {
