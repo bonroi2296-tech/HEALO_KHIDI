@@ -1309,6 +1309,7 @@ export async function generateChatReply(
       model: getModelName(),
       usage: (result as any)?.usage,
       providerMetadata: (result as any)?.providerMetadata,
+      response: (result as any)?.response,
       meta: { mode: "generate", structured: injectedPatternIds.length > 0 },
     });
 

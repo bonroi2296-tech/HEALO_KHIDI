@@ -18,6 +18,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { estimateCostUsd, normalizeUsage, MODEL_PRICING } from "@/lib/ai/usagePricing";
+import { readServedModel } from "@/lib/ai/servedModel";
 
 // 순수 단가·정규화 유틸은 usagePricing.ts 로 분리(server-only 없이 단위테스트). 재노출.
 export { estimateCostUsd, normalizeUsage, priceForModel, MODEL_PRICING } from "@/lib/ai/usagePricing";
@@ -57,6 +58,11 @@ export interface LogAiUsageArgs {
    * 여기(`google.cachedContentTokenCount`)로만 오는 SDK 버전이 있어 둘 다 본다.
    */
   providerMetadata?: any;
+  /**
+   * AI SDK result.response (생성 경로). 본문의 modelVersion 을 meta.model_version 으로 남긴다 —
+   * 별칭(gemini-flash-latest)이 «실제로 어느 세대를 불렀나»를 실DB 로 재기 위함(2026-09-05).
+   */
+  response?: any;
   meta?: Record<string, unknown>;
 }
 
@@ -94,10 +100,13 @@ export async function logAiUsage(args: LogAiUsageArgs): Promise<void> {
     // 왜 기록하나: 제미나이 자동 캐시는 «앞부분이 글자 하나까지 같을 때만» 걸리는데,
     // 걸렸는지 아닌지를 우리가 지금까지 아예 안 재고 있었다 → 「빨라졌다/싸졌다」를
     // 추측으로 말하게 된다. 이 숫자가 있어야 실측으로 답할 수 있다(2026-08-11).
+    const extra: Record<string, unknown> = {};
+    if (cachedTokens != null) extra.cached_tokens = cachedTokens;
+    // 실제 응답한 모델판(별칭 세대 교체 감시). 없으면 칸을 안 만든다 — 요청 별칭으로 채우면 감시가 무의미하다.
+    const servedModel = readServedModel(args.response);
+    if (servedModel) extra.model_version = servedModel;
     const meta =
-      cachedTokens != null
-        ? { ...(args.meta ?? {}), cached_tokens: cachedTokens }
-        : args.meta ?? null;
+      args.meta || Object.keys(extra).length ? { ...(args.meta ?? {}), ...extra } : null;
 
     await (supabaseAdmin as any).from("ai_usage_events").insert({
       surface: args.surface,

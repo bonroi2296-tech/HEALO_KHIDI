@@ -131,6 +131,7 @@ function recordSttUsage(modelId: string, res: any, meta: Record<string, unknown>
     model: modelId,
     usage: res?.usage,
     providerMetadata: res?.providerMetadata,
+    response: res?.response,
     meta: { ...meta, finish_reason: res?.finishReason ?? null },
   });
   const out = Number(res?.usage?.outputTokens ?? 0);

@@ -217,6 +217,7 @@ ${text}`,
         model: process.env.TRANSLATE_MODEL || "gemini-flash-latest",
         usage: res?.usage,
         providerMetadata: res?.providerMetadata,
+        response: res?.response,
         meta: {
           consultation_id: consultationId ? String(consultationId) : null,
           source_chars: text.length,
