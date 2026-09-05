@@ -42,12 +42,15 @@ export const MODEL_PRICING: Record<string, ModelPrice> = {
   "gemini-flash": { inputPer1M: FLASH_IN, outputPer1M: FLASH_OUT },
   // 임베딩 — 매우 저렴(출력 토큰 없음)
   "gemini-embedding": { inputPer1M: 0.15, outputPer1M: 0 },
+  // 받아쓰기 전용(Gemini 3.5 Transcribe, 실험 2026-09-05) — 공식 가격표: 입력 $2.00(오디오)/출력 $12.00 per 1M
+  "gemini-transcribe": { inputPer1M: 2.0, outputPer1M: 12.0 },
 };
 
 /** 모델명(별칭 포함) → 단가. 임베딩이면 임베딩 단가, 그 외는 flash 로 보수적 추정. */
 export function priceForModel(model: string): ModelPrice {
   const m = (model || "").toLowerCase();
   if (m.includes("embedding")) return MODEL_PRICING["gemini-embedding"];
+  if (m.includes("transcribe")) return MODEL_PRICING["gemini-transcribe"];
   return MODEL_PRICING["gemini-flash"];
 }
 

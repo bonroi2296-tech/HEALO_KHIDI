@@ -29,6 +29,11 @@ import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { transcriptsAgree } from "@/lib/consultation/transcriptAgreement";
+import {
+  bcp47For,
+  transcribeExperimentModel,
+  transcribeViaInteractions,
+} from "@/lib/consultation/transcribeInteractions";
 
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024;
 
@@ -239,6 +244,98 @@ export async function POST(
 
     let detectedLang = "";
 
+    // ── 실험 경로(2026-09-05, PO 「지금 실험 착수」): 받아쓰기 «전용» 모델 Gemini 3.5 Transcribe ──
+    // env STT_TRANSCRIBE_MODEL 이 비어 있으면(기본) 이 블록은 통째로 건너뛴다 = 실서비스 동작 0 변화.
+    // 켜면: 받아쓰기는 Interactions API(별도 엔드포인트, 생각 토큰 없음·kk-KZ 명시) → 번역만 기존 Flash.
+    // 호출 실패·응답 모양 불일치면 아래 기존 Flash 경로로 «그대로» 떨어진다 — 실험이 자막을 죽이면 안 된다.
+    // 대조 검사(2회 호출 합의)는 이 경로엔 안 건다: 전용 모델의 지어냄 성향은 미측정이라 «첫 실회의에서 잰다».
+    // 켜는 법·재는 법·한계: docs/KNOWN_ISSUES.md 「2026-09-05 트렌드 스캔 발견」 ②.
+    let experimentHandled = false;
+    const transcribeModel = transcribeExperimentModel();
+    if (transcribeModel) {
+      try {
+        const r = await transcribeViaInteractions({
+          model: transcribeModel,
+          audio: buf,
+          mimeType: mediaType,
+          // 후보 언어 힌트 = 설정 언어 + 도착 언어(같은 마이크를 두 언어가 쓸 수 있다). 모르는 코드는 빠진다.
+          languageCodes: [bcp47For(lang), targetLang ? bcp47For(targetLang) : ""],
+        });
+        void logAiUsage({
+          surface: "consult_stt",
+          model: transcribeModel,
+          promptTokens: r.usage?.promptTokens ?? null,
+          completionTokens: r.usage?.completionTokens ?? null,
+          meta: {
+            kind: "transcribe_interactions",
+            engine: "transcribe",
+            partial: isPartial,
+            lang,
+            target: targetLang || null,
+            audio_bytes: buf.byteLength,
+            elapsed_ms: r.elapsedMs,
+            status: r.status,
+            text_found: r.found,
+          },
+        });
+        if (!r.found) {
+          // 문서 예시와 다른 응답 모양 — 조용히 빈 자막을 내지 말고 기존 경로로. 첫 실호출에서 모양을 잡는 용도.
+          console.warn(
+            `[consultation/stt] transcribe 응답에 text 조각 없음 (status=${r.status}, keys=${r.topKeys.join(",")}) → Flash 경로로 폴백`
+          );
+        } else {
+          transcript = r.text;
+          if (transcript && targetLang && targetLang !== lang) {
+            // 번역만 Flash — 받아쓴 «글»을 넘기므로 오디오 경로보다 싸고, 생각 토큰이 잘라먹을 오디오 해석이 없다.
+            const targetName = LANG_NAMES[targetLang];
+            const out = await genWithFallback(
+              "gemini-flash-latest",
+              {
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text",
+                        text: `${contextBlock}The following is a verbatim transcript from a medical teleconsultation (Korea–CIS oncology care). The speaker most likely speaks ${langName}, but DETECT the language actually used (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
+If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate it into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles). Do NOT add, omit, or complete anything.
+Transcript:
+${transcript}
+Respond with ONLY this JSON on one line, no markdown, no code fences:
+{"x":"<translation>","l":"<detected language code>"}`,
+                      },
+                    ],
+                  },
+                ],
+                temperature: 0,
+              },
+              { partial: isPartial, kind: "translate_after_transcribe", lang, target: targetLang }
+            );
+            const cleaned = (out || "").replace(/```(?:json)?/g, "").trim();
+            const m = cleaned.match(/\{[\s\S]*\}/);
+            if (m) {
+              try {
+                const j = JSON.parse(m[0]);
+                const l = String(j.l || "").trim().toLowerCase();
+                translated = String(j.x || "").trim();
+                detectedLang = LANG_NAMES[l] ? l : "";
+              } catch {
+                translated = "";
+              }
+            }
+            // 번역 파싱이 실패해도 원문은 내보낸다 — 실험 경로에서 «덜 보이는 것»이 «안 보이는 것»보다 낫다.
+          } else if (targetLang === lang) {
+            translated = transcript;
+          }
+          experimentHandled = true;
+        }
+      } catch (e: any) {
+        console.warn(
+          `[consultation/stt] transcribe 실험 경로 실패 → Flash 경로로 폴백: ${String(e?.message || e).slice(0, 160)}`
+        );
+      }
+    }
+
     // ── 지어냄 거르개: 확정 자막은 «두 번 물어 답이 닮았을 때만» 채택한다 ──
     //
     // 왜: 모델은 말이 없는 조각을 받으면 침묵하지 않고 그럴듯한 진료 문장을 만든다
@@ -286,6 +383,8 @@ export async function POST(
       return false;
     };
 
+    // 실험 경로가 처리했으면 기존 Flash 경로는 건너뛴다(들여쓰기는 diff 를 작게 두려고 안 바꿨다).
+    if (!experimentHandled) {
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
       // 언어 자동 감지: 화자가 설정 언어(lang)와 다른 언어를 말해도(같은 방 마이크에
@@ -367,6 +466,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
       // 같은 언어면 자막 파이프라인이 그대로 표시할 수 있게 번역=원문
       if (targetLang === lang) translated = transcript;
     }
+    } // !experimentHandled
 
     // 2차 필터: 모델이 프롬프트 지시를 어기고 추임새만 전사해 와도 자막으로 안 내보냄
     if (transcript && isFillerOnly(transcript)) {
@@ -406,7 +506,14 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
       );
     }
 
-    return Response.json({ ok: true, transcript, translated, detectedLang: detectedLang || lang });
+    return Response.json({
+      ok: true,
+      transcript,
+      translated,
+      detectedLang: detectedLang || lang,
+      // 실험 측정용 — 어느 경로가 답했나(클라이언트는 몰라도 된다).
+      engine: experimentHandled ? "transcribe" : "flash",
+    });
   } catch (err: any) {
     console.error("[consultation/stt] error:", err?.message?.slice(0, 200));
     return Response.json({ ok: false, error: "stt_failed" }, { status: 500 });

@@ -6,6 +6,11 @@ describe("priceForModel", () => {
     const p = priceForModel("gemini-embedding-001");
     expect(p.outputPer1M).toBe(0);
   });
+  it("받아쓰기 전용(transcribe) 모델은 전용 단가", () => {
+    const p = priceForModel("gemini-3.5-transcribe");
+    expect(p.inputPer1M).toBe(2.0);
+    expect(p.outputPer1M).toBe(12.0);
+  });
   it("flash 별칭/미상 모델은 flash 단가로 보수적 추정", () => {
     const flash = priceForModel("gemini-flash-latest");
     const unknown = priceForModel("some-future-model");
