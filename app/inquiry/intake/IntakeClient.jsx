@@ -99,7 +99,8 @@ export function InquiryIntakePage({ setView }) {
 
   useEffect(() => {
     if (!inquiryId || !token) {
-      toast.error('Missing inquiryId or token.');
+      // 환자용 화면 — 영어 고정 문구였다(2026-09-06). 깨진·만료된 링크로 온 사람이 보는 첫 문장이다.
+      toast.error(t('intake.linkInvalid', langCode));
       router.push('/inquiry');
     }
   }, [inquiryId, token, router, toast]);
@@ -158,7 +159,9 @@ export function InquiryIntakePage({ setView }) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(json?.error || 'Failed to save.');
+        // 서버 오류 코드(internal_error 등)를 환자에게 그대로 보이지 않는다 — 콘솔에만.
+        if (json?.error) console.warn('[intake] save failed:', json.error);
+        toast.error(t('intake.saveFailed', langCode));
         setSubmitting(false);
         return;
       }
@@ -175,7 +178,7 @@ export function InquiryIntakePage({ setView }) {
       setDone(true);
     } catch (e) {
       console.error(e);
-      toast.error('Failed to save.');
+      toast.error(t('intake.saveFailed', langCode));
     } finally {
       setSubmitting(false);
     }
