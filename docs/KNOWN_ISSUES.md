@@ -2017,6 +2017,49 @@ app/api/survey/[token]/route.ts:48
 - **조치 기준**: 또 무고한 PR을 막으면(2회째) 그때 원인 수리(대기 조건 보강·테스트 데이터 사전 시딩 등). 그 전까진 빈 커밋 재실행으로 통과 확인 후 진행.
 - 참고: 스모크 실패 알림 이메일은 Resend 403(도메인 미검증)으로 여전히 미발송 — 기존 LAUNCH_GATES 관문(PO 콘솔 작업)과 동일 건.
 
+## 🟢 2026-09-05 트렌드 스캔 발견: 보석 2건(①적용함 ②나중에) + 기록만 5건 + 뺀 것 10건
+
+> `/trend` 주간 스캔(창: 2026-08-22~09-05). **코드 변경은 ① 판 올리기(next·sharp)뿐, 나머지는 기록.** 후보 17건을 저장소 전수 검색·실DB·실서비스로 대조해 **보석 2건**만 남겼다.
+> 나머지 15건 = 기록만 한 5건(③ 3.8 Flash · ⑤ 시장 2건·규제 공지 2건) + 뺀 10건(④, «왜 뺐나» 한 줄씩 — 다음 스캔이 같은 걸 또 캐지 않게).
+
+- **① ✅ Next.js 16.3.4(2026-08-31): 8/26 에 «꺼 둔» AVIF 최적화가 «안전하게» 돌아온다 — 적용함(2026-09-05, PO 「올려라」 결정, 신청서 [#1639](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1639))**
+  8/26 항목(아래)에서 *"패치가 AVIF 최적화 자체를 끈다 — 상류가 고쳐지면 되살아난다"* 라고 적었다. 그 «상류 수정»이 이제 사슬로 이어졌다(전부 실측):
+  **libheif 1.23.2**([GHSA-g89c-p67h-r497](https://github.com/strukturag/libheif/security/advisories/GHSA-g89c-p67h-r497), 8/25 수정) → **`@img/sharp-libvips` 1.3.3**(8/26 공개, [heif 1.23.2 탑재](https://github.com/lovell/sharp-libvips/releases/tag/v1.3.3)) → **sharp 0.35.4**(8/26, libvips 1.3.3 요구) → **next 16.3.4**([릴리스](https://github.com/vercel/next.js/releases/tag/v16.3.4) *"re-enabling AVIF Image Optimization"*, sharp ^0.35.4 요구).
+  - **우리 지금**: next **16.3.3** · sharp **0.35.3** · libvips **1.3.2**(= libheif 1.23.1, 결함 있음 — 단 16.3.3 이 AVIF 를 꺼 놔서 `/_next/image` 로는 안 닿는다. 스크립트 3곳의 sharp 직접 사용은 8/26 판정 그대로 «저장소 안 파일만·HEIF 없음» = 위험 없음).
+  - **올리면**: AVIF 가 돌아온다(이미지 용량 ↓) + 결함 있는 libheif 사본 자체가 사라진다. **보안 릴리스는 아니다**(16.3.4 릴리스 노트에 CVE 없음) → 8/26 처럼 «그 자리에서» 안 올리고 PO 결정으로 넘긴다.
+  - **작업량**: 반나절 미만 — `next` 판 올리기 + `npx next build --webpack` + 실서비스에서 `Content-Type: image/avif` 가 다시 나오는지 curl 1회. `next.config.js:274` 의 `formats: ['image/avif', …]` 는 그대로 있다(지우지 말라는 8/26 지시 준수 확인).
+  - **리스크**: 낮음(패치 릴리스 4건 전부 버그 수정). 되돌리기 = 판 내리기 한 줄.
+  - ✅ **적용 실측(2026-09-05, 이 클라우드 상자)**: `npx next build --webpack` **통과**(231초, 컴파일 102초) → 로컬 `next start` 에 `Accept: image/avif` 로 `/_next/image` 요청 → **`Content-Type: image/avif`·611바이트·파일 서명 `ftypavif`** 확인(webp 요청엔 webp). 설치본 대조: next 16.3.4 · sharp 0.35.4 · libvips 1.3.3. **실서비스 확인은 다음 오후 3시 창구 뒤**에 같은 curl 로(아직 안 나감).
+  - 🔑 **함정 — next 만 올리면 구멍이 «다시 열린다»**: `package.json` 의 **`overrides.sharp` 가 `^0.35.0`** 이라 next 16.3.4 가 요구하는 `^0.35.4` 를 **0.35.3 으로 눌렀다**(잠금파일만 갱신해 보니 next 16.3.4 + sharp 0.35.3 + libvips 1.3.2 = **AVIF 는 켜지고 libheif 는 결함판**). 그래서 **직접 의존·override 둘 다 `^0.35.4`** 로 올렸다(둘이 다르면 npm 이 `EOVERRIDE` 로 거부한다). 다음에 next 를 올릴 때도 **sharp override 를 같이 봐라** — 이 override 는 [#868] 때 sharp 취약점으로 머지가 잠겨 넣은 «최저 판 바닥»이다.
+  - 곁가지: `package.json` 에 `"cap:sync"` 키가 **두 번** 있었다(JSON 은 뒤 것이 이긴다). npm 이 잠금파일을 다시 쓰며 하나로 합쳤고 남은 값은 원래 이기던 뒤 값과 같다 — 실동작 변화 0.
+- **② 🟢 Gemini 3.5 Transcribe GA(2026-08-26): 받아쓰기 «전용» 모델 — 카자흐어 명시 지원·생각 토큰 없음 — 추천 «나중에»(조건부)**
+  [공지](https://ai.google.dev/gemini-api/docs/changelog) · [모델 문서](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe) · [가격](https://ai.google.dev/gemini-api/docs/pricing). `gemini-3.5-transcribe`(파일, 1시간까지, 화자 구분 8명·단어 시각) / `gemini-3.5-transcribe-live`(스트리밍, 10분 세션, 화자 구분 없음). **85개 언어 — kk-KZ·ru-RU·ko-KR·cmn-Hans·ja 전부 명시.** «생각(thinking)» **미지원** = 9/01 에 잡은 「출력 예산을 생각이 먹어 자막이 잘리던」 구조가 이 모델엔 아예 없다. 단가 파일 **$0.003/분(입력)+$0.002/분(출력) ≈ $0.005/분**, 라이브 ≈ $0.009/분.
+  - **왜 지금이 아닌가 (실측 3개)**: ⑴ **호출 방식이 다르다** — 우리가 쓰는 `generateContent`(AI SDK `google(model)`) 가 아니라 **별도 Interactions API**(`POST /v1beta/interactions`, 인라인 base64 가능·20MB) 를 탄다. AI SDK 받아쓰기 표에 Gemini 가 **없다**([문서](https://ai-sdk.dev/docs/ai-sdk-core/transcription)) → REST 직접 호출을 새로 짜야 한다. ⑵ **번역은 못 한다** — 지금 STT 라우트는 한 호출로 «받아쓰기+번역+언어감지»를 받는데(`{t,x,l}`), 이 모델은 받아쓰기만이라 **번역 Flash 호출이 한 번 더** 붙는다(2단 = 지연 ↑ 가능). ⑶ **실사용이 거의 0 이다** — `ai_usage_events` 실측 9/01~9/04 `consult_stt` **20건·$0.06**, `consult_translate` 4건·$0.02. 비용 절감 절대액은 «없다».
+  - **그래도 값어치**: 자막 **정확도**(구글 발표 WER 2.6%) + 카자흐어 때문에 Pro 로 우회하는 분기(`STT_KZ_MODEL`)·환각 때문에 **같은 조각을 2번 부르는 합의 검사**(`transcriptAgreement`)를 없앨 여지 + 회의록 **화자 라벨**(파일 모드). ⚠️ 개발자 포럼에 «custom_vocabulary 가 안 먹는다» 제보 2건([1](https://discuss.ai.google.dev/t/gemini-3-5-transcribe-custom-vocabulary-appears-to-have-no-effect/179892)·[2](https://discuss.ai.google.dev/t/gemini-3-5-transcribe-documented-custom-vocabulary-diarization-timestamps-configuration-is-rejected-by-the-interactions-api/180240)) — 우리 `DOMAIN_PRIMING`(의료 용어 편향) 이식이 그대로 안 될 수 있다.
+  - **적용 조건·작업량**: 화상상담이 실제로 돌기 시작하거나(월 10건+) PO 가 자막 품질을 우선하면 → **env 스위치 뒤 실험 1~2일**(STT 경로만 Interactions REST 로 갈아끼우고 번역은 기존 Flash 유지, `usagePricing.ts` 에 분당 단가 추가, 실회의 1건으로 잘림·정확도 비교). 그 전엔 관망.
+- **③ Gemini 3.8 Flash GA(2026-09-02) — 별칭 `gemini-flash-latest` 가 넘어갔는지 «확인 못 함», 넘어갔어도 단가·코드 변화 0**
+  [공지](https://ai.google.dev/gemini-api/docs/changelog). 단가는 3.7 과 **동일**($0.75/$3.75, 2026-12-31 까지 → 2027-01-01 $1.50/$7.50) = 8/26 ② 기록 그대로. 별칭 이동 여부는 이 상자에 API 키가 없고 **`ai_usage_events.meta` 에 `modelVersion` 이 한 줄도 없어**(0행) 실DB 로도 못 잰다.
+  - ✅ **고침(2026-09-05 밤, PO 되물음 「제미나이 얘기한 건 안 해도 되미」)**: 사용 기록 meta 에 **`model_version`**(응답 본문의 `modelVersion`)을 남긴다 — `src/lib/ai/servedModel.ts`(순수 헬퍼+단위시험) · `logAiUsage({ response })` · 호출부 4곳(판사·STT·통역·공개챗 생성모드). **판사는 공개챗이 답할 때마다 돌기 때문에 상시 신호**가 된다. ⚠️ **한계**: 스트리밍 경로는 SDK 가 본문을 안 넘겨 못 잰다(요청 별칭으로 채우지 않는다 — 그러면 감시가 무의미). 실호출 검증은 못 했고(키 없음) 단위시험·tsc 로만 닫았다 → **다음 세션이 아래 SQL 로 실제 값이 쌓이는지 봐라**(배포 다음 날):
+    `select meta->>'model_version' as v, surface, count(*) from ai_usage_events where created_at > now() - interval '3 days' group by 1,2 order by 3 desc;`
+  - **간접 신호**: 9/03 자가시험 **47/50**(직전 8/31 49/50·8/27 48/50). 실패 3건은 전부 «내용»(면력한방병원 지점 위치·지점 수를 모른다 → `no_clarification`·`off_topic`) 이지 **파라미터 거절(400)이 아니다** = #110/#122 형 사고 징후 없음.
+  - ⚠️ **읽을 때 주의**: 8/24~9/03 크론 실행은 **옛 경로**(RAG 없이 직접 호출)였다 — 8/21 의 «실서비스 경로» 작업본이 본판에서 빠져 있다가 **9/05 [#1617](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1617) 로 되살아났다**(`first_token_ms` 가 8/21 50행 → 그 뒤 0행인 이유). **9/07(월) 18:00 UTC 실행이 «3.8 + 새 경로» 첫 실측**이다. 그 점수를 8/21(50/50·첫 글자 P95 5.33초) 과 비교해라.
+  - `usagePricing.ts` 기본값은 아직 **3.6 단가($1.5/$7.5)** — 지금 실단가($0.75/$3.75)의 **2배 과대 추정**이다. **일부러 안 고쳤다**: 2027-01-01 에 실단가가 정확히 그 값으로 돌아오고, 그 사이 과대 추정은 «안전한 쪽» 오차다(월 $0.5 규모). 정확히 맞추려면 env `AI_PRICE_FLASH_IN=0.75`·`AI_PRICE_FLASH_OUT=3.75` 한 번(1/1 에 되돌려야 함).
+- **④ 본 것 중 뺀 것 (한 줄씩 — 다음 스캔이 다시 캐지 않게)**
+  - Supabase Management API `logs.all` 제거(2026-09-23): 우리 `scripts/check-supabase-io.mjs` 는 `database/query`·`projects`·`advisors` 세 경로만 쓴다 → **영향 0**.
+  - LiveKit 초 단위 과금(8/24, 10초 최소): 우리는 정액 Ship 안(8월 사용 1.6%) → **청구 변화 0**.
+  - LiveKit 관측(Observability) PII 가림(8/20)·30일 저장: 관측 업로드는 `AgentSession` 에 붙는데 우리 통역 에이전트(`agents/live-translate`)는 그걸 안 쓴다(grep 0건) → **경로 자체를 안 탐, 해당 없음**. LiveKit 커넥터(9/01, 전화·메신저 음성 채널)도 지금 제품엔 자리 없음 — 나중에 «러시아어 전화 응대» 를 하게 되면 그때.
+  - Vercel Basic 빌드머신(9/03, $0.007/분): 실측 실서비스 빌드 **2.1분**(9/05) × 하루 1회 → Elastic 과 차이 **월 $0.5 미만** → 뺌.
+  - `gemini-omni-flash-preview` 폐기(9/30): 저장소 0건.
+  - Gemini 3.5 Live Translate: 여전히 `-preview`, 단가 $0.0053+$0.0315/분(= 7/20 기록 $0.037/분 그대로) → 7/05 관망 항목 변화 없음.
+  - 외국인환자 비대면진료 법제화: 5월 공포 기록 그대로, 9월 시행령 소식 없음.
+  - `@supabase/ssr` 0.8.0(최신 0.12.6)·`livekit-client` 2.20.1(2.22.2)·`react` 19.2.7(19.2.8): 8/26 ⑤ 「뒤처진 판」 그대로 **미반영**, `npm audit --omit=dev` 심각·높음 **0건** → 급하지 않음(8/26 판정 유지).
+  - OpenAI `gpt-realtime-translate`(5월 출시, 출력 13개 언어): 창 안 새 공지 없음([변경록](https://developers.openai.com/api/docs/changelog)). **카자흐어 출력 미지원** → 7/20 「벤더 대안 없음」 판정 그대로.
+  - Deepgram Flux Multilingual(4/29 GA, 10개 언어 — ru 포함·**kk 없음**)·Nova-3 언어 확장: 창 안 새 공지 없음([변경록](https://developers.deepgram.com/changelog)). 같은 판정.
+- **⑤ 시장 숫자 2건은 원장으로 보냈다** — `docs/WHY_US_EVIDENCE.md` §1-3(카자흐 연 6,000명 해외 종양치료 · 연 4만 명 진단, 국립암센터 부이사장 발언 2025-02)·§2-4(진흥원 2026 상반기 카드 데이터, 8/30 발표). **국가별 카자흐·러시아 상반기 숫자는 기사에 없어 확인 못 함.**
+  - **규제 공지 2건 — 둘 다 우리 «할 일» 없음(원문 확인 2026-09-05)**: ⑴ 진흥원 「2026 상반기 외국인환자 유치실적 조사」([공지 7/29](https://www.medicalkorea.or.kr/korp/notice/newsView.do?idx=302)) — **대상은 「2025년 실적 상위 의료기관」**이지 유치사업자가 아니고, 기한(8/28)도 지났다. 우리 법정 의무는 여전히 **매년 2월 말 전년도 실적 보고** 하나(`docs/LEGAL_OBLIGATIONS.md` A-1). ⑵ 「3분기 불법유치행위 집중신고기간」([공지 8/31](https://www.medicalkorea.or.kr/korp/notice/newsView.do?idx=307), 9/1~30) — 대상은 **미등록** 기관·개인. 우리는 등록업자(A-2026-01-02-06761)라 해당 없음. 「등록 여부를 환자가 직접 확인」 카드(`WHY_US_EVIDENCE.md` §5)가 이 시기에 더 잘 먹힌다는 정도.
+
+---
+
 ## 🔴 2026-08-26 트렌드 스캔 발견: Next.js 심각도 「치명」 2건 중 **1건이 우리에게 실제로 해당**
 
 > `/trend` 주간 스캔. **①은 그 자리에서 고쳤고**(`next` 16.3.0 → **16.3.3**), ②~④는 감시용 기록이다.
@@ -2026,7 +2069,7 @@ app/api/survey/[token]/route.ts:48
   Next.js 가 **2026-08-25** 에 치명(critical) 2건을 공개하며 **16.3.3 / 15.5.24** 를 냈다([공지](https://nextjs.org/blog/august-2026-security-release)). 우리는 그때 **16.3.0** 이었다.
   - **⑴ 이미지 최적화(AVIF) 원격 코드 실행** ([GHSA-2xp9-vwfh-vxw4](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4)): `sharp` 가 쓰는 `libheif` 결함. **인증이 필요 없다.** → **우리 실측 3가지가 전부 성립했다**: ⓐ`next.config.js:262` 에 `formats: ['image/avif', …]` 가 켜져 있고 ⓑ실서비스에 요청해 보니 **진짜로 `Content-Type: image/avif` 를 만들어 돌려줬으며**(2026-08-26 실측) ⓒ`remotePatterns` 에 **`*.supabase.co` 같은 와일드카드**가 있어 «공격자가 자기 Supabase 프로젝트에 올린 파일»도 우리 `/_next/image` 가 받아온다. **웹 방화벽 우회 여지 없음.**
   - **⑵ Windows 서버 원격 코드 실행** ([CVE-2026-75604](https://www.cve.org/CVERecord?id=CVE-2026-75604)): 성립 조건이 **「Pages Router + App Router 동시 사용」 + Windows 파일시스템**인데, 우리는 **App Router 단독**(`pages/` 없음)이고 실서비스는 Vercel 리눅스다. **해당 없음**(PO PC 로컬 개발 서버도 라우터 조건에서 이미 탈락).
-  - ⚠️ **부수효과: 패치가 AVIF 최적화 자체를 끈다**(상류 수정 전까지). 즉 앞으로 이미지가 **webp 로만** 나가 용량이 조금 늘 수 있다. `formats` 설정은 **지우지 마라**: 상류가 고쳐지면 그대로 되살아난다.
+  - ⚠️ **부수효과: 패치가 AVIF 최적화 자체를 끈다**(상류 수정 전까지). 즉 앞으로 이미지가 **webp 로만** 나가 용량이 조금 늘 수 있다. `formats` 설정은 **지우지 마라**: 상류가 고쳐지면 그대로 되살아난다. → ✅ **2026-09-05 되살아남**(next 16.3.4 + sharp 0.35.4, 위 「2026-09-05 트렌드 스캔 발견」 ①).
 - **② Gemini 3.7 Flash 단가: 지금은 반값이지만 «2027-01-01 에 2배로 뛴다»**: 별칭이 3.7 로 넘어간 사실은 `KNOWN_ISSUES.md:269` 에 이미 있었으나 **단가가 빠져 있었다.** 도입가 **$0.75 / $3.75** (100만 토큰 입력/출력)로 3.6 대비 절반인데, **2026-12-31 까지만**이고 **2027-01-01 부터 $1.50 / $7.50**. 지금 우리 AI 실지출은 월 **$0.5** 수준이라 2배가 돼도 **$1** 이라 절대액은 무시할 만하다. **유치 건수가 늘면 그때 다시 재라.** 방어선은 그대로(aiGuard 전역 **일 2,000건** + Google 지출 상한).
 - **③ Supabase 확장 버전 지정 폐기(2026-08-05~): 우리 영향 0**: 확장을 만들 때 버전을 명시하면 **무시되고 기본 버전으로 깔린다**(구버전의 알려진 취약점을 막으려는 조치). 우리 마이그레이션 전수 검색 결과 `create extension … version '…'` **0건**(전부 `if not exists <이름>` 형태) → **고칠 것 없음.**
 - **④ Vercel 배포 저장소 과금 신설(2026-08-21): 기존 팀은 유예**: $0.10/GB·월로 새로 매겨졌으나 **기존 팀은 현재 요금 유지, 청구 변화 없음**([changelog](https://vercel.com/changelog/deployment-storage-keeps-your-deployments-rollback-ready)). 우리는 2026-07-24 부터 Pro 기존 팀이라 **지금 당장 나가는 돈 없음.** 요금제를 바꾸거나 팀을 새로 파면 그때 계산에 넣어라.

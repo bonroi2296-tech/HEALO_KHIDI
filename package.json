@@ -72,7 +72,7 @@
     "check:ai-behavior": "node scripts/check-ai-behavior.mjs",
     "audit:playbook-rag": "tsx scripts/audit-playbook-rag.ts",
     "loadtest:rag": "tsx scripts/loadtest-rag-rpc.ts",
-    "cap:sync": "npx cap sync",
+    "cap:sync": "node scripts/prepare-native-webdir.mjs && npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
     "check": "npm run lint && next build --webpack",
@@ -87,7 +87,6 @@
     "check:ghost-columns": "node scripts/check-ghost-columns.mjs",
     "blast": "node scripts/blast-radius.mjs",
     "blast:verify": "node scripts/blast-verify.mjs",
-    "cap:sync": "node scripts/prepare-native-webdir.mjs && npx cap sync",
     "sweep": "node scripts/sweep.mjs",
     "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
     "check:docs": "python docs/government-project/audit_docs.py",
@@ -129,7 +128,7 @@
     "lucide-react": "^0.562.0",
     "mammoth": "^1.12.0",
     "mupdf": "^1.28.0",
-    "next": "^16.3.3",
+    "next": "^16.3.4",
     "node-unrar-js": "^2.0.2",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
@@ -172,7 +171,7 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
-    "sharp": "^0.35.0",
+    "sharp": "^0.35.4",
     "postcss": "^8.5.12",
     "fast-uri": "^3.1.7"
   }
