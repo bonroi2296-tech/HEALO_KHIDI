@@ -11,9 +11,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 //     실측(2026-09-05): DB 의 그림 URL 칸 8개 전부 절대 URL 0건, 코드의 next/image 원격 src 도 우리 자산뿐.
 // 어떻게: 빌드 시 env 에서 호스트를 읽는다(Vercel 엔 항상 있다). env 가 없는 빈 로컬에선 예전 와일드카드로
 //     두어 깨지지 않게 한다 — 좁히기가 «못 그리는 화면»을 만들면 안 된다.
+//     ⚠️ 좁히는 건 «호스트가 *.supabase.co / *.supabase.in 일 때만». 로컬 Supabase 스택(http://127.0.0.1:54321)
+//     같은 주소를 https 고정 패턴에 넣으면 아무것도 안 맞아 스토리지 그림이 전부 막힌다(독립 리뷰 지적).
 const supabaseImageHost = (() => {
   try {
-    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname || '';
+    const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname || '';
+    return /\.supabase\.(co|in)$/.test(host) ? host : '';
   } catch {
     return '';
   }
