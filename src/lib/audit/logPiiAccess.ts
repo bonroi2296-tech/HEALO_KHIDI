@@ -71,8 +71,23 @@ export async function logPiiAccess(
 ): Promise<void> {
   try {
     const who = pickActor(actor);
+
+    // 일부 인증 헬퍼(requireVisaAccess·requireCostEstimateAccess)는 userId 만 주고
+    // email 은 안 준다. 그대로 두면 「unknown」으로 남아 나중에 «누가 봤나»를 못 읽는다.
+    // id 는 있으니 그걸로 한 번 채워 온다(실패해도 기록 자체는 남긴다).
+    let email = who.email || null;
+    if (!email && who.userId) {
+      try {
+        const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+        const { data } = await supabaseAdmin.auth.admin.getUserById(who.userId);
+        email = data?.user?.email ?? null;
+      } catch {
+        /* 조회 실패는 무시 — 아래에서 unknown 으로 남는다 */
+      }
+    }
+
     await logAdminAction({
-      adminEmail: who.email || "unknown",
+      adminEmail: email || "unknown",
       adminUserId: who.userId ?? undefined,
       action: params.action,
       inquiryIds: (params.inquiryIds ?? null) as number[] | null,

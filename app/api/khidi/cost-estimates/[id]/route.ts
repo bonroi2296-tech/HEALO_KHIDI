@@ -7,8 +7,9 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requireCostEstimateAccess } from "@/lib/auth/requireCostEstimateAccess";
+import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 const supabaseAdmin: any = _sb;
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
@@ -50,6 +51,15 @@ export async function GET(
 
   let coordinatorNotes: string | null = null;
   if (access.role === "admin" || access.role === "coordinator") {
+    // 접속기록(법정 의무): «취급자»가 남의 견적을 열어본 경우만 남긴다.
+    // 환자가 자기 것을 보는 건 대상이 아니라 이 분기 안에 둔다.
+    after(() =>
+      logPiiAccess(request, { userId: access.userId }, {
+        action: "VIEW_INQUIRY",
+        metadata: { screen: "cost_estimate", decrypted: "coordinator_notes" },
+      })
+    );
+
     try {
       coordinatorNotes = decryptStringNullable(data.coordinator_notes_encrypted);
     } catch {
