@@ -2017,18 +2017,21 @@ app/api/survey/[token]/route.ts:48
 - **조치 기준**: 또 무고한 PR을 막으면(2회째) 그때 원인 수리(대기 조건 보강·테스트 데이터 사전 시딩 등). 그 전까진 빈 커밋 재실행으로 통과 확인 후 진행.
 - 참고: 스모크 실패 알림 이메일은 Resend 403(도메인 미검증)으로 여전히 미발송 — 기존 LAUNCH_GATES 관문(PO 콘솔 작업)과 동일 건.
 
-## 🟢 2026-09-05 트렌드 스캔 발견: 보석 2건(둘 다 PO 결정 대기) + 뺀 것 8건
+## 🟢 2026-09-05 트렌드 스캔 발견: 보석 2건(①적용함 ②나중에) + 뺀 것 8건
 
-> `/trend` 주간 스캔(창: 2026-08-22~09-05). **코드 변경 0 — 전부 기록.** 후보 12건을 저장소 전수 검색·실DB·실서비스로 대조해 2건만 남겼다.
+> `/trend` 주간 스캔(창: 2026-08-22~09-05). **코드 변경은 ① 판 올리기(next·sharp)뿐, 나머지는 기록.** 후보 12건을 저장소 전수 검색·실DB·실서비스로 대조해 2건만 남겼다.
 > 보석이 아닌 10건은 아래 ④에 «왜 뺐나»를 한 줄씩 남긴다(다음 스캔이 같은 걸 또 캐지 않게).
 
-- **① 🟢 Next.js 16.3.4(2026-08-31): 8/26 에 «꺼 둔» AVIF 최적화가 «안전하게» 돌아온다 — 후속 조치 후보 (PO 결정 대기)**
+- **① ✅ Next.js 16.3.4(2026-08-31): 8/26 에 «꺼 둔» AVIF 최적화가 «안전하게» 돌아온다 — 적용함(2026-09-05, PO 「올려라」 결정, 신청서 [#1639](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1639))**
   8/26 항목(아래)에서 *"패치가 AVIF 최적화 자체를 끈다 — 상류가 고쳐지면 되살아난다"* 라고 적었다. 그 «상류 수정»이 이제 사슬로 이어졌다(전부 실측):
   **libheif 1.23.2**([GHSA-g89c-p67h-r497](https://github.com/strukturag/libheif/security/advisories/GHSA-g89c-p67h-r497), 8/25 수정) → **`@img/sharp-libvips` 1.3.3**(8/26 공개, [heif 1.23.2 탑재](https://github.com/lovell/sharp-libvips/releases/tag/v1.3.3)) → **sharp 0.35.4**(8/26, libvips 1.3.3 요구) → **next 16.3.4**([릴리스](https://github.com/vercel/next.js/releases/tag/v16.3.4) *"re-enabling AVIF Image Optimization"*, sharp ^0.35.4 요구).
   - **우리 지금**: next **16.3.3** · sharp **0.35.3** · libvips **1.3.2**(= libheif 1.23.1, 결함 있음 — 단 16.3.3 이 AVIF 를 꺼 놔서 `/_next/image` 로는 안 닿는다. 스크립트 3곳의 sharp 직접 사용은 8/26 판정 그대로 «저장소 안 파일만·HEIF 없음» = 위험 없음).
   - **올리면**: AVIF 가 돌아온다(이미지 용량 ↓) + 결함 있는 libheif 사본 자체가 사라진다. **보안 릴리스는 아니다**(16.3.4 릴리스 노트에 CVE 없음) → 8/26 처럼 «그 자리에서» 안 올리고 PO 결정으로 넘긴다.
   - **작업량**: 반나절 미만 — `next` 판 올리기 + `npx next build --webpack` + 실서비스에서 `Content-Type: image/avif` 가 다시 나오는지 curl 1회. `next.config.js:274` 의 `formats: ['image/avif', …]` 는 그대로 있다(지우지 말라는 8/26 지시 준수 확인).
   - **리스크**: 낮음(패치 릴리스 4건 전부 버그 수정). 되돌리기 = 판 내리기 한 줄.
+  - ✅ **적용 실측(2026-09-05, 이 클라우드 상자)**: `npx next build --webpack` **통과**(231초, 컴파일 102초) → 로컬 `next start` 에 `Accept: image/avif` 로 `/_next/image` 요청 → **`Content-Type: image/avif`·611바이트·파일 서명 `ftypavif`** 확인(webp 요청엔 webp). 설치본 대조: next 16.3.4 · sharp 0.35.4 · libvips 1.3.3. **실서비스 확인은 다음 오후 3시 창구 뒤**에 같은 curl 로(아직 안 나감).
+  - 🔑 **함정 — next 만 올리면 구멍이 «다시 열린다»**: `package.json` 의 **`overrides.sharp` 가 `^0.35.0`** 이라 next 16.3.4 가 요구하는 `^0.35.4` 를 **0.35.3 으로 눌렀다**(잠금파일만 갱신해 보니 next 16.3.4 + sharp 0.35.3 + libvips 1.3.2 = **AVIF 는 켜지고 libheif 는 결함판**). 그래서 **직접 의존·override 둘 다 `^0.35.4`** 로 올렸다(둘이 다르면 npm 이 `EOVERRIDE` 로 거부한다). 다음에 next 를 올릴 때도 **sharp override 를 같이 봐라** — 이 override 는 [#868] 때 sharp 취약점으로 머지가 잠겨 넣은 «최저 판 바닥»이다.
+  - 곁가지: `package.json` 에 `"cap:sync"` 키가 **두 번** 있었다(JSON 은 뒤 것이 이긴다). npm 이 잠금파일을 다시 쓰며 하나로 합쳤고 남은 값은 원래 이기던 뒤 값과 같다 — 실동작 변화 0.
 - **② 🟢 Gemini 3.5 Transcribe GA(2026-08-26): 받아쓰기 «전용» 모델 — 카자흐어 명시 지원·생각 토큰 없음 — 추천 «나중에»(조건부)**
   [공지](https://ai.google.dev/gemini-api/docs/changelog) · [모델 문서](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe) · [가격](https://ai.google.dev/gemini-api/docs/pricing). `gemini-3.5-transcribe`(파일, 1시간까지, 화자 구분 8명·단어 시각) / `gemini-3.5-transcribe-live`(스트리밍, 10분 세션, 화자 구분 없음). **85개 언어 — kk-KZ·ru-RU·ko-KR·cmn-Hans·ja 전부 명시.** «생각(thinking)» **미지원** = 9/01 에 잡은 「출력 예산을 생각이 먹어 자막이 잘리던」 구조가 이 모델엔 아예 없다. 단가 파일 **$0.003/분(입력)+$0.002/분(출력) ≈ $0.005/분**, 라이브 ≈ $0.009/분.
   - **왜 지금이 아닌가 (실측 3개)**: ⑴ **호출 방식이 다르다** — 우리가 쓰는 `generateContent`(AI SDK `google(model)`) 가 아니라 **별도 Interactions API**(`POST /v1beta/interactions`, 인라인 base64 가능·20MB) 를 탄다. AI SDK 받아쓰기 표에 Gemini 가 **없다**([문서](https://ai-sdk.dev/docs/ai-sdk-core/transcription)) → REST 직접 호출을 새로 짜야 한다. ⑵ **번역은 못 한다** — 지금 STT 라우트는 한 호출로 «받아쓰기+번역+언어감지»를 받는데(`{t,x,l}`), 이 모델은 받아쓰기만이라 **번역 Flash 호출이 한 번 더** 붙는다(2단 = 지연 ↑ 가능). ⑶ **실사용이 거의 0 이다** — `ai_usage_events` 실측 9/01~9/04 `consult_stt` **20건·$0.06**, `consult_translate` 4건·$0.02. 비용 절감 절대액은 «없다».
@@ -2061,7 +2064,7 @@ app/api/survey/[token]/route.ts:48
   Next.js 가 **2026-08-25** 에 치명(critical) 2건을 공개하며 **16.3.3 / 15.5.24** 를 냈다([공지](https://nextjs.org/blog/august-2026-security-release)). 우리는 그때 **16.3.0** 이었다.
   - **⑴ 이미지 최적화(AVIF) 원격 코드 실행** ([GHSA-2xp9-vwfh-vxw4](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4)): `sharp` 가 쓰는 `libheif` 결함. **인증이 필요 없다.** → **우리 실측 3가지가 전부 성립했다**: ⓐ`next.config.js:262` 에 `formats: ['image/avif', …]` 가 켜져 있고 ⓑ실서비스에 요청해 보니 **진짜로 `Content-Type: image/avif` 를 만들어 돌려줬으며**(2026-08-26 실측) ⓒ`remotePatterns` 에 **`*.supabase.co` 같은 와일드카드**가 있어 «공격자가 자기 Supabase 프로젝트에 올린 파일»도 우리 `/_next/image` 가 받아온다. **웹 방화벽 우회 여지 없음.**
   - **⑵ Windows 서버 원격 코드 실행** ([CVE-2026-75604](https://www.cve.org/CVERecord?id=CVE-2026-75604)): 성립 조건이 **「Pages Router + App Router 동시 사용」 + Windows 파일시스템**인데, 우리는 **App Router 단독**(`pages/` 없음)이고 실서비스는 Vercel 리눅스다. **해당 없음**(PO PC 로컬 개발 서버도 라우터 조건에서 이미 탈락).
-  - ⚠️ **부수효과: 패치가 AVIF 최적화 자체를 끈다**(상류 수정 전까지). 즉 앞으로 이미지가 **webp 로만** 나가 용량이 조금 늘 수 있다. `formats` 설정은 **지우지 마라**: 상류가 고쳐지면 그대로 되살아난다.
+  - ⚠️ **부수효과: 패치가 AVIF 최적화 자체를 끈다**(상류 수정 전까지). 즉 앞으로 이미지가 **webp 로만** 나가 용량이 조금 늘 수 있다. `formats` 설정은 **지우지 마라**: 상류가 고쳐지면 그대로 되살아난다. → ✅ **2026-09-05 되살아남**(next 16.3.4 + sharp 0.35.4, 위 「2026-09-05 트렌드 스캔 발견」 ①).
 - **② Gemini 3.7 Flash 단가: 지금은 반값이지만 «2027-01-01 에 2배로 뛴다»**: 별칭이 3.7 로 넘어간 사실은 `KNOWN_ISSUES.md:269` 에 이미 있었으나 **단가가 빠져 있었다.** 도입가 **$0.75 / $3.75** (100만 토큰 입력/출력)로 3.6 대비 절반인데, **2026-12-31 까지만**이고 **2027-01-01 부터 $1.50 / $7.50**. 지금 우리 AI 실지출은 월 **$0.5** 수준이라 2배가 돼도 **$1** 이라 절대액은 무시할 만하다. **유치 건수가 늘면 그때 다시 재라.** 방어선은 그대로(aiGuard 전역 **일 2,000건** + Google 지출 상한).
 - **③ Supabase 확장 버전 지정 폐기(2026-08-05~): 우리 영향 0**: 확장을 만들 때 버전을 명시하면 **무시되고 기본 버전으로 깔린다**(구버전의 알려진 취약점을 막으려는 조치). 우리 마이그레이션 전수 검색 결과 `create extension … version '…'` **0건**(전부 `if not exists <이름>` 형태) → **고칠 것 없음.**
 - **④ Vercel 배포 저장소 과금 신설(2026-08-21): 기존 팀은 유예**: $0.10/GB·월로 새로 매겨졌으나 **기존 팀은 현재 요금 유지, 청구 변화 없음**([changelog](https://vercel.com/changelog/deployment-storage-keeps-your-deployments-rollback-ready)). 우리는 2026-07-24 부터 Pro 기존 팀이라 **지금 당장 나가는 돈 없음.** 요금제를 바꾸거나 팀을 새로 파면 그때 계산에 넣어라.
