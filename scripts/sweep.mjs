@@ -723,13 +723,33 @@ async function 검사_밖에서온관리자접근() {
   const client = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
   const since = new Date(Date.now() - 7 * 86400e3).toISOString();
 
+  // ⚠️ «진짜 건수»를 먼저 센다. 아래 조회는 상한에 걸려 잘릴 수 있는데, 잘린 채로 판정하면
+  //    「성공 이력이 있는 IP」를 못 봐서 우리 쪽 사람을 남의 손으로 잘못 세운다 — 조용한 오판이다.
+  //    (PostgREST 는 서버 설정에 따라 요청한 limit 보다 적게 준다. 그래서 요청 수와 비교하는 것으로는
+  //     못 잡고, count 를 따로 물어야 한다.)
+  const LIMIT = 5000;
+  const { count, error: cErr } = await client
+    .from("admin_audit_logs")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", since);
+  if (cErr) return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼", `건수 조회 실패: ${cErr.message}`);
+  if ((count ?? 0) > LIMIT) {
+    return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼",
+      `최근 7일 기록이 ${count}건이라 한 번에 못 읽는다(상한 ${LIMIT}). 페이지로 나눠 읽게 고쳐라 — ` +
+      "잘린 채로 판정하면 «성공 이력이 있는 IP»를 놓쳐 우리 쪽 사람을 남의 손으로 센다.");
+  }
+
   const { data, error } = await client
     .from("admin_audit_logs")
     .select("action, ip_address")
     .gte("created_at", since)
-    .limit(5000);
+    .limit(LIMIT);
   if (error) return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼", `조회 실패: ${error.message}`);
   if (!data?.length) return add("intrusion", "밖에서 관리자 문을 두드렸나", "통과", "최근 7일 기록 0건");
+  if (data.length < (count ?? 0)) {
+    return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼",
+      `${count}건 중 ${data.length}건만 읽혔다 — 서버가 더 낮은 상한으로 잘랐다. 페이지로 나눠 읽어라.`);
+  }
 
   // IP 별로 «성공한 적이 있나»를 먼저 가른다 (성공이 있으면 우리 쪽 사람이다)
   const 성공 = new Set();
