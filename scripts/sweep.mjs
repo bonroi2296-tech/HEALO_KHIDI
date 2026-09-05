@@ -711,11 +711,55 @@ function 검사_묵은막힘() {
   );
 }
 
+// ── 밖에서 들어온 «권한 없는 관리자 접근»
+//    왜: 2026-09-05 실측으로 admin_audit_logs 에 UNAUTHORIZED_ADMIN_ACCESS 가 187건 쌓여 있었는데
+//        보는 사람이 없었다(화면 /admin/audit 은 있고 알림은 없다). 파고 보니 대부분 PO PC 의
+//        «쿠키 만료 뒤 새로고침»이었고, 밖에서 온 것 3곳은 2026-06 것이며 성공 0건이었다.
+//    🔑 그래서 «전부»를 세지 않는다 — 그러면 PO PC 잡음에 묻혀 이 검사도 아무도 안 보게 된다.
+//        「그 IP 로 성공한 적이 한 번도 없는 곳」만 센다. 그게 남의 손이다.
+async function 검사_밖에서온관리자접근() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !key) return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼", "service_role 열쇠 없음");
+  const client = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
+  const since = new Date(Date.now() - 7 * 86400e3).toISOString();
+
+  const { data, error } = await client
+    .from("admin_audit_logs")
+    .select("action, ip_address")
+    .gte("created_at", since)
+    .limit(5000);
+  if (error) return add("intrusion", "밖에서 관리자 문을 두드렸나", "못 잼", `조회 실패: ${error.message}`);
+  if (!data?.length) return add("intrusion", "밖에서 관리자 문을 두드렸나", "통과", "최근 7일 기록 0건");
+
+  // IP 별로 «성공한 적이 있나»를 먼저 가른다 (성공이 있으면 우리 쪽 사람이다)
+  const 성공 = new Set();
+  const 실패수 = new Map();
+  for (const r of data) {
+    const ip = r.ip_address;
+    if (!ip) continue;
+    if (r.action === "UNAUTHORIZED_ADMIN_ACCESS") 실패수.set(ip, (실패수.get(ip) || 0) + 1);
+    else 성공.add(ip);
+  }
+  const 남의손 = [...실패수.entries()].filter(([ip]) => !성공.has(ip)).sort((a, b) => b[1] - a[1]);
+  const 총 = 남의손.reduce((n, [, c]) => n + c, 0);
+
+  add(
+    "intrusion",
+    "밖에서 관리자 문을 두드렸나",
+    남의손.length ? "볼 것" : "통과",
+    남의손.length
+      ? `성공 이력이 «전혀 없는» IP ${남의손.length}곳에서 ${총}회 — ${남의손.slice(0, 3).map(([ip, c]) => `${ip}(${c}회)`).join(", ")}` +
+        " → /admin/audit 에서 경로·시각을 보고, 계속되면 그 IP 를 막아라"
+      : `실패는 있으나 전부 «성공 이력이 있는» IP 다(우리 쪽 쿠키 만료). 기록 ${data.length}건 훑음`,
+  );
+}
+
 const 검사들 = [
   ["where", 검사_재는자리],
   ["pii", 검사_평문개인정보],
   ["i18nback", 검사_번역역류],
   ["rls", 검사_익명읽기],
+  ["intrusion", 검사_밖에서온관리자접근],
   ["keys", 검사_화면에박힌열쇠],
   ["env", 검사_환경변수이름],
   ["deploy", 검사_미배포],
