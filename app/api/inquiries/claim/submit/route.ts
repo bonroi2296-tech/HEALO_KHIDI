@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const { data: rows, error: findErr } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, follow_ups, attachments")
+      .select("id, follow_ups, attachments, is_test")
       .eq("public_token", token)
       .limit(1);
     if (findErr) throw findErr;
@@ -186,7 +186,9 @@ export async function POST(request: NextRequest) {
     // 환자가 말을 걸었다 — 코디·어드민에게 종 알림. 2026-09-05 까지 이 경로는 아무에게도 안 알렸다
     // (글이 왔는데 열람 0·답 0 으로 이틀). 저장은 끝났으니 알림이 응답을 막지 않게 하되, `void` 로 흘리면
     // 서버리스가 응답 직후 얼어 INSERT 가 증발할 수 있다 → 응답 뒤 실행을 보장하는 after() (이 저장소 관례).
-    after(() => notifyStaffPatientMessage({ inquiryId: Number(inq.id) }));
+    // 시험 문의(is_test)면 직원 알림(종·메일)을 생략한다 — 새 문의 알림(adminNotifier 1-a)과 같은 규칙. 저장은 그대로.
+    // ⚠️ 2026-09-04 사고(진짜 환자가 시험으로 찍혀 알림이 통째로 사라짐)의 반대 위험이 있다 — 그쪽 판정(testData.ts)이 정본이다.
+    if (!(inq as any).is_test) after(() => notifyStaffPatientMessage({ inquiryId: Number(inq.id) }));
 
     return Response.json({ ok: true });
   } catch (err: any) {
