@@ -22,8 +22,10 @@ const NIGHTLY_STEP = "Full E2E — 프로덕션 대상";
 const E2E_DIR = "e2e";
 
 /** 야간 단계의 env 키 (못 찾으면 null) */
-function nightlyEnvKeys() {
-  const src = fs.readFileSync(WF, "utf8").replace(/\r\n/g, "\n").split("\n");
+function nightlyEnvKeys(srcLines) {
+  // 줄 나누기에 이스케이프를 안 쓴다(셸을 거쳐 파일을 만들 때 백슬래시가 먹히는 일이 잦다).
+  // 끝에 남는 CR 는 아래에서 trim()·정규식이 알아서 흘린다.
+  const src = srcLines || fs.readFileSync(WF, "utf8").split(String.fromCharCode(10));
   const at = src.findIndex((l) => l.trim() === `- name: ${NIGHTLY_STEP}`);
   if (at < 0) return null;
   let k = at + 1;
@@ -70,6 +72,34 @@ const NOT_FROM_SECRETS = new Set([
   "NODE_ENV",
   "GITHUB_ACTIONS",
 ]);
+
+// ── 자기시험: 이 검사가 «진짜 잡는지» 스스로 잰다 (잡는 것 / 안 잡는 것 둘 다) ──
+if (process.argv.includes("--selftest")) {
+  const YES = [
+    "      - name: Full E2E — 프로덕션 대상",
+    "        run: npm run e2e",
+    "        env:",
+    "          CI: \"1\"",
+    "          E2E_TEST_USER_EMAIL: x",
+    "",
+  ];
+  const NO = YES.slice(0, 5).concat(["          SUPABASE_SERVICE_ROLE_KEY: y", ""]);
+
+  const has = (lines, k) => (nightlyEnvKeys(lines) || new Set()).has(k);
+  const cases = [
+    ["열쇠가 빠진 판을 «잡는다»", !has(YES, "SUPABASE_SERVICE_ROLE_KEY")],
+    ["열쇠가 있는 판은 «안 잡는다»", has(NO, "SUPABASE_SERVICE_ROLE_KEY")],
+    ["단계 이름이 바뀌면 «못 찾았다»고 알린다", nightlyEnvKeys(["      - name: 딴 이름", "        env:", "          A: 1"]) === null],
+    ["스펙에서 읽는 값을 실제로 뽑는다", envKeysUsedBySpecs().has("SUPABASE_SERVICE_ROLE_KEY")],
+  ];
+  let ok = true;
+  for (const [name, pass] of cases) {
+    console.log(`  ${pass ? "✓" : "✗"} ${name}`);
+    if (!pass) ok = false;
+  }
+  console.log(ok ? "[selftest] 통과" : "[selftest] 실패");
+  process.exit(ok ? 0 : 1);
+}
 
 const nightly = nightlyEnvKeys();
 const used = envKeysUsedBySpecs();
