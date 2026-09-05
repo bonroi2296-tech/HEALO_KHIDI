@@ -10,10 +10,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Inbox, User, Globe, AlertCircle, CheckCircle2,
-  Calendar, ChevronRight, RefreshCw,
+  Calendar, ChevronRight, RefreshCw, MessageSquare,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { caseDelayDays } from "@/lib/khidi/caseStatus";
+import { daysSince } from "@/lib/inquiry/patientMessages";
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -101,10 +102,13 @@ export default function CoordinatorInboxPage() {
   const filtered = items.filter((item) => {
     if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
     if (filter === "step2_done") return !!item.step2_completed_at;
+    if (filter === "patient_unread") return !!item.patient_unread_since;
     return true;
   });
 
   const step1OnlyCount = items.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
+  // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다.
+  const patientUnreadCount = items.filter((i) => !!i.patient_unread_since).length;
 
   return (
     <div className="space-y-6">
@@ -162,6 +166,10 @@ export default function CoordinatorInboxPage() {
             label: L.inboxFilterReady,
             count: items.filter((i) => !!i.step2_completed_at).length,
           },
+          // 환자가 말을 걸었는데 아무도 안 본 건 — 0건이면 탭을 안 보인다(평소 화면 그대로).
+          ...(patientUnreadCount > 0
+            ? [{ key: "patient_unread", label: L.inboxFilterPatientUnread, count: patientUnreadCount, badge: "amber" }]
+            : []),
         ].map((tab) => (
           <button
             key={tab.key}
@@ -177,6 +185,8 @@ export default function CoordinatorInboxPage() {
               className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
                 tab.badge === "red"
                   ? "bg-red-100 text-red-700"
+                  : tab.badge === "amber"
+                  ? "bg-amber-100 text-amber-800"
                   : "bg-gray-100 text-gray-600"
               }`}
             >
@@ -321,6 +331,23 @@ export default function CoordinatorInboxPage() {
                             ⏰ {L.inboxDelayedDays.replace("{n}", String(delayDays))}
                           </span>
                         )}
+                        {/* 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어봤다.
+                            상세를 열면(열람 기록) 떨어진다 — 손으로 「읽음」을 누르는 칸은 없다. */}
+                        {item.patient_unread_since && (() => {
+                          const n = daysSince(item.patient_unread_since);
+                          const label = n === 0
+                            ? L.inboxPatientUnreadToday
+                            : L.inboxPatientUnreadDays.replace("{n}", String(n));
+                          return (
+                            <span
+                              data-testid="inbox-patient-unread"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 shrink-0"
+                              title={label}
+                            >
+                              <MessageSquare size={12} /> {label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500">

@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MessageSquarePlus, Loader2, Pencil, Trash2, Check, X, Languages } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useDateLocale } from "@/lib/i18n/coordinator";
+import { BY_PATIENT_LINK } from "@/lib/inquiry/patientMessages";
 
 async function authFetch(url, options = {}) {
   const supabase = createSupabaseBrowserClient();
@@ -174,7 +175,16 @@ export default function FollowUpsSection({ inquiryId }) {
       {items.length > 0 && (
         <ul className="space-y-2 mb-3">
           {items.map((f, i) => (
-            <li key={f.id || i} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+            <li
+              key={f.id || i}
+              // 환자가 «직접» 보낸 글은 코디 메모와 색을 달리한다 — 같은 회색이면 환자 말이 메모 사이에 묻힌다
+              // (2026-09-05: 환자 글이 이 목록에 있었는데 아무도 답을 안 했다).
+              className={`rounded-lg border px-3 py-2 ${
+                f.by === BY_PATIENT_LINK && !f.removedAt
+                  ? "border-teal-200 bg-teal-50/60"
+                  : "border-gray-200 bg-gray-50"
+              }`}
+            >
               {editAt === (f.id || f.at) ? (
                 <>
                   <textarea
@@ -201,6 +211,11 @@ export default function FollowUpsSection({ inquiryId }) {
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[11px] text-gray-500">{fmt(f.at)} · {f.by}</p>
+                    {f.by === BY_PATIENT_LINK && !f.removedAt && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 font-semibold">
+                        환자가 직접 보냄 — 답이 필요할 수 있어요
+                      </span>
+                    )}
                     {/* 환자가 자기 화면에서 치운 글 — **여기선 안 사라진다.** 냈다가 지우고
                         «안 냈다»고 하는 걸 막으려면 낸 사실이 남아야 한다(2026-08-06 PO). */}
                     {f.removedAt && (
