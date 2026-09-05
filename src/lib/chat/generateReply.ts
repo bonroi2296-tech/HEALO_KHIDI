@@ -12,7 +12,7 @@ import { createHash } from "crypto";
 import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { callGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
@@ -1022,11 +1022,11 @@ export async function generateMasterKeyAnalysis(
   const params: any = {
     model,
     system: buildMasterKeySystemPrompt(extra),
-    // 자기분석은 일반 답변보다 길어질 수 있어 상한을 넉넉히. thinkingBudget:0 으로 비용은 고정.
+    // 자기분석은 일반 답변보다 길어질 수 있어 상한을 넉넉히. 생각 수준은 공용 기본값.
     maxOutputTokens: 4096,
     providerOptions: {
       google: {
-        thinkingConfig: { thinkingLevel: "minimal" },
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
         safetySettings: SAFETY_SETTINGS as any,
       },
     },
@@ -1186,11 +1186,11 @@ async function prepareGeneration(
     model,
     systemPrompt,
     genConfig: {
-      // 비용·가독성 가드 + 빈답/잘림 방어 (thinkingBudget:0, 상한 8192) — 상세는 아래 주석 참조.
+      // 비용·가독성 가드 + 빈답/잘림 방어 (생각 수준 = 공용 기본값, 상한 8192) — 상세는 아래 주석 참조.
       maxOutputTokens: 8192,
       providerOptions: {
         google: {
-          thinkingConfig: { thinkingLevel: "minimal" },
+          thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
           safetySettings: SAFETY_SETTINGS as any,
           ...(useWebSearch ? { useSearchGrounding: true } : {}),
         },

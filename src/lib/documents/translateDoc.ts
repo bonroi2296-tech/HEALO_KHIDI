@@ -18,7 +18,7 @@ import "server-only";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { getAiReadable } from "./aiReadable";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { fetchGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 import { glossaryBlock, type DocLang, type GlossaryEntry } from "./medicalGlossary";
 import type { Json } from "@/types/database.types";
 
@@ -268,7 +268,7 @@ async function translateOnePage(
       generationConfig: {
         temperature: 0, // 충실 번역 — 창의성 0
         maxOutputTokens: 16384, // 한 쪽 분량엔 넉넉하다(실측 최대 6,503자)
-        thinkingConfig: { thinkingLevel: "minimal" },
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
       },
@@ -562,7 +562,7 @@ export async function verifyTranslationNumbers(opts: {
         { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
       ],
-      generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "minimal" }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
     });
     if (!res.ok) return { ok: false, error: "model_http_error" };
     const json = await res.json();

@@ -38,6 +38,19 @@
  * 강등 발생 시 console.error 로 크게 남긴다(로그 = 세대 교체 감지 신호).
  */
 
+/**
+ * 실서비스 호출부 8곳이 공유하는 «생각 수준» 기본값 — 한 곳에서만 바꾼다.
+ *
+ * 왜 "minimal" 이 아니라 "low" 인가 (2026-09-06 실서비스 오류 로그 실측):
+ *   별칭이 gemini-3.7+ 세대로 넘어간 뒤 "minimal" 은 **항상 400** 이다(2026-08-14 실측표, KNOWN_ISSUES).
+ *   사다리가 받아주긴 하지만 memo 는 «서버리스 인스턴스 수명» 동안만 살아서, 인스턴스가 새로 뜰 때마다
+ *   400 왕복을 한 번 버리고 답을 시작했다 — 공개 챗 21일 212건 중 23건(11%)이 그 왕복을 냈고
+ *   (첫 글자 지연 + 오류 로그 23건), 첨부 번역·케이스 브리프 REST 경로도 23건. 지금 세대에서 실제로
+ *   쓰이는 값이 "low" 이니 기본값을 거기에 두면 첫 요청부터 200 이다.
+ *   "minimal" 을 받는 옛 세대가 돌아오면 그때는 이 상수만 되돌린다(사다리는 그대로 산다).
+ */
+export const DEFAULT_THINKING_LEVEL = "low" as const;
+
 // 파라미터 거절(영구 오류) 판별 — 재시도해도 같으므로 "설정을 바꿔" 재시도해야 하는 부류.
 export function isParamRejection(err: any): boolean {
   const msg = String(err?.message || err || "");
@@ -83,22 +96,25 @@ function buildLadder(opts: {
   thinking: boolean;
   google: boolean;
   alreadyMinimal?: boolean;
+  alreadyLow?: boolean;
 }): Mitigation[][] {
   const { sampling, thinking, google } = opts;
-  const { alreadyMinimal } = opts;
+  const { alreadyMinimal, alreadyLow } = opts;
   const ladder: Mitigation[][] = [[]]; // 0번은 항상 «원본 그대로»
   if (sampling) ladder.push(["strip"]);
   if (thinking) {
     // 원본이 이미 thinkingLevel:"minimal" 이면 minimal 칸은 «같은 요청 재전송» 이라 무의미.
     // (2026-07-27 기본값을 minimal 로 바꾼 뒤 생긴 상황 — 실패 경로에서 헛왕복 1회 절약.)
-    if (!alreadyMinimal) ladder.push(["minimal"]);
-    if (sampling && !alreadyMinimal) ladder.push(["minimal", "strip"]);
+    // 원본이 이미 "low" 면 minimal 칸도 뺀다 — low 를 거절하는 세대가 그보다 낮은 minimal 을
+    // 받을 리 없다(같은 enum 세대). 다음 유효한 칸은 «생각 제어 없음»이다. (2026-09-06)
+    if (!alreadyMinimal && !alreadyLow) ladder.push(["minimal"]);
+    if (sampling && !alreadyMinimal && !alreadyLow) ladder.push(["minimal", "strip"]);
     // low 는 dropThinking 「앞」에 둔다 — 2026-08-14 실측: gemini-3.7-flash 는 minimal 을
     // 400 으로 거절하고 "off" 라는 값이 없다. 그래서 minimal 이 막히면 곧장 «생각 제어 없음»
     // 으로 떨어졌다. low 는 그 세대에서 유효한 최저값이라 한 칸을 더 버틴다.
     // (같은 질문 실측 — 설정없음 생각 631 토큰 / low 593 토큰 / thinkingBudget:0 은 조용히 무시돼 874)
-    ladder.push(["low"]);
-    if (sampling) ladder.push(["low", "strip"]);
+    if (!alreadyLow) ladder.push(["low"]);
+    if (sampling && !alreadyLow) ladder.push(["low", "strip"]);
     ladder.push(["dropThinking"]);
     if (sampling) ladder.push(["dropThinking", "strip"]);
   }
@@ -162,6 +178,7 @@ export async function callGeminiWithCompat<T>(
     google: !!params?.providerOptions?.google,
     alreadyMinimal:
       params?.providerOptions?.google?.thinkingConfig?.thinkingLevel === "minimal",
+    alreadyLow: params?.providerOptions?.google?.thinkingConfig?.thinkingLevel === "low",
   });
 
   // memo 된 칸이 이 모양에도 있으면 거기서 출발(실패 왕복 생략). 없으면 처음부터.
@@ -235,6 +252,7 @@ export async function fetchGeminiWithCompat(
     thinking: !!body?.generationConfig?.thinkingConfig,
     google: false, // REST 에는 providerOptions 개념이 없다
     alreadyMinimal: body?.generationConfig?.thinkingConfig?.thinkingLevel === "minimal",
+    alreadyLow: body?.generationConfig?.thinkingConfig?.thinkingLevel === "low",
   });
   const start = Math.max(
     0,
