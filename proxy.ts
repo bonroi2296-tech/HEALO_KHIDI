@@ -289,6 +289,17 @@ export async function proxy(request: NextRequest) {
       url.pathname = `/${detectLocale(request)}${pathname}`;
       return NextResponse.redirect(url, 308);
     }
+
+    // 언어 접두어는 있는데 공개 경로가 아니다(/ru/없는-주소 = 오타·죽은 링크 → 404).
+    // 주소가 말하는 언어로 404 를 그린다. 2026-09-06 로컬 실측: 쿠키 없는 첫 방문(공유된 옛 링크·검색 결과)은
+    // x-locale 도 쿠키도 없어 app/layout 의 마지막 폴백 en 으로 떨어져 러시아어 방문자가 「Page not found」를 봤다.
+    // 이 분기 아래엔 언어 접두어가 붙은 실제 경로가 없다(포털·인증 경로는 접두어 없이 산다) — 즉 여기 오면 전부 404 다.
+    // 쿠키는 안 심는다: 깨진 링크 하나로 방문자의 언어 설정을 바꾸면 안 된다.
+    if (hasLocale) {
+      const headers = new Headers(request.headers);
+      headers.set("x-locale", seg);
+      return NextResponse.next({ request: { headers } });
+    }
     // 공개 언어화 대상 아님 → 아래 기존 인증 로직으로 (원래 pathname 사용)
   }
 

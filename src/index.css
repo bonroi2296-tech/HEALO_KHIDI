@@ -69,17 +69,23 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== 텍스트 단락 매끄러움: 전 언어·전 페이지 공통 줄바꿈 규칙 =====
-   왜: 브라우저 기본값(word-break: normal)은 한/중/일을 "글자 아무 데서나" 끊어
+/* ===== 텍스트 단락 매끄러움: 전 페이지 공통 줄바꿈 규칙 =====
+   왜: 브라우저 기본값(word-break: normal)은 한국어를 "글자 아무 데서나" 끊어
    "있 / 습니다"처럼 한 단어를 두 줄로 쪼갠다. 문구를 하나씩 고치는 대신
-   여기서 한 번에 막는다 (개별 컴포넌트에서 재발 방지).
-   - keep-all: CJK(한·중·일)를 띄어쓰기에서만 끊음 → 단어 안 쪼개짐
-     (라틴/키릴 등은 원래 공백에서만 끊기므로 영향 거의 없음)
+   여기서 한 번에 막는다 (개별 컴포넌트에서 재발 방지 — 요소마다 break-keep 을 붙이지 마라, 일·중 화면이 넘친다).
+   - keep-all: «한국어에만»(아래 html:lang(ko) 규칙). 일·중은 띄어쓰기가 없어 keep-all 이 «못 끊음»이 된다
+     (라틴/키릴 등은 원래 공백에서만 끊기므로 영향 없음)
    - overflow-wrap: break-word: 초장문 단어·URL이 화면 밖으로 삐져나가는 것 방지(안전망)
    word-break/overflow-wrap 는 상속되므로 body 한 곳이면 전체에 적용된다. */
 body {
-  word-break: keep-all;
   overflow-wrap: break-word;
+}
+/* keep-all 은 한국어에만. 2026-09-06 로컬 실측(iPhone 12 폭 390px): 일본어 화면 5쪽(/ja/hospitals/immune ·
+   telemedicine · care-journey · insurance · partners)이 가로로 넘쳤다 — 일·중은 띄어쓰기가 없어 keep-all 이면
+   «끊을 자리가 없어» 한 문단이 한 줄로 늘어난다. 한국어는 어절 사이에 공백이 있어 keep-all 이 «단어 안 쪼갬»으로
+   딱 맞고, 일·중은 브라우저 기본(글자 사이 어디서나 끊음)이 그 언어의 표준 조판이다. <html lang> 은 layout 이 붙인다. */
+html:lang(ko) body {
+  word-break: keep-all;
 }
 
 /* 제목·본문 등 덩어리 텍스트는 마지막 줄 "외톨이 단어" 방지(text-wrap).

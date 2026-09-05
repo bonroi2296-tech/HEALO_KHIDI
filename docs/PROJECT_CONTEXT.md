@@ -10,6 +10,11 @@
 > 2026-08-03 PO: *«프로벨르라고 해서 다 빼라는게 아니고, GA4 설정 같은 경우는 나중에 우리 서비스에 GA4 붙일 때 참고해야하니깐 그걸 정확하게 인지하라는거야»*
 > ↳ **왜 2가 아니라 4인가(2026-07-21 상향)**: 병렬 세션이 하루 3개씩 핸드오프를 쓰면서 **당일 작업이 반나절 만에 창고로 밀려나** 다음 세션 시작 훅에 안 뜨는 일이 실제로 났다(머지 6건짜리 세션이 통째로 증발할 뻔함). 병렬 세션 수보다 넉넉해야 "오늘 것"이 남는다.
 
+> **📌 중간 저장 (2026-09-06 새벽 후속 2 · 같은 작업본 #1648 에 2건 더 + 재발 검사 2개)**
+> · **일본어 화면 5쪽이 폰 폭(390px)에서 가로로 넘쳤다**(/ja/hospitals/immune · telemedicine · care-journey · insurance · partners, 로컬 iPhone 12 실측). 글자 탓이 아니라 전역 CSS — `src/index.css` 의 `body { word-break: keep-all }` 이 «전 언어»에 걸려 띄어쓰기 없는 일·중 문단이 못 끊겼다(`InsuranceClient` 는 2026-07 에 이미 「zh/ja 는 넘친다」고 적고 ko 에만 걸었는데, body 규칙이 그 위를 덮었다). → `html:lang(ko) body` 에만 keep-all. 비밀번호·아이디 찾기 화면의 요소별 `break-keep` 10개도 걷음(ko 는 body 가 이미 덮는다). 재스캔 ja·zh·ko 57쪽 넘침 0. 재발 검사 `e2e/mobile-no-overflow.spec.ts`(야간, ja·zh·ru 15쪽).
+> · **404 가 러·카·중·일 방문자에게 영어로**: 제목 「Page not found」 고정 + 쿠키 없는 첫 방문(공유된 옛 링크)은 본문까지 영어 — proxy 가 `/ru/없는-주소` 에 x-locale 을 안 붙였다. → proxy `hasLocale` 분기(주소 언어로 404, 쿠키는 안 심음) + `app/not-found.jsx` generateMetadata(언어별 제목·noindex). 6개 언어 curl 실측 제 언어. 재발 검사 `e2e/not-found-locale.spec.ts`(@smoke, 쿠키 없이 ru·kz·ja).
+> · 확인만 하고 안 건드린 것: 환자 이메일 5종은 이미 6개 언어(문제 없음) · 자가시험 9/03 실패 3건(면력 지점 구어체 질문)은 **옛 경로**(DB 검색 없이 도는 판, `rag_chunk_count` null) 결과라 판단 보류 — **9/07 실행(새 경로 첫 실측)에서 다시 본다**.
+>
 > **📌 중간 저장 (2026-09-06 새벽 후속 · PO 「다 안 썼잖아」 — 같은 작업본 #1648 에 4건 더)**
 > · **실환자 챗 오답은 0건이었다(실DB 30일 실측)**: 채점 83건 중 문제 표시 16건 = 8/20 회귀 자가시험 11 + 매일 도는 smoke-chat 고정 질문 4(판사가 «30일 재개»(실제 구현)를 환각으로 오판, 코디 긴급알림까지 감) + 야간 E2E 「복구 검사」 1(off_topic). 어드민 품질 화면은 이걸 「문제율 19%」로 보여준다. → 점검·E2E 대화는 판사에서 뺀다: `src/lib/chat/syntheticThread.ts`(smoke 는 이미 보내던 `client_meta.smoke_test`, E2E 는 새 헤더 `x-healwith-test: e2e` → start 가 `client_meta.synthetic_test` 로 옮겨 적음). 비용 표면은 그대로(실서비스 키로 나간 돈). 사망감시 `ai_judge_zero` 는 답변 10건 이상에서만 울려 점검 1~2건/일로는 안 걸린다(확인). **실호출 검증 못 함(키 없음)** — 배포 뒤 다음 smoke 실행에 `ai_response_evaluations` 새 행이 «안» 생기면 된다. 기존 잡음 행은 안 지웠다(PO 확인 대상 아님, 그냥 과거 기록).
 > · **가격 단위 «KRW/session» 이 6개 언어 화면 전부 영어**(zh·ja 스캔에서 발견, ru 는 검사 토큰 규칙 구멍으로 빠져나감) → 사전 `price.unit.*` 6개 언어 + `priceUnit.js`. 검사 토큰을 `/` 로도 갈라 같은 구멍 닫음. kz 는 러시아어와 겹치지 않게 「KRW/рет · KRW/дана」.
