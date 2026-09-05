@@ -15,7 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { sendInAppNotification } from "@/lib/notifications/inApp";
-import { buildSystemPrompt } from "@/lib/chat/generateReply";
+import { streamChatReply } from "@/lib/chat/generateReply";
 import { pickCareReference } from "@/lib/chat/careReference";
 import { QUALITY_THRESHOLDS, REGRESSION_BATCH } from "@/lib/chat/qualityStandards";
 // 회귀 테스트도 AI 비용에 잡히게 한다 — 2026-08-14 이전엔 이 호출이 계측 밖이라
@@ -69,16 +69,21 @@ export function buildRegressionJudgeMessage(
   response: string,
   expectedBehavior: string,
   language: string,
+  // 답을 만들 때 «실제로» 쓴 안내자료. 실서비스는 질문에 따라 가격 줄을 빼기도 하는데
+  // (asksDocsOrProcess → docListAllowed), 여기에 늘 「가격 포함」 자료를 넣으면 판사가
+  // 답에 없는 가격을 기준으로 채점한다. 실측: 활성 시나리오 50개 중 44개가
+  // docListAllowed=false 였다(2026-09-05). 안 주면 종전대로 고정 자료를 쓴다.
+  careReference: string = REGRESSION_CARE_REFERENCE,
 ): string {
-  return `[Query (${language})]\n${query}\n\n[Reference]\n${REGRESSION_CARE_REFERENCE}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
+  return `[Query (${language})]\n${query}\n\n[Reference]\n${careReference}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
 }
 
-async function judgeOne(query: string, response: string, expectedBehavior: string, language: string) {
+async function judgeOne(query: string, response: string, expectedBehavior: string, language: string, careReference?: string) {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { overall_score: 0.5, flags: ["judge_unavailable"], reasoning: "No API key" };
   }
   const model = google(MODEL_ID) as any;
-  const msg = buildRegressionJudgeMessage(query, response, expectedBehavior, language);
+  const msg = buildRegressionJudgeMessage(query, response, expectedBehavior, language, careReference);
   try {
     const { text, usage } = await generateText({
       model,
@@ -107,28 +112,39 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
   }
 }
 
-// ── AI 응답 생성 ────────────────────────────────────────────────
-async function generateReply(query: string): Promise<{ reply: string; latency_ms: number }> {
+// ── AI 응답 생성 — 실서비스와 «같은 경로» ──────────────────────
+// 2026-08-21 이전엔 여기서 generateText 를 직접 불렀다. 그러면 3-Tier RAG(벡터검색·DB검색·
+// 외부검색)를 통째로 건너뛰므로 「검색 결과가 프롬프트에 들어갔을 때의 환각」을 영영 못 본다.
+// 또 스트리밍을 안 써서 latency 가 «완료 시각»만 재, NFR-02(첫 토큰 ≤ 5초)와 다른 자였다
+// (실측: 자가시험 고정비 4,983ms vs 실서비스 첫 토큰 중앙값 2,300ms).
+// → 이제 실서비스 채팅과 동일한 streamChatReply 를 타고, 첫 토큰 시각을 따로 잰다.
+async function generateReply(
+  query: string,
+  lang: string
+): Promise<{ reply: string; first_token_ms: number; latency_ms: number; rag_chunk_count: number; care_reference?: string }> {
   const t0 = Date.now();
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return { reply: "[AI unavailable]", latency_ms: 0 };
+    return { reply: "[AI unavailable]", first_token_ms: 0, latency_ms: 0, rag_chunk_count: 0 };
   }
-  const model = google(MODEL_ID) as any;
-  // 실제 챗봇과 동일한 시스템 프롬프트 사용 (RAG 컨텍스트만 제외) — 과거엔 간소화된
-  // 가짜 프롬프트를 테스트해 실제 정책 변경이 회귀테스트에 반영되지 않았음.
-  // 9번째 인자(docListAllowed)를 «명시»한다 — 기본값에 기대면 기본값이 바뀔 때
-  //   채점자(REGRESSION_CARE_REFERENCE)와 조용히 어긋난다.
-  const system = buildSystemPrompt("", false, false, [], {}, true, {}, "en", REGRESSION_DOC_LIST_ALLOWED);
+  let firstTokenMs: number | null = null;
   try {
-    const { text, usage } = await generateText({
-      model,
-      system,
-      messages: [{ role: "user", content: query }],
-    });
-    void logAiUsage({ surface: "regression_generate", model: MODEL_ID, usage, meta: { chars: query.length } });
-    return { reply: text, latency_ms: Date.now() - t0 };
+    // ⚠️ messages 가 비면 streamText 가 "messages must not be empty" 로 죽는다.
+    // 실서비스(app/api/public/chat/stream)도 «현재 발화가 들어있는» 기록을 넘긴다 —
+    // query 인자는 검색·게이트용이고, 모델에 실제로 가는 건 messages 다.
+    const res = await streamChatReply([{ role: "user", content: query }], query, lang || "en", undefined, () => {
+      if (firstTokenMs === null) firstTokenMs = Date.now() - t0;
+    }, { isRegressionTest: true });
+    return {
+      reply: res.reply,
+      // 스트림 없이 끝난 경로(잡담 바이패스·오류 폴백)는 완료=첫 토큰으로 본다.
+      first_token_ms: firstTokenMs ?? Date.now() - t0,
+      latency_ms: Date.now() - t0,
+      rag_chunk_count: res.ragChunks?.length ?? 0,
+      // 판사가 «답이 본 것과 같은» 자료로 채점하게 넘긴다.
+      care_reference: res.careReference,
+    };
   } catch (e: any) {
-    return { reply: `[Error: ${e.message}]`, latency_ms: Date.now() - t0 };
+    return { reply: `[Error: ${e.message}]`, first_token_ms: 0, latency_ms: Date.now() - t0, rag_chunk_count: 0 };
   }
 }
 
@@ -202,8 +218,8 @@ export async function runRegressionBatch() {
     const batch = scenarios.slice(i, i + CONCURRENCY);
     await Promise.all(
       batch.map(async (sc: any) => {
-        const { reply, latency_ms } = await generateReply(sc.query_text);
-        const judge = await judgeOne(sc.query_text, reply, sc.expected_behavior, sc.language);
+        const { reply, first_token_ms, latency_ms, rag_chunk_count, care_reference } = await generateReply(sc.query_text, sc.language);
+        const judge = await judgeOne(sc.query_text, reply, sc.expected_behavior, sc.language, care_reference);
         const passed = judge.overall_score >= QUALITY_THRESHOLDS.regressionPass;
 
         await db.from("ai_regression_runs").insert({
@@ -214,6 +230,8 @@ export async function runRegressionBatch() {
           flags: judge.flags,
           passed,
           latency_ms,
+          first_token_ms,
+          rag_chunk_count,
         });
 
         totalScore += judge.overall_score;

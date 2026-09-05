@@ -28,6 +28,14 @@ const LATENCY_COLOR = (ms) => {
   return "text-red-600";
 };
 
+// 첫 글자까지의 기준선은 NFR-02 = 5초. 완료시간(LATENCY_COLOR)과 자가 다르므로 따로 둔다.
+const FIRST_TOKEN_COLOR = (ms) => {
+  if (ms === 0) return "text-gray-500";
+  if (ms <= 5000) return "text-green-700";
+  if (ms <= 8000) return "text-amber-700";
+  return "text-red-600";
+};
+
 // 분위수(오름차순 정렬 후 nearest-rank). P95 = "느린 쪽 95번째 사용자가 겪은 값".
 function percentile(values, p) {
   const arr = values.filter((n) => n > 0).sort((a, b) => a - b);
@@ -152,6 +160,11 @@ function QualityDistribution({ rows }) {
   const latencies = rows.map((r) => Number(r.latency_ms ?? 0));
   const p50 = percentile(latencies, 50);
   const p95 = percentile(latencies, 95);
+  // 첫 토큰까지 = NFR-02(≤5초)와 같은 자. 2026-08-21 이전 실행분엔 이 값이 없다(null) →
+  // percentile 이 0 을 걸러내므로 옛 행만 있으면 "—" 가 뜬다(완료 시간으로 오해시키지 않는다).
+  const firstTokens = rows.map((r) => Number(r.first_token_ms ?? 0));
+  const ftP50 = percentile(firstTokens, 50);
+  const ftP95 = percentile(firstTokens, 95);
   const secs = (ms) => (ms > 0 ? `${(ms / 1000).toFixed(1)}초` : "—");
 
   // flag 분포 (인프라 flag 제외)
@@ -180,16 +193,16 @@ function QualityDistribution({ rows }) {
           colorClass={unsafe === 0 ? "text-green-700" : "text-red-600"}
         />
         <StatCard
-          label="응답시간 P50 (중앙값)"
-          value={secs(p50)}
-          sub="절반은 이보다 빠름"
-          colorClass={LATENCY_COLOR(p50)}
+          label="첫 글자까지 P50 (중앙값)"
+          value={secs(ftP50)}
+          sub={`절반은 이보다 빠름 · 답변 완료까지 ${secs(p50)}`}
+          colorClass={FIRST_TOKEN_COLOR(ftP50)}
         />
         <StatCard
-          label="응답시간 P95"
-          value={secs(p95)}
-          sub="느린 5%가 겪는 시간"
-          colorClass={LATENCY_COLOR(p95)}
+          label="첫 글자까지 P95"
+          value={secs(ftP95)}
+          sub={`느린 5%가 겪는 시간 · 답변 완료까지 ${secs(p95)}`}
+          colorClass={FIRST_TOKEN_COLOR(ftP95)}
         />
       </div>
 
@@ -359,13 +372,15 @@ export default function AiRegressionPage() {
         byDate[d].scoreSum += Number(row.overall_score ?? 0);
       }
 
-      const passRateTrend = Object.entries(byDate).map(([date, s]) => ({
+      // 서버가 최신순으로 주므로 추이 그래프는 날짜 오름차순으로 되돌린다(왼쪽이 과거).
+      const dates = Object.keys(byDate).sort();
+      const passRateTrend = dates.map((date) => ({
         date,
-        value: s.total > 0 ? Math.round((s.passed / s.total) * 100) : 0,
+        value: byDate[date].total > 0 ? Math.round((byDate[date].passed / byDate[date].total) * 100) : 0,
       }));
-      const avgScoreTrend = Object.entries(byDate).map(([date, s]) => ({
+      const avgScoreTrend = dates.map((date) => ({
         date,
-        value: s.total > 0 ? Math.round((s.scoreSum / s.total) * 100) / 100 : 0,
+        value: byDate[date].total > 0 ? Math.round((byDate[date].scoreSum / byDate[date].total) * 100) / 100 : 0,
       }));
 
       setTrendPassRate(passRateTrend);
