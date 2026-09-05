@@ -81,18 +81,27 @@ for (const [slug, faqs] of Object.entries(CANCER_FAQ)) {
 //   번역(특히 ru·kz = 핵심 시장)은 의료 용어라 검수가 필요해 이 검사가 대신 지어낼 수 없다.
 //   그래서 «오늘 숫자를 천장으로» 못 박는다 — 더 나빠지는 것만 막고, 줄면 천장을 같이 내리게 강제한다.
 //   ⚠️ 번역이 들어오면 BASELINE 을 반드시 같이 낮춰라(안 낮추면 이 검사가 다시 장식이 된다).
-const ITCRN_BASELINE = 38;
+// 2026-09-05: 38 → 0. 제목·설명 빈 칸 38개를 채우고, 한국어뿐이던 잎 24개(근거·요법 태그·항암 지원)도
+//   {ko,en,ru,kz,zh,ja} 로 바꿨다 → 이제 «잎 전부»를 검사한다(문자열 잎이 남아 있으면 그것도 빈 칸으로 센다).
+//   ⚠️ 번역은 AI 가 했고 코디네이터 검수 전엔 「제안」이다 — 값을 고쳐도 이 검사는 «비었는지»만 본다.
+const ITCRN_BASELINE = 0;
 const itcrnMissing = [];
-for (const [axis, v] of Object.entries(ITCRN_FRAMEWORK ?? {})) {
-  for (const field of ["title", "desc"]) {
-    const val = v?.[field];
-    if (!isPlainObj(val)) continue;
-    for (const lang of LANGS) {
-      const x = val[lang];
-      if (x === undefined || x === null || (typeof x === "string" && !x.trim())) {
-        itcrnMissing.push(`ITCRN_FRAMEWORK.${axis}.${field}: '${lang}' 없음 → 화면은 en 으로 폴백`);
-      }
+const missingLangs = (label, val) => {
+  if (!isPlainObj(val)) {
+    itcrnMissing.push(`${label}: 언어별 객체가 아니다(${typeof val}) → 화면은 빈 칸`);
+    return;
+  }
+  for (const lang of LANGS) {
+    const x = val[lang];
+    if (x === undefined || x === null || (typeof x === "string" && !x.trim())) {
+      itcrnMissing.push(`${label}: '${lang}' 없음 → 화면은 en 으로 폴백`);
     }
+  }
+};
+for (const [axis, v] of Object.entries(ITCRN_FRAMEWORK ?? {})) {
+  for (const [field, val] of Object.entries(v ?? {})) {
+    if (Array.isArray(val)) val.forEach((item, i) => missingLangs(`ITCRN_FRAMEWORK.${axis}.${field}[${i}]`, item));
+    else missingLangs(`ITCRN_FRAMEWORK.${axis}.${field}`, val);
   }
 }
 if (itcrnMissing.length > ITCRN_BASELINE) {
@@ -118,5 +127,5 @@ if (problems.length) {
 }
 console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩)");
 console.log(
-  `⚠️  5축(ITCRN) 제목·설명 빈 칸 ${itcrnMissing.length}칸 — 천장 동결 중(늘면 차단). ru·kz 번역 들어오면 천장을 내릴 것.`,
+  `⚠️  5축(ITCRN) 잎(제목·설명·근거·태그·항암지원) 빈 칸 ${itcrnMissing.length}칸 — 천장 0(늘면 차단). 값은 AI 번역이라 코디 검수 전엔 「제안」이다.`,
 );

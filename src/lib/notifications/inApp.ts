@@ -8,6 +8,8 @@
 import "server-only";
 import { getSupabaseServerClient } from "@/lib/data/supabaseServerClient";
 import { formatColdLeadLine } from "@/lib/inquiry/coldLeads";
+import { emailStaff } from "./staffEmail";
+import { adminBaseUrl } from "./adminBaseUrl";
 
 export type NotificationPriority = "low" | "normal" | "high" | "urgent";
 
@@ -367,13 +369,14 @@ export interface PatientMessageNotice {
  *   아무에게도 안 알렸다. 문의 #302 환자가 9/4 에 글을 남겼는데 열람 기록 0·답 0 으로 이틀이 갔다.
  *   환자가 말을 걸었는데 조용한 것은 유치 실패로 직행한다. 새 문의 알림과 같은 길로 보낸다.
  * 디듀프 없음 — 글 한 건이 한 알림이다(환자가 두 번 쓰면 두 번 울려야 한다). Fail-safe.
+ * 메일도 같이 나간다(2026-09-05 실측: 코디 폰 푸시 기기 0대·종 열람률 10~15% — 종만으로는 «울렸는데 못 듣는다»).
  */
 export async function notifyStaffPatientMessage(notice: PatientMessageNotice): Promise<void> {
   try {
     const { admins, coordinators } = await getStaffIdsByRole();
-    if (admins.length === 0 && coordinators.length === 0) return;
     const title = `💬 환자가 글을 남겼어요 #${notice.inquiryId}`;
     const body = "진행상황 링크로 추가 내용이 도착했어요. 확인하고 답을 주세요.";
+    const base = adminBaseUrl();
     await Promise.allSettled([
       broadcastInAppNotification(coordinators, {
         type: "patient_message", title, body, priority: "high",
@@ -384,6 +387,11 @@ export async function notifyStaffPatientMessage(notice: PatientMessageNotice): P
         type: "patient_message", title, body, priority: "high",
         link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
         payload: { inquiryId: notice.inquiryId },
+      }),
+      emailStaff({
+        subject: `[healwith] ${title}`,
+        text: `${body}\n\n코디 화면: ${base}/coordinator/inbox/${notice.inquiryId}\n(환자 글 본문은 메일에 싣지 않습니다 — 화면에서 확인하세요)`,
+        tags: { kind: "patient_message", inquiry_id: String(notice.inquiryId) },
       }),
     ]);
   } catch {
@@ -444,16 +452,32 @@ export async function notifyStaffColdLeads(notice: ColdLeadsNotice): Promise<voi
     if (targets.length === 0) return;
 
     const list = formatColdLeadLine(notice.leads);
-    await broadcastInAppNotification(targets, {
-      type: "lead_cold",
-      title: `🧊 식은 문의 ${notice.leads.length}건`,
-      body:
-        `유치 전 단계에서 ${notice.thresholdDays}일 넘게 아무 움직임이 없는 문의예요: ${list}. ` +
-        `연락하거나, 끝난 건이면 보류·종결로 바꿔 주세요(그래야 목록에서 빠져요).`,
-      priority: "high",
-      link: "/coordinator/inbox",
-      payload: { leads: notice.leads.slice(0, 50), thresholdDays: notice.thresholdDays },
-    });
+    const title = `🧊 식은 문의 ${notice.leads.length}건`;
+    const body =
+      `유치 전 단계에서 ${notice.thresholdDays}일 넘게 아무 움직임이 없는 문의예요: ${list}. ` +
+      `연락하거나, 끝난 건이면 보류·종결로 바꿔 주세요(그래야 목록에서 빠져요).`;
+    const base = adminBaseUrl();
+    // 메일은 «주 1회 시점»에만: 직원 «전원»이 7일 창 밖일 때(= 이번이 이번 주 첫 알림). 직원 한 명이 새로 생기거나
+    // 누군가의 종 저장이 실패해 창 밖으로 떨어졌다고 메일이 또 나가면 안 된다(독립 리뷰 2026-09-05).
+    const weeklyMoment = targets.length === staff.length;
+    await Promise.allSettled([
+      broadcastInAppNotification(targets, {
+        type: "lead_cold",
+        title,
+        body,
+        priority: "high",
+        link: "/coordinator/inbox",
+        payload: { leads: notice.leads.slice(0, 50), thresholdDays: notice.thresholdDays },
+      }),
+      // 종·푸시가 안 닿는 자리의 보강(2026-09-05 실측: 코디 푸시 기기 0대·종 열람률 10~15%)
+      weeklyMoment
+        ? emailStaff({
+            subject: `[healwith] ${title}`,
+            text: `${body}\n\n코디 화면: ${base}/coordinator/inbox`,
+            tags: { kind: "lead_cold" },
+          })
+        : Promise.resolve(0),
+    ]);
   } catch {
     /* fail-safe */
   }

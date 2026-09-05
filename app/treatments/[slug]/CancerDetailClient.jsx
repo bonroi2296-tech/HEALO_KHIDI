@@ -354,19 +354,16 @@ export default function CancerDetailClient({ slug }) {
                     <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-2xl mb-4">
                       {l(axis.desc)}
                     </p>
-                    {/* 근거 문장·요법 태그는 아직 한국어만 있다(ITCRN_FRAMEWORK 의 evidence/methods/
-                        cellular/humoral/programs = 24개 문자열이 ko 단일). 접혀 있을 땐 아무도(검사기 포함)
-                        못 봐서 지금까지 안 드러났는데, 이제 HTML 에 상시 노출되므로 영어·러시아어 페이지에
-                        한글이 뿌려진다 → 번역이 붙기 전까지는 한국어 화면에서만 보여준다.
-                        ⚠️ 24개 용어 번역이 들어오면 이 lang 조건을 지울 것(KNOWN_ISSUES 등재). */}
-                    {lang === "ko" && axis.evidence && (
+                    {/* 근거 문장·요법 태그 — 2026-09-05 부터 6개 언어(ITCRN_FRAMEWORK 잎이 전부 {ko,en,ru,kz,zh,ja}).
+                        전엔 한국어 문자열뿐이라 lang==="ko" 일 때만 그렸다. 이제 l() 로 방문자 언어. */}
+                    {axis.evidence && (
                       <div className="border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 mb-4 max-w-2xl">
                         <p className="text-sm text-teal-800 font-semibold m-0 leading-relaxed">
-                          {axis.evidence}
+                          {l(axis.evidence)}
                         </p>
                       </div>
                     )}
-                    {lang === "ko" && (axis.methods || axis.cellular || axis.programs) && (
+                    {(axis.methods || axis.cellular || axis.programs) && (
                       <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
                         {[...(axis.methods || []), ...(axis.cellular || []), ...(axis.humoral || []), ...(axis.programs || [])].map(
                           (m, i) => (
@@ -374,7 +371,7 @@ export default function CancerDetailClient({ slug }) {
                               key={i}
                               className="text-xs font-semibold text-gray-600 border border-gray-200 rounded-full px-3 py-1"
                             >
-                              {m}
+                              {l(m)}
                             </li>
                           )
                         )}
@@ -436,8 +433,10 @@ export default function CancerDetailClient({ slug }) {
                     {therapy.price && (
                       <div className="mt-4 inline-block bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
                         <span className="text-xs font-semibold text-gray-600">
+                          {/* 숫자 표기는 고정(en-US) — 인자 없는 toLocaleString() 은 서버(Node)와 브라우저(ru-RU 는 "250 000")가
+                              다르게 찍어 러·카 방문자마다 hydration 불일치가 났다(2026-09-05 dev 실측, CancerDetailClient:416). */}
                           {typeof therapy.price.amount === "number"
-                            ? `${therapy.price.amount.toLocaleString()} ${therapy.price.unit}`
+                            ? `${therapy.price.amount.toLocaleString("en-US")} ${therapy.price.unit}`
                             : `${therapy.price.amount} ${therapy.price.unit || ""}`}
                         </span>
                       </div>
