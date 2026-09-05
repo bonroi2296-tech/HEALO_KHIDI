@@ -30,7 +30,7 @@ const LATENCY_COLOR = (ms) => {
 
 // 첫 글자까지의 기준선은 NFR-02 = 5초. 완료시간(LATENCY_COLOR)과 자가 다르므로 따로 둔다.
 const FIRST_TOKEN_COLOR = (ms) => {
-  if (ms === 0) return "text-gray-400";
+  if (ms === 0) return "text-gray-500";
   if (ms <= 5000) return "text-green-700";
   if (ms <= 8000) return "text-amber-700";
   return "text-red-600";
