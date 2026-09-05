@@ -10,7 +10,8 @@
 - Vercel 방문 통계(Web Analytics)는 **안 켜져 있다**(API 404) — 방문자 국가·유입 경로를 서버 쪽에서 볼 길이 없다. `funnel_events` 표는 총 1행(죽은 표). GA4 는 PO 콘솔.
 
 **고친 것**: **IndexNow** — 빙·얀덱스·네이버·Seznam 이 같이 쓰는 공개 규약(무료, 한 곳에 보내면 전부 전달, **구글은 안 받는다**).
-- `src/lib/seo/indexNow.ts`(주소 고르기·제출, 시험 8건) + `/api/cron/indexnow`(계약 시험 8건) + `vercel.json` 매일 07:00 UTC(창구 1시간 뒤).
+- `src/lib/seo/indexNow.ts`(주소 고르기·제출·월요일 판정, 시험 10건) + `/api/cron/indexnow`(계약 시험 8건) + `vercel.json` 매일 07:00 UTC(창구 1시간 뒤).
+- 독립 리뷰로 잡힌 것(전부 반영): ①라우트 파일의 비핸들러 export 가 **`next build` 타입검사를 깨뜨렸다**(tsc 만 돌리면 안 잡힌다 — `.next/types` 가 낡아서) → lib 로 이동, `next build` 통과 실측 ②기준 주소 정본이 둘(사이트맵 env 원문 vs `siteUrl()`) → 사이트맵도 `siteUrl()` ③full 인데 우리 host 주소 0건이면 502(«영원히 0건» 초록불 방지) ④`STATIC_LASTMOD` 2026-09-05 로(#1647 암종 상세) — **정적 페이지를 고친 PR 은 이 날짜를 같이 올려야 평일 크론이 본다** ⑤엔진 fetch 15초 타임아웃 ⑥시험이 실행 환경 `NEXT_PUBLIC_SITE_URL` 에 흔들리던 것 mock 으로 고정.
 - 평일 = 사이트맵 lastModified **3일 안** 주소만 · **월요일(UTC) = 전부**(빠져도 일주일 안에 닿음) · `?full=1` = 수동 전체(크론 비밀키 필요).
 - 키 파일 `public/bea9fc493565bfdb34a73f8ce0c7739d.txt` — **공개가 규약**(엔진이 이 파일로 «호스트 주인이 보냈다»를 확인). 실서비스에서 `/llms.txt` 가 200 으로 서빙되는 것과 같은 길(proxy 가 언어 주소로 안 보낸다 — 2026-09-05 실측: 아직 없는 키 경로가 308 이 아니라 404).
 - 엔진이 거절(403 키·422 host·429 상한)하면 크론이 502 를 내 Vercel 크론 기록에 빨간불로 남는다.

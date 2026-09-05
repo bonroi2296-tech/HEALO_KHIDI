@@ -14,13 +14,8 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCronSecret } from "@/lib/security/cronAuth";
 import { siteUrl } from "@/lib/siteUrl";
-import { INDEXNOW_WINDOW_DAYS, pickIndexNowUrls, submitIndexNow } from "@/lib/seo/indexNow";
+import { INDEXNOW_WINDOW_DAYS, isFullSubmissionDay, pickIndexNowUrls, submitIndexNow } from "@/lib/seo/indexNow";
 import sitemap from "../../../sitemap";
-
-/** 월요일(UTC) = 전체 재제출일. 사이트맵에서 빠진 날이 있어도 일주일 안에 다시 닿는다. */
-export function isFullSubmissionDay(d: Date): boolean {
-  return d.getUTCDay() === 1;
-}
 
 async function handle(request: NextRequest) {
   if (!verifyCronSecret(request.headers.get("authorization"))) {
@@ -34,14 +29,21 @@ async function handle(request: NextRequest) {
     const entries = await sitemap();
     const host = new URL(siteUrl()).host;
     const urls = pickIndexNowUrls(entries as any, { host, full, windowDays: INDEXNOW_WINDOW_DAYS });
+    const candidates = entries?.length ?? 0;
     if (urls.length === 0) {
-      console.log(`[cron/indexnow] mode=${mode} candidates=${entries?.length ?? 0} submitted=0 (보낼 변경 없음) ${Date.now() - t0}ms`);
-      return NextResponse.json({ ok: true, mode, submitted: 0, status: 0 });
+      // full 인데 사이트맵엔 항목이 있고 우리 host 주소가 «하나도» 없다 = 기준 주소가 어긋난 것(NEXT_PUBLIC_SITE_URL) →
+      // 매일 «보낼 변경 없음» 초록불로 영원히 0건이 되는 게 제일 나쁜 고장이라 빨간불로 남긴다(독립 리뷰 지적).
+      const hostMismatch = full && candidates > 0;
+      console.log(
+        `[cron/indexnow] mode=${mode} candidates=${candidates} submitted=0 status=0 (${hostMismatch ? "host 불일치 의심" : "보낼 변경 없음"}) ${Date.now() - t0}ms`
+      );
+      return NextResponse.json(
+        hostMismatch ? { ok: false, mode, submitted: 0, status: 0, error: "host_mismatch" } : { ok: true, mode, submitted: 0, status: 0 },
+        { status: hostMismatch ? 502 : 200 }
+      );
     }
     const r = await submitIndexNow({ host, urls });
-    console.log(
-      `[cron/indexnow] mode=${mode} candidates=${entries?.length ?? 0} submitted=${r.submitted} status=${r.status} ${Date.now() - t0}ms`
-    );
+    console.log(`[cron/indexnow] mode=${mode} candidates=${candidates} submitted=${r.submitted} status=${r.status} ${Date.now() - t0}ms`);
     // 엔진이 거절(403 키 불일치·422 host 불일치·429 상한)하면 크론 기록에 빨간불이 남게 502.
     return NextResponse.json({ ok: r.ok, mode, submitted: r.submitted, status: r.status }, { status: r.ok ? 200 : 502 });
   } catch (err: any) {

@@ -24,6 +24,18 @@ export const INDEXNOW_WINDOW_DAYS = 3;
 
 export type SitemapLike = { url?: string | null; lastModified?: Date | string | number | null };
 
+/** 엔진 응답을 기다리는 상한 — 사이트맵 조회(최대 10초)와 합쳐도 크론 maxDuration(60초) 안에 끝나야 한다. */
+export const INDEXNOW_TIMEOUT_MS = 15_000;
+
+/**
+ * 월요일(UTC) = 전체 재제출일. 평일은 사이트맵 lastModified 창(3일)에 든 주소만 보내는데, 정적 페이지의 lastModified 는
+ * 손으로 올리는 상수(app/sitemap.js STATIC_LASTMOD)라 잊히기 쉽다 — 그래서 일주일에 한 번은 전부 보내 빠진 게 없게 한다.
+ * (라우트 파일에는 핸들러 외 export 를 둘 수 없어 여기 있다 — next build 타입검사가 막는다.)
+ */
+export function isFullSubmissionDay(d: Date): boolean {
+  return d.getUTCDay() === 1;
+}
+
 function toMs(v: SitemapLike["lastModified"]): number | null {
   if (v == null) return null;
   const t = v instanceof Date ? v.getTime() : typeof v === "number" ? v : Date.parse(String(v));
@@ -97,6 +109,8 @@ export async function submitIndexNow(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(body),
+      // 응답이 영영 안 오면 Vercel 이 60초에 함수를 죽여 로그 한 줄도 안 남는다 → 우리가 먼저 끊고 status 0 으로 남긴다.
+      signal: AbortSignal.timeout(INDEXNOW_TIMEOUT_MS),
     });
     const ok = res.status === 200 || res.status === 202;
     return { status: res.status, ok, submitted: ok ? urls.length : 0 };

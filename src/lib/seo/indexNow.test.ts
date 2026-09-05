@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   INDEXNOW_KEY,
   INDEXNOW_KEY_PATH,
+  isFullSubmissionDay,
   pickIndexNowUrls,
   submitIndexNow,
 } from "./indexNow";
@@ -65,6 +66,8 @@ describe("submitIndexNow — 규약대로 보내기", () => {
     expect(calls[0].url).toBe("https://api.indexnow.org/IndexNow");
     expect(calls[0].init.method).toBe("POST");
     expect(calls[0].init.headers["Content-Type"]).toMatch(/application\/json/);
+    // 응답이 안 오면 우리가 먼저 끊는다(크론 maxDuration 에 죽어 로그가 안 남는 것 방지)
+    expect(calls[0].init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(calls[0].init.body)).toEqual({
       host: HOST,
       key: INDEXNOW_KEY,
@@ -94,6 +97,14 @@ describe("submitIndexNow — 규약대로 보내기", () => {
     const fetchImpl = vi.fn() as any;
     expect(await submitIndexNow({ host: HOST, urls: [], fetchImpl })).toEqual({ status: 0, ok: true, submitted: 0 });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("isFullSubmissionDay — 월요일(UTC)만 전체 재제출", () => {
+  it("월요일 참, 나머지 거짓 (KST 로는 월요일 16:00 이 UTC 월요일 07:00)", () => {
+    expect(isFullSubmissionDay(new Date("2026-09-07T07:00:00Z"))).toBe(true);
+    expect(isFullSubmissionDay(new Date("2026-09-06T07:00:00Z"))).toBe(false);
+    expect(isFullSubmissionDay(new Date("2026-09-08T07:00:00Z"))).toBe(false);
   });
 });
 

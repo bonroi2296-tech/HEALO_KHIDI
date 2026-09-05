@@ -2,7 +2,9 @@
  * 계약 회귀 테스트 — IndexNow 제출 cron (GET /api/cron/indexnow)
  *
  * 잠그는 계약: ①비밀키 없으면 401 ②평일엔 사이트맵에서 최근(3일) 바뀐 주소만 보낸다 ③월요일(UTC)·?full=1 이면 전부
- * ④엔진이 거절하면 502(크론 기록에 남게) ⑤사이트맵이 죽으면 500 + 코드형 오류만(메시지 노출 없음).
+ * ④엔진이 거절하면 502(크론 기록에 남게) ⑤사이트맵이 죽으면 500 + 코드형 오류만(메시지 노출 없음)
+ * ⑥full 인데 우리 host 주소가 하나도 안 골라지면(기준 주소 불일치) 502.
+ * 기준 주소는 mock 으로 고정한다 — 실행 환경의 NEXT_PUBLIC_SITE_URL 에 따라 시험이 흔들리면 안 된다(독립 리뷰 지적).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -22,8 +24,10 @@ vi.mock("../../../sitemap", () => ({
 vi.mock("@/lib/security/cronAuth", () => ({
   verifyCronSecret: (header: string | null) => header === "Bearer test-secret",
 }));
+vi.mock("@/lib/siteUrl", () => ({ siteUrl: () => "https://healwith.co.kr" }));
 
-import { GET, isFullSubmissionDay } from "./route";
+import { GET } from "./route";
+import { isFullSubmissionDay } from "@/lib/seo/indexNow";
 
 const DAY = 86_400_000;
 const MONDAY = Date.parse("2026-09-07T07:00:00Z"); // 월요일
@@ -88,6 +92,14 @@ describe("indexnow cron", () => {
     h.entries = [{ url: "https://healwith.co.kr/en/faq", lastModified: new Date("2026-08-20") }];
     const res = await GET(req("Bearer test-secret"));
     expect(await res.json()).toMatchObject({ ok: true, submitted: 0 });
+    expect(h.posts).toHaveLength(0);
+  });
+
+  it("full 인데 우리 host 주소가 하나도 없으면(기준 주소 불일치) 502 — «영원히 0건» 초록불을 막는다", async () => {
+    h.entries = [{ url: "https://healo-khidi-xyz.vercel.app/ru", lastModified: new Date(TUESDAY) }];
+    const res = await GET(req("Bearer test-secret", "?full=1"));
+    expect(res.status).toBe(502);
+    expect(await res.json()).toMatchObject({ ok: false, error: "host_mismatch", submitted: 0 });
     expect(h.posts).toHaveLength(0);
   });
 
