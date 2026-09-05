@@ -128,8 +128,9 @@ const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
         }
       }
 
-      // 치료 5축(ITCRN)은 항목이 한국어로만 적혀 있어 한국어 문서만 만든다.
-      // 다른 언어 환자에게는 위 암종별 문서의 focusPrograms(6개 언어 완비)가 같은 역할을 한다.
+      // 치료 5축(ITCRN) — 2026-09-05 부터 잎이 {ko,en,…} 객체다. RAG 문서는 예전처럼 한국어 하나만 만든다
+      // (다른 언어 환자에게는 위 암종별 문서의 focusPrograms 가 같은 역할). 문자열/객체 둘 다 받는다.
+      const koOf = (x: any): string => (typeof x === "string" ? x : typeof x?.ko === "string" ? x.ko : "");
       const AXIS_LABEL: Record<string, string> = {
         cellular: "세포면역",
         humoral: "체액면역",
@@ -149,8 +150,10 @@ const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
         for (const [key, val] of Object.entries<any>(a)) {
           if (key === "title" || key === "desc") continue;
           const label = AXIS_LABEL[key] || key;
-          if (Array.isArray(val) && val.length) lines.push(`${label}: ${val.join(", ")}`);
-          else if (typeof val === "string" && val) lines.push(`${label}: ${val}`);
+          if (Array.isArray(val) && val.length) {
+            const items = val.map(koOf).filter(Boolean);
+            if (items.length) lines.push(`${label}: ${items.join(", ")}`);
+          } else if (koOf(val)) lines.push(`${label}: ${koOf(val)}`);
         }
         if (!lines.length) continue;
         rows.push({ slug: `itcrn-${axis}`, lang: "ko", title, lines });

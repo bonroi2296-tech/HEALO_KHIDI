@@ -10,8 +10,7 @@ import CancerDetailClient from "./CancerDetailClient";
 import {
   CANCER_DETAILS,
   CANCER_IMAGES,
-  CANCER_FAQ,
-} from "@/lib/data/immuneCancerDetails";
+  CANCER_FAQ, ITCRN_FRAMEWORK } from "@/lib/data/immuneCancerDetails";
 import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
@@ -183,23 +182,27 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) notFound();
 
-    // MedicalCondition JSON-LD
+    // MedicalCondition JSON-LD — 화면과 «같은 언어»로(2026-09-05). 전엔 name·description·possibleTreatment 가
+    // 전부 한국어 고정이라 러·카 페이지의 구조화데이터가 한국어였다(검색봇·AI 답변엔진이 그 언어로 못 읽는다).
+    // possibleTreatment 는 손 목록 대신 5축 데이터(ITCRN_FRAMEWORK, 6개 언어)에서 뽑는다 — 화면 태그와 같은 정본.
+    const L = (o) => o?.[locale] || o?.en || o?.ko || "";
+    const F = ITCRN_FRAMEWORK;
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "MedicalCondition",
-      name: cancer.title.ko,
-      alternateName: [cancer.title.en, cancer.title.ru].filter(Boolean),
-      description: cancer.intro.ko,
+      name: L(cancer.title),
+      alternateName: [...new Set([cancer.title.en, cancer.title.ru, cancer.title.ko].filter((x) => x && x !== L(cancer.title)))],
+      description: L(cancer.intro),
       possibleTreatment: [
-        "싸이모신α1 요법",
-        "미슬토 요법",
-        "NK세포치료제",
-        "고주파온열암치료",
-        "림프도수 마사지",
-        "셀레늄 요법",
-        "고농도 비타민 요법",
-        "면역플러스 (황기 부정단)",
-      ],
+        F.immunity.cellular[0], // 싸이모신α1 요법
+        F.immunity.cellular[1], // 미슬토 요법
+        F.immunity.cellular[3], // NK세포치료제
+        F.temperature.methods[0], // 고주파온열암치료
+        F.circulation.methods[0], // 림프도수 마사지
+        F.resistibility.methods[0], // 셀레늄 요법
+        F.resistibility.methods[2], // 고농도 비타민 요법
+        F.immunity.humoral[1], // 면역플러스 (황기 부정단)
+      ].map(L).filter(Boolean),
       relevantSpecialty: {
         "@type": "MedicalSpecialty",
         name: "Oncology",
