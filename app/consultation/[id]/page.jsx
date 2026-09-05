@@ -1537,7 +1537,8 @@ export default function ConsultationRoomPage() {
               consultationId,
               speakerRole: "self",
               // 이 글을 만든 받아쓰기 경로 — 기록에 남겨야 길별 품질을 실사용에서 잰다.
-              sttEngine: sttEngineRef.current,
+              // 항목에 엔진이 실려 있으면(예: /stt 실험 경로의 번역 폴백) 그것이 우선.
+              sttEngine: (typeof item !== "string" && item.sttEngine) || sttEngineRef.current,
           speakerName: myNameRef.current || undefined,
               // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
               context: contextForApi(convoContextRef.current),
@@ -1570,7 +1571,9 @@ export default function ConsultationRoomPage() {
   }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
 
   const translateText = useCallback(
-    (text, utter) => {
+    // opts.sttEngine: 이 글을 «누가 받아썼나»를 항목별로 덮어쓴다. /stt 실험 경로(server_transcribe)가
+    // 번역만 실패해 여기로 떨어질 때 기존 엔진 이름표로 저장되지 않게(2026-09-05 독립 리뷰 지적).
+    (text, utter, opts = {}) => {
       if (!text || !text.trim()) return;
       const trimmed = text.trim();
       // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 처리 — 발화의 39%가
@@ -1585,7 +1588,8 @@ export default function ConsultationRoomPage() {
       // utter(발화 세대)는 확정 자막의 순서 역전 필터용 — 수동입력 등 utter 없는 경로는 undefined.
       // at = «말한 시각». 번역 왕복 뒤에 찍으면 내 줄만 뒤로 밀려 기록 순서가 어긋난다.
       const at = Date.now();
-      q.push(quick ? { text: trimmed, pre: quick, utter, at } : { text: trimmed, utter, at });
+      const sttEngine = opts && opts.sttEngine ? opts.sttEngine : undefined;
+      q.push(quick ? { text: trimmed, pre: quick, utter, at, sttEngine } : { text: trimmed, utter, at, sttEngine });
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 40) q.splice(0, q.length - 40);
       // 큐가 쌓여 있으면 일꾼을 더 깨운다(상한은 drainTranslateQueue 안에서 막는다).
@@ -3234,8 +3238,12 @@ export default function ConsultationRoomPage() {
                     startedAt
                   );
                 } else {
-                  // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백
-                  translateTextRef.current(result.transcript);
+                  // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백.
+                  // 실험 경로(server_transcribe)가 받아쓴 글이면 그 이름표를 같이 넘긴다 — 안 넘기면
+                  // «번역만 실패한 줄»이 기존 엔진으로 저장돼 길별 비교가 어긋난다.
+                  translateTextRef.current(result.transcript, undefined, {
+                    sttEngine: result.engine === "transcribe" ? STT_ENGINES.SERVER_TRANSCRIBE : undefined,
+                  });
                 }
               }
             }
