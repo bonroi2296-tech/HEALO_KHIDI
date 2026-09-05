@@ -12,6 +12,30 @@ git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 
 CTX="docs/PROJECT_CONTEXT.md"
 PREFS="docs/PO_PREFERENCES.md"
+KI="docs/KNOWN_ISSUES.md"
+
+# ── 「지우면 안 되는 가지」 = 「신청서도 내면 안 되는 가지」 (2026-09-05 신설) ──────
+# 왜: 아래 「서랍에 갇힌 작업」 경보가 PR 없는 가지를 보면 무조건 «오늘 신청서를 만들어라»
+#   라고 말한다. 그런데 `fix/push-notification-icon` 은 KHIDI 중간평가 증빙 132MB(61파일)와
+#   국내 에이전시 연락처 29건이 든 «본판에 올리면 안 되는» 가지다(KNOWN_ISSUES 의 표에
+#   그렇게 박혀 있다). 게다가 본판과 뿌리가 달라(no merge base) 파일 2,275개짜리 신청서가 된다.
+#   즉 훅의 지시를 그대로 따르면 **공개 저장소 본판에 증빙 132MB + 업체 연락처가 올라간다.**
+#   2026-09-05 실측: 그 가지는 16일째 이 경보에 떠 있었고 아무 단서도 안 붙어 있었다.
+# 어떻게: 문서의 표를 기계가 읽는다 — 사람이 표에 한 줄 더 적으면 훅이 바로 안다.
+#   (목록을 훅에 손으로 박으면 문서와 어긋난다. 정본은 하나여야 한다.)
+protected_refs() {
+  awk '/^## .*지우면 안 되는 가지/{f=1;next} f&&/^## /{f=0} f&&/^\|/{print}' "$KI" 2>/dev/null \
+    | sed -n 's/^| *\*\{0,2\}`\([^`]*\)`.*/\1/p'
+}
+PROTECTED=$(protected_refs)
+# 표 제목이 바뀌면 이 보호가 «조용히» 사라진다 — 그게 제일 나쁜 고장이라 소리를 낸다.
+if [ -f "$KI" ] && [ -z "$PROTECTED" ]; then
+  echo "- ⚠️ \`${KI}\` 에서 「지우면 안 되는 가지」 표를 못 읽었다 — 보호 목록이 비었다. 표 제목이 바뀌었는지 봐라(.claude/hooks/session-orient.sh 의 protected_refs)."
+fi
+is_protected() {
+  case "$1" in "") return 1;; esac
+  printf '%s\n' "$PROTECTED" | grep -qxF "$1"
+}
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
 dirty=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
@@ -241,6 +265,9 @@ if [ "$GH_OK" = "1" ]; then
         why="PR #${pnum} 마감 뒤 커밋 ${na}개 · **${d}일째 새 PR 없음**"
       fi
       sn=$((sn+1))
+      if is_protected "$short"; then
+        why="${why} — 🛑 **본판에 올리지 마라**(\`${KI}\` 「지우면 안 되는 가지」). 신청서를 만들지 말고 가지를 그대로 둬라"
+      fi
       stale="${stale}  · \`${short}\` — ${why} — ${subj}
 "
       [ "$sn" -ge 6 ] && break
@@ -252,6 +279,7 @@ EOF
       echo "## 🚨 서랍에 갇힌 작업 — 커밋은 있는데 **합치기 신청서(PR)가 없다** (${STALE_DAYS}일+ 방치)"
       printf '%s' "$stale"
       echo "  → 이대로 두면 본판에 영영 안 들어간다. **오늘 처리하라**: 살릴 것이면 \`gh pr create\`, 이미 본판에 있는 잔재면 대조 후 브랜치 삭제."
+      echo "     · 🛑 위에 «본판에 올리지 마라»가 붙은 가지는 **예외다** — 신청서도 삭제도 하지 말고 그대로 둬라(사유는 \`${KI}\`)."
       echo "     · ⚠️ 삭제 전엔 \`docs/\` 까지 포함해 전수 대조(과거에 핸드오프 76줄이 브랜치에만 남아 있던 적 있음)."
     fi
 else
@@ -272,7 +300,11 @@ else
       n=$(git rev-list --count "origin/main..$ref" 2>/dev/null || echo 0)
       [ "${n:-0}" -eq 0 ] && continue
       sn=$((sn+1))
-      stale="${stale}  · \`${ref#origin/}\` — 커밋 ${n}개가 **${d}일째 본판 밖** — ${subj}
+      mark=""
+      if is_protected "${ref#origin/}"; then
+        mark=" — 🛑 **본판에 올리지 마라**(\`${KI}\` 「지우면 안 되는 가지」). 신청서도 삭제도 하지 말 것"
+      fi
+      stale="${stale}  · \`${ref#origin/}\` — 커밋 ${n}개가 **${d}일째 본판 밖**${mark} — ${subj}
 "
       [ "$sn" -ge 6 ] && break
     done <<EOF
@@ -286,6 +318,7 @@ EOF
       echo "     ① 신청서가 있고 열려 있으면 → 그대로 두고 자동 검사만 확인."
       echo "     ② 신청서가 없으면 → **오늘 만들어라**(이대로 두면 본판에 영영 안 들어간다)."
       echo "     ③ 이미 본판에 알맹이가 들어간 잔재면 → \`docs/\` 까지 전수 대조 후 브랜치 삭제."
+      echo "     · 🛑 위에 «본판에 올리지 마라»가 붙은 가지는 **②·③ 둘 다 예외다** — 그대로 둬라(사유는 \`${KI}\`)."
       echo "     · ⚠️ **남의 차선(다른 세션이 지금 쓰는 브랜치)은 손대지 말고 이유와 함께 남겨라.**"
     fi
 fi
