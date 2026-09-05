@@ -69,6 +69,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 환자가 «진행상황 링크»로 남긴 글을 직원이 아직 안 봤나 — 본문은 안 풀고 시각·작성자만 본다.
+    // ⚠️ follow_ups 열 전체(암호문 포함)를 200건까지 끌어온다. 실측 2026-09-05: 문의 50건 중 3건·합계 1.3KB 라
+    //    지금은 문제 없다. **총량이 수 MB 를 넘으면** DB 트리거로 유지하는 patient_note_at/staff_note_at 열로
+    //    옮겨라(독립 리뷰 지적 — 측정하고 «지금은 안 한다»로 결정).
     // 「봤다」 = 글 «뒤»에 상세를 열었다(감사로그 VIEW_INQUIRY) 또는 직원 글을 붙였다.
     // 왜 (2026-09-05): 환자 글이 왔는데 목록 어디에도 안 떠서 열람 0·답 0 으로 이틀이 갔다.
     const patientNoteAt = new Map<number, string>();

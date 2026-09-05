@@ -37,7 +37,7 @@ export default function CoordinatorInboxPage() {
   };
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
+  const [filter, setFilter] = useState("all"); // all | step1_only | step2_done | patient_unread
   // 시연·점검용. 기본은 꺼짐 = 평소 화면 그대로(시험 문의는 안 보인다).
   const [showTest, setShowTest] = useState(false);
   // 최근 24시간에 시험으로 분류돼 «숨은» 건수. 숨기는 건 맞지만 숨겼다는 사실은 보여야 한다.
@@ -109,6 +109,11 @@ export default function CoordinatorInboxPage() {
   const step1OnlyCount = items.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
   // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다.
   const patientUnreadCount = items.filter((i) => !!i.patient_unread_since).length;
+  // 「환자 새 글」 탭을 보다가 마지막 건을 열고 돌아오면 0건 = 탭이 사라진다. 그때 필터가 그 탭에 남아 있으면
+  // 빈 화면만 남고 어느 탭도 안 켜져 있다(독립 리뷰 2026-09-05) → «전체»로 되돌린다.
+  useEffect(() => {
+    if (!loading && filter === "patient_unread" && patientUnreadCount === 0) setFilter("all");
+  }, [loading, filter, patientUnreadCount]);
 
   return (
     <div className="space-y-6">
