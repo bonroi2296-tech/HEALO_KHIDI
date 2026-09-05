@@ -34,11 +34,25 @@ jobs:
           # ⚠️ 이 저장소의 비밀값은 NEXT_PUBLIC_SUPABASE_URL 이 «비어 있다». 실제 주소는 SUPABASE_URL 에 있다.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # ⚠️ 손님 열쇠(NEXT_PUBLIC_SUPABASE_ANON_KEY)는 아직 저장소 비밀값에 «없다».
-          #    그래서 「손님이 환자 표를 읽나」 검사가 «못 잼»으로 나온다 — 그것도 실패로 잡히니 조용히 묻히진 않는다.
-          #    넣으면 6개가 다 돈다. 이 값은 원래 브라우저로 그대로 나가는 공개값이라 넣어도 위험이 없다.
+          # ✅ 2026-09-04: 손님 열쇠(NEXT_PUBLIC_SUPABASE_ANON_KEY)를 저장소 비밀값에 «넣었다».
+          #    그전까지는 이 값이 없어 「손님이 환자 표를 읽나」 검사가 매번 «못 잼»으로 나왔고,
+          #    «못 잼»도 실패로 치는 설계라 이 창구가 8일 연속(8/28~9/4) 빨간불이었다.
+          #    그 결과 «내용이 똑같은» 메일이 매일 나갔고 아무도 안 읽었다(8통이 미열람으로 쌓여 있었다).
+          #    🔑 교훈: 「볼 것이 있을 때만 실패로 끝낸다」는 설계는 옳지만, «상시로 못 재는 항목»이
+          #       하나라도 섞이면 매일 실패가 되어 신호가 잡음으로 바뀐다. 못 잼이 며칠 이상 이어지면
+          #       그건 «알림»이 아니라 «고칠 설정»이다 — 값을 채우거나 그 항목을 실패 조건에서 빼라.
+          #    넣은 값은 role=anon 공개 열쇠라(브라우저로 그대로 나간다) 저장소에 둬도 위험이 없다.
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: node scripts/sweep.mjs --alert 2>&1 | tee sweep.txt
+        # ⚠️ `set -o pipefail` 을 지우지 마라. 깃허브 작업의 «기본» 셸은 `bash -e {0}` 라
+        #    pipefail 이 꺼져 있고, 그러면 파이프의 종료코드는 맨 끝 `tee` 의 것(=언제나 0)이 된다.
+        #    2026-08-28 실측: 이 창구가 13번 돌아 13번 다 초록이었는데, 실행 기록을 열어보면
+        #    매번 «못 잼 2건»으로 exit 1 하고 있었다. 아래 메일 단계는 매번 «건너뜀»이었고
+        #    경보는 한 통도 안 나갔다 — 이 파일 머리말이 경계하던 「못 잼이 초록으로 보이는 것」
+        #    바로 그것이 이 파일 안에서 일어나고 있었다.
+        #    기계가 막는다: `npm run check:workflow-pipefail`
+        run: |
+          set -o pipefail
+          node scripts/sweep.mjs --alert 2>&1 | tee sweep.txt
 
       # 메일은 깃허브 기본 알림에 기대지 않는다 — 이미 쓰는 길(Resend → E2E_ALERT_EMAIL)을 그대로 쓴다.
       # 왜: 깃허브 기본 알림은 「어느 주소로 가는지」가 계정 설정에 숨어 있고 사람이 끄기도 쉽다.

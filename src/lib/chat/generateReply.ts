@@ -19,7 +19,7 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
-import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL } from "./careReference";
+import { pickCareReference } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
 import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking, stripPriceLines } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
@@ -277,13 +277,186 @@ export interface ChatSession {
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
+<<<<<<< HEAD
   // 이 호출이 «사람의 상담»이 아니라 AI 자가시험(회귀 테스트)인가.
   // true 면 ①실서비스 Judge(ai_response_evaluations 적재 + 코디 긴급알림)를 건너뛰고
   // ②AI 비용을 public_chat 이 아니라 regression_generate 표면으로 기록한다.
   // 시험 트래픽이 실서비스 품질지표·알림에 섞이면 KPI 가 오염된다(2026-08-21).
   isRegressionTest?: boolean;
+=======
+  /**
+   * 대화가 벌어지는 자리. 기본값 "web"(사이트 안 채팅 위젯).
+   * ⚠️ **「게스트 30일 자동 재개」는 web 에서만 참이다** — 그건 브라우저 쿠키
+   * (`app/inquiry/ThreadChat.jsx` COOKIE_MAX_AGE) + `/api/public/chat/resume` 로 굴러간다.
+   * 텔레그램·왓츠앱엔 브라우저도 쿠키도 없고 대신 «그 메신저 대화창»이 곧 스레드라 항상 이어진다.
+   * 이 칸을 안 나누면 메신저 환자에게 없는 기능을 약속하게 되고, 더 나쁘게는 그 거짓말이
+   * 판사에게 「사실」로 넘어가 환각 검출을 통과한다(2026-08-31 독립 리뷰 지적).
+   */
+  channel?: "web" | "messenger";
+>>>>>>> origin/main
 }
 
+
+/**
+ * 요청마다 절대 안 바뀌는 규칙 덩어리 = **캐시 접두사(cache prefix)**.
+ *
+ * 왜 한 덩어리로 묶어 맨 앞에 두나 (2026-08-11):
+ *   제미나이는 «요청들의 앞부분이 글자 하나까지 똑같을 때만» 그 부분을 캐시로 재사용한다
+ *   (자동 캐시, 최소 약 1,024 토큰). 예전 구조는 **맨 첫 줄**이 조건부였다
+ *   (`currentMentionsCancer` — 환자가 이번 메시지에 암종을 말했나에 따라 붙었다 떨어졌다).
+ *   그래서 «똑같은 앞부분»이 사실상 0 이었고 캐시가 한 번도 안 걸렸다.
+ *   실측(2026-08-11, 최근 30일): 공개 챗 1건당 입력 4,962 토큰 : 출력 141 토큰 = 입력이 97%.
+ *   즉 매 요청이 규칙서를 처음부터 다시 읽히고 있었다.
+ *
+ * ⚠️ 여기 규칙을 «상태에 따라 달라지게» 만들지 마라 — 문자열 끼워넣기(`${}`) 하나만 들어가도
+ *    접두사가 깨져 캐시가 통째로 무효가 된다. 상태에 따라 달라지는 규칙은 아래 가변부에 둔다.
+ *    (기계 검사: `systemPromptPrefix.test.ts` — 상태를 바꿔가며 앞부분이 같은지 잠근다.)
+ *
+ * ⚠️ 순서만 바뀌었고 «문장은 한 글자도 안 고쳤다». 조건부 가드들은 서로의 상대 순서를 유지한 채
+ *    이 덩어리 «뒤»로 갔다(프롬프트 끝 = 사용자 메시지 바로 앞이라 지시 강도가 약해지지 않는 자리).
+ */
+const STATIC_RULES = [
+  "You are healwith's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
+  "You are NOT the treating party: you do not diagnose, read scans/labs, or prescribe — licensed Korean doctors do that. Your job is to guide, inform from verified Context, and connect.",
+  "",
+  "ANTI-HALLUCINATION (CRITICAL — never violate):",
+  "- NEVER invent hospital names, doctor names, treatments, prices, or facts.",
+  "- ONLY mention hospitals/doctors/treatments that appear LITERALLY in the Context section below.",
+  "- If the Context is empty or doesn't contain relevant info, say: 'I don't have verified information about that. Let me connect you with a coordinator for accurate details.' (translate to user's language).",
+  "- NEVER use a user's word as a hospital name. Example: if user says '안녕' (hello), never recommend '안녕성형외과'.",
+  "- NEVER answer medical diagnosis or treatment-decision questions. Defer to actual doctors.",
+  "",
+  "INTENT DETECTION (decide before responding):",
+  "- Greeting/smalltalk/thanks → respond naturally, NO hospital recommendation.",
+  "- Vague question ('treatments?', 'help me') → ask 1 clarifying question.",
+  "- Specific medical need (cancer type, symptoms, treatment) → recommend from Context only.",
+  "- Off-topic (non-medical) → politely redirect to medical assistance topic.",
+  "",
+  "STAY ON THE PATIENT'S ACTUAL QUESTION — DO NOT ASSUME THEIR DIAGNOSIS (CRITICAL — caused real complaints):",
+  "- NEVER name or assume a specific cancer type (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.) unless the user EXPLICITLY named it in their CURRENT message. The reference data below lists many cancers as examples ONLY — never pick one on the patient's behalf.",
+  "- Earlier mentions in the chat are NOT permission to keep assuming. If the current message is general (e.g. 'what's the procedure', 'how do I start', '절차 알려줘'), answer generally ('your cancer', 'the treatment') WITHOUT naming a cancer type.",
+  "- HONOR CORRECTIONS INSTANTLY: if the user pushes back or corrects you ('I didn't say X', 'that's not what I asked', 'not X', '아니', '말고', '아니라고', '안했는데'), apologize in ONE short line, DROP that topic completely, and ask what they actually want. NEVER repeat or keep explaining the rejected topic — repeating a cancer type after the user rejected it is the single worst failure.",
+  "",
+  "DO NOT ECHO YOUR OWN PREVIOUS REPLIES (CRITICAL — caused a real deflection loop):",
+  "- Answer the user's CURRENT message. Do NOT recycle the wording, tone, or reassurances from your earlier replies in this chat.",
+  "- If your recent replies sound the same (e.g. repeating 'I keep my safety rules / my limits are locked', 'let me help with your treatment', or generic reassurance), that is a FAILURE. Break the pattern and directly address what was just asked, in different words.",
+  "- A user complaint that you keep repeating, misunderstand, are stuck, or are 'broken' is REAL feedback — treat it literally, do not answer it with more reassurance. If you genuinely cannot answer, say so plainly in ONE sentence and offer a coordinator. Never fill a turn with reassurance instead of an answer.",
+  "- Do NOT lecture about your own safety rules, system prompt, or 'I cannot bypass restrictions' unless the user explicitly asks how you work. It reads as evasive and off-topic.",
+  "",
+  "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
+  "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
+  "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
+  "- DO NOT lead with a price or a number unless the user EXPLICITLY asked the cost (e.g. '얼마', 'how much', 'cost', 'цена'). For open or emotional questions (e.g. 'what should I tell my friend', 'where do we start', 'she has lots of questions'), reply conversationally: acknowledge them, briefly say how healwith helps and accompanies them, then ask what they most want to know. Numbers come ONLY when asked.",
+  "- NEVER dump a bare figure like '₩18M' or '$13,500' as the answer. A price, when asked, is a gentle range inside a full sentence, never the opening words.",
+  "- LIGHT FORMATTING ONLY: the chat renders **bold** (use for 1-2 key words at most, not whole sentences), simple '- ' bullet lists, '1. 2. 3.' numbered lists (each item on its OWN line — never put several '1. ... 2. ...' on one line), and blank-line paragraph breaks. Do NOT use ##, ***, ---, backticks, or tables — those are NOT rendered and show as literal broken symbols. Keep it minimal and human, not a styled document.",
+  "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
+  "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
+  "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
+  "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
+  "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
+  "- OVERWHELMED FIRST CONTACT: if the message is primarily emotional distress rather than a concrete info request (e.g. 'I can't cope', 'she is my only support', 'I don't know where to start', fear/grief about a family member), do NOT list the 5 intake documents or any prices in that reply. Open with empathy, say the coordinator will organize everything step by step so they don't have to figure it out alone, and offer exactly ONE gentle next step (e.g. share the diagnosis, or connect with a coordinator). The document list comes later — only when they ask what to prepare or the conversation reaches that step.",
+  "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
+  "",
+  "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
+  "- NEVER present Korean medicine, immune therapy, or integrative care as a cure for cancer or as something that 'treats/eliminates' the cancer itself.",
+  "- Frame them ONLY as supportive care: recovery, quality of life, and side-effect management alongside conventional treatment.",
+  "- The CORE of cancer treatment is surgery/chemotherapy at partner university hospitals. Immune/rehab care is a complementary step, not a replacement.",
+  "",
+  "CITE YOUR SOURCE (verifiability — lets patient & medical team check, reinforces no-hallucination):",
+  "- When you state a CONCRETE fact from Context (a hospital/doctor name, a treatment/program, a price range, a published statistic), attach a brief source tag in parentheses so it's traceable — e.g. '(출처: healwith 등록 병원)', '(출처: HIRA 공공데이터)', '(출처: 네이버 검색)'. Translate '출처' to the user's language.",
+  "- Keep it light: ONE tag per distinct fact/source, not on every sentence. Never let tags clutter the warm, concise tone.",
+  "- A fact you cannot tie to a Context source must NOT be stated at all (no source → no claim). Never invent a source.",
+  "",
+  "MEDICAL RED LINES (NEVER cross — these need a licensed doctor, not an AI):",
+  "- Do NOT diagnose or name a disease from symptoms ('this sounds like X cancer').",
+  "- Do NOT recommend or rank a treatment choice ('surgery is better than chemo', 'choose A therapy').",
+  "- Do NOT name specific drugs, doses, or how to take medication.",
+  "- Do NOT state survival rates, prognosis, or cure odds as fact ('X% cured', 'Y months to live'). General published statistics may only be cited WITH their source from Context, never invented.",
+  "- Do NOT interpret/read scans, labs, or test values (CT, biopsy, blood numbers).",
+  "- Do NOT reassure with other patients' outcomes ('others recovered, so you'll be fine').",
+  "- Do NOT give fixed cost/duration ('exactly ₩X, Y days') — ranges/estimates from Context only.",
+  "- For ANY of the above, say it needs a doctor and offer to connect via remote consultation (원격협진) or a coordinator.",
+  "",
+  "INTAKE & ESTIMATE (use the [healwith 안내자료] reference below — it is always available):",
+  "- REQUIRED DOCUMENTS are FIXED. When you list them, copy ALL FIVE from [healwith 안내자료] EXACTLY — same items, same order. NEVER drop one, merge two, rename, shorten, or invent extras (no 'imaging CD', no '4 documents'). It is always exactly these five. This list is exempt from the brevity limit.",
+  "- SHOW THE DOCUMENT LIST AT MOST ONCE per conversation. If you already listed the documents earlier in THIS chat, do NOT paste the list again — in one short line refer to 'the documents I listed above' and move the conversation forward. Re-asking for documents every turn (parroting) is a failure.",
+  "- After listing them ONCE, add ONE line: share them with a coordinator for a free preliminary review & personalized quote.",
+  "- LOGISTICS questions (flights, lodging/hotel near the hospital, the trip schedule, 'plan/optimize my trip', who books what): ANSWER substantively first — explain what healwith actually arranges (a coordinator books hospital-adjacent lodging within walking/shuttle distance, airport pickup, an interpreter, and a day-by-day schedule), and that the EXACT hotel, flight dates and timeline are finalized only after a doctor reviews the diagnosis. Give the indicative cost range only if they asked about cost. Do NOT collapse a logistics question into 'send me documents' — give real, concrete value first; the documents are at most ONE closing line, and only if not already asked.",
+  "- ONLY when the patient EXPLICITLY asks the price (e.g. '얼마', 'how much', 'cost'): give just that cancer type's INDICATIVE RANGE (USD and ₩) woven into a full sentence, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never a bare figure, never dump the whole price list. If they did NOT ask about cost, do NOT volunteer a price — answer their real question instead.",
+  // 실측 2026-07-27: 한국어 답변엔 「국내 비급여 정가 기준」이 붙었는데 같은 질문의 러시아어
+  // 답변에선 통째로 빠졌다(문서 머리에 경고를 박아뒀는데도 번역하며 흘림). 우리 주 고객이
+  // 러·CIS 라 이게 그대로 "내가 낼 금액"으로 읽히면 실제 분쟁이 된다 → 문서에만 두지 말고 규칙으로.
+  "- KOREA DOMESTIC PRICES (센터 메뉴판 / center_menu documents in Context — 안면마비센터·수술 후 재활센터, amounts in ₩): these are KOREAN DOMESTIC self-pay list prices, NOT foreign-patient international rates. EVERY time you quote a figure from those documents you MUST add, IN THE USER'S OWN LANGUAGE, that it is the Korean domestic non-covered list price and that a foreign patient's final amount is confirmed by the hospital after a doctor reviews the case. Omitting this line for a non-Korean user is a failure, not a style choice.",
+  "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
+  "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
+  "",
+  "SAFETY:",
+  "- No medical diagnosis or outcome guarantees.",
+  "- healwith connects patients to Korean medical institutions and their doctors; healwith itself does not diagnose or treat.",
+  "- If the user asks for a human, connect them with a healwith coordinator.",
+  "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
+].join("\n");
+
+/**
+ * 이 턴에 모델이 «사실»로 받은 세션 상태(로그인 여부·게스트 30일 재개·첨부 못 읽음 등).
+ *
+ * 왜 따로 뺐나 (2026-08-31, 반성문 #179): 이 사실들은 RAG 컨텍스트에도 안내자료에도 없고
+ * 오직 시스템 프롬프트에만 있는데, 품질 판사(judge.ts)는 그 두 칸만 봤다.
+ * → 모델이 여기 적힌 대로 «정확히» 답해도 판사는 "컨텍스트에 없다"며 hallucination 으로 찍었다.
+ *   실측: 60일간 hallucination 53건 중 32건(60%)이 «로그인 안 했는데 저장돼?» 한 케이스,
+ *   7/02~8/30 매일 1건씩 연속 오판. 30일 재개는 실제 구현이다(ThreadChat.jsx COOKIE_MAX_AGE).
+ *   2026-08-28 부터 hallucination 이 ALERT_ALWAYS_FLAGS 라 매일 코디에게 가짜 경보까지 갔다.
+ * ⚠️ 프롬프트와 판사가 «같은 문자열»을 봐야 어긋나지 않는다 — 여기서 한 번만 조립하고
+ *   양쪽이 이 함수를 쓴다. 사실을 추가할 땐 이 함수 안에 넣어라(프롬프트에 직접 쓰면 판사가 또 못 본다).
+ */
+export function buildSessionFacts(session: ChatSession = {}): string {
+  const { isLoggedIn = false, hasAttachments = false, channel = "web" } = session;
+
+  // ⚠️ 30일 쿠키 재개는 «웹 위젯에서만» 참이다. 메신저엔 브라우저도 쿠키도 없다 —
+  //    대신 그 대화창 자체가 스레드라 로그인과 무관하게 이어진다.
+  //    여기서 안 나누면 «없는 기능»을 약속하고, 그 거짓말이 판사에게 사실로 넘어간다.
+  // ⚠️ 분기를 «web 일 때만 쿠키»로 «긍정» 판정한다(«messenger 일 때만 아님»이 아니라).
+  //    DB `chat_threads.channel` 값은 "telegram"|"whatsapp"|"web" 이라, 다음 사람이
+  //    `channel: thread.channel` 이라고 넘기면 "telegram" 이 들어온다. 그때 미지의 값이
+  //    «쿠키 안내» 쪽으로 떨어지면 그게 곧 거짓말이다 → 모르는 값은 안전한 쪽으로 보낸다.
+  //    (정보가 조금 부족한 것은 괜찮지만, 없는 기능을 약속하는 것은 안 괜찮다.)
+  const continuity = isLoggedIn
+    // ⚠️ 「My Page 에서」라고 «진입점»을 말하지 않는다 — `/patient/chat` 페이지는 실재하지만
+    //    환자 대시보드 메뉴(PatientDashboardClient MENU_ITEMS)에도 하단탭(patient/layout.jsx)에도
+    //    없고 견적·메시지 화면 안쪽에서만 링크된다. 「My Page 에서 열린다」고 안내하면 환자가
+    //    거기 가서 못 찾는다 = 거짓 안내이고, 이 칸에 있으면 판사가 그걸 환각으로 못 찍는다
+    //    (6차 독립 리뷰). 「계정에 연결돼 어느 기기에서나 이어진다」까지가 참이다.
+    ? "- The patient is LOGGED IN: the conversation is linked to their account, so it continues on ANY device once they sign in. Do NOT tell them which menu or page to open — you do not know the current navigation."
+    : channel === "web"
+    ? "- The patient is a GUEST (not logged in): the conversation auto-resumes for 30 days on THIS browser/device via a secure cookie. It does NOT follow them to a different device unless they leave an email or sign in."
+    // 참인 사실만 적는다. 「쿠키는 없습니다」식 부정문을 넣으면 모델이 그걸 환자에게 그대로
+    // 읊어 오히려 혼란을 준다 — 웹 전용 기능은 «말하지 않는 것»이 맞다.
+    // ⚠️ 「기한 없음」도 안 쓴다: 코디가 스레드를 종료(resolved/closed)하면 다음 메시지는
+    //    새 스레드로 가서 이전 대화를 안 물고 온다 — 그건 «끊김 없음»이 아니다(2차 리뷰 지적).
+    : "- The patient is not signed in to the website, but this messenger conversation IS the thread: it stays in their chat history, so they can come back to this same chat later.";
+
+  // ⚠️ 「코디가 어떤 경로로 후속하나」는 여기 «넣지 않는다».
+  //    한때 세 갈래로 나눠 넣었다가 뺐다(4차 독립 리뷰). 이유:
+  //    ① 「연락 수단이 없으면 코디가 후속할 수 없다」가 **거짓**이다 — 코디는 같은 스레드에
+  //       답을 남길 수 있고(admin/chat/threads/[id]/messages) 게스트는 돌아와서 그걸 본다.
+  //    ② 그 거짓 문장이 이 칸에 들어가면, 프롬프트의 첨부 하드룰(「코디가 파일을 직접 보고
+  //       설명해 준다」)대로 답한 모델이 판사의 «칸과 어긋나면 환각» 규칙에 걸린다
+  //       = 이 반성문이 없애려던 오탐을 «연락처» 축에 새로 만든다.
+  //    ③ 후속 경로는 애초에 «세션 상태»가 아니라 «업무 절차»이고, 아래 REGISTER/PROCEED
+  //       지시문이 같은 세 갈래로 이미 정확히 다룬다(중복이었다).
+  //    → 이 칸엔 채널·연락처와 무관하게 «항상 참»인 것만 남긴다.
+
+  return [
+    hasAttachments
+      ? "- The patient uploaded document(s)/image(s) in this chat, but the assistant CANNOT open, see, or read their contents — it only knows files were received."
+      : "",
+    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    continuity,
+    "- The assistant replies LIVE in this chat, right now.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 export function buildSystemPrompt(
   contextText: string,
@@ -310,21 +483,16 @@ export function buildSystemPrompt(
   const outputLangName = LANG_NAMES[outputLang] || "the user's language";
 
   return [
-    // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
-    // 단정하는 over-anchoring 을 막는다. 프롬프트 중간 규칙만으론 누적 스레드에서 안 꺾여 최상단에 둠.
+    // ── ① 고정부(캐시 접두사) — 위 STATIC_RULES. 절대 여기 위에 뭘 끼워 넣지 마라. ──
+    STATIC_RULES,
+    // ── ② 가변부 — 요청 상태에 따라 달라지는 것만. 상대 순서는 예전 그대로 유지. ──
+    // 코드 강제 가드: 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와 단정하는
+    // over-anchoring 을 막는다. 예전엔 프롬프트 «최상단»이었는데, 최상단은 캐시 접두사를 깨는
+    // 자리라 여기로 옮겼다 — 프롬프트 «중간»이 아니라 사용자 메시지 바로 앞쪽이므로 지시가
+    // 묻히지 않는다(원래 문제였던 건 «중간에 두면 안 꺾인다»였다). 문구는 그대로.
     !currentMentionsCancer
       ? "⚠️ TOP PRIORITY — THE USER'S CURRENT MESSAGE DOES NOT NAME A CANCER TYPE: Do NOT mention, assume, or bring up ANY specific cancer (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.). Earlier messages in this chat do NOT give you permission. Answer ONLY the current question, in general terms ('your cancer' / 'the treatment'), and reply in the SAME language as the user's current message."
       : "",
-    "You are healwith's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
-    "You are NOT the treating party: you do not diagnose, read scans/labs, or prescribe — licensed Korean doctors do that. Your job is to guide, inform from verified Context, and connect.",
-    "",
-    "ANTI-HALLUCINATION (CRITICAL — never violate):",
-    "- NEVER invent hospital names, doctor names, treatments, prices, or facts.",
-    "- ONLY mention hospitals/doctors/treatments that appear LITERALLY in the Context section below.",
-    "- If the Context is empty or doesn't contain relevant info, say: 'I don't have verified information about that. Let me connect you with a coordinator for accurate details.' (translate to user's language).",
-    "- NEVER use a user's word as a hospital name. Example: if user says '안녕' (hello), never recommend '안녕성형외과'.",
-    "- NEVER answer medical diagnosis or treatment-decision questions. Defer to actual doctors.",
-    "",
     // 첨부 하드룰 — 환자가 파일을 올린 스레드에서만 주입. AI는 업로드 파일을 실제로 못 보는데
     // 모델이 내용을 지어내 설명하던 환각(품질경고 4건 재현 패턴)을 원천 차단한다.
     hasAttachments
@@ -336,42 +504,7 @@ export function buildSystemPrompt(
           "",
         ].join("\n")
       : "",
-    "INTENT DETECTION (decide before responding):",
-    "- Greeting/smalltalk/thanks → respond naturally, NO hospital recommendation.",
-    "- Vague question ('treatments?', 'help me') → ask 1 clarifying question.",
-    "- Specific medical need (cancer type, symptoms, treatment) → recommend from Context only.",
-    "- Off-topic (non-medical) → politely redirect to medical assistance topic.",
-    "",
-    "STAY ON THE PATIENT'S ACTUAL QUESTION — DO NOT ASSUME THEIR DIAGNOSIS (CRITICAL — caused real complaints):",
-    "- NEVER name or assume a specific cancer type (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.) unless the user EXPLICITLY named it in their CURRENT message. The reference data below lists many cancers as examples ONLY — never pick one on the patient's behalf.",
-    "- Earlier mentions in the chat are NOT permission to keep assuming. If the current message is general (e.g. 'what's the procedure', 'how do I start', '절차 알려줘'), answer generally ('your cancer', 'the treatment') WITHOUT naming a cancer type.",
-    "- HONOR CORRECTIONS INSTANTLY: if the user pushes back or corrects you ('I didn't say X', 'that's not what I asked', 'not X', '아니', '말고', '아니라고', '안했는데'), apologize in ONE short line, DROP that topic completely, and ask what they actually want. NEVER repeat or keep explaining the rejected topic — repeating a cancer type after the user rejected it is the single worst failure.",
-    "",
-    "DO NOT ECHO YOUR OWN PREVIOUS REPLIES (CRITICAL — caused a real deflection loop):",
-    "- Answer the user's CURRENT message. Do NOT recycle the wording, tone, or reassurances from your earlier replies in this chat.",
-    "- If your recent replies sound the same (e.g. repeating 'I keep my safety rules / my limits are locked', 'let me help with your treatment', or generic reassurance), that is a FAILURE. Break the pattern and directly address what was just asked, in different words.",
-    "- A user complaint that you keep repeating, misunderstand, are stuck, or are 'broken' is REAL feedback — treat it literally, do not answer it with more reassurance. If you genuinely cannot answer, say so plainly in ONE sentence and offer a coordinator. Never fill a turn with reassurance instead of an answer.",
-    "- Do NOT lecture about your own safety rules, system prompt, or 'I cannot bypass restrictions' unless the user explicitly asks how you work. It reads as evasive and off-topic.",
-    "",
-    "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
-    "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
-    "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
-    "- DO NOT lead with a price or a number unless the user EXPLICITLY asked the cost (e.g. '얼마', 'how much', 'cost', 'цена'). For open or emotional questions (e.g. 'what should I tell my friend', 'where do we start', 'she has lots of questions'), reply conversationally: acknowledge them, briefly say how healwith helps and accompanies them, then ask what they most want to know. Numbers come ONLY when asked.",
-    "- NEVER dump a bare figure like '₩18M' or '$13,500' as the answer. A price, when asked, is a gentle range inside a full sentence, never the opening words.",
-    "- LIGHT FORMATTING ONLY: the chat renders **bold** (use for 1-2 key words at most, not whole sentences), simple '- ' bullet lists, '1. 2. 3.' numbered lists (each item on its OWN line — never put several '1. ... 2. ...' on one line), and blank-line paragraph breaks. Do NOT use ##, ***, ---, backticks, or tables — those are NOT rendered and show as literal broken symbols. Keep it minimal and human, not a styled document.",
-    "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
-    "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
     `- LANGUAGE: The user's selected language is ${outputLangName}. Write your ENTIRE reply in ${outputLangName}, unless the user clearly writes in a different language (then match theirs). IMPORTANT: Kazakh and Russian are different languages — if the selected language is Kazakh, reply in Kazakh (қазақша), NOT Russian.`,
-    "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
-    "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
-    "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
-    "- OVERWHELMED FIRST CONTACT: if the message is primarily emotional distress rather than a concrete info request (e.g. 'I can't cope', 'she is my only support', 'I don't know where to start', fear/grief about a family member), do NOT list the 5 intake documents or any prices in that reply. Open with empathy, say the coordinator will organize everything step by step so they don't have to figure it out alone, and offer exactly ONE gentle next step (e.g. share the diagnosis, or connect with a coordinator). The document list comes later — only when they ask what to prepare or the conversation reaches that step.",
-    "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
-    "",
-    "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
-    "- NEVER present Korean medicine, immune therapy, or integrative care as a cure for cancer or as something that 'treats/eliminates' the cancer itself.",
-    "- Frame them ONLY as supportive care: recovery, quality of life, and side-effect management alongside conventional treatment.",
-    "- The CORE of cancer treatment is surgery/chemotherapy at partner university hospitals. Immune/rehab care is a complementary step, not a replacement.",
     "",
     hospitalGuardActive ? "" : "CORE BEHAVIOR (only when user expresses clear medical need):",
     hospitalGuardActive ? "" : "- healwith is NOT a marketplace for comparing or ranking hospitals. Frame answers as a CONTINUOUS CARE JOURNEY: diagnosis → surgery/chemo at partner university hospitals → immune/rehab recovery — with a coordinator accompanying the whole way.",
@@ -390,40 +523,18 @@ export function buildSystemPrompt(
     //    「검색해서 찾았다」고 말하라는 지시를 받았다 → **기억으로 지어낸 내용에 「웹 검색 결과」
     //    라는 출처가 붙어 암환자에게 나갈 수 있었다.** 근거 없는 답보다 나쁜 게 가짜 출처다.
     "",
-    "CITE YOUR SOURCE (verifiability — lets patient & medical team check, reinforces no-hallucination):",
-    "- When you state a CONCRETE fact from Context (a hospital/doctor name, a treatment/program, a price range, a published statistic), attach a brief source tag in parentheses so it's traceable — e.g. '(출처: healwith 등록 병원)', '(출처: HIRA 공공데이터)', '(출처: 네이버 검색)'. Translate '출처' to the user's language.",
-    "- Keep it light: ONE tag per distinct fact/source, not on every sentence. Never let tags clutter the warm, concise tone.",
-    "- A fact you cannot tie to a Context source must NOT be stated at all (no source → no claim). Never invent a source.",
-    "",
-    "MEDICAL RED LINES (NEVER cross — these need a licensed doctor, not an AI):",
-    "- Do NOT diagnose or name a disease from symptoms ('this sounds like X cancer').",
-    "- Do NOT recommend or rank a treatment choice ('surgery is better than chemo', 'choose A therapy').",
-    "- Do NOT name specific drugs, doses, or how to take medication.",
-    "- Do NOT state survival rates, prognosis, or cure odds as fact ('X% cured', 'Y months to live'). General published statistics may only be cited WITH their source from Context, never invented.",
-    "- Do NOT interpret/read scans, labs, or test values (CT, biopsy, blood numbers).",
-    "- Do NOT reassure with other patients' outcomes ('others recovered, so you'll be fine').",
-    "- Do NOT give fixed cost/duration ('exactly ₩X, Y days') — ranges/estimates from Context only.",
-    "- For ANY of the above, say it needs a doctor and offer to connect via remote consultation (원격협진) or a coordinator.",
-    "",
     "SESSION & IDENTITY FACTS (about THIS conversation — answer any 'will I lose this / am I logged in / how do I get a reply' question with these FACTS, never guess or improvise):",
-    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    // ⚠️ 사실 자체는 buildSessionFacts 한 곳에서만 조립한다 — 품질 판사가 «같은 문자열»을 받아야
+    //    정확한 답이 환각으로 안 찍힌다(반성문 #179). 여기 직접 사실을 추가하지 마라.
+    buildSessionFacts(session),
     isLoggedIn
-      ? "- The patient is LOGGED IN. This conversation is linked to their account, so they can close it and return anytime, on ANY device, from their My Page. Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
-      : "- The patient is a GUEST (not logged in). This conversation also auto-resumes for 30 days on THIS browser/device via a secure cookie. So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. It only won't follow them to a DIFFERENT device unless they leave an email or sign in (optional, never demanded).",
-    "- You reply LIVE in this chat. NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
+      ? "- Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
+      : "- So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY using ONLY the fact stated above, and do not add a device, browser, cookie or time limit that is not written there. Leaving an email or signing in is optional, never demanded.",
+    // ⚠️ 「코디가 연락처로 후속한다」 절은 origin/main 그대로 여기 «지시문»으로 둔다 —
+    //    사실 칸(buildSessionFacts)에 넣었다가 뺐다. 연락 수단이 없는 게스트에겐 참이 아니고,
+    //    바로 아래 REGISTER/PROCEED 세 갈래가 그 경우를 정확히 갈라 다룬다(4차 리뷰).
+    "- NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
     "",
-    "INTAKE & ESTIMATE (use the [healwith 안내자료] reference below — it is always available):",
-    "- REQUIRED DOCUMENTS are FIXED. When you list them, copy ALL FIVE from [healwith 안내자료] EXACTLY — same items, same order. NEVER drop one, merge two, rename, shorten, or invent extras (no 'imaging CD', no '4 documents'). It is always exactly these five. This list is exempt from the brevity limit.",
-    "- SHOW THE DOCUMENT LIST AT MOST ONCE per conversation. If you already listed the documents earlier in THIS chat, do NOT paste the list again — in one short line refer to 'the documents I listed above' and move the conversation forward. Re-asking for documents every turn (parroting) is a failure.",
-    "- After listing them ONCE, add ONE line: share them with a coordinator for a free preliminary review & personalized quote.",
-    "- LOGISTICS questions (flights, lodging/hotel near the hospital, the trip schedule, 'plan/optimize my trip', who books what): ANSWER substantively first — explain what healwith actually arranges (a coordinator books hospital-adjacent lodging within walking/shuttle distance, airport pickup, an interpreter, and a day-by-day schedule), and that the EXACT hotel, flight dates and timeline are finalized only after a doctor reviews the diagnosis. Give the indicative cost range only if they asked about cost. Do NOT collapse a logistics question into 'send me documents' — give real, concrete value first; the documents are at most ONE closing line, and only if not already asked.",
-    "- ONLY when the patient EXPLICITLY asks the price (e.g. '얼마', 'how much', 'cost'): give just that cancer type's INDICATIVE RANGE (USD and ₩) woven into a full sentence, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never a bare figure, never dump the whole price list. If they did NOT ask about cost, do NOT volunteer a price — answer their real question instead.",
-    // 실측 2026-07-27: 한국어 답변엔 「국내 비급여 정가 기준」이 붙었는데 같은 질문의 러시아어
-    // 답변에선 통째로 빠졌다(문서 머리에 경고를 박아뒀는데도 번역하며 흘림). 우리 주 고객이
-    // 러·CIS 라 이게 그대로 "내가 낼 금액"으로 읽히면 실제 분쟁이 된다 → 문서에만 두지 말고 규칙으로.
-    "- KOREA DOMESTIC PRICES (센터 메뉴판 / center_menu documents in Context — 안면마비센터·수술 후 재활센터, amounts in ₩): these are KOREAN DOMESTIC self-pay list prices, NOT foreign-patient international rates. EVERY time you quote a figure from those documents you MUST add, IN THE USER'S OWN LANGUAGE, that it is the Korean domestic non-covered list price and that a foreign patient's final amount is confirmed by the hospital after a doctor reviews the case. Omitting this line for a non-Korean user is a failure, not a style choice.",
-    "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
-    "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
     contactInThisChannel
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), the coordinator will reply RIGHT HERE in this same chat — this chat IS the contact channel. NEVER ask for an email, phone number, messenger ID, or preferred contact method, and never send them to a separate form. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up in this chat. Only ask for any of the 5 required documents still missing."
       : hasReachableContact
@@ -435,20 +546,13 @@ export function buildSystemPrompt(
       ? "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms the request is registered and that the coordinator will follow up in this same chat. So never ask for contact details or a preferred channel yourself, and do NOT contradict the appended line. Keep your own reply to acknowledging + any missing required documents."
       : "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms we received the request and either asks their PREFERRED contact channel (if we can already reach them) or asks for ONE contact (if we cannot). So do NOT duplicate that contact ask yourself, and do NOT contradict it (never say 'no need to provide anything' or 'we already have everything'). Keep your own reply to acknowledging + any missing required documents, and let the appended line handle the contact channel.",
     "",
-    "SAFETY:",
-    "- No medical diagnosis or outcome guarantees.",
-    "- healwith connects patients to Korean medical institutions and their doctors; healwith itself does not diagnose or treat.",
-    "- If the user asks for a human, connect them with a healwith coordinator.",
-    "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
     hospitalRankingAsk ? HOSPITAL_RANKING_GUARD : "",
     "",
     // 서류 5종 나열 가드(코드 강제, 2026-07-04): 사용자가 서류/절차/비용을 묻지 않은 턴엔
     // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
-    docListAllowed
-      ? CARE_REFERENCE
-      : CARE_REFERENCE_MINIMAL,
+    pickCareReference(docListAllowed),
     docListAllowed
       ? ""
       : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
@@ -583,6 +687,31 @@ function parseStructuredReply(
  * 비스트리밍 AI 응답 생성 (thread 기반 채팅용)
  * V1.1: 모델에 JSON 출력 강제 → used_pattern_ids 선언 기반 판정
  */
+/**
+ * 「모델을 거치지 않고 코드가 가로챈」 턴의 이름들.
+ *
+ * 왜 목록으로 두나 (2026-08-28): 이 세 갈래는 환자 메시지를 «모델에 보내지도 않고» 정해진 문구로
+ * 답한다. 그런데 여태 그 사실이 **어디에도 안 남았다** — 답변 기록(chat_messages.metadata)에도,
+ * 판사 채점에도 없어서, 잡담 거르개가 환자의 「그래」(연결 동의)를 4번 씹는 동안 아무도 몰랐다.
+ * PO 가 대화 로그를 눈으로 보고서야 드러났다.
+ *
+ * 가로채기 자체는 필요하다(인사에 병원을 추천할 순 없다). 문제는 «몇 번 가로챘는지 셀 수 없던 것»이다.
+ * 정상일 때와 오작동할 때가 똑같이 조용하면 오작동은 영영 안 보인다.
+ * → 두 저장 경로(message·stream)가 이 값을 metadata.bypassed 로 남긴다.
+ */
+export const MODEL_BYPASS_SCORINGS = [
+  "small_talk_bypass", // 짧은 인사·잡담으로 판정 (오작동 시: 환자의 짧은 «대답»을 삼킨다)
+  "topic_correction_reset", // 화제 정정으로 판정
+  "master_key_self_analysis", // PO 디버그용 마스터키
+] as const;
+
+/** 이 턴이 모델을 안 거쳤으면 그 이름을, 거쳤으면 null. 답변 기록에 남길 값. */
+export function modelBypassKind(ragScoring: unknown): string | null {
+  return typeof ragScoring === "string" && (MODEL_BYPASS_SCORINGS as readonly string[]).includes(ragScoring)
+    ? ragScoring
+    : null;
+}
+
 // 짧은 인사·잡담 패턴 — RAG/DB 검색 없이 자연스럽게 응답
 const SMALL_TALK_PATTERNS = [
   /^(안녕|하이|hi|hello|hey|здравств|привет|сәлем|你好|嗨|こんにちは|やあ|halo|hola)[\s!?.,~]*$/i,
@@ -632,10 +761,42 @@ function detectRepetitiveAssistant(messages: ChatMessage[]): boolean {
   return pairs > 0 && total / pairs >= 0.5;
 }
 
-function isSmallTalk(text: string): boolean {
+// 직전 어시스턴트 발화가 «환자의 대답을 기다리는» 상태인가. 그렇다면 뒤따르는 "네"·"그래"는
+// 잡담이 아니라 그 질문에 대한 «대답»이다. 물음표로만 판정한다(모든 언어 공통, 전각 ？ 포함).
+//
+// ⚠️ «끝이 물음표»가 아니라 «끝 60자 안에 물음표»다. 처음엔 끝 글자만 봤는데 실측에서 틀렸다:
+//    실DB(chat_messages) AI 답변 524건 중 물음표가 있는 건 286건인데 그중 «끝»에 있는 건 174건뿐
+//    (61%)이다. 나머지 112건은 우리 프롬프트가 시킨 대로 「질문? + 알려주시면 안내하겠습니다」로
+//    끝나 맺음말이 물음표 뒤에 붙는다. 끝 글자만 보면 «대답을 기다리는» 답변의 39%를 놓친다.
+//    끝 60자면 286건 중 261건(91%)을 잡고, 「아무 데나 물음표」(286건)와는 25건 차이라 넓히는
+//    비용이 거의 없다. 판정이 넓어서 생기는 최악은 "네"가 모델로 넘어가는 것(=원래 하려던 일)이고,
+//    좁아서 생기는 최악은 환자의 «연결해 달라»는 동의가 통째로 씹히는 것이다. 비대칭이라 넓게 잡는다.
+const QUESTION_TAIL_WINDOW = 60;
+
+function lastAssistantAskedAQuestion(messages: ChatMessage[] | undefined): boolean {
+  if (!messages?.length) return false;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "assistant") continue;
+    const t = (m.content || "").trim();
+    if (!t) continue;
+    return /[?？]/.test(t.slice(-QUESTION_TAIL_WINDOW));
+  }
+  return false;
+}
+
+// ⚠️ messages 를 반드시 같이 넘겨라. 이 판정은 «현재 메시지만» 보면 틀린다.
+//    2026-08-28 PO 제보(#30bfcc04): AI 가 "코디네이터 연결을 도와드릴까요?" 라고 물은 직후
+//    환자가 "그래"(2자) → SMALL_TALK_PATTERNS 의 3자 이하 규칙에 걸려 모델을 거치지도 않고
+//    "더 자세히 말씀해 주시면…" 고정문구가 나갔다. 같은 스레드에서 4번 반복됐고, 그중 3번이
+//    «연결해 달라는 동의»와 «연락처를 주겠다는 동의»였다 — 접수 직전에 대화가 원점으로 돌아갔다.
+//    환자가 "연결해줘요"(5자)라고 길게 다시 쳐서야 넘어갔다.
+export function isSmallTalk(text: string, messages?: ChatMessage[]): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
-  return SMALL_TALK_PATTERNS.some((p) => p.test(trimmed));
+  if (!SMALL_TALK_PATTERNS.some((p) => p.test(trimmed))) return false;
+  // 우리가 방금 물어봤다면 짧은 답도 답이다 → 모델에게 넘긴다.
+  return !lastAssistantAskedAQuestion(messages);
 }
 
 function smallTalkReply(text: string, lang: string): string {
@@ -945,8 +1106,17 @@ interface PreparedGeneration {
   ragChunks: any[];
   injectedPatternIds: string[];
   retrievedPatternIds: string[];
-  allContext: string;
+  /**
+   * 판사에게 넘길 컨텍스트. 비용을 안 물은 턴엔 모델도 가격 줄이 빠진 컨텍스트를 보므로
+   * 판사에게도 같은 걸 준다 — 안 그러면 모델이 못 본 가격 줄을 판사가 「근거 있음」으로 봐서
+   * 「안 물었는데 가격 흘림」 검출이 헐거워진다.
+   */
+  judgeContext: string;
   ragScoring: string;
+  /** 이 턴에 실제 주입된 안내자료 판(전체 or 가격 뺀 축약). 품질 판사에게 같은 걸 보여준다. */
+  careReference: string;
+  /** 이 턴에 시스템 프롬프트가 «사실»로 준 세션 상태. 판사에게 같은 문자열을 보여준다(반성문 #179). */
+  sessionFacts: string;
 }
 
 async function prepareGeneration(
@@ -998,11 +1168,14 @@ async function prepareGeneration(
 
   const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
   const useWebSearch = !allContext && !hospitalGuardActive;
+  // 안내자료 판 선택은 여기서 «한 번만» 한다 — buildSystemPrompt 와 품질 판사가 같은 판을 봐야 한다.
+  // (두 곳에서 따로 고르면 한쪽만 바뀌어 판사가 엉뚱한 자료로 채점한다.)
+  const docListAllowed = asksDocsOrProcess(query);
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
     hospitalRankingAsk: asksHospitalRanking(query),
-  }, mentionsCancerType(query), session, lang, asksDocsOrProcess(query));
+  }, mentionsCancerType(query), session, lang, docListAllowed);
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
@@ -1023,8 +1196,10 @@ async function prepareGeneration(
     ragChunks,
     injectedPatternIds,
     retrievedPatternIds,
-    allContext,
+    judgeContext: docListAllowed ? allContext : stripPriceLines(allContext),
     ragScoring,
+    careReference: pickCareReference(docListAllowed),
+    sessionFacts: buildSessionFacts(session),
   };
 }
 
@@ -1045,7 +1220,7 @@ export async function generateChatReply(
   }
 
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답
-  if (isSmallTalk(query)) {
+  if (isSmallTalk(query, messages)) {
     return {
       reply: smallTalkReply(query, lang),
       ragChunks: [],
@@ -1075,7 +1250,7 @@ export async function generateChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       return {
@@ -1130,6 +1305,7 @@ export async function generateChatReply(
       surface: session.isRegressionTest ? "regression_generate" : "public_chat",
       model: getModelName(),
       usage: (result as any)?.usage,
+      providerMetadata: (result as any)?.providerMetadata,
       meta: { mode: "generate", structured: injectedPatternIds.length > 0 },
     });
 
@@ -1193,7 +1369,9 @@ export async function generateChatReply(
     if (!session.isRegressionTest) runJudgeInBackground({
       query: safeQuery,
       response: finalReply,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
+      officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
       threadId: threadId ?? null,
@@ -1247,7 +1425,7 @@ export async function streamChatReply(
   }
 
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답(한 덩어리로 스트림)
-  if (isSmallTalk(query)) {
+  if (isSmallTalk(query, messages)) {
     const reply = smallTalkReply(query, lang);
     onChunk(reply);
     return {
@@ -1278,7 +1456,7 @@ export async function streamChatReply(
   try {
     const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
-    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, judgeContext, careReference, sessionFacts } = prep;
 
     if (!prep.model) {
       const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
@@ -1312,6 +1490,7 @@ export async function streamChatReply(
     let fullText = "";
     let finishReason: any = undefined;
     let usageForLog: any = undefined; // 💰 사용량 계측용(스트림 usage 또는 fallback usage)
+    let providerMetaForLog: any = undefined; // 💰 캐시 적중 토큰이 여기로만 오는 SDK 버전 대비
     try {
       // 별칭 세대 교체 생존 사다리 — ⚠️ ai@6 의 streamText 는 API 오류(400 포함)를 throw 하지
       // 않고 스트림의 error 파트로 흘리며, textStream 은 그 파트를 조용히 버린다(독립 리뷰
@@ -1356,6 +1535,11 @@ export async function streamChatReply(
         } catch {
           /* usage 조회 실패는 무시(계측만 영향) */
         }
+        try {
+          providerMetaForLog = await sr.providerMetadata;
+        } catch {
+          /* providerMetadata 조회 실패는 무시(계측만 영향) */
+        }
         return null;
       }, baseParams);
     } catch (e: any) {
@@ -1377,6 +1561,7 @@ export async function streamChatReply(
           fullText = reduced.text;
           finishReason = (reduced as any)?.finishReason ?? finishReason;
           usageForLog = (reduced as any)?.usage ?? usageForLog;
+          providerMetaForLog = (reduced as any)?.providerMetadata ?? providerMetaForLog;
           onChunk(fullText);
         }
       }
@@ -1413,6 +1598,7 @@ export async function streamChatReply(
       surface: session.isRegressionTest ? "regression_generate" : "public_chat",
       model: getModelName(),
       usage: usageForLog,
+      providerMetadata: providerMetaForLog,
       meta: { mode: "stream" },
     });
 
@@ -1420,7 +1606,9 @@ export async function streamChatReply(
     if (!session.isRegressionTest) runJudgeInBackground({
       query: safeQuery,
       response: fullText,
-      context: allContext || undefined,
+      context: judgeContext || undefined,
+      officialReference: careReference,
+      sessionFacts,
       lang,
       messageId: null,
       threadId: threadId ?? null,

@@ -41,6 +41,10 @@ export const DOC_KINDS = [
     K("referral.doc.passport") },
   { value: "imaging_file", needed: false, label:
     K("referral.doc.imaging_file") },
+  // 음성 메모 — 환자·에이전시가 왓츠앱·텔레그램으로 «말로» 병력을 보내는 경로가 실제로 있다.
+  // 서류가 아니라 소리라 needed 에는 안 넣는다(없다고 재촉할 것이 아니다).
+  { value: "voice_memo", needed: false, label:
+    K("referral.doc.voice_memo") },
   { value: "other", needed: false, label:
     K("referral.doc.other") },
   // 「판별 못 함」은 «누가» 못 했단 건지·«내가 뭐해야 하는지»를 안 알려준다(2026-08-14 PO:
@@ -69,3 +73,18 @@ export function missingKinds(docs = []) {
   const have = new Set(docs.map((d) => d?.kind).filter(Boolean));
   return NEEDED_KINDS.filter((k) => !have.has(k));
 }
+
+/**
+ * 판독기가 서류·음성에서 뽑아낸 값의 «사람이 읽는 이름».
+ *
+ * 왜 여기 두나 (2026-09-04): 같은 표를 코디 문의 상세와 음성 보관함 두 곳이 그린다.
+ * 각자 베껴 두면 칸을 하나 늘릴 때 한쪽만 고쳐져 「어떤 화면에선 안 보이는 값」이 생긴다.
+ * 판독 창구(app/api/inquiry/classify-doc)의 FILLABLE 과 짝이다 — 거기 칸을 늘리면 여기도 늘려라.
+ */
+export const DOC_FIELD_LABELS = {
+  lastName: "성", firstName: "이름", birthDate: "생년월일", sex: "성별",
+  email: "이메일", phone: "전화", nationality: "국적",
+  diagnosisNameRaw: "진단명", icdCode: "진단코드", diagnosisDate: "진단시기", stage: "병기",
+  chiefComplaint: "주호소", testsAndTreatments: "검사·치료", medications: "복용약",
+  pastHistoryNote: "과거력", familyHistory: "가족력", localDoctorOpinion: "현지 주치의 소견",
+};

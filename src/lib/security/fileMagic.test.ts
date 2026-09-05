@@ -83,3 +83,73 @@ describe("verifyFileMagic", () => {
     ).toBe(true);
   });
 });
+
+// 2026-09-02 추가 — 환자가 음성 메모·텍스트 메모를 보내는 길을 열면서.
+describe("verifyFileMagic — 음성", () => {
+  it("MP3: ID3 태그로 시작", () => {
+    const buf = make([0x49, 0x44, 0x33, 0x03]); // "ID3"
+    expect(verifyFileMagic(buf, "audio/mpeg").ok).toBe(true);
+  });
+
+  it("MP3: 태그 없이 프레임부터 시작(FF FB)", () => {
+    const buf = make([0xff, 0xfb, 0x90, 0x00]);
+    expect(verifyFileMagic(buf, "audio/mpeg").ok).toBe(true);
+  });
+
+  it("M4A(아이폰 음성 메모): 오프셋 4의 ftyp", () => {
+    const buf = make([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]);
+    expect(verifyFileMagic(buf, "audio/mp4").ok).toBe(true);
+  });
+
+  it("WAV 는 RIFF 로 시작하지만 WebP 와 갈린다", () => {
+    const wav = make([
+      0x52, 0x49, 0x46, 0x46, // RIFF
+      0x00, 0x00, 0x00, 0x00,
+      0x57, 0x41, 0x56, 0x45, // WAVE
+    ]);
+    expect(verifyFileMagic(wav, "audio/wav").ok).toBe(true);
+    // 같은 RIFF 라도 WebP 를 음성이라고 우기면 막혀야 한다
+    const webp = make([
+      0x52, 0x49, 0x46, 0x46,
+      0x00, 0x00, 0x00, 0x00,
+      0x57, 0x45, 0x42, 0x50, // WEBP
+    ]);
+    expect(verifyFileMagic(webp, "audio/wav").ok).toBe(false);
+  });
+
+  it("OGG(왓즈앱·텔레그램 음성) 감지", () => {
+    const buf = make([0x4f, 0x67, 0x67, 0x53]); // "OggS"
+    expect(verifyFileMagic(buf, "audio/ogg").ok).toBe(true);
+  });
+
+  it("AMR(구형 안드로이드 녹음) 감지", () => {
+    const buf = make([0x23, 0x21, 0x41, 0x4d, 0x52]); // "#!AMR"
+    expect(verifyFileMagic(buf, "audio/amr").ok).toBe(true);
+  });
+
+  it("공격: 실제는 PNG 인데 음성이라고 선언 → 차단", () => {
+    const buf = make([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(verifyFileMagic(buf, "audio/mpeg").ok).toBe(false);
+  });
+});
+
+describe("verifyFileMagic — 텍스트 메모", () => {
+  it("평범한 텍스트는 통과", () => {
+    const buf = Buffer.from("환자 증상 메모입니다. 어제부터 통증이 있었습니다.", "utf8");
+    expect(verifyFileMagic(buf, "text/plain")).toEqual({
+      ok: true,
+      detectedMime: "text/plain",
+    });
+  });
+
+  it("공격: 앞머리에 NUL 이 섞인 이진파일을 텍스트라고 선언 → 차단", () => {
+    // 윈도우 실행파일("MZ" + NUL 다수)을 .txt 로 위장한 경우
+    const buf = make([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
+    expect(verifyFileMagic(buf, "text/plain").ok).toBe(false);
+  });
+
+  it("텍스트 내용이어도 다른 형식으로 선언하면 차단", () => {
+    const buf = Buffer.from("이것은 그냥 글자입니다 그렇지만 PDF 는 아닙니다", "utf8");
+    expect(verifyFileMagic(buf, "application/pdf").ok).toBe(false);
+  });
+});

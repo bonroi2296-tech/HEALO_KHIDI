@@ -101,9 +101,17 @@ export async function POST(
         "source_lang, speaker_name, speaker_name_encrypted, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
       )
       .eq("session_id", consultationId)
+      // 말하는 중 흐른 중간 자막은 뺀다 — 같은 발화의 앞토막이 여러 줄 들어와
+      // 요약이 같은 말을 반복하게 된다(2026-09-01 중간 자막 저장을 켜면서 같이 막음).
+      .eq("is_partial", false)
       .order("created_at", { ascending: true });
-    // 복호화 실패한 줄은 source_text 가 null 이 되므로 요약 입력에서 제외한다.
-    const rows = decryptTranscriptRows(rawRows as any).filter((r) => r.source_text);
+    // 복호화 실패한 줄은 source_text·translated_text 가 둘 다 null 이 되므로 제외한다.
+    // ⚠️ 원문만 보고 거르면 안 된다: 실시간 통역(live_translate) 경로는 «번역문만» 준다
+    //    (통역 모델이 원문 자막을 안 내려준다). 2026-08-28 이전 규칙(source_text 만 확인)
+    //    으로는 통역을 켜고 한 상담이 «대화 기록 없음»으로 판정돼 요약이 통째로 빈다.
+    const rows = decryptTranscriptRows(rawRows as any).filter(
+      (r) => r.source_text || r.translated_text
+    );
 
     if (trErr) {
       console.error(
@@ -127,7 +135,8 @@ export async function POST(
           session.doctor_language,
           session.patient_language
         );
-        return `${who}: ${(r.source_text || "").trim()}`;
+        // 원문이 있으면 원문으로(Gemini 가 다국어를 이해한다), 없으면 번역문으로.
+        return `${who}: ${(r.source_text || r.translated_text || "").trim()}`;
       })
       .filter((line: string) => line.length > 4)
       .join("\n");

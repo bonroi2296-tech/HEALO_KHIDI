@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Eyebrow, Rule, Chip, ButtonGold, LinkArrow } from "../../../components/healo/Primitives";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { kstDate, kstTime, kstDateParts } from "@/lib/datetime/kst";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -46,6 +46,33 @@ const LOCALES = {
 };
 
 const localeFor = (lang) => LOCALES[lang] || "en-US";
+
+/**
+ * 이벤트 종류별 색 — 기본 톤(teal). 두 자리에서 쓴다.
+ *  · pill  = 월간 격자의 좁은 알약. 칸이 작아 «채움»으로 위계를 준다.
+ *  · badge = 목록 보기의 라벨. 옆에 제목·부제가 있으므로 연한 배경으로 눌러 준다.
+ * 대비는 DESIGN.md 4-b 기준 — 흰 글씨는 700번대(teal-700 5.47:1 · red-600 4.83:1) 위에만 얹는다.
+ */
+const EVENT_STYLES = {
+  consultation: {
+    pill: "bg-teal-700 text-white",
+    badge: "bg-teal-50 text-teal-700 border-teal-100",
+  },
+  followup: {
+    pill: "bg-teal-50 text-teal-800 ring-1 ring-inset ring-teal-100",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  },
+  rebooking: {
+    pill: "bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200",
+    badge: "bg-gray-100 text-gray-700 border-gray-200",
+  },
+  deadline: {
+    pill: "bg-red-600 text-white",
+    badge: "bg-red-50 text-red-700 border-red-100",
+  },
+};
+
+const styleFor = (type) => EVENT_STYLES[type] || EVENT_STYLES.consultation;
 
 export default function CalendarClient() {
   const lang = useLang();
@@ -133,26 +160,31 @@ export default function CalendarClient() {
     return list.sort((a, b) => a.date - b.date);
   }, [journey, lang]);
 
+  const hero = (
+    <div className="px-4 md:px-6 pt-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-teal-700">
+        {t("patientCalendar.heroEyebrow", lang)}
+      </p>
+      <h1 className="mt-1 text-3xl md:text-4xl font-bold text-gray-900">
+        {heroTitle}
+        {heroTitleItalic ? ` ${heroTitleItalic}` : ""}
+      </h1>
+    </div>
+  );
+
   if (!loading && !user) {
     return (
-      <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
-        <div style={{ padding: "24px" }}>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientCalendar.heroEyebrow", lang)}</p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{heroTitle}{heroTitleItalic ? ` ${heroTitleItalic}` : ""}</h1>
-        </div>
-        <div style={{ padding: "72px 24px", textAlign: "center" }}>
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              color: "var(--fg-on-light-3)",
-              marginBottom: 24,
-            }}
-          >
+      <main className="max-w-[1240px] mx-auto pt-16">
+        {hero}
+        <div className="px-4 md:px-6 py-16 text-center">
+          <p className="text-sm md:text-base text-gray-600 mb-5">
             {t("patientCalendar.loginRequired", lang)}
           </p>
-          <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>{t("patientCalendar.signIn", lang)}</ButtonGold>
+          <Link
+            href="/login"
+            className="inline-flex items-center px-6 py-3 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200"
+          >
+            {t("patientCalendar.signIn", lang)}
           </Link>
         </div>
       </main>
@@ -160,126 +192,69 @@ export default function CalendarClient() {
   }
 
   return (
-    <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
-      <div style={{ padding: "24px" }}>
-        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientCalendar.heroEyebrow", lang)}</p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{heroTitle}{heroTitleItalic ? ` ${heroTitleItalic}` : ""}</h1>
-      </div>
-      <section style={{ padding: "48px 24px 96px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          {/* Toolbar */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: 24,
-                  fontWeight: 500,
-                  color: "var(--fg-on-light-1)",
-                }}
+    <main className="max-w-[1240px] mx-auto pt-16">
+      {hero}
+      <section className="px-4 md:px-6 py-8 md:py-10 pb-20">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 tabular-nums">
+              {cursor.toLocaleString(localeFor(lang), {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+            <div className="flex items-center gap-1.5">
+              <IconBtn
+                label={t("patientCalendar.previous", lang)}
+                onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
               >
-                {cursor.toLocaleString(localeFor(lang), {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </div>
-              <div style={{ display: "flex", gap: 4 }}>
-                <IconBtn
-                  onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-                >
-                  ←
-                </IconBtn>
-                <IconBtn onClick={() => setCursor(new Date())}>{t("patientCalendar.today", lang)}</IconBtn>
-                <IconBtn
-                  onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-                >
-                  →
-                </IconBtn>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <ViewTab active={view === "month"} onClick={() => setView("month")}>
-                {t("patientCalendar.monthView", lang)}
-              </ViewTab>
-              <ViewTab active={view === "list"} onClick={() => setView("list")}>
-                {t("patientCalendar.listView", lang)}
-              </ViewTab>
+                <ChevronLeft size={16} />
+              </IconBtn>
+              <IconBtn onClick={() => setCursor(new Date())}>{t("patientCalendar.today", lang)}</IconBtn>
+              <IconBtn
+                label={t("patientCalendar.next", lang)}
+                onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+              >
+                <ChevronRight size={16} />
+              </IconBtn>
             </div>
           </div>
-
-          {loading ? (
-            <p
-              style={{
-                padding: 72,
-                textAlign: "center",
-                color: "var(--fg-on-light-3)",
-                fontStyle: "italic",
-                fontFamily: "var(--font-serif)",
-              }}
-            >
-              —
-            </p>
-          ) : events.length === 0 && view === "list" ? (
-            <p
-              style={{
-                padding: 72,
-                textAlign: "center",
-                color: "var(--fg-on-light-3)",
-                fontStyle: "italic",
-                fontFamily: "var(--font-serif)",
-              }}
-            >
-              {t("patientCalendar.noEvents", lang)}
-            </p>
-          ) : view === "month" ? (
-            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ minWidth: 700 }}>
-                <MonthGrid cursor={cursor} events={events} daysOfWeek={DOW_KEYS.map((k) => t(k, lang))} lang={lang} />
-              </div>
-            </div>
-          ) : (
-            <ListView events={events} lang={lang} />
-          )}
+          <div className="flex gap-1.5">
+            <ViewTab active={view === "month"} onClick={() => setView("month")}>
+              {t("patientCalendar.monthView", lang)}
+            </ViewTab>
+            <ViewTab active={view === "list"} onClick={() => setView("list")}>
+              {t("patientCalendar.listView", lang)}
+            </ViewTab>
+          </div>
         </div>
-      </section>
 
-      {/* styled-jsx silently no-ops in the App Router (POSTMORTEMS #113) — plain style tag. */}
-      <style>{`
-        @media (max-width: 640px) {
-          .healo-calendar-list-row {
-            grid-template-columns: 1fr !important;
-            gap: 8px !important;
-          }
-        }
-      `}</style>
+        {loading ? (
+          <CalendarSkeleton />
+        ) : events.length === 0 && view === "list" ? (
+          <EmptyState lang={lang} />
+        ) : view === "month" ? (
+          <div className="overflow-x-auto">
+            <div className="min-w-[700px]">
+              <MonthGrid cursor={cursor} events={events} daysOfWeek={DOW_KEYS.map((k) => t(k, lang))} lang={lang} />
+            </div>
+          </div>
+        ) : (
+          <ListView events={events} lang={lang} />
+        )}
+      </section>
     </main>
   );
 }
 
-function IconBtn({ onClick, children }) {
+function IconBtn({ onClick, children, label }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      style={{
-        background: "transparent",
-        border: "1px solid var(--cream-2)",
-        padding: "6px 14px",
-        fontFamily: "var(--font-sans)",
-        fontSize: 11,
-        letterSpacing: "0.18em",
-        textTransform: "uppercase",
-        color: "var(--fg-on-light-1)",
-        cursor: "pointer",
-      }}
+      aria-label={label || undefined}
+      className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700 whitespace-nowrap hover:border-teal-400 hover:text-teal-700 transition-all duration-200"
     >
       {children}
     </button>
@@ -289,22 +264,37 @@ function IconBtn({ onClick, children }) {
 function ViewTab({ active, onClick, children }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      style={{
-        background: active ? "var(--ink-0)" : "transparent",
-        color: active ? "var(--gold-0)" : "var(--fg-on-light-2)",
-        border: `1px solid ${active ? "var(--ink-0)" : "var(--cream-2)"}`,
-        padding: "6px 14px",
-        fontFamily: "var(--font-sans)",
-        fontSize: 10,
-        letterSpacing: "0.24em",
-        textTransform: "uppercase",
-        cursor: "pointer",
-        fontWeight: 600,
-      }}
+      aria-pressed={active}
+      className={`px-4 py-2 rounded-xl border text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+        active
+          ? "bg-teal-700 text-white border-teal-700"
+          : "bg-white text-gray-600 border-gray-300 hover:border-teal-400 hover:text-teal-700"
+      }`}
     >
       {children}
     </button>
+  );
+}
+
+// 로딩 — 스피너 단독 금지(DESIGN.md ux_states). 곧 그려질 모양을 그대로 흉내낸다.
+function CalendarSkeleton() {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white" aria-hidden="true">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="h-16 border-b border-gray-100 last:border-b-0 bg-gray-50 animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ lang }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-6 py-16 text-center">
+      <CalendarDays size={28} className="mx-auto mb-3 text-gray-500" aria-hidden="true" />
+      <p className="text-sm md:text-base text-gray-600">{t("patientCalendar.noEvents", lang)}</p>
+    </div>
   );
 }
 
@@ -333,33 +323,19 @@ function MonthGrid({ cursor, events, daysOfWeek, lang }) {
   const cells = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  // 마지막 주를 7칸으로 채운다 — 셀이 없으면 그 자리에 격자 바닥색(gray-200)이 그대로 드러난다.
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div>
-      {/* Day headers */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          borderTop: "1px solid var(--gold-tint)",
-          borderLeft: "1px solid var(--cream-2)",
-        }}
-      >
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {/* 격자선은 gap-px + 바닥색으로 그린다(셀마다 테두리를 붙이면 끝단이 두 겹이 된다) */}
+      <div className="grid grid-cols-7 gap-px bg-gray-200">
         {daysOfWeek.map((d, i) => (
           <div
             key={i}
-            style={{
-              padding: "10px 12px",
-              borderRight: "1px solid var(--cream-2)",
-              borderBottom: "1px solid var(--cream-2)",
-              background: "var(--paper)",
-              fontFamily: "var(--font-sans)",
-              fontSize: 9,
-              letterSpacing: "0.24em",
-              textTransform: "uppercase",
-              color: i === 0 ? "var(--danger, #8c3a2e)" : "var(--fg-on-light-3)",
-              fontWeight: 600,
-            }}
+            className={`px-3 py-2.5 bg-gray-50 text-xs font-semibold ${
+              i === 0 ? "text-red-600" : "text-gray-600"
+            }`}
           >
             {d}
           </div>
@@ -381,41 +357,22 @@ function MonthGrid({ cursor, events, daysOfWeek, lang }) {
 
 function DayCell({ day, isToday, isWeekend, events, lang }) {
   return (
-    <div
-      style={{
-        minHeight: 110,
-        padding: "8px 10px",
-        borderRight: "1px solid var(--cream-2)",
-        borderBottom: "1px solid var(--cream-2)",
-        background: isToday ? "var(--gold-wash)" : day ? "var(--cream-0)" : "var(--paper)",
-        position: "relative",
-      }}
-    >
+    <div className={`min-h-[104px] px-2.5 py-2 ${isToday ? "bg-teal-50" : day ? "bg-white" : "bg-gray-50"}`}>
       {day && (
         <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            fontWeight: isToday ? 700 : 400,
-            color: isToday
-              ? "var(--gold-2)"
-              : isWeekend
-              ? "var(--danger, #8c3a2e)"
-              : "var(--fg-on-light-2)",
-            marginBottom: 6,
-          }}
+          className={`mb-1.5 text-xs tabular-nums ${
+            isToday ? "font-bold text-teal-700" : isWeekend ? "text-red-600" : "text-gray-600"
+          }`}
         >
-          {String(day).padStart(2, "0")}
+          {day}
         </div>
       )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="flex flex-col gap-1">
         {events.slice(0, 3).map((e) => (
           <EventPill key={e.id} event={e} lang={lang} />
         ))}
         {events.length > 3 && (
-          <div style={{ fontSize: 10, color: "var(--fg-on-light-4)", fontFamily: "var(--font-mono)" }}>
-            +{events.length - 3}
-          </div>
+          <div className="text-[10px] tabular-nums text-gray-500">+{events.length - 3}</div>
         )}
       </div>
     </div>
@@ -423,41 +380,24 @@ function DayCell({ day, isToday, isWeekend, events, lang }) {
 }
 
 function EventPill({ event, lang }) {
-  const colors = {
-    consultation: { bg: "var(--ink-0)", fg: "var(--gold-0)" },
-    followup: { bg: "var(--gold-0)", fg: "var(--ink-0)" },
-    rebooking: { bg: "var(--cream-2)", fg: "var(--ink-0)" },
-    deadline: { bg: "#8c3a2e", fg: "var(--cream-0)" },
-  };
-  const c = colors[event.type] || colors.consultation;
-
   const time = kstTime(event.date, localeFor(lang), { hour: "numeric", minute: "2-digit" });
 
   const content = (
     <div
-      style={{
-        background: c.bg,
-        color: c.fg,
-        padding: "3px 8px",
-        fontFamily: "var(--font-sans)",
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "0.05em",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        cursor: event.href ? "pointer" : "default",
-      }}
+      className={`px-2 py-1 rounded-lg text-[11px] font-semibold truncate transition-all duration-200 ${
+        styleFor(event.type).pill
+      } ${event.href ? "cursor-pointer hover:opacity-90" : ""}`}
       title={event.sub}
     >
-      <span style={{ fontFamily: "var(--font-mono)", marginRight: 6, opacity: 0.7 }}>{time}</span>
+      {/* 시각은 굵기로만 눌러 준다 — opacity 로 흐리면 teal-700 위에서 4.13:1 이 되어 AA 미달(2026-08-27 axe 실측) */}
+      <span className="mr-1.5 tabular-nums font-normal">{time}</span>
       {event.title}
     </div>
   );
 
   if (event.href) {
     return (
-      <Link href={event.href} style={{ textDecoration: "none" }}>
+      <Link href={event.href} className="no-underline">
         {content}
       </Link>
     );
@@ -466,61 +406,24 @@ function EventPill({ event, lang }) {
 }
 
 function ListView({ events, lang }) {
-  if (events.length === 0) {
-    return (
-      <p
-        style={{
-          padding: 72,
-          textAlign: "center",
-          color: "var(--fg-on-light-3)",
-          fontStyle: "italic",
-          fontFamily: "var(--font-serif)",
-        }}
-      >
-        {t("patientCalendar.noEvents", lang)}
-      </p>
-    );
-  }
+  if (events.length === 0) return <EmptyState lang={lang} />;
 
   return (
-    <div style={{ borderTop: "1px solid var(--gold-tint)" }}>
+    <ul className="rounded-xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
       {events.map((e) => (
-        <div
+        <li
           key={e.id}
-          className="healo-calendar-list-row"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "140px 1fr auto",
-            gap: 24,
-            padding: "20px 16px",
-            borderBottom: "1px solid var(--cream-2)",
-            alignItems: "center",
-          }}
+          className="grid grid-cols-1 sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-5 px-4 py-4 sm:px-5 sm:py-5 items-start sm:items-center"
         >
           <div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                color: "var(--fg-on-light-3)",
-                letterSpacing: "0.1em",
-              }}
-            >
+            <div className="text-xs text-gray-500 tabular-nums">
               {kstDate(e.date, localeFor(lang), {
                 year: "numeric",
                 month: "short",
                 day: "2-digit",
               })}
             </div>
-            <div
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: 20,
-                fontWeight: 500,
-                color: "var(--fg-on-light-1)",
-                marginTop: 2,
-              }}
-            >
+            <div className="mt-0.5 text-lg font-bold text-gray-900 tabular-nums">
               {kstTime(e.date, localeFor(lang), {
                 hour: "numeric",
                 minute: "2-digit",
@@ -528,42 +431,29 @@ function ListView({ events, lang }) {
             </div>
           </div>
           <div>
-            <Chip tone={e.type === "deadline" ? "warn" : e.type === "followup" ? "gold" : "ink"}>
-              {TYPE_LABEL_KEYS[e.type] ? t(TYPE_LABEL_KEYS[e.type], lang) : e.type}
-            </Chip>
-            <div
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: 18,
-                fontWeight: 500,
-                color: "var(--fg-on-light-1)",
-                marginTop: 8,
-              }}
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${
+                styleFor(e.type).badge
+              }`}
             >
-              {e.title}
-            </div>
-            {e.sub && (
-              <div
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 13,
-                  color: "var(--fg-on-light-3)",
-                  marginTop: 4,
-                }}
-              >
-                {e.sub}
-              </div>
-            )}
+              {TYPE_LABEL_KEYS[e.type] ? t(TYPE_LABEL_KEYS[e.type], lang) : e.type}
+            </span>
+            <div className="mt-1.5 text-base font-bold text-gray-900">{e.title}</div>
+            {e.sub && <div className="mt-0.5 text-sm text-gray-500">{e.sub}</div>}
           </div>
           {e.href ? (
-            <Link href={e.href} style={{ textDecoration: "none" }}>
-              <LinkArrow>{t("patientCalendar.join", lang)} →</LinkArrow>
+            <Link
+              href={e.href}
+              className="inline-flex items-center gap-1 text-sm font-bold text-teal-700 hover:text-teal-800 whitespace-nowrap transition-all duration-200"
+            >
+              {t("patientCalendar.join", lang)}
+              <ChevronRight size={15} aria-hidden="true" />
             </Link>
           ) : (
             <span />
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

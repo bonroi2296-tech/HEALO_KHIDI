@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 const STATUSES = new Set(["pending", "sent", "failed", "cancelled"]);
 
@@ -36,7 +37,13 @@ export async function GET(request: NextRequest) {
       console.error("[admin/reminders] query error:", error.message);
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
-    return Response.json({ ok: true, items: data || [] });
+    // 저장은 암호문 — 화면(관리자)에서 마스킹해 보여주려면 여기서 풀어 준다.
+    // (옛 평문 행은 decryptMaybe 가 그대로 돌려준다)
+    const items = (data || []).map((r: any) => ({
+      ...r,
+      recipient_address: decryptMaybe(r.recipient_address),
+    }));
+    return Response.json({ ok: true, items });
   } catch (err: any) {
     console.error("[admin/reminders] error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });

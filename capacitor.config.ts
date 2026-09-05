@@ -22,8 +22,14 @@ const config: CapacitorConfig = {
   appId: 'kr.co.healwith.app',
   appName: 'healwith',
   // SSR 앱이라 정적 번들이 없음 → server.url 로 라이브 사이트를 로드.
-  // webDir 는 Capacitor 가 형식상 요구하므로 기존 public 을 가리킴(실제 미사용).
-  webDir: 'public',
+  // 🔴 2026-08-31: 여기가 'public' 이라 **앱 파일이 79MB 였다.**
+  //    캡시터는 webDir 을 통째로 복사하는데, public 에는 웹사이트 사진이 74.6MB 들어 있다
+  //    (immune 43.9MB · images 15.1MB · doctors 15.0MB). 이 앱은 라이브로드라 화면도 사진도
+  //    server.url 에서 받으므로 **그 74MB 는 앱 안에서 한 번도 안 열린다.**
+  //    앱이 로컬에서 실제로 여는 것은 아래 errorPath(offline.html) 하나뿐이다.
+  //    → 그 파일만 담은 폴더를 빌드 때 만든다(`npm run cap:sync`, scripts/prepare-native-webdir.mjs).
+  //    ⚠️ 이 값을 'public' 으로 되돌리지 마라 — 설치 크기가 82.7MB 로 돌아간다.
+  webDir: 'native-webdir',
   server: {
     url: 'https://healwith.co.kr',
     androidScheme: 'https',
@@ -61,6 +67,25 @@ const config: CapacitorConfig = {
     //       supabase 를 넣어도 구글 흐름은 안 바뀐다 — accounts.google.com 이 여전히 목록에 없어서
     //       구글은 그대로 바깥 브라우저로 나간다.
     //    ⚠️ 이건 앱 껍데기 설정이라 **앱 파일을 새로 구워야 폰에 간다.** 웹 배포로는 안 간다.
+    //
+    // 🔴 **2026-08-28 정정: 위 8/20 고침은 문제를 «반만» 고친 것이었다.**
+    //    「연결 중」에서 영영 멈추는 것은 없앴지만, 아이폰은 그 다음에 애플 로그인을
+    //    「웹 화면 이동」이 아니라 **「시스템 창」으로 가로챈다.** 그래서 얼굴 인식까지 성공한 뒤
+    //    그 결과가 우리 서버로 돌아오지 못한다.
+    //      실측(실기기 촬영본 + Supabase 기록 대조): 3분 동안 `/auth/v1/authorize` **3건**,
+    //      `/auth/v1/callback` **0건**. 화면에는 아래 errorPath(오프라인 안내)가 떴다.
+    //    → **아이폰은 이제 웹뷰를 안 거치고 네이티브 창을 직접 쓴다**
+    //      (`src/lib/auth/appleNativeSignIn.ts`).
+    //
+    // 🔴 **2026-08-30 정정: 안드로이드 구글도 네이티브로 옮겼다** (`src/lib/auth/googleNativeSignIn.ts`).
+    //    ⚠️ 위 8/28 판에 적혀 있던 「안드로이드는 여전히 웹 흐름이다」는 **이제 틀린 말이다.**
+    //    🛑 **`accounts.google.com` 을 이 목록에 «추가하지 마라» — 넣어도 안 고쳐진다.**
+    //       막힌 곳이 「이동 허용」이 아니라 **PKCE 검증값이 갈리는 것**이기 때문이다: 구글은 앱 웹뷰
+    //       로그인을 정책으로 막아 크롬으로 내보내는데, 돌아오는 `/auth/callback` 도 크롬에서 열린다.
+    //       그런데 code_verifier 는 «앱 웹뷰 쿠키»에 있어 크롬엔 없다 → 교환이 그 자리에서 실패한다.
+    //       실측(2026-08-29): Supabase 는 login 성공(provider=google), Vercel 은
+    //       "PKCE code verifier not found in storage". 같은 24시간 안에 끝까지 간 건 0건.
+    //    지우지도 마라: 네이티브 부품이 없는 **옛 앱 판**은 아직 애플 웹 흐름을 탄다.
     allowNavigation: [
       'appleid.apple.com',
       'hvwwlkawaxabhtumjhrg.supabase.co',
@@ -99,6 +124,33 @@ const config: CapacitorConfig = {
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    // 우리가 «실제로 쓰는» 소셜 로그인만 켠다 — 구글(안드로이드)·애플(아이폰·안드로이드).
+    //
+    // 🔴 왜 명시해야 하나 (2026-09-02 실측). 이 블록이 없으면 부품이 자기 기본값을 쓰는데,
+    //    그 기본값은 **네 공급자를 전부 켠다**(`scripts/configure-dependencies.js` 의
+    //    `defaultProviders`). 그래서 안 쓰는 페이스북 SDK 가 앱에 실렸고, 그 SDK 가 매니페스트에
+    //    광고 ID 권한 4개를 끌고 들어왔다 —
+    //      com.google.android.gms.permission.AD_ID · ACCESS_ADSERVICES_AD_ID
+    //      · ACCESS_ADSERVICES_ATTRIBUTION · ACCESS_ADSERVICES_CUSTOM_AUDIENCE
+    //    그 결과 Play 가 「광고 ID 선언이 불완전함」으로 **프로덕션 검토 제출을 막았다**(판 12·13).
+    //    앱에 페이스북 앱 번호가 없어 그 SDK 는 초기화조차 못 했다 = 기능 0, 비용만 있었다.
+    //
+    // 🛑 **`android/gradle.properties` 에 `socialLogin.facebook.include=false` 를 적지 마라 —
+    //    안 먹는다.** 부품은 «자기 폴더»의 gradle.properties 를 보고, 그 파일은 `npx cap sync`
+    //    때 이 블록을 읽어 hook 스크립트가 «다시 쓴다». 앱 쪽 gradle.properties 는 쳐다보지 않는다.
+    //    (판 13 을 그렇게 구웠다가 권한이 그대로인 것을 AAB 매니페스트 실측으로 잡았다.)
+    //
+    //    웹사이트 메타 픽셀(`app/AnalyticsWrapper.jsx`)과는 무관하다 — 그건 브라우저 자바스크립트다.
+    //    나중에 «앱 설치 광고»를 돌리려면 facebook 을 true 로 되돌리고, 페이스북 앱 번호를 넣고,
+    //    데이터 보안 양식·개인정보 방침에 광고 ID 항목을 반영해야 한다(셋을 같이 해야 한다).
+    SocialLogin: {
+      providers: {
+        google: true,
+        apple: true,
+        facebook: false,
+        twitter: false,
+      },
     },
     // ⚠️ Keyboard 블록을 통째로 뺐다 (2026-07-28, PO 실기기에서 로그인 불가로 발견).
     //    - `resizeOnFullScreen: true` 는 «웹뷰가 키보드에 맞춰 안 줄어들던» 옛 안드로이드 버그용

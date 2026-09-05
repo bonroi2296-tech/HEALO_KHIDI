@@ -78,6 +78,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
         <div className="space-y-3">
           <input
             type="text"
+            data-testid="chat-identify-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("chat.identify.namePlaceholder", langCode) || "Your name"}
@@ -129,6 +130,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
         </label>
 
         <button
+          data-testid="chat-identify-start"
           onClick={() => onSubmit({ name, email, country, consent })}
           disabled={!canSubmit || submitting}
           className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
@@ -303,7 +305,7 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+    <div data-testid="chat-feedback-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-gray-900">
@@ -318,6 +320,7 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
           {reasons.map((r) => (
             <button
               key={r.key}
+              data-testid="chat-feedback-reason"
               onClick={() => setSelectedReason(r.key)}
               className={`w-full text-left px-4 py-2.5 rounded-xl border text-sm font-medium transition ${
                 selectedReason === r.key
@@ -346,6 +349,7 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
             {t("chat.feedback.cancel", langCode) || "Cancel"}
           </button>
           <button
+            data-testid="chat-feedback-submit"
             onClick={handleSubmit}
             disabled={submitting}
             className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition flex items-center justify-center gap-1"
@@ -393,6 +397,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
         </label>
 
         <button
+          data-testid="chat-consent-start"
           onClick={() => onConsent()}
           disabled={!consent || submitting}
           className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
@@ -1137,6 +1142,26 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             </div>
           )}
 
+          {/* 🔴 AI 로 무엇이·누구에게 가는지 «항상» 보이게 (2026-09-01 애플 3차 반려로 추가).
+              애플 5.1.1(i)·5.1.2(i): 「무엇을 보내는지 설명하고, 누구에게 보내는지 밝히고,
+              보내기 전에 동의를 받아라. **약관·방침에만 적는 것으로는 부족하다.**」
+
+              ⚠️ 우리 동의 게이트는 원래도 그 셋을 다 충족한다(ConsentGate·IdentificationForm,
+                 6개 언어). 그런데 심사관은 **그 화면을 볼 수 없었다** — 우리가 회신에 적어 준
+                 데모 계정이 「기존 문의와 예정된 상담이 있는」 계정이라, 쿠키 복구로 threadId 가
+                 잡히면서 `needsIdentification`·`needsConsent` 가 둘 다 false 가 된다
+                 (동의 기록이 이미 있으니 백필 게이트도 안 뜬다).
+              → 동의를 «이미 한» 사용자에게도 대화창 위에 상시 노출한다. 심사관이 어느 계정으로
+                들어와도 이 줄은 반드시 보인다.
+              문구는 게이트가 쓰던 것을 그대로 재사용한다(6개 언어가 이미 있고, 두 곳이 갈리면 안 된다). */}
+          <div className="mb-2 flex items-start gap-2 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-left">
+            <Bot size={13} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-teal-900">
+              {t("chat.identify.privacyNote", langCode) ||
+                "Your messages are sent to Google Gemini (USA) to generate answers. Google does not use them to train its models. We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
+            </p>
+          </div>
+
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-2xl p-3 sm:p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
@@ -1163,7 +1188,11 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={msg.id}
+                data-testid={msg.role === "assistant" ? "chat-msg-assistant" : "chat-msg-user"}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
                 <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%]" : "items-start max-w-[90%] md:max-w-[680px]"}`}>
                   <div
                     className={`p-3 rounded-2xl shadow-sm text-[13px] leading-relaxed border ${
@@ -1287,11 +1316,12 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               {attachments.map((f, i) => {
                 const isImg = (f.type || "").startsWith("image/");
                 return (
-                  <span key={i} className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg pl-2 pr-1 py-1 text-xs">
+                  <span key={i} data-testid="chat-attachment" className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg pl-2 pr-1 py-1 text-xs">
                     {isImg ? <ImageIcon size={13} /> : <FileText size={13} />}
                     <span className="truncate max-w-[140px]">{f.name || "file"}</span>
                     <button
                       type="button"
+                      data-testid="chat-attachment-remove"
                       onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
                       className="p-0.5 hover:bg-teal-100 rounded-full"
                       aria-label="Remove file"
@@ -1317,6 +1347,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
             <input
               ref={fileInputRef}
+              data-testid="chat-file-input"
               type="file"
               multiple
               accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
@@ -1335,6 +1366,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             </button>
             <textarea
               ref={inputRef}
+              data-testid="chat-input"
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}

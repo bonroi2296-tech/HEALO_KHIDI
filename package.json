@@ -23,7 +23,7 @@
     "optimize:images": "node scripts/optimize-images.mjs",
     "audit:images": "node scripts/optimize-images.mjs --check",
     "check:env": "node scripts/check-env.js",
-    "check:i18n": "node scripts/check-i18n-coverage.mjs",
+    "check:i18n": "node scripts/check-i18n-coverage.mjs --fail-on-missing",
     "check:i18n-quality": "node scripts/check-i18n-quality.mjs --selftest --strict",
     "i18n:backport": "node scripts/i18n-backport-overrides.mjs",
     "check:i18n-backport": "node scripts/i18n-backport-overrides.mjs --check",
@@ -42,6 +42,9 @@
     "check:talk": "node scripts/check-plain-korean.mjs",
     "check:ask": "node scripts/check-ask-streak.mjs --selftest",
     "check:handoff": "node scripts/check-handoff.mjs",
+    "check:dead-screens": "node scripts/check-dead-screens.mjs --selftest && node scripts/check-dead-screens.mjs",
+    "verify:screens": "node scripts/verify-screens.mjs",
+    "check:deeplinks": "node scripts/check-deeplinks.mjs --selftest && node scripts/check-deeplinks.mjs",
     "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:live-meetings": "node scripts/check-live-meetings.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
@@ -83,8 +86,13 @@
     "check:ghost-columns": "node scripts/check-ghost-columns.mjs",
     "blast": "node scripts/blast-radius.mjs",
     "blast:verify": "node scripts/blast-verify.mjs",
+    "cap:sync": "node scripts/prepare-native-webdir.mjs && npx cap sync",
     "sweep": "node scripts/sweep.mjs",
-    "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs"
+    "check:enum-values": "node scripts/check-enum-values.mjs --selftest && node scripts/check-enum-values.mjs",
+    "check:docs": "python docs/government-project/audit_docs.py",
+    "audit:negative-control": "node scripts/negative-control.mjs",
+    "check:guard-coverage": "node scripts/check-guard-coverage.mjs",
+    "check:workflow-pipefail": "node scripts/check-workflow-pipefail.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
@@ -98,12 +106,12 @@
     "@capacitor/push-notifications": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@capawesome/capacitor-apple-sign-in": "^0.1.3",
+    "@capgo/capacitor-social-login": "^8.5.0",
     "@livekit/components-react": "^2.9.23",
     "@livekit/components-styles": "^1.2.0",
     "@livekit/krisp-noise-filter": "^0.4.3",
     "@opentelemetry/instrumentation": "^0.218.0",
-    "@react-email/components": "^1.0.12",
-    "@react-email/render": "^2.0.7",
     "@react-google-maps/api": "^2.20.8",
     "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.39.0",
@@ -120,7 +128,7 @@
     "lucide-react": "^0.562.0",
     "mammoth": "^1.12.0",
     "mupdf": "^1.28.0",
-    "next": "^16.2.11",
+    "next": "^16.3.3",
     "node-unrar-js": "^2.0.2",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
@@ -130,7 +138,6 @@
     "react-daum-postcode": "^3.2.0",
     "react-dom": "^19.2.7",
     "react-dropzone": "^14.4.1",
-    "recharts": "^3.8.1",
     "resend": "^6.12.0",
     "server-only": "^0.0.1",
     "zod": "^3.25.76"
@@ -166,6 +173,6 @@
   "overrides": {
     "sharp": "^0.35.0",
     "postcss": "^8.5.12",
-    "fast-uri": "^3.1.5"
+    "fast-uri": "^3.1.7"
   }
 }

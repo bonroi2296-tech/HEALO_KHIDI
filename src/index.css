@@ -46,6 +46,27 @@ body {
   /* 가로모드에서 옆으로 오는 노치·시스템 버튼줄 피하기 (변수 정의는 아래 안전영역 절) */
   padding-left: var(--healo-safe-left);
   padding-right: var(--healo-safe-right);
+  /* 본문 기본 크기 — 이 두 줄이 «유일한» 출처다(2026-08-27 실측: 지우면 전 화면이 16px 로 커진다).
+     배경·글자색은 app/layout.jsx 의 <body className="… text-gray-800 bg-gray-50"> 가 맡는다. */
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* 모바일 수평 스크롤 방지 — body 전역.
+   ⚠️ overflow-x: clip (hidden 아님). hidden 은 overflow-y 를 auto 로 승격시켜
+   body 를 스크롤 컨테이너로 만들고, 그러면 헤더의 position:sticky 가 viewport 가
+   아니라 body(스크롤 0)에 붙어 스크롤하면 헤더가 같이 밀려 사라진다(2026-07-23 실측).
+   clip 은 스크롤 컨테이너를 안 만들어(overflow-y 는 visible 유지) sticky 가 정상 작동. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* 터치 기기에서 링크 tap highlight 제거 */
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== 텍스트 단락 매끄러움: 전 언어·전 페이지 공통 줄바꿈 규칙 =====
@@ -157,6 +178,31 @@ html[data-healo-native="1"] {
   --healo-safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* ===== 「부품이 없는 옛 앱」에서만 구글 로그인 잠금 (2026-08-29) =====
+   왜 CSS 로도 잠그나: `app/layout.jsx` 가 첫 그림 «전에» head 인라인으로
+   `<html data-healo-native="1">` 를 붙인다. 리액트 수화를 기다려 잠그면 느린 웹뷰에서
+   «멀쩡한 버튼 → 회색» 깜빡임이 나고, 그 틈에 눌리면 «영영 연결 중»에 다시 갇힌다.
+   리액트 쪽 `disabled`·`aria-describedby` 는 그 뒤에 붙어 의미(스크린리더)를 채운다 — 둘은 짝이다.
+   이유·증거 = `src/components/auth/GoogleInAppNotice.jsx` 주석.
+
+   🔑 **`:not([data-healo-google-native="1"])` 가 핵심이다** (2026-08-29 네이티브 붙이며 추가).
+   웹은 배포되는 즉시 «모든» 앱에 반영되는데(라이브로드) 네이티브 부품은 앱을 새로 구워
+   스토어를 거쳐야 들어간다. 즉 «새 웹 + 옛 앱» 구간이 반드시 생긴다.
+   → 부품이 있는 판에서만 잠금이 풀리고, 옛 판은 이 안내를 그대로 본다.
+   ⚠️ 스토어의 모든 판에 부품이 들어간 뒤에야 이 블록과 GoogleInAppNotice.jsx 를 지울 수 있다.
+      그 전에 지우면 옛 앱 사용자가 «눌러도 영영 연결 중»으로 되돌아간다. */
+.app-google-lock-note {
+  display: none;
+}
+html[data-healo-native="1"]:not([data-healo-google-native="1"]) .app-google-lock-note {
+  display: block;
+}
+html[data-healo-native="1"]:not([data-healo-google-native="1"]) .app-google-lock-btn {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .pb-safe-area {
   padding-bottom: var(--healo-safe-bottom);
 }
@@ -207,6 +253,14 @@ html[data-healo-native="1"] {
     height: 44px;
     transform: translateY(-50%);
   }
+
+  /* 폰에서 입력칸 글자는 16px 이상이어야 한다 — iOS 는 그보다 작으면 포커스 때 화면을
+     확 확대해 버린다. (2026-08-27 이사: healo-tokens.css 를 폐기하며 옮겨 왔다.) */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* 스크롤 영역 부드럽게 (모바일) */
@@ -215,8 +269,27 @@ html[data-healo-native="1"] {
   -webkit-overflow-scrolling: touch;
 }
 
-/* (삭제 2026-08-03) .portal-main-offset — 쓰는 곳이 한 군데도 없는 죽은 규칙이었다.
-   포털 본문 여백의 단일 SoR 은 app/styles/healo-tokens.css 의 .healo-portal-offset. */
+/* 포털 고정 상단바가 가리는 만큼 본문을 밀어주는 여백 — **단일 SoR**.
+   (2026-08-27 이사: 원래 app/styles/healo-tokens.css 에 있었는데 그 파일을 폐기하며 여기로 옮겼다.
+    옛 .portal-main-offset 은 2026-08-03 에 죽은 규칙이라 삭제됐다 — 되살리지 마라.)
+   상단바(app/ClientShell.jsx PortalTopBar)는 `pt-safe-area` + 안쪽 `h-14 md:h-16` 이므로
+   실제 높이 = 안전영역 + 바 높이. 예전엔 본문이 `pt-14 md:pt-16` 만 줘서 상태표시줄이 있는
+   기기(앱·노치 폰)에서 본문 윗부분이 상단바에 가렸다. 바 높이를 바꾸면 여기도 같이 바꿔라.
+   ⚠️ 안전영역 값은 `env(...)` 를 직접 쓰지 말고 `var(--healo-safe-top)` 를 써라 —
+      설치 앱일 때만 켜지는 스위치가 그 변수에 들어 있다(정의는 이 파일 위쪽 안전영역 절). */
+.healo-portal-offset {
+  padding-top: calc(3.5rem + var(--healo-safe-top));
+}
+@media (min-width: 768px) {
+  .healo-portal-offset {
+    padding-top: calc(4rem + var(--healo-safe-top));
+  }
+}
+
+/* ※ 상단바 «바로 아래»에 붙는 고정/스티키 요소는 전용 클래스를 만들지 않고
+   Tailwind 임의값 `top-[calc(3.5rem+var(--healo-safe-top))]` 을 쓴다.
+   왜: 전용 클래스의 `@media(min-width:768px)` 가 Tailwind 의 `lg:top-0` 보다 늦게 실려
+   데스크톱 값을 덮어버릴 수 있다(둘 다 클래스 1개라 우선순위가 같아 «순서»가 이긴다). */
 
 /* ===== 홈 히어로 레이아웃 ===== */
 .healo-hero-section {
@@ -283,4 +356,50 @@ html[data-healo-native="1"] {
   .healo-hero-inner {
     padding: 0 16px;
   }
+}
+
+/* ===== 인쇄(PDF 로 저장) =====
+   2026-08-27 이사: healo-tokens.css 를 폐기하며 옮겨 왔다.
+   옛 판에 함께 있던 .healo-no-print·.healo-nav-mobile-btn 은 쓰는 곳이 0곳이라 뺐다. */
+@media print {
+  nav,
+  footer {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+}
+
+/* ===== 병원 의뢰서 미리보기 =====
+   병원이 준 워드 양식(docx)의 표를 «구조 그대로» 화면에 그린다.
+   2026-09-04 PO: 「실제 각 병원 양식 그대로에다가 텍스트 붙여줄 수 없냐. 얼기설기 비슷한데
+   좀 다르잖아」 — 표를 우리가 새로 그리면 칸 병합·인쇄된 안내 문구가 원본과 어긋난다.
+   HTML 은 서버(src/lib/inquiry/docxTableToHtml.ts)가 만든다. 여기 있는 건 그 표의 옷이다. */
+.docx-preview table.docx {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #111827;
+}
+.docx-preview table.docx td {
+  border: 1px solid #9ca3af;
+  padding: 7px 9px;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* 원본에서 «바탕색이 칠해진» 칸 = 대개 라벨 칸이다. 워드가 칠한 대로 따라간다. */
+.docx-preview table.docx td.sh {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+.docx-preview .docx-heading {
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: #111827;
 }

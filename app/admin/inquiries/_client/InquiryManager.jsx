@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDeepLinkParam, NUMERIC_ID } from '@/lib/hooks/useDeepLinkParam';
 import { RefreshCw, Paperclip, Eye, X, Loader2, BookOpen } from 'lucide-react';
 import { formatDate } from "@/lib/i18n/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -24,7 +25,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
         return;
       }
       
-      const response = await fetch(`/api/admin/inquiries/${inquiryId}`, {
+      const response = await fetch(`/api/admin/inquiries/${encodeURIComponent(inquiryId)}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` },
         credentials: 'include'
       });
@@ -44,6 +45,11 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
     }
   };
   
+  // 딥링크: 「📬 새 문의 #N」 알림에서 `?inquiry=<id>` 로 들어오면 그 문의 상세를 바로 연다.
+  // (예전엔 목록 주소만 줘서, 알림을 눌러도 «그 문의»를 사람이 눈으로 찾아야 했다 — 2026-08-28)
+  // ⚠️ 문의 번호는 «숫자만» — 이 값이 그대로 API 경로에 들어가므로 모양을 먼저 거른다.
+  useDeepLinkParam('inquiry', (id) => handleViewDetail(id), { pattern: NUMERIC_ID });
+
   const closeDetailModal = () => {
     setSelectedInquiry(null);
     setTranslationResult(null);

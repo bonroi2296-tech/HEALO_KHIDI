@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
 import { REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
+// 암종 카드(위암·유방암…) → 해당 상세 페이지 주소. 매핑은 immuneCancerDetails 가 단일 SoR.
+import { cancerDetailPath } from "@/lib/data/immuneCancerDetails";
 import OrganIcon from "../_components/OrganIcon";
 import {
   ArrowRight,
@@ -119,7 +120,6 @@ const PARTNERS_META = [
    COMPONENT
    ═══════════════════════════════════════════════════════ */
 export default function HomeClient({ content } = {}) {
-  const router = useRouter();
   const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
   // 콘텐츠: 서버(page.jsx)가 기본값에 DB 오버라이드를 병합해 항상 넘겨준다.
   // ⚠️ 여기서 기본값(HOME_CONTENT)을 예비로 import 하지 마라. 이 부품을 쓰는 곳은
@@ -161,13 +161,15 @@ export default function HomeClient({ content } = {}) {
             <p className="text-sm md:text-base lg:text-lg text-slate-200 mb-6 md:mb-8 max-w-2xl mx-auto whitespace-pre-line leading-relaxed">
               {l(L.hero.subtitle)}
             </p>
-            <button
-              onClick={() => router.push(localeHref("/inquiry", lang))}
+            {/* button→Link (2026-08-31): 생김새는 그대로, 크롤러가 따라갈 주소만 생겼다.
+                onClick 만 있으면 구글·AI 봇에겐 «막다른 화면»이라 문의 퍼널로 가는 길이 안 보인다. */}
+            <Link
+              href={localeHref("/inquiry", lang)}
               className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
             >
               {l(L.hero.cta)}
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Link>
             {/* slate-400 → slate-300: 히어로 오버레이(teal-900/90) 위에서 2.81:1 로 WCAG AA(4.5:1) 미달이었음 → 4.85:1 */}
             <p className="text-slate-300 text-xs md:text-sm mt-3 whitespace-pre-line">{l(L.hero.ctaSub)}</p>
           </div>
@@ -228,12 +230,12 @@ export default function HomeClient({ content } = {}) {
             ))}
           </div>
           <div className="text-center mt-5 md:mt-8">
-            <button
-              onClick={() => router.push(localeHref("/hospitals", lang))}
+            <Link
+              href={localeHref("/hospitals", lang)}
               className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
             >
               {l(L.doctors.viewAll)} <ChevronRight size={14} />
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -305,19 +307,22 @@ export default function HomeClient({ content } = {}) {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12 whitespace-pre-line">{l(L.cancers.title)}</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
-              <div key={i} role="button" tabIndex={0} onClick={() => router.push(localeHref("/treatments", lang))} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(localeHref("/treatments", lang)); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
+              // 암종 카드는 그 암종 «상세»로 보낸다(예전엔 6장 전부 /treatments 목록으로 갔다).
+              // <a> 인 이유: role="button"+onClick 은 크롤러가 따라갈 주소가 없어, 상세 6쪽이
+              // 사이트 안에서 링크 0개인 «고아»였다. 생김새·클래스는 그대로다.
+              <Link key={i} href={localeHref(cancerDetailPath(c.organ), lang)} className="block bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="mb-1 md:mb-3 flex justify-center text-teal-600">
                   <OrganIcon name={c.organ} className="w-7 h-7 md:w-10 md:h-10" />
                 </div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1 whitespace-pre-line">{l(c.label)}</div>
                 <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight whitespace-pre-line">{l(c.stat)}</div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="text-center mt-5 md:mt-8">
-            <button onClick={() => router.push(localeHref("/treatments", lang))} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
+            <Link href={localeHref("/treatments", lang)} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
               {l(L.misc.viewTreatments)} <ChevronRight size={14} />
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -458,13 +463,13 @@ export default function HomeClient({ content } = {}) {
                   {SITE_INFO.legal.contactPhone}
                 </a>
                 ) : null}
-                <button
-                  onClick={() => router.push(localeHref("/inquiry", lang))}
+                <Link
+                  href={localeHref("/inquiry", lang)}
                   className="inline-flex items-center justify-center gap-2 bg-teal-700 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20"
                 >
                   <MessageCircle size={16} />
                   {l(L.misc.onlineInquiry)}
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -506,13 +511,13 @@ export default function HomeClient({ content } = {}) {
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6 whitespace-pre-line">{l(L.bottomCta.title)}</h2>
           <p className="text-slate-200 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
-          <button
-            onClick={() => router.push(localeHref("/inquiry", lang))}
+          <Link
+            href={localeHref("/inquiry", lang)}
             className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
           >
             {l(L.hero.cta)}
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+          </Link>
           {/* slate-400 → slate-300: 하단 CTA 그라데이션(teal-900) 위에서 3.70:1 로 미달이었음 → 6.38:1 */}
           <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-6 md:mt-10 text-xs md:text-sm text-slate-300">
             <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{l(L.bottomCta.free)}</span>

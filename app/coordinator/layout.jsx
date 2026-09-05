@@ -6,11 +6,11 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
-  Settings, MessageSquarePlus,
+  Settings, MessageSquarePlus, ArrowLeft, Mic,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { useCoordinatorL } from '@/lib/i18n/coordinator';
-import StaffPortalGate from '../_components/StaffPortalGate';
+import { useCoordinatorL, useEnsureBackofficeLangCookie } from '@/lib/i18n/coordinator';
+import PortalGate, { usePortalContext } from '../_components/PortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 import PushOptInBanner from '../_components/PushOptInBanner';
 
@@ -18,6 +18,8 @@ import PushOptInBanner from '../_components/PushOptInBanner';
 // 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
 const NAV_ITEMS = [
   { id: 'dashboard', labelKey: 'navDashboard', icon: LayoutDashboard, href: '/coordinator' },
+  // 왓츠앱·텔레그램으로 받은 음성을 «문의를 만들기 전에» 듣지 않고 읽는 자리(2026-09-04 PO).
+  { id: 'voice', labelKey: 'navVoice', label: '음성 정리', icon: Mic, href: '/coordinator/voice' },
   { id: 'inbox', labelKey: 'navInbox', icon: Inbox, href: '/coordinator/inbox' },
   { id: 'chat', labelKey: 'navChat', icon: Bot, href: '/coordinator/chat' },
   { id: 'cases', labelKey: 'navCases', icon: Building2, href: '/coordinator/cases' },
@@ -27,6 +29,8 @@ const NAV_ITEMS = [
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
   // 인테이크 메뉴 제거(2026-07-15 PO): 상담 일정과 중복 + '의사 배정' 노-옵이라 상담 일정으로 통합.
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
+  // (여기 있던 「음성 정리」는 대시보드 밑으로 옮겼다 — 2026-09-04 PO: 「음성 정리를 대시보드 밑으로
+  //  올려줘. 문의함 위에」. 본판과 이 작업본이 각자 이 줄을 넣어 합칠 때 두 개가 됐었다.)
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
@@ -35,14 +39,41 @@ const NAV_ITEMS = [
   { id: 'requests', labelKey: 'navRequests', icon: MessageSquarePlus, href: '/coordinator/requests' },
 ];
 
+// 껍데기를 따로 뺀 이유: usePortalContext() 는 PortalGate «안쪽»에서만 값이 잡힌다.
+// 한 컴포넌트에서 문지기를 그리면서 동시에 그 값을 읽을 수는 없다.
 export default function CoordinatorLayout({ children }) {
+  return (
+    // 2026-08-25: 전용 문지기(StaffPortalGate) → 포털 공용 문지기(PortalGate)로 교체.
+    //   판정 기준은 그대로 — /api/me 의 app_metadata.role 이 coordinator 이거나 admin 이면 통과.
+    <PortalGate
+      endpoint="/api/me"
+      verify={(json) =>
+        json?.ok && (json.isAdmin || json.appRole === 'coordinator')
+          // 통과시키면서 «관리자로 들어왔는지»를 화면에 같이 넘긴다 — 이름표를 그에 맞게 바꾸려고.
+          ? { ok: true, context: { isAdmin: !!json.isAdmin, appRole: json.appRole || null } }
+          : { ok: false, who: json?.email || null }
+      }
+      redirect="/coordinator"
+    >
+      <CoordinatorShell>{children}</CoordinatorShell>
+    </PortalGate>
+  );
+}
+
+function CoordinatorShell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const L = useCoordinatorL();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // 관리자 계정으로 이 화면을 보고 있나. 화면은 코디 것이지만 «지금 나는 관리자»를 이름표에 밝힌다.
+  const me = usePortalContext();
+  const adminView = !!me?.isAdmin;
+  const roleLabel = adminView ? L.brandRoleAdminView : L.brandRole;
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  useEnsureBackofficeLangCookie();
 
   // 개선 요청함이 「어느 화면에서 불편했는지」를 자동으로 붙일 수 있게 직전 화면을 남긴다.
   // 요청함 자신은 빼야 한다 — 안 그러면 전부 「/coordinator/requests 에서 적음」이 된다.
@@ -61,12 +92,12 @@ export default function CoordinatorLayout({ children }) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
               <ClipboardList size={18} className="text-white" />
             </div>
             <div>
               <h1 className="text-base font-bold text-gray-900">healwith</h1>
-              <p className="text-[10px] text-gray-500">{L.brandRole}</p>
+              <p className="text-[10px] text-gray-500">{roleLabel}</p>
             </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg">
@@ -84,10 +115,10 @@ export default function CoordinatorLayout({ children }) {
               key={item.id}
               href={item.href}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                active ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-700 hover:bg-gray-50'
+                active ? 'bg-teal-50 text-teal-700 shadow-sm' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-500'} />
+              <Icon size={18} className={active ? 'text-teal-700' : 'text-gray-500'} />
               <span>{L[item.labelKey] || item.label}</span>
             </Link>
           );
@@ -95,6 +126,16 @@ export default function CoordinatorLayout({ children }) {
       </nav>
 
       <div className="p-3 border-t border-gray-200 space-y-1">
+        {/* 관리자가 코디 화면에 들어와 있을 때만 — 돌아갈 길이 없으면 「계정이 바뀌었나」 싶어진다 */}
+        {adminView && (
+          <Link
+            href="/admin"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-teal-800 bg-teal-50 hover:bg-teal-100 transition-all min-h-[44px]"
+          >
+            <ArrowLeft size={18} />
+            <span>{L.backToAdmin}</span>
+          </Link>
+        )}
         <Link
           href="/coordinator/settings"
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px]"
@@ -121,15 +162,14 @@ export default function CoordinatorLayout({ children }) {
   );
 
   return (
-    <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
     <div className="flex min-h-screen bg-gray-50 healo-portal-offset">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900">{L.brandRole}</span>
+          <span className="font-bold text-gray-900">{roleLabel}</span>
         </div>
         <button onClick={() => setMobileOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
           <Menu size={22} />
@@ -192,6 +232,5 @@ export default function CoordinatorLayout({ children }) {
       )}
       <ManualDrawer role="coordinator" />
     </div>
-    </StaffPortalGate>
   );
 }

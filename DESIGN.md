@@ -41,10 +41,12 @@ context:
 # ============================================================
 # 3. 표준 (기본 톤 = 우리의 유일한 디자인)
 # ============================================================
-# ⚠️ 옛 모드 이름("legacy" / "premium")은 버렸다. "legacy"가 '옛날꺼'처럼 들려서
-#    "레거시→프리미엄으로 업그레이드해야지"라는 정반대 오해를 계속 유발했음(드리프트의 원인).
-#    과거 premium(고급/호텔 톤)은 A/B 실험용이었고 폐기됨(PREMIUM_TEARDOWN, 2026-06 — 토글 designMode.js 삭제).
-#    → 이제 디자인은 하나뿐 = 아래 "기본 톤(teal)". 모드 토글 없음.
+# ⚠️ 디자인은 «하나»뿐이다 = 아래 "기본 톤(teal)". 고를 수 있는 다른 톤은 없다.
+#    옛 모드 이름("legacy" / "premium")은 2026-07-01 에 버렸다 — "legacy"가 '옛날꺼'처럼 들려
+#    "레거시→프리미엄으로 업그레이드해야지"라는 정반대 오해를 반복 유발했기 때문이다(드리프트의 근본원인).
+# 🚫 premium 은 2026-06 에 **완전히 폐기**됐다. 토글(designMode.js)·컴포넌트·페이지가 전부 삭제됐고,
+#    되살리는 것도 «참고본으로 여는 것»도 금지다. 지나간 실험이지 대안이 아니다.
+#    경위만 필요하면 보관 문서(docs/archive/PREMIUM_TEARDOWN_PLAN.md)를 보되, 거기 적힌 값은 «금지 목록»으로 읽어라.
 #    (파일명에 남은 "*Legacy*" 접미사는 그때의 정식본이란 뜻일 뿐 — 새 이름은 "기본 톤".)
 standard:
   framework: "Next.js 16 + Tailwind CSS"
@@ -186,9 +188,9 @@ forbidden:
   brand_misuse:
     - "사업자등록번호·전화번호 헤더 상시 노출 (저가 여행사 인상)"
   imports:
-    - "src/legacy-pages/** 신규 import (ESLint 룰 있음)"
-    - "components/healo/Nav.jsx, Footer.jsx, Primitives.jsx — Premium 컴포넌트"
-    - "app/styles/healo-tokens.css 토큰 (cream/gold/ink)"
+    # 2026-08-27 로 premium 잔재는 «코드에서 0개»가 됐다. 아래는 전부 없는 파일이니 찾지 마라 —
+    # Nav.jsx · Footer.jsx · Primitives.jsx · healo-tokens.css · src/legacy-pages/** (2026-06~08 삭제).
+    # 전역 CSS 는 이제 src/index.css 하나뿐이다. 새 전역 스타일 파일을 또 만들지 마라.
 
 # ============================================================
 # 7. 의료 도메인 특화 룰
@@ -212,15 +214,28 @@ medical_ui:
     - "'완치 보장' '100% 성공' 등 의료 광고법 위반 카피"
 
 # ============================================================
-# 8. 미사용 (코드 보존, 신규 import 금지)
+# 8. 폐기된 premium 잔재 — 되살리지 마라
 # ============================================================
-deprecated:
-  - "components/healo/Nav.jsx"          # Premium Nav
-  - "components/healo/Footer.jsx"       # Premium Footer
-  - "components/healo/Primitives.jsx"   # Eyebrow / Rule / ButtonGold
-  - "app/styles/healo-tokens.css"       # cream/ink/gold 토큰 전체
+# 🚫 "나중에 쓸지 모르니 보존"이 아니다. 아래는 이미 지웠거나 지우는 중인 것들이고,
+#    신규 import 는 물론 «디자인 참고본으로 여는 것»도 금지다.
+removed:            # 삭제 완료 — 없는 파일이다. 되살리지도, 찾지도 마라.
+  - "src/lib/designMode.js"                    # 톤 토글 (2026-06)
+  - "components/healo/Nav.jsx"                 # Premium Nav
+  - "components/healo/Footer.jsx"              # Premium Footer
+  - "src/legacy-pages/**"
   - "app/intake/_archive/IntakePremium.jsx"
-  - "app/inquiry/_archive/InquiryClient.jsx"   # 참고용으로만, import X
+  - "app/inquiry/_archive/InquiryClient.jsx"
+  - "app/**/*Premium.jsx"                      # 홈·가입·문의 등 16개
+  - "components/healo/Primitives.jsx"          # ButtonGold 등. 2026-08-27 삭제: 마지막 사용처 app/patient/calendar 가 기본 톤으로 바뀌어 0건이 됐다
+  - "app/styles/healo-tokens.css"              # cream/ink/gold 토큰 + serif. 2026-08-27 삭제: 아직 쓰이던 전역 규칙 7개(본문 15px/1.7 · overflow-x:clip · tap-highlight · .healo-portal-offset · 폰 입력칸 16px · 인쇄 · safe-bottom)는 src/index.css 로 옮겼다
+# 🤖 이 절은 «기계가 지킨다» (2026-08-27): check-content-consistency.mjs §8-b 가
+#    app/·src/·components/ 전체에서 Playfair·#c8a96a·#f5f0e8·#0a0a0a·#c7c2b8 와
+#    healo/Primitives 신규 import 를 잡는다(삭제된 뒤에도 되살아나지 못하게 남겨 둔다).
+#    ✅ 기준선(UI_PREMIUM_BASELINE)은 «비어 있다» — 지금은 한 건이라도 나오면 바로 빨간불이다.
+#    새 잔재를 그 표에 적어 통과시키지 마라. 거기는 «고치는 중인 것»의 임시 통행증이지 면제권이 아니다.
+#    (2026-08-27 실측: 위반 화면을 넣은 신청서를 실제로 올려 CI 가 exit 1 로 막는 것까지 확인했다.)
+# ✅ pending_removal 은 «비었다» — 코드에 남은 premium 잔재는 0개다(2026-08-27, healo-tokens.css 철거로 닫힘).
+#    칸을 지우지 마라: 다시 생기면 여기에 적고 위 기계 검사의 기준선도 같이 올려라.
 ```
 
 ---
@@ -268,6 +283,8 @@ deprecated:
 17. ✅ **배경이 흰색이 아닌데 gray-500을 썼는가?** → 회색·연색 배경 위에선 gray-600 (흰 배경 4.83 → gray-100 위 4.39)
 18. ✅ **스태프가 매번 고르거나 입력해야 하는 칸을 새로 만들었는가?** → 만들기 전에 3개를 먼저 답하라 — ①이 값을 기계가 알 수 있나 ②표준 파일·규격이 대신 해주나(예: 일정은 `.ics` 첨부가 받는 사람 시간대로 알아서 그린다) ③틀리게 고르면 어떤 잘못된 결과가 밖으로 나가나. **③이 환자에게 잘못 나가는 종류면 칸을 만들지 마라** — 언어·국적으로 추측해 미리 채우는 기본값은 더 나쁘다(러시아어 쓰는 카자흐 환자가 많다). 근거: 2026-08-04 PO — *"매번 확인해야 하고 휴먼에러가 나올 수도 있는거 아닌가"* → 만들었던 「상대 국가」 드롭다운을 전부 되돌림.
 19. ✅ **사용자에게 «그 시점에 알 수 없는 값»을 물어보는 칸을 만들었는가?** → 만들지 마라. 18번이 「스태프가 답하기 귀찮은 칸」이라면 이건 **「사용자가 답을 «모르는» 칸」**이다. 모르는 값을 물으면 아무 숫자나 넣고, **그 값으로 판정하면 틀린 안내가 나간다.** 대신 **우리가 아는 함정을 먼저 알려줘라.** 근거: 2026-08-07 PO — 비자 화면에 「치료 예상 기간」 입력을 두 번 제안했고 두 번 다 접힘(*"치료기간을 단정짓기 어려우니깐 빼기로 했던거같아"*). **암 환자는 진단·치료계획이 나오기 «전»에 그 화면을 본다.** → 기간을 묻는 대신 «무비자 30일은 검진·2차 소견까지»를 먼저 띄우는 쪽으로 갔다(`src/lib/visa/visaGuide.ts`, 이유는 `app/patient/visa/VisaClient.jsx` 주석에 고정).
+
+20. ✅ **사진·로고·아이콘 «밑»에 작은 회색 글씨로 부연을 달았는가?** → 빼라. 설명이 필요하면 **제목으로 올려라**. 근거: 2026-09-04 리플렛 작업에서 PO 가 세 번 지적 — *"쓸데없는 주석은 좀 빼고"* → *"주석은 빼라니깐. 그리고 뭐 설명을 해줘야지 이미지만 딸랑 던지니 이상하잖아"* → 이어진 정답이 ***"설명을 타이틀로"***. **제목이 될 만큼 중요하지 않으면 그건 빼도 되는 것이다.** 사진 밑 캡션·로고 밑 라벨·아이콘 밑 부연이 전부 같은 부류.
 
 ---
 

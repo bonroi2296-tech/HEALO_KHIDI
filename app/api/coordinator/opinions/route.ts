@@ -23,6 +23,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 import { translateOpinionText } from "@/lib/opinions/translateOpinion";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 // 번역된 문서(섹션 배열)를 사람이 읽을 평문으로 펼침 — case_opinions.opinion_text 는 plain text 컬럼이라.
 function flattenTranslatedDoc(doc: { docType?: string; sections?: any[] } | null | undefined): string {
@@ -244,10 +245,12 @@ export async function GET(request: NextRequest) {
       if (Array.isArray(o.files) && o.files.length) {
         out.files = await Promise.all(o.files.slice(0, 5).map(async (f: any) => {
           // 「내려받기」로 내주는 주소 — 그냥 주소면 그림·PDF 가 탭에 열려 버린다.
+          // ⚠️ supabase-js 의 `{ download: 이름 }` 옵션은 쓰지 않는다 — 주소를 두 번 인코딩해
+          //   러시아어·한글 이름이 `%D0%98…` 라는 글자 그대로 저장된다(2026-09-02 PO 제보, 실측 확인).
           const { data } = await supabaseAdmin.storage
             .from("attachments")
-            .createSignedUrl(String(f?.path || ""), 3600, { download: String(f?.name || "첨부") });
-          return { name: f?.name || "첨부", url: data?.signedUrl || null };
+            .createSignedUrl(String(f?.path || ""), 3600);
+          return { name: f?.name || "첨부", url: withDownloadName(data?.signedUrl, String(f?.name || "첨부")) };
         }));
       }
       return out;

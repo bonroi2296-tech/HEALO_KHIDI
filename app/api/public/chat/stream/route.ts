@@ -22,6 +22,7 @@ import {
   detectHandOff,
   getModelName,
   logPlaybookUsage,
+  modelBypassKind,
 } from "@/lib/chat/generateReply";
 import { generateTriage } from "@/lib/chat/triage";
 import { scanRedlines, redlineCorrectionNotice } from "@/lib/chat/safetyGuard";
@@ -320,6 +321,9 @@ export async function POST(request: NextRequest) {
               // critical 레드라인 적발 — 어드민/코디 검수 큐에서 우선 확인.
               ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
               ...(aiError ? { ai_error: aiError } : {}),
+              // 모델을 «안 거치고» 코드가 가로챈 턴이면 그 이름을 남긴다(잡담·화제정정·마스터키).
+              // 안 남기면 가로채기 오작동이 정상 답변과 구별이 안 된다 — 2026-08-28 사고가 그것이었다.
+              ...(modelBypassKind(analytics?.ragScoring) ? { bypassed: modelBypassKind(analytics?.ragScoring) } : {}),
             },
           })
           .select("id")

@@ -19,19 +19,16 @@ const detailLink = (page: import("@playwright/test").Page) =>
 
 test.describe("병원 상세 페이지", () => {
   test("목록의 상세 링크 클릭 → 상세 페이지 진입", async ({ page }) => {
+    // 기본 30초는 로컬 개발 서버의 «첫 컴파일»을 못 버틴다. 이 검사가 재는 건 화면 속도가
+    // 아니라 상세 링크의 존재이므로 시간은 넉넉히 준다(실서비스는 컴파일이 없어 무관).
+    test.setTimeout(90_000);
     await page.goto("/hospitals");
     await page.waitForLoadState("domcontentloaded");
 
     const link = detailLink(page);
-    // 즉시 isVisible() 판정은 렌더 지연 시 조용한 skip(=죽은 가드)이 된다(독립 리뷰) —
-    // 잠깐 기다렸다가 그래도 없을 때만 skip.
-    const hasLink = await link
-      .waitFor({ state: "visible", timeout: 10_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!hasLink) {
-      test.skip(true, "목록에 상세 링크 없음");
-    }
+    // 없으면 «건너뜀이 아니라 실패»다 — 상세 링크가 사라지면 목록에서 병원으로 못 들어간다.
+    // 2026-08-25 실서비스 실측: 보이는 상세 링크 5개.
+    await expect(link).toBeVisible({ timeout: 20_000 });
 
     await link.click();
     // /hospitals/immune → /en/hospitals/immune 처럼 언어 리다이렉트를 거쳐도 통과
@@ -40,19 +37,14 @@ test.describe("병원 상세 페이지", () => {
   });
 
   test("상세 페이지에 의료진 또는 시설 정보가 있다", async ({ page }) => {
+    test.setTimeout(90_000);
     await page.goto("/hospitals");
     await page.waitForLoadState("domcontentloaded");
 
     const link = detailLink(page);
-    // 즉시 isVisible() 판정은 렌더 지연 시 조용한 skip(=죽은 가드)이 된다(독립 리뷰) —
-    // 잠깐 기다렸다가 그래도 없을 때만 skip.
-    const hasLink = await link
-      .waitFor({ state: "visible", timeout: 10_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!hasLink) {
-      test.skip(true, "목록에 상세 링크 없음");
-    }
+    // 없으면 «건너뜀이 아니라 실패»다 — 상세 링크가 사라지면 목록에서 병원으로 못 들어간다.
+    // 2026-08-25 실서비스 실측: 보이는 상세 링크 5개.
+    await expect(link).toBeVisible({ timeout: 20_000 });
 
     const href = await link.getAttribute("href");
     if (href) {

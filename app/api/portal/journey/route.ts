@@ -21,6 +21,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { getConfirmedEmail } from "@/lib/auth/verifiedEmail";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { mapCostEstimateToJourneyResponse } from "@/lib/patient/costEstimateJourney";
 
 function safeDecrypt(enc: any): string {
   try {
@@ -84,9 +85,17 @@ export async function GET(request: NextRequest) {
         .select("*")
         .eq("patient_user_id", userId)
         .order("scheduled_at", { ascending: true }),
-      inquiryId
-        ? supabaseAdmin.from("coordinator_responses").select("*").eq("inquiry_id", inquiryId).order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as any[] }),
+      // 🔴 견적은 `coordinator_responses` 가 아니라 `cost_estimates` 에 쌓인다 (2026-08-29 실측).
+      //    옛 표는 2026-07-20 에 「동명의 기존 견적 테이블」로 판명나 쓰임이 끊겼고 지금 0행이다
+      //    (POSTMORTEMS #97 · playbook 쪽은 playbook_responses 로 이전 완료).
+      //    그런데 여기만 옛 표를 계속 읽고 있어서, 코디가 견적을 7건 만들어도
+      //    **환자 여정 화면은 「제안 없음」으로 판정**하고 있었다(journeyState 의 hasAnyProposal).
+      //    → 실제 표를 읽고, journeyState 가 보는 모양으로 맞춰 준다.
+      supabaseAdmin
+        .from("cost_estimates")
+        .select("*")
+        .eq("patient_user_id", userId)
+        .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("followup_schedules")
         .select("*")
@@ -111,7 +120,11 @@ export async function GET(request: NextRequest) {
       inquiry,
       intake: (intakesRes as any).data?.[0] || null,
       consultations: (consultationsRes as any).data || [],
-      coordinatorResponses: (coordResponsesRes as any).data || [],
+      // journeyState 는 `is_final`·`status` 를 본다 — cost_estimates 의 실제 칸으로
+      // 옮겨 준다. 매핑 규칙(거절·만료 포함)·단위시험은 costEstimateJourney.ts 에.
+      coordinatorResponses: ((coordResponsesRes as any).data || []).map(
+        mapCostEstimateToJourneyResponse
+      ),
       followup: (followupRes as any).data?.[0] || null,
       symptoms: (symptomsRes as any).data || [],
       threads: (threadsRes as any).data || [],

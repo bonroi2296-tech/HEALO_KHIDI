@@ -266,7 +266,7 @@ export default function MessagesClient() {
                 </div>
 
                 {/* Composer */}
-                <div className="healo-safe-bottom px-5 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+                <div className="pb-safe-area px-5 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
                   <div className="flex gap-3 items-end">
                     <textarea
                       value={draft}

@@ -1,13 +1,28 @@
 "use client";
 
-import { AdminGateClient } from "./_components/AdminGateClient";
+import PortalGate from "../_components/PortalGate";
+import { useEnsureBackofficeLangCookie } from "@/lib/i18n/coordinator";
 import { AdminNav } from "./_components/AdminNav";
 import ManualDrawer from "../_components/ManualDrawer";
 import PushOptInBanner from "../_components/PushOptInBanner";
 
+// 2026-08-25: 전용 문지기(AdminGateClient) → 포털 공용 문지기로 교체.
+// 어드민 문지기만 한국어 고정이라 길 잘못 든 외국인 스태프가 왜 못 들어가는지 못 읽었다.
+// 「코디 화면으로 가기」 링크는 그대로 둔다 — 코디 계정이 /admin 을 눌렀을 때의 갈 곳이다.
 export default function AdminLayout({ children }) {
+  // 서버가 이 쿠키를 보고 한국어 사전을 같이 실어 준다 — 없으면 화면 일부가 영어로 떨어진다.
+  useEnsureBackofficeLangCookie();
   return (
-    <AdminGateClient>
+    <PortalGate
+      endpoint="/api/admin/whoami"
+      verify={(json) => (json?.isAdmin ? { ok: true } : { ok: false, who: json?.email || null })}
+      redirect="/admin"
+      deniedActions={[{
+        href: "/coordinator",
+        primary: true,
+        label: { ko: "코디네이터 화면으로 가기", en: "Go to the coordinator portal", ru: "Перейти в портал координатора", kz: "Координатор порталына өту", zh: "前往协调员门户", ja: "コーディネーター画面へ" },
+      }]}
+    >
       <div className="flex min-h-screen min-h-screen-safe bg-gray-50 healo-portal-offset">
         <AdminNav />
         {/* Content: pt-14 on mobile for the nav bar, lg:pt-0 on desktop */}
@@ -32,6 +47,6 @@ export default function AdminLayout({ children }) {
         </main>
       </div>
       <ManualDrawer role="admin" />
-    </AdminGateClient>
+    </PortalGate>
   );
 }

@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, X } from "lucide-react";
 import { getManual } from "@/lib/manuals";
 import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 
 // 드로어 chrome(버튼 라벨·하단 갱신문구) — 6개 언어. (설명서 '본문'은 manuals/index.js에서 옴)
 // buttonLabel prop이 오면 그걸 우선(에이전시 등 자체 번역 전달). 없으면 현재 언어로.
@@ -28,9 +29,15 @@ const MD_TR = {
   ja: { manualBtn: "使い方ガイド", footer: "最終更新 {updated} · 機能が変わればガイドも更新されます" },
 };
 
+// 직원 화면(어드민·코디·병원)은 백오피스 언어 설정을 따른다. 에이전시·의료기관은 공개 언어.
+// 안 가르면 코디 화면이 한국어인데 이 버튼만 「User guide」로 남는다(2026-08-27 PO 지적).
+const BACKOFFICE_ROLES = new Set(["admin", "coordinator", "hospital"]);
+
 export default function ManualDrawer({ role, buttonLabel }) {
   const [open, setOpen] = useState(false);
-  const lang = useLang();
+  const publicLang = useLang();
+  const backofficeLang = useBackofficeLang();
+  const lang = BACKOFFICE_ROLES.has(role) ? backofficeLang : publicLang;
   const manual = getManual(role, lang);
   const T = MD_TR[lang] || MD_TR.en;
   const label = buttonLabel || T.manualBtn;

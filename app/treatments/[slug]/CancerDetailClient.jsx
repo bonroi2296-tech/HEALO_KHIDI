@@ -163,7 +163,7 @@ export default function CancerDetailClient({ slug }) {
             {tr("cta.consult")} <ArrowRight size={18} />
           </Link>
           <Link
-            href="/intake"
+            href={localeHref("/inquiry", lang)}
             className="inline-flex items-center gap-1.5 px-2 py-2 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
           >
             {tr("cta.intake")} <ArrowRight size={16} />
@@ -530,7 +530,7 @@ export default function CancerDetailClient({ slug }) {
               {tr("cta.consult")} <ArrowRight size={18} />
             </Link>
             <Link
-              href="/intake"
+              href={localeHref("/inquiry", lang)}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-teal-50 hover:text-white transition-colors"
             >
               {tr("cta.intake")} <ArrowRight size={16} />

@@ -32,6 +32,13 @@ export const SITE_INFO = {
       // label 은 i18n(labelKey) 이 없을 때만 쓰는 폴백이라 en 표기로 충분.
       { labelKey: "nav.about", label: `About ${tenantBrandName("en")}`, href: "/about" },
       { labelKey: "nav.contact", label: "Contact Us", href: "/contact" },
+      // FAQ 추가(2026-08-31): 「healwith 는 병원인가? → 아니다, 등록 유치업체다」처럼 답변엔진이
+      // 인용하기 좋은 문답 19개가 /faq 에 있는데, **사이트 전체에서 이리로 오는 링크가**
+      // **러/카 랜딩 2곳뿐이었다**(영어·일본어 화면에선 0개 = 사실상 고아).
+      // ⚠️ 라벨은 nav.faq 전용 키를 쓴다. 처음엔 번역이 이미 있던 faqPage.eyebrow 를 재활용했는데
+      //    그건 FAQ «페이지 제목 위 머리말»이라 영어값이 "Questions" 였고, 푸터에 놓으니
+      //    「궁금하면 물어보세요」처럼 읽혔다(PO 지적). 링크 라벨과 페이지 머리말은 다른 자리다.
+      { labelKey: "nav.faq", label: "FAQ", href: "/faq" },
       { labelKey: "nav.partners", label: "Partners", href: "/partners" },
     ],
     legal: [

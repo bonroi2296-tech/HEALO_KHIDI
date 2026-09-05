@@ -4,6 +4,11 @@
  * 왜 있나 (2026-08-19 PO): *«또 내가 하나씩 눌러가면서 테스트해야겠니?»*
  * 이 화면은 우리 «첫 접점»이라 조용히 망가지면 문의가 0건이 되는데도, 그동안 검증이 사람 눈뿐이었다.
  *
+ * 🛑 이 파일은 «접수 회수제한 통»을 4번 쓴다 (41·104·151·175 줄). 한도는 1분에 5회다.
+ *    여유가 1회뿐이니 **접수하는 시험을 하나 더 늘리기 전에 `RATE_LIMITS.INQUIRY` 를 먼저 봐라.**
+ *    (2026-08-31 반성문 #180: 실행 «두 개»가 통을 나눠 쓰다 8회가 되어 3연속 빨간불이 났다.
+ *     실행끼리 섞이는 건 `RATE_LIMIT_NAMESPACE` 로 갈라 놨지만, 한 실행 안의 여유는 여전히 1회다.)
+ *
  * 🛑 여기서 넣는 문의는 실서비스 DB 에 들어간다 — 반드시 @healo-test.invalid 로.
  *    그 도메인이면 detectInquiryIsTest 가 is_test 로 표시해 실적 집계에서 빠진다(src/lib/khidi/testData.ts).
  * 🛑 「있으면 채운다」식으로 무르게 쓰지 마라 — 칸이 사라져도 통과해버려 검사가 «아무것도 안 보는» 상태가 된다.
@@ -13,6 +18,19 @@ import { loginAs } from "./fixtures/auth";
 import { findClipped } from "./fixtures/clipCheck";
 
 const uniq = () => `e2e-referral-${Date.now()}@healo-test.invalid`;
+
+/**
+ * 갈림길에서 「전체」 카드를 누른다.
+ *
+ * 🛑 그냥 click() 하지 마라 — 화면이 그려지는 아주 짧은 구간에 같은 카드가 «두 벌» 잡히는
+ *    때가 있다(2026-08-26 야간 실측: strict 위반으로 첫 시도 실패 → 재시도 통과 = 불안정).
+ *    두 요소는 class 까지 똑같았고 둘째만 이름이 비어 있었다(= 아직 안 채워진 껍데기).
+ *    개수가 1로 «안정된 뒤»에 누른다. 두 벌이 계속 남는다면 그건 화면 결함이니 여기서 걸린다.
+ */
+async function pickFull(page: Page) {
+  await expect(page.getByTestId("pick-full")).toHaveCount(1, { timeout: 15000 });
+  await page.getByTestId("pick-full").click();
+}
 
 /** 접수 6칸 채우기 — 이 여섯이 「보내기」를 여는 유일한 관문이다. */
 async function fillEssentials(page: Page, email: string) {
@@ -78,13 +96,13 @@ test.describe("환자 의뢰서 @smoke", () => {
 
   test("쓰던 내용은 남고, 갈래는 매번 다시 고른다", async ({ page }) => {
     await page.goto("/inquiry/referral");
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     await page.locator("#in-lastName").fill("KEEPME");
     await page.waitForTimeout(700);                    // 자동저장은 0.4초 멈춘 뒤에 쓴다
     await page.reload();
     // 갈래 화면이 다시 뜬다(PO 결정: 「막상 들어왔더니 너무 많아서 접수만 할래」 할 수 있어야 한다)
     await expect(page.getByTestId("pick-quick")).toBeVisible();
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     await expect(page.locator("#in-lastName")).toHaveValue("KEEPME");
   });
 
@@ -92,7 +110,7 @@ test.describe("환자 의뢰서 @smoke", () => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto("/inquiry/referral");
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     await fillEssentials(page, uniq());
 
     // 묶음은 접혀 있다(PO 결정) — 전부 펼친다. 「접힘」 표시가 사라지면 이 검사가 먼저 깨진다.
@@ -119,7 +137,7 @@ test.describe("환자 의뢰서 @smoke", () => {
 
   test("러시아어로 열면 20칸 어디에도 한국어가 없다", async ({ page }) => {
     await page.goto("/ru/inquiry/referral");
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     await expect(page.locator("#in-lastName")).toBeVisible();
     const closedRu = page.locator('section > button[aria-expanded="false"]');
     for (let i = await closedRu.count(); i > 0; i = await closedRu.count()) {
@@ -164,7 +182,7 @@ test.describe("환자 의뢰서 @smoke", () => {
     //    환자가 진단명·불편한 곳·약물을 다 채웠는데 코디 화면엔 옛 6칸만 떴다.
     //    화면이 조용히 사라져도 아무도 모르니 기계가 본다.
     await page.goto("/inquiry/referral");
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     await fillEssentials(page, uniq());
     const closed = page.locator('section > button[aria-expanded="false"]');
     for (let i = await closed.count(); i > 0; i = await closed.count()) {
@@ -189,7 +207,7 @@ test.describe("환자 의뢰서 @smoke", () => {
   test("폰 크기에서 옆으로 밀리지 않는다", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/inquiry/referral");
-    await page.getByTestId("pick-full").click();
+    await pickFull(page);
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(over, "가로 스크롤이 생기면 폰에서 글자가 잘린다").toBeLessThanOrEqual(1);
   });
@@ -200,7 +218,7 @@ test.describe("환자 의뢰서 @smoke", () => {
     test(`${lang} 20칸이 폰에서 글자가 잘리지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(`/${lang}/inquiry/referral`);
-      await page.getByTestId("pick-full").click();
+      await pickFull(page);
       const closed = page.locator('section > button[aria-expanded="false"]');
       for (let i = await closed.count(); i > 0; i = await closed.count()) {
         await closed.first().click();

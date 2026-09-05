@@ -31,6 +31,7 @@ import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import { readFollowUps } from "@/lib/inquiry/followUps";
 import { readBriefMap, briefSig, generateCaseBrief } from "@/lib/inquiry/caseBrief";
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { withDownloadName } from "@/lib/documents/sharedDocMeta";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -185,8 +186,10 @@ async function signAttachments(atts: any): Promise<
         //   화면의 «내려받기» 표시(HTML download)는 **다른 서버의 파일에는 안 먹힌다.**
         //   그래서 그림은 저장 창이 안 뜨고 그냥 탭에 열려 버렸다(.rar 처럼 못 여는 것만 우연히 잘 됐다).
         //   저장소에 «이건 내려받는 파일»이라고 표시해 달라고 부탁하는 주소를 따로 받는다.
-        const dn = await store.createSignedUrl(a.path, 3600, { download: String(a?.name || "첨부파일") });
-        downloadUrl = dn.data?.signedUrl || url;
+        //   ⚠️ supabase-js 의 `{ download: 이름 }` 옵션은 쓰지 않는다 — 주소를 두 번 인코딩해
+        //   러시아어·한글 이름이 `%D0%98…` 라는 글자 그대로 저장된다(2026-09-02 PO 제보, 실측 확인).
+        //   같은 서명에 이름만 붙이면 되므로 서명 호출도 한 번으로 줄었다.
+        downloadUrl = withDownloadName(url, String(a?.name || "첨부파일")) || url;
       }
       // CT 묶음은 번역 대상이 아니다 — 번역을 걸면 «번역 실패»만 뜨고 정작 영상은 못 본다.
       const imaging = isImagingBundle(a);
@@ -244,6 +247,14 @@ export async function GET(
     }
     const inq = await decryptInquiryForAdmin(inqRaw).catch(() => inqRaw);
 
+    // 코디가 확정한 진단코드 — 위 목록에 섞지 말고 «따로» 읽는다(그 컬럼 없는 환경에서 조회 전체가
+    // 죽으면 의료진이 케이스를 아예 못 연다). 요약을 다시 만들 때 이 값이 같이 들어간다.
+    try {
+      const { data: icdRow } = await (supabaseAdmin as any)
+        .from("inquiries").select("icd_code").eq("id", req.inquiry_id).maybeSingle();
+      if (icdRow?.icd_code) inq.icd_code = icdRow.icd_code;
+    } catch { /* 못 읽으면 그 줄만 빠진다 */ }
+
     // 감사로그: 소견 링크로 케이스 PII(이름·임상·첨부)를 열람. 계정 없어 링크 지문으로 식별. 실패해도 진행.
     void logAdminAction({
       adminEmail: `opinion_link:${token.slice(0, 8)}`,
@@ -265,6 +276,9 @@ export async function GET(
         nationality: inq.nationality || null,
         language: inq.spoken_language || null,
         cancer_type: inq.cancer_type || null,
+        // 코디가 확정한 진단코드. 요약(brief)에도 자료로 넘어가지만 모델이 본문에 안 쓸 수 있어서
+        // «칸»으로도 내려준다 — 의료진이 찾는 값을 요약문 운에 맡기지 않는다.
+        icd_code: inq.icd_code || null,
         treatment_type: inq.treatment_type && inq.treatment_type !== inq.cancer_type ? inq.treatment_type : null,
         preferred_date: inq.preferred_date || null,
         preferred_date_flex: !!inq.preferred_date_flex,

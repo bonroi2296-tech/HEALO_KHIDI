@@ -23,6 +23,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationReminderEmail } from "@/lib/email/templates/consultationReminder";
 import { siteUrl } from "@/lib/siteUrl";
@@ -170,7 +171,7 @@ async function dispatchOne(
 async function dispatchEmail(
   row: ReminderRow
 ): Promise<{ ok: boolean; error?: string }> {
-  const address = row.recipient_address;
+  const address = decryptMaybe(row.recipient_address); // 저장은 암호문(옛 평문 행도 그대로 통과)
   if (!address) return { ok: false, error: "no recipient_address for email channel" };
 
   // 세션 정보 조회 (예약 시각, 의사/병원 이름)
@@ -207,7 +208,7 @@ async function dispatchEmail(
 async function dispatchKakao(
   row: ReminderRow
 ): Promise<{ ok: boolean; error?: string }> {
-  const phone = row.recipient_address;
+  const phone = decryptMaybe(row.recipient_address); // 저장은 암호문(옛 평문 행도 그대로 통과)
   if (!phone) return { ok: false, error: "no recipient_address for kakao channel" };
 
   const payload = row.payload as Record<string, string>;

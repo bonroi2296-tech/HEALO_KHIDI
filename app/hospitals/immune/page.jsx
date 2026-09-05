@@ -1,6 +1,7 @@
 import ImmuneHospitalClient from "./ImmuneHospitalClient";
 import { localizedMeta, getRequestLocale, pickLocalized } from "@/lib/i18n/metadata";
 import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
+import { breadcrumbLd, absoluteUrl } from "@/lib/seo/structuredData";
 export async function generateMetadata() {
   return localizedMeta(baseMeta, "seo.immune.title", "seo.immune.desc");
 }
@@ -106,7 +107,23 @@ function doctorNodes(lang) {
 export default async function ImmuneHospitalPage() {
   const { locale } = await getRequestLocale();
   const employees = doctorNodes(locale);
-  const ld = employees.length ? { ...hospitalJsonLd, employee: employees } : hospitalJsonLd;
+  // url 은 요청 언어를 붙여 canonical(/{언어}/hospitals/immune)과 일치시킨다 —
+  // 맨 주소는 308 로 튕기므로 엔티티가 「튕기는 주소」를 가리키고 있었다.
+  const hospital = {
+    ...hospitalJsonLd,
+    url: absoluteUrl("/hospitals/immune", locale),
+    ...(employees.length ? { employee: employees } : {}),
+  };
+  // 이 전용 페이지는 [slug] 동적 라우트를 가로채므로 거기 있는 빵부스러기를 못 물려받는다
+  // (2026-08-28 실측: 다른 병원은 나오는데 여기만 BreadcrumbList 0건이었다).
+  const ld = [hospital, breadcrumbLd(
+    [
+      { name: "Home", url: "/" },
+      { name: "Hospitals", url: "/hospitals" },
+      { name: "Immune Hospital", url: "/hospitals/immune" },
+    ],
+    locale,
+  )];
 
   return (
     <>

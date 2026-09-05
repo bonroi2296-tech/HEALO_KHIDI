@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { estimateCostUsd, normalizeUsage, priceForModel } from "./usagePricing";
+import { CACHED_INPUT_RATE, estimateCostUsd, normalizeUsage, priceForModel } from "./usagePricing";
 
 describe("priceForModel", () => {
   it("임베딩 모델은 출력 단가 0", () => {
@@ -17,7 +17,8 @@ describe("priceForModel", () => {
 describe("normalizeUsage", () => {
   it("promptTokens/completionTokens 형태 흡수", () => {
     const n = normalizeUsage({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
-    expect(n).toEqual({ promptTokens: 100, completionTokens: 50, totalTokens: 150 });
+    expect(n).toEqual({ promptTokens: 100, completionTokens: 50, totalTokens: 150 ,
+      cachedTokens: null,});
   });
   it("inputTokens/outputTokens(신버전) 형태 흡수 + total 계산", () => {
     const n = normalizeUsage({ inputTokens: 10, outputTokens: 20 });
@@ -26,8 +27,10 @@ describe("normalizeUsage", () => {
     expect(n.totalTokens).toBe(30);
   });
   it("null/비객체는 전부 null", () => {
-    expect(normalizeUsage(null)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null });
-    expect(normalizeUsage(undefined)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null });
+    expect(normalizeUsage(null)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null ,
+      cachedTokens: null,});
+    expect(normalizeUsage(undefined)).toEqual({ promptTokens: null, completionTokens: null, totalTokens: null ,
+      cachedTokens: null,});
   });
 });
 
@@ -53,6 +56,7 @@ describe("normalizeUsage — 생각 토큰(2026-08-14)", () => {
       promptTokens: 95,
       completionTokens: 1042,
       totalTokens: 1137,
+      cachedTokens: null,
     });
   });
   it("SDK 가 reasoningTokens 이름으로 줘도 흡수", () => {
@@ -63,6 +67,62 @@ describe("normalizeUsage — 생각 토큰(2026-08-14)", () => {
       promptTokens: 10,
       completionTokens: 20,
       totalTokens: 30,
+      cachedTokens: null,
     });
+  });
+});
+
+// ── 캐시 적중 토큰 (2026-08-11) ────────────────────────────────
+// 왜: 제미나이 자동 캐시가 걸리면 그 입력 토큰은 정가의 약 10% 로 매겨진다. 이걸 안 반영하면
+//     캐시가 걸려도 «비용이 그대로»로 보여서 개선이 됐는지 안 됐는지 판단이 안 된다.
+describe("캐시 적중 토큰", () => {
+  // ⚠️ 이 시험이 있는 이유: 처음에 `cachedInputTokens` 라는 «없는 이름»을 봤다가
+  //    조용히 0건 기록될 뻔했다. 아래 첫 케이스가 **설치된 판(ai 6.0.168)의 실제 모양**이다.
+  //    (구글 제공자가 promptTokenCount/cachedContentTokenCount 를
+  //     inputTokens.total / inputTokens.cacheRead 로 옮기고, ai 코어가
+  //     usage.inputTokenDetails.cacheReadTokens 로 넘겨준다.)
+  it("설치된 판의 실제 자리(inputTokenDetails.cacheReadTokens)를 읽는다", () => {
+    const usage = {
+      inputTokens: 5000,
+      inputTokenDetails: { noCacheTokens: 1990, cacheReadTokens: 3010, cacheWriteTokens: undefined },
+      outputTokens: 141,
+    };
+    expect(normalizeUsage(usage).cachedTokens).toBe(3010);
+    // inputTokens 는 캐시분을 «포함한» 총량이다 — 그래서 비용에서 빼는 계산이 맞다.
+    expect(normalizeUsage(usage).promptTokens).toBe(5000);
+  });
+
+  it("자리가 바뀌어도 계측이 죽지 않게 옛/대체 이름도 받는다", () => {
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedInputTokens: 80 }).cachedTokens).toBe(80);
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cachedContentTokenCount: 70 }).cachedTokens).toBe(70);
+    expect(normalizeUsage({ inputTokens: 100, outputTokens: 10, cacheReadInputTokens: 60 }).cachedTokens).toBe(60);
+  });
+
+  it("캐시가 안 걸린 응답은 0 으로 기록된다(«못 잼»인 null 과 구별)", () => {
+    const miss = normalizeUsage({
+      inputTokens: 5000,
+      inputTokenDetails: { noCacheTokens: 5000, cacheReadTokens: 0 },
+      outputTokens: 141,
+    });
+    expect(miss.cachedTokens).toBe(0);
+    expect(normalizeUsage({ inputTokens: 5000, outputTokens: 141 }).cachedTokens).toBeNull();
+  });
+
+  it("캐시로 재사용된 입력은 정가의 10% 로 매긴다", () => {
+    const full = estimateCostUsd("gemini-flash-latest", 1_000_000, 0);
+    const allCached = estimateCostUsd("gemini-flash-latest", 1_000_000, 0, 1_000_000);
+    expect(allCached).toBeCloseTo(full * CACHED_INPUT_RATE, 6);
+  });
+
+  it("안 넘기면 예전 계산과 완전히 같다(기존 기록에 소급 영향 없음)", () => {
+    expect(estimateCostUsd("gemini-flash-latest", 5000, 140)).toBe(
+      estimateCostUsd("gemini-flash-latest", 5000, 140, null)
+    );
+  });
+
+  it("캐시 토큰이 입력보다 크게 와도 음수 단가가 안 나온다", () => {
+    const c = estimateCostUsd("gemini-flash-latest", 1000, 0, 999_999);
+    expect(c).toBeGreaterThan(0);
+    expect(c).toBeCloseTo(estimateCostUsd("gemini-flash-latest", 1000, 0, 1000), 6);
   });
 });

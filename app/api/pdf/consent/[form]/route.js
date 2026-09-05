@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { safeEqual } from "@/lib/security/safeEqual";
+import { contentDisposition } from "@/lib/documents/sharedDocMeta";
 
 const FORM_MAP = {
   personal: "PersonalInfoConsent",
@@ -43,9 +45,12 @@ export async function POST(request, context) {
     if (!rl.allowed) {
       return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
     }
-    const internalSecret = process.env.INTERNAL_API_SECRET;
-    const internalOk =
-      Boolean(internalSecret) && request.headers.get("x-internal-secret") === internalSecret;
+    // `===` 단순비교는 타이밍 사이드채널(CISO-5) → 공용 safeEqual 로 상수시간 비교
+    // (env 미설정·헤더 누락이면 safeEqual 이 false — Boolean() 선검사 불필요).
+    const internalOk = safeEqual(
+      request.headers.get("x-internal-secret"),
+      process.env.INTERNAL_API_SECRET
+    );
     if (!internalOk) {
       const auth = await requireAdminAuth(request);
       if (!auth.success) return auth.response;
@@ -60,7 +65,8 @@ export async function POST(request, context) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        // 환자 이름이 키릴·한글이면 헤더에 그대로 못 싣는다(요청이 500 으로 죽었다 — 2026-09-02 실측).
+        "Content-Disposition": contentDisposition(filename),
         "Cache-Control": "no-store",
       },
     });
@@ -74,6 +80,11 @@ export async function POST(request, context) {
 }
 
 export async function GET(request, context) {
+  // Dev-only preview: 헤더 주석(GET: dev sample)의 의도대로 프로덕션에선 닫는다 —
+  // 쌍둥이 quotation GET 엔 있던 가드가 여기만 빠져 무인증 PDF 렌더(비용·브랜드 샘플 노출)가 열려 있었음.
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ ok: false, error: "POST only" }, { status: 405 });
+  }
   const { form } = await context.params;
   const url = new URL(request.url);
   const lang = url.searchParams.get("lang") === "en" ? "en" : "ko";
@@ -89,7 +100,7 @@ export async function GET(request, context) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="healwith-Consent-${form}-sample.pdf"`,
+        "Content-Disposition": contentDisposition(`healwith-Consent-${form}-sample.pdf`, "inline"),
       },
     });
   } catch (err) {

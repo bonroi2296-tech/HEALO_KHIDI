@@ -138,7 +138,7 @@ export default function SatisfactionPage() {
           </h2>
           <div className="space-y-3">
             {recentComments.map((c, i) => (
-              <div key={i} className="border-l-2 border-[#c8a96a] pl-3">
+              <div key={i} className="border-l-2 border-teal-700 pl-3">
                 <p className="text-sm text-gray-800 leading-relaxed">{c.comment}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {new Date(c.submittedAt).toLocaleDateString("ko-KR")}

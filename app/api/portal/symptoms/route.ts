@@ -14,36 +14,13 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
-import { getConfirmedEmail } from "@/lib/auth/verifiedEmail";
+import { findOwnInquiryIdsForUser } from "@/lib/portal/ownInquiries";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 /** DB 검사규칙 symptom_reports_report_type_check 가 허용하는 값. 여기 없는 값은 저장이 거부된다. */
 const REPORT_TYPES = new Set(["scheduled", "ad_hoc", "emergency"]);
-
-function safeDecrypt(enc: any): string {
-  try {
-    return decryptStringNullable(enc) || "";
-  } catch {
-    return "";
-  }
-}
-
-/** 로그인 이메일과 일치하는 본인 문의 id 목록(최근순). 복호화-매칭. */
-async function findOwnInquiryIds(userEmail: string): Promise<number[]> {
-  const target = (userEmail || "").trim().toLowerCase();
-  if (!target) return [];
-  const { data } = await supabaseAdmin
-    .from("inquiries")
-    .select("id, email, created_at")
-    .order("created_at", { ascending: false })
-    .limit(500);
-  return (data || [])
-    .filter((i: any) => safeDecrypt(i.email).trim().toLowerCase() === target)
-    .map((i: any) => i.id);
-}
 
 export async function GET(request: NextRequest) {
   const auth = await requirePortalAuth(request);
@@ -52,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     // 「이메일이 같으면 본인 것」 판정에는 «인증된» 주소만 쓴다 — 증상기록은 환자가 직접 쓴
     // 건강정보라, 남의 주소로 가입만 해서 읽히거나 남의 문의에 기록이 붙는 길을 막는다(2026-08-13 점검).
-    const ids = await findOwnInquiryIds((await getConfirmedEmail(auth.userId, auth.email)) || "");
+    const ids = await findOwnInquiryIdsForUser(auth.userId, auth.email);
     // 본인 기록 = patient_user_id(직접 소유) 또는 본인 inquiry 연결분.
     // patient_user_id 만으로도 잡히게 해 문의 없는 환자도 본인 기록을 본다.
     let q = supabaseAdmin
@@ -102,7 +79,7 @@ export async function POST(request: NextRequest) {
     // 본인 inquiry 서버 해석(IDOR 차단 — 클라가 보낸 inquiryId 신뢰 안 함)
     // 「이메일이 같으면 본인 것」 판정에는 «인증된» 주소만 쓴다 — 증상기록은 환자가 직접 쓴
     // 건강정보라, 남의 주소로 가입만 해서 읽히거나 남의 문의에 기록이 붙는 길을 막는다(2026-08-13 점검).
-    const ids = await findOwnInquiryIds((await getConfirmedEmail(auth.userId, auth.email)) || "");
+    const ids = await findOwnInquiryIdsForUser(auth.userId, auth.email);
     const inquiryId = ids[0] ?? null;
 
     const report: SymptomReport = {

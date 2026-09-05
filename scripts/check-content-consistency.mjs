@@ -174,6 +174,16 @@ const XSS_INNERHTML_BASELINE = {
   // 실행 경로가 애초에 남지 않는다. script·style·iframe·object·embed 는 내용까지 지운다.
   // 파일을 올리는 사람도 우리 코디다(직원 전용 창구).
   "app/claim/[token]/ClaimClient.jsx": 1,
+  // 0 → 1 (2026-09-04): 병원 의뢰서 미리보기 — 병원이 준 워드 양식을 «그 구조 그대로» 그린다.
+  // 감사 결과 안전 — 이 HTML 은 **서버가 통째로 지어낸 것**이다(src/lib/inquiry/docxTableToHtml.ts):
+  //   · 나가는 태그는 그 파일이 만드는 table·colgroup·col·tbody·tr·td·br 뿐이고,
+  //     원본 XML 의 태그는 **한 개도 통과시키지 않는다**(정규식으로 «글자만» 꺼낸다).
+  //   · 속성은 colspan·rowspan·class="sh"·style="width:NN%" 넷뿐이고 전부 «숫자·고정 문자열»이다.
+  //   · 칸 글자는 전부 esc() 를 거친다(& < > "). 그래서 onerror·href·onclick 이 들어갈 자리가 없다.
+  // 값의 출처가 환자 서류(AI 판독)라 «사용자 입력»이 맞다. 그래서 두 겹으로 막혀 있다 —
+  // 값이 XML 에 들어갈 때 한 번(referral-docx 의 xmlText), 화면에 나올 때 한 번(esc).
+  // `<script>` 를 넣어 보면 화면에 «글자로» 보인다.
+  "app/coordinator/inbox/[id]/HospitalReferralSection.jsx": 1,
   "app/page.jsx": 1,
   // 5 → 6 (2026-08-03): 늘어난 1건은 head 의 「스토어 앱 웹뷰인가」 표식 스크립트.
   // 감사 결과 안전 — 통짜 문자열 상수 하나이고 변수·요청값·사용자 입력이 **한 글자도 안 섞인다**
@@ -370,6 +380,7 @@ const SCRIPT_ALLOW = new Set([
   "inquiry.messenger",
   "inquiryFunnel.emailPlaceholder", // 이메일 예시
   "patientDocs.formats", // "PDF, JPEG, PNG, WebP"
+  "patientProgress.allowed", // "PDF·JPG·PNG·DICOM" — 파일 형식 이름은 전 언어 공통
   "inquiryFunnel.aiAgent", // 원본부터 전 언어 "AI Agent"
   "inquiryFunnel.humanAgent",
   "inquiryFunnel.inquiryForm",
@@ -658,7 +669,9 @@ for (const file of readdirSync(join(ROOT, "e2e"))
 //     UI 코드 검사(위)는 이메일 순수-HTML 문자열을 안 봐서 사각지대였음. → 라이브 이메일 템플릿에
 //     premium 토큰이 다시 들어오면 CI 가 차단. 정답 톤 레퍼런스 = infoRequest.ts.
 //     범위: src/lib/email/templates/** + surveyEmailTemplate.ts (legacy 전환 완료 파일).
-//     제외: src/emails/*.jsx(React Email premium 시스템 — 실사용 확인 후 별도 전환 예정).
+//     ※ 옛 주석이 «src/emails/*.jsx(React Email premium 시스템)는 별도 전환 예정»이라며 제외로 적어
+//       뒀었는데 낡은 기록이었다(2026-08-30 정정) — 그 시스템은 2026-07-01 PO 지시로 라우트째 통삭제됐다
+//       (PR #539, 4파일 1,028줄). 지금 저장소에 src/emails/ 는 없다. 어딘가 살아있다고 읽지 마라.
 const EMAIL_TEMPLATE_FILES = [
   ...walk("src/lib/email/templates"),
   "src/lib/surveys/surveyEmailTemplate.ts",
@@ -680,6 +693,99 @@ for (const file of EMAIL_TEMPLATE_FILES) {
       }
     }
   });
+}
+
+// ── 8-b) 화면 코드 premium 톤 재유입 가드 (2026-08-27 신설) ──────────────
+// 왜: 위 8) 은 «이메일만» 본다. 화면(app/·src/·components/)에 옛 premium 색·글꼴을 그대로 넣어도
+//     CI 가 통과하는 것을 2026-08-27 에 시험 파일로 «실제로 확인»했다(check:content·eslint 둘 다 초록).
+//     PO 2026-08-26: «왜 아직도 예전에 테스트 했던 톤이 남아있는거야? 뭘 만들라고 하면 자꾸 그걸로 만드네».
+//     문서만 고쳐선 안 막힌다 — 사고 이력이 전부 「옛 파일을 복사해 옴」이라 정확한 문자열이 그대로 들어온다:
+//     POSTMORTEMS #56(이메일 3종) · #873(설문지 금색 8곳) · app/patient/messages(cream/gold/ink+serif) ·
+//     환자 캘린더 ButtonGold(PR #1481). 위 5개 토큰이면 그 사고들이 전부 잡힌다.
+//     ※ 동작 확인 방법: 아무 page.jsx 에 color:"#c8a96a" 를 넣으면 빨간불.
+//     제외 = Primitives.jsx 자기 자신(철거 대기 중인 원본이라 자기 색을 갖고 있다).
+//     문서(DESIGN.md 등)는 애초에 대상이 아니다 — 금지 목록에는 그 색값이 «적혀 있어야» 하기 때문.
+// 2026-08-30 범위 확장: 공용 walk() 가 js/jsx/ts/tsx 만 돌려줘서 .css·.html·public/ 이 통째로
+//     사각이었다 — public/offline.html 제목의 옛 브랜드 「HEALO」가 정확히 이 사각으로 살아남았던
+//     전례가 그 파일 머리 주석에 자인돼 있고, premium 토큰의 «CSS 운반체»(app/styles/healo-tokens.css,
+//     8/27 철거)가 되돌아와도 이 검사는 못 봤다. → css·html(스캔 3폴더) + public/ 텍스트 파일까지
+//     같이 훑는다. 확장 시점 실측: 전 범위 잔재 0건 = 기준선 변경 없이 초록 유지.
+// 🧊 기준선: 2026-08-27 실측으로 «이미 있던» 잔재. 여기 적힌 개수까지는 통과시키고 «늘어나면» 막는다.
+//    통째로 빨간불로 만들면 지금 돌아가는 다른 세션의 신청서까지 다 막힌다 — 그건 가드가 아니라 사고다.
+//    (XSS_INNERHTML_BASELINE 과 같은 방식.) 고칠 때마다 이 숫자를 내려라. 0 이 되면 그 줄을 지워라.
+const UI_PREMIUM_BASELINE = {
+  // 2026-08-27 현재 «비어 있다» = 화면 코드에 premium 잔재 0건.
+  // 새 잔재를 여기 추가하지 마라 — 이 표는 「고치는 중인 것」의 임시 통행증이지 면제권이 아니다.
+};
+{
+  const UI_PREMIUM_SKIP = /healo[\\/]Primitives\.jsx$/;
+  const UI_PREMIUM_IMPORT = /from\s+["'][^"']*healo\/Primitives["']/;
+  // 색값 리터럴 말고 «변수 참조»로 되살아나는 경로도 잡는다 (2026-08-30, elated-meninsky 곁가지 회수).
+  // 정의처(healo-tokens.css)가 삭제돼 var(--gold-2) 류는 값이 «빈 채로» 조용히 렌더된다 — 그래서 더 위험.
+  const UI_PREMIUM_VAR = {
+    re: /var\(--(?:cream|gold|ink|paper|fg-on|font-serif)[\w-]*\)/i,
+    name: "premium 토큰 변수 참조(정의처 삭제됨 — 값이 비어 렌더된다)",
+  };
+  // PDF 가드(scripts/check-pdf-tone.mjs)는 src/lib/pdf/ «안에서만» gold/cream 변형 hex 와 Noto Serif 를
+  // 막는다 — 같은 값이 «화면» 코드로 들어오면 어느 가드도 못 잡았다(2026-08-30 감사에서 확인).
+  // 전부 옛 styles.js 에서 실제로 제거했던 잔재값이라 재유입 경로(옛 파일 복사)가 위 5종과 같다.
+  // 추가 시점 실측: 확장 범위 포함 전 범위 0건 = 기준선 영향 없음.
+  const UI_EXTRA_PREMIUM_TOKENS = [
+    { re: /#b89550|#e8d9b4/i, name: "premium gold 변형 hex(#b89550·#e8d9b4)" },
+    { re: /#e3dbcc|#fbf8f2/i, name: "premium cream 변형 hex(#e3dbcc·#fbf8f2)" },
+    { re: /Noto\s*Serif/i, name: "Noto Serif 세리프 폰트" },
+  ];
+  // ⚠️ 2026-08-30 전까지 이 합본은 «선언만» 되고 아래 루프는 5종(EMAIL_PREMIUM_TOKENS)만 돌았다 —
+  //    변수 참조 가드가 죽은 코드였던 것. 루프를 이 합본으로 배선해 주석이 주장하던 검출을 실제로 한다.
+  const UI_PREMIUM_TOKENS = [...EMAIL_PREMIUM_TOKENS, ...UI_EXTRA_PREMIUM_TOKENS, UI_PREMIUM_VAR];
+  // public/offline.html 은 우리 CSS 를 안 쓰는 독립 파일이고 :root 에 «자기» 변수를 정의해 쓴다
+  // (--ink:#1f2937 = gray-800 — 이름만 premium 과 우연히 겹치고 값은 기본 톤). 변수 참조 토큰만 면제하고
+  // hex·serif 토큰은 그대로 검사한다 — 그 파일의 HEALO 잔재 전례가 있어 «통째 면제»는 금지.
+  const UI_PREMIUM_VAR_EXEMPT = /^public\/offline\.html$/;
+  // 확장 걸음마: 공용 walk()/CODE_EXT 는 안 건드린다(다른 규칙들이 그 값에 기대고 있다 — §1c walkCss 와
+  // 같은 이유). css·html 은 스캔 3폴더에서, public/ 은 텍스트 파일만(사진·아이콘 등 바이너리 제외) 훑는다.
+  const walkExt = (dir, extRe) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      const rel = join(dir, e);
+      if (EXCLUDE.test("/" + rel.replace(/\\/g, "/") + "/")) continue;
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walkExt(rel, extRe));
+      else if (extRe.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  const PUBLIC_TEXT_EXT = /\.(html?|css|js|mjs|json|svg|txt|md|csv|webmanifest)$/i;
+  const UI_PREMIUM_FILES = [
+    ...walk("app"), ...walk("src"), ...walk("components"),
+    ...["app", "src", "components"].flatMap((d) => walkExt(d, /\.(css|html?)$/i)),
+    ...walkExt("public", PUBLIC_TEXT_EXT),
+  ];
+  for (const file of UI_PREMIUM_FILES) {
+    if (UI_PREMIUM_SKIP.test(file)) continue;
+    let lines;
+    try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
+    const rel = file.replace(/\\/g, "/");
+    const hits = [];
+    lines.forEach((line, i) => {
+      for (const t of UI_PREMIUM_TOKENS) {
+        if (t === UI_PREMIUM_VAR && UI_PREMIUM_VAR_EXEMPT.test(rel)) continue;
+        if (t.re.test(line)) hits.push({ i, name: t.name, line });
+      }
+      if (UI_PREMIUM_IMPORT.test(line)) {
+        errors.push(`[화면premium] ${rel}:${i + 1} — 폐기된 premium 부품(components/healo/Primitives.jsx — ButtonGold·Eyebrow 등)을 새로 가져다 쓴다. 2026-08-27 기준 사용처 0곳이라 곧 삭제될 파일이다(DESIGN.md §8 pending_removal). 기본 톤 부품으로 대체할 것.\n    ${line.trim().slice(0, 120)}`);
+      }
+    });
+    const allowed = UI_PREMIUM_BASELINE[rel] ?? 0;
+    if (hits.length > allowed) {
+      for (const h of hits.slice(allowed)) {
+        errors.push(`[화면premium] ${rel}:${h.i + 1} — 폐기된 premium 톤(${h.name})이 화면 코드에 들어왔다(이 파일 ${hits.length}건 / 기준선 ${allowed}건). 우리 디자인은 기본 톤(teal) «하나»뿐이고 premium 은 2026-06 에 완전히 폐기됐다(DESIGN.md §3·§8). 되살리지 말고 teal 기본 톤으로 만들 것.\n    ${h.line.trim().slice(0, 120)}`);
+      }
+    }
+  }
 }
 
 // ── 9) 글로벌 t() 미정의 키 가드 (2026-07-02 전수 감사) ──
@@ -915,24 +1021,34 @@ for (const dir of SCAN_DIRS) {
   }
 }
 
-// ── 15) 백오피스 raw h1/h2/h3 에 글자크기 클래스 누락 (마케팅 히어로 크기 유출) ──────
-// 왜: app/styles/healo-tokens.css 는 공개 마케팅 페이지용 h1~h3 를 전역 태그 선택자로 정의한다
-//     (예: h2 { font-size: clamp(36px, 4.5vw, 64px) }). 백오피스(coordinator/admin/agency/
-//     hospital/clinic) 화면에서 <h2 className="font-bold ...">처럼 명시적 text-size 유틸리티
-//     없이 raw 헤딩 태그를 쓰면 이 마케팅 히어로 크기가 그대로 새어 들어와 화면이 깨진다
-//     (2026-07-08 코디 "AI 상담 리드" — "검토 대기 22건"이 히어로 크기로 렌더, PO 리포트).
-//     같은 패턴이 admin 등 12곳에서 동시 발견됨 — 개별 수정이 아니라 검사기로 부류 자체를 차단.
+// ── 15) raw h1/h2/h3 에 글자크기 클래스 누락 ─────────────────────────────────
+// 왜(2026-07-08): 그때는 app/styles/healo-tokens.css 가 전역 태그 선택자로 h1~h3 를 크게
+//     정의하고 있어서(h2 = clamp(36px,4.5vw,64px)), 백오피스에서 크기 유틸리티 없이 raw
+//     헤딩을 쓰면 «마케팅 히어로 크기가 새어 들어왔다»
+//     (코디 "AI 상담 리드" — "검토 대기 22건"이 히어로 크기로 렌더, PO 리포트).
+//
+// ⚠️ 2026-08-27 그 파일을 폐기하면서 «위험이 뒤집혔다». 이제 전역 크기가 없으므로
+//     preflight 의 font-size:inherit 이 드러나, 크기 유틸리티 없는 제목은 반대로
+//     «본문 크기(15px)로 주저앉는다». 실측: /ru/for-russian-patients 의 H3 가 32px → 15px.
+//     크든 작든 «명시하지 않으면 깨진다»는 규칙 자체는 그대로 옳다.
+//
+// ⚠️ 그리고 이 검사는 그때 백오피스 5개 폴더만 봤기 때문에 «공개 화면·환자 포털이 사각지대»였고,
+//     위 회귀 15곳을 하나도 못 잡았다. → 2026-08-27 범위를 app/·src/·components/ 전체로 넓혔다.
+//     (className 이 «아예 없는» raw <h2> 는 안 본다 — 인쇄용 팝업처럼 자체 <style> 을 쓰는
+//      생성 HTML 이 걸리기 때문이다. 아래 정규식이 className 을 요구한다.)
+// ※ BACKOFFICE_DIRS 는 아래 15-b) 저대비회색 검사도 쓰므로 그대로 둔다.
 const BACKOFFICE_DIRS = ["app/coordinator", "app/admin", "app/agency", "app/hospital", "app/clinic"];
+const HEADING_SCAN_DIRS = ["app", "src", "components"];
 const HEADING_RE = /<h[123]\s+className="([^"]*)"/g;
 const HEADING_SIZE_RE = /text-(xs|sm|base|lg|\d?xl|\[)/;
-for (const dir of BACKOFFICE_DIRS) {
+for (const dir of HEADING_SCAN_DIRS) {
   for (const file of walk(dir)) {
     if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
     const text = readFileSync(join(ROOT, file), "utf8");
     let m;
     while ((m = HEADING_RE.exec(text)) !== null) {
       if (!HEADING_SIZE_RE.test(m[1])) {
-        errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 마케팅 히어로 크기(h2 최대 64px) 유출 위험. text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류).`);
+        errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 전역 h1~h3 크기가 없어진 뒤(2026-08-27 healo-tokens.css 폐기)라 이 제목은 «본문 크기 15px 로 주저앉는다». text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류 · 2026-08-27 실측 회귀 15곳).`);
       }
     }
   }
@@ -2250,16 +2366,13 @@ const TEAL600_BASELINE = {
 {
   const FROZEN = {
     "admin-feedback-list.spec.ts": 1,
-    "chat-feedback-thumbs-down.spec.ts": 2,
     "chat-identification-form.spec.ts": 1,
     "chat-multilingual.spec.ts": 2,
-    "chat-resume-cookie.spec.ts": 1,
     "hospital-detail.spec.ts": 1,
     "hospitals-list.spec.ts": 1,
-    "intake-file-upload.spec.ts": 1,
-    "intake-form-submit.spec.ts": 1,
+    // intake-file-upload → chat-file-upload 로 옮기며 부채 갚음(2026-08-25).
+    // intake-form-submit·intake-validation-required 는 죽은 주소(/intake)를 보고 있어 삭제.
     "intake-language-fallback.spec.ts": 1,
-    "intake-validation-required.spec.ts": 1,
     "patient-dashboard-auth.spec.ts": 1,
     "patient-survey-response.spec.ts": 1,
     "telemedicine-booking-cta.spec.ts": 1,
@@ -2564,6 +2677,36 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── §35-b) 정규식에 «제어문자»가 박히는 사고 차단 (2026-08-27 신설) ──────────────
+// 왜 (실측): 바로 아래 §36 의 비밀키 검출 정규식 4개가 \bsb_secret_… 를 의도했는데 백슬래시가
+//     풀려 «백스페이스 문자(0x08)»가 박혀 있었다 → /(0x08)sb_secret_…/ 가 되어 Supabase secret ·
+//     GitHub 토큰 · OpenAI 키 · 구글 API 키를 **절대 못 잡는** 상태였다. 이 저장소는 PUBLIC 이고
+//     2분마다 git add -A 자동저장이 돈다. 같은 사고가 src/lib/chat/topicGuards.ts 의 병원 랭킹
+//     가드에도 있어 영어 "best hospital" 질문에 하드가드가 안 켜졌다(한국어·러시아어는 정상).
+//     둘 다 **눈으로는 안 보인다** — grep 출력에도 안 나타나서 오래 살아남았다. cat -A 로만 보인다.
+// 왜 0x08 계열만 잡나: 정규식에서 흔한 \b(단어경계)·\0·\v·\f 가 풀릴 때 생기는 문자만 골랐다.
+//     정당한 쓰임이 있는 0x1b(ESC 색상코드)·0x1e(레코드 구분자)·0x03·0x1a(파일 매직바이트)는
+//     «일부러» 뺐다 — 넣으면 오탐 6건이 나고, 예외 목록이 늘면 결국 아무도 안 본다.
+//     신설 시점 저장소 기준 이 규칙의 오탐은 0건이다.
+{
+  const CTRL_CHARS = /[\x00\x08\x0B\x0C]/;
+  const codeFiles = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => /\.(?:js|mjs|cjs|jsx|ts|tsx|css|json)$/i.test(f));
+  for (const f of codeFiles) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
+    if (!CTRL_CHARS.test(src)) continue;
+    src.split(/\r?\n/).forEach((line, i) => {
+      const m = line.match(CTRL_CHARS);
+      if (!m) return;
+      const code = "0x" + m[0].charCodeAt(0).toString(16).padStart(2, "0");
+      errors.push(`[제어문자] ${f}:${i + 1} — 소스에 제어문자 ${code} 가 박혀 있다. 정규식의 백슬래시-b/0/v/f 가 «풀려서» 실제 제어문자가 된 경우가 대부분이고, 그러면 그 규칙은 조용히 아무것도 안 잡는다(2026-08-27 실측: 비밀키 검출 4종·병원 랭킹 가드가 이 이유로 죽어 있었다). 백슬래시를 두 개로 쓸 것.`);
+    });
+  }
+}
+
 // ── §36) 공개 저장소에 «진짜 열쇠»가 들어오지 않게 (2026-07-28) ────────────────
 // 왜: 이 저장소는 PUBLIC 이고 2분마다 도는 자동저장 훅이 `git add -A` 라, 열쇠 파일이 폴더에
 //     들어오면 다음 사이클에 그대로 공개된다(2026-07-27 Firebase 키가 실제로 그럴 뻔했다).
@@ -2574,10 +2717,10 @@ const TEAL600_BASELINE = {
   const SECRET_PATTERNS = [
     [/-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, "개인키(PEM)"],
     [/"private_key"\s*:\s*"-----BEGIN/, "구글 서비스계정 JSON"],
-    [/sb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
-    [/gh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
-    [/sk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
-    [/AIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
+    [/\bsb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
+    [/\bgh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
+    [/\bsk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
+    [/\bAIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
   ];
   // 저장소가 추적하는 «코드/설정» 파일만 본다(문서·바이너리는 제외 — 오탐만 늘린다).
   const files = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
@@ -2589,6 +2732,17 @@ const TEAL600_BASELINE = {
     try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
     if (src.length > 2_000_000) continue;
     for (const [re, label] of SECRET_PATTERNS) {
+      // Firebase 클라이언트 설정 파일의 «구글 API 키»만 면제한다 (2026-08-27).
+      // 왜: google-services.json / GoogleService-Info.plist 안의 API_KEY 는 설계상 앱 번들에
+      //     담겨 배포되는 «식별자»다 — 구글 공식 안내도 이 파일을 앱에 포함하라고 한다.
+      //     비밀이 아니므로 여기서 잡으면 영원히 빨간불이고, 그러면 사람이 검사를 꺼 버린다.
+      // ⚠️ 면제는 «이 패턴 하나»로 좁힌다. 같은 파일에 PEM 개인키·구글 서비스계정 JSON·
+      //     GitHub 토큰·OpenAI 키·Supabase secret 이 들어오면 그대로 잡힌다(실측 확인).
+      //     파일을 통째로 빼면 그 구멍으로 진짜 비밀이 들어온다.
+      // 🔴 대신 «콘솔»에서 지켜야 한다: 이 키는 노출돼도 되지만 제한이 없으면 남이 그 키로
+      //     다른 구글 API 요금을 물릴 수 있다 → 2026-08-27 에 두 키 모두 앱 제한을 걸었다
+      //     (Android: 패키지+SHA-1 3개 / iOS: 번들ID). 메모리 google-api-key-app-restrictions.
+      if (label === "구글 API 키" && (f.endsWith("google-services.json") || f.endsWith("GoogleService-Info.plist"))) continue;
       if (re.test(src)) {
         errors.push(
           `[열쇠유출] ${f} 에 ${label} 로 보이는 값이 있다 — 이 저장소는 공개다. ` +

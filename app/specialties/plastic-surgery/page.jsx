@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { localeAlternates } from "@/lib/i18n/metadata";
 import {
   Star,
   Shield,
@@ -10,7 +11,24 @@ import {
   Award,
 } from "lucide-react";
 
-export const metadata = {
+// ⚠️ 이 화면은 «색인 제외»다(baseMeta.robots = noindex, 2026-06-17 PO 결정 — 암환자 컨시어지
+//    피벗과 안 맞는 옛 미용 도메인). 그러면 canonical·hreflang 을 «내보내면 안 된다» —
+//    noindex 와 canonical 을 같이 선언하는 건 구글이 명시적으로 피하라는 조합이고,
+//    hreflang 은 「이 주소들도 색인해 달라」는 신호라 noindex 와 정면으로 어긋난다.
+//    2026-08-31 실측: 세 화면이 noindex 인데 canonical 을 같이 내보내고 있었다.
+//    (옛 주석: "hreflang 은 경로 방식(/ru/...)으로만 맞는다" — 맞는 말이지만 그건 «색인되는»
+//     화면 얘기였다. 여기서는 애초에 안 내보내는 게 맞다.)
+// og:url 은 남긴다 — 색인 신호가 아니라 «공유했을 때 어느 주소로 가나»일 뿐이다.
+export async function generateMetadata() {
+  const alt = await localeAlternates();
+  return {
+    ...baseMeta,
+    alternates: null,
+    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}) },
+  };
+}
+
+const baseMeta = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
   robots: { index: false, follow: false },
   title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide",
@@ -31,19 +49,6 @@ export const metadata = {
     description:
       "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan.",
     type: "website",
-    url: "https://healwith.co.kr/specialties/plastic-surgery",
-  },
-  alternates: {
-    canonical: "/specialties/plastic-surgery",
-    languages: {
-      en: "/specialties/plastic-surgery?lang=en",
-      ko: "/specialties/plastic-surgery?lang=ko",
-      ru: "/specialties/plastic-surgery?lang=ru",
-      kk: "/specialties/plastic-surgery?lang=kz",
-      zh: "/specialties/plastic-surgery?lang=zh",
-      ja: "/specialties/plastic-surgery?lang=ja",
-      'x-default': "/specialties/plastic-surgery",
-    },
   },
 };
 

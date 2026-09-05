@@ -172,12 +172,16 @@ export interface HospitalNewLeadNotice {
   hospitalId: string;
   /** 비-PII 요약(예: "위암 · 카자흐스탄"). ⚠️ 환자 이름 등 PII 넣지 말 것(파트너 알림 본문). */
   summary?: string | null;
+  /** hospital_leads.id — 있으면 알림이 «그 의뢰»를 바로 연다(없으면 목록). */
+  leadId?: string | number | null;
 }
 
 /**
  * 병원에 새 진료 의뢰(리드)가 배정됐을 때 그 병원 담당자에게 종(bell) 알림.
  * 종 UI는 이미 파트너 상단바(ClientShell PortalTopBar)에 렌더링 중 — 백엔드 INSERT만 하면 뜬다.
- * 링크는 병원 리드 목록(/hospital/leads — 상세 [id] 라우트 없음, 목록에서 열림).
+ * 링크는 병원 리드 목록(/hospital/leads — 상세 [id] 라우트 없음, 목록 화면이 상세 서랍을 연다).
+ * leadId 를 주면 `?lead=<id>` 로 그 의뢰의 상세가 바로 열린다 (2026-08-28: 예전엔 목록만 열려
+ * 담당자가 어느 건인지 눈으로 찾아야 했다 — 알림이 「무엇을 하라」는 건지 안 알려주던 셈).
  * Fail-safe: throw 안 함(리드 배정 자체에 영향 0).
  */
 export async function notifyHospitalNewLead(notice: HospitalNewLeadNotice): Promise<void> {
@@ -185,12 +189,14 @@ export async function notifyHospitalNewLead(notice: HospitalNewLeadNotice): Prom
     const userIds = await getHospitalUserIds(notice.hospitalId);
     if (userIds.length === 0) return;
     const body = notice.summary?.trim() || "새 진료 의뢰가 도착했습니다.";
+    const leadId = notice.leadId == null ? null : String(notice.leadId);
     await broadcastInAppNotification(userIds, {
       type: "hospital_new_lead",
       title: "📥 새 진료 의뢰",
       body,
       priority: "high",
-      link: "/hospital/leads",
+      link: leadId ? `/hospital/leads?lead=${encodeURIComponent(leadId)}` : "/hospital/leads",
+      ...(leadId ? { payload: { leadId } } : {}),
     });
   } catch {
     /* fail-safe */
@@ -222,14 +228,16 @@ export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<v
     await Promise.allSettled([
       broadcastInAppNotification(coordinators, {
         type: "new_inquiry", title, body, priority: "high",
-        link: "/coordinator/inbox",
+        // 목록이 아니라 «그 문의»로. /coordinator/inbox/[id] 는 실재 라우트다
+        //   (사후관리 알림 followup_due 가 이미 같은 주소를 쓴다 — 2026-08-28).
+        link: `/coordinator/inbox/${notice.inquiryId}`,
         payload: { inquiryId: notice.inquiryId },
       }),
       broadcastInAppNotification(admins, {
         type: "new_inquiry", title, body, priority: "high",
-        // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크.
-        //    문의번호는 title(#N)에 있음. 이메일 알림(adminNotifier.ts)과 동일 정책(404 방지).
-        link: "/admin/inquiries",
+        // /admin/inquiries 는 목록 페이지지만 `?inquiry=<id>` 로 그 문의 상세를 바로 연다
+        //    (상세 [id] 라우트는 없으므로 404 없이 목록+모달로 열림 — 2026-08-28).
+        link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
         payload: { inquiryId: notice.inquiryId },
       }),
     ]);
@@ -330,7 +338,9 @@ export async function notifyStaffChatHandoff(notice: ChatHandoffNotice): Promise
       title: "🙋 AI 챗 상담 연결 요청",
       body,
       priority: "high",
-      link: "/admin/chat",
+      // ⚠️ 반드시 `?thread=` 로 «그 대화»를 열어라. 목록 주소만 주면 100건짜리 목록이 열리고
+      //    어느 건인지 못 찾는다 (2026-08-28 PO 제보로 드러남). 뷰어가 딥링크를 지원한다.
+      link: `/admin/chat?thread=${notice.threadId}`,
       payload: { threadId: notice.threadId, reason: notice.reason ?? null },
     });
   } catch {

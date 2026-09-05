@@ -17,13 +17,19 @@
  * 누락 안전장치: 특정 언어에 값이 없으면 en → ko 순으로 폴백해 빈 화면이 안 나온다.
  */
 
-import { useSyncExternalStore, useMemo } from "react";
-import { getBackofficeLangFromCookie } from "./index";
+import { useSyncExternalStore, useMemo, useEffect } from "react";
+import { getBackofficeLangFromCookie, setBackofficeLangCookie } from "./index";
 
 const CT = {
   // ── 레이아웃 / 내비게이션 ─────────────────────────────
   brandRole: { ko: "코디네이터", en: "Coordinator", ru: "Координатор", kz: "Үйлестіруші", zh: "协调员", ja: "コーディネーター" },
+  // 관리자 계정이 코디 화면을 열었을 때의 이름표. 화면은 코디 것이지만 «지금 나는 관리자»라는 걸
+  // 같이 보여준다 — 안 그러면 어드민으로 로그인했는데 「코디네이터」라고만 떠서 계정이 바뀐 줄 안다
+  // (2026-08-25 PO 지적: «지금 계정은 어드민으로 들어간거 같은데 왜 코디네이터라고 표시되어 있냐?»).
+  brandRoleAdminView: { ko: "관리자 · 코디 화면", en: "Admin · coordinator view", ru: "Админ · экран координатора", kz: "Әкімші · үйлестіруші экраны", zh: "管理员 · 协调员画面", ja: "管理者 · コーディネーター画面" },
+  backToAdmin: { ko: "어드민 화면으로", en: "Back to admin", ru: "К админ-панели", kz: "Әкімші экранына", zh: "返回管理员画面", ja: "管理者画面へ" },
   navDashboard: { ko: "대시보드", en: "Dashboard", ru: "Панель", kz: "Басқару тақтасы", zh: "仪表盘", ja: "ダッシュボード" },
+  navVoice: { ko: "음성 정리", en: "Voice notes", ru: "Голосовые заметки", kz: "Дауыстық жазбалар", zh: "语音整理", ja: "音声整理" },
   navInbox: { ko: "문의함", en: "Inbox", ru: "Входящие", kz: "Кіріс жәшігі", zh: "收件箱", ja: "受信箱" },
   navChat: { ko: "AI 상담 리드", en: "AI chat leads", ru: "AI-лиды чата", kz: "AI чат лидтері", zh: "AI 咨询线索", ja: "AIチャットリード" },
   navCases: { ko: "의뢰·케이스/병원배정", en: "Cases / Hospital assignment", ru: "Кейсы / Назначение больницы", kz: "Кейстер / Аурухана тағайындау", zh: "病例 / 医院分配", ja: "ケース / 病院割当" },
@@ -66,6 +72,10 @@ const CT = {
   name: { ko: "이름", en: "Name", ru: "Имя", kz: "Аты", zh: "姓名", ja: "氏名" },
   nationality: { ko: "국적", en: "Nationality", ru: "Гражданство", kz: "Азаматтығы", zh: "国籍", ja: "国籍" },
   cancerType: { ko: "암종", en: "Cancer type", ru: "Тип рака", kz: "Обыр түрі", zh: "癌种", ja: "がん種" },
+  ibIcdCode: { ko: "진단코드", en: "Diagnosis code", ru: "Код диагноза", kz: "Диагноз коды", zh: "诊断代码", ja: "診断コード" },
+  ibIcdSuggest: { ko: "추천", en: "Suggested", ru: "Рекомендуется", kz: "Ұсынылады", zh: "推荐", ja: "推奨" },
+  ibIcdSave: { ko: "코드 저장", en: "Save code", ru: "Сохранить код", kz: "Кодты сақтау", zh: "保存代码", ja: "コードを保存" },
+  ibIcdNote: { ko: "부위 분류이며 확정 진단이 아니다", en: "Site classification, not a confirmed diagnosis", ru: "Классификация по локализации, не подтверждённый диагноз", kz: "Орналасу бойынша жіктеу, расталған диагноз емес", zh: "为部位分类，非确诊结果", ja: "部位分類であり確定診断ではありません" },
   contactMethod: { ko: "연락방법", en: "Contact method", ru: "Способ связи", kz: "Байланыс тәсілі", zh: "联系方式", ja: "連絡方法" },
   receivedDate: { ko: "접수일", en: "Received", ru: "Дата заявки", kz: "Қабылданған күні", zh: "接收日期", ja: "受付日" },
   viewAll: { ko: "전체 보기", en: "View all", ru: "Показать все", kz: "Барлығын көру", zh: "查看全部", ja: "すべて表示" },
@@ -302,6 +312,9 @@ const CT = {
   msInquiry: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
   msNoMessages: { ko: "메시지 없음", en: "No messages", ru: "Нет сообщений", kz: "Хабар жоқ", zh: "无消息", ja: "メッセージなし" },
   msSelectConversation: { ko: "왼쪽에서 대화를 선택하세요.", en: "Select a conversation on the left.", ru: "Выберите диалог слева.", kz: "Сол жақтан әңгімені таңдаңыз.", zh: "请在左侧选择一个对话。", ja: "左側から会話を選択してください。" },
+  // 알림 딥링크로 들어왔는데 그 대화가 목록에 없을 때. 「왼쪽에서 고르세요」는 폰에 왼쪽이
+  // 없어서 틀린 안내가 된다(2026-08-28 완성도 감사).
+  msThreadNotFound: { ko: "그 대화를 찾을 수 없습니다.", en: "That conversation could not be found.", ru: "Этот диалог не найден.", kz: "Бұл әңгіме табылмады.", zh: "未找到该对话。", ja: "その会話が見つかりません。" },
   msGuestBadge: { ko: "게스트(비회원)", en: "Guest (non-member)", ru: "Гость (не участник)", kz: "Қонақ (мүше емес)", zh: "访客（非会员）", ja: "ゲスト（非会員）" },
   msAIChat: { ko: "AI 채팅", en: "AI chat", ru: "AI-чат", kz: "AI чат", zh: "AI 聊天", ja: "AIチャット" },
   msNoMessagesYet: { ko: "아직 메시지가 없습니다.", en: "No messages yet.", ru: "Сообщений пока нет.", kz: "Әзірге хабар жоқ.", zh: "还没有消息。", ja: "まだメッセージがありません。" },
@@ -435,8 +448,13 @@ const CT = {
   ibNameUnknown: { ko: "(이름 미상)", en: "(Name unknown)", ru: "(Имя неизвестно)", kz: "(Аты белгісіз)", zh: "(姓名不详)", ja: "(氏名不明)" },
   ibPatientDirect: { ko: "환자 직접", en: "Patient direct", ru: "Напрямую от пациента", kz: "Пациенттен тікелей", zh: "患者直接", ja: "患者直接" },
   ibInquiryNo: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
-  ibClaimCopy: { ko: "환자 연결 링크 복사", en: "Copy patient link", ru: "Копировать ссылку пациента", kz: "Науқас сілтемесін көшіру", zh: "复制患者链接", ja: "患者リンクをコピー" },
+  // 2026-08-25: 예전엔 「환자 연결 링크」였고 계정 없는 케이스에만 떴다. 이제 모든 케이스에 뜨고,
+  //   하는 일도 «계정 연결»이 아니라 «진행상황·서류를 보여줄 주소를 건네주기»라 이름을 바꿨다.
+  //   (PO: «왓츠앱이나 다른 경로로 문서 접수 받은거도 임시 링크 줄 수 있게 해줘»)
+  ibClaimCopy: { ko: "링크 복사", en: "Copy link", ru: "Копировать ссылку", kz: "Сілтемені көшіру", zh: "复制链接", ja: "リンクをコピー" },
   ibClaimCopied: { ko: "복사됨!", en: "Copied!", ru: "Скопировано!", kz: "Көшірілді!", zh: "已复制！", ja: "コピーしました！" },
+  ibShareWhatsapp: { ko: "왓츠앱으로 보내기", en: "Send via WhatsApp", ru: "Отправить в WhatsApp", kz: "WhatsApp арқылы жіберу", zh: "通过 WhatsApp 发送", ja: "WhatsAppで送る" },
+  ibShareHint: { ko: "환자·보호자에게 주는 주소입니다. 가입·로그인 없이 진행상황과 공유 서류를 봅니다.", en: "A link for the patient or family. They can see progress and shared documents without signing up.", ru: "Ссылка для пациента или родственника. Прогресс и документы видны без регистрации.", kz: "Науқасқа немесе жақынына арналған сілтеме. Тіркелусіз барысы мен құжаттарды көреді.", zh: "给患者或家属的链接。无需注册即可查看进度和共享文件。", ja: "患者・ご家族に渡すリンクです。登録なしで進捗と共有書類を見られます。" },
   ibReceivedLabel: { ko: "접수", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "接收", ja: "受付" },
   ibStepBothDone: { ko: "Step 1+2 완료", en: "Step 1+2 done", ru: "Этапы 1+2 завершены", kz: "1+2 кезең аяқталды", zh: "步骤 1+2 完成", ja: "ステップ1+2 完了" },
   ibStepOneNeedInfo: { ko: "Step 1만 (추가 정보 필요)", en: "Step 1 only (needs more info)", ru: "Только этап 1 (нужна доп. информация)", kz: "Тек 1-кезең (қосымша ақпарат қажет)", zh: "仅步骤 1（需补充信息）", ja: "ステップ1のみ（追加情報が必要）" },
@@ -803,3 +821,24 @@ export function useDateLocale() {
 }
 
 export default CT;
+
+/**
+ * 백오피스 언어 쿠키가 «없으면» 기본값(ko)으로 심는다. 코디·어드민 레이아웃에서 한 번 부른다.
+ *
+ * 왜 필요 (2026-09-04 실측): 서버는 이 쿠키를 보고 브라우저에 실을 사전을 고른다(app/layout.jsx).
+ * 스위처를 한 번도 안 만진 스태프는 쿠키가 없어 «영어 사전만» 실렸고, 사전을 거치는 문구가
+ * 한국어 화면에도 영어로 떨어졌다 — 의뢰서 카드 라벨이 「Date of Birth」·
+ * 「MEDICAL HISTORY & MEDICATIONS」, 서류 종류가 「Other document」.
+ * 화면 대부분은 이 파일의 문구 묶음(L)을 써서 멀쩡했기 때문에 「가끔 영어가 섞인다」로만 보였다.
+ *
+ * 🛑 서버가 그냥 ko 를 얹게 하는 쪽으로 고치지 마라 — 그러면 «공개 화면 방문자 전원»이 쓰지도 않는
+ *    한국어 사전 100KB 를 받는다(2026-09-04 실측: 첫 화면 HTML 392KB 중 사전이 100KB).
+ * 🛑 에이전시·병원 포털에는 붙이지 마라 — 그쪽은 러시아어 사용자다.
+ */
+export function useEnsureBackofficeLangCookie() {
+  useEffect(() => {
+    try {
+      if (!getBackofficeLangFromCookie()) setBackofficeLangCookie("ko");
+    } catch { /* 쿠키가 막힌 브라우저 — 영어로 보이지만 화면은 정상 동작한다 */ }
+  }, []);
+}

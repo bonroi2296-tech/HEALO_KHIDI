@@ -7,7 +7,8 @@
  *
  * 설계:
  *   - (원문해시, 대상언어)로 note_translations 에 캐시 → 같은 문구는 두 번 호출 안 함(비용↓).
- *   - 한글이 없는 텍스트는 번역하지 않고 건너뜀(이미 상대 언어이거나 숫자·ID 등).
+ *   - 이미 그 언어인 텍스트는 건너뜀. 「한국어인가」는 «비율»로 본다 — 한 글자 섞였다고
+ *     건너뛰면 러시아어 소견 전체가 통째로 빠진다(isMostlyKorean 주석 참고).
  *   - 여러 문장을 한 번의 Gemini 호출로 묶어 번역(라운드트립·비용 최소화).
  *   - 키/모델 실패는 조용히 빈 결과 → 화면은 원문 폴백(끊기지 않게).
  */
@@ -20,7 +21,7 @@ import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { containsKorean, detectLanguage } from "@/lib/translate";
+import { detectLanguage } from "@/lib/translate";
 
 const MODEL = "gemini-flash-latest";
 const TARGET_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"] as const;
@@ -41,6 +42,23 @@ export function isNoteTargetLang(v: unknown): v is NoteTargetLang {
 
 function sha256(s: string): string {
   return createHash("sha256").update(s, "utf8").digest("hex");
+}
+
+/**
+ * 이미 우리말인가 — «비율»로 본다.
+ *
+ * 🛑 `containsKorean`(한 글자라도 한글이면 참)으로 되돌리지 마라. 서류 판독기가 러시아어 원문을
+ *    옮겨 적다가 한글을 한두 글자 섞어 놓는 일이 실제로 있다. 2026-09-04 실측: 검사 소견
+ *    4,217자 안에 「Гепа토мегалия」가 있었고, 그 한 글자 때문에 소견 전체가 «이미 한국어»로
+ *    분류돼 번역 목록에서 통째로 빠졌다. 창구는 200 을 주고 다른 6건은 다 번역되니 아무도
+ *    실패를 몰랐고, 러시아어 그대로 세브란스 의뢰서에 실릴 뻔했다.
+ *    같은 함정이 화면 쪽(HospitalReferralSection)에도 있었다 — 두 곳 다 고쳤다.
+ */
+export function isMostlyKorean(s: string): boolean {
+  const ko = (s.match(/[가-힣]/g) || []).length;
+  if (!ko) return false;
+  const letters = [...s].filter((c) => !/\s/.test(c)).length;
+  return ko * 3 >= letters;
 }
 
 function getModel() {
@@ -69,7 +87,7 @@ export async function translateNotes(
       (texts || [])
         .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
         .map((t) => t.trim())
-        .filter((t) => (lang === "ko" ? !containsKorean(t) : detectLanguage(t) !== lang)),
+        .filter((t) => (lang === "ko" ? !isMostlyKorean(t) : detectLanguage(t) !== lang)),
     ),
   );
   if (uniq.length === 0) return {};
@@ -113,10 +131,49 @@ export async function translateNotes(
    * 나눠 부른 것도 각각 캐시에 남으므로 다음부터는 어차피 0원이다.
    */
   const CHUNK_CHARS = 2000;
+
+  /**
+   * 🛑 항목 «하나»가 상한을 넘으면 위 규칙으로는 못 나눈다 — 통짜로 한 통이 되고, 그 통의 답이
+   *    잘려 그 글만 조용히 사라진다. 2026-09-04 실측: 서류 세 장에서 모은 검사 소견 4,217자를
+   *    보냈더니 같이 보낸 짧은 글 6건은 다 돌아오고 «그 하나만» 응답에 없었다. 화면은 실패를
+   *    모르니 러시아어 원문을 그대로 두었고, 그대로 두면 세브란스에 러시아어로 나간다.
+   * 그래서 긴 글은 «줄 경계»로 쪼개 따로 보내고, 번역문을 줄로 다시 잇는다. 줄 단위라 원문의
+   * 구조가 그대로 남고, 조각도 각각 캐시에 들어가 다음부터는 0원이다.
+   */
+  const longOnes = misses.filter((t) => t.length > CHUNK_CHARS);
+  const shortOnes = misses.filter((t) => t.length <= CHUNK_CHARS);
+
+  for (const whole of longOnes) {
+    // 조각은 한 통보다 «더 작게» 잡는다 — 답이 원문보다 길어질 수 있고, 조각이 클수록
+    // 모델이 항목을 통째로 빠뜨리는 일이 잦다(2026-09-04 실측).
+    const pieces = splitByLines(whole, 1200);
+    // 조각도 캐시에 남겨야 다음부터 0원이다 — 해시가 없으면 저장 단계에서 통째로 버려진다.
+    for (const piece of pieces) if (!hashOf.has(piece)) hashOf.set(piece, sha256(piece));
+    const got: Record<string, string> = {};
+    // 두 번까지 해 본다. 모델이 답에서 항목을 통째로 빠뜨려도 «예외가 아니라» 조용한 누락이라
+    // (translateBatch 는 못 받은 항목을 그냥 건너뛴다) 한 번만 부르면 그 조각만 원문으로 남는다.
+    // 2026-09-04 실측: 검사 소견을 다섯 조각으로 나눴더니 세 조각만 돌아와 앞 두 서류가
+    // 러시아어인 채로 남았다.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const todo = pieces.filter((p) => !got[p]);
+      if (!todo.length) break;
+      for (const piece of todo) {
+        try {
+          await translateBatch([piece], lang, model, hashOf, got);
+        } catch (err) {
+          console.error("[translateNotes] long piece failed:", (err as Error)?.message?.slice(0, 160));
+        }
+      }
+    }
+    // 한 조각도 못 옮겼으면 그 글은 손대지 않는다(화면이 원문을 그대로 보여준다).
+    if (!pieces.some((p) => got[p])) continue;
+    out[whole] = pieces.map((p) => got[p] ?? p).join("\n");
+  }
+
   const chunks: string[][] = [];
   let cur: string[] = [];
   let curLen = 0;
-  for (const t of misses) {
+  for (const t of shortOnes) {
     if (cur.length && curLen + t.length > CHUNK_CHARS) {
       chunks.push(cur);
       cur = [];
@@ -137,6 +194,28 @@ export async function translateNotes(
   }
 
   return out;
+}
+
+/**
+ * 긴 글을 «줄 경계»로 잘라 조각으로 만든다. 조각을 `\n` 으로 다시 이으면 원문이 된다.
+ * 한 줄 자체가 limit 보다 길면 그 줄이 조각 하나가 된다(줄 가운데를 자르면 문장이 깨진다).
+ */
+export function splitByLines(text: string, limit: number): string[] {
+  const lines = text.split("\n");
+  const pieces: string[] = [];
+  let cur: string[] = [];
+  let len = 0;
+  for (const ln of lines) {
+    if (cur.length && len + ln.length + 1 > limit) {
+      pieces.push(cur.join("\n"));
+      cur = [];
+      len = 0;
+    }
+    cur.push(ln);
+    len += ln.length + 1;
+  }
+  if (cur.length) pieces.push(cur.join("\n"));
+  return pieces;
 }
 
 /** 한 통 번역 → `out` 에 채우고 캐시에 적는다. 실패하면 던진다(호출부가 그 통만 버린다). */

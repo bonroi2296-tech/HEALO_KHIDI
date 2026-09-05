@@ -13,6 +13,7 @@ import { Bell, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
+import { resolveNotificationLink } from '@/lib/notifications/resolveLink';
 
 // 상대 시간 (간단) — 외부 라이브러리 없이. 단위 라벨은 중앙 사전(notifBell.ago*).
 function ago(iso, lang) {
@@ -49,7 +50,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
       if (!session) { setItems([]); return; }
       const { data } = await supabase
         .from('notifications')
-        .select('id, type, title, body, link, read_at, created_at')
+        .select('id, type, title, body, link, payload, read_at, created_at')
         .order('created_at', { ascending: false })
         .limit(15);
       setItems(data || []);
@@ -86,7 +87,9 @@ export default function NotificationBell({ variant = 'fixed' }) {
   const onItem = (n) => {
     if (!n.read_at) markRead([n.id]);
     setOpen(false);
-    if (n.link) router.push(n.link);
+    // payload 로 주소 보정 (옛 알림은 link 가 목록 주소라 «그 대화»로 못 갔다 — resolveLink.ts)
+    const href = resolveNotificationLink(n);
+    if (href) router.push(href);
   };
 
   const isInline = variant === 'inline';

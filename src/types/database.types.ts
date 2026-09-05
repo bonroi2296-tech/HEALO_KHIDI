@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -583,33 +583,39 @@ export type Database = {
       ai_regression_runs: {
         Row: {
           created_at: string | null
+          first_token_ms: number | null
           flags: string[] | null
           id: string
           latency_ms: number | null
           overall_score: number | null
           passed: boolean | null
+          rag_chunk_count: number | null
           response_text: string | null
           run_date: string
           test_id: string
         }
         Insert: {
           created_at?: string | null
+          first_token_ms?: number | null
           flags?: string[] | null
           id?: string
           latency_ms?: number | null
           overall_score?: number | null
           passed?: boolean | null
+          rag_chunk_count?: number | null
           response_text?: string | null
           run_date: string
           test_id: string
         }
         Update: {
           created_at?: string | null
+          first_token_ms?: number | null
           flags?: string[] | null
           id?: string
           latency_ms?: number | null
           overall_score?: number | null
           passed?: boolean | null
+          rag_chunk_count?: number | null
           response_text?: string | null
           run_date?: string
           test_id?: string
@@ -1806,12 +1812,14 @@ export type Database = {
           confidence: number | null
           created_at: string | null
           id: string
+          is_partial: boolean
           session_id: string | null
           source_lang: string
           source_text: string | null
           source_text_encrypted: string | null
           speaker_name: string | null
           speaker_name_encrypted: string | null
+          speaker_role: string | null
           stt_engine: string | null
           target_lang: string
           translated_text: string | null
@@ -1821,12 +1829,14 @@ export type Database = {
           confidence?: number | null
           created_at?: string | null
           id?: string
+          is_partial?: boolean
           session_id?: string | null
           source_lang: string
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
           speaker_name_encrypted?: string | null
+          speaker_role?: string | null
           stt_engine?: string | null
           target_lang: string
           translated_text?: string | null
@@ -1836,12 +1846,14 @@ export type Database = {
           confidence?: number | null
           created_at?: string | null
           id?: string
+          is_partial?: boolean
           session_id?: string | null
           source_lang?: string
           source_text?: string | null
           source_text_encrypted?: string | null
           speaker_name?: string | null
           speaker_name_encrypted?: string | null
+          speaker_role?: string | null
           stt_engine?: string | null
           target_lang?: string
           translated_text?: string | null
@@ -3078,6 +3090,7 @@ export type Database = {
       }
       inquiries: {
         Row: {
+          access_log: Json
           agency_id: string | null
           ai_chat_thread_id: string | null
           attachment: string | null
@@ -3100,6 +3113,9 @@ export type Database = {
           first_name: string | null
           follow_ups: Json | null
           followup_started_at: string | null
+          icd_code: string | null
+          icd_code_updated_at: string | null
+          icd_code_updated_by: string | null
           id: number
           info_requested_at: string | null
           insurance_coverage: string | null
@@ -3147,6 +3163,7 @@ export type Database = {
           utm: Json | null
         }
         Insert: {
+          access_log?: Json
           agency_id?: string | null
           ai_chat_thread_id?: string | null
           attachment?: string | null
@@ -3169,6 +3186,9 @@ export type Database = {
           first_name?: string | null
           follow_ups?: Json | null
           followup_started_at?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           id?: never
           info_requested_at?: string | null
           insurance_coverage?: string | null
@@ -3216,6 +3236,7 @@ export type Database = {
           utm?: Json | null
         }
         Update: {
+          access_log?: Json
           agency_id?: string | null
           ai_chat_thread_id?: string | null
           attachment?: string | null
@@ -3238,6 +3259,9 @@ export type Database = {
           first_name?: string | null
           follow_ups?: Json | null
           followup_started_at?: string | null
+          icd_code?: string | null
+          icd_code_updated_at?: string | null
+          icd_code_updated_by?: string | null
           id?: never
           info_requested_at?: string | null
           insurance_coverage?: string | null
@@ -5180,6 +5204,71 @@ export type Database = {
           },
         ]
       }
+      voice_notes: {
+        Row: {
+          ask_next: Json
+          byte_size: number | null
+          created_at: string
+          created_by: string | null
+          duration_sec: number | null
+          fields: Json
+          file_name: string
+          glossary: Json
+          id: string
+          inquiry_id: number | null
+          language: string | null
+          source_label_encrypted: string | null
+          storage_path: string
+          summary_encrypted: string | null
+          transcript_encrypted: string | null
+          uncertain: Json
+        }
+        Insert: {
+          ask_next?: Json
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          duration_sec?: number | null
+          fields?: Json
+          file_name: string
+          glossary?: Json
+          id?: string
+          inquiry_id?: number | null
+          language?: string | null
+          source_label_encrypted?: string | null
+          storage_path: string
+          summary_encrypted?: string | null
+          transcript_encrypted?: string | null
+          uncertain?: Json
+        }
+        Update: {
+          ask_next?: Json
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          duration_sec?: number | null
+          fields?: Json
+          file_name?: string
+          glossary?: Json
+          id?: string
+          inquiry_id?: number | null
+          language?: string | null
+          source_label_encrypted?: string | null
+          storage_path?: string
+          summary_encrypted?: string | null
+          transcript_encrypted?: string | null
+          uncertain?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_notes_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       v_today_funnel_stats: {
@@ -5294,6 +5383,16 @@ export type Database = {
         Args: { p_pattern_id: string }
         Returns: undefined
       }
+      io_top_queries: {
+        Args: { row_limit?: number }
+        Returns: {
+          calls: number
+          disk_read_blocks: number
+          query_shape: string
+          total_ms: number
+        }[]
+      }
+      rag_health_aggregates: { Args: { p_since: string }; Returns: Json }
       rag_search_chunks_v1: {
         Args: {
           match_count?: number
@@ -5362,12 +5461,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5391,11 +5490,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5416,11 +5515,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5441,11 +5540,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5458,11 +5557,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

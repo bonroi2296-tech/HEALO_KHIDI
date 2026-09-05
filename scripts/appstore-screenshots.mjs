@@ -19,8 +19,18 @@ const LOCALES = (process.argv[2] || "ko,en,ru").split(",");
 const DEVICES = {
   "ios-6.7": { width: 430, height: 932, scale: 3 },   // 1290×2796
   "ios-6.5": { width: 414, height: 896, scale: 3 },   // 1242×2688
+  // 아이패드 13형 — 애플이 「심사에 추가」를 막는 필수 규격(2026-07-29 실측: 없으면 제출 불가)
+  "ios-ipad-13": { width: 1032, height: 1376, scale: 2, tablet: true }, // 2064×2752
   "android": { width: 360, height: 800, scale: 3 },   // 1080×2400
+  // 구글 태블릿 2종도 필수(별표) — 비율이 «정확히» 9:16 이어야 해서 크기를 딱 떨어지게 잡았다
+  "android-tablet-7": { width: 540, height: 960, scale: 2, tablet: true },   // 1080×1920
+  "android-tablet-10": { width: 720, height: 1280, scale: 2, tablet: true }, // 1440×2560
 };
+
+const IPAD_UA =
+  "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/604.1";
+const IPHONE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
 
 // 스토어에 보여줄 대표 화면 4개 (스토어 문구의 기능 소개 순서와 일치)
 const PAGES = [
@@ -46,10 +56,10 @@ for (const [deviceName, d] of Object.entries(DEVICES)) {
     const ctx = await browser.newContext({
       viewport: { width: d.width, height: d.height },
       deviceScaleFactor: d.scale,
-      isMobile: true,
+      // 태블릿은 isMobile 을 끈다 — 켜면 모바일 레이아웃이 잡혀 아이패드 화면이 「늘린 폰」으로 찍힌다
+      isMobile: !d.tablet,
       hasTouch: true,
-      userAgent:
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+      userAgent: d.tablet ? IPAD_UA : IPHONE_UA,
       locale,
     });
     // 공개 사이트 언어 쿠키(healo_lang) — src/lib/i18n/config.js 의 LOCALE_COOKIE

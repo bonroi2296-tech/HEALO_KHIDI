@@ -273,7 +273,10 @@ function isRateLimited(inquiryId: number): boolean {
  */
 async function logNotificationEvent(
   inquiryId: number,
-  eventType: "admin_notified" | "admin_notify_failed",
+  // `admin_notify_skipped` = 보내려다 «일부러» 안 보낸 것(시험 문의·연타 제한·수신자 0명).
+  //   실패(admin_notify_failed)와 구분해야 한다 — 실패는 고칠 버그이고, 건너뜀은 «판정»이다.
+  //   판정이 틀리면(예: 진짜 문의를 시험으로 오판) 알림이 조용히 사라지므로 이유를 남긴다.
+  eventType: "admin_notified" | "admin_notify_failed" | "admin_notify_skipped",
   meta: Record<string, any>
 ): Promise<void> {
   try {
@@ -380,12 +383,21 @@ async function _sendAdminNotificationInternal(
   // 1. Rate limit 체크
   if (isRateLimited(inquiryId)) {
     console.log(`[Notify] Skipping inquiry ${inquiryId} (rate limited)`);
+    await logNotificationEvent(inquiryId, "admin_notify_skipped", { reason: "rate_limited" });
     return;
   }
 
   // 1-a. 테스트 문의(is_test)면 알림 자체를 건너뛴다.
   //      2026-08-14: 야간 챗 스모크·로컬 개발 테스트가 만든 문의까지 PO 메일함으로 알림이 가서
   //      "진짜 문의"와 섞였다. 호출부마다 플래그를 넘기게 하면 새 호출부에서 또 빠뜨리므로 여기서 DB로 확인한다.
+  //
+  // 🔴 2026-09-04: 이 «조용한 건너뜀»이 실제로 진짜 환자 둘을 삼켰다.
+  //    8/19 의뢰서 개편(c4a2366b)이 「회사 주소(healwith.co.kr)로 연락받겠다 = 시험」 규칙을 같이
+  //    넣었는데, 코디·PO 가 환자를 «대리 접수»할 때 그 주소를 쓴다. 그래서 #291(카자흐·유방암 3기)·
+  //    #302(카자흐·18세)가 is_test=true 로 찍혔고 → 여기서 return → 알림이 한 통도 안 나갔다.
+  //    규칙 자체는 #1596 이 뺐다. 여기서 고치는 것은 «그때 아무 흔적도 안 남았다»는 쪽이다.
+  //    ⚠️ 흔적이 없으면 다음 사람이 「알림이 왜 안 갔나」를 처음부터 다시 판다(실제로 그랬다).
+  //       건너뛸 때도 inquiry_events 에 한 줄 남겨서 «안 보낸 이유»가 DB 로 조회되게 한다.
   try {
     const { data: row } = await supabaseAdmin
       .from("inquiries")
@@ -394,6 +406,7 @@ async function _sendAdminNotificationInternal(
       .maybeSingle();
     if (row?.is_test) {
       console.log(`[Notify] Skipping inquiry ${inquiryId} (is_test)`);
+      await logNotificationEvent(inquiryId, "admin_notify_skipped", { reason: "is_test" });
       return;
     }
   } catch {
@@ -427,6 +440,7 @@ async function _sendAdminNotificationInternal(
   
   if (recipients.length === 0) {
     console.warn("[Notify] 수신자 없음 (DB + ENV 모두 비어있음)");
+    await logNotificationEvent(inquiryId, "admin_notify_skipped", { reason: "no_recipients" });
     return;
   }
   

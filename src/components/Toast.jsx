@@ -78,7 +78,10 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={{ toast, removeToast, removeAllToasts }}>
       {children}
       <div
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none"
+        // ⚠️ `top-4`(16px) 만으로는 폰 앱에서 알림 상자가 «상태표시줄(시계·배터리) 밑에» 깔린다.
+        //    2026-08-20 흉내기 실측: 안전영역 위쪽이 24px 인데 상자는 16px 에서 시작 → 8px 물림.
+        //    노치·펀치홀 기기는 그 여백이 더 커서 더 많이 가려진다.
+        className="fixed top-[calc(1rem+var(--healo-safe-top))] left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none"
         role="region"
         aria-live="polite"
         aria-label={c.notifications}

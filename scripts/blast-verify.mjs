@@ -74,7 +74,13 @@ const MAX = maxIdx === -1 ? 0 : Number(argv[maxIdx + 1]) || 0;
 // 단위 검사는 본 검사(ci.yml)에서 이미 «전부» 돈다(1100개+). 거기서 부를 땐 빼야 중복이 안 된다.
 const SKIP_UNIT = argv.includes("--skip-unit");
 
-const e2eAll = [...e2eFiles].filter((f) => !isSmoke(f)).sort();
+// 🛑 알파벳순으로 정렬하지 마라. `routes` 는 이미 «가까운 순»(hops 오름차순)이고 Set 은 그
+//    순서를 지키므로, 그대로 두면 이번에 «직접» 고친 화면의 검사가 앞에 온다. 예전엔 여기서
+//    .sort() 로 알파벳순으로 엎은 뒤 앞에서 잘라서, t·u 로 시작하는 검사(treatments·
+//    telemedicine)가 반경이 넓을 때마다 «구조적으로 항상» 잘렸다 — 2026-08-31 #1564 가 바로
+//    그 사례다. 이 도구가 treatments 검사를 정확히 골라놓고 --max 6 컷에 버렸고, 그 PR 이
+//    본판 E2E 를 6회 연속 빨간불로 만들었다(2026-09-02 규명).
+const e2eAll = [...e2eFiles].filter((f) => !isSmoke(f));
 // 상한을 두면 «잘랐다»고 반드시 말한다 — 조용한 상한은 「전부 봤다」로 읽혀서 제일 해롭다.
 const e2eExtra = MAX > 0 ? e2eAll.slice(0, MAX) : e2eAll;
 const e2eDropped = e2eAll.length - e2eExtra.length;

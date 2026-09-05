@@ -36,6 +36,8 @@ import {
   ChevronDown,
   Target,
   Wallet,
+  Inbox,
+  BookOpen,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -64,8 +66,15 @@ const navGroups = [
   {
     title: "상담 · 문의",
     items: [
-      { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
-      { id: "inquiries", label: "문의 관리", icon: MessageSquare, href: "/admin/inquiries" },
+      // 2026-08-25: 「문의 관리」가 어드민 전용 «얇은» 화면(상태 변경 + 번역만)을 가리키고 있었다.
+      //   같은 문의를 코디 받은함은 의뢰서·소견·공유문서·후속일정까지 보여준다(어드민 19KB / 코디 84KB).
+      //   → 주 진입점을 코디 받은함으로 돌린다. 화면 신설이 아니다 — StaffPortalGate 가 admin 을 통과시켜
+      //     어드민은 원래 그 화면에 들어갈 수 있었고, 메뉴에만 없었다.
+      //   옛 화면은 지우지 않고 하위 항목으로 남긴다 — 거기에만 있는 기능이 «시험 문의 포함 보기»(includeTest).
+      //   코디 받은함은 is_test 를 항상 숨긴다(2026-08-14 PO 결정)라 대체할 수 없다.
+      { id: "inquiries", label: "문의 · 케이스 받은함", icon: Inbox, href: "/coordinator/inbox", children: [
+        { id: "inquiries-raw", label: "문의 원본(시험 포함)", icon: MessageSquare, href: "/admin/inquiries" },
+      ] },
       { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
       { id: "chat", label: "AI 채팅", icon: MessageSquare, href: "/admin/chat" },
       { id: "agent", label: "Human Agent 채널", icon: HeartPulse, href: "/admin/agent" },
@@ -73,7 +82,9 @@ const navGroups = [
       { id: "referrals", label: "협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "reminders", label: "후속 리마인더", icon: Bell, href: "/admin/reminders" },
       // ↓ 리뉴얼 5단계(2026-07-24): 코디 전용이던 실무 화면을 어드민 메뉴에서도 연다(§2 "어드민 = 통합 콘솔").
-      //   화면 자체는 코디 포털(StaffPortalGate가 admin 통과) — 신설 아님, 링크 연결만.
+      //   화면 자체는 코디 포털(공용 문지기 PortalGate 가 admin 을 통과시킴) — 신설 아님, 링크 연결만.
+      // 2026-08-25 추가: 환자↔코디 메신저. 5단계에서 4개만 연결하고 이것만 빠져 있었다.
+      { id: "patient-messages", label: "환자 대화", icon: MessageSquare, href: "/coordinator/messages" },
       { id: "cost-estimates", label: "견적 관리", icon: Calculator, href: "/coordinator/cost-estimates" },
       { id: "visa", label: "비자 트래킹", icon: FileText, href: "/coordinator/visa" },
       { id: "symptom-alerts", label: "증상 알림", icon: Bell, href: "/coordinator/alerts" },
@@ -86,7 +97,10 @@ const navGroups = [
       { id: "agencies", label: "에이전시·클리닉", icon: Users, href: "/admin/khidi/agencies" },
       { id: "partner-outreach", label: "파트너 발굴", icon: Target, href: "/admin/khidi/partners" },
       { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
-      { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
+      // 2026-08-25 이름·자리 교정: 옛 이름 「사전상담 리드」는 사실과 달랐다. 이 화면이 보는 표는
+      //   hospital_leads = «제휴 병원에 넘긴 진료 의뢰» 다(병원 포털 /hospital/leads 가 보는 그 표).
+      //   사전상담과 무관해서 「상담·문의」 칸에 있으면 안 된다 → 파트너 칸으로 옮김.
+      { id: "leads", label: "병원 진료의뢰", icon: MessageSquare, href: "/admin/leads" },
       { id: "users", label: "환자 회원", icon: Users, href: "/admin/users" },
       { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
     ]
@@ -94,9 +108,11 @@ const navGroups = [
   {
     title: "콘텐츠",
     items: [
-      { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
       // 리뉴얼 5단계(2026-07-24): 코디 문구 편집기를 어드민에서도 — 화면은 코디 포털(admin 통과).
       { id: "content-editor", label: "문구 편집기", icon: Palette, href: "/coordinator/content" },
+      // 2026-08-25 신설: 환자 교육자료(education_contents 18건)는 환자 화면에 나가는데
+      //   고칠 화면이 어드민·코디 어디에도 없었다(마지막 손댄 날 2026-04-17 = 피벗 전).
+      { id: "education", label: "환자 교육자료", icon: BookOpen, href: "/admin/education" },
       { id: "rag", label: "AI 지식베이스", icon: Brain, href: "/admin/rag", children: [
         { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
       ] },
@@ -111,7 +127,10 @@ const navGroups = [
       { id: "ai-regression", label: "AI 회귀 테스트", icon: Bug, href: "/admin/khidi/ai-regression" },
       { id: "agent-analysis", label: "에이전트 자기분석", icon: Sparkles, href: "/admin/khidi/agent-analysis" },
       { id: "model-benchmark", label: "모델 성능 비교", icon: BarChart3, href: "/admin/khidi/model-benchmark" },
-      { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
+      // 2026-08-25 보관함에서 복귀. 7/24 에 «연결된 표(playbook_patterns)가 0행» 이라 죽은 걸로 보고
+      //   숨겼는데, 이 화면이 실제로 보는 건 auto_jobs 다 — 다시 재보니 184건·어제(8/24)도 돌았다.
+      //   매일 도는 자동 작업을 볼 화면이 숨겨져 있으면 실패해도 아무도 모른다.
+      { id: "automation-playbook", label: "자동개선 현황", icon: BarChart3, href: "/admin/automation/playbook" },
     ]
   },
   {
@@ -126,8 +145,11 @@ const navGroups = [
     ]
   },
   {
-    // 🗄️ 비활성 보관함 — 실DB 0행 실측(2026-07-24, ADMIN_RENEWAL_PLAN §1-3)으로 안 쓰는 화면.
+    // 🗄️ 비활성 보관함 — 실DB 0행 실측으로 안 쓰는 화면.
     // 메뉴에서만 숨김(hidden) — 라우트·코드는 살아 있어 주소 직접 입력하면 열리고, hidden 지우면 메뉴 복구.
+    // ⚠️ 여기 넣는 판정은 «영구»가 아니다. 2026-08-25 재측정에서 자동화 1건이 잘못 들어와 있었고
+    //    (auto_jobs 184건·매일 도는 중) 비자·후속일정·경과기록 3건은 0 → 살아난 것으로 뒤집혔다.
+    //    그래서 `npm run check:dead-screens` 가 아래 목록과 실DB 를 매달 대조한다.
     title: "비활성 화면 (메뉴에서 숨김)",
     hidden: true,
     items: [
@@ -140,8 +162,17 @@ const navGroups = [
       { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook", children: [
         { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
         { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
-        { id: "automation-playbook", label: "자동화", icon: BarChart3, href: "/admin/automation/playbook" },
       ] },
+      // ↓ 2026-08-25 재측정으로 새로 내려온 것들 (전부 실DB 0행, 코드는 보존)
+      // treatments 0행 · treatment_sources 0행. 7/20 에 비워졌고(_backup_treatments_20260720)
+      //   공개 /treatments 목록은 코드에 박힌 암종 상수를 쓴다 — 이 표를 안 본다.
+      { id: "treatments", label: "치료·암종(디렉토리 시절)", icon: Stethoscope, href: "/admin/treatments" },
+      // partner_doctors 0행 · partner_branches 0행. 의사 계층은 #334 에서 폐지됐고(상담방 초대링크로 참여)
+      //   화상상담 만들기 화면엔 의사 고르는 칸이 이미 없다(2026-08-25 확인) — 남은 건 빈 표뿐.
+      { id: "doctors", label: "의료진·지점(폐지된 계층)", icon: Users, href: "/admin/doctors" },
+      // chat_feedback 0행. 환자가 AI 답변에 👍👎 누르는 기능이 한 번도 안 눌렸다.
+      //   AI 품질 평가(ai_response_evaluations 481건)가 실질 대체.
+      { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
     ]
   }
 ];
@@ -328,7 +359,7 @@ export function AdminNav() {
   return (
     <>
       {/* Mobile: top bar with hamburger — 전역 포털 상단바 «바로 밑». 높이 값을 손으로 박지 마라,
-          상단바는 h-14 md:h-16 + 안전영역이다(단일 SoR: app/styles/healo-tokens.css). */}
+          상단바는 h-14 md:h-16 + 안전영역이다(단일 SoR: src/index.css 의 .healo-portal-offset). */}
       <div className="lg:hidden fixed top-[calc(3.5rem+var(--healo-safe-top))] md:top-[calc(4rem+var(--healo-safe-top))] left-0 right-0 z-40 h-[4.5rem] bg-white border-b border-gray-200 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">

@@ -1,15 +1,30 @@
 import PartnersClient from "./PartnersClient";
-import { getRequestLocale } from "@/lib/i18n/metadata";
+import { getRequestLocale, localeAlternates } from "@/lib/i18n/metadata";
 import { COPY } from "./copy";
 
 // B2B 랜딩이라 SEO 제목·설명을 i18n index 대신 로컬 카피에서 직접 읽는다(카피 단일 SoR 유지).
 export async function generateMetadata() {
   const { locale } = await getRequestLocale();
   const c = COPY[locale] || COPY.en;
+  const alt = await localeAlternates();
   return {
     title: { absolute: c.seoTitle },
     description: c.seoDesc,
-    openGraph: { title: c.seoTitle, description: c.seoDesc, type: "website" },
+    ...(alt ? { alternates: alt } : {}),
+    openGraph: {
+      title: c.seoTitle,
+      description: c.seoDesc,
+      type: "website",
+      ...(alt ? { url: alt.canonical } : {}),
+    },
+    // ⚠️ twitter 를 «반드시» openGraph 와 같이 채운다 (2026-08-31 실측으로 추가).
+    //    openGraph 만 정의하면 twitter 는 루트 layout 의 «환자용 영어 문구»를 물려받는다.
+    //    여기는 B2B 랜딩이라 문구가 아예 다른 얘기가 된다(파트너 제안이 환자 광고문으로 보인다).
+    twitter: {
+      card: "summary_large_image",
+      title: c.seoTitle,
+      description: c.seoDesc,
+    },
   };
 }
 

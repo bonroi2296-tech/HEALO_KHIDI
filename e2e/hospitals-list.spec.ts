@@ -24,15 +24,14 @@ test.describe("병원 목록 페이지 @smoke", () => {
 
   test("병원 카드에 병원명 텍스트가 있다", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("domcontentloaded");
 
-    // h2, h3 등 제목 요소가 카드 안에 있어야 함
-    const headings = page.locator("h2, h3, h4").first();
-    const hasHeading = await headings.isVisible().catch(() => false);
-    expect(hasHeading).toBeTruthy();
-
-    const headingText = await headings.innerText().catch(() => "");
-    expect(headingText.length).toBeGreaterThan(0);
+    // 🛑 domcontentloaded 직후엔 «뼈대(스켈레톤)»만 있고 제목은 크기가 0 이다
+    //    (2026-08-27 실서비스 실측: +0ms 0×0 → +500ms 1120×36 / 야간 실패 화면도 뼈대뿐이었다).
+    //    한 번 찍고 판단하면 러너가 느린 날만 빨간불이 된다 — 될 때까지 기다리는 expect 로 본다.
+    //    ⚠️ .catch(() => false) 로 감싸면 «못 봤다»가 조용히 «없다»가 된다. 감싸지 마라.
+    const heading = page.locator("h2, h3, h4").first();
+    await expect(heading).toBeVisible({ timeout: 15000 });
+    expect((await heading.innerText()).trim().length).toBeGreaterThan(0);
   });
 
   test("의료진 카드가 가로로 넘치지 않는다 (flex min-w-0 회귀 가드)", async ({ page }) => {

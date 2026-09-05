@@ -265,7 +265,7 @@ for r in bonus_data:
     add_data_row(bonus_tbl, r, bold_first=True)
 
 doc.add_paragraph()
-add_para(doc, '○ 가산점 추정: 2점 (유치사업자 확정) + 3점 (유치의료기관 인증 여부 확인 필요) = 2~5점')
+add_para(doc, '○ 가산점: 유치사업자 등록 2점 확정. 유치의료기관 «등록»은 2개 기관 완료이며, 가산점 3점의 기준인 «평가인증»은 등록과 별개 절차로 취득 시 최대 5점 (현재 2점 확정)')
 
 doc.add_page_break()
 

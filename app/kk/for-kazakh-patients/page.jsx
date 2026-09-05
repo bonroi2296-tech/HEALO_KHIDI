@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { whatsappWithText } from "@/lib/siteSettings";
+import { ORG_ID } from "@/lib/seo/structuredData";
 
 // ─────────────────────────────────────────────────────────────
 // 카자흐어 의료관광 랜딩페이지 — 검색광고 착지 페이지도 겸한다
@@ -31,20 +32,30 @@ export const metadata = {
     "healwith Корея",
     "медициналық виза Корея",
   ],
+  // x-default 제거 사유는 짝 페이지(app/ru/for-russian-patients/page.jsx) 주석 참고 —
+  // 두 파일이 같이 움직여야 상호참조가 깨지지 않는다.
   alternates: {
     canonical: "/kk/for-kazakh-patients",
     languages: {
       kk: "/kk/for-kazakh-patients",
       ru: "/ru/for-russian-patients",
-      "x-default": "/",
     },
   },
   openGraph: {
+    url: "/kk/for-kazakh-patients",
     title: "Кореядағы рак емдеу | healwith медициналық консьерж",
     description:
       "Оңтүстік Кореядағы онкологиялық емдеу. Immune Hospital: 50 000+ науқас, ITCR хаттамасы. Қазақ тілінде қолдау.",
     type: "website",
     locale: "kk_KZ",
+  },
+  // ⚠️ twitter 를 «반드시» 같이 둔다 — 이유는 app/ru/for-russian-patients/page.jsx 주석과 같다.
+  //    openGraph 만 정의하면 twitter 카드만 루트의 영어 문구로 나간다(2026-08-31 실측).
+  twitter: {
+    card: "summary_large_image",
+    title: "Кореядағы рак емдеу | healwith медициналық консьерж",
+    description:
+      "Оңтүстік Кореядағы онкологиялық емдеу. Immune Hospital: 50 000+ науқас, ITCR хаттамасы. Қазақ тілінде қолдау.",
   },
 };
 
@@ -70,11 +81,9 @@ const jsonLd = {
     name: "Онкология",
     alternateName: "Cancer",
   },
-  provider: {
-    "@type": "Organization",
-    name: "healwith",
-    url: "https://healwith.co.kr",
-  },
+  // @id 로 layout 의 브랜드 엔티티(#organization)를 가리킨다 — 예전처럼 이름만 적으면
+  // 검색엔진이 «별개 회사»로 읽어 브랜드 신호(sameAs·설명·서비스국가)가 둘로 쪼개진다.
+  provider: { "@id": ORG_ID },
 };
 
 const FAQ = [
@@ -139,8 +148,8 @@ export default function ForKazakhPatientsPage() {
         <section className="mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-700 mb-1">72,9%</div>
-              <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2018–2022)</p>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">73,7%</div>
+              <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2019–2023)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
               <div className="text-3xl font-extrabold text-teal-700 mb-1">2,01 млн</div>
@@ -181,7 +190,7 @@ export default function ForKazakhPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -249,7 +258,7 @@ export default function ForKazakhPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Виза</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Виза</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• C-3-3 медициналық виза (90 күнге дейін)</li>
                 <li>• Рәсімдеу мерзімі: 5–7 жұмыс күні</li>
@@ -261,7 +270,7 @@ export default function ForKazakhPatientsPage() {
               </Link>
             </div>
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Рейстер</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Рейстер</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Алматы — Сеул: тікелей рейс (6 сағат)</li>
                 <li>• Нұр-Сұлтан — Сеул: транзитпен (8–10 сағат)</li>

@@ -130,7 +130,7 @@ export default function VisaApplicationsClient() {
           onSubmit={handleCreate}
           className="border border-gray-200 rounded-lg p-6 mb-8 bg-white shadow-sm"
         >
-          <h2 className="font-medium mb-4">{t("visaApps.newApplication", lang)}</h2>
+          <h2 className="text-[clamp(36px,4.5vw,64px)] font-medium mb-4">{t("visaApps.newApplication", lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-sm text-gray-700">{t("visaApps.visaType", lang)}</span>

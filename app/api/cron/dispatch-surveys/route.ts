@@ -45,10 +45,18 @@ import {
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { surveyDispatchWindow } from "@/lib/surveys/dispatchWindow";
 import { computeUnclosedNudge } from "@/lib/surveys/unclosedNudge";
-import { computeCadencePlan, buildSentSurveyTypes } from "@/lib/surveys/cadencePlan";
+import { computeCadencePlan, buildSentSurveyTypes, duePhases } from "@/lib/surveys/cadencePlan";
 import { createFollowupSchedule } from "@/lib/followup/scheduler";
+import {
+  localizeEducation,
+  categoryLabel,
+  phaseLabel,
+  type EducationRow,
+} from "@/lib/followup/educationEngine";
+import { renderEducationEmail } from "@/lib/email/templates/educationContent";
+import { sendEmail } from "@/lib/email/sendEmail";
 import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
-import { decryptMaybe } from "@/lib/security/encryptionV2";
+import { decryptMaybe, encryptStringNullable } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -229,7 +237,7 @@ export async function GET(request: NextRequest) {
           fire_at: new Date().toISOString(),
           channel: "email",
           recipient_user_id: session.patient_id || null,
-          recipient_address: toEmail,
+          recipient_address: encryptStringNullable(toEmail),
           payload: { survey_id: tokenResult.surveyId, token: tokenResult.token },
           status: "sent",
           sent_at: new Date().toISOString(),
@@ -264,6 +272,7 @@ export async function GET(request: NextRequest) {
   // 앵커가 stamp 시점부터 시작하므로 기존 케이스도 첫 실행에 폭주하지 않는다(D+7부터).
   let caseSurveysDispatched = 0;
   let proposalsCreated = 0;
+  let educationDispatched = 0;
   let casesChecked = 0;
   // 직원 종 알림용 목록 — 제안이 실제로 생길 때 1회만 조회(매일 헛도는 날 listUsers 호출 아끼기).
   let staffIdsPromise: Promise<{ admins: string[]; coordinators: string[] }> | null = null;
@@ -356,21 +365,23 @@ export async function GET(request: NextRequest) {
           firedStepKeys,
         });
 
+        // 수신자(이메일·언어)는 설문과 교육이 함께 쓴다 — 케이스당 한 번만 해석한다.
+        // inquiries 의 email/이름은 AES-256-GCM 암호화 저장 → 복호화 없이 쓰면 암호문에 '@' 가
+        // 없어 수신자 결정이 항상 null → 또 영구 0건이 된다(POSTMORTEMS #13).
+        const recipient = resolveSurveyRecipient(
+          { patient_id: c.user_id || null, inquiry_id: c.id, patient_language: null },
+          null,
+          {
+            email: decryptMaybe(c.email),
+            preferred_language: c.preferred_language,
+            spoken_language: c.spoken_language,
+            first_name: decryptMaybe(c.first_name),
+            last_name: decryptMaybe(c.last_name),
+          }
+        );
+
         // ── 설문 단계 → 이메일 (K-03 표본) ──
         if (plan.surveysDue.length > 0) {
-          // inquiries 의 email/이름은 AES-256-GCM 암호화 저장 → 복호화 없이 쓰면 암호문에 '@' 가
-          // 없어 수신자 결정이 항상 null → 또 영구 0건이 된다(POSTMORTEMS #13).
-          const recipient = resolveSurveyRecipient(
-            { patient_id: c.user_id || null, inquiry_id: c.id, patient_language: null },
-            null,
-            {
-              email: decryptMaybe(c.email),
-              preferred_language: c.preferred_language,
-              spoken_language: c.spoken_language,
-              first_name: decryptMaybe(c.first_name),
-              last_name: decryptMaybe(c.last_name),
-            }
-          );
           if (!recipient) {
             skipped++; // 이메일이 없으면 설문은 못 보내지만 아래 제안·알림은 계속 만든다
           } else {
@@ -404,7 +415,7 @@ export async function GET(request: NextRequest) {
                   fire_at: new Date().toISOString(),
                   channel: "email",
                   recipient_user_id: c.user_id || null,
-                  recipient_address: recipient.email,
+                  recipient_address: encryptStringNullable(recipient.email),
                   payload: { survey_id: tokenResult.surveyId, inquiry_id: c.id, phase: step.phase },
                   status: "sent",
                   sent_at: new Date().toISOString(),
@@ -466,6 +477,89 @@ export async function GET(request: NextRequest) {
             }
           } catch (bellErr: any) {
             console.warn(`[cron/dispatch-surveys] case=${c.id} ${stepKey} 종 알림 실패(무시):`, bellErr?.message);
+          }
+        }
+
+        // ── 단계별 «건강관리 교육» 자동 발송 (공고 ICT ⑤ / F-19) ────────────────
+        // 2026-08-25 신설. 교육 콘텐츠 18건과 조회 API 는 4월부터 있었지만 **부르는 곳이
+        // 없어서** 한 번도 나간 적이 없다(산출물 미진사유 「단계별 자동 발송 미연결」).
+        // 단위는 «단계»다 — 한 단계에 투약·식단·경고징후가 함께 붙어 한 통으로 나간다.
+        // 멱등: reminders_scheduled(reminder_type='education_content') 의 payload.phase.
+        // 실패해도 설문·제안을 되돌리지 않는다(교육은 다음 실행이 재시도).
+        if (recipient && c.cancer_type) {
+          try {
+            const phases = duePhases(cadence.schedule, new Date(anchor).getTime(), now);
+            if (phases.length > 0) {
+              const { data: eduLog, error: eduLogErr } = await db
+                .from("reminders_scheduled")
+                .select("payload")
+                .eq("reminder_type", "education_content")
+                .eq("payload->>inquiry_id", String(c.id));
+              // 조회 실패 시엔 보내지 않는다(fail-closed) — 못 보낸 건 내일 재시도되지만
+              // 이미 보낸 걸 또 보내면 되돌릴 수 없다.
+              if (eduLogErr) throw new Error(`교육 발송이력 조회 실패: ${eduLogErr.message}`);
+              const sentPhases = new Set(
+                ((eduLog as any[]) || []).map((r) => r.payload?.phase).filter(Boolean)
+              );
+
+              for (const phase of phases) {
+                if (sentPhases.has(phase)) continue;
+                const { data: contents, error: cErr } = await db
+                  .from("education_contents")
+                  .select("*")
+                  .eq("cancer_type", c.cancer_type)
+                  .eq("send_at_phase", phase)
+                  .eq("is_published", true);
+                if (cErr) throw new Error(`교육 콘텐츠 조회 실패: ${cErr.message}`);
+                // 그 암종·단계에 콘텐츠가 없으면 보낼 게 없다 — 기록도 남기지 않는다
+                // (나중에 콘텐츠를 넣으면 그때 나가야 하므로 «보냄»으로 못 박으면 안 된다).
+                if (!contents || contents.length === 0) continue;
+
+                const localized = (contents as any[]).map((row) =>
+                  localizeEducation(row as EducationRow, recipient.lang)
+                );
+                const mail = renderEducationEmail({
+                  recipientName: recipient.name,
+                  phaseLabel: phaseLabel(phase, recipient.lang),
+                  lang: recipient.lang,
+                  items: localized.map((l) => ({
+                    categoryLabel: categoryLabel(l.category, recipient.lang),
+                    title: l.title,
+                    body: l.body,
+                    mediaUrl: l.mediaUrl,
+                  })),
+                });
+                const sent = await sendEmail({
+                  to: recipient.email,
+                  subject: mail.subject,
+                  html: mail.html,
+                  text: mail.text,
+                });
+                if (!sent.ok) {
+                  // 이력을 남기지 않으므로 다음 실행이 자동 재시도한다.
+                  errors.push(`case=${c.id} education ${phase}: email send failed`);
+                  continue;
+                }
+                educationDispatched++;
+                await db.from("reminders_scheduled").insert({
+                  reminder_type: "education_content",
+                  fire_at: new Date().toISOString(),
+                  channel: "email",
+                  recipient_user_id: c.user_id || null,
+                  recipient_address: encryptStringNullable(recipient.email),
+                  payload: {
+                    inquiry_id: c.id,
+                    phase,
+                    lang: recipient.lang,
+                    content_ids: localized.map((l) => l.id),
+                  },
+                  status: "sent",
+                  sent_at: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (eduErr: any) {
+            errors.push(`case=${c.id} education: ${eduErr?.message}`);
           }
         }
       } catch (err: any) {
@@ -541,6 +635,7 @@ export async function GET(request: NextRequest) {
     surveysDispatched,
     caseSurveysDispatched,
     proposalsCreated,
+    educationDispatched,
     skipped,
     unclosed,
     unclosedCheckFailed,

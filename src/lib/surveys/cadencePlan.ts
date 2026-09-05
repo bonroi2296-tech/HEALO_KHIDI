@@ -76,6 +76,26 @@ export function buildSentSurveyTypes(
   return { types, staleIds };
 }
 
+/**
+ * 기한이 도래한 단계의 phase 목록(중복 제거, 일정 순서 유지).
+ *
+ * 교육 콘텐츠 발송이 이걸 쓴다 — 설문·제안과 달리 교육은 «단계»가 단위다(한 단계에
+ * 투약·식단·경고징후가 함께 붙는다). computeCadencePlan 의 결과를 재활용하지 않는 이유:
+ * 그건 «아직 안 한 것»만 담아서, 설문이 이미 나간 단계의 교육이 영영 안 나간다.
+ */
+export function duePhases(
+  steps: ScheduleStep[],
+  anchorMs: number,
+  nowMs: number
+): string[] {
+  const out: string[] = [];
+  for (const s of steps) {
+    if (nowMs < anchorMs + s.daysFromTreatment * DAY_MS) continue;
+    if (!out.includes(s.phase)) out.push(s.phase);
+  }
+  return out;
+}
+
 export function computeCadencePlan(opts: {
   steps: ScheduleStep[];
   /** D+0 앵커(inquiries.followup_started_at) epoch ms */

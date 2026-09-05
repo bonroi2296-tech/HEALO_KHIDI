@@ -22,6 +22,7 @@ import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import { normalizeCancerType } from "@/lib/khidi/medicalLabels";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -108,7 +109,10 @@ export async function POST(request: NextRequest) {
         contact_method: body.contactMethod || null,
         contact_id: encryptedContactId,
         treatment_type: String(body.treatmentType).trim(),
-        cancer_type: String(body.treatmentType).trim(),
+        // 암종 칸은 «정해진 키»여야 한다. 자유 입력을 그대로 넣으면 6개 언어 라벨이 안 붙고
+        // (러시아 코디 화면에 한국어가 샌다) 진단코드 추천·병원 매칭이 그 케이스만 건너뛴다.
+        // 우리 라벨과 정확히 맞으면 키로 되돌리고, 아니면 비운다(원문은 treatment_type 에 그대로 남는다).
+        cancer_type: normalizeCancerType(String(body.treatmentType)),
         message: encryptedMessage,
         attachments,
         intake: encryptedIntake,

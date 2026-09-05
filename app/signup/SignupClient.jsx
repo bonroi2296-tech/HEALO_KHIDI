@@ -10,6 +10,8 @@ import { PRIVACY_CONTENT, TERMS_CONTENT } from '@/lib/policyContent';
 import { getLangCodeFromCookie, t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import AppleSignInButton from '@/components/auth/AppleSignInButton';
+import GoogleInAppNotice from '@/components/auth/GoogleInAppNotice';
+import { isNativeApp, hasNativeGoogleSignIn, useGoogleBlockedInApp } from '@/lib/isNativeApp';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -99,6 +101,9 @@ export const SignUpPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
+    // 앱(스토어 셸) 안에서는 구글 가입이 끝까지 못 간다 — 이유·증거는 GoogleInAppNotice 주석.
+    // 겉모습(회색·안내문)은 CSS 가 첫 그림부터 담당하고, 이 값은 disabled·aria 만 채운다.
+    const googleBlockedInApp = useGoogleBlockedInApp();
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
     const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
     // claim(환자 계정연결) 링크 경유 가입 — /signup?redirect=/claim/[token]. 로그인 화면의
@@ -122,6 +127,15 @@ export const SignUpPage = ({ setView }) => {
         }
         if (params.get('provider') !== 'google') return;
 
+        // 🔴 앱(스토어 셸)에서는 여기서 멈춘다 (2026-08-29).
+        //    앱은 구글을 앱 밖 브라우저로 내보내므로 이 웹뷰는 «영영 이동하지 않는다».
+        //    그런데 아래는 성공/실패 판정이 `error` 하나뿐이라 그때 `oauthRedirecting` 이 안 꺼진다
+        //    → 전체화면 오버레이(닫을 방법 없음)가 가입 폼을 덮어버린다. 버튼 하나 멈추는 것보다 나쁘다.
+        //    (`/inquiry` 퍼널의 「Google로 가입」이 이 주소로 보낸다 — 퍼널 쪽에서도 같이 막는다.)
+        //    ⚠️ 2026-08-29 네이티브 부품이 붙은 뒤로는 «부품이 없는 옛 판»만 여기서 멈춘다.
+        //    부품이 있으면 아래에서 네이티브 창으로 간다(웹 이동이 없으니 오버레이도 안 갇힌다).
+        if (isNativeApp() && !hasNativeGoogleSignIn()) return;
+
         // ?provider=google 제거 — 실패 후 새로고침 시 재트리거/루프 방지
         try {
             const url = new URL(window.location.href);
@@ -132,6 +146,23 @@ export const SignUpPage = ({ setView }) => {
         const lc = getLangCodeFromCookie();
         setOauthRedirecting(true);
         (async () => {
+            // 앱이면 네이티브 창으로 — 웹 방식은 앱에서 끝까지 못 간다.
+            if (isNativeApp()) {
+                const g = await import('@/lib/auth/googleNativeSignIn');
+                try {
+                    await g.signInWithGoogleNative(supabase);
+                    window.location.href = target || '/';
+                } catch (err) {
+                    if (!g.isGoogleCancel(err)) {
+                        // 꼬리표를 같이 띄운다 — 이게 없으면 「실패했습니다」만 남아 원인을 못 좁힌다
+                        // (2026-08-31 실제로 그래서 하루를 썼다). 앱 안에서만 도는 분기다.
+                        console.error('[SignUpPage] Google native sign-in failed:', err);
+                        toast.error(`${t('signup.googleError', lc)} (${g.describeGoogleError(err)})`);
+                    }
+                    setOauthRedirecting(false);
+                }
+                return;
+            }
             try {
                 const redirectUrl = `${window.location.origin}/auth/callback${target ? `?next=${encodeURIComponent(target)}` : ''}`;
                 // signInWithOAuth 는 throw 가 아니라 { error } 를 반환 — error 객체를 직접 검사
@@ -487,6 +518,24 @@ export const SignUpPage = ({ setView }) => {
                 <div className="mb-8">
                     <button
                         onClick={async () => {
+                            // 앱에서는 웹 방식이 끝까지 못 간다(PKCE 검증값이 크롬과 갈린다).
+                            // 부품이 있는 판만 네이티브로 가고, 옛 판은 시작조차 하지 않는다(안내문이 뜬다).
+                            if (isNativeApp()) {
+                                if (!hasNativeGoogleSignIn()) return;
+                                setLoading(true);
+                                const g = await import('@/lib/auth/googleNativeSignIn');
+                                try {
+                                    await g.signInWithGoogleNative(supabase);
+                                    window.location.href = redirectTarget || '/';
+                                } catch (err) {
+                                    if (!g.isGoogleCancel(err)) {
+                                        console.error('[SignUpPage] Google native sign-in failed:', err);
+                                        toast.error(t("signup.googleError", langCode));
+                                    }
+                                    setLoading(false);
+                                }
+                                return;
+                            }
                             setLoading(true);
                             try {
                                 const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
@@ -509,8 +558,9 @@ export const SignUpPage = ({ setView }) => {
                                 setLoading(false);
                             }
                         }}
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                        disabled={loading || googleBlockedInApp}
+                        aria-describedby="signup-google-app-note"
+                        className="app-google-lock-btn w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -523,6 +573,8 @@ export const SignUpPage = ({ setView }) => {
                             {loading ? t("signup.googleConnecting", langCode) : t("signup.googleButton", langCode)}
                         </span>
                     </button>
+
+                    <GoogleInAppNotice id="signup-google-app-note" langCode={langCode} variant="signup" />
 
                     {/* 애플 심사 4.8 대응 — 구글 로그인이 있으면 「동등한 대안」이 있어야 한다.
                         설정(애플 Service ID·Supabase)이 끝나기 전엔 스스로 아무것도 안 그린다. */}

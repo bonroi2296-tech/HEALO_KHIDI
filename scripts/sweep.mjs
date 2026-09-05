@@ -27,7 +27,7 @@
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 
 // ── .env.local 읽기 (dotenv 없이 — 값 끝 개행/따옴표 함정 포함해 직접 처리)
 for (const line of fs.existsSync(".env.local") ? fs.readFileSync(".env.local", "utf8").split("\n") : []) {
@@ -39,8 +39,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
-const only = (process.argv.find((a) => a.startsWith("--only=")) || "").replace("--only=", "");
-const want = (id) => !only || only.split(",").includes(id);
+const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+const 지정검사 = (onlyArg || "").replace("--only=", "").split(",").map((s) => s.trim()).filter(Boolean);
+const want = (id) => 지정검사.length === 0 || 지정검사.includes(id);
 
 const rows = [];
 const add = (id, 이름, 판정, 근거, 옵션 = {}) => rows.push({ id, 이름, 판정, 근거, 경보: 옵션.경보 !== false });
@@ -79,6 +80,42 @@ const PII_TABLES = {
   cancer_patient_intakes: ["first_name"],
   chat_feedback: ["guest_email"],
 };
+
+/**
+ * 「지금 어느 가지에서 재고 있나」 — 이 검사가 «맨 앞»에 있는 이유.
+ *
+ * 아래 검사들은 대부분 «작업 폴더의 파일»을 읽는다(사전 파일·capacitor.build.gradle·
+ * KNOWN_ISSUES 표…). 그래서 폴더가 낡은 가지에 서 있으면 **이미 고친 것이 다시 뜬다.**
+ *
+ * 2026-08-30 실측: 본판 폴더가 8/28 19:14 부터 `docs/handoff-ai-guards`(origin/main 보다
+ * 21커밋 뒤)에 서 있었다. 그 상태로 훑으니 「코디 교정 미반영 13건」이 떴는데,
+ * origin/main 에서 다시 재니 **0건**이었다. 하루 전에 고쳐 합친 것이 «안 고쳐진 것»으로 보였다.
+ * 더 위험한 건 그 자리에서 만든 신청서다 — 그대로 합쳤으면 21커밋이 되돌아갔다.
+ *
+ * ⚠️ 가지 이름으로 판정하지 마라(main 이어도 pull 을 안 했으면 낡는다). **거리로 잰다.**
+ */
+function 검사_재는자리() {
+  let 가지, 뒤처짐, 앞섬;
+  try {
+    execSync("git fetch -q origin main", { stdio: "ignore" });
+    가지 = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8" }).trim();
+    뒤처짐 = Number(execSync("git rev-list --count HEAD..origin/main", { encoding: "utf8" }).trim());
+    앞섬 = Number(execSync("git rev-list --count origin/main..HEAD", { encoding: "utf8" }).trim());
+  } catch {
+    return add("where", "지금 어느 가지에서 재나", "못 잼", "git 상태를 못 읽는다");
+  }
+  const 꼬리 = 앞섬 ? ` · 나만 가진 것 ${앞섬}개` : "";
+  if (뒤처짐 === 0) return add("where", "지금 어느 가지에서 재나", "통과", `${가지} · origin/main 과 같은 자리${꼬리}`);
+  // 작업 중이면 한두 개 뒤처지는 건 흔하다 — 아래 검사가 오판할 만큼 벌어졌을 때만 세운다.
+  if (뒤처짐 < 5) return add("where", "지금 어느 가지에서 재나", "통과", `${가지} · ${뒤처짐}커밋 뒤${꼬리}`);
+  return add(
+    "where",
+    "지금 어느 가지에서 재나",
+    "볼 것",
+    `${가지} 가 origin/main 보다 ${뒤처짐}커밋 뒤에 있다${꼬리} → **아래 결과를 그대로 믿지 마라**(이미 고친 것이 다시 뜬다). ` +
+      "여기서 신청서를 만들면 그만큼 되돌아간다. `git checkout main && git pull` 뒤 다시 훑어라"
+  );
+}
 
 async function 검사_평문개인정보() {
   const client = sb();
@@ -137,6 +174,24 @@ async function 검사_익명읽기() {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !anon) return add("rls", "익명이 환자 표를 읽나", "못 잼", "익명 열쇠 없음");
   const client = createClient(SUPABASE_URL, anon, { auth: { persistSession: false } });
+
+  // ⚠️ 먼저 «열쇠가 살아 있나»를 본다 — 이게 없으면 이 검사가 거짓 초록불이 된다.
+  //    아래 판정은 「읽혔나」만 보므로, 열쇠가 죽어 모든 조회가 오류나면 뚫림이 0건이 되어
+  //    「✅ 표 7개 전부 0건」으로 통과해 버린다. «막혀서 0건»과 «못 물어봐서 0건»은 다른 자리다.
+  //    (2026-08-28: 같은 부류인 「파이프가 실패를 삼키던 것」을 고치다 이 자리도 같이 발견했다.)
+  //    hospitals 는 손님이 읽어야 «정상»인 표다 — 정책 hospitals_public_read = anon SELECT.
+  //    실측(진짜 anon 권한으로 조회): hospitals 8행 보임 / inquiries·profiles 0행.
+  const 미끼 = await client.from("hospitals").select("id").limit(1);
+  if (미끼.error || !미끼.data?.length) {
+    return add(
+      "rls",
+      "익명이 환자 표를 읽나",
+      "못 잼",
+      `손님 열쇠로 «공개 표»조차 못 읽는다 — 열쇠가 죽었거나 막혔다(${미끼.error?.message || "0건"}). ` +
+        "이 상태의 「환자 표 0건」은 «막혔다»는 뜻이 아니다.",
+    );
+  }
+
   const 뚫림 = [];
   for (const t of ANON_MUST_NOT_READ) {
     const { data, error } = await client.from(t).select("*").limit(1);
@@ -146,15 +201,30 @@ async function 검사_익명읽기() {
 }
 
 // ── 3. 실서비스 화면에 박혀서 나가는 열쇠
-const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/ko/login"];
+//    ⚠️ 로그인은 /login 이다 — /ko/login 이 아니다(login 은 proxy.ts PUBLIC_PREFIXES 에 없어 언어 접두사가
+//    안 붙는다 → /ko/login 은 실서비스에서 «항상 404»였다). 2026-08-30 까지는 fetch 실패·오류를 삼키는
+//    바람에 이 검사가 로그인 화면 대신 404 페이지를 훑고도 조용히 「통과」로 찍혀 아무도 몰랐다.
+const PAGES = ["/ko", "/ko/inquiry", "/ko/hospitals", "/login"];
 
 async function 검사_화면에박힌열쇠() {
+  // ⚠️ fetch 실패를 삼키지 않는다 (2026-08-30 감사): 예전엔 실패한 페이지를 그냥 continue 해서,
+  //    사이트가 안 열리는 날(DNS 오류·다운·CI 네트워크 차단)에도 「통과: 0건」이 찍혔다 —
+  //    «못 물어봐서 0건»이 «없어서 0건»으로 위장하는, 아래 rls 검사가 미끼 조회로 막아 둔 바로 그 함정이
+  //    이 검사에만 남아 있었다. HTTP 오류(res.ok 아님)도 같은 이유로 «본 것»으로 안 친다 —
+  //    짧은 오류 페이지엔 열쇠가 없으니 «진짜 화면은 안 보고» 통과가 되기 때문.
   const 발견 = new Set();
+  const 못본페이지 = [];
   for (const p of PAGES) {
     let html;
     try {
-      html = await (await fetch(SITE + p)).text();
+      const res = await fetch(SITE + p);
+      if (!res.ok) {
+        못본페이지.push(`${p}(HTTP ${res.status})`);
+        continue;
+      }
+      html = await res.text();
     } catch {
+      못본페이지.push(`${p}(응답 없음)`);
       continue;
     }
     for (const m of html.matchAll(/AIza[0-9A-Za-z_-]{35}/g)) 발견.add(m[0].slice(0, 10) + "…");
@@ -163,11 +233,20 @@ async function 검사_화면에박힌열쇠() {
   }
   // 지도 열쇠 1개는 원래 브라우저로 나가는 값이라 정상 — 2개 이상이거나 sk-/service_role 이면 볼 것.
   const 위험 = [...발견].filter((k) => !k.startsWith("AIza"));
+  if (위험.length === 0 && 못본페이지.length > 0) {
+    return add(
+      "keys",
+      "화면에 박혀 나가는 열쇠",
+      "못 잼",
+      `${PAGES.length}개 중 ${못본페이지.length}개 페이지를 못 봤다: ${못본페이지.join(", ")} — 못 본 «0건»은 «없음»이 아니다`
+    );
+  }
   add(
     "keys",
     "화면에 박혀 나가는 열쇠",
     위험.length ? "볼 것" : "통과",
-    발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : "0건"
+    (발견.size ? `발견: ${[...발견].join(", ")} (구글 지도 열쇠 1개는 정상)` : `${PAGES.length}개 페이지 전부 확인, 0건`) +
+      (위험.length && 못본페이지.length ? ` · 못 본 페이지 ${못본페이지.length}개: ${못본페이지.join(", ")}` : "")
   );
 }
 
@@ -293,9 +372,18 @@ async function 검사_예약작업() {
 //       버전코드를 안 올려도 잡힌다. 실제로 이 방식이면 8/5 그 고침이 그날 바로 걸렸다.
 const 네이티브경로 = ["capacitor.config.ts", "android", "ios"];
 
-/** capacitor.build.gradle 에서 실제로 «앱에 박히는» 부품 이름을 뽑는다. */
+/**
+ * capacitor.build.gradle 에서 실제로 «앱에 박히는» 부품 이름을 뽑는다.
+ *
+ * 🔴 **2026-08-30: 여기에 `capacitor-` 접두사 제한이 걸려 있어 2년치 «서드파티» 부품을 통째로 놓쳤다.**
+ *   공식 부품은 `capacitor-app` 처럼 시작하지만, 남이 만든 것은 만든 곳 이름이 앞에 붙는다 —
+ *   `capawesome-capacitor-apple-sign-in`(애플 로그인) · `capgo-capacitor-social-login`(구글 로그인).
+ *   즉 **하필 「새로 넣어서 폰에 아직 안 간」 부품만 골라서 안 보였다.** 8/28 애플 로그인을 넣었을 때도
+ *   이 검사는 「부품 5개 전부 출시본에 있음」이라며 조용했다.
+ *   → 이 파일은 캡시터가 «부품만» 적어 생성하므로 접두사로 거를 이유가 없다. 전부 잡는다.
+ */
 function 부품목록(gradleText) {
-  return [...gradleText.matchAll(/project\(['"]:(capacitor-[a-z0-9-]+)['"]\)/g)].map((m) => m[1]).sort();
+  return [...gradleText.matchAll(/project\(['"]:([a-z0-9-]+)['"]\)/g)].map((m) => m[1]).sort();
 }
 
 async function 검사_앱미반영() {
@@ -316,7 +404,33 @@ async function 검사_앱미반영() {
 
   // ① 부품 대조 — 가장 확실한 신호. 저장소엔 있는데 출시본엔 없는 부품 = 폰에서 «그 기능이 죽어 있다».
   const 현재부품 = 부품목록(fs.readFileSync(path.join("android", "app", "capacitor.build.gradle"), "utf8"));
-  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p));
+  // 🔑 «아이폰 코드가 아예 안 부르는 부품»은 빼고 잰다. 안 빼면 영원히 안 꺼지는 「볼 것」이 된다 —
+  //    부품을 넣어도 코드가 안 쓰니 상태가 안 바뀌고, 다음 사람은 그걸 「고쳐야 할 것」으로 읽는다.
+  //    2026-09-02 실측: @capgo/capacitor-social-login 이 그랬다. 그 부품을 부르는 유일한 문(門)이
+  //    src/lib/isNativeApp.ts 의 hasNativeGoogleSignIn() 인데 첫 줄이 `if (!isAndroidApp()) return false`
+  //    라, 아이폰에서는 부품이 실려 있어도 절대 안 불린다(화면은 useGoogleBlockedInApp 으로 안내문을
+  //    띄워 막아 둔다). 즉 «부품이 없어 죽은 기능»이 아니라 «아이폰용으로 아직 안 만든 기능»이다.
+  //    ⚠️ 아이폰 네이티브 구글 로그인을 만들면 그 가드가 풀린다 → 그때 baseline 의 이 목록도 비워라.
+  const 안쓰는부품 = new Set(기준.안쓰는부품 || []);
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p) && !안쓰는부품.has(p));
+
+  // ①-2 저장소 «안»의 어긋남: package.json 에는 있는데 gradle 에는 없는 부품.
+  //    🔴 2026-08-31 실제로 낼 뻔했다: 로컬 node_modules 에 `@capgo/capacitor-social-login` 이
+  //    설치돼 있지 않은 상태로 `npx cap sync` 를 돌렸더니, 캡시터가 gradle 을 «그 부품을 빼고»
+  //    다시 썼다. 그대로 커밋했으면 다음 판에서 구글 로그인이 조용히 사라진다.
+  //    ⚠️ 이건 «출시본 대조»로는 안 잡힌다 — 저장소 자체가 이미 틀어진 것이라 둘 다 없어진다.
+  let 빠진선언 = [];
+  try {
+    const deps = Object.keys(JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies || {});
+    const 부품이름 = (d) => d.replace(/^@/, "").replace("/", "-"); // @capgo/x → capgo-x
+    빠진선언 = deps
+      .filter((d) => /^@(capacitor|capgo|capawesome)\//.test(d))
+      .filter((d) => !/^@capacitor\/(android|ios|cli|core)$/.test(d)) // 플랫폼·도구는 부품이 아니다
+      .map(부품이름)
+      .filter((n) => !현재부품.includes(n));
+  } catch {
+    /* package.json 을 못 읽으면 이 항목만 건너뛴다 */
+  }
 
   // ② 커밋 목록 — «기준 커밋이 본판 역사에 실제로 있을 때만» 의미가 있다(위 🛑 참고).
   let 커밋 = null;
@@ -339,13 +453,27 @@ async function 검사_앱미반영() {
     }
   }
 
-  const 볼것 = 안실린부품.length > 0 || (커밋 && 커밋.length > 0);
+  const 볼것 = 안실린부품.length > 0 || 빠진선언.length > 0 || (커밋 && 커밋.length > 0);
   const 조각 = [`스토어 판 ${폰} · 저장소 ${저장소}(${저장소이름})`];
+  if (빠진선언.length) {
+    조각.push(
+      `🔴 package.json 에는 있는데 capacitor.build.gradle 에 없는 부품 ${빠진선언.length}개: ${빠진선언.join(", ")} → 이대로 구우면 그 기능이 앱에서 «조용히» 빠진다. ` +
+        "부품을 설치한 상태에서 `npm run cap:sync` 를 다시 돌리고 gradle 변경을 커밋해라"
+    );
+  }
   if (안실린부품.length) 조각.push(`⚠️ 출시본에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 폰에서 죽어 있다`);
   else 조각.push(`부품 ${현재부품.length}개 전부 출시본에 있음`);
   if (커밋?.length) 조각.push(`그 뒤 네이티브 고침 ${커밋.length}건: ${커밋.slice(0, 3).join(" / ")}`);
   if (범위못씀) 조각.push(범위못씀);
   if (볼것) 조각.push("앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
+  // 🔴 굽기 «전»에 걸러야 하는 것: versionCode 를 안 올리면 Play 가 업로드 자체를 거부한다
+  //    (2026-08-31 실측: 80MB 를 다 올린 뒤에야 「10 버전 코드는 이미 사용되었습니다」로 튕겼다).
+  //    Codemagic 은 이 값을 자동으로 안 올린다 — 사람이 build.gradle 을 고쳐야 한다.
+  //    ⚠️ 판정(볼것)은 안 바꾼다. 버전코드로 「고침이 폰에 갔나」를 재면 안 되기 때문(위 🛑 참고).
+  //    여기서는 «구우러 가기 직전에 막힐 것»만 미리 알린다.
+  if (볼것 && 저장소 <= 기준.versionCode) {
+    조각.push(`🔴 versionCode 가 아직 ${저장소} 다(스토어 판과 같거나 낮다) → 지금 구우면 Play 가 «이미 사용된 버전 코드»로 거부한다. android/app/build.gradle 에서 +1 하고 구워라`);
+  }
 
   // 경보에서는 뺀다: 「네이티브 고침이 아직 안 나갔다」는 몇 주씩 이어지는 «정상» 상태라
   // 매일 메일이 나가면 사람이 검사 전체를 무시하게 된다(같은 이유로 미배포 검사도 안 울린다).
@@ -353,20 +481,123 @@ async function 검사_앱미반영() {
 }
 
 /**
+ * 아이폰판도 같은 방식으로 대조한다 (2026-08-28 추가).
+ *
+ * 왜 따로 있나: 이 검사는 오랫동안 «안드로이드만» 봤다. 그래서 2026-08-28 에
+ *   아이폰 빌드 3 에 `@capacitor/app` 이 안 실려 있었는데도 훑기는 「통과」로 나왔고,
+ *   그날 애플 로그인이 실기기에서 죽는 것을 끝내 못 잡았다. 안드로이드와 아이폰은
+ *   **부품이 따로 실린다** — 한쪽이 통과라고 다른 쪽이 통과인 게 아니다.
+ *
+ * ⚠️ 기준을 `ios/App/CapApp-SPM/Package.swift` 로 잡지 마라. 그 파일은 `npx cap sync ios`
+ *    를 돌려야 갱신되는데, 안 돌리면 낡은 채로 남아 **거짓 통과**가 된다.
+ *    `package.json` 은 부품을 넣는 순간 바뀌므로 항상 최신이다.
+ *
+ * 🔴 **2026-08-30: 안드로이드 쪽(#1536)과 «같은 사고»가 여기엔 그대로 남아 있었다.**
+ *   `@capacitor/`·`@capawesome/` 접두사만 잡아서 `@capgo/capacitor-social-login`(구글 로그인, 8/29 도입)이
+ *   대조 대상에서 통째로 빠졌고, 그 부품이 출시본(빌드 4)에 없는 «지금» 상태를
+ *   「부품 6개 전부 그 판에 있음」이라며 통과로 찍었다 — 하필 「새로 넣어서 폰에 아직 안 간」
+ *   부품만 골라서 안 보이는, #1536 이 안드로이드에서 잡은 바로 그 부류다.
+ *   → 이름 접두사로 거르지 않는다. **«실체»로 판정한다**: 캡시터 부품은 제 package.json 에
+ *     `capacitor` 칸을 갖고, 아이폰에 실리는 부품은 제 뿌리에 Package.swift(SPM)도 갖는다
+ *     (2026-08-30 실측 — 부품 7개 전부 둘 다 있고, core/cli/android/ios 는 둘 다 없어 자연히 빠진다.
+ *     제외 목록은 만약을 위한 이중 안전벨트로만 남긴다).
+ *   ⚠️ node_modules 를 못 읽으면 «부품 0개 = 전부 실림»이 아니라 throw 로 세운다(호출부가 «못 잼»으로
+ *     보고) — 반쪽 목록으로 답하는 것이 정확히 이 검사가 잡으려는 「거짓 통과」이기 때문이다.
+ */
+function 아이폰부품목록() {
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const 제외 = new Set(["@capacitor/core", "@capacitor/cli", "@capacitor/android", "@capacitor/ios"]);
+  const 부품 = [];
+  const 못읽음 = [];
+  for (const n of Object.keys(pkg.dependencies || {})) {
+    if (제외.has(n)) continue;
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(path.join("node_modules", n, "package.json"), "utf8"));
+    } catch {
+      못읽음.push(n);
+      continue;
+    }
+    if (manifest.capacitor && fs.existsSync(path.join("node_modules", n, "Package.swift"))) 부품.push(n);
+  }
+  if (못읽음.length)
+    throw new Error(
+      `node_modules 에서 ${못읽음.length}개 패키지를 못 읽었다(${못읽음.slice(0, 3).join(", ")}${못읽음.length > 3 ? " …" : ""}) — npm install 뒤 다시 훑어라. 반쪽 목록으로 판정하면 거짓 통과가 된다`
+    );
+  if (부품.length === 0)
+    throw new Error(
+      "캡시터 부품을 하나도 못 찾았다 — 판정 표식(부품 package.json 의 capacitor 칸 + Package.swift)이 낡았는지 확인해라. 0개로 답하면 「전부 실림」이라는 거짓 통과가 된다"
+    );
+  return 부품.sort();
+}
+
+async function 검사_아이폰미반영() {
+  let 기준;
+  try {
+    기준 = JSON.parse(fs.readFileSync(path.join("docs", "sweep-baseline.json"), "utf8")).앱출시?.아이폰;
+  } catch {
+    /* 아래에서 「못 잼」 */
+  }
+  if (!기준?.build || !Array.isArray(기준.부품)) {
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", "docs/sweep-baseline.json 의 「앱출시.아이폰」 칸이 비었거나 부품 목록이 없다");
+  }
+
+  let 현재부품;
+  try {
+    현재부품 = 아이폰부품목록();
+  } catch (e) {
+    // 부품 목록을 «반쪽»으로 얻었을 때 통과로 위장하지 않는다 — 위 함수 주석의 🔴 참고.
+    return add("app", "아이폰 앱에 안 들어간 고침", "못 잼", String(e.message));
+  }
+  // 🔑 «아이폰 코드가 아예 안 부르는 부품»은 빼고 잰다. 안 빼면 영원히 안 꺼지는 「볼 것」이 된다 —
+  //    부품을 넣어도 코드가 안 쓰니 상태가 안 바뀌고, 다음 사람은 그걸 「고쳐야 할 것」으로 읽는다.
+  //    2026-09-02 실측: @capgo/capacitor-social-login 이 그랬다. 그 부품을 부르는 유일한 문(門)이
+  //    src/lib/isNativeApp.ts 의 hasNativeGoogleSignIn() 인데 첫 줄이 `if (!isAndroidApp()) return false`
+  //    라, 아이폰에서는 부품이 실려 있어도 절대 안 불린다(화면은 useGoogleBlockedInApp 으로 안내문을
+  //    띄워 막아 둔다). 즉 «부품이 없어 죽은 기능»이 아니라 «아이폰용으로 아직 안 만든 기능»이다.
+  //    ⚠️ 아이폰 네이티브 구글 로그인을 만들면 그 가드가 풀린다 → 그때 baseline 의 이 목록도 비워라.
+  const 안쓰는부품 = new Set(기준.안쓰는부품 || []);
+  const 안실린부품 = 현재부품.filter((p) => !기준.부품.includes(p) && !안쓰는부품.has(p));
+  const 폰 = `빌드 ${기준.build}(${기준.versionName}, ${기준.게시일})`;
+
+  const 볼것 = 안실린부품.length > 0;
+  const 조각 = [`TestFlight·스토어 판 ${폰}`];
+  if (안실린부품.length) {
+    조각.push(`⚠️ 그 판에 «없는» 부품 ${안실린부품.length}개: ${안실린부품.join(", ")} → 그 기능은 아이폰에서 죽어 있다`);
+    조각.push("아이폰 앱 파일을 새로 굽기 «전»에는 폰에 안 간다");
+  } else {
+    조각.push(`부품 ${현재부품.length - 안쓰는부품.size}개 전부 그 판에 있음`);
+    if (안쓰는부품.size) 조각.push(`(아이폰 코드가 안 부르는 부품 ${안쓰는부품.size}개는 셈에서 뺐다: ${[...안쓰는부품].join(", ")})`);
+  }
+
+  // 안드로이드 쪽과 같은 이유로 경보에서는 뺀다 — 몇 주씩 이어지는 «정상» 상태다.
+  add("app", "아이폰 앱에 안 들어간 고침", 볼것 ? "볼 것" : "통과", 조각.join(" · "), { 경보: false });
+}
+
+/**
  * 코디네이터가 화면에서 고친 문구가 «코드로 돌아왔나».
  * 안 돌아오면 다음에 그 화면을 손대는 순간 코드 값이 이겨서 교정이 통째로 되돌아간다
  * (2026-08-20 실측: 262건 중 259건이 그 상태로 몇 달 쌓여 있었다).
- * CI 에는 못 붙인다 — 이 검사는 service_role 열쇠가 필요한데 그걸 자동 검사에 두면 안 된다.
+ *
+ * ⚠️ 2026-08-28 정정: 여기 원래 「CI 에는 못 붙인다」고 적혀 있었는데 사실과 달랐다 —
+ *   매일 도는 창구(.github/workflows/sweep.yml)가 이미 service_role 열쇠를 넣어 이 파일을 돌린다.
+ *   그런데 이 검사만 «주소»를 NEXT_PUBLIC_SUPABASE_URL 에서만 찾았다. 이 저장소의 비밀값은
+ *   그 이름이 «비어 있고» 실제 주소는 SUPABASE_URL 에 있다(sweep.yml 주석에도 적혀 있다).
+ *   그래서 열쇠가 다 있는데도 매일 「못 잼」으로 찍혔다 — 위 38번 줄의 SUPABASE_URL 을 쓴다.
  */
 async function 검사_번역역류() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "이 상자에 DB 열쇠가 없다(.env.local 있는 곳에서 돌려라)");
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    add("i18nback", "코디 교정이 코드에 반영됐나", "못 잼", "DB 주소·열쇠가 없다(SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)");
     return;
   }
   let out = "";
   let 어긋남 = 0;
   try {
-    out = execSync("node scripts/i18n-backport-overrides.mjs --check", { encoding: "utf8" });
+    // 자식도 주소를 봐야 한다 — 그쪽은 NEXT_PUBLIC_ 이름만 읽으므로 여기서 채워 넘긴다.
+    out = execSync("node scripts/i18n-backport-overrides.mjs --check", {
+      encoding: "utf8",
+      env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL },
+    });
   } catch (e) {
     out = String(e.stdout || "") + String(e.stderr || "");
   }
@@ -384,7 +615,104 @@ async function 검사_번역역류() {
   );
 }
 
+/**
+ * 「알고도 방치한 막힘」 — `KNOWN_ISSUES.md` 의 🔴 항목이 오래 안 움직이면 잡는다.
+ *
+ * 왜 만들었나 (2026-08-29, PO: *"아니 이런 실수 안할거냐고"*):
+ *   앱 구글 로그인은 **2026-07-28 에 원인도 해법도 문서에 다 적어 놓고 32일을 방치**했다.
+ *   해법이 «두 개»(allowNavigation / 네이티브 플러그인) 적혀 있었는데 쉬운 쪽만 해보고,
+ *   그게 막힌 것을 확인한 뒤에도(8/04) 나머지로 넘어가지 않았다. 그 사이 아무도
+ *   「이거 아직 빨간불인데?」를 묻지 않았다 — 물어 줄 장치가 없었기 때문이다.
+ *   ⚠️ 만들면서 재보니 **같은 상태가 3건 더 있었다**(1·2·3번, 7/30 이후 30일째).
+ *      사람 기억으로는 못 막는다는 증거다.
+ *
+ * 판정 방법: 표 머리글에서 「심각도/상태」 칸 자리를 찾고, **그 칸이 🔴 로 시작하는 줄**만 센다.
+ *   (제목 칸에 🔴 를 쓴 항목이 있어서 «줄 어디든 🔴» 로 재면 오탐이 난다 — 15번이 실제로 그렇다.)
+ *   각 줄이 마지막으로 바뀐 날은 `git log -S<줄 전체>` 로 잰다 → 상태만 고쳐도 날짜가 갱신된다.
+ *
+ * ⚠️ 이 검사는 «고쳤나»를 재지 않는다. 「빨간불인 채로 오래 서 있나」만 잰다.
+ *    고칠 수 없는 사정이 있으면 그 사정을 문서에 적고 🔴 를 내려라 — 방치와 보류는 다르다.
+ */
+function 검사_묵은막힘() {
+  const 경로 = "docs/KNOWN_ISSUES.md";
+  const 한계일 = 14;
+  let 줄들;
+  try {
+    줄들 = fs.readFileSync(경로, "utf8").split(/\r?\n/);
+  } catch {
+    return add("stale", "알고도 방치한 막힘", "못 잼", 경로 + " 를 못 읽는다");
+  }
+
+  const 막힘 = [];
+  let 상태칸 = -1;
+  for (const 줄 of 줄들) {
+    if (!줄.trim().startsWith("|")) {
+      상태칸 = -1; // 표가 끝나면 초기화 — 다음 표의 칸 배치는 다를 수 있다
+      continue;
+    }
+    const 칸 = 줄.split("|").slice(1, -1).map((c) => c.trim());
+    const i = 칸.findIndex((c) => c === "심각도" || c === "상태");
+    if (i >= 0) {
+      상태칸 = i;
+      continue;
+    }
+    if (칸.every((c) => /^-{2,}$/.test(c))) continue; // 구분선
+    if (상태칸 < 0 || !칸[상태칸]) continue;
+    if (!칸[상태칸].startsWith("🔴")) continue;
+    막힘.push({ 제목: (칸[1] || 칸[0] || "").replace(/[*`]/g, "").slice(0, 40), 원문: 줄 });
+  }
+
+  if (막힘.length === 0) {
+    return add("stale", "알고도 방치한 막힘", "통과", "🔴 로 남은 항목 0건");
+  }
+  if (막힘.length > 20) {
+    return add(
+      "stale",
+      "알고도 방치한 막힘",
+      "볼 것",
+      `🔴 항목이 ${막힘.length}건이다 — 너무 많아 날짜를 안 쟀다. 먼저 정리해라`,
+    );
+  }
+
+  const 지금 = Date.now() / 1000;
+  const 묵은것 = [];
+  for (const m of 막힘) {
+    let 초 = 0;
+    try {
+      초 = Number(
+        execFileSync("git", ["log", "-1", "--format=%ct", "-S", m.원문, "--", 경로], {
+          encoding: "utf8",
+        }).trim(),
+      );
+    } catch {
+      /* 그 줄의 역사를 못 찾으면 건너뛴다(방금 쓴 줄일 수 있다) */
+    }
+    if (!초) continue;
+    const 일 = Math.floor((지금 - 초) / 86400);
+    if (일 >= 한계일) 묵은것.push({ 제목: m.제목, 일 });
+  }
+
+  if (묵은것.length === 0) {
+    return add(
+      "stale",
+      "알고도 방치한 막힘",
+      "통과",
+      `🔴 ${막힘.length}건 전부 ${한계일}일 안에 움직였다`,
+    );
+  }
+  묵은것.sort((a, b) => b.일 - a.일);
+  return add(
+    "stale",
+    "알고도 방치한 막힘",
+    "볼 것",
+    `🔴 인데 ${한계일}일 넘게 안 움직인 것 ${묵은것.length}건 — ` +
+      묵은것.map((m) => `${m.일}일째 「${m.제목}」`).join(" · ") +
+      " → 고칠 수 없으면 «왜 못 고치나»를 적고 🔴 를 내려라(방치와 보류는 다르다)",
+  );
+}
+
 const 검사들 = [
+  ["where", 검사_재는자리],
   ["pii", 검사_평문개인정보],
   ["i18nback", 검사_번역역류],
   ["rls", 검사_익명읽기],
@@ -393,7 +721,25 @@ const 검사들 = [
   ["deploy", 검사_미배포],
   ["cron", 검사_예약작업],
   ["app", 검사_앱미반영],
+  ["ios", 검사_아이폰미반영],
+  ["stale", 검사_묵은막힘],
 ];
+
+// --only= 오타 방어 (2026-08-30 감사): 예전엔 모르는 이름을 주면(예: --only=key ← keys 오타)
+// 검사 «0개»가 조용히 돌고 「볼 것 0건 / 못 잼 0건 / 통과 0건」 + exit 0 으로 끝났다 —
+// 훑지도 않았는데 훑은 척이 되는 가짜 초록이고, --alert 를 같이 줘도 그대로 초록이었다.
+// 머리말의 «통과로 위장하지 않는다» 원칙대로: 모르는 이름·빈 이름은 여기서 세우고 있는 이름을 알려준다.
+if (onlyArg !== undefined) {
+  const 아는이름 = 검사들.map(([id]) => id);
+  const 모름 = 지정검사.filter((id) => !아는이름.includes(id));
+  if (모름.length > 0 || 지정검사.length === 0) {
+    console.error(
+      (모름.length ? `그런 검사 없음: ${모름.join(", ")}` : "--only= 에 검사 이름이 없다") +
+        ` — 있는 것: ${아는이름.join(", ")}`
+    );
+    process.exit(1);
+  }
+}
 
 for (const [id, fn] of 검사들) {
   if (!want(id)) continue;
@@ -414,7 +760,9 @@ console.log(`
  · 화면이 실제로 보이나(지도·잘림·빈 상자) → 브라우저로 눈으로 봐야 한다
  · 번역이 자연스러운가 → 현지 직원 몫
  · 「알림이 진짜 갔나」 → 받은편지함 확인 몫
- · 아이폰 앱에 안 들어간 고침 → 지금은 «안드로이드 부품 목록»만 대조한다(아이폰 부품은 Podfile 쪽)
+ · 애플 «심사에 걸린» 빌드가 최신인가 → App Store Connect 화면을 사람이 봐야 한다
+   (여기 아이폰 검사는 «저장소 부품 vs 출시본 부품»만 본다. 2026-08-28 에 빌드 4 를 올려두고도
+    심사 항목엔 3 이 걸려 있었다: 그대로 냈으면 재반려였다)
 `);
 
 const 볼것 = rows.filter((r) => r.판정 === "볼 것");

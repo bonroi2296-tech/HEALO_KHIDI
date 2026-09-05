@@ -21,11 +21,8 @@ test.describe("원격협진 CTA 흐름", () => {
     const ctas = page.getByRole("link", {
       name: /Request consultation|상담 신청|지금 시작|Start now/i,
     });
-    const count = await ctas.count();
-
-    if (count === 0) {
-      test.skip(true, "CTA 버튼 없음");
-    }
+    // CTA 가 하나도 없으면 «건너뜀이 아니라 실패»다 — 이 화면의 존재 이유가 접수로 보내는 것이다.
+    await expect(ctas.last()).toBeVisible({ timeout: 20_000 });
 
     // 마지막 CTA (하단) 클릭
     await ctas.last().click();

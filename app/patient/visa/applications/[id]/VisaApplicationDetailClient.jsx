@@ -249,7 +249,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       {/* 초청장 */}
       {invitationUrl && (
         <section className="mt-8 border border-emerald-200 bg-emerald-50 rounded-lg p-5">
-          <h2 className="font-medium text-emerald-900">{t("visaAppDetail.invitationIssued", lang)}</h2>
+          <h2 className="text-[clamp(36px,4.5vw,64px)] font-medium text-emerald-900">{t("visaAppDetail.invitationIssued", lang)}</h2>
           <p className="text-sm text-emerald-800 mt-1">
             {t("visaAppDetail.invitationDesc", lang)}
           </p>

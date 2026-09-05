@@ -166,7 +166,8 @@ export async function POST(
         title: "💬 병원 메시지",
         body: `제휴병원이 케이스 #${inquiryId}에 메시지를 보냈어요.`,
         priority: "high",
-        link: "/coordinator/messages",
+        // 목록이 아니라 «그 대화»로 — 화면이 ?thread= 를 읽는다(2026-08-28에 배선).
+        link: `/coordinator/messages?thread=${thread.id}`,
         payload: { inquiryId, threadId: thread.id },
       });
     } catch {

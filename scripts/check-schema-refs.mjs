@@ -29,6 +29,7 @@ const EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 const PUBLIC_TABLES = new Set([
   "content_overrides", "content_change_log", // 코디 콘텐츠 편집(2026-07-23 추가)
   "consultation_recordings", // 상담 녹화 대장(2026-07-28 추가 — 기능은 스위치 뒤 꺼짐)
+  "voice_notes", // 코디 음성 메모 보관함(2026-09-04 추가)
   "hospitals", "treatments", "site_settings", "inquiries", "chat_threads",
   "chat_messages", "inquiry_events", "admin_audit_logs", "admin_notification_logs",
   "rag_documents", "rag_chunks", "hospital_users", "hospital_leads", "crawl_jobs",
@@ -73,6 +74,30 @@ const PUBLIC_TABLES = new Set([
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
 const STORAGE_BUCKETS = new Set(["documents", "images", "attachments"]);
+
+// ── DB 함수(rpc) 스냅샷 ─────────────────────────────────────────────────
+// 왜 (2026-08-25): `/admin/observability` 가 늘 500 이었다. 원인은 `rag_health_aggregates`
+//   함수가 **저장소 마이그레이션에만 있고 실DB 엔 없던 것**. `.from(테이블)` 은 이 검사기가
+//   잡고 있었지만 `.rpc(함수)` 는 아무도 안 봐서, 화면 하나가 조용히 죽어 있었다.
+// 재생성:
+//   select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+//   where n.nspname='public' order by 1;
+const PUBLIC_FUNCTIONS = new Set([
+  "alert_counter_increment", "alert_counter_reset", "archive_old_audit_logs",
+  "chat_thread_merge_meta", "check_rate_limit", "cleanup_rate_limit_buckets",
+  "conversion_funnel", "conversion_funnel_by_arrival", "conversion_funnel_by_country",
+  "conversion_funnel_by_org", "conversion_funnel_by_source", "decrypt_text", "email_hash",
+  "encrypt_text", "get_external_db_usage", "handle_new_user",
+  "handle_new_user_assign_patient_role", "increment_pattern_usage", "rag_health_aggregates",
+  "rag_search_chunks_v1", "rag_search_chunks_v1_1", "rls_auto_enable",
+  "touch_playbook_responses_updated_at", "update_recipient_stats", "update_updated_at_column",
+  "update_visa_updated_at",
+]);
+
+// 「없어도 되는」 함수 — 코드에 «대체 경로»가 있어 없어도 화면이 안 죽는 것만 사유와 함께.
+const RPC_ALLOWLIST = new Map([
+  ["crawl_job_status_counts", "없으면 직접 세는 대체 경로가 있다(app/api/admin/crawl/jobs/[id]/route.ts)"],
+]);
 
 // 알려진 잔존 비존재 참조 — 즉시 안 깨지는 dead path(가드 조건이 항상 false)라
 // 별도 트랙으로 수정 예정(KNOWN_ISSUES). 새 위반을 여기 추가해 숨기지 말 것.
@@ -494,6 +519,51 @@ for (const root of ROOTS) {
       else violations.push({ name, rel });
     }
   }
+}
+
+// ── .rpc("함수") 실재 검사 ────────────────────────────────────────────
+const RPC_RE = /\.rpc\(\s*["'`]([A-Za-z_][\w]*)["'`]/g;
+const rpcViolations = [];
+const rpcAllowHits = [];
+for (const root of ROOTS) {
+  if (!fs.existsSync(root)) continue;
+  const files = [];
+  walk(root, files);
+  for (const file of files) {
+    if (SELF_CHECK_FILES.test(path.basename(file))) continue; // 검사기 자신의 예시 문자열 제외
+    const content = fs.readFileSync(file, "utf8");
+    let m;
+    RPC_RE.lastIndex = 0;
+    while ((m = RPC_RE.exec(content)) !== null) {
+      const name = m[1];
+      const idx = m.index;
+      const lineStart = content.lastIndexOf("\n", idx) + 1;
+      const lineHead = content.slice(lineStart, idx);
+      const trimmed = lineHead.trimStart();
+      if (trimmed.startsWith("//") || trimmed.startsWith("*") || lineHead.includes("//")) continue;
+      if (PUBLIC_FUNCTIONS.has(name)) continue;
+      const line = content.slice(0, idx).split("\n").length;
+      const rel = `${file}:${line}`;
+      if (RPC_ALLOWLIST.has(name)) rpcAllowHits.push({ name, rel });
+      else rpcViolations.push({ name, rel });
+    }
+  }
+}
+
+if (rpcAllowHits.length) {
+  console.log(`ℹ️  rpc allowlist(대체 경로 있음) ${rpcAllowHits.length}건:`);
+  for (const a of rpcAllowHits) console.log(`   - ${a.name}  (${a.rel})  — ${RPC_ALLOWLIST.get(a.name)}`);
+}
+
+if (rpcViolations.length) {
+  console.error(`
+❌ 실DB 에 없는 함수 호출 ${rpcViolations.length}건 (.rpc — 화면이 500 으로 죽는다):`);
+  for (const v of rpcViolations) console.error(`   - .rpc("${v.name}")  ${v.rel}`);
+  console.error(`
+→ 마이그레이션 파일만 있고 «실DB 에 적용 안 된» 경우가 대부분이다. 적용한 뒤`);
+  console.error(`  pg_proc 로 실제 생겼는지 확인하고 PUBLIC_FUNCTIONS 스냅샷을 갱신하라.`);
+  console.error(`  대체 경로가 있어 없어도 되는 함수면 RPC_ALLOWLIST 에 사유와 함께 등록.`);
+  process.exit(1);
 }
 
 if (allowHits.length) {

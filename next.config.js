@@ -138,6 +138,13 @@ const nextConfig = {
               "default-src 'self'",
               // maps.googleapis.com·maps.gstatic.com: 병원/암종 상세 위치 지도(Google Maps JS) — script-src에 없으면 지도 스크립트가 차단돼 회색 fallback만 뜸
               // mc.yandex.ru: Yandex Metrica 태그(러시아/CIS). connect-src 와 짝 — 둘 중 하나만 열면 안 돈다.
+              // connect.facebook.net: Meta 픽셀 태그(fbevents.js). **connect-src 의 www.facebook.com 과 짝이다.**
+              //   2026-08-28 실측으로 잡은 것: 픽셀 코드를 다 붙이고 로컬 프로덕션 빌드로 재보니
+              //   「Loading the script … violates … script-src」로 **통째로 차단**돼 있었다. 화면은 멀쩡했고
+              //   콘솔을 안 봤으면 배포 뒤에도 «광고 성과 0» 을 성과가 없는 걸로 오독했을 것이다.
+              //   ⚠️ 겹이 둘이다 — script-src(태그 싣기) + connect-src(이벤트 보내기). 하나만 열면 안 돈다.
+              //   img-src 는 지금 `https:` 전체 허용이라 따로 안 적었다. **img-src 를 좁히게 되면
+              //   www.facebook.com 을 반드시 같이 넣어라** — 픽셀은 비콘 이미지로도 발화한다.
               // blob:  화상상담 잡음 제거(Krisp)가 소리 처리기(AudioWorklet)를 blob: 로 만들어 싣는다.
               //   ⚠️ 워크릿 모듈은 worker-src 가 아니라 **script-src** 로 검사된다 — 아래 worker-src 에
               //      blob: 이 있어도 여기 없으면 막힌다. 그리고 이 차단은 «보안정책 위반» 사건을 안 내고
@@ -157,7 +164,7 @@ const nextConfig = {
               //     `WebAssembly.Module(): … violates … because 'unsafe-eval' is not an allowed source`
               //   같은 날 겪은 세 번째 겹이다: ①connect-src(파일 받기) ②script-src blob:(워크릿 싣기)
               //     ③여기(모델 돌리기). **「한 겹 열었다 = 기능이 켜졌다」로 넘기지 마라 — 매번 실제로 재라.**
-              `script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com`,
+              `script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://mc.yandex.ru https://cdn.jsdelivr.net https://maps.googleapis.com https://maps.gstatic.com https://connect.facebook.net`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",
@@ -179,7 +186,7 @@ const nextConfig = {
               //   실제로 2026-07-28 에 켠 이래 실서비스에서 한 번도 돈 적이 없었다(2026-08-03 발각:
               //   야간 로봇 통화 로그 + 실서비스 상담방에서 직접 찔러 «차단됨» 확인).
               //   배경 소음이 그대로 마이크로 나가면 자막(음성인식) 오인식으로 직결된다.
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://integrations.livekit.io https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://integrations.livekit.io https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com https://www.facebook.com",
               "media-src 'self' blob:",
               // ⚠️ worker-src 를 안 적으면 script-src 로 폴백돼 **blob: 워커가 전부 차단된다**
               //    (2026-07-28 안드로이드 에뮬레이터 콘솔에서 발각 — 브라우저에서도 나던 것을 아무도 안 봤다).
@@ -191,11 +198,16 @@ const nextConfig = {
               // 소견 화면의 «미리보기» — 첨부 PDF 를 내려받지 않고 그 자리에서 띄운다(PO 요청 2026-08-04).
               //   frame-src 를 안 적으면 default-src 'self' 로 폴백돼 **우리 저장소 PDF 도 막힌다**
               //   (실측: 미리보기 창은 열리는데 안이 하얗다). 여는 건 우리 저장소 하나뿐 — 외부는 계속 차단.
-              "frame-src 'self' https://*.supabase.co blob:",
+              // www.facebook.com: Meta 픽셀이 «숨은 iframe» 을 띄운다(쿠키 동기화). 2026-08-28 실측 3번째 겹.
+              "frame-src 'self' https://*.supabase.co https://www.facebook.com blob:",
               // 같은 사유 — 편집기 미리보기용. 외부 사이트의 씌우기는 계속 차단.
               "frame-ancestors 'self'",
               "base-uri 'self'",
-              "form-action 'self'",
+              // www.facebook.com: Meta 픽셀은 이벤트를 «form POST» 로도 보낸다 — 2026-08-28 실측 4번째 겹.
+              //   콘솔 원문: Sending form data to 'https://www.facebook.com/tr/' violates … "form-action 'self'"
+              //   ⚠️ img-src 가 `https:` 전체 허용이라 «비콘으로는 나가겠지» 싶었는데 실제로는 0건이었다.
+              //      픽셀이 어느 방식을 고를지는 우리가 못 정한다 → 네 겹을 다 열어야 실제로 돈다.
+              "form-action 'self' https://www.facebook.com",
             ].join('; '),
           },
         ],

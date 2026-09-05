@@ -34,7 +34,17 @@ function mentioned(haystack, name, description) {
 }
 
 function main() {
-  if (!existsSync(MEM_DIR)) return; // 다른 기계·CI — 조용히 끝낸다
+  if (!existsSync(MEM_DIR)) {
+    // 🛑 조용히 끝내지 마라. 출력 0줄 + 종료 0 은 돌린 사람에게 「걸린 게 없다」로 읽히는데
+    //    실제로는 «한 번도 안 봤다»다. 이 저장소가 반복해서 밟은 부류라 한 줄은 반드시 남긴다
+    //    (2026-08-31 정리에서 실측 — 클라우드 상자에서 매번 조용히 통과하고 있었다).
+    console.log(
+      `⏭️  보류 결정 점검 — **못 쟀다**(이 기계엔 기억 폴더가 없다: ${MEM_DIR}).\n` +
+        `   PO PC 에서 돌리거나 HEALO_MEMORY_DIR 를 지정해야 실제로 잰다.\n` +
+        `   ⚠️ 이 줄이 보이면 「통과」라고 적지 마라 — 검사한 적이 없다.`
+    );
+    return;
+  }
 
   const lists = ["docs/KNOWN_ISSUES.md", "docs/PROJECT_CONTEXT.md"]
     .filter(existsSync)

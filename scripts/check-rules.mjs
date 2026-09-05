@@ -29,12 +29,24 @@ const LIMIT_WAITING_ITEMS = 25;
 const LIMIT_UNCLASSIFIED = 5;
 const VALID_TAGS = new Set(["CI", "문서", "말투", "규칙", "기록", "미분류"]);
 
+/**
+ * 글자 수를 세기 전에 줄바꿈을 통일한다.
+ *
+ * 왜: 깃이 윈도우로 체크아웃할 때 줄바꿈을 늘리므로(줄마다 캐리지리턴 1자 추가)
+ * **같은 파일인데 윈도우에서만 글자 수가 더 나온다.** 2026-08-28 실측 —
+ * 저장소 원본 CLAUDE.md 는 10,853자(상한 이내)인데 윈도우 디스크에서는 11,056자로 읽혀
+ * 「본판이 상한을 넘었다」고 오진했다. CI(리눅스)는 통과하는데 로컬만 빨간불이라
+ * 원인을 찾는 데도 시간이 걸린다. 세는 자를 파일이 아니라 «내용»에 맞춘다.
+ */
+const CR = String.fromCharCode(13);
+const readNormalized = (p) => fs.readFileSync(p, "utf8").split(CR).join("");
+
 const errors = [];
 const warns = [];
 const ok = [];
 
 // ── 1. CLAUDE.md 상한 ────────────────────────────────────────────────
-const claude = fs.readFileSync(CLAUDE_MD, "utf8");
+const claude = readNormalized(CLAUDE_MD);
 if (claude.length > LIMIT_CLAUDE_CHARS) {
   errors.push(
     `CLAUDE.md 가 ${claude.length.toLocaleString()}자 (상한 ${LIMIT_CLAUDE_CHARS.toLocaleString()}자).\n` +
@@ -45,7 +57,7 @@ if (claude.length > LIMIT_CLAUDE_CHARS) {
 }
 
 // ── 2·3. 분류 대기실 ─────────────────────────────────────────────────
-const prefs = fs.readFileSync(PREFS, "utf8");
+const prefs = readNormalized(PREFS);
 const start = prefs.indexOf("<!-- ACTIVE:START -->");
 const end = prefs.indexOf("<!-- ACTIVE:END -->");
 if (start === -1 || end === -1) {

@@ -8,6 +8,8 @@ declare global {
     dataLayer?: any[];
     /** 얀덱스 메트리카 — 러시아·CIS 측정. 스크립트가 뜨기 전에도 호출은 큐에 쌓인다. */
     ym?: (...args: any[]) => void;
+    /** 메타(페이스북) 픽셀. 스니펫이 즉시 만들어 두므로 스크립트가 늦게 와도 호출은 큐에 쌓인다. */
+    fbq?: (...args: any[]) => void;
   }
 }
 
@@ -47,6 +49,95 @@ const sendYandexGoal = (action: string, params?: Record<string, any>) => {
     if (!ymId || typeof window === "undefined" || typeof window.ym !== "function") return;
     window.ym(ymId, "reachGoal", action, params || {});
   } catch { /* 얀덱스 실패는 무시 */ }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 메타(페이스북·인스타) 픽셀 — 광고 성과 측정·리타게팅
+//
+// GA4·얀덱스와 근본적으로 다른 점: **보낼 수 있는 것이 법으로 좁다.**
+// 우리는 암환자 플랫폼이고, 「이 방문자가 폐암 화면을 봤다」는 그 자체로 건강정보다.
+// 메타 비즈니스 도구 약관은 건강정보 전송을 명시적으로 금지하며(픽셀 생성 화면에도 경고가 뜬다),
+// 국내 개인정보보호법에서도 건강은 «민감정보»라 별도 동의 없이는 제3자에게 못 넘긴다.
+// 미국에서는 병원·의료사이트가 바로 이 구조 때문에 집단소송을 당했다.
+//
+// 그래서 **두 겹**으로 막는다. 하나가 뚫려도 나머지가 잡게.
+//   ① 병명이 주소에 드러나는 화면에서는 픽셀을 아예 발화하지 않는다.
+//   ② 이벤트는 화이트리스트만, 파라미터는 통째로 버린다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 메타 픽셀 ID (env). 없으면 이 아래가 전부 no-op — 얀덱스와 같은 방식. */
+const getMetaPixelId = (): string | null => {
+  const raw = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  return raw && /^\d{6,}$/.test(raw.trim()) ? raw.trim() : null;
+};
+
+/**
+ * 「이 주소는 그 자체로 병명을 말해주는가」 — 픽셀의 **1차 방어선**.
+ *
+ * 왜 «파라미터만 빼면 된다»가 안 통하나: 픽셀은 발화할 때 현재 주소를 `dl` 파라미터로
+ * **자기가 알아서** 실어 보낸다. 우리가 넘기는 값을 아무리 비워도 /treatments/lung 이라는
+ * 주소는 그대로 나간다. 그러니 그 화면에서는 **안 쏘는 것 말고 방법이 없다.**
+ *
+ * ⚠️ 이 함수는 픽셀 전용이다. GA4·얀덱스에는 그대로 보낸다 — 둘은 계약상 우리가 통제하는
+ *    분석 도구이고 광고 타겟팅 모수로 재사용되지 않는다(픽셀은 그게 목적이라 성격이 다르다).
+ * ⚠️ 판정에 실패하면 «안 보낸다»로 떨어진다. 한 건 덜 재는 것보다 한 건 새는 게 훨씬 비싸다.
+ */
+const HEALTH_PATH_RE =
+  /^\/(?:[a-z]{2}\/)?(?:treatments|specialties|cost-calculator|stories|education)(?:\/|$|\?)/i;
+
+const isHealthSensitivePath = (path?: string): boolean => {
+  try {
+    let p = path;
+    if (!p) p = typeof window !== "undefined" ? window.location.pathname : "";
+    // 호출부가 «/ru/treatments/lung?x=1» 같은 전체 경로를 줄 수 있다 → 경로 부분만 본다.
+    const q = p.indexOf("?");
+    if (q >= 0) p = p.slice(0, q);
+    if (!p.startsWith("/")) p = "/" + p;
+    return HEALTH_PATH_RE.test(p);
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * 픽셀로 내보낼 이벤트 **화이트리스트**. 여기 없는 이벤트는 안 나간다.
+ *
+ * ⚠️ 블랙리스트로 바꾸지 마라. 새 이벤트를 추가할 때마다 조용히 새는데, 그게 하필
+ *    암종이 담긴 이벤트(view_treatment·cost_estimated)면 알아차렸을 땐 이미 메타 서버 안이다.
+ * 값은 메타 «표준 이벤트» 이름 — 광고 최적화 목표로 고를 수 있는 것들이라 이 이름이어야 뜻이 산다.
+ */
+const META_PIXEL_EVENTS: Record<string, string> = {
+  inquiry_submitted: "Lead",
+  inquiry_detail_submitted: "CompleteRegistration",
+  inquiry_messenger_click: "Contact",
+};
+
+/**
+ * 픽셀 전송 — **파라미터를 통째로 버린다.**
+ * 호출부가 무엇을 넘기든 cancer_type·hospital_slug 가 실려 나갈 구멍 자체를 없앤다
+ * (호출부를 일일이 검사하는 방식은 새 호출부가 생기면 무너진다).
+ */
+const sendMetaPixel = (action: string) => {
+  try {
+    const standard = META_PIXEL_EVENTS[action];
+    if (!standard) return;
+    if (!getMetaPixelId() || typeof window === "undefined" || typeof window.fbq !== "function") return;
+    if (isHealthSensitivePath()) return;
+    window.fbq("track", standard);
+  } catch { /* 픽셀 실패는 무시 — 측정이 화면을 깨뜨리면 안 된다 */ }
+};
+
+/**
+ * 픽셀 화면조회. 스니펫에 자동 PageView 를 «일부러 안 넣었기 때문에» 이게 유일한 통로다
+ * (자동으로 두면 /treatments/lung 첫 진입이 그대로 나간다).
+ */
+export const metaPixelPageView = (path?: string) => {
+  try {
+    if (!getMetaPixelId() || internalUser || typeof window === "undefined") return;
+    if (typeof window.fbq !== "function") return;
+    if (isHealthSensitivePath(path)) return;
+    window.fbq("track", "PageView");
+  } catch { /* 무시 */ }
 };
 
 /**
@@ -210,9 +301,52 @@ const isGaConfigured = (): boolean => {
   } catch { return false; }
 };
 
+/**
+ * 「수집 주소에 실제로 «닿는가»」 — 자가진단이 거짓말하는 마지막 구멍을 막는 값.
+ *
+ * 왜 필요한가 (2026-07-30 실측):
+ *   gtag.js 가 내려오고(`loaded`) 대기줄에 config 가 들어가도(`configured`), **수집 주소가
+ *   막혀 있으면 아무것도 도착하지 않는다.** 그런데 그 둘은 전부 «우리 탭 안의 사실»이라
+ *   차단 여부를 알 수 없다 → 자가진단이 초록불을 켜고 데이터는 0 이 된다.
+ *   실제로 PO PC 의 광고차단기(AdGuard)가 `||google-analytics.com^` 을 DNS 에서 막고 있었다
+ *   (`0.0.0.0` 응답). 이 값이 없으면 그 상태를 «정상»이라고 보고하게 된다.
+ *
+ * 판정 원리: `mode:"no-cors"` 요청은 응답 내용을 못 읽는 대신 **4xx·5xx 여도 «성공»으로 온다.**
+ * 즉 거절(reject)된다면 그건 서버 응답이 아니라 **네트워크 단계에서 막힌 것**이다.
+ *
+ * ponytail: 대표 주소(www.google-analytics.com) 한 곳만 찔러본다. 지역 수집기
+ * (region1~N.google-analytics.com)만 골라 막는 차단 목록이 있으면 이 검사는 못 잡는다 —
+ * 그런 목록이 실제로 나오면 그때 주소를 늘려라.
+ */
+let endpointReachable: boolean | null = null;
+let probing = false;
+
+/** 자가진단 배지가 뜰 때만 호출된다(일반 방문자에겐 이 요청이 나가지 않는다). */
+export const probeGaEndpoint = (): void => {
+  if (typeof window === "undefined" || endpointReachable !== null || probing) return;
+  probing = true;
+  // tid 없는 빈 요청 — GA 는 이걸로 아무것도 기록하지 않는다(도달 여부만 본다).
+  fetch("https://www.google-analytics.com/g/collect", {
+    method: "POST",
+    mode: "no-cors",
+    cache: "no-store",
+    body: "",
+  })
+    .then(() => { endpointReachable = true; })
+    .catch(() => { endpointReachable = false; })
+    .finally(() => {
+      probing = false;
+      healthListeners.forEach((fn) => {
+        try { fn(); } catch { /* 진단 표시가 화면을 깨뜨리면 안 된다 */ }
+      });
+    });
+};
+
 export const getGaHealth = () => ({
   loaded: isGaScriptLoaded(),
   configured: isGaConfigured(),
+  /** null = 아직 확인 중 / true = 막힘 없음 / false = 광고차단기·DNS 가 막고 있음 */
+  reachable: endpointReachable,
   sent: sentCount,
   last: lastSent,
   internal: internalUser,
@@ -226,6 +360,9 @@ export const onGaActivity = (fn: () => void): (() => void) => {
 
 export const pageview = (url: string) => {
   const gaId = getGaId();
+  // 픽셀은 gtag 유무와 «무관하게» 먼저 처리한다 — 광고차단기가 구글만 막는 경우가 흔한데
+  // 아래 게이트에 걸리면 픽셀까지 통째로 죽어서 광고 성과가 0 으로 보인다.
+  metaPixelPageView(url);
   if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
   // ⚠️ 예전엔 gtag("config", …) 를 라우트마다 다시 불렀다(UA 시절 방식).
   //    GA4 공식 방식은 «page_view 이벤트»를 직접 쏘는 것이다. config 재호출은
@@ -252,7 +389,11 @@ export const event = (action: string, params: Record<string, any> = {}) => {
   const gaId = getGaId();
   // 얀덱스는 gtag 유무와 무관하게 보낸다 — 광고차단기가 구글만 막는 경우가 흔하고,
   // 러시아·CIS 에서는 그 상황이 오히려 기본값에 가깝다(얀덱스가 하한선 역할).
-  if (!internalUser) sendYandexGoal(action, params);
+  if (!internalUser) {
+    sendYandexGoal(action, params);
+    // 메타 픽셀은 화이트리스트에 걸린 전환만·파라미터 없이 나간다 (sendMetaPixel 주석 참고).
+    sendMetaPixel(action);
+  }
   if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
   // 공통값(platform·lang)을 먼저 깔고 호출부 params 로 덮어쓴다 → 호출부가 명시한 lang 이 이긴다.
   // 🛡️ pageview 와 같은 이유로 방탄 (위 주석 참고).

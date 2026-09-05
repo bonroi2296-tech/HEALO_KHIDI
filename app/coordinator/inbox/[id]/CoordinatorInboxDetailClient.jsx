@@ -12,22 +12,29 @@ import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Mic,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
-import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
+import { fullPatientName } from "@/lib/inquiry/patientName";
+import { DOC_FIELD_LABELS } from "@/lib/inquiry/docKinds";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
+import { trackingUrl, trackingMessageLine, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import OpinionsSection from "./OpinionsSection";
 import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
+import ProgressSection from "./ProgressSection";
+import HospitalMatchSection from "./HospitalMatchSection";
 import ReferralSection from "./ReferralSection";
+import HospitalReferralSection from "./HospitalReferralSection";
+import { ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import ImagingPanel from "@/components/ImagingPanel";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
@@ -37,6 +44,16 @@ function isImagingBundle(a) {
   const t = String(a?.type || "").toLowerCase();
   return /\.(zip|rar|dcm)$/.test(n) || t.includes("zip") || t.includes("rar") || t.includes("dicom");
 }
+
+// 음성 메모인가 — 왓츠앱은 ogg, 아이폰 음성 메모는 m4a, 구형 안드로이드는 amr 로 온다.
+// 판독 창구가 아는 «대표 이름»으로 맞춰 보낸다(별칭을 그대로 보내면 창구가 안 받는다).
+const VOICE_MIME = {
+  mp3: "audio/mpeg", m4a: "audio/mp4", mp4a: "audio/mp4", "3gp": "audio/mp4",
+  wav: "audio/wav", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg",
+  webm: "audio/webm", amr: "audio/amr",
+};
+const voiceMime = (name) => VOICE_MIME[String(name || "").split(".").pop()?.toLowerCase()] || null;
+const isVoiceFile = (name) => !!voiceMime(name);
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -67,6 +84,78 @@ function Row({ icon: Icon, label, value }) {
       </div>
       <div className="w-28 shrink-0 text-sm text-gray-500">{label}</div>
       <div className="flex-1 text-sm text-gray-900 break-words">{value || "—"}</div>
+    </div>
+  );
+}
+
+/**
+ * 진단코드 줄 — 코디가 직접 넣고 고친다(Row 와 같은 모양이되 값이 입력칸이다).
+ *
+ * 환자가 의뢰서에 적은 코드와는 «다른 칸»이다(inquiries.icd_code). 환자 자가 신고를 코디 확정으로
+ * 덮어쓰지 않으려고 갈라 뒀다. 암종을 고른 케이스면 그 부위 코드를 권하되 자동으로 넣지는 않는다.
+ */
+function IcdCodeRow({ inquiryId, initial, cancerType, L, lang }) {
+  const [code, setCode] = useState(initial || "");
+  // 저장에 성공한 «마지막 값». 처음 값(initial)을 계속 기준으로 삼으면 저장한 뒤에도 저장 단추가
+  // 남아 있어 「저장이 된 건지」를 알 수 없다(2026-08-26 화면 확인에서 실제로 그랬다).
+  const [saved, setSaved] = useState(initial || "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const sugg = icd10SuggestionFor(cancerType);
+  const dirty = (code || "").trim().toUpperCase() !== saved;
+
+  const save = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/icd-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ code }),
+      });
+      const r = await res.json();
+      if (!res.ok || !r.ok) throw new Error(r.error || "save_failed");
+      setCode(r.code || "");
+      setSaved(r.code || "");
+      setMsg({ ok: true, text: L.coSaveDone });
+    } catch {
+      setMsg({ ok: false, text: L.coSaveFail });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="w-6 shrink-0 text-gray-500 pt-0.5"><FileText size={16} /></div>
+      <div className="w-28 shrink-0 text-sm text-gray-500">{L.ibIcdCode}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={code}
+            onChange={(e) => { setCode(e.target.value); setMsg(null); }}
+            placeholder={sugg ? sugg.code : "C18.2"}
+            className="w-32 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm uppercase outline-none focus:border-teal-700"
+          />
+          {dirty && (
+            <button type="button" onClick={save} disabled={saving}
+                    className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-50">
+              {saving ? L.coSaving : L.ibIcdSave}
+            </button>
+          )}
+          {sugg && code.trim().toUpperCase() !== sugg.code && (
+            <button type="button" onClick={() => { setCode(sugg.code); setMsg(null); }}
+                    className="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100">
+              {L.ibIcdSuggest}: {sugg.code} · {cancerTypeLabelL(cancerType, lang)}
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-gray-500">{L.ibIcdNote}</p>
+        {msg && (
+          <p className={`mt-1 text-xs font-semibold ${msg.ok ? "text-emerald-700" : "text-red-600"}`}>{msg.text}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -431,7 +520,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [reqResult, setReqResult] = useState(null); // { link, emailSent, email, lang }
   const [reqError, setReqError] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [claimCopied, setClaimCopied] = useState(false); // "환자 연결 링크 복사" 버튼 피드백
+  const [claimCopied, setClaimCopied] = useState(false); // "링크 복사" 버튼 피드백
+  // 환자에게 줄 진행상황 주소. 조립은 trackingLink.ts 한 곳에서만 한다 —
+  // 접수 확인 메일·봇 답장도 같은 함수를 쓰므로 여기서 손으로 이어붙이면 주소가 갈라진다.
+  const shareUrl =
+    typeof window !== "undefined" && inquiry?.public_token
+      ? trackingUrl(window.location.origin, inquiry.public_token)
+      : null;
 
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
   const [caseStatus, setCaseStatus] = useState("");
@@ -477,6 +572,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [staffUploading, setStaffUploading] = useState(false);
   const [staffProgress, setStaffProgress] = useState(0);
   const [openImaging, setOpenImaging] = useState(null); // 펼쳐 놓은 CT 묶음의 경로
+  // 음성 정리 결과 — 경로별 {loading} | {data} | {error}. 화면에만 두고 저장하지 않는다.
+  const [voiceNotes, setVoiceNotes] = useState({});
   const [staffMsg, setStaffMsg] = useState(null);
   async function staffUpload(file) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
@@ -511,6 +608,147 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setStaffUploading(false);
       setStaffProgress(0);
     }
+  }
+
+  /**
+   * 붙어 있는 자료를 판독기에 넣어 «읽어»준다 — 음성이면 글+요약, 서류면 안에 적힌 값.
+   *
+   * 계기 ① 2026-09-02 PO — 「아셀님이 음성파일로 받으니 듣고 분석하는 데 시간이 너무 오래 걸림」.
+   *      ② 2026-09-04 PO — 「문서도 올렸는데 아무런 값도 추출을 못한거야?」
+   *
+   * ②의 진짜 원인: 서류를 읽는 코드가 «의뢰서 접수 폼»에만 붙어 있었다. 환자 본인 링크(claim)나
+   * 코디 대리 업로드로 들어온 서류는 판독을 아예 안 탔고(category 가 "other" 로 고정 저장),
+   * 게다가 판독 창구의 경로 규칙이 접수 폼 모양 하나만 알아서 «불러도 거부»했다.
+   * 실제 피해: 문의 #302 는 PDF 3건이 붙어 있는데 코디 화면의 값 칸이 전부 「비어 있음」이었다.
+   * (그 3건을 지금 규칙으로 다시 읽히니 생년월일·진단명·주호소·검사·소견이 전부 나왔다.)
+   *
+   * 결과는 화면에만 둔다(저장하지 않는다). 다시 보려면 다시 누른다 — 한 번에 몇백 원 수준이고,
+   * 저장하면 «언제 적 요약인지» 관리해야 하는데 그럴 값어치가 아직 없다.
+   * 🛑 뽑아낸 값을 환자가 적은 칸에 «자동으로» 덮어쓰지 않는다 — 기계가 읽은 것이라 코디가 본 뒤에 쓴다.
+   */
+  async function analyzeVoice(path, name, mime) {
+    if (!path) return;
+    setVoiceNotes((p) => ({ ...p, [path]: { loading: true } }));
+    try {
+      const res = await fetch("/api/inquiry/classify-doc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path, type: voiceMime(name) || mime || "application/pdf" }),
+      });
+      const j = await res.json();
+      if (!j?.ok || j.skipped) throw new Error(j?.skipped || j?.error || "failed");
+      setVoiceNotes((p) => ({ ...p, [path]: { data: j } }));
+    } catch (e) {
+      console.error("[voice] analyze error:", e);
+      setVoiceNotes((p) => ({ ...p, [path]: { error: String(e?.message || e) } }));
+    }
+  }
+
+  /**
+   * 붙어 있는 «서류 전부»를 한 번에 읽어 의뢰서의 빈 칸을 메운다.
+   *
+   * 계기 2026-09-04 PO: 「읽기 버튼을 문서별로 하지 말고 의뢰서에 넣는게 좋지 않겠니? 한번에 다 읽게」
+   *                     「아니면 빠진거만 다시 읽게 하거나」
+   * 파일마다 눌러야 하면 서류가 대여섯 개일 때 그만큼 눌러야 하고, 값이 어느 파일에서 나왔는지
+   * 코디가 머릿속에서 합쳐야 한다. 그 합치는 일을 여기서 한다.
+   *
+   * 합치는 규칙 — 값이 겹치면 «최신 서류»가 이긴다.
+   *   이 묶음에는 병원도 날짜도 다른 서류가 섞여 들어오고 서로 어긋난다(2026-08-14 실측:
+   *   같은 파일이 15일자엔 cT4N1M1, 28일자엔 cT3NxM1). 평균을 내거나 먼저 나온 값을 쓰면 틀린다.
+   *   판독기가 준 doc_date 로 오름차순 정렬해 덮어쓰면 마지막(=최신) 값이 남는다.
+   *
+   * 🛑 여기서는 «화면에 보여주기»만 한다. 환자가 이미 적은 칸은 ReferralSection 이 건드리지 않고,
+   *    저장도 하지 않는다 — 기계가 읽은 값이라 코디가 원본과 대조한 뒤에 쓴다.
+   */
+  const [docScan, setDocScan] = useState(null);   // null | {loading} | {data} | {error}
+  async function scanAllDocs() {
+    const list = (inquiry?.attachments || []).filter(
+      (a) => a?.path && !isVoiceFile(a.name || a.path) && !isImagingBundle(a),
+    );
+    if (!list.length) { setDocScan({ error: "no_docs" }); return; }
+
+    setDocScan({ loading: true, done: 0, total: list.length });
+    const results = [];
+    for (const a of list) {
+      try {
+        const res = await fetch("/api/inquiry/classify-doc", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ path: a.path, type: a.type || "application/pdf" }),
+        });
+        const j = await res.json();
+        if (j?.ok) results.push({ ...j, _name: a.name || a.path });
+      } catch (e) {
+        console.error("[docScan] read error:", e);
+      }
+      setDocScan((p) => ({ ...p, done: (p?.done || 0) + 1 }));
+    }
+    if (!results.length) { setDocScan({ error: "all_failed" }); return; }
+
+    // 오래된 것부터 덮어써서 «최신 값»이 남게 한다. 날짜가 없는 건 가장 오래된 것으로 친다.
+    results.sort((x, y) => String(x.docDate || "").localeCompare(String(y.docDate || "")));
+    const fields = {};
+    const from = {};                       // 칸마다 «어느 파일에서 나왔나» — 코디가 원본을 찾아갈 수 있게
+    const glossary = [];
+    const seenTerm = new Set();
+    for (const r of results) {
+      for (const [k, v] of Object.entries(r.fields || {})) {
+        if (v == null || v === "") continue;
+        if (ACCUMULATE_FIELDS.has(k)) {
+          // 🛑 덮어쓰지 마라 — 파일마다 «다른 검사»가 들어 있다. CT 판독지 한 장, 혈액검사 한 장,
+          //    내시경 한 장이면 셋 다 병원에 나가야 한다. 2026-09-04 실측: 세 파일에서 각각
+          //    982·1,786·1,434자가 나왔는데 마지막 것 하나만 남고 나머지는 버려지고 있었다.
+          const line = `[${r._name}]\n${String(v).trim()}`;
+          fields[k] = fields[k] ? `${fields[k]}\n\n${line}` : line;
+          from[k] = from[k] ? `${from[k]}, ${r._name}` : r._name;
+          continue;
+        }
+        fields[k] = v;
+        from[k] = r._name;
+      }
+      for (const g of r.glossary || []) {
+        const key = String(g.term || "").toLowerCase();
+        if (!key || seenTerm.has(key)) continue;
+        seenTerm.add(key);
+        glossary.push(g);
+      }
+    }
+    setDocScan({ data: { fields, from, glossary: glossary.slice(0, 20), readCount: results.length } });
+  }
+
+  /**
+   * 찾은 값을 의뢰서에 «저장»한다 — 2026-09-04 PO: 「한번 채우면 저장 안되니? 매번 불러와야해?」
+   * 화면에만 두면 새로고침할 때마다 다시 읽혀야 하고(그때마다 AI 비용), 다른 사람이 그 케이스를
+   * 열면 아무것도 안 보인다.
+   * 🛑 «비어 있는 칸인가»는 창구가 다시 판정한다 — 화면이 낡은 값을 들고 있을 수 있다.
+   */
+  const [fillSaving, setFillSaving] = useState(false);
+  async function saveScanned() {
+    if (!docScan?.data) return;
+    setFillSaving(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        // 모으는 칸은 이미 값이 있어도 갈아 끼운다 — 서류를 새로 받으면 검사 목록을 처음부터
+        // 다시 만들어야 한다. 덧붙이기가 아니라 통째 교체라 두 번 읽어도 겹치지 않는다.
+        body: JSON.stringify({
+          fields: docScan.data.fields,
+          from: docScan.data.from,
+          overwrite: [...ACCUMULATE_FIELDS].filter((k) => docScan.data.fields[k]),
+        }),
+      });
+      const j = await res.json();
+      if (!j?.ok) throw new Error(j?.error || "failed");
+      setDocScan(null);        // 저장했으면 «찾은 값» 칸은 접는다 — 이제 의뢰서 본문에 있다
+      await load();
+    } catch (e) {
+      console.error("[referral-fill] save error:", e);
+      window.alert("저장하지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+    setFillSaving(false);
   }
 
   // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
@@ -858,7 +1096,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   }
 
   const fullName =
-    [inquiry.first_name, inquiry.last_name].filter(Boolean).join(" ").trim() || L.ibNameUnknown;
+    fullPatientName(inquiry.first_name, inquiry.last_name) || L.ibNameUnknown;
   const step2Done = !!inquiry.step2_completed_at;
   const cancer =
     (inquiry.cancer_type ? cancerTypeLabelL(inquiry.cancer_type, lang) : "") ||
@@ -924,21 +1162,37 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   🙋 {pick(INTAKE_UI.submitterGuest, lang)}
                 </span>
               )}
-              {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 왓츠앱 등으로 공유.
-                  has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재로만 판정(안정적). */}
-              {!inquiry.has_account && inquiry.public_token && (
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/claim/${inquiry.public_token}`;
-                    navigator.clipboard.writeText(url).then(() => {
-                      setClaimCopied(true);
-                      setTimeout(() => setClaimCopied(false), 2000);
-                    });
-                  }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
-                >
-                  {claimCopied ? <Check size={12} /> : <Copy size={12} />} {claimCopied ? L.ibClaimCopied : L.ibClaimCopy}
-                </button>
+              {/* 2026-08-25: 예전엔 «계정 없는 케이스»에만 떴다(!inquiry.has_account).
+                  그런데 왓츠앱·메일로 받은 건을 우리가 손으로 넣으면 계정이 붙어 있는 경우가 많고,
+                  그때 코디는 «상대에게 줄 주소»를 화면 어디서도 못 꺼냈다(PO 지적 2026-08-25).
+                  주소 자체는 새로 만들지 않는다 — inquiries.public_token 이 모든 문의에 이미 붙어 있고
+                  접수 확인 메일·봇 답장도 같은 주소를 보낸다(src/lib/inquiry/trackingLink.ts).
+                  ⚠️ 그래서 이건 «새로 여는 문»이 아니라 이미 나가 있는 주소를 꺼내 보여주는 것뿐이다. */}
+              {inquiry.public_token && (
+                <span className="inline-flex items-center gap-1" title={shareUrl || undefined}>
+                  <button
+                    onClick={() => {
+                      if (!shareUrl) return;
+                      navigator.clipboard.writeText(shareUrl).then(() => {
+                        setClaimCopied(true);
+                        setTimeout(() => setClaimCopied(false), 2000);
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
+                  >
+                    {claimCopied ? <Check size={12} /> : <Copy size={12} />} {claimCopied ? L.ibClaimCopied : L.ibClaimCopy}
+                  </button>
+                  {/* 왓츠앱: 받는 사람은 코디가 대화창에서 고른다 — 환자 전화번호는 암호화돼 있어
+                      화면이 들고 있지 않다. 문구는 환자 언어로 이미 만들어 둔 한 줄을 그대로 쓴다. */}
+                  <a
+                    href={shareUrl ? `https://wa.me/?text=${encodeURIComponent(trackingMessageLine(shareUrl, toTrackingLang(inquiry.preferred_language)))}` : undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-50 text-green-800 hover:bg-green-100 transition"
+                  >
+                    <Send size={12} /> {L.ibShareWhatsapp}
+                  </a>
+                </span>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>
@@ -946,6 +1200,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </div>
         <div className="flex items-center gap-2">
           <span
+            // 상세가 «다 그려졌는지»를 자동 검사가 이걸로 판정한다 — 이 딱지가 뜨기 전에 재면
+            // 아직 안 그려진 화면을 「없다」로 읽는다(2026-08-25 실제로 그랬다).
+            data-testid="inquiry-step-badge"
+            data-step2-done={step2Done ? "1" : "0"}
             className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
               step2Done ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-700"
             }`}
@@ -1046,6 +1304,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <Card title={L.ibMedicalCard}>
           <Row icon={Globe} label={L.nationality} value={nationality} />
           <Row icon={Stethoscope} label={L.cancerType} value={cancer} />
+          <IcdCodeRow
+            inquiryId={inquiryId}
+            initial={inquiry.icd_code || ""}
+            cancerType={inquiry.cancer_type || null}
+            L={L}
+            lang={lang}
+          />
           <Row
             icon={Calendar}
             label={L.ibPreferredDate}
@@ -1200,8 +1465,49 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         );
       })()}
 
+      {/* 병원 의뢰서 — 병원마다 다른 양식에 우리 값을 채워 준다(2026-09-04 PO).
+          값은 «문의에 이미 있는 것»만 쓴다. 없는 칸은 빈칸으로 두고 몇 칸인지 세어 준다. */}
+      <HospitalReferralSection
+        inquiryId={inquiryId}
+        onSaved={load}
+        attachments={Array.isArray(inquiry.attachments) ? inquiry.attachments : []}
+        values={{
+          patientName: fullName,
+          nationality: inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "",
+          // 영문 병기 양식(이대)에는 영어 표기로 낸다 — 「카자흐스탄」·「남성」이 들어가면 안 어울린다.
+          nationalityEn: inquiry.nationality ? nationalityLabelL(inquiry.nationality, "en") : "",
+          email: inquiry.email || "",
+          phone: inquiry.phone || inquiry.contact_id || "",
+          // 나머지는 의뢰서 칸(intake_data) — 서류에서 채운 값도 여기 들어와 있다.
+          ...(inquiry.referral && typeof inquiry.referral === "object"
+            ? {
+                birthDate: inquiry.referral.birthDate || "",
+                sex: inquiry.referral.sex === "female" ? "여성" : inquiry.referral.sex === "male" ? "남성" : "",
+                sexEn: inquiry.referral.sex === "female" ? "Female" : inquiry.referral.sex === "male" ? "Male" : "",
+                diagnosisNameRaw: inquiry.referral.diagnosisNameRaw || "",
+                chiefComplaint: inquiry.referral.chiefComplaint || "",
+                onsetDate: inquiry.referral.onsetDate || "",
+                diagnosisDate: inquiry.referral.diagnosisDate || "",
+                testsAndTreatments: inquiry.referral.testsAndTreatments || "",
+                pastHistoryNote: inquiry.referral.pastHistoryNote || "",
+                familyHistory: inquiry.referral.familyHistory || "",
+                medications: inquiry.referral.medications || "",
+                localDoctorOpinion: inquiry.referral.localDoctorOpinion || "",
+                referralPurpose: inquiry.referral.referralPurpose || "",
+              }
+            : {}),
+        }}
+      />
+
       {/* 의뢰서(/inquiry/referral)로 들어온 문의 — 환자가 채운 14칸 + 서류 판독 결과. 없으면 안 그린다. */}
-      <ReferralSection referral={inquiry.referral} lang={lang} />
+      <ReferralSection
+        referral={inquiry.referral}
+        lang={lang}
+        scan={docScan}
+        onScan={scanAllDocs}
+        onSaveScan={saveScanned}
+        saving={fillSaving}
+      />
 
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
@@ -1289,8 +1595,40 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       >
                         <Video size={14} /> {openImaging === path ? "닫기" : "영상 보기"}
                       </button>
+                    ) : isVoiceFile(name) ? (
+                      /* 소리는 번역 단추가 소용없다(원문이 글이 아니다) — 대신 «듣지 않고 읽게» 한다. */
+                      <button
+                        type="button"
+                        onClick={() => analyzeVoice(path, name)}
+                        disabled={!path || voiceNotes[path]?.loading}
+                        title="음성을 글로 옮기고 요약합니다. 듣지 않아도 됩니다."
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                      >
+                        {voiceNotes[path]?.loading ? (
+                          <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mic size={14} />
+                        )}
+                        {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 정리" : "음성 정리"}
+                      </button>
                     ) : (
                     <>
+                    {/* 「읽기」 — 서류 안의 값(생년월일·진단명·검사·소견)을 뽑아 아래에 편다.
+                        번역과 다른 일이다: 번역은 «문서 전체를 옮기는 것», 이건 «칸에 넣을 값을 골라내는 것». */}
+                    <button
+                      type="button"
+                      onClick={() => analyzeVoice(path, name, a?.type)}
+                      disabled={!path || voiceNotes[path]?.loading}
+                      title="서류 안의 값(생년월일·진단명·검사·소견 등)을 뽑아 봅니다. 환자가 적은 칸을 덮어쓰지는 않습니다."
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                    >
+                      {voiceNotes[path]?.loading ? (
+                        <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 읽기" : "읽기"}
+                    </button>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
                     <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label={L.atLangGroup}>
                       {OUT_LANGS.map((o) => (
@@ -1349,6 +1687,112 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       />
                     </div>
                   )}
+                  {/* 음성 정리 결과 — 듣지 않고 읽는 칸. 저장하지 않고 화면에만 둔다. */}
+                  {voiceNotes[path]?.error && (
+                    <div className="border-t border-gray-100 bg-amber-50/60 px-3 py-3">
+                      <p className="text-sm text-amber-800">
+                        {voiceNotes[path].error === "too_large"
+                          ? "음성이 너무 깁니다(12MB 넘음). 나눠서 올려주세요."
+                          : voiceNotes[path].error === "unsupported_type"
+                          ? "이 형식은 아직 못 읽습니다."
+                          : "음성을 읽지 못했습니다. 잠시 뒤 다시 눌러주세요."}
+                      </p>
+                    </div>
+                  )}
+                  {voiceNotes[path]?.data && (() => {
+                    const v = voiceNotes[path].data;
+                    return (
+                      <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3 space-y-3">
+                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                          {/* teal-600 은 3.74:1 로 대비 기준(4.5:1) 미달이라 안 쓴다 — DESIGN.md */}
+                          <Sparkles size={12} className="text-teal-700" />
+                          {isVoiceFile(name)
+                            ? "기계가 듣고 옮긴 것입니다 — 중요한 값은 원본을 확인해 주세요"
+                            : "기계가 서류를 읽은 것입니다 — 환자 칸에 옮기기 전에 원본과 대조해 주세요"}
+                          {v.language && <span className="ml-auto">말: {v.language}</span>}
+                        </div>
+
+                        {/* 서류에서 뽑아낸 값 — 이게 「문서 올렸는데 값이 안 채워진다」의 답이다(2026-09-04 PO).
+                            🛑 보여주기만 한다. 환자가 적은 칸을 자동으로 덮지 않는다. */}
+                        {v.fields && Object.keys(v.fields).length > 0 && (
+                          <div>
+                            {/* 서류 종류(v.kind)는 여기 안 적는다 — 이 화면은 브라우저에서 그려지는데
+                                kindLabel 이 쓰는 사전이 클라이언트에 안 실려 한국어 화면에도 영어로 떨어진다
+                                (2026-09-04 실측: 「Other document」). 종류는 위 첨부 줄에 이미 붙어 있다. */}
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">서류에서 읽은 값</p>
+                            <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                              {Object.entries(v.fields).map(([k, val]) => (
+                                <div key={k} className="flex gap-2 text-xs">
+                                  <dt className="shrink-0 w-20 text-gray-500">{DOC_FIELD_LABELS[k] || k}</dt>
+                                  <dd className="min-w-0 flex-1 text-gray-800 break-words">{String(val)}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </div>
+                        )}
+
+                        {v.summaryKo && (
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            {v.summaryKo}
+                          </p>
+                        )}
+
+                        {/* 🛑 이 칸이 요약보다 중요하다 — 흐리게 말한 병기·날짜를 확정으로 처리하면
+                            그게 그대로 병원에 나간다. 눈에 띄게 둔다. */}
+                        {v.uncertain?.length > 0 && (
+                          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p className="text-[11px] font-semibold text-amber-800 mb-1">
+                              확실하지 않은 것 — 그대로 쓰지 마세요
+                            </p>
+                            <ul className="space-y-0.5">
+                              {v.uncertain.map((u, k) => (
+                                <li key={k} className="text-xs text-amber-900">· {u}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* 코디는 의료인이 아니다 — 서류에 나온 용어가 «무엇인지»만 풀어 준다
+                            (2026-09-04 PO: 「여기도 의료용어는 쉽게 풀이해줘」). 음성 보관함과 같은 칸.
+                            🛑 «이 환자에게 무슨 뜻인지»는 담지 않는다 — 그건 의료 조언이다. */}
+                        {v.glossary?.length > 0 && (
+                          <section className="rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
+                            <p className="text-xs font-bold text-teal-800 mb-1.5">이 말이 무슨 뜻이냐면</p>
+                            <dl className="space-y-1">
+                              {v.glossary.map((g, k) => (
+                                <div key={k} className="text-xs">
+                                  <dt className="inline font-semibold text-teal-900">{g.term}</dt>
+                                  <dd className="inline text-gray-700"> — {g.plain}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </section>
+                        )}
+
+                        {v.askNext?.length > 0 && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-600 mb-1">다음에 확인할 것</p>
+                            <ul className="space-y-0.5">
+                              {v.askNext.map((a, k) => (
+                                <li key={k} className="text-xs text-gray-700">· {a}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {v.transcript && (
+                          <details className="group">
+                            <summary className="cursor-pointer text-xs text-teal-700 hover:underline select-none">
+                              들린 그대로 보기 ({v.transcript.length}자)
+                            </summary>
+                            <p className="mt-2 text-xs text-gray-600 whitespace-pre-wrap leading-relaxed border-l-2 border-gray-200 pl-3">
+                              {v.transcript}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* 번역 결과 패널(선택 언어) */}
                   {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
@@ -1398,7 +1842,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   type="file"
                   className="hidden"
                   disabled={staffUploading}
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.zip,.rar,.dcm"
+                  /* 🛑 목록을 손으로 베끼지 마라 — 바로 위 안내 문구는 uploadPolicy 를 읽는데
+                     이 칸만 베껴 둬서, 형식을 하나 더해도 «안내엔 뜨는데 고를 수는 없는» 상태가 됐다
+                     (2026-09-03: 음성을 더하다 발견). 규칙은 한 곳(uploadPolicy)에만 둔다. */
+                  accept={`${UPLOAD_POLICY.medicalDoc.accept},${UPLOAD_POLICY.imaging.accept}`}
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) staffUpload(f); }}
                 />
               </label>
@@ -1431,6 +1878,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         inquiryId={inquiryId}
         patientLang={inquiry?.preferred_language || inquiry?.spoken_language || null}
       />
+
+      {/* 이 암종을 진료하는 병원 — 병원 등록 정보 기준(공고 ICT ① 매칭). 순위는 안 매긴다. */}
+      <HospitalMatchSection cancerType={inquiry?.cancer_type || null} />
+
+      {/* 사후관리 경과 — 해외 의료기관·환자가 올린 검사결과·영상·소견(읽기 전용, 공고 ICT ④). */}
+      <ProgressSection inquiryId={inquiryId} />
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>
@@ -1496,7 +1949,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       </Card>
 
       {/* 추가 정보 요청 — 환자에게 Step2 상세폼 링크 발송(이메일) + 코디용 복사/왓츠앱 */}
+      {/* 자동 검사가 «글자» 대신 이 표식으로 고른다 — 코디 화면 언어가 한국어가 아니면
+          「추가 정보 요청」으로 못 찾아 검사가 조용히 지나친다(2026-08-25). */}
       {!step2Done && (
+        <div data-testid="request-info-card">
         <Card title={L.ibReqCard}>
           <p className="text-sm text-gray-600 mb-3 leading-relaxed">
             {L.ibReqDesc1}
@@ -1506,6 +1962,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           {!reqResult ? (
             <div className="flex flex-wrap items-center gap-3">
               <button
+                data-testid="request-info-button"
                 onClick={requestInfo}
                 disabled={reqLoading}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
@@ -1568,6 +2025,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             </div>
           )}
         </Card>
+        </div>
       )}
 
       {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}

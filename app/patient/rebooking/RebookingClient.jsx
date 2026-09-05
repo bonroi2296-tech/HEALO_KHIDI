@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
+import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 import { getVisaChecklist } from '@/lib/visa/visaGuide';
 
 // 화면 문구는 중앙 i18n 사전 patientRebooking.* 키(6개 활성언어 ko·en·ru·kz·zh·ja)
@@ -31,9 +32,11 @@ const scheduleLabel = (row, lang) => {
     );
   }
   const src = row.schedule?.source;
+  // ⚠️ 폴백으로 current_phase 를 그대로 쓰면 환자 화면에 «month_3» 같은 DB 코드가 그대로 뜬다
+  // (2026-08-25 실측). 모르는 값이면 일반 라벨로 내린다 — 환자에게 코드를 보여주지 않는다.
   return SOURCE_KEYS.includes(src)
     ? t(`patientRebooking.${src}`, lang)
-    : (row.current_phase || t('patientRebooking.followup', lang));
+    : t('patientRebooking.followup', lang);
 };
 
 // 상태 코드(DB값) — 라벨은 patientRebooking.status.* , 미지의 코드는 scheduled 로 폴백
@@ -136,7 +139,7 @@ export default function RebookingClient() {
 
                 {rb.cancer_type && (
                   <p style={{ fontSize: 14, color: '#444', marginBottom: 12, lineHeight: 1.5 }}>
-                    {rb.cancer_type}
+                    {cancerTypeLabelL(rb.cancer_type, lang)}
                   </p>
                 )}
 

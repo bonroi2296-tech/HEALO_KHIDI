@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     const { data: inserted, error: leadErr } = await (supabaseAdmin as any)
       .from("hospital_leads")
       .upsert(leads, { onConflict: "normalized_inquiry_id,hospital_id", ignoreDuplicates: false })
-      .select("id");
+      // hospital_id 도 같이 받는다 — 병원별 알림이 «그 의뢰»를 바로 열게 하려면 짝이 필요하다.
+      .select("id, hospital_id");
     if (leadErr) {
       console.error("[coordinator/assign] hospital_leads upsert error:", leadErr.message);
       return NextResponse.json({ ok: false, error: "assign_failed" }, { status: 500 });
@@ -126,8 +127,13 @@ export async function POST(request: NextRequest) {
     try {
       const { notifyHospitalNewLead } = await import("@/lib/notifications/inApp");
       const summary = [inq.cancer_type, inq.nationality].filter(Boolean).join(" · ") || null;
+      const leadIdByHospital = new Map<string, string>(
+        ((inserted as any[]) || []).map((r) => [String(r.hospital_id), String(r.id)])
+      );
       await Promise.allSettled(
-        targetIds.map((hid) => notifyHospitalNewLead({ hospitalId: hid, summary }))
+        targetIds.map((hid) =>
+          notifyHospitalNewLead({ hospitalId: hid, summary, leadId: leadIdByHospital.get(String(hid)) ?? null })
+        )
       );
     } catch {
       /* fail-safe */

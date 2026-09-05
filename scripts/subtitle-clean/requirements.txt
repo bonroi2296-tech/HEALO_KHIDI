@@ -1,0 +1,8 @@
+# 한글 자막 지우개 — 기본 실행에 필요한 것
+numpy<2
+opencv-python-headless<5
+pillow
+imageio-ffmpeg          # ffmpeg 정적 실행파일 동봉 (영상 처리용)
+
+# 선택 — 딥러닝 복원(--method lama). 배경이 복잡할 때 훨씬 깨끗하지만 느리다.
+# pip install torch simple-lama-inpainting

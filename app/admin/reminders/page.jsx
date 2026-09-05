@@ -19,6 +19,13 @@ const CHANNEL_LABELS = {
   in_app: "앱 알림",
 };
 
+// 무엇을 보냈는지 — 종류가 안 보이면 「상담 알림」과 「사후관리 교육」이 한 줄로 뭉쳐 보인다.
+const TYPE_LABELS = {
+  consultation_reminder: "상담 30분 전 알림",
+  survey_request: "만족도 설문",
+  education_content: "사후관리 교육",
+};
+
 export default function RemindersAdminPage() {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -206,6 +213,7 @@ export default function RemindersAdminPage() {
             <thead>
               <tr className="border-b text-gray-500 text-xs">
                 <th className="text-left py-2 pr-3 font-medium">발송 예정 시각</th>
+                <th className="text-left py-2 pr-3 font-medium">종류</th>
                 <th className="text-left py-2 pr-3 font-medium">채널</th>
                 <th className="text-left py-2 pr-3 font-medium">수신자</th>
                 <th className="text-left py-2 pr-3 font-medium">역할</th>
@@ -230,6 +238,12 @@ export default function RemindersAdminPage() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                    </td>
+                    <td className="py-2 pr-3 text-gray-700">
+                      {TYPE_LABELS[r.reminder_type] ?? r.reminder_type ?? "—"}
+                      {r.payload?.phase ? (
+                        <span className="ml-1 text-[11px] text-gray-500">({r.payload.phase})</span>
+                      ) : null}
                     </td>
                     <td className="py-2 pr-3 text-gray-600">
                       {CHANNEL_LABELS[r.channel] ?? r.channel}

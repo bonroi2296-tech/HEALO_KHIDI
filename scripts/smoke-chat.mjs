@@ -28,7 +28,7 @@ const createdThreadIds = [];
 const fail = (msg) => { console.error(`❌ ${msg}`); };
 const ok = (msg) => { console.log(`✅ ${msg}`); };
 
-async function startThread() {
+async function startThread({ contact = true } = {}) {
   const res = await fetch(`${BASE_URL}/api/public/chat/start`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -37,7 +37,7 @@ async function startThread() {
       browser_session_id: `smoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       landing_path: "/inquiry",
       client_meta: { smoke_test: true },
-      // ⚠️ 이 한 줄이 «실적 오염»을 막는다 (2026-08-04 실측으로 추가).
+      // ⚠️ 이메일 표식이 «실적 오염»을 막는다 (2026-08-04 실측으로 추가).
       //   이 스모크는 대화를 3턴 이상 끌고 가면 서버가 그 스레드를 **진짜 문의로 승격**시킨다
       //   (promoteThreadToInquiry). 그런데 여기서 이메일을 안 주면 승격된 문의에 식별값이
       //   하나도 없어 「테스트」 판정이 안 걸리고 is_test=false, 즉 진짜 문의로 남는다.
@@ -45,8 +45,15 @@ async function startThread() {
       //   (전부 사후에 is_test=true 로 정정). 스레드는 아래 cleanup 이 지우지만
       //   **승격된 문의는 아무도 안 지운다** — 그래서 만드는 시점에 표식을 남긴다.
       //   healo-test.invalid = 이 저장소의 내부 전용 도메인(resolveTestDomains 기본에 포함).
-      guest_name: "스모크 점검",
-      guest_email: "smoke@healo-test.invalid",
+      //
+      // 🛑 단 TEST A 만은 contact:false 로 «연락처 없는» 스레드를 쓴다 (2026-08-30 정정).
+      //   TEST A 의 존재 이유가 「연락처 없이 접수해줘 → 거짓 접수완료 금지」인데,
+      //   위 오염 방지선(8/04)이 모든 스레드에 이메일을 심으면서 전제가 무너졌다 —
+      //   봇은 연락처가 «있으니» 정당하게 접수했고, 검사는 그걸 거짓 접수라 오판해
+      //   8/04부터 26회 연속 빨간불을 냈다(아무도 안 봄 — 알림 부재는 chat-smoke.yml 에서 고침).
+      //   TEST A 는 1문답이라 정상 동작(연락처 요청)이면 승격이 안 일어나 오염도 없다.
+      //   만약 연락처 없는 스레드가 승격된다면 그게 바로 이 검사가 잡아야 할 결함이다.
+      ...(contact ? { guest_name: "스모크 점검", guest_email: "smoke@healo-test.invalid" } : {}),
       // PIPA: /start·/stream 이 동의를 요구함(게이트). 스모크도 동의 포함해야 통과.
       consent: true,
       consent_version: "1.0.0",
@@ -118,9 +125,10 @@ async function main() {
   let passed = 0, total = 0;
 
   // TEST A: 연락처 없이 접수 → 거짓 접수완료 금지 + 연락처 요청
+  // (반드시 contact:false — 연락처가 있으면 접수 확인이 «정당»해져 검사 전제가 무너진다. 위 startThread 주석 참조)
   total++;
   try {
-    const t = await startThread();
+    const t = await startThread({ contact: false });
     const reply = await sendMessage(t, "접수해줘");
     const asksContact = /(연락처|이메일|메신저|email|messenger|telegram|whatsapp)/i.test(reply);
     const falseConfirm = /(접수됐|접수\s*완료|접수해\s*드렸|등록되었|등록됐|registered)/.test(reply);

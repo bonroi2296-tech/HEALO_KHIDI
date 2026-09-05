@@ -10,6 +10,7 @@ import CancerDetailClient from "./CancerDetailClient";
 import {
   CANCER_DETAILS,
   CANCER_IMAGES,
+  CANCER_FAQ,
 } from "@/lib/data/immuneCancerDetails";
 import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
@@ -74,6 +75,7 @@ export async function generateMetadata({ params }) {
     const ogImg = CANCER_IMAGES.healGraph;
     // 전환 의도 키워드(가격·비자·이동) — GROWTH_PLAN 리서치 기반. 문법 안전한 일반형만
     // (암종명 보간은 러시아어 격변화가 깨질 수 있어 생략). 카자흐=Google, 러시아=Yandex 타겟.
+    const alt = await localeAlternates();
     const keywords = [
       // 암종별 고의도(전환↑) — 시트 §"По типу рака"
       ...(CANCER_KEYWORDS[slug] || []),
@@ -95,11 +97,13 @@ export async function generateMetadata({ params }) {
       title,
       description,
       keywords,
-      alternates: (await localeAlternates()) || undefined,
+      alternates: alt || undefined,
       openGraph: {
         title,
         description,
-        url: `/treatments/${slug}`,
+        // canonical 과 같은 주소를 써야 한다 — 상대경로를 직접 쓰면 언어 코드가 빠진다
+        // (2026-08-28 실측: og:url 만 /treatments/lung 로 나가 canonical 과 어긋났다).
+        url: alt?.canonical || `/treatments/${slug}`,
         type: "article",
         images: [{ url: ogImg }],
       },
@@ -150,8 +154,29 @@ export async function generateMetadata({ params }) {
   };
 }
 
+/**
+ * 질문-답변 표식(FAQPage) — 화면의 7번 FAQ 칸에 실제로 뜨는 것과 «같은 소스·같은 언어 해석»을 쓴다.
+ * (CancerDetailClient 의 `CANCER_FAQ[slug] || CANCER_FAQ.etc` + `faq.q[lang] || faq.q.ko` 와 동일)
+ * 화면과 다른 걸 적으면 구글이 리치결과를 안 줄 뿐 아니라 AI 답변에도 안 실린다 — /faq 와 같은 원칙.
+ */
+function cancerFaqLd(slug, lang) {
+  const faqs = CANCER_FAQ[slug] || CANCER_FAQ.etc;
+  if (!Array.isArray(faqs) || faqs.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q?.[lang] || f.q?.ko,
+      acceptedAnswer: { "@type": "Answer", text: f.a?.[lang] || f.a?.ko },
+    })),
+  };
+}
+
 export default async function TreatmentDetailPage({ params, searchParams }) {
   const { slug } = await params;
+  // 요청 언어 — 아래 두 분기(암종 / DB 치료)가 같이 쓴다(구조화데이터 주소에 언어를 붙이려고).
+  const { locale } = await getRequestLocale();
 
   // ── 암종 페이지 분기 ────────────────────────────────
   if (CANCER_SLUGS.includes(slug)) {
@@ -185,18 +210,27 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       },
     };
 
-    const breadcrumb = breadcrumbLd([
-      { name: "Home", url: "/" },
-      { name: "Treatments", url: "/treatments" },
-      { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
-    ]);
+    // 빵부스러기 주소에 언어를 붙인다 — canonical 이 /{언어}/treatments/… 인데 여기만
+    // 맨 주소면 같은 페이지를 두 주소로 말하게 된다(맨 주소는 308 로 튕긴다).
+    const breadcrumb = breadcrumbLd(
+      [
+        { name: "Home", url: "/" },
+        { name: "Treatments", url: "/treatments" },
+        { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
+      ],
+      locale,
+    );
+
+    const faqLd = cancerFaqLd(slug, locale || "en");
 
     const content = (
       <>
         <script
           id="cancer-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([jsonLd, breadcrumb, faqLd].filter(Boolean)),
+          }}
         />
         <CancerDetailClient slug={slug} />
       </>
@@ -218,7 +252,8 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     : null;
   if (!treatment) notFound();
   const baseUrl = getBaseUrl();
-  const canonical = `${baseUrl}/treatments/${treatment.slug || slug}`;
+  // canonical(=alternates)이 /{언어}/treatments/… 이므로 구조화데이터도 같은 주소를 쓴다.
+  const canonical = `${baseUrl}${locale ? `/${locale}` : ""}/treatments/${treatment.slug || slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "MedicalProcedure",
@@ -245,11 +280,14 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     areaServed: "KR",
     priceRange: treatment.price || undefined,
   };
-  const treatmentBreadcrumb = breadcrumbLd([
-    { name: "Home", url: "/" },
-    { name: "Treatments", url: "/treatments" },
-    { name: treatment.title, url: `/treatments/${treatment.slug || slug}` },
-  ]);
+  const treatmentBreadcrumb = breadcrumbLd(
+    [
+      { name: "Home", url: "/" },
+      { name: "Treatments", url: "/treatments" },
+      { name: treatment.title, url: `/treatments/${treatment.slug || slug}` },
+    ],
+    locale,
+  );
   const content = (
     <>
       <script

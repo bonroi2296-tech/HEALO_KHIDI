@@ -9,7 +9,7 @@
  * ⚠️ 읽기전용 — 진료의뢰 패킷 「검수완료/정정 발송」 같은 쓰기 액션은 의사·어드민(/admin/chat)에서만.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   MessageSquare, Paperclip, FileText, Image as ImageIcon,
   Clock, RefreshCw, User, Bot, Headset, Inbox, CheckCircle2, ArrowRight,
@@ -18,6 +18,8 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
+import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -163,23 +165,17 @@ export default function CoordinatorChatPage() {
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
 
-  // 딥링크: 품질 경고 알림 등에서 ?thread=<id> 로 들어오면 해당 대화를 바로 연다.
-  // (useSearchParams 대신 window 사용 — Suspense 경계 불필요, 최초 1회만)
-  const deepLinked = useRef(false);
-  useEffect(() => {
-    if (deepLinked.current || loading) return;
-    deepLinked.current = true;
-    const id = new URLSearchParams(window.location.search).get("thread");
-    if (!id) return;
-    // 목록(최근 100개)에 없어도 id 만으로 메시지는 열린다.
-    openThread(threads.find((t) => t.id === id) || { id });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, threads]);
+  // 딥링크: 알림(품질 경고 등)에서 ?thread=<id> 로 들어오면 그 대화를 바로 연다.
+  // 목록(최근 100개)에 없어도 id 만으로 메시지는 열린다.
+  useDeepLinkParam("thread", (id) => openThread(threads.find((t) => t.id === id) || { id }), {
+    ready: !loading,
+  });
 
   const openThread = async (thread) => {
     setSelected(thread);
     setMessages([]);
     setLoadingMsgs(true);
+    scrollToTopOnNarrow(); // 폰: 목록을 한참 내려서 눌렀어도 상세는 맨 위에 그려진다
     try {
       const token = await getToken();
       const res = await fetch(`/api/admin/chat/threads/${thread.id}/messages`, {
@@ -294,8 +290,12 @@ export default function CoordinatorChatPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 스레드 목록 */}
-        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {/* 스레드 목록
+            폰(1단 배치)에선 대화를 고르면 목록을 접고 상세만 보인다. 예전엔 상세가 목록 «아래»에
+            그려져서, 눌러도 첫 화면이 그대로라 「조회가 안 된다」로 보였다 (2026-08-28 PO 제보). */}
+        <div className={`lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden ${
+          selected ? "hidden lg:block" : ""
+        }`}>
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> {L.chLoading}
@@ -352,6 +352,7 @@ export default function CoordinatorChatPage() {
         </div>
 
         {/* 대화 상세 */}
+        {/* 상세 칸은 폰에서도 숨기지 않는다 — 아무것도 안 골랐을 땐 「검토 대기 큐」 자리다. */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh]">
           {!selected ? (
             // 빈 화면 → 검토 대기 큐로 공백 활용
@@ -426,7 +427,7 @@ export default function CoordinatorChatPage() {
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-xs text-gray-500 hover:text-gray-600 shrink-0"
+                  className="text-xs text-gray-600 hover:text-gray-800 shrink-0 px-2.5 py-2 -my-1 rounded-lg border border-gray-200 lg:border-transparent hover:bg-gray-50"
                 >
                   ← {L.chBackToList}
                 </button>

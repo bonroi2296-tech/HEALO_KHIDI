@@ -10,6 +10,7 @@ import {
   CheckCircle, Clock, ChevronDown,
 } from 'lucide-react';
 import EmergencyNumbers from '@/components/EmergencyNumbers';
+import ProgressUploadCard from './ProgressUploadCard';
 
 // DB urgency_level 코드 → 표시 라벨 키(중앙 사전) + 색상 클래스
 const URGENCY_STYLE = {
@@ -151,6 +152,9 @@ export default function SymptomsClient() {
               <div className="flex-1 space-y-2">
                 <input
                   type="text"
+                  // 자동 검사가 «화면의 첫 입력칸» 대신 이걸로 고른다 — 첫 매치는 내가 노린 칸이
+                  // 아닐 수 있고, 안내문으로 찾으면 한국어가 아닌 화면에서 못 찾는다(2026-08-25).
+                  data-testid="symptom-name"
                   value={symptom.name}
                   onChange={(e) => updateSymptom(index, 'name', e.target.value)}
                   placeholder={t('patientSymptoms.placeholders.name', lang)}
@@ -212,6 +216,7 @@ export default function SymptomsClient() {
             {t('patientSymptoms.addSymptom', lang)}
           </button>
           <button
+            data-testid="symptom-submit"
             onClick={handleSubmit}
             disabled={submitting || symptoms.every(s => !s.name.trim())}
             className="flex items-center gap-2 px-5 py-2.5 bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
@@ -324,6 +329,9 @@ export default function SymptomsClient() {
           </div>
         </div>
       )}
+
+      {/* 검사결과·경과 올리기 (ICT ④) — 증상 기록과 같은 사후관리 화면에 둔다 */}
+      <ProgressUploadCard />
 
       {/* Previous Reports toggle */}
       <button

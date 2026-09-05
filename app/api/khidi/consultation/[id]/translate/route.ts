@@ -27,11 +27,18 @@ export async function POST(
     if (!access.success) return access.response;
 
     const payload = await request.json();
-    if (!payload.originalText || !payload.sourceLanguage || !payload.targetLanguage) {
+    // 실시간 통역(agents/live-translate)은 «번역된 자막»만 주고 원문을 안 준다.
+    // 그래서 원문·번역 중 하나만 있어도 받는다 — 2026-08-28 이전엔 원문을 필수로 요구해
+    // 통역봇 자막이 저장 자체를 못 했다(실측: 자막 3,553건 중 이 경로 0건).
+    if (
+      (!payload.originalText && !payload.translatedText) ||
+      !payload.sourceLanguage ||
+      !payload.targetLanguage
+    ) {
       return Response.json(
         {
           ok: false,
-          error: "originalText, sourceLanguage, targetLanguage are required",
+          error: "originalText or translatedText, and sourceLanguage, targetLanguage are required",
         },
         { status: 400 }
       );
@@ -64,8 +71,17 @@ export async function POST(
           // 「어느 받아쓰기가 만든 줄인가」 — 아는 값만 통과(모르는 값이 섞이면 이 칸으로
           // 재는 숫자가 통째로 못 쓰게 된다). 이 라우트는 맞장구 사전 경로가 기본.
           stt_engine: normalizeSttEngine(payload.sttEngine) ?? STT_ENGINES.BACKCHANNEL,
+          // 「말한 시각」을 받는다. 안 주면 서버 시각(now)으로 남는데, 그러면 줄마다
+          // «저장까지 걸린 시간»만큼 뒤로 밀려 회의록 순서가 어긋난다. 실시간 통역 줄은
+          // 조각이 다 붙기를 기다렸다 저장하므로(최대 6초) 특히 크게 밀린다(2026-08-28).
+          // ⚠️ 클라이언트 값이므로 그대로 믿지 않는다 — 지금 기준 ±10분을 벗어나면 버린다.
+          ...(() => {
+            const t = Date.parse(payload.spokenAt ?? "");
+            const ok = Number.isFinite(t) && Math.abs(Date.now() - t) <= 10 * 60 * 1000;
+            return ok ? { created_at: new Date(t).toISOString() } : {};
+          })(),
           ...encryptTranscriptRow({
-            sourceText: payload.originalText,
+            sourceText: payload.originalText || null,
             translatedText: payload.translatedText || null,
             speakerName: String(payload.speakerName || "").trim().slice(0, 80) || null,
           }),
@@ -88,7 +104,7 @@ export async function POST(
     delete row.translated_text_encrypted;
     return Response.json({
       ok: true,
-      data: { ...row, source_text: payload.originalText, translated_text: payload.translatedText || null },
+      data: { ...row, source_text: payload.originalText || null, translated_text: payload.translatedText || null },
     });
   } catch (error: any) {
     console.error("[api/khidi/consultation/translate] Exception:", error?.message);
@@ -122,6 +138,10 @@ export async function GET(
       .from("consultation_translations")
       .select("*", { count: "exact" })
       .eq("session_id", consultationId)
+      // 화면의 「번역 기록」은 확정 자막만 본다. 중간 자막(is_partial)은 같은 발화의
+      // 앞토막이 여러 줄이라 섞으면 기록 패널이 같은 말로 도배된다 — DB 에는 남기되
+      // (품질 측정용, 2026-09-01 PO 지시) 화면엔 안 올린다.
+      .eq("is_partial", false)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 

@@ -191,7 +191,7 @@ export default function KoreanMedicineClient() {
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-700 transition mb-1">{item.title}</h3>
+                      <h3 className="text-[clamp(24px,2.5vw,32px)] font-bold text-gray-900 group-hover:text-emerald-700 transition mb-1">{item.title}</h3>
                       {item.hospitalName && (
                         <p className="text-xs text-gray-500">{item.hospitalName}</p>
                       )}

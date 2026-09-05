@@ -93,7 +93,11 @@ export async function GET(request: NextRequest) {
       const kstToday = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-      const [snap, sessions, surveys] = await Promise.all([
+      // AI 챗 감시는 30일이 아니라 7일 창으로 본다 — 답변·채점은 매일 수십 건 나오므로
+      // 30일이면 «어제 죽었어도» 옛 건수에 묻혀 경보가 안 뜬다(감시 지연 = 감시 부재).
+      const sinceAi = new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+      const [snap, sessions, surveys, aiReplies, aiEvals, aiFlagged, aiAlerts, aiJudgeCalls] = await Promise.all([
         (supabaseAdmin as any)
           .from("kpi_snapshots")
           .select("snapshot_date")
@@ -115,6 +119,39 @@ export async function GET(request: NextRequest) {
           .from("surveys")
           .select("id", { count: "exact", head: true })
           .gte("sent_at", since),
+        // ── AI 챗 파수꾼 3종 (2026-08-28) ──────────────────────────────
+        // ①답변은 나가는데 채점 0 = 판사 죽음  ②표시는 붙는데 알림 0 = 통보 경로 죽음.
+        // 둘 다 화면상 「정상」과 구별이 안 돼 사람 눈으로는 영영 안 보인다.
+        (supabaseAdmin as any)
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("actor_type", "system")
+          // ⚠️ 가로챈 턴(잡담·화제정정·마스터키)은 «빼고» 센다. 그 답변들은 모델을 안 거치므로
+          //    판사도 안 돈다 — 같이 세면 「인사만 잔뜩 들어온 주」에 답변 많음 + 채점 0 이 되어
+          //    판사가 멀쩡한데 critical 경보가 뜬다(오탐). 늑대소년은 감시를 죽인다(#112 근본원인 2).
+          .is("metadata->>bypassed", null)
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("ai_response_evaluations")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("ai_response_evaluations")
+          .select("id", { count: "exact", head: true })
+          .neq("flags", "{}")
+          .gte("created_at", sinceAi),
+        (supabaseAdmin as any)
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("type", "ai_quality_alert")
+          .gte("created_at", sinceAi),
+        // ③판사를 «불렀는데» 채점이 안 남는다 = 조용한 실패.
+        //    surface='judge' 는 라이브 채점만이다(자가시험은 'regression_judge' 로 따로 기록).
+        (supabaseAdmin as any)
+          .from("ai_usage_events")
+          .select("id", { count: "exact", head: true })
+          .eq("surface", "judge")
+          .gte("created_at", sinceAi),
       ]);
 
       const deadman = evaluateDeadman({
@@ -122,6 +159,11 @@ export async function GET(request: NextRequest) {
         latestSnapshotDate: snap?.data?.snapshot_date ?? null,
         completedSessions: sessions?.count ?? 0,
         surveysSent: surveys?.count ?? 0,
+        aiReplies: aiReplies?.count ?? 0,
+        aiEvaluations: aiEvals?.count ?? 0,
+        aiFlagged: aiFlagged?.count ?? 0,
+        aiQualityAlertsSent: aiAlerts?.count ?? 0,
+        aiJudgeCalls: aiJudgeCalls?.count ?? 0,
       });
       if (deadman.length > 0) {
         console.warn(
@@ -172,14 +214,21 @@ export async function GET(request: NextRequest) {
       }
 
       const rows = list.map((r) => ({ id: r.id, accountEmail: emailByUser.get(r.user_id) ?? null }));
-      const ignore = new Set(
-        (process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
+      // 「진짜 케이스인데 시험 계정으로 접수된 것」은 실적에서 빼면 안 된다 — 예외로 둔다.
+      //   #37 첫 실고객(agency@test.com · 2026-07-07) · #60 세브란스 소견 요청(patient@test.com · 2026-08-01)
+      //   2026-08-27 실DB 전수 조회: 이 조건(is_test=false + 계정이 시험 도메인)에 걸리는 문의는 이 둘뿐이다.
+      //   왜 env 가 아니라 여기 적나: env 값은 콘솔에서 암호화돼 보이지 않아 «왜 예외인지»가 사라진다.
+      //   #60 이 env 에 빠져 있어 같은 경보가 9일간 매일 울렸다(2026-08-27 확인). env 로도 더 넣을 수 있다(합집합).
+      const KNOWN_INTENTIONAL_IDS = [37, 60];
+      const ignore = new Set([
+        ...KNOWN_INTENTIONAL_IDS,
+        ...(process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean) // 빈 env → [""] → Number("")=0 오염 방지(빈 문자열 먼저 제거)
           .map(Number)
-          .filter((n) => Number.isFinite(n))
-      );
+          .filter((n) => Number.isFinite(n)),
+      ]);
       const polluted = findTestPollutedInquiryIds(rows, resolveTestDomains()).filter((id) => !ignore.has(id));
 
       if (polluted.length > 0) {

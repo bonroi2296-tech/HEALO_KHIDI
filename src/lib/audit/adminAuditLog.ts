@@ -47,6 +47,9 @@ export type AdminAuditAction =
   | "PROCESS_DELETION_REQUEST"
   // consultations (원격협진) — 2026-07-24 권한 감사 C 보완: 발급 격리 대신 추적성
   | "CREATE_CONSULTATION_INVITE"
+  // 환자 교육자료 (2026-08-25 신설 — 환자에게 나가는 글이라 누가 언제 고쳤는지 남긴다)
+  | "CREATE_EDUCATION_CONTENT"
+  | "UPDATE_EDUCATION_CONTENT"
   // misc
   | "UPLOAD_IMAGE"
   | "UNAUTHORIZED_ADMIN_ACCESS";
@@ -190,6 +193,10 @@ export const AUDIT_METADATA_ALLOWED_KEYS = [
   "invite_role",
   "max_uses",
   "email_sent",
+  // ✅ 환자 교육자료 편집 추적 (2026-08-25). education_id 는 uuid, cancer_type 은 분류값 — 둘 다 PII 아님.
+  //    미등록이면 sanitize 가 조용히 드롭해 «누가 뭘 고쳤는지»가 통째로 빈다(위 C1 과 같은 함정).
+  "education_id",
+  "cancer_type",
 ] as const;
 
 /**

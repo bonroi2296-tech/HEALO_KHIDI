@@ -12,7 +12,7 @@
  * 쓴다(코디가 편집기로 문구를 고치면 여기도 같이 바뀐다). 빈 칸은 숨기지 않고 «비어 있음»으로 세운다 —
  * 코디가 «뭘 더 받아야 하나»를 이 카드 하나로 보게.
  */
-import { SECTIONS, lab } from "@/lib/inquiry/referralSchema";
+import { SECTIONS, lab, ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import { kindLabel } from "@/lib/inquiry/docKinds";
 import { stageLabel } from "@/lib/inquiry/intakeLabels";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
@@ -38,6 +38,19 @@ const UI = {
   unknownKind: { ko: "종류 미확인", en: "type not identified", ru: "тип не определён", kz: "түрі анықталмаған", zh: "类型未识别", ja: "種類未特定" },
   // 라벨 없는 딸린 칸(고르기 밑 설명 글칸)의 이름
   noteOf:  { ko: "{f} — 설명", en: "{f} — notes", ru: "{f} — пояснение", kz: "{f} — түсініктеме", zh: "{f} — 说明", ja: "{f} — 補足" },
+  // 서류에서 빈 칸을 메우는 기능(2026-09-04 PO)
+  scan:      { ko: "빈 칸을 서류에서 찾기", en: "Fill blanks from documents", ru: "Заполнить пустые поля из документов", kz: "Бос өрістерді құжаттардан толтыру", zh: "从资料中补全空白项", ja: "空欄を書類から補う" },
+  scanAgain: { ko: "다시 찾기", en: "Search again", ru: "Искать снова", kz: "Қайта іздеу", zh: "重新查找", ja: "もう一度探す" },
+  scanning:  { ko: "서류 읽는 중… ({d}/{t})", en: "Reading documents… ({d}/{t})", ru: "Чтение документов… ({d}/{t})", kz: "Құжаттар оқылуда… ({d}/{t})", zh: "正在读取资料…（{d}/{t}）", ja: "書類を読んでいます…（{d}/{t}）" },
+  fromDoc:   { ko: "서류에서", en: "from document", ru: "из документа", kz: "құжаттан", zh: "来自资料", ja: "書類から" },
+  scanNote:  { ko: "기계가 서류에서 읽은 값입니다 — 원본과 대조한 뒤 저장해 주세요. 아직 저장 전입니다.", en: "Read from the documents by machine — check against the originals, then save. Not saved yet.", ru: "Прочитано из документов машиной — сверьте с оригиналами и сохраните. Пока не сохранено.", kz: "Машина құжаттардан оқыды — түпнұсқамен салыстырып, сақтаңыз. Әлі сақталмаған.", zh: "由机器从资料中读取 — 与原件核对后请保存。尚未保存。", ja: "機械が書類から読み取った値です — 原本と照合してから保存してください。まだ保存されていません。" },
+  saveFill:  { ko: "이 값으로 채우기", en: "Save these values", ru: "Сохранить эти значения", kz: "Осы мәндерді сақтау", zh: "保存这些值", ja: "この値で保存" },
+  saving:    { ko: "저장하는 중…", en: "Saving…", ru: "Сохранение…", kz: "Сақталуда…", zh: "正在保存…", ja: "保存中…" },
+  savedFrom: { ko: "서류에서 채움", en: "filled from document", ru: "заполнено из документа", kz: "құжаттан толтырылған", zh: "从资料补全", ja: "書類から補完" },
+  scanNone:  { ko: "붙어 있는 서류가 없습니다.", en: "No documents attached.", ru: "Документов нет.", kz: "Құжат жоқ.", zh: "没有附件资料。", ja: "添付書類がありません。" },
+  scanFail:  { ko: "서류를 읽지 못했습니다. 잠시 뒤 다시 눌러주세요.", en: "Could not read the documents. Try again shortly.", ru: "Не удалось прочитать документы. Попробуйте позже.", kz: "Құжаттарды оқу мүмкін болмады. Кейінірек қайталаңыз.", zh: "无法读取资料，请稍后重试。", ja: "書類を読み取れませんでした。しばらくして再度お試しください。" },
+  scanFound: { ko: "서류 {n}건을 읽어 빈 칸 {m}개를 찾았습니다", en: "Read {n} documents, found {m} blank fields", ru: "Прочитано документов: {n}, найдено пустых полей: {m}", kz: "{n} құжат оқылды, {m} бос өріс табылды", zh: "已读取{n}份资料，补全{m}个空白项", ja: "{n}件の書類から空欄{m}件を見つけました" },
+  glossary:  { ko: "이 말이 무슨 뜻이냐면", en: "What these terms mean", ru: "Что означают эти термины", kz: "Бұл терминдер нені білдіреді", zh: "这些术语的含义", ja: "この言葉の意味" },
 };
 const ui = (k, lang, vars) => {
   let s = UI[k]?.[lang] || UI[k]?.en || "";
@@ -58,27 +71,53 @@ function display(f, v, lang) {
   if (f.type === "stage") return stageLabel(v, lang) || String(v);
   if (f.type === "cancerType") return cancerTypeLabelL(v, lang) || String(v);
   if (f.type === "check") return v ? "✓" : null;
-  if (f.type === "icdSuggest") return v === "unknown" ? null : String(v);
+  // 폼이 저장하는 값은 `__unknown__` 이다(ReferralForm 의 icdSuggest 칸).
+  // `unknown` 만 걸러내던 탓에 환자가 「모르겠습니다」를 고르면 코디 화면에 `__unknown__` 이 날것으로 떴다.
+  if (f.type === "icdSuggest") return v === "__unknown__" || v === "unknown" ? null : String(v);
   return String(v);
 }
 
-export default function ReferralSection({ referral, lang }) {
+/**
+ * @param scan   null | {loading, done, total} | {data:{fields, from, glossary, readCount}} | {error}
+ * @param onScan 「빈 칸을 서류에서 찾기」를 눌렀을 때. 판독·합치기는 부모가 한다.
+ */
+export default function ReferralSection({ referral, lang, scan, onScan, onSaveScan, saving }) {
   if (!referral || referral.version !== "referral_v1") return null;
 
-  const rows = [];   // { sec, label, value }
-  let filled = 0, empty = 0;
+  // 서류에서 읽어 온 값. 환자가 «이미 적은» 칸은 여기서도 안 건드린다 — 빈 칸에만 얹는다
+  // (2026-09-04 PO: 「빠진거만 다시 읽게 하거나」).
+  const scanned = scan?.data?.fields || {};
+  const scannedFrom = scan?.data?.from || {};
+  // 지난번에 서류에서 채워 «저장한» 칸의 출처 (창구가 intake_data._filledFromDocs 에 남긴다).
+  const savedMarks = referral._filledFromDocs && typeof referral._filledFromDocs === "object" ? referral._filledFromDocs : {};
+
+  const rows = [];   // { sec, label, value, guess, from }
+  let filled = 0, empty = 0, guessed = 0;
   for (const sec of SECTIONS) {
     if (sec.id === DOC_SECTION) continue;
     for (const f of sec.fields) {
       if (SHOWN_ELSEWHERE.has(f.name)) continue;
       if (f.type === "note") continue;
-      if (f.showIf && !f.showIf(referral)) continue;
+      // showIf 는 «환자가 채우는 화면»의 규칙이다(예: 과거력을 하나도 안 골랐으면 설명 칸을 안 연다).
+      // 읽는 화면에서까지 그대로 적용하면 «값이 있는데 안 보이는 칸»이 생긴다 — 2026-09-04 실측:
+      // 서류에서 pastHistoryNote 를 채워 저장했는데 화면에 안 떠서 「어디 갔지」가 됐다.
+      // 값이 있으면(저장분이든 서류에서 찾은 것이든) 조건을 무시하고 보여준다.
+      const hasAnything = !isEmpty(referral[f.name]) || !isEmpty(scanned[f.name]);
+      if (f.showIf && !f.showIf(referral) && !hasAnything) continue;
       const shown = display(f, referral[f.name], lang);
       if (shown) filled++; else empty++;
+      // 비어 있는 칸에만 서류에서 읽은 값을 얹는다. 판독기 칸 이름은 의뢰서 스키마와 같다.
+      // 예외는 «모으는 칸»이다 — 서류가 늘면 검사 목록도 길어져야 하므로, 이미 값이 있어도
+      // 새로 읽은 것이 «다르면» 보여준다. 안 그러면 첫 서류에서 들어간 한 줄이 영영 남는다.
+      const fresh = !isEmpty(scanned[f.name]) ? display(f, scanned[f.name], lang) : null;
+      const guess = fresh && (!shown || (ACCUMULATE_FIELDS.has(f.name) && fresh !== shown)) ? fresh : null;
+      if (guess) guessed++;
       // 라벨 없는 칸(예: 병력 설명 글칸)은 «바로 앞 칸 이름 — 설명»으로 부른다
       let label = lab(f.label, lang);
       if (!label) { const prev = rows[rows.length - 1]; label = ui("noteOf", lang, { f: prev?.label || "" }); }
-      rows.push({ sec: lab(sec.title, lang), label, value: shown });
+      // 저장까지 된 값이면 「누가 적었나」를 계속 밝힌다 — 기계가 읽은 값과 환자가 적은 값은 무게가 다르다.
+      const savedFrom = shown ? savedMarks[f.name] : null;
+      rows.push({ sec: lab(sec.title, lang), label, value: shown, guess, savedFrom, from: guess ? scannedFrom[f.name] : null });
     }
   }
 
@@ -89,10 +128,56 @@ export default function ReferralSection({ referral, lang }) {
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-base font-bold text-gray-900">{ui("title", lang)}</h2>
-        <span className="text-xs text-gray-500 tabular-nums">{ui("filled", lang, { n: filled, m: empty })}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 tabular-nums">{ui("filled", lang, { n: filled, m: empty })}</span>
+          {/* 서류가 붙어 있으면 «빈 칸만» 서류에서 찾아 준다. 파일마다 누르지 않게(2026-09-04 PO). */}
+          {onScan && empty > 0 && (
+            <button
+              type="button"
+              onClick={onScan}
+              disabled={scan?.loading}
+              className="inline-flex items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-100 disabled:opacity-50"
+            >
+              {scan?.loading && (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+              )}
+              {scan?.loading
+                ? ui("scanning", lang, { d: scan.done ?? 0, t: scan.total ?? 0 })
+                : scan?.data ? ui("scanAgain", lang) : ui("scan", lang)}
+            </button>
+          )}
+        </div>
       </div>
       {referral.mode === "quick" && (
         <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{ui("quick", lang)}</p>
+      )}
+
+      {scan?.error && (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {scan.error === "no_docs" ? ui("scanNone", lang) : ui("scanFail", lang)}
+        </p>
+      )}
+      {scan?.data && (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-teal-800">
+              {ui("scanFound", lang, { n: scan.data.readCount, m: guessed })}
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-600">{ui("scanNote", lang)}</p>
+          </div>
+          {/* 저장해야 남는다 — 안 그러면 새로고침마다 다시 읽혀야 하고 남이 열면 안 보인다(2026-09-04 PO). */}
+          {onSaveScan && guessed > 0 && (
+            <button
+              type="button"
+              onClick={onSaveScan}
+              disabled={saving}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:opacity-50"
+            >
+              {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />}
+              {saving ? ui("saving", lang) : ui("saveFill", lang)}
+            </button>
+          )}
+        </div>
       )}
 
       {/* 묶음별 표 — 의뢰서 화면과 같은 순서 */}
@@ -109,15 +194,50 @@ export default function ReferralSection({ referral, lang }) {
               {g.rows.map((r) => (
                 <div key={r.label} className="flex gap-3 py-1.5 text-sm">
                   <dt className="w-44 shrink-0 text-gray-500">{r.label}</dt>
-                  <dd className={`min-w-0 break-words whitespace-pre-wrap ${r.value ? "text-gray-900" : "text-gray-500 italic"}`}>
-                    {r.value ?? ui("empty", lang)}
-                  </dd>
+                  {/* 세 가지 상태: ①환자가 적음 ②비었는데 서류에서 찾음 ③그냥 빔.
+                      ②는 «환자가 적은 값»과 눈으로 구별돼야 한다 — 색과 배지로 가른다. */}
+                  {r.value ? (
+                    <dd className="min-w-0 break-words whitespace-pre-wrap text-gray-900">
+                      {r.value}
+                      {r.savedFrom && (
+                        <span className="ml-1.5 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">
+                          {ui("savedFrom", lang)} · {r.savedFrom}
+                        </span>
+                      )}
+                    </dd>
+                  ) : r.guess ? (
+                    <dd className="min-w-0 break-words whitespace-pre-wrap text-teal-900">
+                      {r.guess}
+                      <span className="ml-1.5 whitespace-nowrap rounded bg-teal-100 px-1.5 py-0.5 text-[11px] font-medium text-teal-800">
+                        {ui("fromDoc", lang)}
+                      </span>
+                      {r.from && <span className="ml-1 text-[11px] text-gray-500">{r.from}</span>}
+                    </dd>
+                  ) : (
+                    <dd className="min-w-0 italic text-gray-500">{ui("empty", lang)}</dd>
+                  )}
                 </div>
               ))}
             </dl>
           </div>
         ));
       })()}
+
+      {/* 코디는 의료인이 아니다 — 읽어 온 서류에 나온 용어가 «무엇인지»만 풀어 준다(2026-09-04 PO).
+          🛑 «이 환자에게 무슨 뜻인지»는 담지 않는다 — 그건 의료 조언이다. */}
+      {scan?.data?.glossary?.length > 0 && (
+        <section className="mt-4 rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2.5">
+          <p className="mb-1.5 text-xs font-bold text-teal-800">{ui("glossary", lang)}</p>
+          <dl className="space-y-1">
+            {scan.data.glossary.map((g, i) => (
+              <div key={i} className="text-xs">
+                <dt className="inline font-semibold text-teal-900">{g.term}</dt>
+                <dd className="inline text-gray-700"> — {g.plain}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {/* 서류 — 종류(AI 추정 또는 사람이 고친 값)·크기·200MB 초과 시 링크. 열람은 첨부 카드에서. */}
       {(env.length > 0 || cd) && (

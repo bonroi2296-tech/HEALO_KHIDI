@@ -37,10 +37,14 @@ export default function CoordinatorInboxPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
+  // 시연·점검용. 기본은 꺼짐 = 평소 화면 그대로(시험 문의는 안 보인다).
+  const [showTest, setShowTest] = useState(false);
+  // 최근 24시간에 시험으로 분류돼 «숨은» 건수. 숨기는 건 맞지만 숨겼다는 사실은 보여야 한다.
+  const [hiddenTest, setHiddenTest] = useState(0);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [showTest]);
 
   async function load() {
     setLoading(true);
@@ -50,16 +54,48 @@ export default function CoordinatorInboxPage() {
 
     try {
       // inquiries 는 service_role 전용 RLS → 서버 API 경유 (이름은 복호화+마스킹돼서 옴)
-      const res = await fetch("/api/portal/inbox", {
+      const res = await fetch(`/api/portal/inbox${showTest ? "?includeTest=1" : ""}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const result = await res.json();
       if (!res.ok || !result.ok) throw new Error(result.error || "fetch_failed");
       setItems(result.items || []);
+      setHiddenTest(result.hiddenTestCount || 0);
     } catch (e) {
       console.error("[inbox] fetch error:", e);
     }
     setLoading(false);
+  }
+
+  /**
+   * 「시험」 표시를 떼어 진짜 문의로 되돌린다.
+   * 접수 시점 판정이 틀리는 경우가 실제로 있어서 사람이 고칠 길을 둔다(2026-09-02 PO 요청).
+   * 실적 집계가 걸린 값이라 되묻고 나서 바꾼다.
+   */
+  async function markReal(id) {
+    if (!window.confirm(
+      `문의 #${id} 의 「시험」 표시를 뗍니다.\n\n` +
+      `코디 목록에 그대로 남고, KHIDI 실적에도 잡히게 됩니다.`
+    )) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch(`/api/coordinator/inquiries/${id}/test-flag`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ isTest: false }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j?.error || "failed");
+      load();
+    } catch (e) {
+      console.error("[inbox] test-flag error:", e);
+      window.alert("표시를 바꾸지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
   }
 
   const filtered = items.filter((item) => {
@@ -80,12 +116,35 @@ export default function CoordinatorInboxPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">{L.inboxSubtitle}</p>
         </div>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
-        >
-          <RefreshCw size={16} /> {L.refresh}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 숨긴 건 맞지만 «숨겼다는 사실»은 보여야 한다 — 안 그러면 「접수가 안 됐다」로 읽힌다.
+              (2026-09-02: 진짜 환자 문의 #291 이 회사 도메인 연락처 탓에 시험으로 찍혀 통째로 사라졌다) */}
+          {!showTest && hiddenTest > 0 && (
+            <button
+              onClick={() => setShowTest(true)}
+              className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition"
+              title="시험으로 분류돼 목록에서 빠진 문의입니다. 눌러서 함께 보기"
+            >
+              최근 24시간에 시험으로 분류돼 숨은 문의 {hiddenTest}건
+            </button>
+          )}
+          {/* 시연·점검용 — 켜면 시험 문의도 함께 보인다(각 줄에 「시험」 표가 붙는다). */}
+          <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showTest}
+              onChange={(e) => setShowTest(e.target.checked)}
+              className="accent-teal-700"
+            />
+            시험 문의 보기
+          </label>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
+          >
+            <RefreshCw size={16} /> {L.refresh}
+          </button>
+        </div>
       </div>
 
       {/* 필터 탭 */}
@@ -133,12 +192,12 @@ export default function CoordinatorInboxPage() {
           <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-xl">
+        <div data-testid="inbox-empty" className="text-center py-16 bg-gray-50 rounded-xl">
           <Inbox size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500">{L.inboxEmpty}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <div data-testid="inbox-table" className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
           {/* overflow-x-auto: 표가 6칸이라 폰(412px)에서는 874px 까지 벌어진다.
               예전에는 `overflow-hidden` 이라 넘친 칸(연락 방법·접수일 등)을 **옆으로 밀 수도 없어
               영영 못 봤다**(2026-08-04 실측). 이제 옆으로 밀어서 볼 수 있다. */}
@@ -168,6 +227,10 @@ export default function CoordinatorInboxPage() {
                 return (
                   <tr
                     key={item.id}
+                    // 자동 검사가 «글자» 대신 이걸로 고른다 — 이 줄은 링크가 아니라 행 클릭이라
+                    // a[href] 로 찾으면 0건이 나와 검사가 조용히 지나친다(2026-08-25).
+                    data-testid="inbox-row"
+                    data-inquiry-id={item.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
                     onClick={() => router.push(`/coordinator/inbox/${item.id}`)}
                   >
@@ -180,6 +243,17 @@ export default function CoordinatorInboxPage() {
                           {item.name || "—"}
                         </span>
                         {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
+                        {/* 누르면 「시험」 표시가 떨어져 진짜 문의로 돌아온다. 줄 전체가 상세로
+                            가는 클릭을 물고 있으므로 stopPropagation 이 없으면 상세로 튕긴다. */}
+                        {item.is_test && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markReal(item.id); }}
+                            title="시험으로 분류돼 목록에서 숨겨진 문의입니다. 누르면 표시가 떨어져 실적에도 잡힙니다."
+                            className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 shrink-0 transition"
+                          >
+                            시험 ✕
+                          </button>
+                        )}
                         {item.agency_id && (
                           <span
                             title={item.agency_name || L.agencyReferral}

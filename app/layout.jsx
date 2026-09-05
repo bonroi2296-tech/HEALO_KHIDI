@@ -1,15 +1,13 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
-import "./styles/healo-tokens.css";
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
-import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
+import { localeAlternates, OG_LOCALE, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
-import { LOCALES } from "@/lib/i18n/config";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
@@ -40,7 +38,8 @@ export async function generateMetadata() {
   // 언어화 안 된 요청(내부도구 등)은 alternates 생략 — 잘못된 canonical 방지.
   if (!locale) return baseMetadata;
   const alternates = await localeAlternates();
-  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US" };
+  // openGraph 를 따로 정의하지 않는 페이지용 기본 og:url (정의하는 페이지는 각자 넣는다).
+  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US", url: alternates?.canonical };
   return { ...baseMetadata, alternates, openGraph: og };
 }
 
@@ -169,8 +168,11 @@ export default async function RootLayout({ children }) {
   //    「본문은 베트남어인데 <html lang="en">」 이 된다. 그 불일치는 브라우저 자동번역을
   //    부르는 조건이고, 자동번역은 우리가 아직 못 닫은 NotFoundError 8건의 유력 용의자다
   //    (POSTMORTEMS #133). 6개 밖의 옛 쿠키는 en 으로 떨어뜨리는 게 맞다.
-  const ssrLang = LOCALES.includes(cookieLang) ? cookieLang : null;
-  const lang = (await headers()).get("x-locale") || ssrLang || "en";
+  // ⚠️ 그 판정(x-locale → LOCALES 검증 쿠키 → en)은 **여기 인라인으로 두지 않는다.**
+  //    <title> 을 만드는 localizedMeta 도 같은 순서를 써야 「본문은 러시아어인데 탭 제목만
+  //    영어」가 안 생기는데, 사본을 두면 한쪽만 고쳐진다(2026-08-31 실제로 그 상태였다).
+  //    → 단일 구현 = src/lib/i18n/metadata.js 의 getUiLocale(). 여기 다시 베끼지 마라.
+  const lang = await getUiLocale();
   // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();
@@ -183,7 +185,17 @@ export default async function RootLayout({ children }) {
   //    옛 언어 쿠키(vi 등)를 든 사용자도 하이드레이션 뒤엔 LangContext 가 그 언어로 바꾸므로
   //    그 사전이 없으면 글자가 빈칸이 된다. 서버 렌더 언어(6개)와 혼동 금지.
   const dictCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
-  const clientLangs = [lang, dictCookieLang]
+  // 백오피스(코디·어드민)는 공개 화면과 «다른 언어 쿠키»를 쓴다(healo_bo_lang, 기본 ko).
+  // 그 사전을 안 실어서 코디 화면의 일부 문구가 한국어 화면에도 영어로 떨어져 있었다
+  // (2026-09-04 실측: 의뢰서 카드 라벨이 「Date of Birth」·「MEDICAL HISTORY & MEDICATIONS」,
+  //  서류 종류가 「Other document」. 사전을 거치는 문구만 그랬고 화면 대부분은 멀쩡해서
+  //  「가끔 영어가 섞인다」로만 보였다).
+  // 🛑 쿠키가 «있을 때만» 더한다. 사전 하나가 100KB 라(2026-09-04 실측: 첫 화면 HTML 392KB 중
+  //    100KB) 없을 때 ko 를 기본으로 얹으면 러시아 환자까지 한국어 사전 100KB 를 받는다.
+  //    쿠키는 백오피스 레이아웃이 첫 진입에 심는다(app/coordinator·admin layout).
+  const boCookie = (await cookies()).get("healo_bo_lang")?.value;
+  const boLang = LANG_OPTIONS.some((l) => l.code === boCookie) ? boCookie : null;
+  const clientLangs = [lang, dictCookieLang, boLang]
     .filter((v, i, a) => v && a.indexOf(v) === i);
 
   return (
@@ -194,7 +206,7 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
-        {/* 안전영역(노치·상태표시줄·시스템 버튼줄) 여백 스위치가 보는 표식 2개.
+        {/* 안전영역(노치·상태표시줄·시스템 버튼줄) 여백 스위치가 보는 표식 3개.
             ① data-healo-native — 스토어 앱(Capacitor 웹뷰) 안인가. 앱은 라이브 사이트를 그대로
                웹뷰로 띄우는데, 웹뷰는 `display-mode: standalone` 에 안 걸리면서도 상태표시줄·노치
                밑에 내용을 그린다. 그래서 설치 PWA 와 달리 별도 표식이 필요하다.
@@ -202,14 +214,21 @@ export default async function RootLayout({ children }) {
             ② data-healo-os — 안드로이드인가. 아래쪽 여백만 이걸 본다: 안드로이드 브라우저는
                시스템 버튼줄을 이미 피해서 그려주는데도 앱 안 브라우저가 그 높이를 알려줘 빈 칸이 생긴다.
                아이폰은 보통 탭에서도 홈 인디케이터가 진짜로 덮으므로 손대지 않는다.
-            ⚠️ 첫 그림 «전에» 붙어야 헤더가 한 번 올라갔다 내려오는 깜빡임이 없다 → head 인라인. */}
+            ③ data-healo-google-native — 이 앱 판에 «네이티브 구글 로그인 부품»이 들어 있나.
+               웹은 배포 즉시 모든 앱에 반영되지만 부품은 앱을 새로 구워야 들어간다 → 그 사이 구간이
+               반드시 생긴다. 부품이 있는 판에서만 구글 버튼 잠금을 «푼다»(없으면 기존 안내 유지).
+               짝: src/lib/isNativeApp.ts 의 hasNativeGoogleSignIn(), src/index.css 의 잠금 블록.
+            ⚠️ 첫 그림 «전에» 붙어야 헤더가 한 번 올라갔다 내려오는 깜빡임이 없다 → head 인라인.
+               ③도 같은 이유로 여기 있어야 한다. 리액트를 기다리면 «잠김 → 풀림» 깜빡임이 난다. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
               'try{var u=navigator.userAgent||"";var c=window.Capacitor;var d=document.documentElement;' +
               'if(u.indexOf("healwith-app")>-1||(c&&c.isNativePlatform&&c.isNativePlatform()))' +
               'd.setAttribute("data-healo-native","1");' +
-              'if(/Android/i.test(u))d.setAttribute("data-healo-os","android")}catch(e){}',
+              'if(/Android/i.test(u))d.setAttribute("data-healo-os","android");' +
+              'if(c&&c.isPluginAvailable&&c.isPluginAvailable("SocialLogin"))' +
+              'd.setAttribute("data-healo-google-native","1")}catch(e){}',
           }}
         />
         {/* 이 방문자 언어의 사전만 주입 (21개 언어 통짜 = 번들 264KB 를 뺀 대신).

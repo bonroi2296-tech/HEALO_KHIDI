@@ -239,6 +239,13 @@ export async function PATCH(
           );
         }
         updates.status = payload.status;
+        // 발행으로 바꾸면 발행 시각도 같이 찍는다 (2026-08-30 독립 리뷰 지적).
+        // 안 찍으면 «issued 인데 quotation_issued_at 없음» 행이 생기고, 그 견적이 나중에
+        // expired 되면 여정 매핑(costEstimateJourney)이 발행 이력을 못 봐 «보낸 적 없는
+        // 초안»으로 강등된다 — 환자는 발행 알림까지 받았는데 여정에서 제안이 증발.
+        if (payload.status === "issued" && !estimate.quotation_issued_at) {
+          updates.quotation_issued_at = new Date().toISOString();
+        }
       }
     }
 

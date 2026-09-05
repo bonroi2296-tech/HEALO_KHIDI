@@ -26,6 +26,7 @@ import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { STT_ENGINES } from "@/lib/consultation/sttEngine";
 import { transcriptsAgree } from "@/lib/consultation/transcriptAgreement";
 
@@ -110,26 +111,70 @@ function sttModelFor(lang: string, targetLang?: string, isPartial?: boolean): st
   return "gemini-flash-latest";
 }
 
+/**
+ * 한 호출이 이 출력 토큰을 넘으면 로그에 남긴다(막지는 않는다) — 「너무 많이 쓰면 알려줘」(PO).
+ * **0 을 주면 경고를 끈다** — `Number(env || 4000)` 형태면 "0" 이 truthy 라 0 으로 읽혀
+ * 오히려 모든 호출이 경고를 찍는다.
+ */
+const STT_OUTPUT_WARN_TOKENS = Number(process.env.STT_OUTPUT_WARN_TOKENS ?? 4000);
+
+/**
+ * 말하는 중 흐른 «중간 자막»을 DB 에 남길지(2026-09-01 PO 지시, 당분간).
+ * 임시 조치이므로 코드가 아니라 설정으로 끈다 — env 를 "0" 으로 두면 확정 자막만 남는다.
+ */
+const SAVE_PARTIAL_SUBTITLES = process.env.SAVE_PARTIAL_SUBTITLES !== "0";
+
+/** 호출 1건의 사용량을 남긴다. 상한을 안 거는 대신 «얼마나 쓰는지»는 반드시 잰다. */
+function recordSttUsage(modelId: string, res: any, meta: Record<string, unknown>) {
+  void logAiUsage({
+    surface: "consult_stt",
+    model: modelId,
+    usage: res?.usage,
+    providerMetadata: res?.providerMetadata,
+    meta: { ...meta, finish_reason: res?.finishReason ?? null },
+  });
+  const out = Number(res?.usage?.outputTokens ?? 0);
+  if (STT_OUTPUT_WARN_TOKENS > 0 && out > STT_OUTPUT_WARN_TOKENS) {
+    console.warn(`[consultation/stt] 출력 토큰 과다: ${out} (${modelId}, ${JSON.stringify(meta)})`);
+  }
+}
+
 async function genWithFallback(
   modelId: string,
-  args: { messages: any; temperature: number; maxOutputTokens: number }
+  // ⚠️ maxOutputTokens 를 «안 넘긴다»(2026-09-01 PO 지시, 당분간).
+  //   이 예산에는 모델의 «생각» 토큰이 같이 들어간다. 생각을 많이 쓰는 호출에서는 예전
+  //   값(300/400/800)이 다 먹혀 JSON 이 잘리고 → 파싱 실패 → 조각 통째로 폐기가 된다
+  //   (= 자막이 잘리는 게 아니라 아예 안 뜬다).
+  //   ⚠️ 다만 «항상» 그런 것은 아니다 — 2026-09-01 실측(컴퓨터 음성 wav 로 재현):
+  //   짧고 또렷한 조각은 생각을 50~95 밖에 안 써서 상한 300 에서도 stop 으로 끝났다.
+  //   즉 이 상한은 «생각이 길어지는 호출»에서만 터진다. 앞선 주석이 이를 단정형으로
+  //   적었던 것을 실측에 맞춰 고친다.
+  //   ○ 상한을 없앤 쪽이 지연도 낫다 — 같은 오디오로 짝지어 4회 비교, 4/4 로 더 빨랐다
+  //     (짧은 조각 7.1초→3.9초·13.5초→4.4초, 긴 조각 8.7초→4.7초·25.1초→19.1초).
+  //     뱉는 토큰 양은 거의 같았다(68~101 vs 97~114) — 천장은 지연을 만들지 않는다.
+  //   대신 위 recordSttUsage 로 실제 사용량을 재고, 비용 backstop 은 aiGuard 일일 호출
+  //   상한과 Google 콘솔 spend cap 이 맡는다.
+  args: { messages: any; temperature: number; maxOutputTokens?: number },
+  usageMeta: Record<string, unknown> = {}
 ): Promise<string> {
   try {
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절을 흡수.
     // 자막은 실시간이라 400 한 번에 통째로 끊기면 회의가 못 돌아간다.
-    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
+    const res = await callGeminiWithCompat((p) => generateText(p as any), {
       model: google(modelId) as any,
       ...args,
     });
-    return text || "";
+    recordSttUsage(modelId, res, usageMeta);
+    return (res as any).text || "";
   } catch (e) {
     // Pro 등 비-Flash 모델이 실패하면(별칭 오류·쿼터 등) Flash 로 1회 폴백 — kz 자막이 끊기지 않게.
     if (modelId !== "gemini-flash-latest") {
-      const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
+      const res = await callGeminiWithCompat((p) => generateText(p as any), {
         model: google("gemini-flash-latest") as any,
         ...args,
       });
-      return text || "";
+      recordSttUsage("gemini-flash-latest", res, { ...usageMeta, fallback_from: modelId });
+      return (res as any).text || "";
     }
     throw e;
   }
@@ -153,9 +198,17 @@ export async function POST(
     const contextBlock = parseContext(formData.get("context"));
     // 화자 표시 이름 — 기록에 "누가 말했나"를 남긴다(없던 컬럼, 2026-07-27).
     const speakerName = String(formData.get("speakerName") || "").trim().slice(0, 80) || null;
-    // partial=1 → 말하는 중 조각. 화면에만 띄우고 기록·DB 에는 남기지 않는다
-    // (같은 발화가 조각 수만큼 기록에 쌓이면 회의록이 통째로 오염된다).
+    // partial=1 → 말하는 중 조각. 확정 자막과 «칸을 갈라»(is_partial) 저장하고,
+    // 회의록·번역 기록 조회는 확정본만 본다(2026-09-01 부터 품질 측정용으로 남긴다).
     const isPartial = String(formData.get("partial") || "") === "1";
+    // 「이 오디오가 누구 목소리인가」 — 이 라우트로 오는 소리가 항상 내 마이크는 아니다.
+    // 청취 모드(ListenModeBridge)는 «상대 참가자의 마이크 트랙»을 녹음해 같은 라우트로 보낸다.
+    // self 로 못박으면 상대 발화가 「내 말」로 저장돼, 이름이 없는 줄에서 화면이 상대를
+    // 「나」로 표시하고 두 사람의 말이 한 덩이로 묶인다. 아는 값만 통과시키고, 안 알려주면
+    // null 로 둔다 — 모르는 것을 self 라고 단정하지 않는다.
+    const speakerRoleRaw = String(formData.get("speakerRole") || "").trim();
+    const speakerRole =
+      speakerRoleRaw === "self" || speakerRoleRaw === "other" ? speakerRoleRaw : null;
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -204,12 +257,13 @@ export async function POST(
     //   대신 그 조각엔 대조가 안 걸렸다는 뜻이므로 기록에 남긴다.
     const askModel = async (
       modelId: string,
-      genArgs: { messages: any; temperature: number; maxOutputTokens: number }
+      genArgs: { messages: any; temperature: number; maxOutputTokens?: number },
+      usageMeta: Record<string, unknown> = {}
     ): Promise<string[]> => {
-      if (isPartial) return [await genWithFallback(modelId, genArgs)];
+      if (isPartial) return [await genWithFallback(modelId, genArgs, usageMeta)];
       const settled = await Promise.allSettled([
-        genWithFallback(modelId, genArgs),
-        genWithFallback(modelId, genArgs),
+        genWithFallback(modelId, genArgs, usageMeta),
+        genWithFallback(modelId, genArgs, { ...usageMeta, run: 2 }),
       ]);
       const ok = settled
         .filter((s): s is PromiseFulfilledResult<string> => s.status === "fulfilled")
@@ -259,10 +313,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           },
         ],
         temperature: 0,
-        // 응답 지연은 사실상 «출력 토큰 수»가 좌우한다. 부분 조각은 1~2초짜리라
-        // 나올 글자도 적으므로 상한을 낮춰 꼬리 지연(장황한 응답)을 잘라낸다.
-        maxOutputTokens: isPartial ? 300 : 800,
-      });
+      }, { partial: isPartial, kind: "transcribe_translate", lang, target: targetLang });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
       const runs = texts.map((text) => {
@@ -306,8 +357,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
           },
         ],
         temperature: 0,
-        maxOutputTokens: 400,
-      });
+      }, { partial: isPartial, kind: "transcribe_only", lang });
       const runs = texts.map((text) => {
         const raw = (text || "").trim();
         return { transcript: raw === "[NO_SPEECH]" ? "" : raw };
@@ -330,14 +380,26 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers, out
     //    그걸 그대로 저장하면 **원문을 번역문이라고 기록**하게 된다(2026-07-20 실측 ko→ko 13건).
     //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
     //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
+    //
+    // 중간 조각(isPartial)도 남긴다 — 하단 자막에 실제로 뭐가 떴는지 되짚을 방법이 없어
+    // 품질을 잴 수가 없었다(2026-09-01 PO 지시, 당분간). is_partial 로 칸을 갈라 저장하므로
+    // 회의록·통계(is_partial=false 만 본다)는 오염되지 않는다.
     const effectiveSrc = detectedLang || lang;
-    if (!isPartial && transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (
+      transcript &&
+      translated &&
+      targetLang &&
+      effectiveSrc !== targetLang &&
+      (SAVE_PARTIAL_SUBTITLES || !isPartial)
+    ) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
         sourceLang: detectedLang || lang,
         targetLang,
         speakerName,
+        isPartial,
+        speakerRole,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
@@ -358,6 +420,8 @@ async function saveTranslationLog(
     sourceLang: string;
     targetLang: string;
     speakerName?: string | null;
+    isPartial?: boolean;
+    speakerRole?: "self" | "other" | null;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -371,6 +435,13 @@ async function saveTranslationLog(
       target_lang: data.targetLang,
       // 이 라우트로 들어온 줄은 정의상 «서버 받아쓰기» 다 — 클라이언트 값을 믿지 않는다.
       stt_engine: STT_ENGINES.SERVER,
+      // 「누가 말했나(역할)」 — 클라이언트가 알려준 값만 쓴다. 이 라우트엔 내 마이크(self)와
+      // 청취 모드가 녹음한 상대 마이크(other)가 «둘 다» 들어온다.
+      // (화면의 「나/상대」 판정은 이 값보다 화자 «이름»을 먼저 본다 — 같은 줄을 두 사람이
+      //  보는데 role 은 DB 에 하나만 남기 때문이다. 이 값은 이름이 없을 때의 폴백이다.)
+      speaker_role: data.speakerRole ?? null,
+      // 「말하는 중 흐른 중간 자막인가」 — 확정 자막만 세는 곳은 false 만 본다.
+      is_partial: data.isPartial === true,
       // 화자 이름(환자 실명)도 암호문 칸에 — 예전엔 speaker_name 평문으로 줄마다 쌓였다(2026-08-14 감사).
       ...encryptTranscriptRow({
         sourceText: data.originalText,

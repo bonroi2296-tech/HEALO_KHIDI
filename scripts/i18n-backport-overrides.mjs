@@ -34,7 +34,9 @@ import { pathToFileURL } from "node:url";
 const CHECK_ONLY = process.argv.includes("--check");
 const ROOT = process.cwd();
 
-const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// 자동 검사 상자에서는 NEXT_PUBLIC_SUPABASE_URL 이 «비어 있다» — 실제 주소는 SUPABASE_URL 에 있다.
+// 이 한 줄이 폴백 없이 있어서, 열쇠가 다 있는데도 매일 「못 잼」으로 넘어갔다(2026-08-28 실측).
+const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!URL_ || !KEY) {
   console.log("[i18n-backport] Supabase 자격증명이 없어 건너뛴다 (이 상자에서는 확인 불가).");
@@ -80,10 +82,18 @@ async function main() {
   const stale = [];   // 코드 ≠ DB
   const missing = []; // 사전에 없는 키(홈 콘텐츠 등 다른 파일 소관)
 
+  // 🔁 «비교»와 «반영»이 같은 값을 봐야 한다 (2026-08-29 실측으로 잡은 무한 반복).
+  //    아래 반영부는 코디 값을 trim() 해서 넣는데(편집창에서 딸려온 앞뒤 공백 제거),
+  //    비교를 원본으로 하면 «넣은 값 ≠ DB 값»이라 다음 회차에 또 「어긋남」으로 잡힌다.
+  //    → 매일 훑기가 같은 건수를 영원히 알리고, 아무리 돌려도 줄지 않는다(14→12→10 에서 멈췄다).
+  //    반영부와 «똑같은 규칙»으로 기대값을 만들어 비교한다.
+  const 기대값 = (dbValue, codeValue) =>
+    /^\s|\s$/.test(String(codeValue)) ? dbValue : String(dbValue).trim();
+
   for (const r of rows) {
     const cur = DICTIONARY[r.lang]?.[r.content_key];
     if (cur === undefined) { missing.push(r); continue; }
-    if (cur !== r.value) stale.push({ ...r, cur });
+    if (cur !== 기대값(r.value, cur)) stale.push({ ...r, cur });
   }
 
   console.log(`[i18n-backport] DB 교정 ${rows.length}건 · 코드와 어긋남 ${stale.length}건 · 사전 밖 키 ${missing.length}건`);

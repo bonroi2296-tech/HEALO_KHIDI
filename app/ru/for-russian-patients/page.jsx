@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { whatsappWithText } from "@/lib/siteSettings";
+import { ORG_ID } from "@/lib/seo/structuredData";
 
 // ─────────────────────────────────────────────────────────────
 // 러시아어 의료관광 랜딩페이지 — 검색광고 착지 페이지도 겸한다
@@ -42,20 +43,36 @@ export const metadata = {
     "медицинская виза Корея",
     "healwith Корея",
   ],
+  // ru ↔ kk 두 랜딩은 서로를 가리키므로(상호참조 성립) 그 짝만 남긴다.
+  // x-default 를 뺀 이유(2026-08-31): "/" 는 200 이 아니라 «감지 언어로 308 되는 주소»이고,
+  // 홈 쪽은 이 랜딩들을 되가리키지 않는다 = 비상호. hreflang 은 상호참조가 성립해야 유효해서
+  // 구글이 표기를 통째로 무시할 수 있고, 그 전에 「이 러시아어 랜딩의 기본판은 영어 홈」이라는
+  // 틀린 신호부터 준다. app/sitemap.js 가 같은 이유로 이 둘의 hreflang 을 이미 뺐는데
+  // 페이지 쪽만 안 따라와 있었다(문서-코드 어긋남).
   alternates: {
     canonical: "/ru/for-russian-patients",
     languages: {
       ru: "/ru/for-russian-patients",
       kk: "/kk/for-kazakh-patients",
-      "x-default": "/",
     },
   },
   openGraph: {
+    url: "/ru/for-russian-patients",
     title: "Лечение рака в Корее | healwith — Медицинский консьерж",
     description:
       "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR, иммунотерапия корейской медицины. Поддержка на русском языке.",
     type: "website",
     locale: "ru_RU",
+  },
+  // ⚠️ twitter 를 «반드시» 같이 둔다 (2026-08-31 실측으로 추가).
+  //    openGraph 만 정의하면 twitter 는 루트 layout 것을 그대로 물려받는다 → 이 화면은
+  //    제목·og 가 러시아어인데 twitter 카드만 "healwith | Korea Cancer Care…"(영어)로 나갔다.
+  //    여기는 Yandex 색인 자산이자 광고 착지다 — 공유 카드가 영어면 클릭 전에 이탈한다.
+  twitter: {
+    card: "summary_large_image",
+    title: "Лечение рака в Корее | healwith — Медицинский консьерж",
+    description:
+      "Онкологическое лечение в Южной Корее. Immune Hospital: 50 000+ случаев, протокол ITCR. Поддержка на русском языке.",
   },
 };
 
@@ -82,11 +99,9 @@ const jsonLd = {
     name: "Онкология",
     alternateName: "Cancer",
   },
-  provider: {
-    "@type": "Organization",
-    name: "healwith",
-    url: "https://healwith.co.kr",
-  },
+  // @id 로 layout 의 브랜드 엔티티(#organization)를 가리킨다 — 예전처럼 이름만 적으면
+  // 검색엔진이 «별개 회사»로 읽어 브랜드 신호(sameAs·설명·서비스국가)가 둘로 쪼개진다.
+  provider: { "@id": ORG_ID },
 };
 
 const FAQ = [
@@ -152,8 +167,8 @@ export default function ForRussianPatientsPage() {
         <section className="mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-700 mb-1">72,9%</div>
-              <p className="text-sm text-gray-500">5-летняя выживаемость при раке в Корее (2018–2022)</p>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">73,7%</div>
+              <p className="text-sm text-gray-500">5-летняя выживаемость при раке в Корее (2019–2023)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
               <div className="text-3xl font-extrabold text-teal-700 mb-1">2,01 млн</div>
@@ -194,7 +209,7 @@ export default function ForRussianPatientsPage() {
               },
             ].map(({ title, body }) => (
               <div key={title} className="bg-teal-50 rounded-xl p-6">
-                <h3 className="font-semibold text-teal-800 mb-2">{title}</h3>
+                <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-teal-800 mb-2">{title}</h3>
                 <p className="text-gray-700 text-sm">{body}</p>
               </div>
             ))}
@@ -263,7 +278,7 @@ export default function ForRussianPatientsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Медицинская виза в Корею</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Виза C-3-3: краткосрочная (до 90 дней)</li>
                 <li>• Срок оформления: 5–7 рабочих дней</li>
@@ -277,7 +292,7 @@ export default function ForRussianPatientsPage() {
             {/* 가격 출처 = src/lib/chat/careReference.ts (면력한방병원 암 진료비 안내 2026-06 · PO 제공) — 가격 개정 시 거기와 같이 갱신.
                 단 항공권 줄은 진료비 자료가 아니라 일반 시세 참고치(예외). */}
             <div className="border rounded-xl p-6">
-              <h3 className="font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
+              <h3 className="text-[clamp(24px,2.5vw,32px)] font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• Онкохирургия в университетских клиниках: $3 000–18 500 (по типу рака)</li>
                 <li>• Интегративный иммунный курс (стационар): $740–1 480/нед., палата отдельно</li>

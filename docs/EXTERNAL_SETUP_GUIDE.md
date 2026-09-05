@@ -425,7 +425,13 @@ DB 스키마가 변경됐으므로 `database.types.ts` 도 재생성:
 
 ### 11-1. 현재 상태
 
-- 가입 폼에 **PIPA §28조의8 국외이전 동의** UI 추가됨 (`app/signup/SignupPremium.jsx`)
+- ⚠️ **경로 정정 (2026-08-27)** — 아래 설명이 가리키던 `app/signup/SignupPremium.jsx` 는 **없는 파일**이다.
+  폐기된 premium 가입 화면이었고 프리미엄 전면 폐기 커밋(`825d61e3` / PR #288)에서 화면째 삭제됐다.
+  **현재 국외이전 동의를 받는 곳은 문의 폼**(`app/inquiry/_components/UnifiedInquiryFunnel.jsx`, `crossBorder` 필수)이고,
+  가입 화면(`app/signup/SignupClient.jsx`)은 「개인정보 수집·이용」 + 「이용약관」만 받는다 —
+  **이건 누락이 아니라 의도된 설계**다(`src/lib/legal/consentForms.js` 「문 앞 마찰 0 유지」).
+  법적 판단의 최신본은 `src/lib/legal/privacyPolicy.js` 머리 주석(2026-08-20 실측: 진짜 문의 6건 전부 `cross_border_kr` 기록됨)이다.
+  → 아래 「11-2 법무 검토 포인트」는 **2026-04~05 시점 문서**다. 그 뒤 방침이 여러 번 갱신됐으니 여기 것을 근거로 쓰지 마라.
 - 6항목 고지: 이전 목적 / 이전 항목 / 수탁자(국가) / 이전 방법 / 보관 기간 / 거부권
 - 한국어 / 영어 기본
 

@@ -40,6 +40,15 @@ export const TRANSLATION_TRACK_PREFIX = "tx:";
 // 에이전트가 통역 자막을 흘려보내는 LiveKit 텍스트 스트림 토픽.
 export const TRANSLATION_TEXT_TOPIC = "lk.translation";
 
+// 통역봇이 «지금 통역이 되고 있나»를 적는 참가자 속성.
+// 짝: agents/live-translate/src/config.py 의 TRANSLATOR_STATUS_ATTR — 이름을 바꾸면 둘 다.
+//
+// 왜 필요한가 (2026-08-28 실측): 봇은 Gemini 연결이 끊기면 조용히 재연결만 반복한다.
+// 열쇠를 일부러 망가뜨리고 30초를 돌렸더니 **15번 시도해 전부 실패했는데 화면은
+// 「통역 켜짐」 그대로였다.** 사용자는 봇도 있고 스위치도 켜져 있으니 계속 기다린다.
+export const TRANSLATOR_STATUS_ATTR = "tx_status";
+export const TRANSLATOR_STATUS_FAILING = "failing";
+
 /** 서버측 스위치 (토큰 발급에서 에이전트 디스패치 여부) */
 export function isLiveTranslateEnabledServer() {
   return process.env.LIVE_TRANSLATE_ENABLED === "true";

@@ -70,3 +70,33 @@ export const MEDICAL_REDLINE_FLAGS = [
 export const OVERCLAIM_FLAGS = [
   "overclaim_stat", // 정확도·만족도·성공률·효과 등 근거 없는 정량 과장
 ] as const;
+
+/**
+ * 점수와 무관하게 즉시 코디 알림을 띄워야 할 플래그.
+ *
+ * 왜 (2026-08-28 PO 제보 #30bfcc04): 알림 조건이 `overall < liveAlert(0.6)` 하나뿐이라,
+ * 판사가 hallucination 을 «찍어놓고도» 종합점수가 0.80·0.84 라 문턱을 넘어 조용히 지나갔다.
+ * 그 스레드는 암 전문 플랫폼인데 컨텍스트에 없는 「신경과 검사」를 지어내 환자에게 안내했고,
+ * 판사 사유란에 그대로 적혀 있었는데 아무에게도 안 갔다.
+ * 전수 실측: 플래그가 붙은 265건 중 235건(89%)이 무알림 — 탐지는 되는데 아무도 안 보는 상태였다.
+ *
+ * 종합점수는 가중 평균이라 «한 차원만 나쁘면» 희석된다(hallucination 0.6 × 0.4 = 전체로는 0.84).
+ * 사실 날조와 의료 레드라인은 평균에 묻히면 안 되는 종류라 점수 경로와 별도로 뽑는다.
+ *
+ * off_topic·overclaim_stat 은 뺐다: 환자에게 «틀린 사실»이 나간 게 아니라 톤·범위 문제라
+ * 즉시 대응 대상이 아니고, 넣으면 알림 피로도만 올린다(전수 18건·0건).
+ * 발생량 실측(2026-08-24~28, 판사 프롬프트 교정 이후): 대상 플래그 나흘간 2건 — 알림 폭탄 없음.
+ */
+export const ALERT_ALWAYS_FLAGS = [
+  ...MEDICAL_REDLINE_FLAGS,
+  "hallucination", // 컨텍스트 외 사실 생성
+  "fabricated_hospital", // 존재하지 않는 병원
+  "fabricated_price", // 근거 없는 가격
+] as const;
+
+/** judgeResult.flags 중 즉시 알림 대상이 하나라도 있나. */
+export function hasAlertAlwaysFlag(flags: readonly string[] | null | undefined): boolean {
+  if (!flags?.length) return false;
+  const always = ALERT_ALWAYS_FLAGS as readonly string[];
+  return flags.some((f) => always.includes(f));
+}

@@ -238,7 +238,27 @@ export async function checkRateLimitPersistent(
     return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
   }
 
-  const key = `${apiName}:${identifier}`;
+  // 🛑 통 이름에 «검사 실행 번호»를 끼운다 — 실서비스에선 이 변수가 없어 한 글자도 안 달라진다.
+  //
+  // 왜 필요한가 (2026-08-31 실측으로 확정):
+  //   러너에서 도는 서버는 localhost 라 `getClientIp` 가 «항상 ::1» 이다(같은 실행 로그의
+  //   ai_guard 줄에 그 값이 그대로 찍힌다). 그리고 이 통은 «검사 전용 Supabase» 한 곳에 들어간다.
+  //   → 즉 **PR 두 개의 E2E 가 겹쳐 돌면 두 실행이 통 하나를 나눠 쓴다.**
+  //   의뢰서 접수(INQUIRY)는 1분에 5회인데 스모크 한 번이 이미 4회를 쓴다. 겹치는 순간
+  //   뒤에 온 요청이 429 를 맞고 화면은 접수 실패로 멈춘다. 서버는 429 를 로그로 안 남기고
+  //   시험은 「#track-url 을 못 찾음」이라고만 말해서, 이게 «내 코드 탓»처럼 보인다.
+  //   (2026-08-31 06:56 실측: 27초 차이로 올라간 PR 두 개가 같은 분에 8회를 밀어 넣었고
+  //    내 쪽 3회가 연달아 죽었다. 상대 쪽도 1회 죽었는데 재시도로 가려져 아무도 못 봤다.)
+  //   같은 이유로 aiGuard 의 «IP 하루 400회» 자동차단이 검사 DB 에 날마다 쌓여 있었다.
+  //
+  // ⚠️ 요청 헤더가 아니라 «서버 환경변수»로만 갈린다 — 손님이 헤더를 지어내 통을 갈아탈 수 없다.
+  //    IP 는 그대로 열쇠에 남으므로, 혹시 실서비스에 이 변수가 켜져도 IP별 제한은 그대로다
+  //    (통이 한 번 비워질 뿐 느슨해지지 않는다).
+  // ⚠️ 위 in-memory 판(112줄)에는 안 넣는다 — 그건 프로세스마다 따로라 애초에 안 섞인다.
+  const testNamespace = process.env.RATE_LIMIT_NAMESPACE;
+  const key = testNamespace
+    ? `${apiName}:${testNamespace}:${identifier}`
+    : `${apiName}:${identifier}`;
 
   try {
     const { supabaseAdmin } = await import("./rag/supabaseAdmin");
