@@ -5,6 +5,23 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
+// 이미지 최적화기(/_next/image)가 받아올 Supabase 호스트 — «우리 프로젝트 하나»만 (2026-09-05).
+// 왜: 8/26 AVIF 결함(libheif RCE) 때 성립 조건 ⓒ가 «*.supabase.co 와일드카드라 공격자가 자기 Supabase
+//     프로젝트에 올린 그림도 우리 최적화기가 받아온다»였다. 결함은 16.3.4 로 닫았지만 문은 그대로였다.
+//     실측(2026-09-05): DB 의 그림 URL 칸 8개 전부 절대 URL 0건, 코드의 next/image 원격 src 도 우리 자산뿐.
+// 어떻게: 빌드 시 env 에서 호스트를 읽는다(Vercel 엔 항상 있다). env 가 없는 빈 로컬에선 예전 와일드카드로
+//     두어 깨지지 않게 한다 — 좁히기가 «못 그리는 화면»을 만들면 안 된다.
+//     ⚠️ 좁히는 건 «호스트가 *.supabase.co / *.supabase.in 일 때만». 로컬 Supabase 스택(http://127.0.0.1:54321)
+//     같은 주소를 https 고정 패턴에 넣으면 아무것도 안 맞아 스토리지 그림이 전부 막힌다(독립 리뷰 지적).
+const supabaseImageHost = (() => {
+  try {
+    const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname || '';
+    return /\.supabase\.(co|in)$/.test(host) ? host : '';
+  } catch {
+    return '';
+  }
+})();
+
 const nextConfig = {
   // 지금 실서비스로 돌고 있는 커밋을 **빌드 시점에 박아둔다**.
   // 왜: 예비 배포 창구(.github/workflows/daily-deploy.yml)가 /api/health 의 commit 값으로
@@ -280,8 +297,13 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
-      { protocol: 'https', hostname: '*.supabase.co' },
-      { protocol: 'https', hostname: '*.supabase.in' },
+      // 우리 Supabase 프로젝트 호스트만(위 supabaseImageHost 주석). env 없으면 예전 와일드카드.
+      ...(supabaseImageHost
+        ? [{ protocol: 'https', hostname: supabaseImageHost }]
+        : [
+            { protocol: 'https', hostname: '*.supabase.co' },
+            { protocol: 'https', hostname: '*.supabase.in' },
+          ]),
       { protocol: 'https', hostname: 'maps.googleapis.com' },
       { protocol: 'https', hostname: 'maps.gstatic.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
