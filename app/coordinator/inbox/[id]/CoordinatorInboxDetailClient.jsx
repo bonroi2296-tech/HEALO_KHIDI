@@ -525,7 +525,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 접수 확인 메일·봇 답장도 같은 함수를 쓰므로 여기서 손으로 이어붙이면 주소가 갈라진다.
   const shareUrl =
     typeof window !== "undefined" && inquiry?.public_token
-      ? trackingUrl(window.location.origin, inquiry.public_token)
+      ? trackingUrl(window.location.origin, inquiry.public_token, inquiry.preferred_language || inquiry.spoken_language)
       : null;
 
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.

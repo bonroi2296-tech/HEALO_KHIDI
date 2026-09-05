@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hashGuestToken, INVITE_CODE_RE } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 const RATE = {
   windowMs: 60 * 1000,
@@ -67,8 +68,10 @@ export async function GET(
     }
     if (!row) return notFound();
 
+    // 짧은 주소에 실린 ?lang 을 목적지로 그대로 넘긴다 — 메신저 미리보기 봇은 이 리다이렉트를 따라가서
+    // /consultation 카드를 만드는데, 쿠키·Accept-Language 가 없어 주소의 언어가 유일한 단서다(2026-09-05).
     const target = new URL(
-      `/consultation/${row.consultation_id}?invite=${encodeURIComponent(code)}`,
+      withLang(`/consultation/${row.consultation_id}?invite=${encodeURIComponent(code)}`, request.nextUrl.searchParams.get("lang")),
       request.url
     );
     // 302 + no-store: 링크가 폐기돼도 브라우저·중간 캐시가 옛 목적지를 계속 들고 있지 않게.

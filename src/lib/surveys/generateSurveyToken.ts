@@ -17,6 +17,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderSurveyEmail } from "./surveyEmailTemplate";
 import { siteUrl } from "@/lib/siteUrl";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 /** 32자 URL-safe 토큰 (node:crypto 기반, 외부 패키지 의존 없음) */
 function generateToken(): string {
@@ -128,8 +129,9 @@ export async function sendSurveyEmail(
   // 나갔던 사고 2026-07-22, src/lib/siteUrl.ts 주석 참고)
   const baseUrl = siteUrl();
 
-  const surveyUrl = `${baseUrl.replace(/\/$/, "")}/survey/${opts.token}`;
   const lang = opts.lang || "ko";
+  // ?lang= : 메신저에 붙여넣었을 때 미리보기 봇이 제 언어 카드를 만들게(2026-09-05, kk→kz 는 withLang 이 맞춘다)
+  const surveyUrl = withLang(`${baseUrl.replace(/\/$/, "")}/survey/${opts.token}`, lang);
 
   const { subject, html, text } = renderSurveyEmail({
     recipientName: opts.patientName,

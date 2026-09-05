@@ -53,6 +53,45 @@ test.describe("초대 링크 언어 — 쿠키 없는 첫 방문", () => {
     await ctx.dispose();
   });
 
+  // ── 2026-09-05: 링크에 실린 ?lang — 메신저 미리보기 «봇»은 쿠키도 Accept-Language 도 안 보낸다(2026-08-31 실측:
+  //    WhatsApp/TelegramBot UA 로 /claim 이 늘 영어 카드). 주소 안의 언어가 유일한 단서라 이 칸이 생겼다.
+  //    순서 = 쿠키 → ?lang → Accept-Language → en (src/lib/i18n/guestLinkLang.ts).
+  test("봇(헤더·쿠키 없음)도 ?lang=ru 면 러시아어로 그린다", async ({ playwright, baseURL }) => {
+    const ctx = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { "Accept-Language": "" } });
+    const res = await ctx.get(`${ROOM}?lang=ru`);
+    expect(res.ok(), `${ROOM} 응답 실패(${res.status()})`).toBeTruthy();
+    expect(htmlLang(await res.text())).toBe("ru");
+    await ctx.dispose();
+  });
+
+  test("?lang=kk 도 내부 kz 로 매핑돼 카자흐어로 그린다(설문)", async ({ playwright, baseURL }) => {
+    const ctx = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { "Accept-Language": "" } });
+    const res = await ctx.get(`${SURVEY}?lang=kk`);
+    expect(htmlLang(await res.text())).toBe("kk");
+    await ctx.dispose();
+  });
+
+  test("?lang 이 브라우저 언어를 이긴다(러시아어 브라우저를 쓰는 카자흐 환자)", async ({ playwright, baseURL }) => {
+    const ctx = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { "Accept-Language": "ru-RU,ru;q=0.9" } });
+    const res = await ctx.get(`${ROOM}?lang=kz`);
+    expect(htmlLang(await res.text())).toBe("kk");
+    await ctx.dispose();
+  });
+
+  test("직접 고른 쿠키는 ?lang 보다 앞선다(한국인 코디가 환자 링크를 눌러도 화면은 한국어)", async ({ playwright, baseURL }) => {
+    const ctx = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { Cookie: "healo_lang=ko" } });
+    const res = await ctx.get(`${ROOM}?lang=ru`);
+    expect(htmlLang(await res.text())).toBe("ko");
+    await ctx.dispose();
+  });
+
+  test("이상한 ?lang 은 무시하고 브라우저 언어로", async ({ playwright, baseURL }) => {
+    const ctx = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { "Accept-Language": "ru-RU,ru;q=0.9" } });
+    const res = await ctx.get(`${ROOM}?lang=xx`);
+    expect(htmlLang(await res.text())).toBe("ru");
+    await ctx.dispose();
+  });
+
   test("직접 고른 언어(healo_lang 쿠키)가 브라우저 언어를 이긴다", async ({ playwright, baseURL }) => {
     // 러시아어 브라우저인데 화면에서 한국어를 골라 둔 사람 — 그 선택이 유지돼야 한다
     const ctx = await playwright.request.newContext({

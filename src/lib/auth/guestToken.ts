@@ -22,6 +22,7 @@ import "server-only";
 import { randomBytes, createHash } from "node:crypto";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { askOnceMoreOnError } from "./retryTransient";
+import { withLang } from "@/lib/i18n/guestLinkLang";
 
 // "guest" = 범용 참여자(통합 초대 링크). 누구나 이 링크로 입장 → 이름 직접 입력.
 export type GuestRole = "patient" | "doctor" | "translator" | "coordinator" | "observer" | "guest";
@@ -39,7 +40,8 @@ export interface GenerateGuestTokenParams {
 export interface GenerateGuestTokenResult {
   tokenPlain: string;       // 발급 시에만 반환, DB 저장 X
   tokenId: string;          // row id
-  inviteUrl: (baseUrl: string) => string;
+  /** 받는 사람 언어(lang, 선택)를 ?lang= 로 싣는다 — 메신저 미리보기 봇용(2026-09-05). */
+  inviteUrl: (baseUrl: string, lang?: string | null) => string;
   expiresAt: Date;
 }
 
@@ -111,7 +113,8 @@ export async function generateGuestToken(
     expiresAt,
     // 짧은 초대 주소. `/c/<코드>` 가 상담 id 를 찾아 실제 방으로 넘긴다(app/c/[code]/route.ts).
     // 긴 형식(`/consultation/<id>?invite=<코드>`)도 그대로 살아 있다 — 이미 나간 링크가 죽지 않게.
-    inviteUrl: (baseUrl: string) => `${baseUrl.replace(/\/$/, "")}/c/${tokenPlain}`,
+    // lang: 받는 사람 언어(선택). 짧은 주소(/c/…)가 /consultation/… 으로 넘길 때 그대로 전달돼 미리보기 봇이 제 언어 카드를 만든다.
+    inviteUrl: (baseUrl: string, lang?: string | null) => withLang(`${baseUrl.replace(/\/$/, "")}/c/${tokenPlain}`, lang),
   };
 }
 

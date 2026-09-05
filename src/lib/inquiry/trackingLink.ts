@@ -10,6 +10,8 @@
  * 주소 자체는 새로 만들지 않는다 — inquiries.public_token 이 이미 모든 문의에 자동으로 붙는다.
  */
 
+import { withLang } from "@/lib/i18n/guestLinkLang";
+
 export type TrackingLang = "ko" | "en" | "ru" | "kz" | "zh" | "ja";
 
 export const TRACKING_LANGS: TrackingLang[] = ["ko", "en", "ru", "kz", "zh", "ja"];
@@ -32,8 +34,10 @@ export function toTrackingLang(raw?: string | null): TrackingLang {
  * 뒤에야 쿠키를 읽어 제 언어로 바뀐다(러시아어로 끝까지 확인함). 즉 «잠깐 영어가 스쳤다가
  * 제 언어»가 현재 동작이고, 최종 언어는 맞다.
  */
-export function trackingUrl(baseUrl: string, publicToken: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}/claim/${encodeURIComponent(publicToken)}`;
+export function trackingUrl(baseUrl: string, publicToken: string, lang?: string | null): string {
+  // 2026-09-05: 받는 사람 언어를 주소에 싣는다(?lang=). 메신저 미리보기 봇은 쿠키·Accept-Language 가 없어
+  // 카드가 늘 영어였다 — 주소 안에 언어가 있어야 봇도 제 언어 카드를 만든다. 모르면 안 붙인다(withLang).
+  return withLang(`${baseUrl.replace(/\/+$/, "")}/claim/${encodeURIComponent(publicToken)}`, lang);
 }
 
 /**

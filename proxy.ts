@@ -20,6 +20,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE, isLegacyLanding } from "@/lib/i18n/config";
+import { pickGuestLocale } from "@/lib/i18n/guestLinkLang";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -69,15 +70,14 @@ function isPublicLocalePath(pathname: string) {
 //      「환자용이냐」가 아니다. 한국어 화면에 lang="en" 이 박히던 것도 이걸로 같이 고쳐졌다.
 const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/", "/claim/", "/opinion/"];
 function detectLocale(request: NextRequest) {
-  // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
-  const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (cookie && LOCALES.includes(cookie)) return cookie;
-  // 2) 첫 진입 = 브라우저/시스템 언어가 우리 6개 중 하나면 그걸로(한→ko, 카→kz, 일→ja…).
-  let want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
-  if (want === "kk") want = "kz"; // 카자흐어 ISO코드(kk) → 내부코드(kz). 안 맞추면 1순위 타겟이 영어로 샘.
-  if (LOCALES.includes(want)) return want;
-  // 3) 우리에 없는 언어면 영어(DEFAULT_LOCALE). PO 지정.
-  return DEFAULT_LOCALE;
+  // 순서·이유는 src/lib/i18n/guestLinkLang.ts 머리 주석:
+  //   ①직접 고른 언어(healo_lang 쿠키) → ②링크에 실린 ?lang(보낸 사람이 아는 받는 사람 언어 — 메신저
+  //   미리보기 봇은 쿠키도 Accept-Language 도 없어서 이게 유일한 단서다, 2026-09-05) → ③브라우저 언어(kk→kz) → ④en.
+  return pickGuestLocale({
+    cookie: request.cookies.get(LOCALE_COOKIE)?.value,
+    langParam: request.nextUrl.searchParams.get("lang"),
+    acceptLanguage: request.headers.get("accept-language"),
+  });
 }
 
 /**

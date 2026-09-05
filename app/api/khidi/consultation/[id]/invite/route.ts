@@ -18,6 +18,7 @@ import { renderConsultationInviteEmail } from "@/lib/email/templates/consultatio
 import { buildConsultationIcs } from "@/lib/email/icsInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { siteUrl } from "@/lib/siteUrl";
+import { normalizeLocaleParam } from "@/lib/i18n/guestLinkLang";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer", "guest"];
@@ -125,7 +126,19 @@ export async function POST(
     // 환자에게 나가는 진료 입장 링크는 정본 도메인 고정 — request origin 을 쓰면 스태프가
     // admin 을 배포 임시주소(.vercel.app)로 열었을 때 그 주소가 환자 첫 링크로 샌다(피싱처럼
     // 보여 안 누름). 토큰은 공용 프로덕션 DB 라 어느 배포에서 만들어도 healwith.co.kr 에서 유효.
-    const inviteUrl = result.inviteUrl(siteUrl());
+    // 받는 사람 언어를 주소에 싣는다(?lang=) — 코디가 이 주소를 왓츠앱·텔레그램에 붙여넣을 때 미리보기 봇이
+    // 제 언어 카드를 만들게(2026-09-05). 본문에 lang 이 오면 그것, 환자·게스트면 세션의 환자 언어, 의료진이면 ko.
+    const bodyLang = normalizeLocaleParam((body as any).lang);
+    let linkLang: string | null = bodyLang ?? (role === "patient" || role === "guest" ? null : "ko");
+    if (!linkLang) {
+      const { data: s0 } = await supabaseAdmin
+        .from("consultation_sessions")
+        .select("patient_language")
+        .eq("id", consultationId)
+        .maybeSingle();
+      linkLang = (s0 as any)?.patient_language || "ru";
+    }
+    const inviteUrl = result.inviteUrl(siteUrl(), linkLang);
 
     // 이메일 자동 발송 (해소된 수신 이메일 있을 때만 — 명시 입력 또는 환자계정 폴백)
     let emailSent = false;

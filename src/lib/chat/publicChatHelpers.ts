@@ -224,7 +224,7 @@ async function sendTrackingLinkToMessenger(thread: any, publicToken: string | nu
   if (thread?.channel !== "telegram" && thread?.channel !== "whatsapp") return;
 
   try {
-    const url = trackingUrl(siteUrl(), publicToken);
+    const url = trackingUrl(siteUrl(), publicToken, lang);
     const text = trackingMessageLine(url, toTrackingLang(lang));
 
     let sent = false;
