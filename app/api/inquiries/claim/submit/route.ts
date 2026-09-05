@@ -25,6 +25,7 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { appendFollowUp, FOLLOWUP_MAX_LEN, BY_PATIENT_LINK } from "@/lib/inquiry/followUps";
+import { notifyStaffPatientMessage } from "@/lib/notifications/inApp";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -181,6 +182,10 @@ export async function POST(request: NextRequest) {
       .update({ follow_ups: next })
       .eq("id", inq.id);
     if (upErr) throw upErr;
+
+    // 환자가 말을 걸었다 — 코디·어드민에게 종 알림. 2026-09-05 까지 이 경로는 아무에게도 안 알렸다
+    // (문의 #302: 글이 왔는데 열람 0·답 0 으로 이틀). 저장은 끝났으니 알림 실패가 응답을 막지 않게 한다.
+    void notifyStaffPatientMessage({ inquiryId: Number(inq.id) });
 
     return Response.json({ ok: true });
   } catch (err: any) {
