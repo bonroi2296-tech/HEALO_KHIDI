@@ -532,6 +532,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [caseStatus, setCaseStatus] = useState("");
   const [caseNote, setCaseNote] = useState("");
   const [caseStatusForce, setCaseStatusForce] = useState(false); // 되돌리기 확인을 거쳤는지(뒤로가기 방지 가드 우회용)
+  const [outcomeSaving, setOutcomeSaving] = useState(false); // 종료(안 옴)·되돌리기 저장 중
   const [caseSaving, setCaseSaving] = useState(false);
   const [caseSaved, setCaseSaved] = useState(false);
 
@@ -968,6 +969,37 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setCopiedTransPath(key);
       setTimeout(() => setCopiedTransPath(null), 2000);
     } catch { /* clipboard 미지원 무시 */ }
+  }
+
+  // 종료(안 옴)·되돌리기 — 결과(outcome)만 코디 라우트로. 종료는 서버가 단계를 «보류»로 내린다(2026-09-06 PO).
+  async function setOutcome(outcome) {
+    setOutcomeSaving(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/outcome`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ outcome, note: caseNote || null }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.ok) { window.alert(L.ibCloseFailed); return; }
+      const nextStatus = result.case_status || null;
+      setInquiry((prev) => prev ? {
+        ...prev,
+        outcome,
+        outcome_note: outcome ? (caseNote || null) : null,
+        outcome_updated_at: new Date().toISOString(),
+        case_status: nextStatus || prev.case_status,
+      } : prev);
+      if (nextStatus) setCaseStatus(nextStatus);
+    } catch (e) {
+      console.error("[inbox] outcome error:", e);
+      window.alert(L.ibCloseFailed);
+    } finally {
+      setOutcomeSaving(false);
+    }
   }
 
   // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
@@ -1936,6 +1968,46 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               {caseSaving ? L.ibCaseSaving : L.ibCaseSave}
             </button>
             {caseSaved && <span className="text-sm text-teal-700 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
+          </div>
+
+          {/* 종료(안 옴) — 소견·견적까지 줬는데 환자가 안 오기로 한 케이스. 결과=이탈 + 단계=보류.
+              식은 문의 알림에서 빠지고 목록 «종료» 탭으로 간다. 되돌리기 가능(2026-09-06 PO: 코디가 어드민 안 가도 되게). */}
+          <div className="pt-3 border-t border-gray-100" data-testid="case-outcome">
+            {inquiry.outcome === "lost" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span data-testid="case-closed-banner" className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">
+                  🚫 {L.ibClosedBanner}{inquiry.outcome_updated_at ? ` · ${fmtDate(inquiry.outcome_updated_at)}` : ""}
+                </span>
+                {inquiry.outcome_note && <span className="text-xs text-gray-500">{inquiry.outcome_note}</span>}
+                <button
+                  type="button"
+                  data-testid="case-reopen-button"
+                  onClick={() => setOutcome(null)}
+                  disabled={outcomeSaving}
+                  className="text-xs font-semibold text-teal-700 hover:underline disabled:opacity-50"
+                >
+                  ↩️ {L.ibReopenBtn}
+                </button>
+                <span className="text-xs text-gray-500">{L.ibReopenHint}</span>
+              </div>
+            ) : inquiry.outcome === "admitted" ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                🎯 {L.ibOutcomeAdmitted}
+              </span>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  data-testid="case-close-button"
+                  onClick={() => { if (!window.confirm(L.ibCloseConfirm)) return; setOutcome("lost"); }}
+                  disabled={outcomeSaving}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-700 transition disabled:opacity-50"
+                >
+                  🚫 {L.ibCloseBtn}
+                </button>
+                <span className="text-xs text-gray-500">{L.ibCloseNoteHint}</span>
+              </div>
+            )}
           </div>
         </div>
       </Card>

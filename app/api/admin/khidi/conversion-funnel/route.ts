@@ -17,6 +17,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { setInquiryOutcome, isValidOutcome } from "@/lib/khidi/inquiryOutcome";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { pct, maskName } from "@/lib/khidi/funnelMetrics";
 import { logPiiAccess } from "@/lib/audit/logPiiAccess";
@@ -214,48 +215,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ ok: true, is_test: body.is_test });
     }
 
-    if (outcome !== null && outcome !== "admitted" && outcome !== "lost") {
+    if (!isValidOutcome(outcome)) {
       return NextResponse.json({ ok: false, error: "invalid_outcome" }, { status: 400 });
     }
 
-    const { error } = await (supabaseAdmin as any)
-      .from("inquiries")
-      .update({
-        outcome,
-        outcome_note: note,
-        outcome_updated_at: new Date().toISOString(),
-        outcome_updated_by: auth.userId,
-      })
-      .eq("id", inquiryId);
-
-    if (error) {
-      console.error("[conversion-funnel] outcome update error:", error.message);
-      return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
-    }
-
-    // EDGE-5 (POSTMORTEM #18→#20): 유치 확정/이탈/취소를 case_status_history 에 남겨
-    //   에이전시 포털 타임라인에 반영(이전엔 outcome 만 바뀌고 에이전시는 확정/이탈을 못 봤음).
-    //   admitted = 입국·치료 단계로 전진(뒤로 안 감), lost/취소 = 단계 유지하고 이력만.
-    try {
-      const uid = auth.userId ?? null;
-      if (outcome === "admitted") {
-        const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
-        await advanceCaseStatus(supabaseAdmin, inquiryId, "treatment", "🎯 유치 확정", uid);
-      } else {
-        const { data: inq } = await (supabaseAdmin as any)
-          .from("inquiries")
-          .select("case_status")
-          .eq("id", inquiryId)
-          .maybeSingle();
-        await (supabaseAdmin as any).from("case_status_history").insert({
-          inquiry_id: inquiryId,
-          status: inq?.case_status ?? "intake",
-          note: outcome === "lost" ? "🚫 이탈 처리" : "↩️ 유치 취소 (집계 제외)",
-          created_by: uid,
-        });
-      }
-    } catch (histErr: any) {
-      console.error("[conversion-funnel] case_status_history 기록 실패:", histErr?.message);
+    // 결과 변경은 코디 화면 「종료(안 옴)」과 «같은 함수»(setInquiryOutcome, 2026-09-06) — 이력(EDGE-5, POSTMORTEM #18→#20)·
+    // admitted 의 단계 전진(입국·치료)·«누가 언제»까지 그쪽이 맡는다. 점수판의 이탈은 단계를 그대로 둔다(holdOnLost 없음).
+    const r = await setInquiryOutcome(supabaseAdmin, { inquiryId: Number(inquiryId), outcome, note, userId: auth.userId ?? null });
+    if (!r.ok) {
+      const status = r.error === "invalid_outcome" ? 400 : 500;
+      return NextResponse.json({ ok: false, error: r.error ?? "update_failed" }, { status });
     }
 
     return NextResponse.json({ ok: true });

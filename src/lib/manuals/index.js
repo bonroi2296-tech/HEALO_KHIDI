@@ -71,7 +71,7 @@ export const MANUALS = {
   coordinator: {
     title: "코디네이터 포털 사용설명서",
     summary: "들어온 문의를 환자별 케이스로 만들어 병원 배정·상담·비자·견적까지 끌고 가는 실무 화면입니다.",
-    updated: "2026-07-28",
+    updated: "2026-09-06",
     sections: [
       {
         heading: "하루 업무 순서(추천)",
@@ -95,6 +95,7 @@ export const MANUALS = {
           { title: "→ 에이전시에 공개", desc: "원장님 원문 밑에 '에이전시에 보낼 확정본' 박스가 있습니다. 오탈자·외국어 교정을 마친 뒤 「에이전시에 공개」를 누르면 그 순간부터 에이전시 케이스 화면에 확정본(교정본)만 노출됩니다. 원문은 절대 에이전시에 안 나갑니다. 잘못 눌렀으면 「공개 취소」로 즉시 되돌릴 수 있습니다." },
           { title: "환자 연결 링크 복사", desc: "에이전시 경유로 접수돼 아직 계정이 없는 환자(문의상세 상단에 '비회원' 배지)는 「환자 연결 링크 복사」 버튼이 보입니다. 이 링크(healwith.co.kr/claim/…)를 왓츠앱 등으로 환자에게 보내면, 회원가입/로그인만 해도 이 케이스가 그 계정에 연결돼 환자용 마이페이지(진행상황·서류·채팅)를 바로 씁니다. 직원·에이전시 계정으로는 연결 자체가 막혀 있습니다." },
           { title: "콘텐츠 편집", desc: "홈·전 화면의 문구를 6개 언어로 직접 고치는 편집기입니다. **이 화면(과 백오피스 전체)은 오른쪽 위 지구본 버튼으로 러시아어 등 자기 언어로 바꿔 볼 수 있습니다** — 한 번 고르면 계속 유지됩니다. 아무 언어로나 문구를 검색하면(이미 고친 문구로도 검색됩니다) 일치한 문구가 나오고, 「같은 블록 함께 보기」를 켜면 그 문구가 속한 화면 블록(제목·부제·카드)까지 한 자리에서 같이 수정할 수 있어요. 칸이 여러 줄이면 그 줄바꿈(Enter)이 화면에 그대로 반영되는 문구이고, 한 줄이면 화면 폭에 맞춰 자동 줄바꿈되니 문장만 고치면 됩니다. 줄마다 오른쪽에 **언어 표시(한·EN·РУ·ҚЗ·中·日)**가 있습니다. **꽉 찬 청록**이 지금 고치고 있는 언어, **연한 청록**이 «전에 직접 고쳐 둔 언어»입니다(회색은 기본 문구 그대로라는 뜻이지 비어 있다는 뜻이 아닙니다). 표시를 누르면 그 언어로 바로 바꿔 볼 수 있어요 — 펼치지 않아도 카자흐어를 손봤는지 한눈에 보입니다. 「저장」을 누르면 바로 반영되지 않고 **«무엇을 무엇으로 바꾸는지» 목록이 한 번 뜹니다** — 어떤 항목인지(이름이 있으면 이름, 없으면 항목 코드)와 「이전 문구 → 새 문구」를 훑어보고 「이대로 저장」을 누르세요. 엉뚱한 줄이 바뀌고 있진 않은지 보는 자리라 꼭 한 번 읽어주세요. 저장하면 해당 화면에 바로 반영되고, 칸을 비워 저장하면 원래 문구로 되돌아갑니다. 같은 묶음의 다른 선택지(예: 암종 버튼끼리)와 문구가 똑같아지면 「문구 중복」 빨간 표시가 뜹니다 — 선택 버튼끼리 글자가 겹치면 환자가 무엇을 고르는지 알 수 없으니 저장 전에 확인해 주세요. 지난 수정 내역은 「변경 이력」 버튼으로 확인합니다 — 줄마다 **어느 화면의 어디인지**와 「화면 열기」 링크가 붙고(아직 이름을 못 붙인 문구는 「화면 미확인」으로 뜨며, 「화면 못 찾음」은 고쳐도 어느 화면에도 안 나올 수 있다는 뜻입니다), 먼저 최근 50건이 보이며 아래 「더 보기」로 전체를 불러옵니다. 위쪽 검색창에 글자를 넣으면 **전체 이력에서** 문구·화면 이름·수정한 사람으로 찾을 수 있어요(찾기 시작하면 나머지 이력도 자동으로 다 불러오니, 안 나오면 정말 없는 겁니다)(이전 문구는 연빨강, 바꾼 문구는 연초록. 그 문구를 처음 고친 경우엔 이전 칸에 원래 기본 문구가 「기본값」 표시와 함께 나옵니다)." },
+          { title: "종료 (환자가 안 온다고 함)", desc: "소견·견적까지 다 줬는데 환자가 안 오기로 한 케이스는 문의 상세 「진행 단계」 카드 아래의 「종료 (환자가 안 온다고 함)」을 누릅니다. 메모 칸에 이유를 적고 누르면 같이 남습니다. 결과는 «이탈»로 기록되고 단계는 «보류»가 되며, 매일 아침 「식은 문의」 알림에서 빠지고 받은함에서는 «종료» 탭으로 옮겨집니다(어드민 「유치 전환」 화면엔 이탈 N건으로 잡힙니다). 마음이 바뀌어 다시 오면 같은 자리의 「되돌리기」를 누르고 단계를 다시 고르면 됩니다." },
         ],
       },
       {
@@ -156,6 +157,7 @@ export const MANUALS = {
               { title: "Estimate", desc: "Creates/shares estimates of treatment and stay costs." },
               { title: "Symptom alerts", desc: "Alerts among patient-submitted symptom records that need attention." },
               { title: "Content editing", desc: "An editor for fixing the wording of the home page and all screens in 6 languages. **This screen (and the whole back office) can be switched to your own language with the globe button at the top right** — the choice is remembered. Search for a phrase in any language (phrases you have already edited are searchable too) and the matching phrases appear; turn on 'Show same block' to also see and edit the whole screen block it belongs to (title, subtitle, cards) in one place. If a box shows multiple lines, those line breaks (Enter) appear on the screen exactly as typed; if it is a single line, the screen wraps it automatically to fit the width, so just edit the sentence. On the right of each row there are language marks (한·EN·РУ·ҚЗ·中·日). Solid teal is the language you are editing now; light teal means you have edited that language before (grey means the built-in wording is still in use — it does not mean the field is empty). Click a mark to switch to that language, so you can tell at a glance whether Kazakh has been touched without expanding the row. Pressing 'Save' does not apply changes right away — a window first lists what is changing: the item name (or its code) and 'previous text → new text'. Look through the list and press 'Save as is'. This is where you can spot whether the wrong row is being changed, so please read it every time. After saving, changes apply to the screen immediately; saving an emptied box restores the original text. If the text becomes identical to another option in the same group (for example, a neighbouring cancer-type button), a red 'Duplicate text' mark appears — if choice buttons share the same wording, the patient cannot tell what they are selecting, so check before saving. Past edits are shown via the 'Change history' button — each row now names **which screen it belongs to** with an 「Open screen」 link (rows we could not name yet show 「화면 미확인」, and 「화면 못 찾음」 means the phrase may not appear on any screen at all), and the newest 50 load first with a 「Load more」 button below; type in the search box above to search **the whole history** by wording, screen name or editor (searching automatically loads the rest first, so if nothing shows, there really is nothing) (previous text in light red, new text in light green; for a phrase edited for the first time, the 'previous' side shows the original wording with a 'Default' mark)." },
+              { title: "Close (patient not coming)", desc: "When a patient decides not to come after receiving opinions/estimates, press \"Close (patient not coming)\" under the Case stage card in the inquiry detail. Write the reason in the note field first; it is saved together. The outcome is recorded as lost and the stage becomes On hold; the case leaves the daily cold-lead alerts and moves to the Closed tab in the inbox (the admin Conversion screen counts it as lost). If they change their mind, press Reopen in the same place and pick the stage again." },
             ],
           },
           {
@@ -205,6 +207,7 @@ export const MANUALS = {
               { title: "Смета", desc: "Составление/отправка сметы расходов на лечение и пребывание." },
               { title: "Оповещения о симптомах", desc: "Оповещения среди записей о симптомах, присланных пациентом, требующие внимания." },
               { title: "Редактирование контента", desc: "Редактор, позволяющий править тексты главной и всех страниц на 6 языках. **Этот экран (и весь бэк-офис) можно переключить на русский кнопкой с глобусом справа вверху** — выбор запоминается. Найдите фразу на любом языке (уже исправленные фразы тоже ищутся) — появятся совпадающие фразы; включите «Показать весь блок», чтобы увидеть и править весь блок экрана (заголовок, подзаголовок, карточки) в одном месте. Если поле многострочное — эти переносы строк (Enter) отображаются на странице ровно так, как введены; если поле однострочное — страница переносит текст автоматически по ширине, правьте просто предложение. Справа в каждой строке есть отметки языков (한·EN·РУ·ҚЗ·中·日). Сплошной бирюзовый — язык, который вы правите сейчас; светло-бирюзовый — язык, который вы уже правили раньше (серый значит, что используется исходный текст, а не что поле пустое). Нажмите на отметку, чтобы сразу перейти к этому языку — так видно, правился ли казахский, не раскрывая строку. При нажатии «Сохранить» изменения не применяются сразу — сначала открывается окно со списком «что и на что меняется»: название пункта (или его код) и «прежний текст → новый текст». Просмотрите список и нажмите «Сохранить как есть». Это место, где видно, не меняется ли случайно соседняя строка, — пожалуйста, просматривайте каждый раз. После сохранения изменения сразу применяются на странице; если сохранить пустое поле, вернётся исходный текст. Если текст совпадёт с другим вариантом того же набора (например, с соседней кнопкой типа рака), появится красная пометка «Дубликат текста» — если надписи на кнопках выбора совпадают, пациент не понимает, что выбирает, поэтому проверьте перед сохранением. История правок — по кнопке «История изменений»: в каждой строке указан **экран**, к которому относится текст, и ссылка «Открыть экран» (если экран ещё не определён — «화면 미확인», а «화면 못 찾음» означает, что текст может не появляться ни на одном экране); сначала грузятся последние 50 записей, остальные — кнопкой «Ещё»; поле поиска сверху ищет по **всей истории** — по тексту, названию экрана или автору правки (при поиске остальные записи догружаются автоматически, поэтому если ничего не найдено — значит, этого действительно нет) (прежний текст — светло-красным, новый — светло-зелёным; если фразу правят впервые, в поле «прежний» показывается исходный текст с пометкой «По умолчанию»)." },
+              { title: "Закрыть (пациент не приедет)", desc: "Если пациент после заключений и сметы решил не приезжать, нажмите «Закрыть (пациент не приедет)» под карточкой «Этап кейса» в деталях заявки. Сначала напишите причину в поле заметки — она сохранится вместе. Результат записывается как «отказ», этап становится «Приостановлено»; заявка уходит из ежедневных напоминаний об остывших заявках и переходит на вкладку «Закрыто» (на экране «Конверсия» у администратора считается как отказ). Если пациент передумает, нажмите «Возобновить» там же и заново выберите этап." },
             ],
           },
           {
@@ -252,6 +255,7 @@ export const MANUALS = {
               { title: "Визаны бақылау", desc: "Шақыру хаты мен виза рәсімдеу кезеңдерін бақылау." },
               { title: "Смета", desc: "Емдеу және болу шығындарының сметасын жасау/бөлісу." },
               { title: "Симптом хабарламалары", desc: "Пациент енгізген симптом жазбаларының ішінде назар аударуды қажет ететін хабарламалар." },
+              { title: "Жабу (науқас келмейді)", desc: "Қорытынды мен смета берілгеннен кейін науқас келмеуді шешсе, өтінім бетіндегі «Кейс кезеңі» картасының астындағы «Жабу (науқас келмейді)» түймесін басыңыз. Алдымен себебін жазба өрісіне жазыңыз — бірге сақталады. Нәтиже «бас тартты» деп жазылады, кезең «Кейінге қалдырылды» болады; өтінім күнделікті суыған өтінім ескертулерінен шығып, кіріс жәшігіндегі «Жабылды» қойындысына өтеді (әкімшінің «Конверсия» экранында бас тарту ретінде саналады). Науқас ойын өзгертсе, сол жерден «Қайта ашу» түймесін басып, кезеңді қайта таңдаңыз." },
             ],
           },
           {
@@ -290,6 +294,7 @@ export const MANUALS = {
             items: [              { title: "签证跟踪", desc: "跟踪邀请函·签证办理阶段。" },
               { title: "报价", desc: "编制/共享治疗·停留费用报价。" },
               { title: "症状提醒", desc: "患者提交的症状记录中需要留意的提醒。" },
+              { title: "结束（患者不来）", desc: "患者在收到意见书/报价后决定不来时，在咨询详情的“案例阶段”卡片下方点击“结束（患者不来）”。请先在备注栏写明原因，会一并保存。结果记为“流失”，阶段改为“暂缓”；该案例将不再出现在每日冷却咨询提醒中，并移到收件箱的“已结束”标签（管理员“转化”页面计为流失）。若患者改变主意，在同一位置点击“重新打开”并重新选择阶段即可。" },
             ],
           },
           {
@@ -328,6 +333,7 @@ export const MANUALS = {
             items: [              { title: "ビザトラッキング", desc: "招へい状・ビザの進行段階を追跡。" },
               { title: "見積もり", desc: "治療・滞在費用の見積もり作成/共有。" },
               { title: "症状アラート", desc: "患者が投稿した症状記録のうち、目を通すべきアラート。" },
+              { title: "終了（患者は来院しない）", desc: "所見や見積もりを渡した後に患者が来院しないと決めた場合は、問い合わせ詳細の「ケース段階」カード下の「終了（患者は来院しない）」を押します。先にメモ欄へ理由を書いておくと一緒に保存されます。結果は「離脱」として記録され、段階は「保留」になります。毎朝の放置アラートから外れ、受信箱では「終了」タブへ移ります（管理者の「転換」画面では離脱として集計）。患者の気が変わったら同じ場所の「再開する」を押して段階を選び直してください。" },
             ],
           },
           {

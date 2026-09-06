@@ -37,6 +37,10 @@ const DETAIL_FIELDS = [
   "status",
   "case_status",
   "case_status_note",
+  // 결과(유치 확정·종료) — 상세 「진행 단계」 카드의 종료/되돌리기 단추가 읽는다(2026-09-06)
+  "outcome",
+  "outcome_note",
+  "outcome_updated_at",
   "match_accuracy",
   "source",
   "short_memo",

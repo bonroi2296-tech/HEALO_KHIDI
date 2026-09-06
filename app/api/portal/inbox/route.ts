@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from("inquiries")
       .select(
-        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, is_test, follow_ups, agencies(name)"
+        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, is_test, follow_ups, outcome, outcome_note, outcome_updated_at, agencies(name)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -124,6 +124,10 @@ export async function GET(request: NextRequest) {
       agency_name: i.agencies?.name || null,
       // 시험 문의는 화면에서 «시험» 표를 달아야 한다 — 켜서 봤다가 진짜로 착각하면 그게 더 나쁘다.
       is_test: i.is_test === true,
+      // 결과: lost = 종료(안 옴) → 화면은 «종료» 탭·배지로 가른다(2026-09-06). admitted = 유치 확정.
+      outcome: i.outcome || null,
+      outcome_note: i.outcome_note || null,
+      outcome_updated_at: i.outcome_updated_at || null,
       // 환자가 직접 남긴 최신 글의 시각 · 그 글을 직원이 아직 안 봤으면 그 시각(아니면 null). 본문은 안 나간다.
       patient_note_at: patientNoteAt.get(Number(i.id)) ?? null,
       patient_unread_since: patientUnreadSince(
