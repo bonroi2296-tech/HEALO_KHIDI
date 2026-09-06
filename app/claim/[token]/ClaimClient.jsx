@@ -306,6 +306,9 @@ export default function ClaimClient({ token }) {
       {/* 언제든 보인다 — 단계와 상관없이 «지금 더 알릴 게 생겼다»는 아무 때나 생긴다. */}
       <SendMore token={token} lang={lang} />
 
+      {/* 사후관리 ⑤를 «계정 없이» — 증상 기록 + 내 암종 가이드 (2026-09-06 PO «사후관리 3대 보완» B) */}
+      <SymptomCard token={token} lang={lang} cancerSlug={preview?.cancerSlug} />
+
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
           lang={lang}
@@ -474,6 +477,94 @@ function SendMore({ token, lang }) {
 
       {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+/**
+ * 증상 기록 — 로그인 없이 진행상황 링크에서. 저장 표·판정·경보는 로그인 경로(/patient/symptoms)와 같다.
+ *
+ * 왜 (2026-09-06 PO «사후관리 3대 보완»): 실환자 8명 중 계정이 있는 사람은 4명이라, 로그인 화면에만
+ * 있던 사후관리 ⑤(증상·교육)에 절반이 닿지 못했다. 항목별 폼 대신 «한 줄 심각도 + 자유 서술»로 받는다.
+ */
+const EDU_CANCERS = new Set(["stomach", "breast", "liver", "lung", "thyroid"]);
+
+function SymptomCard({ token, lang, cancerSlug }) {
+  const [text, setText] = useState("");
+  const [severity, setSeverity] = useState(5);
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState("");
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    const v = text.trim();
+    if (!v || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/inquiries/claim/symptoms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, text: v, severity, language: lang }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setText("");
+        setDone(t(data.analysis?.humanFollowup ? "claimPage.symptomDoneHigh" : "claimPage.symptomDoneLow", lang));
+        // 기록은 위 「보내주신 것」에 뜬다 — 잠깐 보여준 뒤 다시 불러 갱신
+        setTimeout(() => window.location.reload(), 1800);
+      } else setError(t("claimPage.symptomFail", lang));
+    } catch {
+      setError(t("claimPage.symptomFail", lang));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const eduHref = cancerSlug && EDU_CANCERS.has(cancerSlug) ? `/education?cancer=${cancerSlug}` : "/education";
+
+  return (
+    <div className="no-print mt-4 rounded-xl border border-gray-200 bg-white px-4 py-4">
+      <p className="text-sm font-bold text-gray-900">{t("claimPage.symptomTitle", lang)}</p>
+      <p className="mt-1 text-xs leading-relaxed text-gray-600">{t("claimPage.symptomHint", lang)}</p>
+
+      <textarea
+        value={text}
+        onChange={(e) => { setText(e.target.value); setDone(""); }}
+        rows={3}
+        maxLength={2000}
+        placeholder={t("claimPage.symptomPlaceholder", lang)}
+        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+      />
+
+      <label className="mt-3 block text-xs text-gray-600">
+        {t("claimPage.symptomSeverity", lang)} <span className="ml-1 font-bold text-gray-900">{severity}</span>
+        <input
+          type="range" min={1} max={10} step={1} value={severity}
+          onChange={(e) => setSeverity(Number(e.target.value))}
+          className="mt-1 block w-full accent-teal-700"
+          aria-label={t("claimPage.symptomSeverity", lang)}
+        />
+      </label>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending || !text.trim()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          {t("claimPage.symptomSend", lang)}
+        </button>
+        <a href={eduHref} className="text-sm font-semibold text-teal-700 underline underline-offset-4">
+          {t("claimPage.symptomEduLink", lang)}
+        </a>
+      </div>
+
+      {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      <p className="mt-2 text-[11px] text-gray-400">{t("claimPage.symptomDisclaimer", lang)}</p>
     </div>
   );
 }

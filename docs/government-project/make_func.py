@@ -506,13 +506,13 @@ add_scenario(doc, {
     '액터': '환자 (P-01), 의료진 (P-03)',
     '전제 조건': '치료 완료 및 귀국',
     '트리거': '정기 체크인 알림 수신 또는 환자 자발적 입력',
-    '기본 흐름': '① 환자가 증상 기록 입력(/patient/symptoms) 또는 해외 의료기관·환자가 검사결과·영상 업로드\n② 위험도 판정은 규칙 기반(응급 키워드 + 점수식, src/lib/followup/symptomAnalyzer.ts — AI 호출 없음)\n③ 위험 시 담당자 경보(symptom_alerts → 코디 「증상 알림」)\n④ 3일 이상 입력이 없으면 «침묵» 경보(detect-silent-patients 크론)\n⑤ 담당자가 화상 경과상담(follow_up 세션) 또는 메시지로 확인 — 완료 처리한 세션만 K-04 에 잡힌다',
+    '기본 흐름': '① 환자가 증상 기록 입력 — 로그인 화면(/patient/symptoms) 또는 «계정 없이» 진행상황 링크(/claim/<토큰>, 2026-09-06). 해외 의료기관·환자는 검사결과·영상 업로드\n② 위험도 판정 = 규칙(응급 키워드 + 점수식) → 제미나이 2차 판정(src/lib/followup/aiTriage.ts, 2026-09-06). AI 는 올리기만 하고 확신 50% 미만은 무시, 실패·시간 초과면 규칙 결과 유지. 근거는 환자 원문 인용으로 기록\n③ 위험 시 담당자 경보(symptom_alerts → 코디 「증상 알림」) + 기록은 케이스 상세 「추가 정보」에도 남아 코디가 늘 보던 자리에서 본다\n④ 3일 이상 입력이 없으면 «침묵» 경보(detect-silent-patients 크론)\n⑤ 담당자가 화상 경과상담(follow_up 세션) 또는 메시지로 확인 — 완료 처리한 세션만 K-04 에 잡힌다',
     '예외 흐름': '• 상담 완료 처리 24시간 미실행 → 운영자 경보(unclosedNudge)\n• 심각한 이상 징후 → 응급 연락처 안내(24시간 답변 «약속»은 하지 않는다)',
     '입력': '증상 코드, 통증 점수, 파일, 메모',
     '출력': '경과 기록, 의료진 알림',
     '화면 경로': '/app/patient/symptoms',
     'DB 테이블/컬럼': 'followup_schedules (사후관리 차수·상태를 별도 표로 관리)\nconsultation_sessions (notes, notes_encrypted)',
-    '현재 구현 상태': '완료: /app/patient/symptoms, /app/api/khidi/followup, /app/api/cron/detect-silent-patients, src/lib/followup/*\n증상 보고 22건(시연·점검 포함) · 실환자 사후관리 일정은 아직 0(유치 확정 환자 없음)',
+    '현재 구현 상태': '완료: /app/patient/symptoms, /app/api/inquiries/claim/symptoms, /app/api/khidi/followup, /app/api/cron/detect-silent-patients, src/lib/followup/{symptomAnalyzer,aiTriage}.ts\n증상 보고 22건(시연·점검 포함) · 실환자 사후관리 일정은 아직 0(유치 확정 환자 없음). AI 2차 판정 실측(2026-09-06 시험 문의): 규칙 «중간 46%» → AI «높음 90%, 진통제 무효·38.5도 인용» → 담당자 확인으로 상향, 호출당 316 토큰(US$0.001)',
 })
 
 add_heading(doc, '9.2 건강관리 교육 콘텐츠 (FN-POST-02)', 2)
@@ -777,7 +777,7 @@ add_scenario(doc, {
     '기능명': '가입 없이 링크로 보는 진행상황·소견·서류 (P-11)',
     '액터': '접수한 사람 누구나(환자·가족·에이전시)',
     '전제 조건': '접수 시 그 채널로 돌려준 /claim/<토큰> 링크',
-    '기본 흐름': '① 6단계 막대(누를 수 있는 탭) — 아직 안 온 단계는 잠근다\n② 고른 단계에 있었던 일(코디 소식, 새것부터) + 「다음은요」\n③ 우리가 준 것(공식 문서) / 환자가 준 것(추가 자료 200MB·메시지)\n④ 환자 글은 코디 목록에 「환자 새 글 · N일째 안 읽음」 배지로 뜬다\n⑤ 아래 띠에서 계정 연결·가입을 «권유»만 한다(어떤 상태여도 위 진행상황은 남는다)',
+    '기본 흐름': '① 6단계 막대(누를 수 있는 탭) — 아직 안 온 단계는 잠근다\n② 고른 단계에 있었던 일(코디 소식, 새것부터) + 「다음은요」\n③ 우리가 준 것(공식 문서) / 환자가 준 것(추가 자료 200MB·메시지)\n④ 증상 기록 카드(2026-09-06): 심각도 1~10 + 자유 서술 → 규칙+AI 판정 → 코디 종 알림, 「내 암종 관리 가이드」 링크(/education?cancer=…)\n⑤ 환자 글·증상은 코디 목록에 「환자 새 글 · N일째 안 읽음」 배지로 뜬다\n⑥ 아래 띠에서 계정 연결·가입을 «권유»만 한다(어떤 상태여도 위 진행상황은 남는다)',
     '언어': '사람이 고른 언어 → 문의서의 환자 언어 → 브라우저 → 영어. 국적으로 추측하지 않는다',
     '화면 경로': '/app/claim/[token] · /app/api/inquiries/claim/*',
     'DB 테이블/컬럼': 'case_status_history (31) · case_shared_documents (9) · inquiry_events',
@@ -812,7 +812,21 @@ add_scenario(doc, {
     'DB 테이블/컬럼': 'surveys (4) · survey_responses (2, 전부 시험·시연)',
     '현재 구현 상태': '완료(E2E patient-survey-response.spec.ts) / 실환자 표본 0',
 })
-add_heading(doc, '18.2 사후관리 자동 케이던스 (FN-POST-04)', 2)
+add_heading(doc, '18.2 «방문 전» 사후관리 케이던스 (FN-POST-05) — 2026-09-06 신설', 2)
+add_scenario(doc, {
+    '기능 ID': 'FN-POST-05',
+    '기능명': '소견을 받고 아직 오지 않은 환자에게 D+3 · D+14 · D+30 안부·다음 단계 안내 + 무응답 코디 알림',
+    '왜': '사후관리 ④⑤⑥은 전부 «치료가 끝난 뒤»에만 시작된다. 실환자 8명 중 소견까지 받은 6명이 한 명도 오지 않았고 그 6명에게 플랫폼은 소견 전달 뒤 아무것도 하지 않았다(첫 실고객이 두 달째 「상담·검토 진행」). PO 지시(2026-09-06)로 «방문 전» 구간에 케이던스를 붙였다',
+    '액터': '시스템, 환자, 코디네이터',
+    '트리거': '소견 전달일(case_opinions.released_at 최신) 기준 D+3 / D+14 / D+30 — dispatch-surveys 크론(매일 09:00 UTC) 안에서 돈다',
+    '기본 흐름': '① 대상 = 소견이 전달됐고 결과(outcome)가 없고 치료 단계 전인 문의(시험 문의 제외)\n② D+3 「소견 잘 받으셨나요」 / D+14 「다음 단계(비용·일정·비자)를 함께 정할까요」 / D+30 「요즘 어떻게 지내시나요」 — 환자 언어 6종, 진행상황 링크로 회신 유도\n③ D+14·D+30 무응답이면 코디·관리자 종 + 메일(「소견 뒤 N일째 무응답」)\n④ 환자가 앵커 이후 글·증상을 남겼으면 독촉(D+14·D+30)은 보내지 않는다 — 코디가 이어간다\n⑤ 한 실행에 케이스당 최대 1통, 도래한 지 21일 넘긴 단계는 보내지 않는다(도입 시점 옛 케이스 소급 발송 방지). 멱등 키 = reminders_scheduled(pre_visit_followup)',
+    '예외 흐름': '• 메일 주소가 없는 소급 등록 케이스 → 환자에게는 못 보내고 코디 알림만\n• 발송 실패 → 기록을 남기지 않아 다음 실행이 재시도\n• 끄기 = env PRE_VISIT_FOLLOWUP_ENABLED=0',
+    '화면 경로': 'src/lib/followup/preVisitFollowup.ts · src/lib/email/templates/preVisitFollowup.ts · /app/api/cron/dispatch-surveys',
+    'DB 테이블/컬럼': 'case_opinions.released_at(앵커) · reminders_scheduled(reminder_type=pre_visit_followup, payload.phase, status sent|skipped) · inquiries.follow_ups(응답 판정)',
+    '현재 구현 상태': '완료(단위 시험 8건): 도입 첫 실행 예상 — 소견 D+14 구간의 실환자 2명에게 각 1통, 7월 이전 소견 3건은 «지나감»으로만 기록',
+})
+
+add_heading(doc, '18.3 치료 후 사후관리 자동 케이던스 (FN-POST-04)', 2)
 add_scenario(doc, {
     '기능 ID': 'FN-POST-04',
     '기능명': '치료 후 1주·2주·1개월·3개월·6개월·1년 차수 자동 실행',
@@ -928,7 +942,7 @@ add_scenario(doc, {
 # ================================================================
 doc.add_page_break()
 add_heading(doc, '부록 A. 기능 구현 상태 요약', 1)
-add_para(doc, f'코드베이스 검증 기반 현황 ({F.AS_OF} 기준). 본문 기능 ID 41개를 그룹으로 묶은 표다.')
+add_para(doc, f'코드베이스 검증 기반 현황 ({F.AS_OF} 기준). 본문 기능 ID 42개를 그룹으로 묶은 표다.')
 doc.add_paragraph()
 
 sum_tbl = doc.add_table(rows=0, cols=4)
@@ -942,7 +956,7 @@ summary_data = [
     ('AI 챗·사람 상담 (FN-CHAT-01~02)', '완료', '/app/api/public/chat/*, /app/coordinator/messages', '웹·텔레그램·왓츠앱 봇 · 3턴 승격'),
     ('번역·화상 자막 (FN-TRANS-01~02)', '완료', '/app/api/translate-text, [id]/stt, agents/live-translate', '실서비스 가동 · 자막 3,735건'),
     ('예약·비자 (FN-SCHED-01~02)', '부분', '/app/coordinator/consultations, /app/patient/visa', '병원 가용 일정 입력 화면 없음'),
-    ('사후관리·교육 (FN-POST-01~04)', '완료', '/app/patient/symptoms, /app/education, dispatch-surveys', '규칙 기반 위험도 · 교육 자동 발송 연결 · 실환자 0'),
+    ('사후관리·교육 (FN-POST-01~05)', '완료', '/app/patient/symptoms, /app/claim/[token], /app/education, dispatch-surveys', '규칙+AI 2차 위험도 · 교육 자동 발송 · 방문 전 케이던스(9/06) · 계정 없이 증상 기록 · 치료 후 실환자 0'),
     ('다국어 (FN-I18N-01~02)', '완료', 'proxy.ts, src/lib/i18n, /app/coordinator/content', '2,052키 × 6개 언어 · 콘텐츠 칸 249개 편집 가능'),
     ('코디네이터 포털 (FN-COORD-01~02)', '완료', '/app/coordinator/* (메뉴 16)', '음성 정리 · 종료 사유 · 환자 새 글 배지'),
     ('관리자 포털 (FN-ADMIN-01)', '완료', '/app/admin/* (7그룹)', 'KHIDI 리포트 · AI 품질 · 데이터 삭제 요청'),
@@ -962,8 +976,8 @@ for row in summary_data:
     add_data_row(sum_tbl, row, bold_first=True)
 
 doc.add_paragraph()
-add_para(doc, '구현 비율 집계 (기능 ID 41개 기준):')
-add_para(doc, '완료: 39개 (95%). 착수 시(2026-04) 부분구현 6건 중 4건이 완료로 전환됐고, 8/20 이후 새 기능 11개가 더해졌다', indent=1)
+add_para(doc, '구현 비율 집계 (기능 ID 42개 기준):')
+add_para(doc, '완료: 40개 (95%). 착수 시(2026-04) 부분구현 6건 중 4건이 완료로 전환됐고, 8/20 이후 새 기능 12개(9/06 방문 전 케이던스 포함)가 더해졌다', indent=1)
 add_para(doc, '부분구현: 2개 (5%). ①예약 — 병원 가용 일정 입력 화면 ②국내 의료기관 포털 — 프로필·카탈로그(플래그 비활성)·진료 결과·일정', indent=1)
 add_para(doc, '미구현: 0개. 다만 «완료» 안에 숨은 남은 일은 부록 B 에 그대로 적었다', indent=1)
 add_para(doc, '※ 2026-08-20 판은 「완료 21 / 부분 2」였고 부분 2건(교육 자동 발송·예약)은 8/25 와 9/04 에 각각 연결·보강됐다. 이번 판은 «완료» 판정을 더 엄격히 보아 국내 의료기관 포털을 부분으로 내렸다.')

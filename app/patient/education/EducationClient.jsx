@@ -138,6 +138,14 @@ export default function EducationClient() {
   const lang = useLang();
 
   const [cancerType, setCancerType] = useState('stomach');
+  // 진행상황 링크(/claim)에서 «내 암종 가이드»로 바로 들어오게 ?cancer= 를 읽는다(2026-09-06).
+  // useSearchParams 는 Suspense 경계를 요구해 빌드를 깨뜨리므로 window 에서 읽는다.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('cancer');
+      if (q && CANCER_TYPES.some((c) => c.value === q)) setCancerType(q);
+    } catch { /* noop */ }
+  }, []);
   const [expandedSections, setExpandedSections] = useState({});
 
   const toggleSection = (idx) => {

@@ -380,6 +380,8 @@ export async function GET(request: NextRequest) {
         // 그대로 찍힌다(2026-08-04 실측: 67건 중 29건). 자유입력(한글 "위암" 등)은 사전에 없어
         // 원문 그대로 통과된다 — cancerTypeLabelL 이 못 찾으면 키를 되돌려주는 성질을 그대로 씀.
         cancerType: cancerTypeLabelL(inq.cancer_type, lang) || null,
+        // 교육 가이드 링크용 슬러그(표시용 아님) — 가이드가 있는 5종(stomach·breast·liver·lung·thyroid)만 화면이 쓴다.
+        cancerSlug: inq.cancer_type || null,
         // nationality 는 화면이 안 쓴다(ClaimClient 는 환자·치료분야·의뢰경로·접수일 4칸만 그린다).
         // 이 주소는 메신저로 전달되므로 «안 쓰는 값은 안 내린다» — 옛 코드는 "KZ" 를 그냥 실어 보냈다.
         agencyName: (inq as any).agencies?.name || null,

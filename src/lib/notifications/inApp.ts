@@ -399,6 +399,55 @@ export async function notifyStaffPatientMessage(notice: PatientMessageNotice): P
   }
 }
 
+export interface PreVisitSilentNotice {
+  inquiryId: number;
+  /** d14 | d30 — 소견 전달 뒤 단계 */
+  phase: string;
+  daysSinceOpinion: number;
+  /** 메일 주소가 없어 환자에게는 못 보낸 케이스(소급 등록분) */
+  noEmail: boolean;
+}
+
+/**
+ * 소견을 전달했는데 환자가 2주·한 달째 조용할 때 코디 + 어드민 종 알림.
+ *
+ * 왜 (2026-09-06 PO «사후관리 3대 보완»): 소견까지 받은 실환자 6명 중 한국에 온 사람이 0명인데,
+ *   소견 전달 뒤 플랫폼은 아무것도 하지 않았다. 환자에게는 방문 전 케이던스(preVisitFollowup)가
+ *   메일을 보내고, 여기서는 «사람이 이어받아야 할 시점»을 코디에게 알린다.
+ * 디듀프는 케이던스 쪽 멱등 키(케이스×단계)가 맡는다 — 같은 단계로 두 번 울리지 않는다. Fail-safe.
+ */
+export async function notifyStaffPreVisitSilent(notice: PreVisitSilentNotice): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    const title = `🕒 소견 뒤 ${notice.daysSinceOpinion}일째 무응답 #${notice.inquiryId}`;
+    const body = notice.noEmail
+      ? "메일 주소가 없어 환자에게는 안부를 못 보냈어요. 다른 채널로 한 번 연락해 주세요."
+      : "환자에게 안부·다음 단계 안내 메일이 나갔어요. 답이 없으면 직접 연락해 보세요.";
+    const base = adminBaseUrl();
+    await Promise.allSettled([
+      broadcastInAppNotification(coordinators, {
+        type: "pre_visit_silent", title, body, priority: "normal",
+        link: `/coordinator/inbox/${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId, phase: notice.phase },
+      }),
+      broadcastInAppNotification(admins, {
+        type: "pre_visit_silent", title, body, priority: "normal",
+        link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId, phase: notice.phase },
+      }),
+      emailStaff({
+        subject: `[healwith] ${title}`,
+        text: `${body}
+
+코디 화면: ${base}/coordinator/inbox/${notice.inquiryId}`,
+        tags: { kind: "pre_visit_silent", inquiry_id: String(notice.inquiryId) },
+      }),
+    ]);
+  } catch {
+    /* fail-safe */
+  }
+}
+
 /**
  * «최근 cooldownDays 안에 같은 type 알림을 이미 받은 직원»을 뺀 목록.
  * 열람 여부가 아니라 **발송 시각** 기준(안 읽음 기준이면 첫 발송 뒤 영구 침묵 — 2026-07-20 적발).

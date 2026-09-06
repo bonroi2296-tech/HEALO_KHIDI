@@ -8,7 +8,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { analyzeSymptomsWithAi } from "@/lib/followup/aiTriage";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // AI 분석 실행
-    const analysis = analyzeSymptoms(report);
+    const analysis = await analyzeSymptomsWithAi(report);
 
     const insertData = {
       followup_id: payload.followupId || null,
