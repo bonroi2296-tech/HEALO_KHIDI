@@ -201,6 +201,19 @@ describe("safetyGuard 규칙 기반 0층 — 위반 탐지(6개 언어)", () => 
 });
 
 describe("safetyGuard 규칙 기반 0층 — 오탐 방지(정상 응답 통과)", () => {
+
+
+  it("МГц(메가헤르츠)는 мг(밀리그램) 용량이 아니다 — 고주파온열 사양 문장은 통과, 진짜 용량은 여전히 잡힌다", () => {
+
+    expect(scanRedlines("Гипертермия 8 МГц нагревает опухоль до 42–43°C").hits.map((h) => h.flag)).not.toContain("drug_advice");
+
+    expect(scanRedlines("8 МГц жоғары жиілікті токты ісік аймағына шоғырландырады").hits.map((h) => h.flag)).not.toContain("drug_advice");
+
+    expect(scanRedlines("Принимайте 500 мг два раза в день").hits.map((h) => h.flag)).toContain("drug_advice");
+
+    expect(scanRedlines("Күніне 500 мг қабылдаңыз").hits.map((h) => h.flag)).toContain("drug_advice");
+
+  });
   it.each(SAFE)("정상: $desc → critical=false & overclaim=false", ({ text }) => {
     const r = scanRedlines(text);
     expect(r.critical).toBe(false);

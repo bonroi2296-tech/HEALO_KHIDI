@@ -2,6 +2,7 @@
 // "영어 화면 한국어 누출"(e2e i18n-no-korean-leak)과 짝 — 이건 "번역이 실제 다 채워졌나"를 본다.
 // (누출 검사는 en 폴백이 한글을 가리면 통과해버리므로, 완성 여부는 별도로 강제해야 함.)
 import { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } from "../src/lib/data/immuneCancerDetails.js";
+import { IMMUNE_THERAPIES } from "../src/lib/data/immuneTherapies.js";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const problems = [];
@@ -41,6 +42,17 @@ for (const [slug, c] of Object.entries(CANCER_DETAILS)) {
     });
   }
   if (c.stats?.survivalImprovement) checkLocalized(`${slug}.stats.survivalImprovement`, c.stats.survivalImprovement);
+}
+
+// ── 치료법 카드(immuneTherapies.js) — 암종 상세 페이지 카드가 name·description·evidence 를 그린다(name 은 ITCRN 쪽) ─
+// 왜 (2026-09-05): 5축 잎을 다 채우고도 같은 페이지의 «카드 설명»은 kz·zh·ja 19개·ru 10개가 비어
+//   영어로 조용히 폴백되고 있었다(검사 밖이라 아무도 몰랐다). 채우면서 검사에 넣는다 — 천장 0.
+//   mechanism·indications·menuOptions 는 화면이 안 그리므로 검사하지 않는다(그리게 되면 여기에 추가).
+//   ⚠️ 값은 AI 번역이라 코디 검수 전엔 「제안」 — 이 검사는 «비었는지»만 본다.
+for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
+  // name 은 5축 태그(immuneCancerDetails.js)가 T.<id>.name 으로 참조해 위 ITCRN 검사가 19개 전부 본다 → 여기선 안 본다.
+  checkLocalized(`THERAPY.${id}.description`, t.description);
+  if (t.evidence) checkLocalized(`THERAPY.${id}.evidence`, t.evidence);
 }
 
 for (const [key, care] of Object.entries(POST_SURGICAL_CARE)) {
@@ -111,7 +123,7 @@ if (problems.length) {
   for (const p of problems) console.error("  - " + p);
   process.exit(1);
 }
-console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩)");
+console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩 + 치료법 카드 description·evidence)");
 console.log(
   `⚠️  5축(ITCRN) 잎(제목·설명·근거·태그·항암지원) 빈 칸 ${itcrnMissing.length}칸 — 천장 0(늘면 차단). 값은 AI 번역이라 코디 검수 전엔 「제안」이다.`,
 );
