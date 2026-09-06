@@ -17,7 +17,7 @@
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, resolve, dirname } from "node:path";
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ["app", "src"];
@@ -60,10 +60,24 @@ export function extractDeepLinks(source) {
   return out;
 }
 
+/** 재수출 화면(`export { default } from "…"`)이면 그 대상 폴더로 따라간다.
+ *  2026-09-07: 어드민 채팅·코디 상담이 재수출로 바뀌자(리뉴얼 §2 형태①이 표준) 검사기가 「안 읽는다」고 오판했다. */
+function followReexport(dir, depth = 0) {
+  if (depth > 3) return dir;
+  for (const f of walk(dir)) {
+    if (!/[\\/]page\.(jsx|tsx|js|ts)$/.test(f)) continue;
+    const m = readFileSync(f, "utf8").match(/export \{ default \} from ["']([^"']+)["']/);
+    if (!m) return dir;
+    return followReexport(resolve(dirname(f), m[1].replace(/\/page$/, "")), depth + 1);
+  }
+  return dir;
+}
+
 /** 그 화면 폴더의 파일들이 그 쿼리 이름을 읽는가. */
 function screenReadsParam(routePath, param) {
-  const dir = join(ROOT, "app", routePath.replace(/^\//, ""));
-  if (!existsSync(dir)) return { ok: false, why: `화면 폴더가 없다 (app${routePath})` };
+  const dir0 = join(ROOT, "app", routePath.replace(/^\//, ""));
+  if (!existsSync(dir0)) return { ok: false, why: `화면 폴더가 없다 (app${routePath})` };
+  const dir = followReexport(dir0);
   const files = walk(dir);
   if (files.length === 0) return { ok: false, why: `화면 폴더가 비어 있다 (app${routePath})` };
   const needle = new RegExp(`(useDeepLinkParam\\s*\\(\\s*["'\`]${param}["'\`]|get\\(\\s*["'\`]${param}["'\`]\\s*\\))`);

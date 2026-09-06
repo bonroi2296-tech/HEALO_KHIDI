@@ -27,6 +27,7 @@ import { khidiCountState, KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
 // 병기 라벨은 사전 한 곳(코디 콘텐츠 편집기에서 수정 가능) — 화면마다 조립하지 않는다.
 import { stageLabel } from "@/lib/inquiry/intakeLabels";
 import { CreateConsultationModal } from "@/components/consultation/CreateConsultationModal";
+import { useDeepLinkParam, NUMERIC_ID } from "@/lib/hooks/useDeepLinkParam";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -249,6 +250,9 @@ export default function ConsultationsPage() {
   const [filter, setFilter] = useState("upcoming"); // upcoming, active, completed, all
   const [expandedId, setExpandedId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // 딥링크 ?inquiry=<번호> — 사후관리 보드 [상담 잡기]·알림에서 온다. 그 문의가 미리 골라진 «새 상담» 모달을 연다 (2026-09-07).
+  const [deepInquiryId, setDeepInquiryId] = useState(null);
+  useDeepLinkParam("inquiry", (v) => { setDeepInquiryId(v); setShowCreateModal(true); }, { pattern: NUMERIC_ID });
   // 「지난 상담인데 아직 완료가 아닌」 집계 대상 수. 탭과 무관하게 따로 센다 —
   // 목록은 탭(예정/완료/…)으로 걸러져 오므로, 목록에서 세면 「완료」 탭에서 배너가 사라진다.
   const [unclosedCount, setUnclosedCount] = useState(0);
@@ -1056,7 +1060,8 @@ export default function ConsultationsPage() {
       {/* 새 상담 예약 모달 */}
       {showCreateModal && (
         <CreateConsultationModal
-          onClose={() => setShowCreateModal(false)}
+          initialInquiryId={deepInquiryId}
+          onClose={() => { setShowCreateModal(false); setDeepInquiryId(null); }}
           onSuccess={() => {
             setShowCreateModal(false);
             fetchConsultations();

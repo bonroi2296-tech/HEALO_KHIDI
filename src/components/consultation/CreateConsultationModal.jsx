@@ -5,7 +5,7 @@
  * 단일 SoR: 상담 생성/초대링크 로직을 한 곳에만 둬 화면별 분기를 막는다(POSTMORTEM #28 교훈).
  * 드롭다운(문의/유저 picker)·생성·초대 API는 staff(admin·coordinator) 권한.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Video, X } from "lucide-react";
 import { KHIDI_COUNTED_TYPES } from "@/lib/khidi/countState";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -234,7 +234,7 @@ function waLink(phone, patientLang, url, scheduledAtKst) {
 }
 
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
-export function CreateConsultationModal({ onClose, onSuccess }) {
+export function CreateConsultationModal({ onClose, onSuccess, initialInquiryId = null }) {
   const toast = useToast();
   const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
@@ -280,6 +280,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
   const [created, setCreated] = useState(null); // 생성 후 initiate 결과 (세션 + invite)
   // 문의(inquiries) 옵션 — 환자를 직접 타이핑하지 않고 실제 문의에서 선택
   const [inquiryOptions, setInquiryOptions] = useState([]);
+  // 딥링크(?inquiry=)로 열렸을 때 — 목록이 오면 그 문의를 «한 번만» 고른다 (2026-09-07, 사후관리 보드 [상담 잡기]).
+  const appliedInitialRef = useRef(false);
+  useEffect(() => {
+    if (!initialInquiryId || appliedInitialRef.current || inquiryOptions.length === 0) return;
+    appliedInitialRef.current = true;
+    applyInquiry(String(initialInquiryId));
+  }, [initialInquiryId, inquiryOptions.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // 지금 로그인한 사람(= 만든 사람) 주소 — 수신자 칸에 «나» 표를 붙이기 위해서만 쓴다
   const [myEmail, setMyEmail] = useState("");
 

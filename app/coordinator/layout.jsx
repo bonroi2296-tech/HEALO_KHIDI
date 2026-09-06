@@ -13,6 +13,8 @@ import { useCoordinatorL, useEnsureBackofficeLangCookie } from '@/lib/i18n/coord
 import PortalGate, { usePortalContext } from '../_components/PortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 import PushOptInBanner from '../_components/PushOptInBanner';
+// 관리자가 코디 화면을 열 때 «어드민 껍데기»를 유지하려고 (2026-09-07, 리뉴얼 7단계)
+import { AdminNav } from '../admin/_components/AdminNav';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 // 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
@@ -86,6 +88,32 @@ function CoordinatorShell({ children }) {
     await supabase.auth.signOut();
     router.push('/login');
   };
+
+  // ── 2026-09-07 리뉴얼 7단계: 관리자는 코디 화면을 열어도 «어드민 껍데기»를 유지한다 ──
+  // 전에는 어드민 메뉴 9개가 코디 화면으로 건너가면서 사이드바가 코디용으로 바뀌고 「관리자로」로 돌아왔다
+  // (PO 2026-09-07: 「옛날 것과 리뉴얼한 것이 섞여 있고 코디 백오피스랑 다르다」). 화면은 그대로, 껍데기만 바꾼다.
+  // ⚠️ 훅은 전부 위에서 이미 불렀다 — 이 조기 반환 아래에 훅을 두지 마라.
+  if (adminView) {
+    const isMessages = pathname === '/coordinator/messages';
+    return (
+      <div className="flex min-h-screen min-h-screen-safe bg-gray-50 healo-portal-offset">
+        <AdminNav />
+        <main className={isMessages ? 'flex-1 min-w-0 overflow-hidden pt-[4.5rem] lg:pt-0' : 'flex-1 min-w-0 pt-[4.5rem] lg:pt-0'}>
+          {isMessages ? children : (
+            <div
+              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6"
+              style={{ paddingBottom: "calc(1.5rem + var(--cookie-banner-h, 0px))" }}
+            >
+              <PushOptInBanner />
+              {children}
+            </div>
+          )}
+        </main>
+        {/* 설명서는 «화면» 기준이라 코디 것을 그대로 — 관리자도 이 화면에선 코디 일을 한다 */}
+        <ManualDrawer role="coordinator" />
+      </div>
+    );
+  }
 
   const navContent = (
     <>
