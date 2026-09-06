@@ -27,6 +27,7 @@ const STAFF_ALWAYS_CC = [
 const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
 const TR = {
   ko: {
+    warnDeepLinkNotFound: "문의 #{id} 를 선택 목록(최근 50건)에서 못 찾았어요 — 아래에서 직접 골라 주세요.",
     errAuth: "인증 오류 — 다시 로그인하세요", errCreateFailedTpl: "생성 실패: {msg}", errCreateFailed: "생성 실패",
     errPastSchedule: "지난 시각으로는 예약할 수 없어요 — 시각을 다시 골라 주세요.",
     doneTitle: "상담 예약 생성 완료", doneDesc: "아래 참여 링크를 모든 참여자에게 공유하세요.",
@@ -58,6 +59,7 @@ const TR = {
     btnDownloadPng: "PNG 다운로드",
   },
   en: {
+    warnDeepLinkNotFound: "Inquiry #{id} is not in the picker list (latest 50) — please choose it below.",
     errAuth: "Authentication error — please log in again", errCreateFailedTpl: "Creation failed: {msg}", errCreateFailed: "Creation failed",
     errPastSchedule: "You can't schedule a time in the past — please pick another time.",
     doneTitle: "Consultation scheduled", doneDesc: "Share the join link below with all participants.",
@@ -89,6 +91,7 @@ const TR = {
     btnDownloadPng: "Download PNG",
   },
   ru: {
+    warnDeepLinkNotFound: "Запрос #{id} не найден в списке выбора (последние 50) — выберите его ниже.",
     errAuth: "Ошибка авторизации — войдите снова", errCreateFailedTpl: "Не удалось создать: {msg}", errCreateFailed: "Не удалось создать",
     errPastSchedule: "Нельзя назначить на прошедшее время — выберите другое время.",
     doneTitle: "Консультация запланирована", doneDesc: "Отправьте ссылку для входа ниже всем участникам.",
@@ -120,6 +123,7 @@ const TR = {
     btnDownloadPng: "Скачать PNG",
   },
   kz: {
+    warnDeepLinkNotFound: "#{id} сұрауы таңдау тізімінде (соңғы 50) табылмады — төменнен өзіңіз таңдаңыз.",
     errAuth: "Аутентификация қатесі — қайта кіріңіз", errCreateFailedTpl: "Жасау сәтсіз: {msg}", errCreateFailed: "Жасау сәтсіз",
     errPastSchedule: "Өткен уақытқа жоспарлау мүмкін емес — басқа уақыт таңдаңыз.",
     doneTitle: "Кеңес жоспарланды", doneDesc: "Төмендегі кіру сілтемесін барлық қатысушыларға жіберіңіз.",
@@ -151,6 +155,7 @@ const TR = {
     btnDownloadPng: "PNG жүктеу",
   },
   zh: {
+    warnDeepLinkNotFound: "在选择列表（最近 50 条）中找不到咨询 #{id} — 请在下方手动选择。",
     errAuth: "身份验证错误 — 请重新登录", errCreateFailedTpl: "创建失败：{msg}", errCreateFailed: "创建失败",
     errPastSchedule: "不能预约已过去的时间，请重新选择。",
     doneTitle: "会诊预约创建完成", doneDesc: "请将以下加入链接分享给所有参与者。",
@@ -182,6 +187,7 @@ const TR = {
     btnDownloadPng: "下载PNG",
   },
   ja: {
+    warnDeepLinkNotFound: "問い合わせ #{id} が選択リスト（最新50件）にありません — 下から直接選んでください。",
     errAuth: "認証エラー — 再度ログインしてください", errCreateFailedTpl: "作成に失敗しました: {msg}", errCreateFailed: "作成に失敗しました",
     errPastSchedule: "過去の時刻には予約できません。別の時刻を選んでください。",
     doneTitle: "相談予約を作成しました", doneDesc: "以下の参加リンクを全参加者に共有してください。",
@@ -285,6 +291,11 @@ export function CreateConsultationModal({ onClose, onSuccess, initialInquiryId =
   useEffect(() => {
     if (!initialInquiryId || appliedInitialRef.current || inquiryOptions.length === 0) return;
     appliedInitialRef.current = true;
+    // 선택 목록은 최근 50건(step1 완료)만 — 사후관리 보드의 오래된 문의는 없을 수 있다. 조용히 빈 모달을 열지 말고 말해준다.
+    if (!inquiryOptions.some((i) => String(i.id) === String(initialInquiryId))) {
+      toast.warning(fmt(tt("warnDeepLinkNotFound"), { id: initialInquiryId }));
+      return;
+    }
     applyInquiry(String(initialInquiryId));
   }, [initialInquiryId, inquiryOptions.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // 지금 로그인한 사람(= 만든 사람) 주소 — 수신자 칸에 «나» 표를 붙이기 위해서만 쓴다

@@ -66,9 +66,9 @@
 
 | 형태 | 사례 | 평가 |
 |---|---|---|
-| ① admin 페이지 **직접 re-export** | cases · conversion · satisfaction | 유지보수 최소 → **표준으로 승격** |
+| ① admin 페이지 **직접 re-export** | cases · conversion · satisfaction · **consultations · chat(2026-09-07 편입)** | 유지보수 최소 → **표준으로 승격** |
 | ② 동일 컴포넌트 공유 | partners (`PartnerOutreachTracker`) | 양호 |
-| ③ API만 공유, 화면 별도 | consultations · chat | **화면 drift 발생 지점** — 신규 금지 |
+| ③ API만 공유, 화면 별도 | ~~consultations · chat~~ → **2026-09-07 둘 다 형태①로 전환**(리뉴얼 7단계, `ADMIN_RENEWAL_PLAN.md` §5) | **화면 drift 발생 지점** — 실제로 드리프트해 청산. 신규 금지 |
 
 ---
 

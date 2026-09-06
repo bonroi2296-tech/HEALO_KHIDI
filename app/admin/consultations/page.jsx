@@ -1064,6 +1064,7 @@ export default function ConsultationsPage() {
           onClose={() => { setShowCreateModal(false); setDeepInquiryId(null); }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setDeepInquiryId(null); // 딥링크로 고른 문의는 한 번만 — 다음 「새 상담」에 다시 붙지 않게
             fetchConsultations();
             toast.success(tt("toastNewConsultCreated"));
           }}

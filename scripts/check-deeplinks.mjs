@@ -64,13 +64,15 @@ export function extractDeepLinks(source) {
  *  2026-09-07: 어드민 채팅·코디 상담이 재수출로 바뀌자(리뉴얼 §2 형태①이 표준) 검사기가 「안 읽는다」고 오판했다. */
 function followReexport(dir, depth = 0) {
   if (depth > 3) return dir;
-  for (const f of walk(dir)) {
-    if (!/[\\/]page\.(jsx|tsx|js|ts)$/.test(f)) continue;
-    const m = readFileSync(f, "utf8").match(/export \{ default \} from ["']([^"']+)["']/);
-    if (!m) return dir;
-    return followReexport(resolve(dirname(f), m[1].replace(/\/page$/, "")), depth + 1);
-  }
-  return dir;
+  // 그 폴더 «바로 아래»의 page.* 만 본다 — 하위 [id]/page.jsx 를 먼저 만나면 재수출을 놓친다(파일 순서는 OS 마음).
+  const page = readdirSync(dir).find((f) => /^page\.(jsx|tsx|js|ts)$/.test(f));
+  if (!page) return dir;
+  const m = readFileSync(join(dir, page), "utf8").match(/export \{ default \} from ["']([^"']+)["']/);
+  if (!m) return dir;
+  // "../../admin/chat/page" 도 "../../admin/chat/page.jsx" 도 폴더로 정규화한다.
+  const target = resolve(dir, m[1].replace(/\/page(\.(jsx|tsx|js|ts))?$/, ""));
+  if (!existsSync(target) || !statSync(target).isDirectory()) return dir;
+  return followReexport(target, depth + 1);
 }
 
 /** 그 화면 폴더의 파일들이 그 쿼리 이름을 읽는가. */

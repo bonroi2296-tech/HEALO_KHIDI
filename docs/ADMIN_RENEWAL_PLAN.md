@@ -149,7 +149,7 @@
 | # | 무엇 | 어떻게 |
 |---|---|---|
 | A | **껍데기 통일** | `app/coordinator/layout.jsx`: 문지기 context 가 `isAdmin` 이면 코디 사이드바 대신 `AdminNav` 를 그린다. 화면은 그대로, 껍데기만. 어드민 문지기(`app/admin/layout.jsx`)도 context `{isAdmin:true}` 를 넘긴다 |
-| B1 | **AI 채팅 한 벌** | 코디 화면에 검수·정정 단추를 넣되 `usePortalContext().isAdmin` 일 때만 보인다(API 는 원래 `requireAdminAuth`). 어드민 `/admin/chat` 은 재수출. 사전 키 9개 × 6개 언어 추가 |
+| B1 | **AI 채팅 한 벌** | 코디 화면에 검수·정정 단추를 넣되 `usePortalContext().isAdmin` 일 때만 보인다(API 는 원래 `requireAdminAuth`). 어드민 `/admin/chat` 은 재수출. 사전 키 9개 × 6개 언어 추가. **합치기 관문에서 독립 리뷰가 잡은 것(9/07)**: 어드민에만 있던 표시 3종(환자 현지 시각·메신저 채널 배지·«미전달»)이 빠져 있었다 → 옮기고 키 11개 추가 |
 | B2 | **화상 상담 한 벌** | 어드민 화면이 상위집합이고 이미 6개 언어(TR + coordinatorL)라 코디 `/coordinator/consultations` 를 어드민 재수출로. 덤으로 `?inquiry=` 딥링크를 읽어 그 문의가 미리 골라진 「새 상담」 모달을 연다(사후관리 보드 [상담 잡기]가 실제로 이어짐) |
 | C | 어드민 메뉴 | 「음성 정리」(코디에만 있던 9/04 신설 화면) 연결 |
 | D | 검사기 | `scripts/check-deeplinks.mjs` 가 재수출 화면을 따라가게(형태①이 표준인데 검사기가 «안 읽는다»고 오판) |
