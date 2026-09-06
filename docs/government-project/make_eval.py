@@ -81,7 +81,7 @@ doc.add_paragraph()
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('HEALO 플랫폼')
+run = p.add_run('healwith 플랫폼')
 set_font(run, 18, True, (0,70,127))
 
 p = doc.add_paragraph()
@@ -98,7 +98,7 @@ set_font(run, 11, False, (80,80,80))
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('Evaluation Matrix  |  v1.1  |  2026.08.20')
+run = p.add_run('Evaluation Matrix  |  v1.2  |  2026.09.06')
 set_font(run, 10, False, (120,120,120))
 
 doc.add_paragraph()
@@ -106,9 +106,9 @@ doc.add_paragraph()
 tbl_info = doc.add_table(rows=0, cols=2)
 tbl_info.style = 'Table Grid'
 for label, val in [
-    ('문서 번호', 'HEALO-EVAL-2026-001'),
+    ('문서 번호', 'healwith-EVAL-2026-001'),
     ('작성 기관', '본로이 (Bonroi)'),
-    ('작성일', '2026년 8월 20일'),
+    ('작성일', '2026년 9월 6일'),
     ('평가 근거', '공고문 붙임1 평가기준 (공고문 p.4, p.9)'),
 ]:
     row = tbl_info.add_row()
@@ -125,7 +125,7 @@ doc.add_page_break()
 # 1. 문서 목적
 # ================================================================
 add_heading(doc, '1. 문서 목적 및 평가 기준 출처', 1)
-add_para(doc, '본 문서는 2026년 KHIDI 「ICT 기반 외국인환자 사전상담·사후관리 지원 사업」 공고문 붙임1 (p.9)에 명시된 평가기준에 대하여, HEALO 플랫폼의 대응 현황·증빙 산출물·추정 점수를 표 형태로 정리한 것이다. 사업 심사 준비, 자체 점검, Phase B 보강 우선순위 결정에 활용한다.')
+add_para(doc, '본 문서는 2026년 KHIDI 「ICT 기반 외국인환자 사전상담·사후관리 지원 사업」 공고문 붙임1 (p.9)에 명시된 평가기준에 대하여, healwith 플랫폼의 대응 현황·증빙 산출물·추정 점수를 표 형태로 정리한 것이다. 사업 심사 준비, 자체 점검, Phase B 보강 우선순위 결정에 활용한다.')
 doc.add_paragraph()
 add_para(doc, '※ 평가 기준 출처: 공고문 붙임1 「평가기준」 (공고문 p.9, 총 100점 + 가산점 5점 = 최대 105점)')
 add_para(doc, '※ 추정 점수는 내부 자체 평가 결과이며, 실제 평가위원회 점수와 다를 수 있음.')
@@ -163,15 +163,15 @@ add_para(doc, '※ 선정 기준: 종합평점 70점 이상 프로젝트 중 고
 doc.add_page_break()
 
 # ================================================================
-# 3. HEALO 평가 매트릭스 (핵심 표)
+# 3. healwith 평가 매트릭스 (핵심 표)
 # ================================================================
-add_heading(doc, '3. HEALO 평가 매트릭스', 1)
-add_para(doc, '평가항목별 HEALO 대응 현황, 증빙 산출물, 추정 점수 정리')
+add_heading(doc, '3. healwith 평가 매트릭스', 1)
+add_para(doc, '평가항목별 healwith 대응 현황, 증빙 산출물, 추정 점수 정리')
 doc.add_paragraph()
 
 eval_tbl = doc.add_table(rows=0, cols=5)
 eval_tbl.style = 'Table Grid'
-add_header_row(eval_tbl, ['항목', '가중치', 'HEALO 대응', '증빙 산출물', '추정 점수'])
+add_header_row(eval_tbl, ['항목', '가중치', 'healwith 대응', '증빙 산출물', '추정 점수'])
 
 eval_data = [
     # ---- 사업계획의 타당성 20점 ----
@@ -184,7 +184,7 @@ eval_data = [
     ('사업계획의 적정성\n(계획·일정·업무범위)',
      '10점',
      '• 3단계 추진 전략 (플랫폼 고도화→환자유치→사후관리)\n• 5개 마일스톤 (M1~M5) + Gantt 차트 (사업계획서 p.31~32)\n• 컨소시엄 3기관 역할 분담 명확 (본로이 60%/면력 20%/신촌면력 20%)\n• 6대 ICT 서비스 유형 모두 구현 (공고문 p.8 기준)\n• AI Agent + Human Agent 상호학습 구조 (차별화)',
-     '• 사업계획서 Ⅱ장 추진일정\n• 본 문서 02_기능명세서\n• HEALO 플랫폼 MVP 스크린샷\n• 시스템 아키텍처 구성도',
+     '• 사업계획서 Ⅱ장 추진일정\n• 본 문서 02_기능명세서\n• healwith 플랫폼 MVP 스크린샷\n• 시스템 아키텍처 구성도',
      '8.5/10'),
 
     ('사업비 사용계획 적정성',
@@ -216,20 +216,20 @@ eval_data = [
     ('사업내용의 구체성\n(ICT 서비스, 추진방안)',
      '15점',
      '• 6대 ICT 서비스 (사전 3대 + 사후 3대) 공고문 기준 전부 구현\n• WebRTC 화상상담 (LiveKit), AI 실시간 번역, 다국어 UI 구체 명시\n• AI Agent + Human Agent 상호학습 아키텍처 상세 설계\n• RAG 3계층 구조 (DB→HIRA→Google) 기술 구체성\n• 특허 2건 (10-2745881, 10-2868334) 기술 차별화 증빙\n(사업계획서 p.27~31, 본 문서 02_기능명세서)',
-     '• 02_기능명세서 (FN-AUTH~FN-SEC)\n• HEALO 플랫폼 MVP 시연\n• 특허등록증 2건\n• 시스템 아키텍처 다이어그램',
+     '• 02_기능명세서 (FN-AUTH~FN-SEC)\n• healwith 플랫폼 MVP 시연\n• 특허등록증 2건\n• 시스템 아키텍처 다이어그램',
      '12.5/15'),
 
     ('사업내용의 실현가능성\n(추진체계, 위험관리)',
      '15점',
      '• 컨소시엄 3기관 명확한 역할 분담 + 주간 협의체 운영\n• 리스크 8개 항목 분석 및 대응방안 (사업계획서 p.44)\n• MVP 이미 보유 → 개발 리스크 최소화\n• 외국인환자 유치사업자 등록 완료 (법적 요건 충족)\n• 면력한방병원 외국인환자 유치의료기관 등록 완료\n• 대학병원 협진 네트워크 기 구축 (이대서울·고대구로·신촌세브란스)',
-     '• 외국인환자 유치사업자 등록증\n• 면력한방병원 외국인환자 유치 등록증\n• 대학병원 협진 MOU 서류\n• HEALO MVP 플랫폼 배포 URL',
+     '• 외국인환자 유치사업자 등록증\n• 면력한방병원 외국인환자 유치 등록증\n• 대학병원 협진 MOU 서류\n• healwith MVP 플랫폼 배포 URL',
      '12.5/15'),
 
     # ---- 수행기관 역량 및 의지 15점 ----
     ('수행기관 역량 및 의지\n(전문성, 도전적 목표, 네트워크)',
      '15점',
-     '• 목표 도전성: KHIDI 최소 목표 대비 상향 (유치 120%, 상담 150%, 만족도 112.5%)\n• ICT 전문성: HEALO MVP 개발·운영, AI 학습 시스템 PoC 완료\n• 특허 2건, 연구개발전담부서 인정서\n• 카자흐스탄 현지 파트너 접촉 중 (알마티·아스타나 에이전시)\n• SNS 채널(trek_korea) 운영 → 실제 환자 DB 확보\n• MSO 전문성 기반 의료 현장 이해\n(사업계획서 Ⅳ장 사업추진역량)',
-     '• 특허등록증 10-2745881, 10-2868334\n• 연구개발전담부서 인정서\n• HEALO Survey 환자 DB 현황\n• SNS 채널 운영 실적\n• 외국인환자 유치사업자 등록증',
+     '• 목표 도전성: KHIDI 최소 목표 대비 상향 (유치 120%, 상담 150%, 만족도 112.5%)\n• ICT 전문성: healwith MVP 개발·운영, AI 학습 시스템 PoC 완료\n• 특허 2건, 연구개발전담부서 인정서\n• 카자흐스탄 현지 파트너 접촉 중 (알마티·아스타나 에이전시)\n• SNS 채널(trek_korea) 운영 → 실제 환자 DB 확보\n• MSO 전문성 기반 의료 현장 이해\n(사업계획서 Ⅳ장 사업추진역량)',
+     '• 특허등록증 10-2745881, 10-2868334\n• 연구개발전담부서 인정서\n• healwith Survey 환자 DB 현황\n• SNS 채널 운영 실적\n• 외국인환자 유치사업자 등록증',
      '12.0/15'),
 ]
 
@@ -246,7 +246,7 @@ doc.add_paragraph()
 add_heading(doc, '4. 가산점 분석 (최대 5점)', 2)
 bonus_tbl = doc.add_table(rows=0, cols=4)
 bonus_tbl.style = 'Table Grid'
-add_header_row(bonus_tbl, ['가산점 항목', '가중치', 'HEALO 대응', '충족 여부'])
+add_header_row(bonus_tbl, ['가산점 항목', '가중치', 'healwith 대응', '충족 여부'])
 bonus_data = [
     ('외국인환자 유치의료기관 평가인증',
      '3점',

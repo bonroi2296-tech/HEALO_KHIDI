@@ -1,164 +1,64 @@
 # 자동 스케줄(크론) 작업 상태
 
-**마지막 업데이트:** 2026-05-18
+**마지막 업데이트:** 2026-09-06 (정본 = `vercel.json` `crons`. 이 문서는 «무엇이 왜 도는지»만 적는다)
 
----
+> ✅ **2026-07-28 이후 모든 정기 실행은 Vercel 예약(`vercel.json`)이 깨운다.** 외부 스케줄러(cron-job.org)·깃허브 예약에 기대던 옛 안내는 폐기했다.
+> 깃허브 예약은 이 저장소에서 «하루 7회»만 도는 것이 실측돼(간격 109~299분) 시각이 중요한 일에는 못 쓴다 — 배포 창구도 그래서 Vercel 예약으로 옮겼다(#1550).
+> Vercel Pro(2026-07-24 전환)라 분 단위 주기가 허용된다. 개수 한도는 100개. **크론은 곧 함수 실행이니 주기는 필요한 만큼만.**
 
-## 현재 활성화된 엔드포인트
+## 현재 도는 것 (11개, UTC 기준 — KST 는 +9시간)
 
-| 경로 | 목적 | 권장 주기 |
-|------|------|-----------|
-| `GET/POST /api/cron/dispatch-reminders` | 리마인더 발송 (fire_at 도래 건 처리) | **5분 — 2026-07-28 `vercel.json` 정기작업으로 이관(외부 스케줄러 의존 종료)** |
-| `GET /api/cron/consultation-reminders` | 레거시: guest_token 기반 이메일 리마인더 | 15분 |
-| `GET /api/cron/automation` | 자동화 기타 작업 | 필요 시 |
-| `GET /api/cron/purge-recordings` | 상담 녹화 보관기간(90일) 만료분 파기 | 매일 1회 (02:30 KST) |
+| 경로 | 주기(UTC) | 하는 일 | 확인처 |
+|---|---|---|---|
+| `/api/cron/dispatch-reminders` | 5분마다 | `reminders_scheduled` 에서 `fire_at` 도래 건 발송(메일·인앱·교육 콘텐츠). 3회 실패 시 `failed` | `/admin/reminders` |
+| `/api/cron/consultation-reminders` | 10분마다 | 초대 토큰 기반 상담 임박 메일(레거시 경로, 유지) | 발송 로그 |
+| `/api/cron/detect-cold-leads` | 00:30 | 상담 단계에서 7일 무동작 문의를 코디에게 알림(`COLD_LEAD_DAYS`) | 코디 종 알림 |
+| `/api/cron/daily-deploy` | 06:00 (KST 15:00) | 배포 창구 — 본판 최신 커밋을 production 으로. 판정은 `/api/health` 의 `commit` | Actions 「Daily Deploy」·`/api/health` |
+| `/api/cron/indexnow` | 07:00 | 검색엔진 색인 자동 제출(IndexNow — 빙·얀덱스·네이버). 평일은 3일 안 변경분, 월요일은 전부 | Vercel 크론 로그 `[cron/indexnow]` |
+| `/api/cron/dispatch-surveys` | 09:00 | 만족도 설문 발송(상담 «완료» +24h) + 사후관리 단계별 교육 콘텐츠 발송(D+7/14/30/90/180) | `surveys`·`reminders_scheduled(reminder_type='education_content')` |
+| `/api/cron/detect-silent-patients` | 15:00 | 사후관리 환자가 3일 이상 증상 입력이 없으면 경보(`silence_long`) | 코디 「증상 알림」 |
+| `/api/cron/kpi-snapshot` | 15:05 | 성과지표 일별 스냅샷(`kpi_snapshots`) + 집계 오류 감시 | `/admin/khidi/kpi-dashboard` |
+| `/api/cron/automation` | 16:00 | 플레이북 자동 개선·A/B 확정·해결 뒤 후처리 | `/admin/automation/playbook` |
+| `/api/cron/purge-recordings` | 17:30 | 상담 녹화 90일 만료분 파기(녹화는 `CONSULT_RECORDING_ENABLED` 로 켤 때만 생긴다) | — |
+| `/api/cron/run-regression-tests` | 월·목 18:00 | AI 자가시험 50건(실서비스 채팅 경로와 같은 `streamChatReply`) | `/admin/khidi/ai-regression` |
 
-> ✅ **2026-07-28 정정 — 예전 「vercel.json crons 절대 추가 금지(Hobby 한도)」 경고는 낡았다.**
-> ①우리는 **Vercel Pro**다(2026-07-24 전환) ②Hobby 든 Pro 든 **개수 한도는 100개**로 같고,
-> Hobby 가 막던 건 개수가 아니라 **「하루 1회보다 잦은 주기」**였다(공식 문서 실확인).
-> Pro 는 분 단위까지 가능. `vercel.json` 에 현재 6개 — 추가해도 된다. 다만 **cron 은 곧 함수 실행**이니
-> 잦은 주기는 비용으로 돌아온다(주기는 필요한 만큼만).
+## 크론 «밖»에서 도는 자동 검사 (깃허브 Actions — 시각은 몇 시간씩 밀릴 수 있다)
 
----
+| 워크플로 | 주기 | 하는 일 |
+|---|---|---|
+| `uptime.yml` | 10분(실측은 하루 7회) | `/api/health` 2회 연속 실패만 장애로. **실서비스 감시의 정본은 UptimeRobot(5분, PO 계정)** |
+| `sweep.yml` | 매일 23:00 UTC | `npm run sweep` 훑기 대장 — 볼 것이 있을 때만 메일 |
+| `chat-smoke.yml` | 매일 18:30 UTC | AI 챗 안전 가드 스모크 |
+| `e2e.yml` | 매일 19:00 UTC + 신청서마다 | 실서비스 야간 전체 E2E / 신청서는 스모크 + 변경 반경 |
+| `audit-live.yml` | 매주 월 16:00 UTC | 접근성(axe-core WCAG 2.1 AA)·Lighthouse |
 
-## 외부 스케줄러 등록 (cron-job.org) — 단계별 가이드
-
-### 준비물
-
-1. **CRON_SECRET** — Vercel 환경변수에 이미 설정된 값 (없으면 먼저 생성: `openssl rand -hex 32`)
-2. cron-job.org 계정 (무료 플랜 OK)
-
----
-
-### Step 1: cron-job.org 가입 & 로그인
-
-1. [https://cron-job.org](https://cron-job.org) 접속 → 회원가입 (이메일만)
-2. 로그인 후 대시보드 진입
-
----
-
-### Step 2: 새 크론 작업 등록
-
-1. 대시보드 → **"Create cronjob"** 클릭
-2. 아래 값 입력:
-
-| 항목 | 값 |
-|------|----|
-| **Title** | `HEALO dispatch-reminders` |
-| **URL** | `https://healo-khidi.vercel.app/api/cron/dispatch-reminders` |
-| **Schedule** | `*/5 * * * *` (5분마다) |
-| **Request method** | `POST` |
-| **Request timeout** | `30` 초 |
-
-3. **Headers** 섹션에서 "Add header":
-   - Header name: `Authorization`
-   - Header value: `Bearer <여기에 CRON_SECRET 값 붙여넣기>`
-
-4. **Save** 클릭
-
----
-
-### Step 3: 첫 실행 확인
-
-1. 저장 후 **"Run now"** 버튼 클릭
-2. Response 탭에서 아래 형태 확인:
-   ```json
-   {"ok":true,"checked":0,"sent":0,"failed":0,"errors":[],"ts":"..."}
-   ```
-3. HTTP 200이면 정상 연결된 것
-
----
-
-### Step 4: 실패 알림 설정
-
-1. 크론 작업 설정 → **Notifications** 탭
-2. 이메일 알림 켜기 (실패 시 즉시 통보)
-3. 권장: 연속 2회 실패 시 알림
-
----
-
-### CRON_SECRET Vercel 설정 확인
-
-```
-Vercel 대시보드 → healo-khidi 프로젝트 → Settings → Environment Variables
-→ CRON_SECRET 확인 (없으면 추가)
-```
-
-값 생성 방법:
-```bash
-openssl rand -hex 32
-```
-
----
-
-## 리마인더 흐름 (전체)
-
-```
-컨설테이션 생성/수정 API
-  └─ autoScheduleReminders(sessionId)
-       └─ reminders_scheduled 테이블에 row 삽입
-            (fire_at = scheduled_at - 30min)
-            (채널: email / kakao / in_app 각각)
-
-cron-job.org (5분 주기)
-  └─ POST /api/cron/dispatch-reminders  [CRON_SECRET]
-       └─ fire_at <= now() AND status='pending' 조회 (최대 100건)
-            ├─ channel=email   → Resend API (or console log)
-            ├─ channel=kakao   → 카카오 비즈메시지 API (or console log)
-            └─ channel=in_app  → notifications 테이블 insert (Realtime)
-       └─ 성공: status='sent', sent_at=now()
-          실패: attempts++, 3회 초과 → status='failed'
-
-관리자 페이지 /admin/reminders
-  └─ 상태 모니터링 + 실패 건 수동 재발송 버튼
-```
-
----
-
-## 환경변수 (설정 필요한 것)
+## 환경변수
 
 | 변수명 | 목적 | 필수 여부 |
-|--------|------|-----------|
-| `CRON_SECRET` | 디스패처 API 인증 | **필수** |
-| `RESEND_API_KEY` | 이메일 발송 | 없으면 console 모드 |
-| `RESEND_FROM_EMAIL` | 발신 이메일 주소 | Resend 사용 시 필수 |
-| `KAKAO_BIZ_API_KEY` | 카카오 알림톡 | 없으면 console 모드 |
-| `KAKAO_SENDER_KEY` | 카카오 발신 프로필 키 | 없으면 console 모드 |
-| `KAKAO_BIZ_API_URL` | API 엔드포인트 | 없으면 기본값 사용 |
-| `NEXT_PUBLIC_SITE_URL` | 이메일 내 입장 링크 생성 | 없으면 healo-khidi.vercel.app |
+|---|---|---|
+| `CRON_SECRET` | 크론 라우트 인증(Vercel 이 `Authorization: Bearer` 로 실어 보낸다) | **필수** |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | 이메일 발송 | 없으면 console 모드 |
+| `KAKAO_BIZ_API_KEY` / `KAKAO_SENDER_KEY` | 카카오 알림톡 | 미도입(없으면 console 모드) |
+| `COLD_LEAD_DAYS` | 식은 문의 판정 일수 | 기본 7 |
+| `CONSULT_RECORDING_ENABLED` | 상담 녹화 켜기 | 기본 꺼짐 |
 
----
+## 리마인더 흐름
 
-## 레거시 라우트 상태
-
-- `app/api/cron/consultation-reminders/route.ts` — guest_token 직접 조회 방식 (유지)
-- `app/api/cron/crawl/route.ts` — 병원 크롤링 (중단 중)
-- `app/api/cron/automation/route.ts` — 기타 자동화
-
----
-
-## Option A: Pro 플랜 전환 시
-
-Pro 플랜($20/월) 업그레이드 후 vercel.json 에 추가 가능:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/dispatch-reminders",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
+```
+상담 생성/수정 API
+  └─ autoScheduleReminders(sessionId)
+       └─ reminders_scheduled 에 row (fire_at = scheduled_at - 30min, 채널별)
+Vercel 예약 5분마다 → POST /api/cron/dispatch-reminders [CRON_SECRET]
+  └─ fire_at <= now() AND status='pending' (최대 100건)
+       ├─ email  → Resend
+       ├─ in_app → notifications 표 (벨은 30초 폴링으로 읽는다 — Realtime 아님)
+       └─ kakao  → 미도입(console)
+  └─ 성공 sent / 실패 attempts++ (3회 초과 failed) → /admin/reminders 에서 재발송
 ```
 
-단, **지금은 절대 추가 금지** (Hobby 한도 위반).
+## 옛 기록
 
----
-
-## 🛟 KHIDI 데드맨 스위치 (2026-06-16)
-
-`kpi-snapshot` cron(8/27 평가 점수 집계원)이 조용히 멈추는 걸 감지.
-- **방식**: 새 cron 추가(Hobby 한도) 대신, **다른 시간대 cron(`dispatch-surveys`)에 KPI 누락 감지를 얹음** → kpi-snapshot 트리거가 죽어도 잡힘.
-- `src/lib/khidi/kpiHealthcheck.ts` `alertIfKpiStale()`: `kpi_snapshots` 최신 날짜가 2일 이상 지나면 **Sentry 경보**(= PO 이메일 도달). 호출 cron 본업엔 영향 0.
-- **belt-and-suspenders (PO 권장)**: 모든 cron 트리거가 죽는 경우 대비, 외부 무료 모니터(UptimeRobot·cron-job.org)로 `/api/health`를 일 1회 핑 → 실패 시 메일. (Vercel cron 시스템과 독립이라 최종 방어선)
+- 2026-04: Vercel Hobby 는 «하루 1회보다 잦은 주기»를 막아 크론을 껐고 cron-job.org 안내를 적었다.
+- 2026-07-24: Vercel Pro 전환. 2026-07-28: `dispatch-reminders` 를 `vercel.json` 으로 이관, 외부 스케줄러 의존 종료.
+- 2026-07-31~08-31: 배포 창구를 Vercel 예약으로 이관(깃허브 예약이 2~3시간씩 늦어서).
+- 2026-09-05~06: `detect-cold-leads`·`indexnow` 추가.
