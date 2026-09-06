@@ -804,7 +804,7 @@ export default function ConsultationsPage() {
                           {/* 기계가 관측한 실통화 길이(webhook). 2026-09-06 까지 기록만 하고 아무 화면에도
                               안 보였다 — 21시간·90시간 같은 부풀림을 아무도 못 본 이유. 실적 컬럼이 아니다. */}
                           {Number.isFinite(consultation.livekit_duration_seconds) &&
-                            consultation.livekit_duration_seconds > 0 && (
+                            Math.round(consultation.livekit_duration_seconds / 60) >= 1 && (
                               <span className="ml-2 text-xs text-gray-500">
                                 · {fmt(tt("callMinutesTpl"), { min: Math.round(consultation.livekit_duration_seconds / 60) })}
                               </span>

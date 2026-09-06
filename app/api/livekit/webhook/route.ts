@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
           //  ① started_at 이 «이전 방 인스턴스» 것 — 전날 시험 입장(2명)에 박힌 시각이 그대로 남아
           //     오늘 실상담 종료 시각까지 이어 붙었다(8/04 실환자 상담: 실제 ~40분 → 76,319초).
           //     기준: started_at < 이 방의 creationTime 이면 이 인스턴스에서 «2명이 된 순간»은
-          //     기록된 적이 없다 → 모름(null). (입장 쪽에서 새 인스턴스면 덮어쓰도록 같이 고쳤다.)
+          //     기록된 적이 없다 → 아무것도 안 쓴다. (입장 쪽에서 새 인스턴스면 덮어쓰도록 같이 고쳤다.)
           //  ② 손님이 전부 나간 뒤 진행자 탭 혼자 남아 좀비가 됐고, 3시간 청소기(closeStaleRooms)가
           //     닫은 시각까지가 통화로 잡혔다(9/01 파트너 미팅: 실제 32분 → 4시간 15분).
           //     기준: 입장 대장(consultation_admissions)의 손님이 전부 나갔으면(left_at 전부 있음)
@@ -120,22 +120,46 @@ export async function POST(request: NextRequest) {
           //     대장이 비었거나(직원끼리 회의) 한 명이라도 left_at 이 없으면 종전대로 방 종료 시각.
           const startedMs = finished.started_at ? Date.parse(finished.started_at) : NaN;
           const createdMs = roomCreatedMs(event.room);
-          let durationSec: number | null = null;
           if (Number.isFinite(startedMs) && createdMs > 0 && startedMs < createdMs) {
+            // 이 인스턴스에선 2명이 된 적이 없다(직원 혼자 들어왔다 나간 방). 여기서 뭔가 쓰면
+            // «직전 실통화»의 기록(시작·종료·길이)이 혼자 들어온 방 것으로 덮인다 → 아무것도 안 쓴다.
+            // (독립 리뷰: 처음엔 길이만 null 로 썼는데, 그러면 어제 30분 실통화가 오늘 혼자 재입장으로 지워진다.)
             console.warn(
-              `[livekit/webhook] ${roomName} started_at(${finished.started_at}) 이 이 방 인스턴스(${new Date(createdMs).toISOString()}) 이전 → 통화시간 모름(null)`
+              `[livekit/webhook] ${roomName} started_at(${finished.started_at}) 이 이 방 인스턴스(${new Date(createdMs).toISOString()}) 이전 → 2명이 된 적 없는 방, 기록 안 건드림`
             );
-          } else if (Number.isFinite(startedMs)) {
+            return Response.json({ ok: true });
+          }
+          let durationSec: number | null = null;
+          if (Number.isFinite(startedMs)) {
             let endMs = Date.parse(endedAtIso);
-            const { data: admRows } = await supabase
+            // 손님 대장 — 이 방 인스턴스 것만: 나간 시각이 방 생성 뒤이거나, 아직 안 나갔는데 입장 요청이
+            // 방 생성 30분 전 이후(대기실 승인 대기 여유). 어제 손님·퇴장 웹훅이 유실된 옛 행은 뺀다.
+            // 승인된 행만(대기·거절은 방에 들어온 적이 없다).
+            const { data: admRows, error: admErr } = await supabase
               .from("consultation_admissions")
-              .select("left_at")
+              .select("left_at, requested_at")
               .eq("consultation_id", finished.id)
+              .eq("status", "approved")
               .limit(500);
-            const adm = (admRows as Array<{ left_at: string | null }> | null) || [];
+            if (admErr) {
+              // 여기서 조용히 넘어가면 «청소기가 닫은 시각까지»가 그대로 통화로 적힌다(이 수정이 막으려던 값).
+              // 이 파일의 다른 조회와 같이 502 로 LiveKit 재시도를 유도한다.
+              console.error("[livekit/webhook] 입장 대장 조회 실패(재시도 유도):", admErr.message);
+              return Response.json({ ok: false, error: "internal_error" }, { status: 502 });
+            }
+            const SLACK_MS = 30 * 60 * 1000;
+            const adm = ((admRows as Array<{ left_at: string | null; requested_at: string }> | null) || []).filter(
+              (a) => {
+                if (!(createdMs > 0)) return true;
+                if (a.left_at) return Date.parse(a.left_at) >= createdMs;
+                return Date.parse(a.requested_at) >= createdMs - SLACK_MS;
+              }
+            );
+            // ⚠️ 한계: 초대 링크(대장 있음)로 들어온 사람이 좀비면 못 잡는다 — left_at 이 청소기 시각이 된다.
+            //    로그인 진행자(대장 없음)가 좀비인 실측 2건(7/31·9/01)은 잡힌다.
             if (adm.length && adm.every((a) => a.left_at)) {
               const lastLeftMs = Math.max(...adm.map((a) => Date.parse(a.left_at as string)));
-              // 마지막 퇴장이 시작보다 «뒤»일 때만 — 앞이면 그 대장은 이전 인스턴스(어제 손님) 것이다.
+              // 마지막 퇴장이 시작보다 «뒤»일 때만 — creationTime 이 없어 못 거른 옛 행 보호.
               if (Number.isFinite(lastLeftMs) && lastLeftMs > startedMs && lastLeftMs < endMs) {
                 endMs = lastLeftMs;
               }
@@ -207,8 +231,10 @@ export async function POST(request: NextRequest) {
             livekit_duration_seconds: null,
           } as any)
           .eq("livekit_room_name", roomName);
+        // ⚠️ 인원수를 모르는 옛 방식(첫 입장 기록)에선 «새 인스턴스면 덮어쓰기»를 쓰지 않는다 —
+        //    혼자 들어온 시험 입장이 직전 실통화의 기록(종료·길이)을 지울 수 있다(독립 리뷰).
         startQuery =
-          createdMs > 0
+          createdMs > 0 && countKnown
             ? startQuery.or(
                 `started_at.is.null,started_at.lt.${new Date(createdMs).toISOString().replace(/\.\d{3}Z$/, "Z")}`
               )
@@ -256,7 +282,9 @@ export async function POST(request: NextRequest) {
               : new Date(Date.now() - 5000).toISOString();
           await supabase
             .from("consultation_admissions")
-            .update({ left_at: new Date().toISOString() } as any)
+            // 시각은 LiveKit 시계(event.createdAt) — 이제 이 값이 통화 길이의 상한이 되므로
+            // started_at·livekit_ended_at 과 같은 시계여야 하고, 재시도돼도 같은 값이어야 한다.
+            .update({ left_at: new Date(eventAtMs(event)).toISOString() } as any)
             .eq("consultation_id", (session as any).id)
             .eq("participant_identity", participantIdentity)
             .is("left_at", null)
