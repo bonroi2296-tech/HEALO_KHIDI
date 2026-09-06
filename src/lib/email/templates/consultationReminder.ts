@@ -1,10 +1,12 @@
 /**
  * healwith: 30분 전 상담 리마인더 이메일 템플릿
  *
- * 지원 언어: ko / en / ru / kk / zh / ja
+ * 지원 언어: ko / en / ru / kz(=kk) / zh / ja — 카자흐어는 내부코드 kz·BCP47 kk·"kz-KZ" 어느 표기로 불러도 같다(resolveMailLang).
  * 순수 HTML (React Email 없이 — 이메일 클라이언트 호환성 최대화)
  * 기존 consultationInvite.ts 의 스타일/구조와 통일.
  */
+
+import { resolveMailLang, toBcp47 } from "../mailLang";
 
 export interface ConsultationReminderProps {
   recipientName?: string;
@@ -13,7 +15,8 @@ export interface ConsultationReminderProps {
   role?: string; // patient | doctor | interpreter | coordinator
   doctorName?: string;
   hospitalName?: string;
-  lang?: "ko" | "en" | "ru" | "kk" | "zh" | "ja";
+  /** 언어 — 내부코드(kz)·BCP47(kk)·지역 꼬리("kz-KZ")·대문자 전부 받아 템플릿이 정규화한다. 모르는 값은 ko. */
+  lang?: string;
 }
 
 const STRINGS: Record<
@@ -67,7 +70,7 @@ const STRINGS: Record<
     footer: "healwith · Онкология в Корее",
     disclaimer: "healwith не является медицинским учреждением. Диагностику и лечение проводят лицензированные корейские клиники.",
   },
-  kk: {
+  kz: {
     subject: "⏰ [30 мин] healwith кеңесіңіз жақын арада басталады",
     preheader: "30 минуттан кейін кеңес — дайындалыңыз",
     greeting: (n: string) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
@@ -110,8 +113,8 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
   html: string;
   text: string;
 } {
-  const langKey =
-    props.lang && STRINGS[props.lang] ? props.lang : "ko";
+  // 표기 정규화는 한 곳(mailLang.ts)에서 — 모르는 값이면 ko 로 폴백(카자흐어가 여기서 새면 «한국어 메일»이 간다).
+  const langKey = resolveMailLang(props.lang, STRINGS, "ko");
   const s = STRINGS[langKey];
   const name = (props.recipientName || "").slice(0, 50);
 
@@ -119,7 +122,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     ko: "ko-KR",
     en: "en-US",
     ru: "ru-RU",
-    kk: "ru-RU",
+    kz: "ru-RU",
     zh: "zh-CN",
     ja: "ja-JP",
   };
@@ -129,7 +132,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     ko: "한국 표준시",
     en: "Korea time (KST)",
     ru: "время Кореи",
-    kk: "Корея уақыты",
+    kz: "Корея уақыты",
     zh: "韩国时间",
     ja: "韓国時間",
   };
@@ -169,7 +172,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
 
   const html = `
 <!DOCTYPE html>
-<html lang="${langKey}">
+<html lang="${toBcp47(langKey)}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

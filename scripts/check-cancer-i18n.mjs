@@ -4,6 +4,7 @@
 import { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } from "../src/lib/data/immuneCancerDetails.js";
 import { IMMUNE_THERAPIES } from "../src/lib/data/immuneTherapies.js";
 import { IMMUNE_HOSPITAL } from "../src/lib/data/immuneHospitalInfo.js";
+import { getAllPartnerHospitals } from "../src/lib/data/partnerHospitals.js";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const problems = [];
@@ -83,6 +84,14 @@ for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
   for (const [k, v] of Object.entries(node)) walkHospital(v, prefix ? `${prefix}.${k}` : k);
 })(IMMUNE_HOSPITAL, "");
 
+// ── 제휴 병원 8곳(partnerHospitals.js) — /hospitals/<slug> 상세가 name·type·description·address·specialties·highlights 를 그린다 ──
+// 2026-09-06 실측: address 가 8곳 전부 ru·kz·zh·ja 비어 있었다(같은 «조용한 영어 폴백» 부류).
+// 여섯 칸은 8곳 전부 «있어야» 한다 — 칸 자체가 빠지면(if 로 건너뛰면) 화면엔 그냥 빈 줄이 남아 아무도 모른다(독립 리뷰 2026-09-06).
+for (const h of getAllPartnerHospitals()) {
+  for (const f of ["name", "type", "description", "address"]) checkLocalized(`PARTNER.${h.slug}.${f}`, h[f]);
+  for (const f of ["specialties", "highlights"]) checkLocalizedArray(`PARTNER.${h.slug}.${f}`, h[f]);
+}
+
 for (const [key, care] of Object.entries(POST_SURGICAL_CARE)) {
   checkLocalized(`POST_SURGICAL_CARE.${key}.title`, care.title);
 }
@@ -151,7 +160,7 @@ if (problems.length) {
   for (const p of problems) console.error("  - " + p);
   process.exit(1);
 }
-console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩 + 치료법 카드 description·evidence + 면력 병원 페이지 잎 전부)");
+console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩 + 치료법 카드 + 면력 병원 페이지 잎 전부 + 제휴 병원 8곳)");
 console.log(
   `⚠️  5축(ITCRN) 잎(제목·설명·근거·태그·항암지원) 빈 칸 ${itcrnMissing.length}칸 — 천장 0(늘면 차단). 값은 AI 번역이라 코디 검수 전엔 「제안」이다.`,
 );

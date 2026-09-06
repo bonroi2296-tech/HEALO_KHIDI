@@ -425,12 +425,14 @@ async function main() {
   const therapyUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneTherapies.js")).href;
   const cancerUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneCancerDetails.js")).href;
   const hospitalUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneHospitalInfo.js")).href;
+  const partnerUrl = pathToFileURL(path.join(ROOT, "src/lib/data/partnerHospitals.js")).href;
   const { DICTIONARY } = await import(dictUrl);
   const { GLOSSARY } = await import(glossUrl);
   const { HOME_CONTENT } = await import(homeUrl);
   const { IMMUNE_THERAPIES } = await import(therapyUrl);
   const { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } = await import(cancerUrl);
   const { IMMUNE_HOSPITAL } = await import(hospitalUrl);
+  const { getAllPartnerHospitals } = await import(partnerUrl);
 
   // 홈 문구는 사전 파일이 아니라 homeContent.js 에 있어서 그동안 검사 «밖»이었다.
   // 가장 많이 보는 화면인데 러시아어가 카자흐 자리에 그대로 있는 것도 못 잡고 있었다.
@@ -445,6 +447,8 @@ async function main() {
     ...flattenHomeContent(POST_SURGICAL_CARE, "postSurgical", {}),
     ...flattenHomeContent(ITCRN_FRAMEWORK, "itcrn", {}),
     ...flattenHomeContent(IMMUNE_HOSPITAL, "immuneHospital", {}),
+    // slug 로 키를 잡아야 결과가 partner.ewha-seoul.address 처럼 읽힌다(배열 그대로면 partner.3.address — 순서 바뀌면 이름도 바뀜).
+    ...flattenHomeContent(Object.fromEntries(getAllPartnerHospitals().map((h) => [h.slug, h])), "partner", {}),
   };
   const DICT = {};
   for (const lang of [SOURCE_LANG, ...TARGET_LANGS]) {

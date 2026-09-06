@@ -12,7 +12,7 @@ import type { FollowupPhase } from './scheduler';
 
 export type EducationCategory = 'medication' | 'diet' | 'exercise' | 'warning_signs' | 'mental_health';
 
-/** education_contents 언어 컬럼. kz = 카자흐어(메일 템플릿의 'kk' 와 코드가 다르니 변환은 호출부에서). */
+/** education_contents 언어 컬럼. kz = 카자흐어(메일 템플릿도 2026-09-06 부터 kz·kk 를 다 받는다 — 호출부 변환 불필요). */
 export const EDUCATION_LANGS = ['ko', 'en', 'ru', 'kz', 'zh', 'ja'] as const;
 export type EducationLang = (typeof EDUCATION_LANGS)[number];
 
