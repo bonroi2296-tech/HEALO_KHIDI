@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
+import { NOT_FOUND_COPY } from "@/lib/i18n/notFoundCopy";
 
-const COPY = {
-  ko: { title: "페이지를 찾을 수 없습니다", body: "주소가 바뀌었거나 존재하지 않는 페이지예요.", home: "홈으로", inquiry: "상담 신청 →" },
-  en: { title: "Page not found", body: "The page you're looking for doesn't exist or has moved.", home: "Home", inquiry: "Make an inquiry →" },
-  ru: { title: "Страница не найдена", body: "Запрашиваемая страница не существует или была перемещена.", home: "На главную", inquiry: "Оставить заявку →" },
-  kz: { title: "Бет табылмады", body: "Сұралған бет жоқ немесе жылжытылған.", home: "Басты бетке", inquiry: "Сұраныс қалдыру →" },
-  zh: { title: "未找到页面", body: "您访问的页面不存在或已移动。", home: "返回首页", inquiry: "在线咨询 →" },
-  ja: { title: "ページが見つかりません", body: "お探しのページは存在しないか、移動されました。", home: "ホームへ", inquiry: "お問い合わせ →" },
-};
+// 글자 표는 서버(제목)와 공유 — src/lib/i18n/notFoundCopy.js
+const COPY = NOT_FOUND_COPY;
 
 export default function NotFoundClient() {
   const lang = useLang();

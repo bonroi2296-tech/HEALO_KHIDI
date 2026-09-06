@@ -66,7 +66,6 @@ export default function ClaimClient({ token }) {
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const [preview, setPreview] = useState(null);
   const [progress, setProgress] = useState(null);
-  const [opinions, setOpinions] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [sent, setSent] = useState(null);
 
@@ -90,7 +89,6 @@ export default function ClaimClient({ token }) {
           setAlreadyClaimed(Boolean(data.alreadyClaimed));
           setPreview(data.preview || null);
           setProgress(data.progress || null);
-          setOpinions(Array.isArray(data.opinions) ? data.opinions : []);
           setDocuments(Array.isArray(data.documents) ? data.documents : []);
           setSent(data.sent || null);
           applyPatientLang(data.patientLang, lang);
@@ -179,7 +177,6 @@ export default function ClaimClient({ token }) {
   };
 
   const stageLabel = steps.find((s) => s.order === selected)?.label || "";
-  const stageOpinions = opinions.filter((o) => inStage(o.at));
   const stageDocuments = documents.filter((d) => inStage(d.at));
   const stageTimelineAll = timeline.filter((h) => inStage(h.at));
 
@@ -202,17 +199,22 @@ export default function ClaimClient({ token }) {
   const stageStartedAt = stageTimelineAll.find((h) => h.kind === "stage")?.at || null;
 
   /**
-   * 「번역해서 보기」 — **저절로 안 바꾼다.** 눌렀을 때만 바뀐다 (2026-08-06 PO:
-   * *"선택한 언어에 맞춰서 자동 번역해버리면 이건 또 곤란하고"*).
+   * 「번역해서 보기」 단추는 **없앴다** (2026-08-18 PO: *"빼자"*).
    *
-   * 소견은 의료진이 그 언어로 «확정한» 문서다. 기계가 옮긴 걸 기본으로 깔면 오역이 진료
-   * 판단에 섞이고 무엇이 원본인지 흐려진다. 그래서 화면은 늘 원문이고, 번역은 **한 번 눌러**
-   * 켜고 끄는 겹이다. 단추도 글마다 달지 않고 **화면에 하나** — 한 번에 묶어 부르는 게
-   * 값도 싸고 화면도 안 늘어난다.
+   * 왜: 이 화면에 뜨는 글은 이미 환자 언어다. 소견은 코디가 내보낼 때 «환자 언어 초안»이
+   * 기본값이라 그대로 나가고(실측: 내보낸 3건 전부 러시아어), 코디 소식도 환자 언어로 적힌다
+   * (실측 1건, 한글 아님). 단계 이름·안내는 사전이 그 언어로 낸다. 할 일이 없는 단추가 서 있어
+   * «뭘 번역한다는 거지»만 만들었다 — PO 가 두 번 되물은 것 자체가 근거다.
+   *
+   * ⚠️ 되살리기 전에 볼 것:
+   *   · 「의료진용 번역」(원장님이 환자 서류를 한국어로 보는 것, /opinion/[token])은 **다른 기능**이고
+   *     그대로 살아 있다. 없앤 건 환자 화면 단추 하나뿐이다.
+   *   · 8/06 결정(«자동 번역 금지»)도 그대로다 — 없앤 건 «자동 번역»이 아니라 «누를 일 없는 단추».
+   *   · 코디가 한국어 소견을 그대로 내보내는 일이 생기면 그건 코디 화면에서 막을 일이지 환자에게
+   *     기계 번역 단추를 쥐여줄 일이 아니다. 서버 경로(/api/inquiries/claim/translate)도 같이 지웠다
+   *     (2026-09-06 — 부르는 곳이 없는 공개 POST 를 남겨 두는 건 CLAUDE.md 6번 위반이고 비용 구멍이다).
+   *     번역 함수 자체(translateNotes)는 코디 쪽 /api/coordinator/notes/translate 가 그대로 쓴다.
    */
-  const [showTranslated, setShowTranslated] = useState(false);
-  const [tmap, setTmap] = useState({});
-  const tr = (s) => (showTranslated && tmap[String(s || "").trim()]) || s;
 
   const isFirstStage = reached.length > 0 && selected === reached[0];
   // 「보내주신 것」도 같은 규칙으로 그 단계 것만 추린다.
@@ -276,45 +278,27 @@ export default function ClaimClient({ token }) {
       {progress && (
         <ProgressBar progress={progress} selected={selected} onSelect={setStage} lang={lang} />
       )}
-      <TranslateBar
-        token={token}
-        lang={lang}
-        texts={[
-          ...stageEvents.map((e) => e.text),
-          ...stageOpinions.map((o) => o.text),
-          ...stageSent.filter((s) => s.kind === "note").map((s) => s.label),
-        ]}
-        on={showTranslated}
-        map={tmap}
-        onChange={setShowTranslated}
-        onLoaded={setTmap}
-      />
       {progress && (
         <CurrentStep
           progress={progress}
           lang={lang}
           selected={selected}
           selectedLabel={stageLabel}
-          events={stageEvents.map((e) => ({ ...e, text: tr(e.text) }))}
+          events={stageEvents}
           startedAt={stageStartedAt}
         />
       )}
-      {/* 두 축으로만 읽힌다: «우리가 준 것»(소견·서류) → «환자가 준 것»(보내주신 것) */}
-      {stageOpinions.length > 0 && (
-        <Opinions opinions={stageOpinions.map((o) => ({ ...o, text: tr(o.text) }))} lang={lang} />
-      )}
+      {/* 두 축으로만 읽힌다: «우리가 준 것»(서류) → «환자가 준 것»(보내주신 것).
+          소견은 «우리가 화면에 그린 소견서»가 아니라 **코디가 올린 공식 문서**로만 나간다
+          (2026-08-18 PO: *"제2 의료소견서라고 우리가 이렇게 보여주고 있는거 빼자"*). */}
       {stageDocuments.length > 0 && (
         <Documents documents={stageDocuments} lang={lang} token={token} />
       )}
       {stageSent.length > 0 && (
-        <SentItems
-          items={stageSent.map((s) => (s.kind === "note" ? { ...s, label: tr(s.label) } : s))}
-          lang={lang}
-          token={token}
-        />
+        <SentItems items={stageSent} lang={lang} token={token} />
       )}
       {/* 지나온 단계인데 그때 오간 게 없을 수도 있다 — 빈 화면을 그냥 두면 «고장났나»가 된다. */}
-      {stageOpinions.length === 0 && stageDocuments.length === 0 && stageEvents.length === 0 &&
+      {stageDocuments.length === 0 && stageEvents.length === 0 &&
         stageSent.length === 0 && (
         <p className="mt-8 text-sm text-gray-500">{t("claimPage.stageEmpty", lang)}</p>
       )}
@@ -502,80 +486,6 @@ function SendMore({ token, lang }) {
  * 「보내주신 것」 두 칸으로 나뉘어 있었는데, **환자에겐 둘 다 「내가 보낸 것」**이다.
  * 이제 화면은 두 축으로만 읽힌다 — «우리가 준 것»(소견·서류) / «환자가 준 것»(이 칸).
  */
-/**
- * 「번역해서 보기 / 원문 보기」 띠 — 화면에 **하나만**.
- *
- * 한 번 누르면 화면에 뜬 글 전부를 한 번에 묶어 부른다(호출 1회). 그 결과는 서버가
- * (원문, 언어)로 적어두므로 **두 번째부터는 돈이 안 든다** — 다른 사람이 눌러도 마찬가지
- * (2026-08-06 PO 질문: *"누를때마다 돈 나가는거야? 한번 딱하면 기록되게 하면 낭비 없지 않나?"*).
- *
- * 읽을 언어와 다른 글이 하나도 없으면 띠 자체를 안 그린다 — 눌러도 바뀌는 게 없는 단추는 군더더기다.
- */
-function TranslateBar({ token, lang, texts, on, map, onChange, onLoaded }) {
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  // **이미 내 언어인 글만 있으면 띠를 아예 안 그린다.** 예전엔 글이 있기만 하면 단추를 띄웠고,
-  // 누르면 서버가 「번역할 게 없다」로 0건을 돌려줘 「지금은 번역하지 못했어요」가 떴다
-  // — 고장난 것처럼 보인다(2026-08-06 실서비스 실측, 시험용 문의 #84).
-  // 서버와 같은 규칙을 여기서도 본다: 한국어로 읽는 중이면 «한글이 없는 글», 다른 언어로 읽는
-  // 중이면 «그 언어 글자가 없는 글»만 번역 대상이다.
-  const SCRIPT = { ko: /[가-힣]/, ru: /[А-Яа-яЁё]/, kz: /[А-Яа-яЁёӘҒҚҢӨҰҮҺІ]/, ja: /[ぁ-んァ-ン]/, zh: /[一-鿿]/ };
-  const mine = SCRIPT[lang];
-  const uniq = Array.from(
-    new Set(
-      (texts || [])
-        .map((s) => String(s || "").trim())
-        .filter(Boolean)
-        // 글자 표를 모르는 언어(영어 등)면 거르지 않는다 — 판단은 서버가 한다.
-        .filter((s) => !mine || !mine.test(s)),
-    ),
-  );
-  if (!uniq.length) return null;
-
-  const toggle = async () => {
-    if (on) return onChange(false);
-    // 이미 받아둔 게 있으면 다시 안 부른다(화면 안에서도 한 번만).
-    if (Object.keys(map).length) return onChange(true);
-    setBusy(true);
-    setFailed(false);
-    try {
-      const res = await fetch("/api/inquiries/claim/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, lang, texts: uniq }),
-      });
-      const data = await res.json();
-      if (data.ok && data.map && Object.keys(data.map).length) {
-        onLoaded(data.map);
-        onChange(true);
-      } else {
-        setFailed(true);
-      }
-    } catch {
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-      >
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <Globe size={13} />}
-        {on ? t("claimPage.showOriginal", lang) : t("claimPage.showTranslated", lang)}
-      </button>
-      {/* 기계가 옮긴 글이라는 걸 «보이는 자리»에 적는다 — 원문과 구별이 안 되면 안 된다. */}
-      {on && <span className="text-[11px] text-gray-500">{t("claimPage.machineTranslated", lang)}</span>}
-      {failed && <span className="text-[11px] text-gray-500">{t("claimPage.translateFailed", lang)}</span>}
-    </div>
-  );
-}
 
 function SentItems({ items, lang, token }) {
   const [busy, setBusy] = useState("");
@@ -822,141 +732,6 @@ function CurrentStep({ progress, lang, selected, selectedLabel, events, startedA
   );
 }
 
-/**
- * 소견 본문 경량 서식 — 코디가 붙여넣은 글을 «문서처럼» 그린다.
- *
- * 왜: 통째로 한 덩어리(whitespace-pre-wrap)로 두면 병원 소견서가 «메신저에 붙여넣은 글»처럼
- * 보인다(2026-08-05 PO: *"파일로 주면 좀 짜치지 않을까"* — 파일이 문제가 아니라 «문서로 안
- * 보이는 것»이 문제다). 규칙은 셋뿐이라 코디가 뭘 외울 필요가 없다:
- *   · `1 제목` / `1. 제목` → 절 제목        (소견서 원본이 이미 이 꼴이다)
- *   · `- 항목` / `• 항목` → 목록
- *   · 나머지 → 문단, 빈 줄은 문단 구분
- * 못 알아본 줄은 그냥 문단으로 나온다 — 서식을 몰라도 글이 깨지지 않는 게 이 방식의 요점이다.
- */
-function renderOpinionBody(text) {
-  const blocks = [];
-  let list = null;
-
-  const flush = () => {
-    if (list) {
-      blocks.push({ kind: "list", items: list });
-      list = null;
-    }
-  };
-
-  for (const raw of String(text).split("\n")) {
-    const line = raw.trim();
-    if (!line) { flush(); continue; }
-
-    const bullet = line.match(/^[-•*]\s+(.*)$/);
-    if (bullet) {
-      (list ||= []).push(bullet[1]);
-      continue;
-    }
-    flush();
-
-    // 「7 Әрі қарайғы тактика」·「4. 우선순위」 꼴. 숫자만 있는 줄(날짜·수치)은 제목이 아니다.
-    const heading = line.match(/^(\d{1,2})[.)]?\s+(\S.*)$/);
-    if (heading && heading[2].length <= 80) {
-      blocks.push({ kind: "heading", no: heading[1], text: heading[2] });
-      continue;
-    }
-    blocks.push({ kind: "para", text: line });
-  }
-  flush();
-  return blocks;
-}
-
-/**
- * 원장님 소견 — 코디가 「공개」를 누른 확정본을 화면에서 **소견서 모양으로** 보여준다.
- *
- * 왜 파일이 아니라 화면인가: 소견을 줄 때마다 문서 만들고 도장 받는 건 매번 못 한다(2026-08-05
- * PO). 대신 화면이 문서의 «틀»을 맡는다 — 제목줄·서명 칸·인쇄 단추. 도장 찍힌 종이는 환자가
- * 다른 병원·보험사·비자에 낼 때만 필요하고, 그건 아래 「받은 서류」가 맡는다.
- *
- * 병원명·등록번호를 코드에 박지 않는다: 소견 주는 곳이 면력한방병원이 아닐 수도 있어서
- * (명단에 이대서울·이대목동이 있다) 박아두면 **틀린 기관 정보가 환자에게 나간다.** 서명 칸은
- * 코디가 「소견 주신 분」에 적은 한 줄을 그대로 쓴다.
- */
-function Opinions({ opinions, lang }) {
-  return (
-    <div className="mt-8">
-      {/* 여기엔 「PDF 로 저장」을 안 둔다(2026-08-05 PO): 같은 내용이 아래 「받은 서류」에 소견서
-          파일로 이미 있어서, 단추가 둘이면 «둘이 다른 것인가»로 읽힌다. */}
-      <p className="text-xs font-bold text-gray-400">{t("claimPage.opinionsTitle", lang)}</p>
-
-      <div id="opinion-print" className="mt-3 space-y-4">
-        {opinions.map((o) => (
-          <article key={o.id} className="rounded-xl border border-gray-200 bg-white px-5 py-5">
-            {/* 머리글 — 이 한 줄이 「메신저 글」과 「소견서」를 가른다 */}
-            <header className="border-b-2 border-teal-700 pb-2">
-              <p className="text-[15px] font-extrabold tracking-tight text-teal-800">
-                {t("claimPage.opinionsDocTitle", lang)}
-              </p>
-            </header>
-
-            <div className="mt-4 space-y-3 text-sm leading-relaxed text-gray-800">
-              {renderOpinionBody(o.text).map((b, i) => {
-                if (b.kind === "heading") {
-                  return (
-                    <h3
-                      key={i}
-                      className="border-b border-gray-200 pb-1 pt-2 text-sm font-bold text-gray-900"
-                    >
-                      <span className="text-teal-700">{b.no}</span> {b.text}
-                    </h3>
-                  );
-                }
-                if (b.kind === "list") {
-                  return (
-                    <ul key={i} className="ml-1 space-y-1.5">
-                      {b.items.map((it, j) => (
-                        <li key={j} className="flex gap-2 break-words">
-                          <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-teal-700" aria-hidden="true" />
-                          <span>{it}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                }
-                return <p key={i} className="break-words">{b.text}</p>;
-              })}
-            </div>
-
-            {/* 서명 칸 — 이름·직함·소속은 코디가 「소견 주신 분」에 적은 그대로 */}
-            {(o.doctor || o.at) && (
-              <footer className="mt-5 border-t border-gray-200 pt-3">
-                <dl className="space-y-1 text-xs">
-                  {o.doctor && (
-                    <div className="flex gap-3">
-                      <dt className="w-24 shrink-0 text-gray-500">
-                        {t("claimPage.opinionsDoctorLabel", lang)}
-                      </dt>
-                      <dd className="font-semibold text-gray-900">{o.doctor}</dd>
-                    </div>
-                  )}
-                  {o.at && (
-                    <div className="flex gap-3">
-                      <dt className="w-24 shrink-0 text-gray-500">
-                        {t("claimPage.opinionsDateLabel", lang)}
-                      </dt>
-                      <dd className="text-gray-900">{new Date(o.at).toLocaleDateString(dateLocale(lang))}</dd>
-                    </div>
-                  )}
-                </dl>
-              </footer>
-            )}
-
-            <p className="mt-3 text-xs leading-relaxed text-gray-500">
-              {t("claimPage.opinionsHint", lang)}
-            </p>
-          </article>
-        ))}
-      </div>
-
-    </div>
-  );
-}
 
 /**
  * 「PDF 로 저장」 — 누른 그 블록 하나만 PDF 로 만든다.

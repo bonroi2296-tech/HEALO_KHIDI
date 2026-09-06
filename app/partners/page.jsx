@@ -1,5 +1,5 @@
 import PartnersClient from "./PartnersClient";
-import { getRequestLocale, localeAlternates } from "@/lib/i18n/metadata";
+import { getRequestLocale, localeAlternates, ogLocaleFields } from "@/lib/i18n/metadata";
 import { COPY } from "./copy";
 
 // B2B 랜딩이라 SEO 제목·설명을 i18n index 대신 로컬 카피에서 직접 읽는다(카피 단일 SoR 유지).
@@ -16,6 +16,7 @@ export async function generateMetadata() {
       description: c.seoDesc,
       type: "website",
       ...(alt ? { url: alt.canonical } : {}),
+      ...ogLocaleFields(locale),
     },
     // ⚠️ twitter 를 «반드시» openGraph 와 같이 채운다 (2026-08-31 실측으로 추가).
     //    openGraph 만 정의하면 twitter 는 루트 layout 의 «환자용 영어 문구»를 물려받는다.

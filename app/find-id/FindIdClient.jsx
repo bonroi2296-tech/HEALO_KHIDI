@@ -73,10 +73,10 @@ export default function FindIdClient() {
                 <div className="w-12 h-12 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-4">
                   <MailCheck className="text-teal-700" size={22} />
                 </div>
-                <h2 className="text-2xl font-extrabold text-gray-900 break-keep">{pick(L.foundTitle, langCode)}</h2>
+                <h2 className="text-2xl font-extrabold text-gray-900">{pick(L.foundTitle, langCode)}</h2>
                 <p className="mt-4 text-xl font-bold text-teal-700 tracking-wide break-all">{result.emailMasked}</p>
                 {result.provider === "google" && (
-                  <p className="text-sm text-gray-500 mt-3 leading-relaxed break-keep">{pick(inNativeApp ? L.googleHintApp : L.googleHint, langCode)}</p>
+                  <p className="text-sm text-gray-500 mt-3 leading-relaxed">{pick(inNativeApp ? L.googleHintApp : L.googleHint, langCode)}</p>
                 )}
               </>
             ) : (
@@ -84,8 +84,8 @@ export default function FindIdClient() {
                 <div className="w-12 h-12 mx-auto rounded-xl bg-gray-100 flex items-center justify-center mb-4">
                   <SearchX className="text-gray-400" size={22} />
                 </div>
-                <h2 className="text-xl font-extrabold text-gray-900 break-keep">{pick(L.notFoundTitle, langCode)}</h2>
-                <p className="text-sm text-gray-500 mt-3 leading-relaxed break-keep">{pick(L.notFoundBody, langCode)}</p>
+                <h2 className="text-xl font-extrabold text-gray-900">{pick(L.notFoundTitle, langCode)}</h2>
+                <p className="text-sm text-gray-500 mt-3 leading-relaxed">{pick(L.notFoundBody, langCode)}</p>
               </>
             )}
             <button
@@ -106,8 +106,8 @@ export default function FindIdClient() {
         ) : (
           <>
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-extrabold text-gray-900 break-keep">{pick(L.title, langCode)}</h2>
-              <p className="text-gray-500 mt-2 break-keep">{pick(L.subtitle, langCode)}</p>
+              <h2 className="text-3xl font-extrabold text-gray-900">{pick(L.title, langCode)}</h2>
+              <p className="text-gray-500 mt-2">{pick(L.subtitle, langCode)}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

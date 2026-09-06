@@ -64,8 +64,8 @@ const baseMeta = {
     description:
       "Video pre-consultation with Korea's top oncologists · 6-language interpretation · Full-journey concierge from diagnosis to follow-up.",
     type: "website",
-    locale: "en_US",
-    alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
+    // locale·alternateLocale 은 localizedMeta 가 요청 언어로 채운다 — 여기 고정값을 두면
+    // 그게 이긴다(2026-09-06 실측: /ru 가 og:locale=en_US 로 나갔다).
   },
   twitter: {
     card: "summary_large_image",
@@ -95,8 +95,11 @@ const jsonLd = {
   ],
   medicalSpecialty: ["Oncology"],
   serviceType: "Cancer Pre-consultation & Post-care Platform",
-  // 실제 제휴/협진 병원 네트워크(partnerHospitals 실데이터) — 검색엔진 전용, 화면 변화 0
-  department: partnerHospitalLdList(),
+  // ⚠️ 예전에 여기 `department: partnerHospitalLdList()` 가 있었다(2026-09-01 제거).
+  //    그건 검색엔진에 「신촌세브란스병원 등 8곳이 healwith 의 부서다」라고 말하는 것이었다.
+  //    healwith 는 병원이 아니라 등록 유치업체다 — 부서로 둘 병원이 없다.
+  //    지금은 병원들을 아래 <script> 에서 «형제 노드»로 내보낸다. 자세한 경위는
+  //    src/lib/seo/structuredData.js 의 partnerHospitalLdList 주석.
 };
 
 export default async function HomePage() {
@@ -107,7 +110,11 @@ export default async function HomePage() {
       <script
         id="jsonld-organization"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, websiteLd()]) }}
+        // 제휴/협진 병원 8곳은 healwith 와 «나란히» 놓인다(부서가 아니다).
+        // 게재 근거: 아래 HomeClient 의 PARTNER HOSPITALS 칸에 실제로 8곳이 보인다.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([jsonLd, websiteLd(), ...partnerHospitalLdList()]),
+        }}
       />
       {/* Suspense 로 감싸지 마라. fallback 없는 경계는 높이가 0이라, 서버가
           「머리말 + 빈 본문 + 꼬리말」을 먼저 보내고 본문을 나중에 끼워 넣는다.

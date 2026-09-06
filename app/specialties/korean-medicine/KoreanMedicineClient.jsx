@@ -47,13 +47,11 @@ export default function KoreanMedicineClient() {
     fetchData();
   }, []);
 
-  const faq = [
-    { q: "What is Korean Medicine (Hanbang)?", a: "Korean Medicine (한방/韓方) is Korea's unique traditional medical system with over 1,000 years of history. It uses herbal medicine, acupuncture, moxibustion, and cupping to treat the root cause of illness by restoring balance in the body." },
-    { q: "Is Korean Medicine safe?", a: "Yes. All Korean Medicine hospitals in Korea are licensed and regulated by the Ministry of Health and Welfare. Practitioners hold doctoral-level degrees and follow strict safety protocols with certified, quality-controlled herbal ingredients." },
-    { q: "How is it different from Traditional Chinese Medicine?", a: "While they share historical roots, Korean Medicine (韓方) has evolved independently, featuring Sasang constitutional medicine (사상체질의학), unique herbal formulations, and is more regulated under Korea's national healthcare system." },
-    { q: "Do I need to speak Korean?", a: "No. Partner hospitals provide English and Chinese translation services with international patient coordinators to assist throughout your visit." },
-    { q: "How long should I stay in Korea?", a: "Treatment duration varies: Immune Boost and Wellness programs typically require 5-7 days, Postpartum Recovery 2-4 weeks. Programs can be customized to fit your schedule." },
-  ];
+  // FAQ 5문답 — 사전(km.faq.*) 6개 언어. 예전엔 영어 문자열이 여기 박혀 있어 러시아어·카자흐어 화면에서도
+  // 질문·답이 영어로 떴다(2026-09-06 실측: /ru/specialties/korean-medicine 의 영어 줄 6개 중 5개가 이 FAQ).
+  // (check:content [빈라벨] 규칙이 `const x = [` 로 시작하는 배열을 넓게 잡으므로 번호 목록은 따로 둔다)
+  const FAQ_IDS = [1, 2, 3, 4, 5];
+  const faq = FAQ_IDS.map((i) => ({ q: t(`km.faq.q${i}`, langCode), a: t(`km.faq.a${i}`, langCode) }));
 
   const diffs = [
     { icon: ShieldCheck, key: "km.diff.regulated", descKey: "km.diff.regulatedDesc" },

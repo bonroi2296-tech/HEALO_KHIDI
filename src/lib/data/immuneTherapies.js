@@ -24,7 +24,7 @@ export const IMMUNE_THERAPIES = {
     id: "thymosin",
     axis: "immunity",
     name: { ko: "싸이모신α1 요법", en: "Thymosin α1 Therapy", ru: "Терапия Тимозин-α1", kz: "Тимозин α1 терапиясы", zh: "胸腺肽α1疗法", ja: "サイモシンα1療法" },
-    category: { ko: "세포면역", en: "Cellular Immunity" },
+    category: { ko: "세포면역", en: "Cellular Immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
     description: {
       ko: "흉선에서 생성되는 펩타이드 호르몬으로, T세포와 NK세포를 직접 활성화시켜 암세포를 공격합니다. 항암치료 후 저하된 면역 기능 회복에 핵심적 역할을 합니다.",
       en: "A peptide hormone produced by the thymus that directly activates T-cells and NK cells to attack cancer cells. Plays a key role in restoring immune function after chemotherapy.",
@@ -36,6 +36,10 @@ export const IMMUNE_THERAPIES = {
     mechanism: {
       ko: "T세포 성숙·분화 촉진, NK세포 활성화, 암세포 직접 파괴",
       en: "Promotes T-cell maturation and differentiation, NK cell activation, direct cancer cell destruction",
+      ru: "Стимулирует созревание и дифференцировку Т-клеток, активирует НК-клетки, напрямую разрушает раковые клетки",
+      kz: "Т-жасушалардың жетілуі мен дифференциациясын ынталандырады, NK-жасушаларды белсендіреді, ісік жасушаларын тікелей жояды",
+      zh: "促进T细胞成熟与分化，激活NK细胞，直接破坏癌细胞",
+      ja: "T細胞の成熟・分化を促進し、NK細胞を活性化、がん細胞を直接破壊します",
     },
     evidence: {
       ko: "국제 임상 연구를 통해 T세포 및 NK세포 활성화, 암세포 직접 파괴 기전 확인",
@@ -53,7 +57,7 @@ export const IMMUNE_THERAPIES = {
     id: "mistletoe",
     axis: "immunity",
     name: { ko: "미슬토 요법", en: "Mistletoe Therapy", ru: "Терапия Омелой", kz: "Омела терапиясы", zh: "槲寄生疗法", ja: "ミスルトー（ヤドリギ）療法" },
-    category: { ko: "세포면역", en: "Cellular Immunity" },
+    category: { ko: "세포면역", en: "Cellular Immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
     description: {
       ko: "유럽 겨우살이(Viscum album) 추출물로 제조된 항암 보조 주사제. NK세포와 T림프구 활성화로 면역력을 높이고 항암제 부작용을 줄여줍니다.",
       en: "An injectable anti-cancer adjuvant made from European mistletoe (Viscum album) extract. Enhances immunity by activating NK cells and T lymphocytes, and reduces chemotherapy side effects.",
@@ -65,6 +69,10 @@ export const IMMUNE_THERAPIES = {
     mechanism: {
       ko: "NK세포·T림프구 활성화, 사이토카인 생성 촉진, 항암제 부작용(오심·피로) 완화",
       en: "NK cell and T lymphocyte activation, cytokine production promotion, chemotherapy side effect reduction",
+      ru: "Активация НК-клеток и Т-лимфоцитов, стимуляция выработки цитокинов, уменьшение побочных эффектов химиотерапии (тошнота, усталость)",
+      kz: "NK-жасушалар мен Т-лимфоциттерді белсендіру, цитокин өндірісін ынталандыру, химиотерапияның жанама әсерлерін (жүрек айну, шаршау) жеңілдету",
+      zh: "激活NK细胞与T淋巴细胞，促进细胞因子生成，减轻化疗副作用（恶心、疲劳）",
+      ja: "NK細胞・Tリンパ球の活性化、サイトカイン産生の促進、抗がん剤の副作用（吐き気・倦怠感）の緩和",
     },
     image: "/immune/program/cancer-heal1-2.png",
     type: "injection",
@@ -74,7 +82,7 @@ export const IMMUNE_THERAPIES = {
     id: "immunocyanin",
     axis: "immunity",
     name: { ko: "이뮤노시아닌", en: "Immunocyanin (KLH)", ru: "Иммуноцианин", kz: "Иммуноцианин (KLH)", zh: "免疫蓝蛋白 (Immunocyanin)", ja: "イムノシアニン" },
-    category: { ko: "세포면역", en: "Cellular Immunity" },
+    category: { ko: "세포면역", en: "Cellular Immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
     description: {
       ko: "해양 연체동물에서 추출한 고분자 단백질로 강력한 면역 자극 효과를 가집니다. 비특이적 면역 강화와 항암 치료 보조로 사용됩니다.",
       en: "A high-molecular-weight protein extracted from marine mollusks with powerful immune-stimulating effects, used for non-specific immune enhancement and as a cancer treatment adjuvant.",
@@ -90,13 +98,13 @@ export const IMMUNE_THERAPIES = {
     id: "nkCell",
     axis: "immunity",
     name: { ko: "NK세포치료제", en: "NK Cell Therapy", ru: "НК-клеточная Терапия", kz: "NK жасушалық терапия", zh: "NK细胞疗法", ja: "NK細胞療法" },
-    category: { ko: "세포면역", en: "Cellular Immunity" },
+    category: { ko: "세포면역", en: "Cellular Immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
     description: {
       ko: "자연살해세포(Natural Killer Cell)를 활성화하여 암세포를 직접 공격하는 면역 치료입니다. 수술 후 잔존 암세포 관리에 효과적입니다.",
       en: "An immunotherapy that activates Natural Killer cells to directly attack cancer cells. Effective for managing residual cancer cells after surgery.",
+      zh: "通过激活自然杀伤细胞（NK细胞）直接攻击癌细胞的免疫疗法。对术后残留癌细胞的管理有效。",
       ru: "Иммунотерапия, активирующая NK-клетки для прямой атаки раковых клеток.",
       kz: "Табиғи киллер (NK) жасушаларын белсендіріп, қатерлі ісік жасушаларына тікелей шабуыл жасайтын иммундық ем. Отадан кейін қалған ісік жасушаларын бақылауда тиімді.",
-      zh: "通过激活自然杀伤细胞（NK细胞）直接攻击癌细胞的免疫疗法。对术后残留癌细胞的管理有效。",
       ja: "ナチュラルキラー（NK）細胞を活性化し、がん細胞を直接攻撃する免疫療法です。手術後に残存するがん細胞の管理に有効です。",
     },
     image: "/immune/program/cancer-heal1-3.png",
@@ -107,7 +115,7 @@ export const IMMUNE_THERAPIES = {
     id: "immunoPlus",
     axis: "immunity",
     name: { ko: "면역플러스 (황기 부정단)", en: "Immune Plus (Astragalus Formula)", ru: "Иммун Плюс", kz: "Иммун Плюс (астрагал негізіндегі шөп қоспасы)", zh: "免疫加强方（黄芪扶正丹）", ja: "免疫プラス（黄耆扶正丹）" },
-    category: { ko: "체액면역", en: "Humoral Immunity" },
+    category: { ko: "체액면역", en: "Humoral Immunity", ru: "Гуморальный иммунитет", kz: "Гуморальдық иммунитет", zh: "体液免疫", ja: "液性免疫" },
     description: {
       ko: "한방 면역 강화 처방. 황기(Astragalus) 등 면역 증강 한약재를 조합한 맞춤 처방으로, 체액면역 강화와 기력 회복을 돕습니다.",
       en: "Korean medicine immune-boosting formula combining Astragalus and other immune-enhancing herbs for humoral immunity and energy recovery.",
@@ -123,7 +131,7 @@ export const IMMUNE_THERAPIES = {
     id: "glutamine",
     axis: "immunity",
     name: { ko: "글루타민 주사", en: "Glutamine Injection", ru: "Инъекция Глутамина", kz: "Глутамин инъекциясы", zh: "谷氨酰胺注射", ja: "グルタミン注射" },
-    category: { ko: "체액면역", en: "Humoral Immunity" },
+    category: { ko: "체액면역", en: "Humoral Immunity", ru: "Гуморальный иммунитет", kz: "Гуморальдық иммунитет", zh: "体液免疫", ja: "液性免疫" },
     description: {
       ko: "면역세포의 주요 에너지원인 글루타민을 직접 공급하여 점막 면역 기능을 강화합니다. 항암치료 중 구내염, 장 점막 손상에 효과적입니다.",
       en: "Directly supplies glutamine, the primary energy source for immune cells, strengthening mucosal immunity. Effective against mucositis and intestinal mucosal damage during chemotherapy.",
@@ -139,7 +147,7 @@ export const IMMUNE_THERAPIES = {
     id: "anticancerImmune",
     axis: "immunity",
     name: { ko: "항암면역증강제", en: "Anti-cancer Immune Enhancer", ru: "Иммуностимулятор при Онкологии", kz: "Онкологиядағы иммунды күшейткіш", zh: "抗癌免疫增强剂", ja: "抗がん免疫増強剤" },
-    category: { ko: "세포면역", en: "Cellular Immunity" },
+    category: { ko: "세포면역", en: "Cellular Immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
     description: {
       ko: "항암치료 중 저하된 면역 기능을 보완하는 보조 치료제. 항암제의 효과를 최대화하면서 부작용은 최소화합니다.",
       en: "Adjuvant therapy that compensates for reduced immune function during chemotherapy, maximizing drug effects while minimizing side effects.",
@@ -167,6 +175,10 @@ export const IMMUNE_THERAPIES = {
     mechanism: {
       ko: "고열에 의한 암세포 사멸, 혈류 개선, 항암제 암세포 내 흡수율 증가",
       en: "Cancer cell death by heat, blood flow improvement, increased chemotherapy absorption in cancer cells",
+      ru: "Гибель раковых клеток под действием высокой температуры, улучшение кровотока, повышение усвоения химиопрепаратов раковыми клетками",
+      kz: "Жоғары температура әсерінен ісік жасушаларының жойылуы, қан айналымының жақсаруы, химиопрепараттардың ісік жасушаларына сіңуінің артуы",
+      zh: "高热致癌细胞死亡、改善血流、提高抗癌药在癌细胞内的吸收率",
+      ja: "高熱によるがん細胞の死滅、血流の改善、抗がん剤のがん細胞内への吸収率向上",
     },
     evidence: {
       ko: "고주파온열 + 항암제 병행 시 생존기간 유의미 증가 (해외 임상 데이터)",
@@ -333,6 +345,10 @@ export const IMMUNE_THERAPIES = {
         "Artisan health drink corner",
         "Bibimbap corner",
       ],
+      ru: ["Индивидуальное меню для восстановления иммунитета (30+ вариантов)", "Живая кухня шефа", "Меню для периода химиотерапии", "Уголок листовых овощей (ссам)", "Уголок сезонных фруктов", "Уголок домашних полезных напитков", "Уголок пибимпап"],
+      kz: ["Иммунитетті қалпына келтіруге арналған жеке мәзір (30+ түрі)", "Аспаздың тікелей дайындау бұрышы", "Химиотерапияға арналған мәзір", "Орамдық көкөністер (ссам) бұрышы", "Маусымдық жемістер бұрышы", "Қолдан жасалған пайдалы сусындар бұрышы", "Пибимпап бұрышы"],
+      zh: ["定制免疫恢复自选餐（30种以上）", "厨师现场烹饪区", "化疗专用餐区", "抗癌包饭蔬菜区", "时令水果区", "手工健康饮品区", "拌饭区"],
+      ja: ["オーダーメイド免疫回復選択食（30種以上）", "シェフのライブキッチン", "抗がん剤治療向けコーナー", "抗がん野菜サムコーナー", "旬の果物コーナー", "手作り健康ドリンクコーナー", "ビビンバコーナー"],
     },
     images: [
       "/immune/program/cancer-heal5-1.png",

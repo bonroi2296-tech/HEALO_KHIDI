@@ -25,7 +25,7 @@ import { logAiUsage } from "@/lib/ai/usageLog";
 import { getAiReadable } from "@/lib/documents/aiReadable";
 import { followUpSig, followUpsForBrief } from "@/lib/inquiry/followUps";
 import { readPreparedStudy, renderSlicesPng } from "@/lib/imaging/prepareStudy";
-import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { fetchGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
 
@@ -342,7 +342,7 @@ export async function generateCaseBrief(opts: {
         temperature: 0.2,
         // CT 초견까지 담으면 2048 에서 끊겨 JSON 이 깨졌다(실측 2026-08-03: parse_error).
         maxOutputTokens: 16384,
-        thinkingConfig: { thinkingLevel: "minimal" },
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
         responseMimeType: "application/json",
         responseSchema: responseSchema(imagingParts.length > 0),
       },

@@ -11,6 +11,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { SYNTHETIC_TEST_HEADER, syntheticTestFromHeader } from "@/lib/chat/syntheticThread";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+    const syntheticTest = syntheticTestFromHeader(request.headers.get(SYNTHETIC_TEST_HEADER));
 
     // 인코딩 깨진 본문(U+FFFD) 거부 — 깨진 한글이 chat_threads→inquiries 승격까지 그대로 박힘 (POSTMORTEMS #92)
     if (hasMojibake(body)) {
@@ -125,7 +127,10 @@ export async function POST(request: NextRequest) {
           utm: utm || null,
           landing_path: landing_path || null,
           referrer: referrer || null,
-          client_meta: client_meta || null,
+          // 점검·E2E 표식 — 헤더로 온 것을 여기 옮겨 적는다(판사가 이걸 보고 건너뛴다). syntheticThread.ts.
+          client_meta: syntheticTest
+            ? { ...(client_meta && typeof client_meta === "object" && !Array.isArray(client_meta) ? client_meta : {}), synthetic_test: syntheticTest }
+            : client_meta || null,
           treatment_slug: treatment_slug || null,
           ...(tz ? { tz } : {}),
           started_at: new Date().toISOString(),

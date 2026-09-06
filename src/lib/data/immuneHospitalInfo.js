@@ -12,10 +12,10 @@ export const IMMUNE_HOSPITAL = {
   officialName: {
     ko: "면력한방병원",
     en: "Immune Hospital",
-    ru: "Иммунная Клиника",
-    kz: "Иммундық клиника",
-    zh: "免疫医院",
-    ja: "免疫病院",
+    ru: "Immune Hospital",
+    kz: "Immune Hospital",
+    zh: "Immune Hospital",
+    ja: "Immune Hospital",
   },
   tagline: {
     ko: "Care You Need, Care You Trust",
@@ -28,10 +28,10 @@ export const IMMUNE_HOSPITAL = {
   subtagline: {
     ko: "건강한 변화를 향한 여정, 지금 면력에서 시작하세요",
     en: "A journey to healthy change — starting now.",
-    ru: "Путь к здоровым переменам начинается сейчас — в Иммунной клинике",
-    kz: "Салауатты өзгеріске апарар жол қазір — Иммундық клиникадан басталады",
-    zh: "迈向健康改变的旅程，现在就从免疫医院开始",
-    ja: "健やかな変化への旅を、いま免疫病院から",
+    ru: "Путь к здоровым переменам начинается сейчас — в Immune Hospital",
+    kz: "Салауатты өзгеріске апарар жол қазір — Immune Hospital-дан басталады",
+    zh: "迈向健康改变的旅程，现在就从 Immune Hospital 开始",
+    ja: "健やかな変化への旅を、いま Immune Hospital から",
   },
 
   representative: { ko: "황이준", en: "Hwang Yi-jun", ru: "Хван Иджун", kz: "Хван Иджун", zh: "Hwang Yi-jun", ja: "ファン・イジュン" },
@@ -137,10 +137,10 @@ export const IMMUNE_HOSPITAL = {
       address: {
         ko: "서울 서대문구 연세로 12, 8층~14층",
         en: "8F-14F, 12 Yonsei-ro, Seodaemun-gu, Seoul",
+        ja: "ソウル市西大門区延世路12 8階〜14階",
         ru: "Сеул, Содэмун-гу, Ёнсе-ро, 12, 8-14 этажи",
         kz: "Сеул, Содэмун-гу, Ёнсе-ро, 12, 8–14 қабаттар",
         zh: "首尔市西大门区延世路12号 8层～14层",
-        ja: "ソウル市西大門区延世路12 8階〜14階",
       },
       phone: "1588-2915",
       hours: {
@@ -169,10 +169,10 @@ export const IMMUNE_HOSPITAL = {
       address: {
         ko: "경기 광명시 철산로 16, 트라이앵글빌딩 6층·8층~11층",
         en: "Triangle Building 6F, 8F-11F, 16 Cheolsan-ro, Gwangmyeong-si, Gyeonggi-do",
+        ja: "京畿道光明市鉄山路16 トライアングルビル 6階・8階〜11階",
         ru: "Кёнги-до, Кванмён-си, Чхольсан-ро, 16, Трайэнгл билдинг, 6, 8-11 этажи",
         kz: "Кёнги-до, Кванмён-си, Чхольсан-ро, 16, Трайэнгл ғимараты, 6 және 8–11 қабаттар",
         zh: "京畿道光明市铁山路16号 Triangle大厦 6层、8层～11层",
-        ja: "京畿道光明市鉄山路16 トライアングルビル 6階・8階〜11階",
       },
       phone: "1588-2915",
       hours: {
