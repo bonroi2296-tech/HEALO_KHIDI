@@ -408,6 +408,10 @@ const nextConfig = {
         { source: `/treatments/${s}`, destination: "/specialties/korean-medicine", permanent: true },
         { source: `/:locale/treatments/${s}`, destination: "/:locale/specialties/korean-medicine", permanent: true },
       ]),
+      // 옛 카자흐 랜딩은 폴더가 /kk 다(언어 접두어 kz 와 다르다). 실서비스 404 로그(2026-09-06 72시간)에
+      // /kz/for-kazakh-patients 와 맨 /kk 가 들어와 «카자흐 환자가 길을 잃는 주소» 둘을 랜딩으로 보낸다.
+      { source: "/kz/for-kazakh-patients", destination: "/kk/for-kazakh-patients", permanent: true },
+      { source: "/kk", destination: "/kk/for-kazakh-patients", permanent: true },
     ];
   },
 };

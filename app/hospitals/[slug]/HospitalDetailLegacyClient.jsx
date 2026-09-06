@@ -8,7 +8,8 @@ import {
   Clock, Coffee, Languages, Phone, ExternalLink, X
 } from "lucide-react";
 import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
-import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { mapHospitalRow, mapTreatmentRow, normalizeImages } from "@/lib/mapper";
+import { pickGalleryImages } from "@/lib/hospitals/galleryImages";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 
@@ -17,7 +18,8 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { formatDate } from "@/lib/i18n/format";
 import { event, GA_EVENTS } from "@/lib/ga";
 
-// 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
+// 병원 사진: 병원 객체의 목록(thumbnail_image·gallery_images·images)을 쓴다. 목록이 비었을 때만 옛 폴더 규칙
+// /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브) — 규칙으로 «지어내면» 3.webp·3.png 같은 실제 파일과 어긋난다(2026-09-06).
 const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=3";
 // 사진 없는 칸은 한 번에 "이미지 준비 중" 플레이스홀더로 대체 (체인 없이 확실하게)
 const handleImgError = (e) => {
@@ -146,23 +148,6 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     }));
   }, [langCode, hospital?._i18n]);
 
-  const normalizeImages = (raw) => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw.filter(Boolean);
-    if (typeof raw === "string") {
-      const str = raw.trim();
-      if (str.startsWith("[") && str.endsWith("]")) {
-        try {
-          const parsed = JSON.parse(str);
-          if (Array.isArray(parsed)) return parsed.filter(Boolean);
-        } catch (e) {
-          console.warn("Failed to parse image array:", e);
-        }
-      }
-      if (t.startsWith("http")) return [t];
-    }
-    return [];
-  };
 
   useEffect(() => {
     const run = async () => {
@@ -250,17 +235,17 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   }, [hospitalTreatments]);
 
   const allGalleryImages = useMemo(() => {
-    const isPartnerHospital = hospital?.is_partner ?? false;
     const slug = hospital?.slug || selectedId;
-    // 파트너 병원: 폴더 규칙(/images/hospitals/<slug>/1~5.jpg) 5칸 고정.
-    // 폴더에 사진을 넣으면 자동으로 채워지고, 없는 칸은 onError로 플레이스홀더 표시.
-    if (isPartnerHospital && slug) {
-      return [1, 2, 3, 4, 5].map((n) => `/images/hospitals/${slug}/${n}.jpg?v=3`);
-    }
-    const thumb = hospital?.thumbnail_image;
-    const gallery = normalizeImages(hospital?.gallery_images);
-    const legacyImages = normalizeImages(hospital?.images);
-    return [...new Set([thumb, ...gallery, ...legacyImages].filter(Boolean))];
+    // 2026-09-06: 예전엔 파트너 병원을 «/images/hospitals/<slug>/1~5.jpg» 로 지어내 세브란스(3.webp)·고대구로(3.png)의
+    // 세 번째 사진이 방문자마다 깨졌다(실서비스 404 로그). 병원 객체의 목록(정적 initialData 든 DB 든 확장자가 맞다)을
+    // 쓰고, 목록이 비었을 때만 폴더 규칙으로 떨어진다.
+    return pickGalleryImages({
+      slug,
+      isPartner: hospital?.is_partner ?? false,
+      thumbnail_image: hospital?.thumbnail_image,
+      gallery_images: hospital?.gallery_images,
+      images: hospital?.images,
+    });
   }, [hospital?.is_partner, hospital?.slug, selectedId, hospital?.thumbnail_image, hospital?.gallery_images, hospital?.images]);
 
   const galleryImages = allGalleryImages.slice(0, 5);
