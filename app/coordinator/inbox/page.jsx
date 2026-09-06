@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import {
   Inbox, User, Globe, AlertCircle, CheckCircle2,
   Calendar, ChevronRight, RefreshCw, MessageSquare,
+  Ban,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { caseDelayDays } from "@/lib/khidi/caseStatus";
@@ -99,21 +100,27 @@ export default function CoordinatorInboxPage() {
     }
   }
 
+  // 종료(결과=이탈)된 문의는 «종료» 탭에만 — 일하는 목록(전체·추가정보·환자 새 글)에 섞이지 않는다(2026-09-06 PO).
+  const active = items.filter((i) => i.outcome !== "lost");
+  const closedCount = items.length - active.length;
   const filtered = items.filter((item) => {
+    if (filter === "closed") return item.outcome === "lost";
+    // 종료된 환자가 다시 글을 남기면(«실은 오고 싶다») 그건 종료 탭에 묻히면 안 된다 — 환자 새 글은 종료와 무관하게 센다.
+    if (filter === "patient_unread") return !!item.patient_unread_since;
+    if (item.outcome === "lost") return false;
     if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
     if (filter === "step2_done") return !!item.step2_completed_at;
-    if (filter === "patient_unread") return !!item.patient_unread_since;
     return true;
   });
 
-  const step1OnlyCount = items.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
-  // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다.
+  const step1OnlyCount = active.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
+  // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다. 종료된 건 포함.
   const patientUnreadCount = items.filter((i) => !!i.patient_unread_since).length;
   // 「환자 새 글」 탭을 보다가 마지막 건을 열고 돌아오면 0건 = 탭이 사라진다. 그때 필터가 그 탭에 남아 있으면
   // 빈 화면만 남고 어느 탭도 안 켜져 있다(독립 리뷰 2026-09-05) → «전체»로 되돌린다.
   useEffect(() => {
-    if (!loading && filter === "patient_unread" && patientUnreadCount === 0) setFilter("all");
-  }, [loading, filter, patientUnreadCount]);
+    if (!loading && ((filter === "patient_unread" && patientUnreadCount === 0) || (filter === "closed" && closedCount === 0))) setFilter("all");
+  }, [loading, filter, patientUnreadCount, closedCount]);
 
   return (
     <div className="space-y-6">
@@ -159,7 +166,7 @@ export default function CoordinatorInboxPage() {
       {/* 필터 탭 */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
-          { key: "all", label: L.all, count: items.length },
+          { key: "all", label: L.all, count: active.length },
           {
             key: "step1_only",
             label: L.inboxFilterNeedInfo,
@@ -169,12 +176,14 @@ export default function CoordinatorInboxPage() {
           {
             key: "step2_done",
             label: L.inboxFilterReady,
-            count: items.filter((i) => !!i.step2_completed_at).length,
+            count: active.filter((i) => !!i.step2_completed_at).length,
           },
           // 환자가 말을 걸었는데 아무도 안 본 건 — 0건이면 탭을 안 보인다(평소 화면 그대로).
           ...(patientUnreadCount > 0
             ? [{ key: "patient_unread", label: L.inboxFilterPatientUnread, count: patientUnreadCount, badge: "amber" }]
             : []),
+          // 종료(안 옴) 처리한 건 — 0건이면 탭을 안 보인다.
+          ...(closedCount > 0 ? [{ key: "closed", label: L.inboxFilterClosed, count: closedCount }] : []),
         ].map((tab) => (
           <button
             key={tab.key}
@@ -246,7 +255,7 @@ export default function CoordinatorInboxPage() {
                     // a[href] 로 찾으면 0건이 나와 검사가 조용히 지나친다(2026-08-25).
                     data-testid="inbox-row"
                     data-inquiry-id={item.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
+                    className={`border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer${item.outcome === "lost" ? " opacity-60" : ""}`}
                     onClick={() => router.push(`/coordinator/inbox/${item.id}`)}
                   >
                     <td className="px-4 py-3">
@@ -353,6 +362,16 @@ export default function CoordinatorInboxPage() {
                             </span>
                           );
                         })()}
+                        {/* 종료(안 옴): 결과=이탈. 상세 「진행 단계」 카드에서 되돌릴 수 있다. */}
+                        {item.outcome === "lost" && (
+                          <span
+                            data-testid="inbox-closed"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-700 shrink-0"
+                            title={item.outcome_note || L.inboxClosedBadge}
+                          >
+                            <Ban size={12} /> {L.inboxClosedBadge}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500">

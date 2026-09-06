@@ -103,3 +103,12 @@ describe("portal/inbox — 환자 새 글 안 읽음", () => {
     expect(h.auditCalls).toBe(0);
   });
 });
+
+describe("portal/inbox — 종료(결과=이탈) 표시", () => {
+  it("outcome·outcome_note·outcome_updated_at 이 목록에 실린다(화면이 «종료» 탭·배지로 가른다)", async () => {
+    h.inquiries = [base(37, { outcome: "lost", outcome_note: "안 온다고 함", outcome_updated_at: T(10) }), base(38)];
+    const j = await (await GET(req())).json();
+    expect(j.items.find((x: any) => x.id === 37)).toMatchObject({ outcome: "lost", outcome_note: "안 온다고 함", outcome_updated_at: T(10) });
+    expect(j.items.find((x: any) => x.id === 38).outcome).toBeNull();
+  });
+});

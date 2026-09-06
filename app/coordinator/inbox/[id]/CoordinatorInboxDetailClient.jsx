@@ -13,6 +13,9 @@ import {
   AlertCircle, FileText, Stethoscope, Video,
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
   ChevronLeft, ChevronRight, Mic,
+  Ban,
+  RotateCcw,
+  Target,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect, MAX_ATTACHMENT_BYTES } from "@/lib/uploadAttachment";
@@ -532,6 +535,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [caseStatus, setCaseStatus] = useState("");
   const [caseNote, setCaseNote] = useState("");
   const [caseStatusForce, setCaseStatusForce] = useState(false); // 되돌리기 확인을 거쳤는지(뒤로가기 방지 가드 우회용)
+  const [outcomeSaving, setOutcomeSaving] = useState(false); // 종료(안 옴)·되돌리기 저장 중
   const [caseSaving, setCaseSaving] = useState(false);
   const [caseSaved, setCaseSaved] = useState(false);
 
@@ -968,6 +972,43 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setCopiedTransPath(key);
       setTimeout(() => setCopiedTransPath(null), 2000);
     } catch { /* clipboard 미지원 무시 */ }
+  }
+
+  // 종료(안 옴)·되돌리기 — 결과(outcome)만 코디 라우트로. 종료는 서버가 단계를 «보류»로 내린다(2026-09-06 PO).
+  async function setOutcome(outcome, reason = null) {
+    setOutcomeSaving(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/outcome`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ outcome, note: reason || null }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.ok) {
+        window.alert(result?.error === "already_arrived" ? L.ibCloseArrived : L.ibCloseFailed);
+        return;
+      }
+      const nextStatus = result.case_status || null;
+      const nextNote = result.case_status_note || null;
+      setInquiry((prev) => prev ? {
+        ...prev,
+        outcome,
+        outcome_note: outcome ? (reason || null) : null,
+        outcome_updated_at: new Date().toISOString(),
+        case_status: nextStatus || prev.case_status,
+        case_status_note: nextNote ?? prev.case_status_note,
+      } : prev);
+      if (nextStatus) setCaseStatus(nextStatus);
+      if (nextNote) setCaseNote(nextNote); // 서버가 «보류» 메모로 쓴 것과 화면 메모 칸을 맞춘다(다음 저장이 지우지 않게)
+    } catch (e) {
+      console.error("[inbox] outcome error:", e);
+      window.alert(L.ibCloseFailed);
+    } finally {
+      setOutcomeSaving(false);
+    }
   }
 
   // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
@@ -1888,6 +1929,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>
         <div className="space-y-3">
+          {/* 종료(결과=이탈) 중엔 단계를 못 고른다 — «진행 중인데 종료»를 막는다. 되돌리기가 유일한 길(서버도 409 case_closed 로 막는다). */}
+          {inquiry.outcome !== "lost" && (<>
           <div className="flex flex-wrap items-center gap-2">
             {CASE_STATUS_STEPS.filter((s) => s.order < 90).map((s) => (
               <button
@@ -1936,6 +1979,53 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               {caseSaving ? L.ibCaseSaving : L.ibCaseSave}
             </button>
             {caseSaved && <span className="text-sm text-teal-700 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
+          </div>
+          </>)}
+
+          {/* 종료(안 옴) — 소견·견적까지 줬는데 환자가 안 오기로 한 케이스. 결과=이탈 + 단계=보류.
+              식은 문의 알림에서 빠지고 목록 «종료» 탭으로 간다. 되돌리기 가능(2026-09-06 PO: 코디가 어드민 안 가도 되게). */}
+          <div className="pt-3 border-t border-gray-100" data-testid="case-outcome">
+            {inquiry.outcome === "lost" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span data-testid="case-closed-banner" className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">
+                  <Ban size={12} /> {L.ibClosedBanner}{inquiry.outcome_updated_at ? ` · ${fmtDate(inquiry.outcome_updated_at)}` : ""}
+                </span>
+                {inquiry.outcome_note && <span className="text-xs text-gray-500">{inquiry.outcome_note}</span>}
+                <button
+                  type="button"
+                  data-testid="case-reopen-button"
+                  onClick={() => setOutcome(null)}
+                  disabled={outcomeSaving}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:underline disabled:opacity-50"
+                >
+                  <RotateCcw size={12} /> {L.ibReopenBtn}
+                </button>
+                <span className="text-xs text-gray-500">{L.ibReopenHint}</span>
+              </div>
+            ) : inquiry.outcome === "admitted" ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                <Target size={12} /> {L.ibOutcomeAdmitted}
+              </span>
+            ) : ["treatment", "follow_up", "completed"].includes(inquiry.case_status || "") ? null : (
+              /* 입국·치료 이후 단계엔 «안 온다»가 성립하지 않아 단추를 안 보인다(서버도 409 already_arrived). */
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  data-testid="case-close-button"
+                  onClick={() => {
+                    // 이유는 여기서 따로 받는다 — 단계 메모 칸을 재활용하면 옛 메모가 «이탈 사유»로 남는다(독립 리뷰 2026-09-06).
+                    const reason = window.prompt(L.ibCloseReasonPrompt, "");
+                    if (reason === null) return;
+                    setOutcome("lost", reason.trim());
+                  }}
+                  disabled={outcomeSaving}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-700 transition disabled:opacity-50"
+                >
+                  <Ban size={13} /> {L.ibCloseBtn}
+                </button>
+                <span className="text-xs text-gray-500">{L.ibCloseHint}</span>
+              </div>
+            )}
           </div>
         </div>
       </Card>

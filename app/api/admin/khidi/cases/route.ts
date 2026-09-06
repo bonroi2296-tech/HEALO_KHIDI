@@ -155,7 +155,15 @@ export async function PATCH(request: NextRequest) {
       // 중복으로 쌓이던 문제 차단. case_status_updated_at 은 저장 시각 반영 위해 계속 갱신하되,
       // 이력(case_status_history)·유치 자동집계는 값이 바뀐 경우에만.
       const { data: cur } = await (supabaseAdmin as any)
-        .from("inquiries").select("case_status").eq("id", id).maybeSingle();
+        .from("inquiries").select("case_status, outcome").eq("id", id).maybeSingle();
+      // 종료(결과=이탈)된 케이스는 단계를 못 바꾼다 — «진행 중인데 종료» 라는 두 얼굴을 막는다(독립 리뷰 2026-09-06).
+      // 되돌리기(결과 비우기)를 먼저 하면 그때 단계를 고른다. 같은 값 재저장(메모만 수정)은 통과.
+      if (cur?.outcome === "lost" && body.case_status !== null && (cur?.case_status ?? null) !== body.case_status) {
+        return NextResponse.json(
+          { ok: false, error: "case_closed", current: cur?.case_status ?? null },
+          { status: 409 }
+        );
+      }
       // POSTMORTEM #80: 코디가 실수로 이전 단계 버튼을 눌러 저장하면 이 컬럼 하나가 그대로
       // 덮어써져 이미 진행된 단계가 사라져 보였다(이력엔 남는데 배지만 후퇴). on_hold(보류)는
       // 단계가 아니라 일시정지(순서 99는 비교용 편의값일 뿐)라 현재/목표 어느 쪽이든 예외 —

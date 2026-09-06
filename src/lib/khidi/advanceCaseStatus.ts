@@ -45,7 +45,10 @@ export async function advanceCaseStatus(
     .maybeSingle();
   const cur: string | null = inq?.case_status ?? null;
 
-  const willAdvance = caseStatusOrder(cur) < caseStatusOrder(targetStatus);
+  // «보류»(on_hold)는 순서 99 가 «비교용 편의값»일 뿐 실제 단계가 아니다(cases 라우트의 되돌리기 가드와 같은 해석).
+  // 그대로 비교하면 보류 케이스는 «이미 치료를 지난 것»으로 읽혀 유치 확정에서 영영 안 올라간다(독립 리뷰 2026-09-06).
+  const curOrder = cur === "on_hold" ? 0 : caseStatusOrder(cur);
+  const willAdvance = curOrder < caseStatusOrder(targetStatus);
   const now = new Date().toISOString();
   const finalStatus = willAdvance ? targetStatus : cur;
 

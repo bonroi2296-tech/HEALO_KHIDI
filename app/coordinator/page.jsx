@@ -61,8 +61,9 @@ export default function CoordinatorDashboard() {
         });
         const inboxData = await inboxRes.json();
         const inquiries = inboxData.ok ? (inboxData.items || []) : [];
+        // 종료(결과=이탈)된 문의는 받은함 «전체»에서도 빠진다 — 여기 숫자와 어긋나면 안 된다(2026-09-06).
         const pendingInquiries = inquiries.filter(
-          i => !['matched', 'completed'].includes(i.status)
+          i => !['matched', 'completed'].includes(i.status) && i.outcome !== 'lost'
         ).length;
 
         setStats({

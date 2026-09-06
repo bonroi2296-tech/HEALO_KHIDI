@@ -56,3 +56,12 @@ describe("advanceCaseStatus — 저장 실패를 성공으로 속이지 않는�
     expect(r.to).toBe("treatment");
   });
 });
+
+describe("advanceCaseStatus — «보류»는 단계가 아니라 멈춤", () => {
+  it("보류(on_hold)에서 유치 확정하면 입국·치료로 올라간다(순서 99 를 «지난 단계»로 읽지 않는다)", async () => {
+    const r = await advanceCaseStatus(fakeDb("on_hold"), 37, "treatment", "🎯 유치 확정", "u1");
+    expect(r.advanced).toBe(true);
+    expect(r.to).toBe("treatment");
+    expect(r.ok).toBe(true);
+  });
+});
