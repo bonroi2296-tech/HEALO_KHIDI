@@ -523,7 +523,7 @@ export const IMMUNE_HOSPITAL = {
       name: { ko: "VIP 입원실", en: "VIP rooms", ru: "VIP-палаты", kz: "VIP палаталар", zh: "VIP病房", ja: "VIP病室" },
       description: {
         ko: "프라이버시를 보장하는 1인실. 모션베드, 개인 냉장고, Smart TV, 안마의자, Wi-Fi, 병실 내 샤워실",
-        en: "Private rooms with motion bed, personal fridge, smart TV, massage chair, Wi-Fi, in-room shower",
+        en: "Private single rooms with motion bed, personal fridge, smart TV, massage chair, Wi-Fi, in-room shower",
         ru: "1-местные палаты с полной приватностью: кровать с электроприводом, личный холодильник, Smart TV, массажное кресло, Wi-Fi, душ в палате",
         kz: "1 орындық палаталар, толық жеке кеңістік: электр төсек, жеке тоңазытқыш, Smart TV, массаж креслосы, Wi-Fi, палатадағы душ",
         zh: "保障隐私的1人病房。电动床、个人冰箱、智能电视、按摩椅、Wi-Fi、房内淋浴间",
