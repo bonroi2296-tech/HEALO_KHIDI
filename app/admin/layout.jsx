@@ -15,7 +15,8 @@ export default function AdminLayout({ children }) {
   return (
     <PortalGate
       endpoint="/api/admin/whoami"
-      verify={(json) => (json?.isAdmin ? { ok: true } : { ok: false, who: json?.email || null })}
+      // context: 코디 화면을 재수출해 쓰는 곳(예: /admin/chat 검수 단추)이 «관리자인지»를 usePortalContext 로 읽는다.
+      verify={(json) => (json?.isAdmin ? { ok: true, context: { isAdmin: true, appRole: "admin" } } : { ok: false, who: json?.email || null })}
       redirect="/admin"
       deniedActions={[{
         href: "/coordinator",

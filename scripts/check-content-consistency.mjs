@@ -1126,7 +1126,6 @@ const DARK_SURFACE_DIRS = ["app/consultation/"];
 const TEAL600_BASELINE = {
   "app/_components/ManualDrawer.jsx": 2,
   "app/account-deletion/AccountDeletionClient.jsx": 1,
-  "app/admin/chat/page.jsx": 3,
   "app/admin/khidi/agent-analysis/page.jsx": 1,
   "app/agency/PartnerPortal.jsx": 4,
   "app/auth/confirm/ConfirmClient.jsx": 1,

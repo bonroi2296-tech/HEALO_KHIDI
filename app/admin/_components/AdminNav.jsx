@@ -38,6 +38,7 @@ import {
   Wallet,
   Inbox,
   BookOpen,
+  Mic,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -75,6 +76,8 @@ const navGroups = [
       { id: "inquiries", label: "문의 · 케이스 받은함", icon: Inbox, href: "/coordinator/inbox", children: [
         { id: "inquiries-raw", label: "문의 원본(시험 포함)", icon: MessageSquare, href: "/admin/inquiries" },
       ] },
+      // 2026-09-07: 왓츠앱·텔레그램 음성을 문의 만들기 전에 읽는 자리 — 코디 메뉴에만 있었다(9/04 신설).
+      { id: "voice", label: "음성 정리", icon: Mic, href: "/coordinator/voice" },
       { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
       { id: "chat", label: "AI 채팅", icon: MessageSquare, href: "/admin/chat" },
       { id: "agent", label: "Human Agent 채널", icon: HeartPulse, href: "/admin/agent" },

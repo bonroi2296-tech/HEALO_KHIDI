@@ -11,15 +11,58 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  MessageSquare, Paperclip, FileText, Image as ImageIcon,
-  Clock, RefreshCw, User, Bot, Headset, Inbox, CheckCircle2, ArrowRight,
-  Stethoscope, AlertTriangle,
+  MessageSquare, Paperclip, FileText, Image as ImageIcon, Clock, RefreshCw, User, Bot, Headset, Inbox, CheckCircle2, ArrowRight, Stethoscope, AlertTriangle, Loader2, Send, Pencil, X,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { scrollToTopOnNarrow } from "@/lib/a11y/prefersReducedMotion";
 import { useDeepLinkParam } from "@/lib/hooks/useDeepLinkParam";
+import { usePortalContext } from "../../_components/PortalGate";
+import { guessPatientTimezone, patientLocalTime } from "@/lib/chat/patientLocalTime";
+
+// 환자 현지 시각 배지 — 새벽인 환자를 알림으로 깨우지 않게 답장 전에 보인다(2026-07-23 PO).
+// 웹=브라우저 시간대(정확) / 왓츠앱=전화 국가번호 / 텔레그램=언어 기반 추정. 추정 불가면 숨김.
+// 2026-09-07 어드민 채팅을 이 화면으로 합칠 때 옮겨왔다(독립 리뷰가 «빠졌다»고 잡음).
+function LocalTimeBadge({ thread, L }) {
+  const { tz, source } = guessPatientTimezone(thread);
+  if (!tz) return null;
+  const lt = patientLocalTime(tz);
+  if (!lt) return null;
+  const src = source === "browser" ? L.chTzBrowser : L.chTzGuess;
+  return (
+    <span
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+        lt.night
+          ? "text-indigo-700 bg-indigo-50 border-indigo-200"
+          : "text-gray-500 bg-gray-50 border-gray-200"
+      }`}
+      title={`${L.chLocalTimeTitle} (${src}: ${tz})${lt.night ? ` — ${L.chNightHint}` : ""}`}
+    >
+      {lt.night ? "🌙" : "🕓"} {L.chLocalTime} {lt.label}
+      {lt.night ? ` ${L.chNight}` : ""}
+    </span>
+  );
+}
+
+// 메신저 채널 배지 — 답장이 어디로 나가는지. 목록엔 이름만, 헤더엔 「발신」까지.
+function ChannelBadge({ channel, L, header = false }) {
+  if (channel === "telegram") {
+    return (
+      <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded" title={header ? L.chChannelTgTitle : undefined}>
+        ✈️ Telegram{header ? ` ${L.chChannelOut}` : ""}
+      </span>
+    );
+  }
+  if (channel === "whatsapp") {
+    return (
+      <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded" title={header ? L.chChannelWaTitle : undefined}>
+        💬 WhatsApp{header ? ` ${L.chChannelOut}` : ""}
+      </span>
+    );
+  }
+  return null;
+}
 
 const supabase = createSupabaseBrowserClient();
 
@@ -42,13 +85,15 @@ const URGENCY_STYLE = {
   low: { labelKey: "chUrgencyLow", cls: "text-gray-600 bg-gray-50 border-gray-200" },
 };
 
-// 진료의뢰 패킷 카드 (코디 읽기전용) — AI가 첨부 자료를 정리한 요약 + 의료진 검수 상태 표시.
-// ⚠️ 코디는 읽기만 — 검수완료/정정 발송은 의사·어드민(/admin/chat)에서만.
-function TriagePacketCard({ m, L, dateLoc }) {
+// 진료의뢰 패킷 카드 — AI가 첨부 자료를 정리한 요약 + 의료진 검수.
+// 코디는 읽기만, 관리자(canReview)는 검수완료·정정 발송까지. 2026-09-07 어드민 채팅 화면을 이 화면으로 합쳤다
+// (리뉴얼 7단계: 형태③ «API 만 공유, 화면 별도» → 형태① 재수출). 권한은 API(requireAdminAuth)가 지킨다.
+function TriagePacketCard({ m, L, dateLoc, canReview, correcting, correctText, setCorrectText, saving, onMarkReviewed, onStartCorrect, onCancelCorrect, onSendCorrect }) {
   const tri = m.metadata?.triage || {};
   const p = tri.packet || {};
   const reviewed = !!tri.reviewed;
   const urg = URGENCY_STYLE[p.urgency] || URGENCY_STYLE.medium;
+  const isCorrecting = correcting === m.id;
 
   return (
     <div className="mt-2 border border-teal-200 rounded-xl overflow-hidden bg-white">
@@ -97,11 +142,52 @@ function TriagePacketCard({ m, L, dateLoc }) {
         )}
       </div>
 
-      {/* 검수 상태 (읽기전용) */}
-      <div className="px-3 pb-3 text-[10px] text-gray-500">
-        {reviewed
-          ? <>{L.chReviewed} {tri.reviewed_at ? `· ${fmtTime(tri.reviewed_at, dateLoc)}` : ""}{tri.review_note ? ` · ${L.chCorrectionSent}` : ""}</>
-          : L.chReviewWaitingNote}
+      {/* 검수 상태 — 코디는 읽기, 관리자는 단추 */}
+      <div className="px-3 pb-3">
+        {reviewed ? (
+          <div className="text-[10px] text-gray-500">
+            {L.chReviewed} {tri.reviewed_at ? `· ${fmtTime(tri.reviewed_at, dateLoc)}` : ""}{tri.review_note ? ` · ${L.chCorrectionSent}` : ""}
+          </div>
+        ) : !canReview ? (
+          <div className="text-[10px] text-gray-500">{L.chReviewWaitingNote}</div>
+        ) : isCorrecting ? (
+          <div className="space-y-2">
+            <textarea
+              value={correctText}
+              onChange={(e) => setCorrectText(e.target.value)}
+              rows={5}
+              className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder={L.chCorrectPlaceholder}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onSendCorrect(m)}
+                disabled={saving || !correctText.trim()}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50 transition"
+              >
+                {saving ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} {L.chSendToPatient}
+              </button>
+              <button type="button" onClick={onCancelCorrect} className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                <X size={12} /> {L.chCancel}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onMarkReviewed(m)}
+              disabled={saving}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-green-300 text-green-700 rounded-lg hover:bg-green-50 disabled:opacity-50 transition"
+            >
+              {saving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} {L.chMarkReviewed}
+            </button>
+            <button type="button" onClick={() => onStartCorrect(m)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+              <Pencil size={12} /> {L.chStartCorrect}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -128,6 +214,12 @@ export default function CoordinatorChatPage() {
   const [messages, setMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [filter, setFilter] = useState("all"); // all | review | attachments
+  // 관리자가 이 화면(또는 재수출된 /admin/chat)을 열었나 — 검수·정정 단추는 관리자만. API 도 requireAdminAuth.
+  const me = usePortalContext();
+  const canReview = !!me?.isAdmin;
+  const [correcting, setCorrecting] = useState(null); // 정정 중인 messageId
+  const [correctText, setCorrectText] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
 
   const getToken = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -236,6 +328,61 @@ export default function CoordinatorChatPage() {
     { key: "attachments", label: L.chTabAttachments, n: counts.attachments, icon: Paperclip },
   ];
 
+  // ── 검수(관리자) — 어드민 채팅 화면에서 옮겨옴(2026-09-07) ──
+  const markReviewed = async (m) => {
+    if (!selected) return;
+    setSavingReview(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/chat/threads/${selected.id}/messages`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        body: JSON.stringify({ messageId: m.id, reviewed: true }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "fail");
+      toast.success(L.chToastReviewed);
+      await openThread(selected);
+    } catch {
+      toast.error(L.chToastReviewFail);
+    } finally {
+      setSavingReview(false);
+    }
+  };
+  const startCorrect = (m) => { setCorrecting(m.id); setCorrectText(m.message_text || ""); };
+  const cancelCorrect = () => { setCorrecting(null); setCorrectText(""); };
+  // 정정 소견을 환자에게(admin 메시지) 보내고 원본 패킷을 검수완료로 표시.
+  const sendCorrect = async (m) => {
+    if (!selected || !correctText.trim()) return;
+    setSavingReview(true);
+    try {
+      const token = await getToken();
+      const post = await fetch(`/api/admin/chat/threads/${selected.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        body: JSON.stringify({ actor_type: "admin", message_text: correctText.trim(), metadata: { triage_correction_of: m.id } }),
+      });
+      const pj = await post.json();
+      if (!pj.ok) throw new Error(pj.error || "send_fail");
+      await fetch(`/api/admin/chat/threads/${selected.id}/messages`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        body: JSON.stringify({ messageId: m.id, reviewed: true, note: "corrected_and_sent" }),
+      });
+      toast.success(L.chToastCorrectionSent);
+      setCorrecting(null);
+      setCorrectText("");
+      await openThread(selected);
+    } catch {
+      toast.error(L.chToastSendFail);
+    } finally {
+      setSavingReview(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -323,11 +470,13 @@ export default function CoordinatorChatPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <ChannelBadge channel={t.channel} L={L} />
                         {t.metadata?.language && (
                           <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
                           </span>
                         )}
+                        <LocalTimeBadge thread={t} L={L} />
                         {handoff && (
                           <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                             <Headset size={10} /> {L.chBadgeReview}
@@ -414,11 +563,13 @@ export default function CoordinatorChatPage() {
               <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-mono text-gray-600">#{String(selected.id).slice(0, 8)}</span>
+                  <ChannelBadge channel={selected.channel} L={L} header />
                   {selected.metadata?.language && (
                     <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                       {String(selected.metadata.language).toUpperCase()}
                     </span>
                   )}
+                  <LocalTimeBadge thread={selected} L={L} />
                   {selected.metadata?.hand_off_requested && (
                     <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                       <Headset size={10} /> {L.chBadgeReview}
@@ -466,9 +617,20 @@ export default function CoordinatorChatPage() {
                             </div>
                           )}
                         </div>
-                        {/* 진료의뢰 패킷 (코디 읽기전용 — 검수는 의사/어드민) */}
+                        {/* 진료의뢰 패킷 — 코디는 읽기, 관리자는 검수·정정 */}
                         {!isPatient && m.metadata?.triage?.packet && (
-                          <TriagePacketCard m={m} L={L} dateLoc={dateLoc} />
+                          <TriagePacketCard
+                            m={m} L={L} dateLoc={dateLoc}
+                            canReview={canReview} correcting={correcting} correctText={correctText} setCorrectText={setCorrectText} saving={savingReview}
+                            onMarkReviewed={markReviewed} onStartCorrect={startCorrect} onCancelCorrect={cancelCorrect} onSendCorrect={sendCorrect}
+                          />
+                        )}
+                        {/* 메신저 발신 실패 표시 — window_expired 는 왓츠앱 24시간 창 만료(재발신 불가, 환자가 다시 말 걸어야 열림) */}
+                        {!isPatient && m.metadata?.delivery && m.metadata.delivery !== "sent" && (
+                          <div className="text-[10px] font-semibold text-red-600 mt-1 px-1 flex items-center gap-1">
+                            <AlertTriangle size={10} />
+                            {m.metadata.delivery === "window_expired" ? L.chDeliveryWindowExpired : L.chDeliveryFailed}
+                          </div>
                         )}
                         <div className="text-[10px] text-gray-500 mt-1 px-1">{fmtTime(m.created_at, dateLoc)}</div>
                       </div>
