@@ -10,10 +10,10 @@ export const IMMUNE_HOSPITAL = {
   officialName: {
     ko: "면력한방병원",
     en: "Immune Hospital",
-    ru: "Иммунная Клиника",
-    kz: "Иммундық клиника",
-    zh: "免疫医院",
-    ja: "免疫病院",
+    ru: "Immune Hospital",
+    kz: "Immune Hospital",
+    zh: "Immune Hospital",
+    ja: "Immune Hospital",
   },
   tagline: {
     ko: "Care You Need, Care You Trust",

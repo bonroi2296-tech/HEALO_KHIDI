@@ -102,8 +102,8 @@ describe("테넌트 — 면력 목업으로 전환했을 때", () => {
     const m = await loadTenant("immune");
     expect(m.tenantBrandName("ko")).toBe("면력한방병원");
     expect(m.tenantBrandName("en")).toBe("Immune Hospital");
-    expect(m.tenantBrandName("ru")).toBe("Иммунная Клиника");
-    expect(m.tenantBrandName("kz")).toBe("Иммундық клиника");
+    expect(m.tenantBrandName("ru")).toBe("Immune Hospital");
+    expect(m.tenantBrandName("kz")).toBe("Immune Hospital");
   });
 
   it("모르는 언어는 영어 이름으로 폴백한다", async () => {
@@ -115,7 +115,7 @@ describe("테넌트 — 면력 목업으로 전환했을 때", () => {
     const m = await loadTenant("immune");
     expect(m.applyTenantBrand("About healwith", "en")).toBe("About Immune Hospital");
     expect(m.applyTenantBrand("healwith 소개", "ko")).toBe("면력한방병원 소개");
-    expect(m.applyTenantBrand("healwith помогает", "ru")).toBe("Иммунная Клиника помогает");
+    expect(m.applyTenantBrand("healwith помогает", "ru")).toBe("Immune Hospital помогает");
   });
 
   it("🔒 도메인(healwith.co.kr)은 건드리지 않는다 — 없는 주소를 안내하면 안 되므로", async () => {

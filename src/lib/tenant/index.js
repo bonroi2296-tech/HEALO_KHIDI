@@ -16,7 +16,7 @@
 
 import { IMMUNE_HOME_CONTENT } from "./content/immune";
 
-// 브랜드명은 언어마다 다르다(면력한방병원 / Immune Hospital / Иммунная Клиника …).
+// 브랜드명은 언어마다 다르다(면력한방병원 / Immune Hospital / Immune Hospital …).
 // 사전 치환도 언어별이어야 해서 이름을 언어 맵으로 들고 있다.
 const HEALWITH = {
   key: "healwith",
@@ -75,10 +75,10 @@ const IMMUNE = {
   name: {
     ko: "면력한방병원",
     en: "Immune Hospital",
-    ru: "Иммунная Клиника",
-    kz: "Иммундық клиника",
-    zh: "免力韩方医院",
-    ja: "免力韓方病院",
+    ru: "Immune Hospital",
+    kz: "Immune Hospital",
+    zh: "Immune Hospital",
+    ja: "Immune Hospital",
   },
   tagline: "Korean Medicine Immuno-Oncology Care",
   messenger: {

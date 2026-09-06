@@ -405,7 +405,7 @@ const CT = {
   coItems: { ko: "견적 항목", en: "Quote items", ru: "Позиции сметы", kz: "Смета жолдары", zh: "报价项目", ja: "見積項目" },
   coAddItem: { ko: "항목 추가", en: "Add item", ru: "Добавить позицию", kz: "Жол қосу", zh: "添加项目", ja: "項目追加" },
   coPickFromPrices: { ko: "가격표에서 고르기", en: "Pick from price list", ru: "Выбрать из прайса", kz: "Прайстан таңдау", zh: "从价目表选择", ja: "価格表から選ぶ" },
-  coPriceListNote: { ko: "면력한방병원 확정 비급여 가격({date}). 고르면 항목과 금액이 채워집니다.", en: "Confirmed non-covered prices, Myeonlyeok Korean Medicine Hospital ({date}). Selecting fills in the item and amount.", ru: "Утверждённый прайс клиники Мёнрёк ({date}). При выборе позиция и сумма подставляются автоматически.", kz: "Мёнрёк клиникасының бекітілген прайсы ({date}). Таңдағанда жол мен сома толтырылады.", zh: "免疫韩方医院确定价格（{date}）。选择后自动填入项目和金额。", ja: "免疫韓方病院の確定価格（{date}）。選ぶと項目と金額が入ります。" },
+  coPriceListNote: { ko: "면력한방병원 확정 비급여 가격({date}). 고르면 항목과 금액이 채워집니다.", en: "Confirmed non-covered prices, Immune Hospital ({date}). Selecting fills in the item and amount.", ru: "Утверждённый прайс клиники Immune Hospital ({date}). При выборе позиция и сумма подставляются автоматически.", kz: "Immune Hospitalның бекітілген прайсы ({date}). Таңдағанда жол мен сома толтырылады.", zh: "免疫韩方医院确定价格（{date}）。选择后自动填入项目和金额。", ja: "免疫韓方病院の確定価格（{date}）。選ぶと項目と金額が入ります。" },
   coColItem: { ko: "항목", en: "Item", ru: "Позиция", kz: "Жол", zh: "项目", ja: "項目" },
   coColNote: { ko: "비고", en: "Note", ru: "Примечание", kz: "Ескертпе", zh: "备注", ja: "備考" },
   coNoItems: { ko: "항목 없음", en: "No items", ru: "Нет позиций", kz: "Жол жоқ", zh: "无项目", ja: "項目なし" },

@@ -96,16 +96,16 @@ export const GLOSSARY = [
   {
     id: "org.myeonryeok",
     ko: "면력한방병원 (제휴 면역케어 병원)",
-    status: "proposed",
+    status: "confirmed",
     why:
-      "현재 한 사이트에서 5가지로 불린다(Иммунная Клиника / Клиника Мёнрёк / клиника Myeonryeok / " +
-      "Immune Hospital / больница корейской медицины). 환자는 이걸 서로 다른 병원으로 읽는다. " +
-      "⚠️ **코디네이터 교정본에서도 아직 갈린다** — Иммуногоспиталь(2곳)·Immune Hospital(2곳)·«Иммунная клиника»(kz 1곳). " +
-      "즉 이건 번역이 아니라 **아직 정해지지 않은 브랜드 결정**이다. PO 확정 전까지 경고만 띄운다.",
-    use: { ru: "Иммуногоспиталь", kz: "Иммуногоспиталь" },
+      "2026-09-06 PO 결정: «외국어는 Immune Hospital 로 통일». 그 전엔 한 사이트에서 5가지로 불렸다" +
+      "(Иммунная Клиника / Иммуногоспиталь / Клиника Мёнрёк / клиника Myeonryeok / 免疫医院·免疫病院) — 환자는 이걸 서로 다른 병원으로 읽었다. " +
+      "한국어만 면력한방병원, 나머지 언어(en·ru·kz·zh·ja)는 라틴 그대로 «Immune Hospital». 지점은 뒤에 현지 표기(Immune Hospital Кансо / Immune Hospital 江西院). " +
+      "카자흐어 격 접미사는 붙임표로(Immune Hospital-да / -дың). DB hospitals.i18n 도 같은 날 같은 이름으로 맞췄다.",
+    use: { ru: "Immune Hospital", kz: "Immune Hospital" },
     avoid: {
-      ru: ["Иммунная Клиника", "Immune Hospital", "клиника Myeonryeok", "Myeonryeok"],
-      kz: ["Иммунная Клиника", "Immune Hospital", "Myeonryeok клиникасы", "Myeonryeok"],
+      ru: ["Иммунная Клиника", "Иммунная клиника", "Иммуногоспиталь", "Клиника Мёнрёк", "клиника Myeonryeok", "Myeonryeok", "Мёнрёк", "Мённёк"],
+      kz: ["Иммунная Клиника", "Иммундық клиника", "Иммуногоспиталь", "Мёнрёк клиникасы", "Myeonryeok клиникасы", "Myeonryeok", "Мёнрёк", "Мённёк"],
     },
   },
   {
