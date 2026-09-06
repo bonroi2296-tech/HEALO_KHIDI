@@ -533,10 +533,10 @@ add_scenario(doc, {
     '기능명': '경과 기반 재방문 예약 원스톱 서비스',
     '액터': '환자 (P-01), AI Agent',
     '트리거': '경과 모니터링 데이터에서 재방문 필요성 감지',
-    '기본 흐름': '① AI가 경과 데이터 분석 → 재방문 필요성 판단\n② 환자에게 재방문 알림 발송\n③ 재진 예상비용·일정·비자 재발급 안내\n④ 예약 확정',
-    '화면 경로': '/app/patient/rebooking',
-    'DB 테이블/컬럼': 'visa_applications · visa_status_history (비자 진행) 및 재방문 제안 로직',
-    '현재 구현 상태': '완료: /app/patient/rebooking\nmigrations/20260406_education_visa_rebooking',
+    '기본 흐름': '① 시스템 제안: 사후관리 차수(화상 경과상담 도래)·증상 경보·의료진 권고에서 재방문 필요성을 판정(rebookingEngine)해 환자 화면에 «제안»으로\n② 환자가 «먼저» 요청(2026-09-06): 로그인 화면(/patient/rebooking) 또는 진행상황 링크(/claim)에서 [재진 상담 요청] 한 번 — 병원 가용 일정은 시스템이 모르므로 시간은 코디가 잡는다\n③ 요청·확정 즉시 코디·관리자 종 + 메일 → 코디가 「상담 일정」에서 환자·시각을 넣어 초대 링크 발송(기존 흐름 재이용)\n④ 재진 예상비용·비자 재발급 안내(C-3-3/G-1-10 체크리스트)는 같은 화면에\n⑤ 6시간 안 중복 요청은 새 행 없이 접수 처리(연타 방지)',
+    '화면 경로': '/app/patient/rebooking · /app/claim/[token] · /app/api/portal/followup (GET·POST·PATCH) · /app/api/inquiries/claim/rebooking',
+    'DB 테이블/컬럼': 'followup_schedules (status pending|proposed|confirmed|dismissed, schedule.source = followup|symptom|doctor|patient_request) · inquiries.follow_ups(태그 글)',
+    '현재 구현 상태': '완료: 2026-09-06 이전엔 [확정]이 DB 상태만 바꾸고 아무에게도 안 알렸고 환자가 먼저 요청할 단추가 없었다(막다른 길). 지금은 요청·확정 모두 코디에게 닿는다. 로컬 실측(시험 문의 #308): 요청 행 생성·추가 정보 태그·2.3초\nmigrations/20260406_education_visa_rebooking',
 })
 
 doc.add_page_break()

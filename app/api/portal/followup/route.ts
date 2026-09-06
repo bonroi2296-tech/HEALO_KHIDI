@@ -97,6 +97,39 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST { note? } — 환자가 «먼저» 재진 상담을 요청한다 (2026-09-06). 본인 문의를 서버가 해석한다(IDOR 차단).
+ */
+export async function POST(request: NextRequest) {
+  const auth = await requirePortalAuth(request);
+  if (!auth.success) return auth.response;
+  let body: any = {};
+  try { body = await request.json(); } catch { body = {}; }
+  try {
+    const { findOwnInquiryIdsForUser } = await import("@/lib/portal/ownInquiries");
+    const { submitRebookingRequest, REBOOKING_NOTE_MAX } = await import("@/lib/followup/rebookingRequest");
+    const ids = await findOwnInquiryIdsForUser(auth.userId, auth.email);
+    const inquiryId = ids[0] ?? null;
+    if (inquiryId == null) return Response.json({ ok: false, error: "no_inquiry" }, { status: 400 });
+    const { data: inq, error: inqErr } = await (supabaseAdmin as any)
+      .from("inquiries").select("id, cancer_type, follow_ups, is_test").eq("id", inquiryId).maybeSingle();
+    if (inqErr || !inq) return Response.json({ ok: false, error: "no_inquiry" }, { status: 400 });
+    const result = await submitRebookingRequest(supabaseAdmin as any, {
+      inquiryId: Number(inq.id),
+      patientUserId: auth.userId,
+      cancerType: inq.cancer_type || null,
+      note: String(body?.note || "").slice(0, REBOOKING_NOTE_MAX),
+      lang: String(body?.language || "ko"),
+      followUps: inq.follow_ups,
+      isTest: !!inq.is_test,
+    });
+    return Response.json({ ok: true, duplicate: result.duplicate });
+  } catch (err: any) {
+    console.error("[portal/followup] POST exception:", err?.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   const auth = await requirePortalAuth(request);
   if (!auth.success) return auth.response;
@@ -134,6 +167,18 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       console.error("[portal/followup] PATCH error:", error.message);
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
+    }
+    // 환자가 «확정»을 눌렀는데 아무도 모르던 막다른 길 — 코디에게 알린다(2026-09-06). 실패는 삼킨다.
+    if (status === "confirmed") {
+      try {
+        const { data: row } = await (supabaseAdmin as any).from("followup_schedules").select("inquiry_id").eq("id", id).maybeSingle();
+        if (row?.inquiry_id) {
+          const { notifyStaffRebookingRequest } = await import("@/lib/notifications/inApp");
+          await notifyStaffRebookingRequest({ inquiryId: Number(row.inquiry_id), kind: "confirm" });
+        }
+      } catch (e: any) {
+        console.warn("[portal/followup] 확정 알림 실패(무시):", e?.message);
+      }
     }
     return Response.json({ ok: true, id, status });
   } catch (err: any) {
