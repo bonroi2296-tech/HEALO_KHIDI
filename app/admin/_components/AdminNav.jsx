@@ -88,6 +88,8 @@ const navGroups = [
       { id: "cost-estimates", label: "견적 관리", icon: Calculator, href: "/coordinator/cost-estimates" },
       { id: "visa", label: "비자 트래킹", icon: FileText, href: "/coordinator/visa" },
       { id: "symptom-alerts", label: "증상 알림", icon: Bell, href: "/coordinator/alerts" },
+      // 2026-09-06: 재진 요청·증상 기록·케이던스를 받는 자리(코디 화면 공용).
+      { id: "postcare-board", label: "사후관리 보드", icon: HeartPulse, href: "/coordinator/satisfaction" },
     ]
   },
   {

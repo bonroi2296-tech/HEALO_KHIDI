@@ -396,6 +396,19 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                     ))}
                   </dl>
                 )}
+                {detail.activity && (detail.activity.symptoms60d > 0 || detail.activity.openRequests > 0) && (
+                  <div className="rounded-lg border border-teal-100 bg-teal-50/50 px-3 py-2 text-xs text-gray-700">
+                    <span className="font-semibold text-teal-800">환자 최근 활동</span>{" "}
+                    증상 기록 {detail.activity.symptoms60d}건(60일)
+                    {detail.activity.latestUrgency && (
+                      <> · 최근 판정 <span className={detail.activity.latestUrgency === "high" || detail.activity.latestUrgency === "emergency" ? "font-semibold text-orange-700" : ""}>
+                        {{ emergency: "응급 의심", high: "확인 필요", medium: "주의", low: "낮음" }[detail.activity.latestUrgency] || detail.activity.latestUrgency}
+                      </span>{detail.activity.latestAt ? ` (${new Date(detail.activity.latestAt).toLocaleDateString("ko-KR")})` : ""}</>
+                    )}
+                    {detail.activity.openRequests > 0 && <> · 재진 상담 요청 {detail.activity.openRequests}건</>}
+                    <span className="text-gray-500"> — 상세는 코디네이터에게</span>
+                  </div>
+                )}
                 {(detail.preferred_date || detail.preferred_date_flex) && (
                   <div className="text-gray-700">
                     <span className="text-gray-500">희망 방한일</span>{" "}

@@ -15,7 +15,9 @@ import { logPiiAccess } from "@/lib/audit/logPiiAccess";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
-const STATUSES = new Set(["pending", "sent", "failed", "cancelled"]);
+const STATUSES = new Set(["pending", "sent", "failed", "cancelled", "skipped"]);
+// 종류 거르기(2026-09-06): 상담 알림·설문·교육·방문 전 케이던스가 한 표에 섞여 «무엇이 나갔나»를 못 봤다.
+const TYPES = new Set(["consultation_reminder", "survey_request", "education_content", "pre_visit_followup"]);
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
@@ -31,6 +33,10 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get("status");
     if (status && STATUSES.has(status)) {
       query = query.eq("status", status);
+    }
+    const type = request.nextUrl.searchParams.get("type");
+    if (type && TYPES.has(type)) {
+      query = query.eq("reminder_type", type);
     }
 
     const { data, error } = await query;

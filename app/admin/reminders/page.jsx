@@ -11,6 +11,8 @@ const STATUS_CONFIG = {
   sent: { label: "발송 완료", icon: CheckCircle, color: "text-green-700", bg: "bg-green-50 border-green-200" },
   failed: { label: "실패", icon: XCircle, color: "text-red-700", bg: "bg-red-50 border-red-200" },
   cancelled: { label: "취소됨", icon: XCircle, color: "text-gray-500", bg: "bg-gray-50 border-gray-200" },
+  // 케이던스가 «일부러 안 보낸» 단계(너무 지남·환자 응답·메일 없음) — 실패가 아니다
+  skipped: { label: "지나감", icon: Clock, color: "text-gray-500", bg: "bg-gray-50 border-gray-200" },
 };
 
 const CHANNEL_LABELS = {
@@ -24,12 +26,14 @@ const TYPE_LABELS = {
   consultation_reminder: "상담 30분 전 알림",
   survey_request: "만족도 설문",
   education_content: "사후관리 교육",
+  pre_visit_followup: "방문 전 안부(소견 뒤)",
 };
 
 export default function RemindersAdminPage() {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all | pending | sent | failed
+  const [filter, setFilter] = useState("all"); // all | pending | sent | failed | skipped
+  const [typeFilter, setTypeFilter] = useState("all"); // all | consultation_reminder | survey_request | education_content | pre_visit_followup
   const [retrying, setRetrying] = useState(null);
   const [dispatching, setDispatching] = useState(false);
   const [lastResult, setLastResult] = useState(null);
@@ -41,7 +45,10 @@ export default function RemindersAdminPage() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const qs = filter !== "all" ? `?status=${filter}` : "";
+      const params = new URLSearchParams();
+      if (filter !== "all") params.set("status", filter);
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      const qs = params.toString() ? `?${params}` : "";
       const res = await fetch(`/api/admin/reminders${qs}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -54,7 +61,7 @@ export default function RemindersAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, typeFilter]);
 
   useEffect(() => {
     fetchReminders();
@@ -183,7 +190,7 @@ export default function RemindersAdminPage() {
 
       {/* 필터 탭 */}
       <div className="flex gap-1 mb-4 border-b">
-        {["all", "pending", "sent", "failed"].map((f) => (
+        {["all", "pending", "sent", "failed", "skipped"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -195,6 +202,19 @@ export default function RemindersAdminPage() {
           >
             {f === "all" ? "전체" : STATUS_CONFIG[f]?.label ?? f}
             {f !== "all" && stats[f] ? ` (${stats[f]})` : ""}
+          </button>
+        ))}
+      </div>
+      {/* 종류 거르기 (2026-09-06) */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {[["all", "모든 종류"], ...Object.entries(TYPE_LABELS)].map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTypeFilter(k)}
+            className={`rounded-full border px-3 py-1 text-xs ${typeFilter === k ? "border-amber-600 bg-amber-50 text-amber-800 font-semibold" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}
+          >
+            {label}
           </button>
         ))}
       </div>

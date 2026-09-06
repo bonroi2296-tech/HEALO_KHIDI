@@ -39,7 +39,7 @@ const COPY = {
     more: "더 보기",
     loading: "불러오는 중…",
     empty: "알림이 없습니다",
-    types: { symptom_alert: "증상 알림", reminder: "리마인더", survey: "만족도 조사", system: "시스템" },
+    types: { symptom_alert: "증상 알림", reminder: "리마인더", survey: "만족도 조사", system: "시스템", patient_message: "환자 글", rebooking_request: "재진 요청", pre_visit_silent: "소견 뒤 무응답", cold_lead: "식은 문의", new_inquiry: "새 문의", opinion_arrived: "소견 도착", chat_handoff: "AI→사람 인계", consultation_unclosed: "상담 완료 미처리" },
     time: { now: "방금", min: (n) => `${n}분 전`, hour: (n) => `${n}시간 전`, day: (n) => `${n}일 전` },
   },
   en: {
@@ -54,7 +54,7 @@ const COPY = {
     more: "Load more",
     loading: "Loading…",
     empty: "No notifications",
-    types: { symptom_alert: "Symptom alert", reminder: "Reminder", survey: "Satisfaction survey", system: "System" },
+    types: { symptom_alert: "Symptom alert", reminder: "Reminder", survey: "Satisfaction survey", system: "System", patient_message: "Patient note", rebooking_request: "Follow-up request", pre_visit_silent: "Silent after opinion", cold_lead: "Cold inquiry", new_inquiry: "New inquiry", opinion_arrived: "Opinion arrived", chat_handoff: "AI→human handoff", consultation_unclosed: "Consultation not closed" },
     time: { now: "Just now", min: (n) => `${n} min ago`, hour: (n) => `${n} h ago`, day: (n) => `${n} d ago` },
   },
   ru: {
@@ -69,7 +69,7 @@ const COPY = {
     more: "Загрузить ещё",
     loading: "Загрузка…",
     empty: "Нет уведомлений",
-    types: { symptom_alert: "Оповещение о симптомах", reminder: "Напоминание", survey: "Опрос удовлетворённости", system: "Система" },
+    types: { symptom_alert: "Оповещение о симптомах", reminder: "Напоминание", survey: "Опрос удовлетворённости", system: "Система", patient_message: "Сообщение пациента", rebooking_request: "Запрос на консультацию", pre_visit_silent: "Нет ответа после заключения", cold_lead: "Остывшая заявка", new_inquiry: "Новая заявка", opinion_arrived: "Заключение получено", chat_handoff: "Передача от ИИ", consultation_unclosed: "Консультация не закрыта" },
     time: { now: "Только что", min: (n) => `${n} мин назад`, hour: (n) => `${n} ч назад`, day: (n) => `${n} дн назад` },
   },
   kz: {
@@ -84,7 +84,7 @@ const COPY = {
     more: "Тағы жүктеу",
     loading: "Жүктелуде…",
     empty: "Хабарлама жоқ",
-    types: { symptom_alert: "Симптом туралы хабарлама", reminder: "Еске салу", survey: "Қанағаттану сауалнамасы", system: "Жүйе" },
+    types: { symptom_alert: "Симптом туралы хабарлама", reminder: "Еске салу", survey: "Қанағаттану сауалнамасы", system: "Жүйе", patient_message: "Науқас хабарламасы", rebooking_request: "Кеңес сұранысы", pre_visit_silent: "Қорытындыдан кейін жауап жоқ", cold_lead: "Суыған өтінім", new_inquiry: "Жаңа өтінім", opinion_arrived: "Қорытынды келді", chat_handoff: "ЖИ→адам тапсыру", consultation_unclosed: "Кеңес жабылмаған" },
     time: { now: "Жаңа ғана", min: (n) => `${n} мин бұрын`, hour: (n) => `${n} сағ бұрын`, day: (n) => `${n} күн бұрын` },
   },
   zh: {
@@ -99,7 +99,7 @@ const COPY = {
     more: "加载更多",
     loading: "加载中…",
     empty: "暂无通知",
-    types: { symptom_alert: "症状提醒", reminder: "提醒", survey: "满意度调查", system: "系统" },
+    types: { symptom_alert: "症状提醒", reminder: "提醒", survey: "满意度调查", system: "系统", patient_message: "患者留言", rebooking_request: "复诊申请", pre_visit_silent: "意见后无回复", cold_lead: "冷却的咨询", new_inquiry: "新咨询", opinion_arrived: "意见已到", chat_handoff: "AI→人工转接", consultation_unclosed: "咨询未结束" },
     time: { now: "刚刚", min: (n) => `${n} 分钟前`, hour: (n) => `${n} 小时前`, day: (n) => `${n} 天前` },
   },
   ja: {
@@ -114,7 +114,7 @@ const COPY = {
     more: "もっと見る",
     loading: "読み込み中…",
     empty: "通知はありません",
-    types: { symptom_alert: "症状アラート", reminder: "リマインダー", survey: "満足度調査", system: "システム" },
+    types: { symptom_alert: "症状アラート", reminder: "リマインダー", survey: "満足度調査", system: "システム", patient_message: "患者メッセージ", rebooking_request: "再診依頼", pre_visit_silent: "所見後の無応答", cold_lead: "冷めた問い合わせ", new_inquiry: "新規問い合わせ", opinion_arrived: "所見到着", chat_handoff: "AI→人へ引き継ぎ", consultation_unclosed: "相談未完了" },
     time: { now: "たった今", min: (n) => `${n} 分前`, hour: (n) => `${n} 時間前`, day: (n) => `${n} 日前` },
   },
 };
@@ -225,7 +225,8 @@ export default function NotificationsPage() {
   const unreadCount = items.filter((n) => !n.read_at).length;
 
   // 알림 타입 목록 (필터 옵션)
-  const allTypes = ["all", "symptom_alert", "reminder", "survey", "system"];
+  // 2026-09-06: 실제로 쌓이는 유형으로 현행화(환자 글·재진 요청·무응답·식은 문의 …). 목록에 없는 유형도 「전체」에선 보인다.
+  const allTypes = ["all", "symptom_alert", "patient_message", "rebooking_request", "pre_visit_silent", "cold_lead", "new_inquiry", "opinion_arrived", "chat_handoff", "consultation_unclosed", "reminder", "survey", "system"];
 
 
   return (
