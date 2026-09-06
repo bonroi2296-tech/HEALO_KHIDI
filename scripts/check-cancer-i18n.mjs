@@ -3,6 +3,7 @@
 // (누출 검사는 en 폴백이 한글을 가리면 통과해버리므로, 완성 여부는 별도로 강제해야 함.)
 import { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } from "../src/lib/data/immuneCancerDetails.js";
 import { IMMUNE_THERAPIES } from "../src/lib/data/immuneTherapies.js";
+import { IMMUNE_HOSPITAL } from "../src/lib/data/immuneHospitalInfo.js";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const problems = [];
@@ -56,6 +57,16 @@ for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
   checkLocalized(`THERAPY.${id}.description`, t.description);
   if (t.evidence) checkLocalized(`THERAPY.${id}.evidence`, t.evidence);
 }
+
+// ── 면력 병원 페이지(immuneHospitalInfo.js) — /hospitals/immune 의 본문 전부 ─────────────────────────
+// 왜 (2026-09-05 실측): 잎 183개 중 ru 170·kz/zh/ja 177개가 비어 러시아어 페이지의 본문 3/4 가 영어였다(핵심 시장 페이지).
+//   채우면서 «잎 전부»를 검사에 넣는다 — 화면이 안 그리는 잎(centers·process 등)도 채웠으니 예외 없이 본다.
+//   ⚠️ 값은 AI 번역이라 코디 검수 전엔 「제안」 — 이 검사는 «비었는지»만 본다.
+(function walkHospital(node, prefix) {
+  if (!node || typeof node !== "object") return;
+  if (LANGS.some((l) => typeof node[l] === "string")) return checkLocalized(`HOSPITAL.${prefix}`, node);
+  for (const [k, v] of Object.entries(node)) walkHospital(v, prefix ? `${prefix}.${k}` : k);
+})(IMMUNE_HOSPITAL, "");
 
 for (const [key, care] of Object.entries(POST_SURGICAL_CARE)) {
   checkLocalized(`POST_SURGICAL_CARE.${key}.title`, care.title);
@@ -125,7 +136,7 @@ if (problems.length) {
   for (const p of problems) console.error("  - " + p);
   process.exit(1);
 }
-console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩 + 치료법 카드 description·evidence)");
+console.log("✅ 암종 콘텐츠 6개 언어 완성 (제목·소개·합병증·통계·FAQ·칩 + 치료법 카드 description·evidence + 면력 병원 페이지 잎 전부)");
 console.log(
   `⚠️  5축(ITCRN) 잎(제목·설명·근거·태그·항암지원) 빈 칸 ${itcrnMissing.length}칸 — 천장 0(늘면 차단). 값은 AI 번역이라 코디 검수 전엔 「제안」이다.`,
 );
