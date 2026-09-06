@@ -364,17 +364,31 @@ async function main() {
   const dictUrl = pathToFileURL(path.join(ROOT, "src/lib/i18n/dictionary.js")).href;
   const glossUrl = pathToFileURL(path.join(ROOT, "src/lib/i18n/glossary.js")).href;
   const homeUrl = pathToFileURL(path.join(ROOT, "src/lib/content/homeContent.js")).href;
+  const therapyUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneTherapies.js")).href;
+  const cancerUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneCancerDetails.js")).href;
   const { DICTIONARY } = await import(dictUrl);
   const { GLOSSARY } = await import(glossUrl);
   const { HOME_CONTENT } = await import(homeUrl);
+  const { IMMUNE_THERAPIES } = await import(therapyUrl);
+  const { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } = await import(cancerUrl);
 
   // 홈 문구는 사전 파일이 아니라 homeContent.js 에 있어서 그동안 검사 «밖»이었다.
   // 가장 많이 보는 화면인데 러시아어가 카자흐 자리에 그대로 있는 것도 못 잡고 있었다.
   const home = flattenHomeContent(HOME_CONTENT, "home", {});
+  // 암종 상세(5축·FAQ·치료 카드)도 같은 그물에 넣는다 — 2026-09-05 독립 리뷰: check:cancer-i18n 은 «비었나»만 보고
+  // 이 검사는 이 파일들을 아예 안 읽어서, 첫 번역 묶음에서 숫자가 빠진 언어(카자흐어 「8MHz」)가 CI 초록으로 지나갔다.
+  // 잎 판정은 홈과 같다(ko 나 ru 가 문자열인 객체).
+  const extra = {
+    ...flattenHomeContent(IMMUNE_THERAPIES, "therapy", {}),
+    ...flattenHomeContent(CANCER_DETAILS, "cancer", {}),
+    ...flattenHomeContent(CANCER_FAQ, "cancerFaq", {}),
+    ...flattenHomeContent(POST_SURGICAL_CARE, "postSurgical", {}),
+    ...flattenHomeContent(ITCRN_FRAMEWORK, "itcrn", {}),
+  };
   const DICT = {};
   for (const lang of [SOURCE_LANG, ...TARGET_LANGS]) {
     DICT[lang] = { ...(DICTIONARY[lang] || {}) };
-    for (const [k, byLang] of Object.entries(home)) {
+    for (const [k, byLang] of Object.entries({ ...home, ...extra })) {
       if (typeof byLang?.[lang] === "string") DICT[lang][k] = byLang[lang];
     }
   }

@@ -66,8 +66,8 @@ const FORBIDDEN = [
   // 면력한방병원 외국어 표기는 «Immune Hospital» 하나 — PO 결정 2026-09-06(«외국어는 Immune Hospital 로 통일»).
   // 그 전엔 한 사이트에 5가지(Иммунная Клиника / Иммуногоспиталь / Клиника Мёнрёк / 免疫医院·免疫病院 / 발명 음역)가 섞여
   // 환자가 서로 다른 병원으로 읽었다. 한국어 «면력한방병원» 만 예외. 지점은 뒤에 현지 표기(Immune Hospital Кансо / Immune Hospital 江西院).
-  // 용어집(src/lib/i18n/glossary.js)은 «피할 말»을 일부러 담으므로 EXCLUDE 로 뺀다.
-  { re: /Myunghyuk|Мённёк|ミョンニョク|Иммуногоспитал|Иммунн\S* [Кк]линик|Иммундық клиника|Myeonryeok|Myeonlyeok|Мёнрёк|免疫医院|免疫病院|免力韩方|免力韓方|面力韩方|面力韓方|ミョンリョク/i, msg: "면력한방병원 외국어 표기는 «Immune Hospital» 하나 (PO 2026-09-06) — 옛 표기·발명 음역 금지" },
+  // 용어집(src/lib/i18n/glossary.js)은 «피할 말»을 일부러 담으므로 EXCLUDE 로 뺀다. 대소문자 구분 — 내부 id(myeonryeok-magok)는 화면 글자가 아니다.
+  { re: /Myunghyuk|Мённёк|ミョンニョク|Иммуногоспитал|Иммунн\S* [Кк]линик|Иммундық клиника|Myeonryeok|Myeonlyeok|Мёнрёк|免疫医院|免疫病院|免力韩方|免力韓方|面力韩方|面力韓方|ミョンリョク/, msg: "면력한방병원 외국어 표기는 «Immune Hospital» 하나 (PO 2026-09-06) — 옛 표기·발명 음역 금지" },
   // 보안: 비밀키를 NEXT_PUBLIC_ 접두사로 두면 클라이언트 번들에 그대로 박혀 노출된다
   // (2026-06-20 NEXT_PUBLIC_CRON_SECRET 누출 사고). 공개돼도 되는 값만 NEXT_PUBLIC_ 사용.
   { re: /NEXT_PUBLIC_[A-Z0-9_]*SECRET/, msg: "비밀키가 NEXT_PUBLIC_ 접두사로 클라이언트에 노출됨 — 서버 전용(CRON_SECRET 등)으로 옮기고 관리자 인증 라우트로 감쌀 것" },
