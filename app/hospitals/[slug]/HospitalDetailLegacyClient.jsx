@@ -8,9 +8,8 @@ import {
   Clock, Coffee, Languages, Phone, ExternalLink, X
 } from "lucide-react";
 import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
-import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
-import { getPartnerHospital } from "@/lib/data/partnerHospitals";
-import { pickGalleryImages, normalizeImages } from "@/lib/hospitals/galleryImages";
+import { mapHospitalRow, mapTreatmentRow, normalizeImages } from "@/lib/mapper";
+import { pickGalleryImages } from "@/lib/hospitals/galleryImages";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 
@@ -19,7 +18,8 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { formatDate } from "@/lib/i18n/format";
 import { event, GA_EVENTS } from "@/lib/ga";
 
-// 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
+// 병원 사진: 병원 객체의 목록(thumbnail_image·gallery_images·images)을 쓴다. 목록이 비었을 때만 옛 폴더 규칙
+// /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브) — 규칙으로 «지어내면» 3.webp·3.png 같은 실제 파일과 어긋난다(2026-09-06).
 const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=3";
 // 사진 없는 칸은 한 번에 "이미지 준비 중" 플레이스홀더로 대체 (체인 없이 확실하게)
 const handleImgError = (e) => {
@@ -237,16 +237,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   const allGalleryImages = useMemo(() => {
     const slug = hospital?.slug || selectedId;
     // 2026-09-06: 예전엔 파트너 병원을 «/images/hospitals/<slug>/1~5.jpg» 로 지어내 세브란스(3.webp)·고대구로(3.png)의
-    // 세 번째 사진이 방문자마다 깨졌다(실서비스 404 로그). 정적 목록 → DB 목록 → 폴더 규칙 순으로 «있는 파일»을 쓴다.
-    const partner = slug ? getPartnerHospital(slug) : null;
+    // 세 번째 사진이 방문자마다 깨졌다(실서비스 404 로그). 병원 객체의 목록(정적 initialData 든 DB 든 확장자가 맞다)을
+    // 쓰고, 목록이 비었을 때만 폴더 규칙으로 떨어진다.
     return pickGalleryImages({
       slug,
       isPartner: hospital?.is_partner ?? false,
       thumbnail_image: hospital?.thumbnail_image,
       gallery_images: hospital?.gallery_images,
       images: hospital?.images,
-      staticImage: partner?.image ?? null,
-      staticGallery: partner?.gallery ?? null,
     });
   }, [hospital?.is_partner, hospital?.slug, selectedId, hospital?.thumbnail_image, hospital?.gallery_images, hospital?.images]);
 
