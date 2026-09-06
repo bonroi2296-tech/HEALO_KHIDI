@@ -1184,6 +1184,8 @@ function PatientActivity({ a, tt }) {
     ...notes.map((n) => ({ kind: "note", at: n.at, text: n.text })),
   ].sort((x, y) => (x.at < y.at ? 1 : -1)).slice(0, 12);
   const URG_CLS = { emergency: "bg-red-100 text-red-800", high: "bg-orange-100 text-orange-800", medium: "bg-amber-100 text-amber-800", low: "bg-gray-100 text-gray-600" };
+  // 검사기(check:content)가 tt("문자열") 만 대조한다 — 동적 키는 표로 고정해 둔다
+  const URG_KEY = { emergency: "urg_emergency", high: "urg_high", medium: "urg_medium", low: "urg_low" };
   return (
     <div className="mt-4">
       <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblActivity")}</p>
@@ -1195,7 +1197,7 @@ function PatientActivity({ a, tt }) {
             <li key={i} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
                 <span className={`rounded-full px-2 py-0.5 font-semibold ${it.kind === "request" ? "bg-teal-100 text-teal-800" : it.kind === "symptom" ? (URG_CLS[it.urgency] || URG_CLS.low) : "bg-gray-100 text-gray-700"}`}>
-                  {it.kind === "request" ? tt("actRequest") : it.kind === "symptom" ? `${tt("actSymptom")} · ${tt("urg_" + (it.urgency || "low"))}` : tt("actNote")}
+                  {it.kind === "request" ? tt("actRequest") : it.kind === "symptom" ? `${tt("actSymptom")} · ${tt(URG_KEY[it.urgency] || "urg_low")}` : tt("actNote")}
                 </span>
                 {it.kind === "symptom" && it.severity != null && <span>{tt("actSeverity")} {it.severity}/10</span>}
                 <span>{it.at ? new Date(it.at).toLocaleDateString() : ""}</span>
