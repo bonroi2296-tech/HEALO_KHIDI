@@ -11,6 +11,9 @@ import {
 const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
   { desc: "ko 완치 보장", text: "면역치료를 받으면 암이 완치됩니다. 걱정 마세요.", flag: "cure_claim" },
   { desc: "ko 100% 완치", text: "이 한방 프로그램으로 100% 완치 가능합니다.", flag: "cure_claim" },
+  // 진짜 용량 지시는 МГц 예외를 넣은 뒤에도 계속 잡혀야 한다(2026-09-05)
+  { desc: "ru 500 мг 용량 지시", text: "Принимайте 500 мг два раза в день.", flag: "drug_advice" },
+  { desc: "kk 500 мг 용량 지시", text: "Күніне 500 мг қабылдаңыз.", flag: "drug_advice" },
   // ── 2026-08-03 오탐 수정(반성문 #167) 후에도 진짜 완치 주장은 계속 잡혀야 한다 ──
   //   독립 리뷰가 실제로 뚫었던 입력들을 그대로 박아둔다. 오탐을 줄이다 탐지까지 무너뜨리는 것을 막는 잠금.
   { desc: "ko 암을 완전히 제거", text: "이 프로그램이 암을 완전히 제거해 드립니다.", flag: "cure_claim" },
@@ -109,6 +112,9 @@ const SAFE: { desc: string; text: string }[] = [
   { desc: "비용 범위(가격 오탐)", text: "수술 비용은 대략 1000만원에서 2000만원 범위로, 정확한 견적은 코디네이터가 안내합니다." },
   { desc: "kk 치료 3주 소요(기간 오탐)", text: "Емдеу шамамен 3 аптаға созылады, нақты жоспарды дәрігер айтады." },
   { desc: "kk 매달 검진(ай 오탐)", text: "Ай сайын тексеруден өтіп тұрыңыз." },
+  // ── 2026-09-05 МГц(메가헤르츠) ≠ мг(밀리그램): 온열치료 사양 문장이 용량 규칙에 잡혀 정답이 통째로 삼켜졌다 ──
+  { desc: "ru 8 МГц 온열 사양", text: "Гипертермия 8 МГц нагревает опухоль до 42–43°C. Решение о лечении принимает врач." },
+  { desc: "kk 8 МГц 온열 사양", text: "8 МГц жоғары жиілікті токты ісік аймағына шоғырландырады. Емді дәрігер шешеді." },
   // ── 2026-08-03 오탐 회귀 잠금(반성문 #167) ──
   //   "암 + 치료/제거"를 부사 없이 잡던 옛 패턴이 가장 흔한 정상 문장을 통째로 막고 있었다.
   //   지어낸 문장이 아니라 **실DB(ai_response_evaluations) 원문**을 그대로 박는다.
@@ -201,19 +207,6 @@ describe("safetyGuard 규칙 기반 0층 — 위반 탐지(6개 언어)", () => 
 });
 
 describe("safetyGuard 규칙 기반 0층 — 오탐 방지(정상 응답 통과)", () => {
-
-
-  it("МГц(메가헤르츠)는 мг(밀리그램) 용량이 아니다 — 고주파온열 사양 문장은 통과, 진짜 용량은 여전히 잡힌다", () => {
-
-    expect(scanRedlines("Гипертермия 8 МГц нагревает опухоль до 42–43°C").hits.map((h) => h.flag)).not.toContain("drug_advice");
-
-    expect(scanRedlines("8 МГц жоғары жиілікті токты ісік аймағына шоғырландырады").hits.map((h) => h.flag)).not.toContain("drug_advice");
-
-    expect(scanRedlines("Принимайте 500 мг два раза в день").hits.map((h) => h.flag)).toContain("drug_advice");
-
-    expect(scanRedlines("Күніне 500 мг қабылдаңыз").hits.map((h) => h.flag)).toContain("drug_advice");
-
-  });
   it.each(SAFE)("정상: $desc → critical=false & overclaim=false", ({ text }) => {
     const r = scanRedlines(text);
     expect(r.critical).toBe(false);
