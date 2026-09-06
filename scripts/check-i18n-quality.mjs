@@ -69,8 +69,12 @@ const KZ_RU_SAME_OK = new Set([
   "Виза", "Диагноз", "Аккаунт", "Бюджет", "Триггер", "Координатор", "Телемедицина",
   "Гипертония", "Гепатит", "Аллергия", "Бета", "Мессенджер", "Оператор", "Компания",
   "Веб-сайт", "Алматы", "Астана", "Телефон", "ID / Телефон", "AI-агент",
+  // 2026-09-05 암종 상세·치료 카드를 그물에 넣으며 — 국제 의학 용어(카자흐어 표준도 같은 꼴)
+  "Лимфедема", "Демпинг-синдром", "Гипокальциемия", "Иммунитет", "Глутатион", "Иммуноцианин",
 ]);
 // 한국 지명·병원 이름의 키릴 음차 — 두 언어가 같은 게 «맞다»(고유명사라 옮기는 게 아니라 적는 것).
+// 사람 이름 칸 — 한국인 이름의 키릴 음차는 러·카가 같은 게 맞다(옮기는 게 아니라 적는 것). 키로 가른다(값 휴리스틱은 「Иммунная Клиника」 검출과 충돌).
+const PROPER_NOUN_KEYS = /(^|\.)(doctors\.\d+\.name|director\.name|representative)$/;
 const TRANSLITERATED_PROPER = [
   "Кансо", "Кванмён", "Сондон", "Синчон", "Синчхон", "Магок", "Чхольсан", "Содэмун",
   "Сеул", "Кёнги", "Ихва", "Мокдон", "Куро", "Северанс", "Мёнрёк",
@@ -146,6 +150,14 @@ function factTokens(input) {
   eat(/(\d{4})\s*жыл[а-яәғқңөұүһі]*\s*(қаңтар|ақпан|наурыз|сәуір|мамыр|маусым|шілде|тамыз|қыркүйек|қазан|қараша|желтоқсан)[а-яәғқңөұүһі]*/gi,
     (m) => `ym:${m[1]}-${MONTH_KZ[m[2].toLowerCase()]}`);
 
+  // 한 자리 수도 «단위가 붙으면» 사실이다 — 「8MHz」(온열 주파수)·「1인실」·「6층」. 아래 맨 숫자 규칙은 2자리 이상만
+  // 보므로 이런 게 빠져도 초록이었다(2026-09-05 독립 리뷰가 kz 에서 8 МГц 를 지우고 실증).
+  // 단위는 «말로 잘 안 옮기는» 물리·기술 단위와 층·인실만 — 분·회·명·단계·개월은 원어민이 «одной минуты·бес кезең»처럼 말로
+  // 옮기는 게 자연스러워 넣으면 정상 번역 15건이 빨개졌다(실측). 비교는 «숫자»로만(unit:8) — 단위 표기는 언어마다 달라도 되고,
+  // 번역 쪽은 맨 한 자리 수·수사(одн·бір·one·一 …)도 have 로 친다(detectLostFacts).
+  eat(new RegExp(String.raw`(?<!\d)(\d)(?!\d)(?:[.,]\d{1,2}(?!\d))?\s?(?:MHz|㎒|МГц|°C|℃|%|mg|мг|ml|мл|kg|кг|cm|см|mm|мм|층|인실|этаж|қабат|階|层)`, "gi"),
+    (m) => `unit:${m[1]}`);
+
   // 맨 숫자. 천단위 구분(뒤 3자리)만 «붙이고», 나머지 쉼표·마침표는 «자른다».
   // 50,000 = 50 000 = 50000 은 같은 사실이고, 36.8% 와 36,8% 도 같은 사실이기 때문이다.
   // 「6,7,10층」 같은 열거도 이 규칙으로 6 / 7 / 10 으로 갈린다.
@@ -156,14 +168,35 @@ function factTokens(input) {
   return [...new Set(out)];
 }
 
+// 한 자리 수를 말(수사)로 옮긴 것 — 「1인실 → одноместные」「1인실 → бір орындық палата」. 뜻이 같으면 사실 유실이 아니다.
+// ⚠️ JS 의 \b 는 ASCII 전용이라 키릴에 안 먹는다(독립 리뷰 2026-09-06 실증) → (?<!\p{L}) … (?!\p{L}) 로 단어를 가른다.
+//    그리고 「тр[иех]」처럼 느슨하면 «центре» 가 3 을 살려 준 척한다 → 굴절형을 «전부 나열»한다. 중국어·일본어는 수사 뒤에 양사가
+//    붙을 때만(一个·一つ) — 「一」「に」 같은 낱글자는 아무 문장에나 있다.
+const numWord = (alts) => new RegExp(`(?<!\\p{L})(?:${alts})(?!\\p{L})`, "iu");
+const cjkNum = (digits) => new RegExp(`[${digits}](?=[个人层次周天月位家种间室項つ階回週日か月ヶ種件個名])`, "u");
+const NUMBER_WORDS = {
+  // одноместн-·однократн- 같은 «одно-» 합성어만 허용(однако 는 「그러나」라 안 된다)
+  1: [numWord("одноместн\\p{L}*|однократн\\p{L}*|одноразов\\p{L}*|одн(?:а|о|у|ой|им|их|ого|ому|ими)|один|бір|one|single"), cjkNum("一１")],
+  2: [numWord("дв(?:а|е|ух|ум|умя|ое|оих)|екі|two|double"), cjkNum("二两２")],
+  3: [numWord("тр(?:и|ёх|ех|ём|ем|емя|ое)|үш|three"), cjkNum("三３")],
+  4: [numWord("четыр(?:е|ёх|ех|ём|ем|ьмя|о)|төрт|four"), cjkNum("四４")],
+  5: [numWord("пят(?:ь|и|ью|еро)|бес|five"), cjkNum("五５")],
+  6: [numWord("шест(?:ь|и|ью|еро)|алты|six"), cjkNum("六６")],
+  7: [numWord("сем(?:ь|и|ью|еро)|жеті|seven"), cjkNum("七７")],
+  8: [numWord("восем(?:ь|и|ью)|восьм(?:и|ью)|сегіз|eight"), cjkNum("八８")],
+  9: [numWord("девят(?:ь|и|ью)|тоғыз|nine"), cjkNum("九９")],
+};
+
 function detectLostFacts(ko, translated) {
   if (!ko || !translated) return [];
   const want = factTokens(ko);
-  const have = new Set(factTokens(translated));
+  // 번역 쪽은 맨 한 자리 수도 «있다»로 친다 — 「3 часа」처럼 단위 목록에 없는 말이 붙어도 숫자가 살아 있으면 사실은 산 것.
+  const have = new Set([...factTokens(translated), ...[...String(translated).matchAll(/\d/g)].map((m) => `unit:${m[0]}`)]);
   return want.filter((t) => {
     if (have.has(t)) return false;
     const eq = FACT_EQUIVALENTS.find((e) => e.token === t);
     if (eq && eq.any.some((re) => re.test(translated))) return false; // 말로 옮긴 것 — 통과
+    if (t.startsWith("unit:") && NUMBER_WORDS[t.slice(5)]?.some((re) => re.test(String(translated)))) return false; // 수사로 옮긴 것 — 통과
     return true;
   });
 }
@@ -224,7 +257,11 @@ function detectGlossary(entryList, lang, key, value) {
     for (const bad of e.avoid?.[lang] || []) {
       // 단어 경계 — 키릴/라틴 모두 안전하게 다루려고 «앞뒤가 글자가 아닌지»로 본다.
       // 대소문자는 무시한다(문장 첫 글자만 대문자인 경우가 태반이라 구분하면 절반을 놓친다).
-      const re = new RegExp(`(^|[^\\p{L}])${bad.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu");
+      // 「пациент*」처럼 끝에 * 를 붙이면 «어간» 매칭 — 카자흐어는 격어미가 붙어(пациенттерінде…) 낱말을 나열해선 못 잡는다
+      // (2026-09-05 독립 리뷰: 고친 5곳 중 2곳은 이 검사에 애초에 안 보였다).
+      const stem = bad.endsWith("*");
+      const word = (stem ? bad.slice(0, -1) : bad).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`(^|[^\\p{L}])${word}${stem ? "\\p{L}*" : ""}([^\\p{L}]|$)`, "iu");
       if (re.test(value)) {
         hits.push({ id: e.id, status: e.status, bad, use: e.use?.[lang] || "", why: e.why });
         break;
@@ -291,6 +328,15 @@ function selftest() {
     ["미번역 라틴", () => detectUntranslatedLatin("Inquiry Form") === true],
     ["미번역 — 브랜드는 통과", () => detectUntranslatedLatin("healwith") === false],
     ["미번역 — 키릴 있으면 통과", () => detectUntranslatedLatin("Форма healwith") === false],
+    ["사실 유실 — 단위 붙은 한 자리 수(8MHz)도 사실", () => detectLostFacts("8MHz 고주파 온열", "Жоғары жиілікті жылу").length === 1 && detectLostFacts("8MHz 고주파 온열", "8 МГц жоғары жиілікті жылу").length === 0],
+    ["사실 유실 — 한 자리 수를 수사로 옮긴 것은 통과(1인실 → одноместные), 아예 빠지면 잡는다", () => detectLostFacts("1인실 기준", "одноместные палаты").length === 0 && detectLostFacts("1인실 기준", "палаты").length === 1],
+    ["사실 유실 — 카자흐어 수사(бір)도 통과(\\b 가 키릴에 안 먹는 문제)", () => detectLostFacts("1인실 기준", "бір орындық палаталар").length === 0],
+    ["사실 유실 — «однако»(그러나)는 1 을 살려 주지 않는다", () => detectLostFacts("1인실 기준", "однако палаты").length === 1],
+    ["사실 유실 — 느슨한 수사 매칭 금지: «центре» 가 3 을 살려 주면 안 된다", () => detectLostFacts("3층 치료실", "лечебные кабинеты в центре").length === 1 && detectLostFacts("3층 치료실", "кабинеты на трёх этажах").length === 0],
+    ["사실 유실 — 중국어·일본어는 수사+양사만(一个 통과, 낱글자 一 는 안 살려 줌)", () => detectLostFacts("1인실", "一个房间").length === 0 && detectLostFacts("1인실", "统一房间").length === 1],
+    ["사실 유실 — 천단위 숫자(1,000mg)는 한 자리 규칙이 삼키지 않는다", () => detectLostFacts("비타민 C 1,000mg", "витамин C 100 мг").length === 1 && detectLostFacts("비타민 C 1,000mg", "витамин C 1000 мг").length === 0],
+    ["배열 잎 평탄화 — {ko:[…]} 도 언어별 문자열로 펴진다", () => { const o = flattenHomeContent({ goals: { ko: ["가", "나"], ru: ["А", "Б"] } }, "x", {}); return o["x.goals"]?.ru === "А · Б"; }],
+    ["용어집 어간 매칭 — пациент* 가 격어미 붙은 꼴을 잡는다", () => detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "гастрэктомия пациенттерінде").length === 1 && detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "науқастарында").length === 0],
     ["kz=ru 검출", () => detectKzEqualsRu("Иммунная Клиника Кансо", "Иммунная Клиника Кансо") === true],
     ["kz=ru 공통용어는 통과", () => detectKzEqualsRu("Химиотерапия", "Химиотерапия") === false],
     ["kz=ru 고유명사 음차는 통과", () => detectKzEqualsRu("Сондон-гу, Сеул", "Сондон-гу, Сеул") === false],
@@ -344,10 +390,22 @@ function selftest() {
  * HOME_CONTENT(중첩 + 배열)를 사전과 같은 모양 {키: {언어: 값}} 으로 편다.
  * 잎 판정은 «ko 나 ru 가 문자열인 객체» — 그 아래로는 더 안 들어간다.
  */
+const SEEN_LEAVES = new WeakSet(); // 같은 객체(치료법 name 등)를 여러 경로가 참조하면 한 번만 보고한다
 function flattenHomeContent(node, prefix, out) {
   if (!node || typeof node !== "object") return out;
   if (typeof node.ko === "string" || typeof node.ru === "string") {
+    if (SEEN_LEAVES.has(node)) return out;
+    SEEN_LEAVES.add(node);
     out[prefix] = node;
+    return out;
+  }
+  // 배열 잎({ko:[…], en:[…]} — 목표·칩 목록)은 언어별로 이어 붙여 문자열 잎처럼 본다(리뷰 3차: 안 보이던 자리).
+  if (Array.isArray(node.ko) || Array.isArray(node.ru)) {
+    if (SEEN_LEAVES.has(node)) return out;
+    SEEN_LEAVES.add(node);
+    const joined = {};
+    for (const [lang, arr] of Object.entries(node)) if (Array.isArray(arr)) joined[lang] = arr.join(" · ");
+    out[prefix] = joined;
     return out;
   }
   for (const [k, v] of Object.entries(node)) {
@@ -366,11 +424,13 @@ async function main() {
   const homeUrl = pathToFileURL(path.join(ROOT, "src/lib/content/homeContent.js")).href;
   const therapyUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneTherapies.js")).href;
   const cancerUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneCancerDetails.js")).href;
+  const hospitalUrl = pathToFileURL(path.join(ROOT, "src/lib/data/immuneHospitalInfo.js")).href;
   const { DICTIONARY } = await import(dictUrl);
   const { GLOSSARY } = await import(glossUrl);
   const { HOME_CONTENT } = await import(homeUrl);
   const { IMMUNE_THERAPIES } = await import(therapyUrl);
   const { CANCER_DETAILS, CANCER_FAQ, POST_SURGICAL_CARE, ITCRN_FRAMEWORK } = await import(cancerUrl);
+  const { IMMUNE_HOSPITAL } = await import(hospitalUrl);
 
   // 홈 문구는 사전 파일이 아니라 homeContent.js 에 있어서 그동안 검사 «밖»이었다.
   // 가장 많이 보는 화면인데 러시아어가 카자흐 자리에 그대로 있는 것도 못 잡고 있었다.
@@ -384,6 +444,7 @@ async function main() {
     ...flattenHomeContent(CANCER_FAQ, "cancerFaq", {}),
     ...flattenHomeContent(POST_SURGICAL_CARE, "postSurgical", {}),
     ...flattenHomeContent(ITCRN_FRAMEWORK, "itcrn", {}),
+    ...flattenHomeContent(IMMUNE_HOSPITAL, "immuneHospital", {}),
   };
   const DICT = {};
   for (const lang of [SOURCE_LANG, ...TARGET_LANGS]) {
@@ -463,6 +524,7 @@ async function main() {
       if (
         lang === "kz" &&
         !PLACEHOLDER_KEYS.test(key) &&
+        !PROPER_NOUN_KEYS.test(key) &&
         !UNIT_CONVERTED_KEYS.has(key) &&
         detectKzEqualsRu(ru[key], value)
       ) {
