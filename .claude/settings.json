@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "env": {
+    "DISABLE_BUG_COMMAND": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/auto-pull.sh",
+            "timeout": 30,
+            "statusMessage": "GitHub 최신과 동기화 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-orient.sh",
+            "timeout": 15,
+            "statusMessage": "현재 작업 상태 파악 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-guard.sh",
+            "timeout": 10,
+            "statusMessage": "다른 세션 동시작업 확인 중..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/auto-commit-push.sh",
+            "timeout": 60,
+            "statusMessage": "변경분 자동 커밋·푸시 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/handoff-gate.sh",
+            "timeout": 20,
+            "statusMessage": "핸드오프 종료 문지기 검사 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/self-check.sh",
+            "timeout": 10,
+            "statusMessage": "규칙 자기점검 중..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__Supabase__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/guard-destructive.mjs",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/blast-radius-warn.mjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/doc-tooling-guard.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/plain-korean.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
