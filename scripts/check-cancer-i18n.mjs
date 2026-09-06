@@ -50,7 +50,9 @@ for (const [slug, c] of Object.entries(CANCER_DETAILS)) {
 //   mechanism·indications·menuOptions 는 화면이 안 그리므로 검사하지 않는다(그리게 되면 여기에 추가).
 //   ⚠️ 값은 AI 번역이라 코디 검수 전엔 「제안」 — 이 검사는 «비었는지»만 본다.
 for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
-  // name 은 5축 태그(immuneCancerDetails.js)가 T.<id>.name 으로 참조해 위 ITCRN 검사가 19개 전부 본다 → 여기선 안 본다.
+  // name 도 본다 — 오늘은 5축 태그가 19개 전부를 참조해 위 ITCRN 검사가 잡지만, ITCRN 에 안 매인 새 치료법이 생기면 카드 이름이
+  // 조용히 영어로 나간다(독립 리뷰 2026-09-05). 중복 보고는 무해하다.
+  checkLocalized(`THERAPY.${id}.name`, t.name);
   checkLocalized(`THERAPY.${id}.description`, t.description);
   if (t.evidence) checkLocalized(`THERAPY.${id}.evidence`, t.evidence);
 }

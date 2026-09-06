@@ -69,8 +69,12 @@ const KZ_RU_SAME_OK = new Set([
   "Виза", "Диагноз", "Аккаунт", "Бюджет", "Триггер", "Координатор", "Телемедицина",
   "Гипертония", "Гепатит", "Аллергия", "Бета", "Мессенджер", "Оператор", "Компания",
   "Веб-сайт", "Алматы", "Астана", "Телефон", "ID / Телефон", "AI-агент",
+  // 2026-09-05 암종 상세·치료 카드를 그물에 넣으며 — 국제 의학 용어(카자흐어 표준도 같은 꼴)
+  "Лимфедема", "Демпинг-синдром", "Гипокальциемия", "Иммунитет", "Глутатион", "Иммуноцианин",
 ]);
 // 한국 지명·병원 이름의 키릴 음차 — 두 언어가 같은 게 «맞다»(고유명사라 옮기는 게 아니라 적는 것).
+// 사람 이름 칸 — 한국인 이름의 키릴 음차는 러·카가 같은 게 맞다(옮기는 게 아니라 적는 것). 키로 가른다(값 휴리스틱은 「Иммунная Клиника」 검출과 충돌).
+const PROPER_NOUN_KEYS = /(^|\.)(doctors\.\d+\.name|director\.name|representative)$/;
 const TRANSLITERATED_PROPER = [
   "Кансо", "Кванмён", "Сондон", "Синчон", "Синчхон", "Магок", "Чхольсан", "Содэмун",
   "Сеул", "Кёнги", "Ихва", "Мокдон", "Куро", "Северанс", "Мёнрёк",
@@ -146,6 +150,14 @@ function factTokens(input) {
   eat(/(\d{4})\s*жыл[а-яәғқңөұүһі]*\s*(қаңтар|ақпан|наурыз|сәуір|мамыр|маусым|шілде|тамыз|қыркүйек|қазан|қараша|желтоқсан)[а-яәғқңөұүһі]*/gi,
     (m) => `ym:${m[1]}-${MONTH_KZ[m[2].toLowerCase()]}`);
 
+  // 한 자리 수도 «단위가 붙으면» 사실이다 — 「8MHz」(온열 주파수)·「1인실」·「6층」. 아래 맨 숫자 규칙은 2자리 이상만
+  // 보므로 이런 게 빠져도 초록이었다(2026-09-05 독립 리뷰가 kz 에서 8 МГц 를 지우고 실증).
+  // 단위는 «말로 잘 안 옮기는» 물리·기술 단위와 층·인실만 — 분·회·명·단계·개월은 원어민이 «одной минуты·бес кезең»처럼 말로
+  // 옮기는 게 자연스러워 넣으면 정상 번역 15건이 빨개졌다(실측). 비교는 «숫자»로만(unit:8) — 단위 표기는 언어마다 달라도 되고,
+  // 번역 쪽은 맨 한 자리 수·수사(одн·бір·one·一 …)도 have 로 친다(detectLostFacts).
+  eat(new RegExp(String.raw`(?<!\d)(\d)(?:[.,]\d+)?\s?(?:MHz|㎒|МГц|°C|℃|%|mg|мг|ml|мл|kg|кг|cm|см|mm|мм|층|인실|этаж|қабат|階|层)`, "gi"),
+    (m) => `unit:${m[1]}`);
+
   // 맨 숫자. 천단위 구분(뒤 3자리)만 «붙이고», 나머지 쉼표·마침표는 «자른다».
   // 50,000 = 50 000 = 50000 은 같은 사실이고, 36.8% 와 36,8% 도 같은 사실이기 때문이다.
   // 「6,7,10층」 같은 열거도 이 규칙으로 6 / 7 / 10 으로 갈린다.
@@ -156,14 +168,29 @@ function factTokens(input) {
   return [...new Set(out)];
 }
 
+// 한 자리 수를 말(수사)로 옮긴 것 — 「1인실 → одноместные」「5단계 → бес кезең」. 뜻이 같으면 사실 유실이 아니다.
+const NUMBER_WORDS = {
+  1: /одн[аоиуые]|один|\bбір\b|\bone\b|\bsingle\b|[一１]|ひと|いち/i,
+  2: /дв[аеух]|\bекі\b|\btwo\b|[二两２]|ふた|に/i,
+  3: /тр[иех]|\bүш\b|\bthree\b|[三３]|さん|みっ/i,
+  4: /четыр|\bтөрт\b|\bfour\b|[四４]|よん|し/i,
+  5: /пят|\bбес\b|\bfive\b|[五５]|ご/i,
+  6: /шест|\bалты\b|\bsix\b|[六６]|ろく/i,
+  7: /сем[ьи]|\bжеті\b|\bseven\b|[七７]|なな|しち/i,
+  8: /восем|восьм|\bсегіз\b|\beight\b|[八８]|はち/i,
+  9: /девят|\bтоғыз\b|\bnine\b|[九９]|きゅう/i,
+};
+
 function detectLostFacts(ko, translated) {
   if (!ko || !translated) return [];
   const want = factTokens(ko);
-  const have = new Set(factTokens(translated));
+  // 번역 쪽은 맨 한 자리 수도 «있다»로 친다 — 「3 часа」처럼 단위 목록에 없는 말이 붙어도 숫자가 살아 있으면 사실은 산 것.
+  const have = new Set([...factTokens(translated), ...[...String(translated).matchAll(/\d/g)].map((m) => `unit:${m[0]}`)]);
   return want.filter((t) => {
     if (have.has(t)) return false;
     const eq = FACT_EQUIVALENTS.find((e) => e.token === t);
     if (eq && eq.any.some((re) => re.test(translated))) return false; // 말로 옮긴 것 — 통과
+    if (t.startsWith("unit:") && NUMBER_WORDS[t.slice(5)]?.test(String(translated))) return false; // 수사로 옮긴 것 — 통과
     return true;
   });
 }
@@ -224,7 +251,11 @@ function detectGlossary(entryList, lang, key, value) {
     for (const bad of e.avoid?.[lang] || []) {
       // 단어 경계 — 키릴/라틴 모두 안전하게 다루려고 «앞뒤가 글자가 아닌지»로 본다.
       // 대소문자는 무시한다(문장 첫 글자만 대문자인 경우가 태반이라 구분하면 절반을 놓친다).
-      const re = new RegExp(`(^|[^\\p{L}])${bad.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu");
+      // 「пациент*」처럼 끝에 * 를 붙이면 «어간» 매칭 — 카자흐어는 격어미가 붙어(пациенттерінде…) 낱말을 나열해선 못 잡는다
+      // (2026-09-05 독립 리뷰: 고친 5곳 중 2곳은 이 검사에 애초에 안 보였다).
+      const stem = bad.endsWith("*");
+      const word = (stem ? bad.slice(0, -1) : bad).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`(^|[^\\p{L}])${word}${stem ? "\\p{L}*" : ""}([^\\p{L}]|$)`, "iu");
       if (re.test(value)) {
         hits.push({ id: e.id, status: e.status, bad, use: e.use?.[lang] || "", why: e.why });
         break;
@@ -291,6 +322,9 @@ function selftest() {
     ["미번역 라틴", () => detectUntranslatedLatin("Inquiry Form") === true],
     ["미번역 — 브랜드는 통과", () => detectUntranslatedLatin("healwith") === false],
     ["미번역 — 키릴 있으면 통과", () => detectUntranslatedLatin("Форма healwith") === false],
+    ["사실 유실 — 단위 붙은 한 자리 수(8MHz)도 사실", () => detectLostFacts("8MHz 고주파 온열", "Жоғары жиілікті жылу").length === 1 && detectLostFacts("8MHz 고주파 온열", "8 МГц жоғары жиілікті жылу").length === 0],
+    ["사실 유실 — 한 자리 수를 수사로 옮긴 것은 통과(1인실 → одноместные), 아예 빠지면 잡는다", () => detectLostFacts("1인실 기준", "одноместные палаты").length === 0 && detectLostFacts("1인실 기준", "палаты").length === 1],
+    ["용어집 어간 매칭 — пациент* 가 격어미 붙은 꼴을 잡는다", () => detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "гастрэктомия пациенттерінде").length === 1 && detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "науқастарында").length === 0],
     ["kz=ru 검출", () => detectKzEqualsRu("Иммунная Клиника Кансо", "Иммунная Клиника Кансо") === true],
     ["kz=ru 공통용어는 통과", () => detectKzEqualsRu("Химиотерапия", "Химиотерапия") === false],
     ["kz=ru 고유명사 음차는 통과", () => detectKzEqualsRu("Сондон-гу, Сеул", "Сондон-гу, Сеул") === false],
@@ -344,9 +378,12 @@ function selftest() {
  * HOME_CONTENT(중첩 + 배열)를 사전과 같은 모양 {키: {언어: 값}} 으로 편다.
  * 잎 판정은 «ko 나 ru 가 문자열인 객체» — 그 아래로는 더 안 들어간다.
  */
+const SEEN_LEAVES = new WeakSet(); // 같은 객체(치료법 name 등)를 여러 경로가 참조하면 한 번만 보고한다
 function flattenHomeContent(node, prefix, out) {
   if (!node || typeof node !== "object") return out;
   if (typeof node.ko === "string" || typeof node.ru === "string") {
+    if (SEEN_LEAVES.has(node)) return out;
+    SEEN_LEAVES.add(node);
     out[prefix] = node;
     return out;
   }
@@ -463,6 +500,7 @@ async function main() {
       if (
         lang === "kz" &&
         !PLACEHOLDER_KEYS.test(key) &&
+        !PROPER_NOUN_KEYS.test(key) &&
         !UNIT_CONVERTED_KEYS.has(key) &&
         detectKzEqualsRu(ru[key], value)
       ) {
