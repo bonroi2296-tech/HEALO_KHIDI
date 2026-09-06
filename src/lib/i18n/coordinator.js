@@ -628,6 +628,13 @@ const CT = {
   ceScr_costCalc: { ko: "비용 계산기", en: "Cost calculator", ru: "Калькулятор стоимости", kz: "Құн калькуляторы", zh: "费用计算器", ja: "費用計算ツール" },
   ceScr_hospitalsPage: { ko: "병원 목록", en: "Hospital list", ru: "Список больниц", kz: "Аурухана тізімі", zh: "医院列表", ja: "病院一覧" },
   ceScr_treatmentsPage: { ko: "치료 안내 목록", en: "Treatment list", ru: "Список методов лечения", kz: "Емдеу әдістерінің тізімі", zh: "治疗介绍列表", ja: "治療案内一覧" },
+  // 콘텐츠 파일 문구(2026-09-06 편집기 편입)
+  ceScr_therapy: { ko: "치료 안내 상세 · 치료법 카드(암종마다 5개만 보임)", en: "Treatment detail · therapy cards (each cancer page shows only 5)", ru: "Страница лечения · карточки методов (на каждой странице рака только 5)", kz: "Емдеу беті · емдеу әдісі карталары (әр обыр бетінде тек 5)", zh: "治疗详情 · 疗法卡片（每个癌种页面只显示5张）", ja: "治療詳細 · 治療法カード（各がん種ページには5枚のみ表示）" },
+  ceScr_itcrn: { ko: "치료 안내 상세 · 5축(ITCRN) 설명(모든 암종 화면 공통)", en: "Treatment detail · five-axis (ITCRN) description (shared by every cancer page)", ru: "Страница лечения · описание пяти осей (ITCRN), общее для всех видов рака", kz: "Емдеу беті · бес ось (ITCRN) сипаттамасы (барлық обыр беттеріне ортақ)", zh: "治疗详情 · 五轴（ITCRN）说明（各癌种页面共用）", ja: "治療詳細 · 5軸（ITCRN）説明（全がん種ページ共通）" },
+  ceScr_care: { ko: "치료 안내 상세 · 수술 후 관리(대장·위암 / 간·췌장암 화면)", en: "Treatment detail · post-surgical care (colorectal-gastric / liver-pancreatic pages)", ru: "Страница лечения · уход после операции (страницы рака кишечника-желудка / печени-поджелудочной)", kz: "Емдеу беті · отадан кейінгі күтім (тоқ ішек-асқазан / бауыр-ұйқы безі беттері)", zh: "治疗详情 · 术后管理（结直肠·胃癌 / 肝·胰腺癌页面）", ja: "治療詳細 · 術後管理（大腸・胃がん / 肝・膵がんページ）" },
+  ceScr_cancer: { ko: "치료 안내 상세(암종별)", en: "Treatment detail (per cancer type)", ru: "Страница лечения (по виду рака)", kz: "Емдеу беті (обыр түрі бойынша)", zh: "治疗详情（按癌种）", ja: "治療詳細（がん種別）" },
+  ceScr_cancerFaq: { ko: "치료 안내 상세 · 자주 묻는 질문(암종별)", en: "Treatment detail · FAQ (per cancer type)", ru: "Страница лечения · частые вопросы (по виду рака)", kz: "Емдеу беті · жиі қойылатын сұрақтар (обыр түрі бойынша)", zh: "治疗详情 · 常见问题（按癌种）", ja: "治療詳細 · よくある質問（がん種別）" },
+  ceScr_hospital: { ko: "병원 상세(제휴 병원 소개)", en: "Hospital detail (partner hospital profile)", ru: "Страница больницы (описание больницы-партнёра)", kz: "Аурухана беті (серіктес аурухана сипаттамасы)", zh: "医院详情（合作医院介绍）", ja: "病院詳細（提携病院の紹介）" },
   ceScr_faqData: { ko: "자주 묻는 질문(문답 내용)", en: "FAQ (questions and answers)", ru: "Частые вопросы (вопросы и ответы)", kz: "Жиі қойылатын сұрақтар (сұрақ-жауап)", zh: "常见问题（问答内容）", ja: "よくある質問（Q&A本文）" },
   ceScr_about: { ko: "회사 소개", en: "About us", ru: "О компании", kz: "Компания туралы", zh: "公司介绍", ja: "会社紹介" },
   ceScr_km: { ko: "한방 특화 안내", en: "Korean medicine page", ru: "Страница корейской медицины", kz: "Корей медицинасы беті", zh: "韩方特色介绍", ja: "韓方特化の案内" },
@@ -649,6 +656,7 @@ const CT = {
   ceScr_homeSearch: { ko: "홈 검색창", en: "Home search box", ru: "Поисковая строка на Главной", kz: "Басты беттегі іздеу жолағы", zh: "首页搜索框", ja: "ホームの検索窓" },
 
   // 이름표 옆에 붙는 비고(노란 배지)
+  ceNote_hospitalMetaOnly: { ko: "검색 결과·미리보기 카드용 소개입니다(한국어는 DB 값이 우선) — 병원 상세 본문은 어드민 「병원 번역」에서 고칩니다", en: "Used for search snippets and link previews (Korean comes from the DB first) — the hospital page body is edited in Admin → Hospital translations", ru: "Используется для сниппетов поиска и превью ссылок (корейский берётся из БД) — текст страницы больницы правится в Админ → «Перевод больниц»", kz: "Іздеу үзінділері мен сілтеме алдын ала қарауына арналған (корейше мәтін ДҚ-дан алынады) — аурухана бетінің мәтіні Әкімші → «Аурухана аудармасы» бөлімінде түзетіледі", zh: "用于搜索摘要和链接预览（韩文以数据库为准）— 医院详情正文在管理后台「医院翻译」中修改", ja: "検索スニペット・リンクプレビュー用の紹介文です（韓国語はDBの値が優先）— 病院詳細の本文は管理者「病院翻訳」で修正します" },
   ceNote_deadGeneric: { ko: "쓰는 화면을 못 찾음 — 고쳐도 안 보일 수 있습니다", en: "We could not find a screen using this — editing it may change nothing", ru: "Не нашли экран, где это используется — правка может ничего не изменить", kz: "Мұны қолданатын экранды таппадық — өңдеу ештеңе өзгертпеуі мүмкін", zh: "未找到使用该文案的页面——修改后可能不会显示", ja: "使っている画面が見つかりません — 直しても表示されない可能性があります" },
   ceNote_deadFaq: { ko: "쓰는 화면을 못 찾음 — 지금 「자주 묻는 질문」은 faqData 를 씁니다", en: "Not used — the FAQ page now uses faqData", ru: "Не используется — страница вопросов теперь берёт faqData", kz: "Қолданылмайды — сұрақтар беті енді faqData алады", zh: "未被使用——常见问题页现在使用 faqData", ja: "使われていません — 「よくある質問」は今 faqData を使います" },
   ceNote_deadMeta: { ko: "쓰는 화면을 못 찾음 — 지금은 seo 를 씁니다", en: "Not used — seo is used instead now", ru: "Не используется — сейчас используется seo", kz: "Қолданылмайды — қазір seo қолданылады", zh: "未被使用——现在使用 seo", ja: "使われていません — 今は seo を使います" },
@@ -669,6 +677,21 @@ const CT = {
   ceSec_emergency: { ko: "응급안내", en: "Emergency info", ru: "Экстренная помощь", kz: "Шұғыл көмек", zh: "紧急指引", ja: "緊急案内" },
   ceSec_bottomCta: { ko: "CTA(하단)", en: "Bottom CTA", ru: "Нижний блок действия", kz: "Төменгі әрекет блогы", zh: "底部行动区", ja: "下部CTA" },
   ceSec_misc: { ko: "기타", en: "Other", ru: "Прочее", kz: "Басқа", zh: "其他", ja: "その他" },
+  // 콘텐츠 파일 문구 구역(2026-09-06) — 편집기가 「구역 / 개체 이름 / 칸」을 코디 언어로 조립할 때 쓴다
+  ceSec_therapy: { ko: "치료법 카드", en: "Therapy cards", ru: "Карточки методов", kz: "Емдеу әдісі карталары", zh: "疗法卡片", ja: "治療法カード" },
+  ceSec_itcrn: { ko: "5축(ITCRN) 설명", en: "Five-axis (ITCRN) description", ru: "Описание пяти осей (ITCRN)", kz: "Бес ось (ITCRN) сипаттамасы", zh: "五轴（ITCRN）说明", ja: "5軸（ITCRN）説明" },
+  ceSec_cancer: { ko: "암종 상세", en: "Cancer-type page", ru: "Страница по виду рака", kz: "Обыр түрі беті", zh: "癌种详情", ja: "がん種詳細" },
+  ceSec_cancerFaq: { ko: "암종 FAQ", en: "Cancer FAQ", ru: "Частые вопросы по виду рака", kz: "Обыр түрі бойынша ЖҚС", zh: "癌种常见问题", ja: "がん種FAQ" },
+  ceSec_care: { ko: "수술 후 관리", en: "Post-surgical care", ru: "Уход после операции", kz: "Отадан кейінгі күтім", zh: "术后管理", ja: "術後管理" },
+  ceSec_hospital: { ko: "제휴 병원 소개", en: "Partner hospital profile", ru: "Описание больницы-партнёра", kz: "Серіктес аурухана сипаттамасы", zh: "合作医院介绍", ja: "提携病院の紹介" },
+  ceFld_intro: { ko: "소개", en: "Intro", ru: "Вступление", kz: "Кіріспе", zh: "简介", ja: "紹介" },
+  ceFld_description: { ko: "설명", en: "Description", ru: "Описание", kz: "Сипаттама", zh: "说明", ja: "説明" },
+  ceFld_evidence: { ko: "근거", en: "Evidence", ru: "Обоснование", kz: "Дәлел", zh: "依据", ja: "根拠" },
+  ceFld_complications: { ko: "합병증", en: "Complication", ru: "Осложнение", kz: "Асқыну", zh: "并发症", ja: "合併症" },
+  ceFld_programs: { ko: "프로그램", en: "Program", ru: "Программа", kz: "Бағдарлама", zh: "项目", ja: "プログラム" },
+  ceFld_cellular: { ko: "세포면역", en: "Cellular immunity", ru: "Клеточный иммунитет", kz: "Жасушалық иммунитет", zh: "细胞免疫", ja: "細胞性免疫" },
+  ceFld_humoral: { ko: "체액면역", en: "Humoral immunity", ru: "Гуморальный иммунитет", kz: "Гуморальдық иммунитет", zh: "体液免疫", ja: "液性免疫" },
+  ceFld_methods: { ko: "방법", en: "Method", ru: "Метод", kz: "Әдіс", zh: "方法", ja: "方法" },
 
   ceFld_badge: { ko: "배지", en: "Badge", ru: "Плашка", kz: "Белгі", zh: "标签", ja: "バッジ" },
   ceFld_title: { ko: "제목", en: "Title", ru: "Заголовок", kz: "Тақырып", zh: "标题", ja: "タイトル" },

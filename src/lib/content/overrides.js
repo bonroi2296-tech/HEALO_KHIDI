@@ -3,6 +3,7 @@ import { unstable_cache, revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { HOME_CONTENT } from "./homeContent";
 import { applyTenantBrand, isDefaultTenant, getTenant } from "@/lib/tenant";
+import { fetchOverrideRows } from "./fetchOverrideRows";
 
 // 코디 편집 오버라이드를 기본 콘텐츠에 병합한다(서버 전용).
 // content_key 예: "home.stats.title" → HOME_CONTENT.stats.title 의 [lang] 을 덮어씀.
@@ -33,12 +34,7 @@ const getHomeOverridesCached = unstable_cache(
   async () => {
     try {
       const supabase = createServiceRoleClient();
-      const { data, error } = await supabase
-        .from("content_overrides")
-        .select("content_key, lang, value")
-        .like("content_key", "home.%");
-      if (error || !Array.isArray(data)) return [];
-      return data;
+      return await fetchOverrideRows(supabase, (q) => q.like("content_key", "home.%"));
     } catch {
       return [];
     }

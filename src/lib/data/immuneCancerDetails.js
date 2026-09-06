@@ -415,6 +415,17 @@ export const CANCER_DETAILS = {
  * ⚠️ 카드를 추가하면 여기 한 줄도 같이 추가해라. 값은 반드시 CANCER_DETAILS 의 키여야 한다
  *    (없는 키를 적으면 상세 페이지가 404 — scripts/check-cancer-i18n.mjs 와 같은 부류의 실수).
  */
+// 암종 페이지마다 그리는 치료법 카드(5개). 화면(CancerDetailClient)과 편집기 「화면에서 보기」(어느 암종 페이지에
+// 그 카드가 있나)가 같은 표를 본다 — 2026-09-06 리뷰: 화면 안에만 있어 편집기가 엉뚱한 페이지를 열었다.
+export const CANCER_THERAPY_KEYS = {
+  female: ["thymosin", "nkCell", "highVitaminC", "lymphDrainage", "selenium"],
+  digest: ["thymosin", "lowResidueDiet", "gastrectomyDiet", "hyperthermia", "glutathione"],
+  liver: ["thymosin", "hyperthermia", "placentaExtract", "glutathione", "selenium"],
+  lung: ["thymosin", "infraredHeat", "highVitaminC", "mistletoe", "immunoPlus"],
+  thyroid: ["lowIodideDiet", "thymosin", "lymphDrainage", "selenium", "placentaExtract"],
+  etc: ["nkCell", "hyperthermia", "immunoPlus", "thymosin", "highVitaminC"],
+};
+
 export const ORGAN_TO_CANCER_SLUG = {
   stomach: "digest",   // 대장 · 위암
   colon: "digest",     // 대장 · 위암

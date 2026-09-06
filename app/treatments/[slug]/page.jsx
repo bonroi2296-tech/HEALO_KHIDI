@@ -7,11 +7,10 @@ import {
 } from "@/lib/data/treatments";
 import TreatmentDetailClient from "./TreatmentDetailClient";
 import CancerDetailClient from "./CancerDetailClient";
-import {
-  CANCER_DETAILS,
-  CANCER_IMAGES,
-  CANCER_FAQ } from "@/lib/data/immuneCancerDetails";
-import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
+import { CANCER_IMAGES, CANCER_THERAPY_KEYS } from "@/lib/data/immuneCancerDetails";
+// 암종·치료법·5축·FAQ 문구는 코디 편집(content_overrides)이 덮인 사본을 쓴다(2026-09-06) —
+// 파일을 직접 읽으면 코디가 편집기에서 고친 값이 화면·구조화데이터에 안 나온다.
+import { getMergedContentFiles } from "@/lib/content/contentFileOverrides";
 import { localeAlternates, getRequestLocale, ogLocaleFields } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
@@ -67,7 +66,7 @@ export async function generateMetadata({ params }) {
 
   // 암종 상세 페이지 메타
   if (CANCER_SLUGS.includes(slug)) {
-    const cancer = CANCER_DETAILS[slug];
+    const cancer = (await getMergedContentFiles()).cancers[slug];
     if (!cancer) return {};
     const name = cancer.title?.[lc] || cancer.title?.en || cancer.title?.ko;
     const title = name; // 루트 template "%s | healwith"가 접미사 자동 추가
@@ -161,8 +160,7 @@ export async function generateMetadata({ params }) {
  * (CancerDetailClient 의 `CANCER_FAQ[slug] || CANCER_FAQ.etc` + `faq.q[lang] || faq.q.ko` 와 동일)
  * 화면과 다른 걸 적으면 구글이 리치결과를 안 줄 뿐 아니라 AI 답변에도 안 실린다 — /faq 와 같은 원칙.
  */
-function cancerFaqLd(slug, lang) {
-  const faqs = CANCER_FAQ[slug] || CANCER_FAQ.etc;
+function cancerFaqLd(faqs, lang) {
   if (!Array.isArray(faqs) || faqs.length === 0) return null;
   return {
     "@context": "https://schema.org",
@@ -182,8 +180,10 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
 
   // ── 암종 페이지 분기 ────────────────────────────────
   if (CANCER_SLUGS.includes(slug)) {
-    const cancer = CANCER_DETAILS[slug];
+    const merged = await getMergedContentFiles();
+    const cancer = merged.cancers[slug];
     if (!cancer) notFound();
+    const faqs = merged.faq[slug] || merged.faq.etc;
 
     // MedicalCondition JSON-LD — 화면과 «같은 언어»로(2026-09-05). 전엔 name·description·possibleTreatment 가
     // 전부 한국어 고정이라 러·카 페이지의 구조화데이터가 한국어였다(검색봇·AI 답변엔진이 그 언어로 못 읽는다).
@@ -197,7 +197,7 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       alternateName: [...new Set([cancer.title.en, cancer.title.ru, cancer.title.ko].filter((x) => x && x !== L(cancer.title)))],
       description: L(cancer.intro),
       possibleTreatment: ["thymosin", "mistletoe", "nkCell", "hyperthermia", "lymphDrainage", "selenium", "highVitaminC", "immunoPlus"]
-        .map((id) => L(IMMUNE_THERAPIES[id]?.name))
+        .map((id) => L(merged.therapies[id]?.name))
         .filter(Boolean),
       relevantSpecialty: {
         "@type": "MedicalSpecialty",
@@ -220,7 +220,7 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       locale,
     );
 
-    const faqLd = cancerFaqLd(slug, locale || "en");
+    const faqLd = cancerFaqLd(faqs, locale || "en");
 
     const content = (
       <>
@@ -231,7 +231,19 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
             __html: JSON.stringify([jsonLd, breadcrumb, faqLd].filter(Boolean)),
           }}
         />
-        <CancerDetailClient slug={slug} />
+        <CancerDetailClient
+          slug={slug}
+          // 치료법은 이 암종이 그리는 5개만 — 19개 전부 실으면 페이지마다 25KB 가 헛되이 나간다(2026-09-06 리뷰).
+          content={{
+            cancer,
+            itcrn: merged.itcrn,
+            therapies: Object.fromEntries(
+              (CANCER_THERAPY_KEYS[slug] || []).map((id) => [id, merged.therapies[id]]).filter(([, t]) => t)
+            ),
+            care: merged.care,
+            faqs,
+          }}
+        />
       </>
     );
 

@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { CONTENT_OVERRIDES_TAG } from "./overrides";
+import { fetchOverrideRows } from "./fetchOverrideRows";
 
 // 전 화면 콘텐츠 편집(Phase 2): content_overrides → t() 가 소비할 { lang: { key: value } } 맵.
 // 캐시(분당) + 저장 시 CONTENT_OVERRIDES_TAG 무효화로 즉시 반영(홈 병합과 태그 공유).
@@ -11,11 +12,8 @@ const getAllOverridesCached = unstable_cache(
   async () => {
     try {
       const supabase = createServiceRoleClient();
-      const { data, error } = await supabase
-        .from("content_overrides")
-        .select("content_key, lang, value");
-      if (error || !Array.isArray(data)) return [];
-      return data;
+      // 끝까지 페이지로 읽는다 — 1,000행에서 조용히 잘리면 공개 화면의 사전 오버라이드가 일부 사라진다.
+      return await fetchOverrideRows(supabase);
     } catch {
       return [];
     }

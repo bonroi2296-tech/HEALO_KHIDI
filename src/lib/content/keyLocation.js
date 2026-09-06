@@ -63,7 +63,25 @@ const BY_PREFIX = {
   //       실사용 0건인 meta.* 에 「검색엔진용」이라는 **틀린 이름**이 붙었다
   //       (2026-07-29 린트 no-dupe-keys 가 잡음). 지금 쓰는 건 seo 뿐이다.
   seo:  { screen: "검색엔진용 설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다", noteId: "seoOnly" },
+
+  // ── 콘텐츠 파일 문구(2026-09-06 편집기에 편입) — 주소는 아래 dynamicPath 가 slug 로 정한다 ──
+  therapy:  { screen: "치료 안내 상세 · 치료법 카드(암종마다 5개만 보임)", path: "/treatments" },
+  itcrn:    { screen: "치료 안내 상세 · 5축(ITCRN) 설명(모든 암종 화면 공통)", path: "/treatments/female" },
+  care:     { screen: "치료 안내 상세 · 수술 후 관리(대장·위암 / 간·췌장암 화면)", path: "/treatments/digest" },
+  cancer:    { screen: "치료 안내 상세(암종별)", path: "/treatments" },
+  cancerFaq: { screen: "치료 안내 상세 · 자주 묻는 질문(암종별)", path: "/treatments" },
+  // 본문은 DB(어드민 병원 번역)가 그리고, 이 파일 문구는 검색 결과·미리보기 카드·구조화데이터에 쓰인다 —
+  // 코디가 여기서 고치고 «화면 본문이 안 바뀌네»로 헤매지 않게 비고를 단다.
+  hospital:  { screen: "병원 상세(제휴 병원 소개)", path: "/hospitals", note: "검색 결과·미리보기 카드용 소개입니다(한국어는 DB 값이 우선) — 병원 상세 본문은 어드민 「병원 번역」에서 고칩니다", noteId: "hospitalMetaOnly" },
 };
+
+// 암종·병원 문구는 키 둘째 마디가 slug 다 → 그 화면 주소를 바로 만든다.
+function dynamicPath(key) {
+  const parts = String(key).split(".");
+  if ((parts[0] === "cancer" || parts[0] === "cancerFaq") && parts[1]) return `/treatments/${parts[1]}`;
+  if (parts[0] === "hospital" && parts[1]) return `/hospitals/${parts[1]}`;
+  return null;
+}
 
 // 앞머리 전체는 죽었는데 **몇 개만 살아 있는** 예외. 앞머리 표보다 먼저 본다.
 // (search.* 13키 중 이 둘만 홈 히어로에서 실제로 쓰인다 — 나머지는 2026-07-21 삭제된 검색결과 화면 잔재)
@@ -119,12 +137,13 @@ export function describeKey(key, homeLabel) {
     if (m && m.label) where = m.section ? `${m.section} / ${m.label}` : m.label;
   }
 
+  const dyn = dynamicPath(key);
   return {
     screen: hit ? hit.screen : null,
     screenId,
-    path: hit ? hit.path || null : null,
+    path: dyn || (hit ? hit.path || null : null),
     // 미리보기·화면열기가 실제로 그 문구까지 데려가는 주소(단계 포함). 없으면 path 를 쓴다.
-    reach: reachPath(key) || (hit ? hit.path || null : null),
+    reach: reachPath(key) || dyn || (hit ? hit.path || null : null),
     where,
     note: hit && hit.note ? hit.note : null,
     noteId: hit && hit.noteId ? hit.noteId : null,

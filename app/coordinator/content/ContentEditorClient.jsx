@@ -272,7 +272,18 @@ export default function ContentEditorClient() {
   // 「통계 / 항목1 · 문구」 같은 자리 이름을 **화면 언어로** 조립한다.
   // 서버가 준 한국어 문장(place.where)은 사전에 낱말이 없을 때의 폴백으로만 쓴다
   // (실측 2026-07-29: 러시아어 화면인데 이 자리 72칸 중 22칸이 한국어였다).
-  const whereOf = (key, fallback) => {
+  const whereOf = (key, fallback, place) => {
+    // 콘텐츠 파일 문구(치료법·암종·병원…)는 서버가 조각(구역·개체 이름·칸)을 준다 — 개체 이름은 고유명사라 그대로,
+    // 구역·칸은 사전(ceSec_*·ceFld_*)으로. 안 주면 홈 문구 규칙 → 그것도 아니면 서버 한국어 문장.
+    const fp = place?.whereParts;
+    if (fp && fp.sectionKey) {
+      const sec = L["ceSec_" + fp.sectionKey] || fp.sectionKey;
+      const words = (fp.words || []).map((w) => {
+        const base = L["ceFld_" + w.f] || w.f;
+        return w.n ? `${base}${w.n}` : base;
+      });
+      return [sec, fp.entity, words.join(" · ")].filter(Boolean).join(" / ");
+    }
     const parts = homeWhereParts(key);
     if (!parts) return fallback || null;
     const sec = L["ceSec_" + parts.sectionKey] || parts.sectionKey;
@@ -452,7 +463,7 @@ export default function ContentEditorClient() {
             // 화면 이름·비고는 사전에서(6개 언어). 사전에 없는 새 항목은 서버가 준 한국어로 폴백한다.
             const scrName = (lg.place?.screenId && L["ceScr_" + lg.place.screenId]) || lg.place?.screen || null;
             const noteText = (lg.place?.noteId && L["ceNote_" + lg.place.noteId]) || lg.place?.note || null;
-            const whereName = whereOf(lg.content_key, lg.place?.where);
+            const whereName = whereOf(lg.content_key, lg.place?.where, lg.place);
             return (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
               {/* 2026-07-29: 여기가 `home.stats.items.0.label` 같은 **코드 이름만** 보여줬다.
@@ -594,7 +605,7 @@ export default function ContentEditorClient() {
                   {(() => {
                     const scr = (r.place?.screenId && L["ceScr_" + r.place.screenId]) || r.place?.screen || null;
                     const note = (r.place?.noteId && L["ceNote_" + r.place.noteId]) || r.place?.note || null;
-                    const where = whereOf(r.key, r.place?.where);
+                    const where = whereOf(r.key, r.place?.where, r.place);
                     // reach = 그 문구가 실제로 «보이는» 자리(문의폼 2단계 등). 없으면 화면 첫 주소.
                     const reach = r.place?.reach || r.place?.path || null;
                     const href = previewHref(reach, r.values);
