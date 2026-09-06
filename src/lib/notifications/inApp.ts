@@ -448,6 +448,50 @@ export async function notifyStaffPreVisitSilent(notice: PreVisitSilentNotice): P
   }
 }
 
+export interface RebookingRequestNotice {
+  inquiryId: number;
+  /** request = 환자가 먼저 요청 / confirm = 시스템 제안을 환자가 확정 */
+  kind: "request" | "confirm";
+  note?: string;
+}
+
+/**
+ * 환자가 재진 상담을 요청했거나 제안을 확정했을 때 코디 + 어드민 종·메일.
+ *
+ * 왜 (2026-09-06 PO 「한 번 누르면 코디에게 요청」): 재진 화면의 [확정]은 DB 상태만 바꾸고 아무에게도
+ *   안 알렸고 코디 화면엔 제안 목록이 없어 «확정해도 상담이 안 잡히는» 막다른 길이었다.
+ *   코디는 늘 하던 대로 「상담 일정」에서 잡아 초대 링크를 보내면 된다. 디듀프는 요청 쪽(6시간 창)이 맡는다.
+ */
+export async function notifyStaffRebookingRequest(notice: RebookingRequestNotice): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    const title = notice.kind === "confirm"
+      ? `📅 환자가 재진 제안을 확정했어요 #${notice.inquiryId}`
+      : `📅 환자가 재진 상담을 요청했어요 #${notice.inquiryId}`;
+    const body = "「상담 일정」에서 환자와 시각을 정해 초대 링크를 보내 주세요." + (notice.note ? ` 메모: ${notice.note}` : "");
+    const base = adminBaseUrl();
+    await Promise.allSettled([
+      broadcastInAppNotification(coordinators, {
+        type: "rebooking_request", title, body, priority: "high",
+        link: `/coordinator/inbox/${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId, kind: notice.kind },
+      }),
+      broadcastInAppNotification(admins, {
+        type: "rebooking_request", title, body, priority: "high",
+        link: `/admin/inquiries?inquiry=${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId, kind: notice.kind },
+      }),
+      emailStaff({
+        subject: `[healwith] ${title}`,
+        text: `${body}\n\n코디 화면: ${base}/coordinator/inbox/${notice.inquiryId}\n상담 일정: ${base}/coordinator/consultations`,
+        tags: { kind: "rebooking_request", inquiry_id: String(notice.inquiryId) },
+      }),
+    ]);
+  } catch {
+    /* fail-safe */
+  }
+}
+
 /**
  * «최근 cooldownDays 안에 같은 type 알림을 이미 받은 직원»을 뺀 목록.
  * 열람 여부가 아니라 **발송 시각** 기준(안 읽음 기준이면 첫 발송 뒤 영구 침묵 — 2026-07-20 적발).

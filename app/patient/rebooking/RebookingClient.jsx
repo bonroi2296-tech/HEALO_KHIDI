@@ -19,7 +19,7 @@ const SOURCE_COLORS = {
 const CADENCE_ACTIONS = ['survey', 'medication_check', 'video_call', 'lab_review'];
 
 // 재예약 제안 source 코드 — 라벨은 patientRebooking.followup/symptom/doctor
-const SOURCE_KEYS = ['followup', 'symptom', 'doctor'];
+const SOURCE_KEYS = ['followup', 'symptom', 'doctor', 'patient_request'];
 
 // 배지 라벨: 케이던스 제안 → action 라벨 / 재예약 제안 → source 라벨 / 그 외 → followup 폴백
 const scheduleLabel = (row, lang) => {
@@ -49,6 +49,27 @@ export default function RebookingClient() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  // 환자가 «먼저» 요청 (2026-09-06 PO 「한 번 누르면 코디에게 요청」)
+  const [reqNote, setReqNote] = useState('');
+  const [reqBusy, setReqBusy] = useState(false);
+  const [reqMsg, setReqMsg] = useState('');
+  const requestRebooking = async () => {
+    if (reqBusy) return;
+    setReqBusy(true); setReqMsg('');
+    try {
+      const res = await fetch('/api/portal/followup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: reqNote, language: lang }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setReqNote('');
+        setReqMsg(t('patientRebooking.requestDone', lang));
+        setTimeout(() => window.location.reload(), 1500);
+      } else setReqMsg(t('patientRebooking.requestFail', lang));
+    } catch { setReqMsg(t('patientRebooking.requestFail', lang)); }
+    setReqBusy(false);
+  };
 
   // 정식 테이블 = followup_schedules (/api/portal/followup). 본인 patient_user_id 행만.
   const patchStatus = async (rb, status) => {
@@ -106,6 +127,29 @@ export default function RebookingClient() {
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{t('patientRebooking.title', lang)}</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>{t('patientRebooking.subtitle', lang)}</p>
 
+      {/* 환자가 먼저 요청 — 코디가 「상담 일정」에서 잡아 초대 링크를 보낸다 */}
+      <section style={{ border: '1px solid #99f6e4', background: '#f0fdfa', borderRadius: 12, padding: 20, marginBottom: 24 }} aria-label={t('patientRebooking.requestTitle', lang)}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('patientRebooking.requestTitle', lang)}</h2>
+        <p style={{ fontSize: 13, color: '#555', marginBottom: 12, lineHeight: 1.5 }}>{t('patientRebooking.requestHint', lang)}</p>
+        <textarea
+          value={reqNote}
+          onChange={(e) => { setReqNote(e.target.value); setReqMsg(''); }}
+          rows={2}
+          maxLength={500}
+          placeholder={t('patientRebooking.requestPlaceholder', lang)}
+          style={{ width: '100%', borderRadius: 8, border: '1px solid #d1d5db', padding: '8px 10px', fontSize: 14, marginBottom: 10 }}
+        />
+        <button
+          type="button"
+          onClick={requestRebooking}
+          disabled={reqBusy}
+          style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#0f766e', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: reqBusy ? 0.6 : 1 }}
+        >
+          {reqBusy ? '...' : t('patientRebooking.requestSend', lang)}
+        </button>
+        {reqMsg && <p style={{ marginTop: 8, fontSize: 13, color: '#0f766e', fontWeight: 600 }}>{reqMsg}</p>}
+      </section>
+
       {/* Pending Rebookings */}
       {rebookings.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, background: '#f9fafb', borderRadius: 12, color: '#888', marginBottom: 32 }}>
@@ -143,6 +187,9 @@ export default function RebookingClient() {
                   </p>
                 )}
 
+                {src === 'patient_request' ? (
+                  <p style={{ fontSize: 13, color: '#0f766e', fontWeight: 600, textAlign: 'right' }}>{t('patientRebooking.requestPending', lang)}</p>
+                ) : (
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => handleDismiss(rb)}
@@ -169,6 +216,7 @@ export default function RebookingClient() {
                     {actionLoading === rb.id ? '...' : t('patientRebooking.confirm', lang)}
                   </button>
                 </div>
+                )}
               </div>
             );
           })}

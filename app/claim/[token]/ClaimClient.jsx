@@ -308,6 +308,8 @@ export default function ClaimClient({ token }) {
 
       {/* 사후관리 ⑤를 «계정 없이» — 증상 기록 + 내 암종 가이드 (2026-09-06 PO «사후관리 3대 보완» B) */}
       <SymptomCard token={token} lang={lang} cancerSlug={preview?.cancerSlug} />
+      {/* 사후관리 ⑥ — 재진 상담 요청은 한 번 누르면 코디에게 닿는다 (2026-09-06 PO) */}
+      <RebookCard token={token} lang={lang} />
 
       <div className="border-t border-gray-100 mt-8 pt-6">
         <ConnectStrip
@@ -565,6 +567,53 @@ function SymptomCard({ token, lang, cancerSlug }) {
       {done && <p className="mt-2 text-xs font-semibold text-teal-800">{done}</p>}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <p className="mt-2 text-[11px] text-gray-400">{t("claimPage.symptomDisclaimer", lang)}</p>
+    </div>
+  );
+}
+
+/** 재진 상담 요청 — 병원 일정은 코디가 잡는다. 환자는 한 번만 누르면 된다. */
+function RebookCard({ token, lang }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const send = async () => {
+    if (busy) return;
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const res = await fetch("/api/inquiries/claim/rebooking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, note, language: lang }),
+      });
+      const data = await res.json();
+      if (data.ok) { setNote(""); setMsg(t("claimPage.rebookDone", lang)); setTimeout(() => window.location.reload(), 1800); }
+      else setErr(t("claimPage.rebookFail", lang));
+    } catch { setErr(t("claimPage.rebookFail", lang)); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="no-print mt-4 rounded-xl border border-gray-200 bg-white px-4 py-4">
+      <p className="text-sm font-bold text-gray-900">{t("claimPage.rebookTitle", lang)}</p>
+      <p className="mt-1 text-xs leading-relaxed text-gray-600">{t("claimPage.rebookHint", lang)}</p>
+      <input
+        value={note}
+        onChange={(e) => { setNote(e.target.value); setMsg(""); }}
+        maxLength={500}
+        placeholder={t("claimPage.rebookPlaceholder", lang)}
+        className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+      />
+      <button
+        type="button"
+        onClick={send}
+        disabled={busy}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-bold text-teal-800 hover:bg-teal-50 disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+        {t("claimPage.rebookSend", lang)}
+      </button>
+      {msg && <p className="mt-2 text-xs font-semibold text-teal-800">{msg}</p>}
+      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
     </div>
   );
 }

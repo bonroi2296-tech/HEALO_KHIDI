@@ -262,7 +262,7 @@ GAPS = [
     ("인앱 알림", "벨은 30초 폴링이다(Supabase Realtime 아님). 실시간이 필요하면 상담방 메시지처럼 channel 구독으로", "src/components/NotificationBell.jsx"),
     ("이메일 발송 로그", "일반 발송은 로그 표에 남지 않는다(관리자 테스트 발송만 기록). 발송 실패를 되짚으려면 Resend 콘솔", "src/lib/email/sendEmail.ts · admin_notification_logs"),
     ("병원 포털", "「병원 정보」·「시술 카탈로그」는 기능 플래그로 꺼져 있고(공개 연동 준비 중), 진료 결과 입력·가용 일정 화면은 없다", "app/hospital/_components/featureFlags.js"),
-    ("예약", "병원 가용 일정을 코디가 «입력할 화면»이 없다. 구글 캘린더 등록은 서비스 계정 캘린더로 단방향", "src/lib/calendar/googleCalendar.ts"),
+    ("예약", "병원 가용 일정을 코디가 «입력할 화면»이 없다(환자 자기 예약 불가 — 대신 2026-09-06 부터 환자가 한 번 누르면 요청이 코디에게 닿는다). 구글 캘린더 등록은 서비스 계정 캘린더로 단방향", "src/lib/followup/rebookingRequest.ts · src/lib/calendar/googleCalendar.ts"),
     ("견적", "AI 적정가 자동 산출은 없다. 코디가 견적을 쓰고 이력을 관리한다", "app/coordinator/cost-estimates"),
     ("증상 위험도", "규칙 판정 + AI 2차 판정(2026-09-06, 올리기만 한다·확신 50% 미만 무시·실패 시 규칙 유지). 실환자 표본이 쌓이면 상향 정확도를 재라", "src/lib/followup/aiTriage.ts"),
     ("개인정보 칸 정리", "값은 전부 암호문이지만 «평문 이름의 칸»에 저장 중. 평문 컬럼 삭제 마이그레이션은 실행 금지(돌리면 26~29건 소실)", "migrations/20260420_drop_*_plaintext.sql 머리말"),
