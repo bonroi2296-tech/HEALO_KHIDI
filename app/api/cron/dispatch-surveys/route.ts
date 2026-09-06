@@ -622,7 +622,9 @@ export async function GET(request: NextRequest) {
   // 소견을 받고 아직 한국에 오지 않은 환자에게 D+3·D+14·D+30 안부·다음 단계 메일 + 무응답 코디 알림.
   // 같은 크론에 붙인다(새 정기 실행을 만들지 않는다). 실패는 본업을 죽이지 않게 흡수하되 응답에 남긴다.
   let preVisit: PreVisitResult | { failed: true; error: string } = { casesChecked: 0, sent: 0, skipped: 0, nudged: 0, noEmail: 0, errors: [] };
-  if (process.env.PRE_VISIT_FOLLOWUP_ENABLED !== "0") {
+  // ⛔ 기본 «꺼짐» (2026-09-06 밤 PO 「일단 멈춰」 — 실환자 2명에게 자동 메일이 나간다는 점을 보고하자 보류).
+  //    켜려면 실서비스 환경변수 PRE_VISIT_FOLLOWUP_ENABLED=1. 판정·기록 코드는 그대로 두고 발송만 막는다.
+  if (process.env.PRE_VISIT_FOLLOWUP_ENABLED === "1") {
     try {
       preVisit = await runPreVisitFollowup(db as any, now);
     } catch (err: any) {
