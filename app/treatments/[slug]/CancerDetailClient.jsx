@@ -15,6 +15,7 @@ const CANCER_ICONS = {
 import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
+import { priceUnitLabel } from "@/lib/i18n/priceUnit";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
@@ -148,10 +149,30 @@ export default function CancerDetailClient({ slug }) {
         <p className="mt-5 text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl">
           {l(cancer.intro)}
         </p>
-        {cancer.stats?.survivalImprovement && (
+        {/* 제휴 병원이 «자기 사이트에 적어 둔» 수치. 출처 줄은 장식이 아니라 이 칸의 조건이다 —
+            암 생존율 수치를 근거 없이 띄우면 우리는 병원도 아니면서 의학적 주장을 한 게 된다.
+            그래서 출처가 없으면 수치도 안 띄운다(아래 && 조건). 2026-09-01 감사. */}
+        {cancer.stats?.survivalImprovement && cancer.stats?.survivalImprovementSource && (
           <div className="mt-6 border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 max-w-xl">
             <p className="text-sm md:text-base text-teal-800 font-semibold leading-relaxed m-0">
               {l(cancer.stats.survivalImprovement)}
+            </p>
+            <p className="mt-2 text-[11px] md:text-xs text-teal-800/70 leading-relaxed m-0">
+              {l(cancer.stats.survivalImprovementSource)}
+              {cancer.stats.survivalImprovementSourceUrl && (
+                <>
+                  {" "}
+                  <a
+                    href={cancer.stats.survivalImprovementSourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-teal-800"
+                  >
+                    {/* 라벨은 주소에서 — 다른 출처를 넣었는데 «immunehospital.com» 이라 뜨면 안 된다(독립 리뷰) */}
+                    {new URL(cancer.stats.survivalImprovementSourceUrl).hostname}
+                  </a>
+                </>
+              )}
             </p>
           </div>
         )}
@@ -416,9 +437,10 @@ export default function CancerDetailClient({ slug }) {
                         <span className="text-xs font-semibold text-gray-600">
                           {/* 숫자 표기는 고정(en-US) — 인자 없는 toLocaleString() 은 서버(Node)와 브라우저(ru-RU 는 "250 000")가
                               다르게 찍어 러·카 방문자마다 hydration 불일치가 났다(2026-09-05 dev 실측, CancerDetailClient:416). */}
+                          {/* 단위(«KRW/session»)는 사전 글자로 — 6개 언어 전부 영어로 새던 것(2026-09-06, priceUnit.js). */}
                           {typeof therapy.price.amount === "number"
-                            ? `${therapy.price.amount.toLocaleString("en-US")} ${therapy.price.unit}`
-                            : `${therapy.price.amount} ${therapy.price.unit || ""}`}
+                            ? `${therapy.price.amount.toLocaleString("en-US")} ${priceUnitLabel(therapy.price.unit, lang)}`
+                            : `${therapy.price.amount} ${priceUnitLabel(therapy.price.unit, lang)}`}
                         </span>
                       </div>
                     )}

@@ -69,10 +69,10 @@ export const IMMUNE_HOME_CONTENT = {
     title: {
       ko: "왜 면력한방병원인가",
       en: "Why Immune Hospital",
-      ru: "Почему Иммунная Клиника",
-      kz: "Неге Иммундық клиника",
-      zh: "为什么选择免力韩方医院",
-      ja: "なぜ免力韓方病院なのか",
+      ru: "Почему Immune Hospital",
+      kz: "Неге Immune Hospital",
+      zh: "为什么选择 Immune Hospital",
+      ja: "なぜ Immune Hospital なのか",
     },
     subtitle: {
       ko: "한 곳에서 진단·면역치료·재활까지 이어집니다",

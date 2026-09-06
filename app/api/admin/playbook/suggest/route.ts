@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { getModel } from "@/lib/chat/generateReply";
+import { callGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 
 const SAFETY_SETTINGS = [
   { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -61,18 +62,23 @@ export async function POST(request: NextRequest) {
       "This is a DRAFT for a human admin to edit, so keep it general and safe.",
     ].join("\n");
 
-    const result = await generateText({
-      model,
-      system,
-      messages: [{ role: "user", content: question }] as any,
-      maxOutputTokens: 1024,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingLevel: "minimal" },
-          safetySettings: SAFETY_SETTINGS as any,
+    // 별칭 세대 교체 생존 사다리(geminiThinkingCompat) — 이 라우트만 사다리 없이 "minimal" 을 그대로
+    // 보내고 있었다(2026-09-06 발견). 지금 세대는 그 값을 400 으로 거절하므로 늘 500 이었을 자리.
+    const result = await callGeminiWithCompat(
+      (p) => generateText(p as any),
+      {
+        model,
+        system,
+        messages: [{ role: "user", content: question }] as any,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
+            safetySettings: SAFETY_SETTINGS as any,
+          },
         },
       },
-    } as any);
+    );
 
     const suggestion = (result?.text || "").trim();
     if (!suggestion) {

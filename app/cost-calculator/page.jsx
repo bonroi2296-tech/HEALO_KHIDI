@@ -1,4 +1,4 @@
-import { getRequestLocale, localeAlternates, OG_LOCALE } from "@/lib/i18n/metadata";
+import { getRequestLocale, localeAlternates, ogLocaleFields } from "@/lib/i18n/metadata";
 import { absoluteUrl, ORG_ID } from "@/lib/seo/structuredData";
 import CostCalculatorClient from "./CostCalculatorClient";
 
@@ -36,7 +36,7 @@ export async function generateMetadata() {
       title: m.title,
       description: m.desc,
       type: "website",
-      locale: OG_LOCALE[lc] || "en_US",
+      ...ogLocaleFields(lc),
       ...(alternates ? { url: alternates.canonical } : {}),
     },
     // ⚠️ twitter 를 «반드시» openGraph 와 같이 채운다 (2026-08-31 실측으로 추가).

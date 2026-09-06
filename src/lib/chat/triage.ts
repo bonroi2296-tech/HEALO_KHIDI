@@ -15,7 +15,7 @@ import "server-only";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { fetchGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
 
@@ -178,7 +178,7 @@ export async function generateTriage(opts: {
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 2048,
-        thinkingConfig: { thinkingLevel: "minimal" },
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
         responseMimeType: "application/json",
         responseSchema: PACKET_SCHEMA,
       },

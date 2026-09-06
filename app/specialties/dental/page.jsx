@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { localeAlternates } from "@/lib/i18n/metadata";
+import { localeAlternates, getRequestLocale, ogLocaleFields } from "@/lib/i18n/metadata";
 import {
   Star,
   Shield,
@@ -21,10 +21,11 @@ import {
 // og:url 은 남긴다 — 색인 신호가 아니라 «공유했을 때 어느 주소로 가나»일 뿐이다.
 export async function generateMetadata() {
   const alt = await localeAlternates();
+  const { locale } = await getRequestLocale();
   return {
     ...baseMeta,
     alternates: null,
-    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}) },
+    openGraph: { ...baseMeta.openGraph, ...(alt ? { url: alt.canonical } : {}), ...ogLocaleFields(locale) },
   };
 }
 

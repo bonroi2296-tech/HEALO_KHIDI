@@ -25,10 +25,10 @@ export const IMMUNE_SITE = {
     name: {
       ko: "면력한방병원",
       en: "Immune Hospital",
-      ru: "Иммунная Клиника",
-      kz: "Иммундық клиника",
-      zh: "免力韩方医院",
-      ja: "免力韓方病院",
+      ru: "Immune Hospital",
+      kz: "Immune Hospital",
+      zh: "Immune Hospital",
+      ja: "Immune Hospital",
     },
     // ⚠️ 색은 **추측하지 않고 로고에서 뽑았다.** 처음엔 "한방이니 초록"이라 넘겨짚어 딥 그린을
     //    썼는데, 면력 공식 로고 SVG 를 받아 보니 #003D66(딥 네이비)이 66회로 유일한 브랜드 색이었다.
@@ -550,10 +550,10 @@ export const IMMUNE_SITE = {
   whyUsTitle: {
     ko: "왜 면력한방병원인가",
     en: "Why Immune Hospital",
-    ru: "Почему Иммунная Клиника",
-    kz: "Неге Иммундық клиника",
-    zh: "为什么选择免力韩方医院",
-    ja: "なぜ免力韓方病院なのか",
+    ru: "Почему Immune Hospital",
+    kz: "Неге Immune Hospital",
+    zh: "为什么选择 Immune Hospital",
+    ja: "なぜ Immune Hospital なのか",
   },
   whyUs: [
     {

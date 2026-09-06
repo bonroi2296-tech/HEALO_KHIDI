@@ -18,6 +18,9 @@ export const testChatEmail = () => `e2e-chat-${Date.now()}@healo-test.invalid`;
 
 /** /inquiry 에서 AI 상담을 열고, 문지기(신원 확인 또는 동의)를 통과해 입력칸까지 데려간다. */
 export async function openPublicChat(page: Page) {
+  // 이 대화는 «점검»이지 환자가 아니다 — 서버가 판사(품질 채점·코디 긴급알림)에서 빼게 표식을 단다.
+  // 2026-08-26 야간 E2E 의 「E2E 복구 검사」가 off_topic 으로 채점돼 품질 화면에 남았다(src/lib/chat/syntheticThread.ts).
+  await page.context().setExtraHTTPHeaders({ "x-healwith-test": "e2e" });
   // 🇰🇷 한국어 화면으로 «고정»한다 — 이 검사들의 목적은 채팅 기능이지 언어가 아닌데,
   //    로컬 개발 서버는 영어 화면이 빈 채로 뜨는 알려진 함정이 있어(실서비스는 멀쩡) 로케일이
   //    흔들리면 채팅과 무관한 이유로 빨간불이 된다. 다국어는 chat-multilingual 이 따로 본다.

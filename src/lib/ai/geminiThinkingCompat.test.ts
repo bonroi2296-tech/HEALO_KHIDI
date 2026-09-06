@@ -12,6 +12,7 @@ import {
   fetchGeminiWithCompat,
   isParamRejection,
   _resetThinkingCompat,
+  DEFAULT_THINKING_LEVEL,
 } from "./geminiThinkingCompat";
 
 const BASE_PARAMS = {
@@ -264,6 +265,62 @@ describe("geminiThinkingCompat — 샘플링 파라미터 거절", () => {
     expect(out).toBe("B");
     expect(fnB).toHaveBeenCalledTimes(1);
     expect(seen[0].providerOptions.google.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+});
+
+describe("geminiThinkingCompat — 기본값 «low» 와 alreadyLow 사다리 (2026-09-06)", () => {
+  beforeEach(() => _resetThinkingCompat());
+
+  it("DEFAULT_THINKING_LEVEL 은 low — 지금 세대가 minimal 을 400 으로 거절하므로 첫 요청부터 200 이어야 한다", () => {
+    expect(DEFAULT_THINKING_LEVEL).toBe("low");
+  });
+
+  it("원본이 low 면 SDK 사다리에 minimal·low 칸이 없다 — 거절 시 곧장 «생각 제어 없음»", async () => {
+    const params = {
+      ...BASE_PARAMS,
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" }, safetySettings: [] } },
+    };
+    const fn = vi.fn(async (p: any) => {
+      const tc = p.providerOptions?.google?.thinkingConfig;
+      if (tc) throw rejection("Thinking level LOW is not supported for this model.");
+      return "ok";
+    });
+    const out = await callGeminiWithCompat(fn, params);
+    expect(out).toBe("ok");
+    // 원본(low) → dropThinking. minimal 로 «내려가 보는» 헛왕복이 없어야 한다.
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn.mock.calls[1][0].providerOptions.google.thinkingConfig).toBeUndefined();
+  });
+
+  it("원본이 low 이고 모델이 받으면 1회 호출로 끝난다(오늘의 실서비스 경로)", async () => {
+    const params = {
+      ...BASE_PARAMS,
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
+    };
+    const fn = vi.fn(async (p: any) => p.providerOptions.google.thinkingConfig);
+    expect(await callGeminiWithCompat(fn, params)).toEqual({ thinkingLevel: "low" });
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("REST 도 같다 — low 원본이 400 이면 minimal 을 건너뛰고 thinkingConfig 를 뺀다", async () => {
+    const bodies: any[] = [];
+    const fetchMock = vi.fn(async (_u: string, init: any) => {
+      const b = JSON.parse(init.body);
+      bodies.push(b);
+      const ok = !b.generationConfig.thinkingConfig;
+      return new Response(ok ? "{}" : "bad", { status: ok ? 200 : 400 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const res = await fetchGeminiWithCompat("https://x", {
+        generationConfig: { maxOutputTokens: 10, thinkingConfig: { thinkingLevel: "low" } },
+      });
+      expect(res.status).toBe(200);
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1].generationConfig.thinkingConfig).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

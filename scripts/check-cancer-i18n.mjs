@@ -43,7 +43,21 @@ for (const [slug, c] of Object.entries(CANCER_DETAILS)) {
       checkLocalized(`${slug}.complications[${i}].desc`, comp.desc);
     });
   }
-  if (c.stats?.survivalImprovement) checkLocalized(`${slug}.stats.survivalImprovement`, c.stats.survivalImprovement);
+  // 생존율 같은 «의학적 수치»는 출처 없이 화면에 못 나간다 (2026-09-01 감사).
+  // 우리는 병원이 아니라 등록 유치업체다 — 근거 없는 수치를 띄우면 그 순간 의학적 주장이 된다.
+  // 화면(CancerDetailClient)도 출처가 없으면 수치 칸을 통째로 안 그리게 돼 있다. 여기서 한 번 더 막는다:
+  // 「출처가 빠진 채 수치만 다시 들어오는」 되돌림이 화면에서 조용히 사라지는 대신 CI 에서 걸리도록.
+  if (c.stats?.survivalImprovement) {
+    checkLocalized(`${slug}.stats.survivalImprovement`, c.stats.survivalImprovement);
+    if (!c.stats.survivalImprovementSource) {
+      P(`${slug}.stats.survivalImprovementSource: 수치는 있는데 출처가 없다 — 출처 없는 의학 수치는 게재 금지`);
+    } else {
+      checkLocalized(`${slug}.stats.survivalImprovementSource`, c.stats.survivalImprovementSource);
+    }
+    if (!c.stats.survivalImprovementSourceUrl) {
+      P(`${slug}.stats.survivalImprovementSourceUrl: 출처 원문 주소가 없다 — 독자가 직접 확인할 길을 남겨라`);
+    }
+  }
 }
 
 // ── 치료법 카드(immuneTherapies.js) — 암종 상세 페이지 카드가 name·description·evidence 를 그린다(name 은 ITCRN 쪽) ─

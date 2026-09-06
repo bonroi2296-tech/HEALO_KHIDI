@@ -59,8 +59,8 @@ export default function ForgotPasswordClient() {
             <div className="w-12 h-12 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-4">
               <MailCheck className="text-teal-700" size={22} />
             </div>
-            <h2 className="text-2xl font-extrabold text-gray-900 break-keep">{pick(L.sentTitle, langCode)}</h2>
-            <p className="text-sm text-gray-500 mt-3 leading-relaxed break-keep">{pick(L.sentBody, langCode)}</p>
+            <h2 className="text-2xl font-extrabold text-gray-900">{pick(L.sentTitle, langCode)}</h2>
+            <p className="text-sm text-gray-500 mt-3 leading-relaxed">{pick(L.sentBody, langCode)}</p>
             <button
               onClick={() => router.push("/login")}
               className="mt-6 w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100"
@@ -71,8 +71,8 @@ export default function ForgotPasswordClient() {
         ) : (
           <>
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-extrabold text-gray-900 break-keep">{pick(L.title, langCode)}</h2>
-              <p className="text-gray-500 mt-2 break-keep">{pick(L.subtitle, langCode)}</p>
+              <h2 className="text-3xl font-extrabold text-gray-900">{pick(L.title, langCode)}</h2>
+              <p className="text-gray-500 mt-2">{pick(L.subtitle, langCode)}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">

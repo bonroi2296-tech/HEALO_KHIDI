@@ -162,7 +162,7 @@ export default function EducationClient() {
       <div className="mb-8">
         <div className="flex items-center gap-2 text-teal-700 mb-2">
           <BookOpen size={20} />
-          <span className="text-sm font-semibold uppercase tracking-wide">healwith Guide</span>
+          <span className="text-sm font-semibold uppercase tracking-wide">{t("patientEdu.page.kicker", lang)}</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{t('patientEdu.page.title', lang)}</h1>
         <p className="text-gray-500">{t('patientEdu.page.subtitle', lang)}</p>

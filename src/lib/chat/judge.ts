@@ -15,7 +15,7 @@ import "server-only";
 
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
-import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+import { callGeminiWithCompat, DEFAULT_THINKING_LEVEL } from "@/lib/ai/geminiThinkingCompat";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { sendInAppNotification, getStaffIdsByRole } from "../notifications/inApp";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
@@ -205,9 +205,9 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
       prompt,
       // 짧은 평가 응답 — 최대 512 토큰이면 충분.
       // ⚠️ ai v5+ 는 maxTokens 가 아니라 maxOutputTokens (옛 이름은 무시됨 = 상한 미적용이었음).
-      // thinking 도 꺼서 판사 호출 비용 고정(메인 챗 generateReply 와 동일 패턴).
+      // 생각 수준은 공용 기본값(메인 챗 generateReply 와 같은 상수 — 값·이유는 geminiThinkingCompat).
       maxOutputTokens: 512,
-      providerOptions: { google: { thinkingConfig: { thinkingLevel: "minimal" } } },
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL } } },
     });
 
     // 계측 — 공개 챗이 답할 때마다 이 판사가 같이 돌아 제미나이 호출이 사실상 2배인데,

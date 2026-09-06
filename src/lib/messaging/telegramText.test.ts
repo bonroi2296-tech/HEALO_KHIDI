@@ -28,8 +28,8 @@ describe("stripMarkdownForTelegram", () => {
   });
 
   it("러시아어·카자흐어 본문에서도 안전", () => {
-    const ru = "**Иммунная Клиника** — 3 филиала";
-    expect(stripMarkdownForTelegram(ru)).toBe("Иммунная Клиника — 3 филиала");
+    const ru = "**Immune Hospital** — 3 филиала";
+    expect(stripMarkdownForTelegram(ru)).toBe("Immune Hospital — 3 филиала");
   });
 });
 
