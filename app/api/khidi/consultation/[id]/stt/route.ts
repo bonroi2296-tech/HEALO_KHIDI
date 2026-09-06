@@ -189,6 +189,9 @@ async function genWithFallback(
   args: { messages: any; temperature: number; maxOutputTokens?: number },
   usageMeta: Record<string, unknown> = {}
 ): Promise<string> {
+  // 지연 시간(elapsed_ms)도 같이 남긴다 — 2026-09-06 감사에서 «통역이 몇 초 걸리나»를 한 번도
+  // 잰 적이 없다는 게 드러났다(사용 기록에 시간 칸이 없었다). 실험 경로(transcribe)와 같은 키를 쓴다.
+  const t0 = Date.now();
   try {
     // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절을 흡수.
     // 자막은 실시간이라 400 한 번에 통째로 끊기면 회의가 못 돌아간다.
@@ -196,16 +199,21 @@ async function genWithFallback(
       model: google(modelId) as any,
       ...args,
     });
-    recordSttUsage(modelId, res, usageMeta);
+    recordSttUsage(modelId, res, { ...usageMeta, elapsed_ms: Date.now() - t0 });
     return (res as any).text || "";
   } catch (e) {
     // Pro 등 비-Flash 모델이 실패하면(별칭 오류·쿼터 등) Flash 로 1회 폴백 — kz 자막이 끊기지 않게.
     if (modelId !== "gemini-flash-latest") {
+      const t1 = Date.now();
       const res = await callGeminiWithCompat((p) => generateText(p as any), {
         model: google("gemini-flash-latest") as any,
         ...args,
       });
-      recordSttUsage("gemini-flash-latest", res, { ...usageMeta, fallback_from: modelId });
+      recordSttUsage("gemini-flash-latest", res, {
+        ...usageMeta,
+        fallback_from: modelId,
+        elapsed_ms: Date.now() - t1,
+      });
       return (res as any).text || "";
     }
     throw e;
