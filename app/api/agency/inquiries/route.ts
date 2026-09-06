@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
+import { loadPostcare } from "@/lib/followup/postcareBoard";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { caseStatusLabel, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
@@ -193,6 +194,19 @@ export async function GET(request: NextRequest) {
     // 첨부 서명 URL — 전 케이스를 한 번에 묶어 서명(개별 호출 N→1)
     const urlByPath = await buildAttachmentUrlMap(rows || []);
 
+    // 환자 활동(2026-09-06): 진행상황 링크에서 환자가 남긴 글·증상 기록·재진 요청.
+    // 지금 실환자는 에이전시가 소통 중이라 «에이전시가 못 보는 환자 활동»은 흐름이 끊긴다. 판정 근거(AI 문장)는 안 내린다.
+    const activityMap = new Map<number, { notes: any[]; symptoms: any[]; requests: any[] }>();
+    try {
+      const pc = await loadPostcare(supabaseAdmin as any, { inquiryIds: ids, days: 60, includeAssessment: false });
+      const get = (id: number) => { if (!activityMap.has(id)) activityMap.set(id, { notes: [], symptoms: [], requests: [] }); return activityMap.get(id)!; };
+      for (const n of pc.notes) get(n.inquiryId).notes.push({ at: n.at, text: n.text });
+      for (const s of pc.symptoms) if (s.inquiryId != null) get(s.inquiryId).symptoms.push({ at: s.createdAt, severity: s.severity, urgency: s.urgency, text: s.text });
+      for (const q of pc.requests) if (q.inquiryId != null && (q.status === "pending" || q.status === "proposed") && q.source === "patient_request") get(q.inquiryId).requests.push({ at: q.createdAt, reason: q.reason });
+    } catch (e: any) {
+      console.warn("[agency/inquiries] 환자 활동 조회 실패(무시):", e?.message);
+    }
+
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
       return {
@@ -214,6 +228,7 @@ export async function GET(request: NextRequest) {
         estimates: estimateMap.get(r.id) || [],
         opinions: opinionMap.get(r.id) || [],
         thread: threadMap.get(r.id) || null,
+        activity: activityMap.get(r.id) || { notes: [], symptoms: [], requests: [] },
         // 환자 계정 연결(claim) — 계정 미연결 케이스만 링크 복사 버튼을 보이기 위한 토큰.
         // user_id 자체는 PII 최소화를 위해 응답에 싣지 않고 boolean 만.
         has_account: !!r.user_id,

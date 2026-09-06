@@ -54,6 +54,13 @@ export default function CoordinatorDashboard() {
         });
         const alertData = await alertRes.json();
         const urgentCount = alertData.ok ? (alertData.total || 0) : 0;
+        // 열린 재진 요청(환자가 누른 것 + 시스템 제안) — 2026-09-06 사후관리 보드
+        let openRequests = 0;
+        try {
+          const pcRes = await fetch('/api/coordinator/postcare?summary=1', { credentials: 'include' });
+          const pc = await pcRes.json();
+          if (pc.ok) openRequests = pc.summary?.openRequests || 0;
+        } catch { /* 카드 하나가 대시보드를 죽이지 않게 */ }
 
         // Fetch 접수 문의 (inquiries) — '대기 인테이크'는 화상상담이 아니라 미처리 문의 수.
         const inboxRes = await fetch('/api/portal/inbox', {
@@ -73,6 +80,7 @@ export default function CoordinatorDashboard() {
           // 를 세어 항상 0에 가깝던 죽은 지표였음(2026-07-15 위생 정리).
           activePatients: scheduled.length,
           urgentAlerts: urgentCount,
+          openRequests,
         });
 
         setUpcomingConsultations(scheduled.slice(0, 5));
@@ -93,6 +101,7 @@ export default function CoordinatorDashboard() {
     { id: 'today-consult', label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-700', href: '/coordinator/consultations' },
     { id: 'scheduled-consult', label: L.statActivePatients, value: stats.activePatients, icon: Video, color: 'bg-purple-50 text-purple-600', href: '/coordinator/consultations' },
     { id: 'urgent-alerts', label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-700', href: '/coordinator/alerts' },
+    { id: 'open-requests', label: L.statOpenRequests, value: stats.openRequests ?? 0, icon: Video, color: 'bg-teal-50 text-teal-700', href: '/coordinator/satisfaction' },
   ];
 
   if (loading) {

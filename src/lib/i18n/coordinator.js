@@ -87,6 +87,7 @@ const CT = {
   statTodayConsult: { ko: "오늘 상담", en: "Today's consultations", ru: "Консультации сегодня", kz: "Бүгінгі консультациялар", zh: "今日咨询", ja: "本日の相談" },
   statActivePatients: { ko: "예정 상담", en: "Upcoming consultations", ru: "Предстоящие консультации", kz: "Алдағы консультациялар", zh: "预定咨询", ja: "予定の相談" },
   statUrgentAlerts: { ko: "긴급 알림", en: "Urgent alerts", ru: "Срочные оповещения", kz: "Шұғыл ескертулер", zh: "紧急提醒", ja: "緊急アラート" },
+  statOpenRequests: { ko: "열린 재진 요청", en: "Open follow-up requests", ru: "Открытые запросы на повторную консультацию", kz: "Ашық қайта кеңес сұраныстары", zh: "待处理复诊申请", ja: "未対応の再診依頼" },
   upcomingConsult: { ko: "예정 상담", en: "Upcoming consultations", ru: "Предстоящие консультации", kz: "Алдағы консультациялар", zh: "即将进行的咨询", ja: "予定の相談" },
   noUpcoming: { ko: "예정된 상담이 없습니다", en: "No upcoming consultations", ru: "Нет предстоящих консультаций", kz: "Алдағы консультациялар жоқ", zh: "暂无即将进行的咨询", ja: "予定の相談はありません" },
   sessionPre: { ko: "사전상담", en: "Pre-consultation", ru: "Предварительная консультация", kz: "Алдын ала консультация", zh: "预咨询", ja: "事前相談" },

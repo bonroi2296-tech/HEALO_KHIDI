@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { syncLeadStatusToCase } from "@/lib/khidi/leadCaseSync";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
+import { loadPostcare } from "@/lib/followup/postcareBoard";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 
@@ -113,6 +114,8 @@ export async function GET(
       clinical: [],
       insurance: null,
       attachments: [],
+      // 환자 최근 활동 요약(2026-09-06) — 병원이 «환자가 지금 어떤 상태인지» 알게. 증상 원문·판정 근거는 코디 몫이라 안 내린다.
+      activity: null as null | { symptoms60d: number; latestUrgency: string | null; latestAt: string | null; openRequests: number },
     };
 
     if (norm?.source_inquiry_id != null) {
@@ -122,6 +125,17 @@ export async function GET(
         .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, treatment_type, cancer_type, message, intake, attachments, insurance_provider, insurance_coverage, insurance_status, lead_quality")
         .eq("id", norm.source_inquiry_id)
         .maybeSingle();
+      let activity: any = null;
+      try {
+        const pc = await loadPostcare(supabase as any, { inquiryIds: [Number(norm.source_inquiry_id)], days: 60, includeAssessment: false });
+        const latest = pc.symptoms[0] || null;
+        activity = {
+          symptoms60d: pc.symptoms.length,
+          latestUrgency: latest?.urgency || null,
+          latestAt: latest?.createdAt || null,
+          openRequests: pc.requests.filter((r) => r.status === "pending" || r.status === "proposed").length,
+        };
+      } catch { /* 요약 하나가 상세를 죽이지 않게 */ }
       if (inqRaw) {
         const inq = await decryptInquiryForAdmin(inqRaw).catch(() => inqRaw);
         detail = {
@@ -136,6 +150,7 @@ export async function GET(
           preferred_date_flex: !!inq.preferred_date_flex,
           message: typeof inq.message === "string" ? inq.message : null,
           clinical: pickDetail(inq.intake),
+          activity,
           insurance: inq.insurance_provider || inq.insurance_coverage || inq.insurance_status
             ? { provider: inq.insurance_provider || null, coverage: inq.insurance_coverage || null, status: inq.insurance_status || null }
             : null,

@@ -320,12 +320,12 @@ for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM2[l] || TR_FORM2.en
 
 // 칩/드롭존 섹션 라벨(인테이크 폼 톤) — 6개 언어.
 const TR_FORM3 = {
-  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 200MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" },
-  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 200MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" },
-  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 200МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" },
-  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 200МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" },
-  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 200MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" },
-  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各200MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" },
+  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 200MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" , lblActivity: "환자 활동 (진행상황 링크)", activityEmpty: "최근 60일 환자가 남긴 글·증상·재진 요청이 없습니다.", actNote: "환자 글", actSymptom: "증상 기록", actRequest: "재진 상담 요청", actSeverity: "심각도", urg_low: "낮음", urg_medium: "주의", urg_high: "확인 필요", urg_emergency: "응급 의심" },
+  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 200MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" , lblActivity: "Patient activity (progress link)", activityEmpty: "No notes, symptoms or follow-up requests from the patient in the last 60 days.", actNote: "Patient note", actSymptom: "Symptom entry", actRequest: "Follow-up consultation request", actSeverity: "Severity", urg_low: "Low", urg_medium: "Watch", urg_high: "Needs attention", urg_emergency: "Possible emergency" },
+  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 200МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" , lblActivity: "Активность пациента (ссылка на статус)", activityEmpty: "За последние 60 дней пациент не оставлял сообщений, симптомов или запросов на консультацию.", actNote: "Сообщение пациента", actSymptom: "Запись о симптомах", actRequest: "Запрос на повторную консультацию", actSeverity: "Тяжесть", urg_low: "Низкая", urg_medium: "Наблюдать", urg_high: "Требует внимания", urg_emergency: "Возможна экстренная ситуация" },
+  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 200МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" , lblActivity: "Науқас белсенділігі (барыс сілтемесі)", activityEmpty: "Соңғы 60 күнде науқастан хабарлама, белгі немесе қайта кеңес сұранысы жоқ.", actNote: "Науқас хабарламасы", actSymptom: "Белгі жазбасы", actRequest: "Қайта кеңес сұранысы", actSeverity: "Ауырлығы", urg_low: "Төмен", urg_medium: "Бақылау", urg_high: "Назар қажет", urg_emergency: "Шұғыл болуы мүмкін" },
+  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 200MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" , lblActivity: "患者动态（进度链接）", activityEmpty: "最近60天患者没有留言、症状记录或复诊申请。", actNote: "患者留言", actSymptom: "症状记录", actRequest: "复诊咨询申请", actSeverity: "严重程度", urg_low: "低", urg_medium: "注意", urg_high: "需要关注", urg_emergency: "疑似紧急" },
+  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各200MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" , lblActivity: "患者の活動（進捗リンク）", activityEmpty: "直近60日間、患者からのメッセージ・症状記録・再診依頼はありません。", actNote: "患者メッセージ", actSymptom: "症状記録", actRequest: "再診相談の依頼", actSeverity: "重症度", urg_low: "低", urg_medium: "注意", urg_high: "要確認", urg_emergency: "緊急の疑い" },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM3[l] || TR_FORM3.en);
 
@@ -1085,6 +1085,9 @@ export default function PartnerPortal({ expected = "agency" }) {
                       )}
                     </div>
 
+                    {/* 환자 활동 — 진행상황 링크에서 환자가 남긴 글·증상·재진 요청 (2026-09-06) */}
+                    <PatientActivity a={c.activity} tt={tt} />
+
                     {/* 액션 + 첨부 (에이전시) / 경과 업로드 (의료기관) */}
                     {!isClinic && <CaseActions c={c} tt={tt} onDone={load} />}
                     {isClinic && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
@@ -1172,6 +1175,40 @@ const CONS_STATUS_KEY = {
 };
 
 // 에이전시 케이스 액션: 견적 보기 / 화상상담 일정 / 문서함 / 화상상담 요청·자료추가 / 코디와 양방향 메신저
+/** 환자 활동 — 에이전시·의료기관이 «환자가 플랫폼에 직접 남긴 것»을 본다. 판정 근거 문장은 코디만 본다. */
+function PatientActivity({ a, tt }) {
+  const notes = a?.notes || [], symptoms = a?.symptoms || [], requests = a?.requests || [];
+  const items = [
+    ...requests.map((r) => ({ kind: "request", at: r.at, text: r.reason || "" })),
+    ...symptoms.map((x) => ({ kind: "symptom", at: x.at, text: x.text, severity: x.severity, urgency: x.urgency })),
+    ...notes.map((n) => ({ kind: "note", at: n.at, text: n.text })),
+  ].sort((x, y) => (x.at < y.at ? 1 : -1)).slice(0, 12);
+  const URG_CLS = { emergency: "bg-red-100 text-red-800", high: "bg-orange-100 text-orange-800", medium: "bg-amber-100 text-amber-800", low: "bg-gray-100 text-gray-600" };
+  return (
+    <div className="mt-4">
+      <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblActivity")}</p>
+      {items.length === 0 ? (
+        <p className="text-xs text-gray-500">{tt("activityEmpty")}</p>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((it, i) => (
+            <li key={i} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                <span className={`rounded-full px-2 py-0.5 font-semibold ${it.kind === "request" ? "bg-teal-100 text-teal-800" : it.kind === "symptom" ? (URG_CLS[it.urgency] || URG_CLS.low) : "bg-gray-100 text-gray-700"}`}>
+                  {it.kind === "request" ? tt("actRequest") : it.kind === "symptom" ? `${tt("actSymptom")} · ${tt("urg_" + (it.urgency || "low"))}` : tt("actNote")}
+                </span>
+                {it.kind === "symptom" && it.severity != null && <span>{tt("actSeverity")} {it.severity}/10</span>}
+                <span>{it.at ? new Date(it.at).toLocaleDateString() : ""}</span>
+              </div>
+              {it.text && <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{it.text}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function CaseActions({ c, tt, onDone }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
