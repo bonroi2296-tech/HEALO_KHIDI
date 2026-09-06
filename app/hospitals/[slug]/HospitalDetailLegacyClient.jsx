@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { getPartnerHospital } from "@/lib/data/partnerHospitals";
+import { pickGalleryImages, normalizeImages } from "@/lib/hospitals/galleryImages";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 
@@ -146,23 +148,6 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     }));
   }, [langCode, hospital?._i18n]);
 
-  const normalizeImages = (raw) => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw.filter(Boolean);
-    if (typeof raw === "string") {
-      const str = raw.trim();
-      if (str.startsWith("[") && str.endsWith("]")) {
-        try {
-          const parsed = JSON.parse(str);
-          if (Array.isArray(parsed)) return parsed.filter(Boolean);
-        } catch (e) {
-          console.warn("Failed to parse image array:", e);
-        }
-      }
-      if (t.startsWith("http")) return [t];
-    }
-    return [];
-  };
 
   useEffect(() => {
     const run = async () => {
@@ -250,17 +235,19 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   }, [hospitalTreatments]);
 
   const allGalleryImages = useMemo(() => {
-    const isPartnerHospital = hospital?.is_partner ?? false;
     const slug = hospital?.slug || selectedId;
-    // 파트너 병원: 폴더 규칙(/images/hospitals/<slug>/1~5.jpg) 5칸 고정.
-    // 폴더에 사진을 넣으면 자동으로 채워지고, 없는 칸은 onError로 플레이스홀더 표시.
-    if (isPartnerHospital && slug) {
-      return [1, 2, 3, 4, 5].map((n) => `/images/hospitals/${slug}/${n}.jpg?v=3`);
-    }
-    const thumb = hospital?.thumbnail_image;
-    const gallery = normalizeImages(hospital?.gallery_images);
-    const legacyImages = normalizeImages(hospital?.images);
-    return [...new Set([thumb, ...gallery, ...legacyImages].filter(Boolean))];
+    // 2026-09-06: 예전엔 파트너 병원을 «/images/hospitals/<slug>/1~5.jpg» 로 지어내 세브란스(3.webp)·고대구로(3.png)의
+    // 세 번째 사진이 방문자마다 깨졌다(실서비스 404 로그). 정적 목록 → DB 목록 → 폴더 규칙 순으로 «있는 파일»을 쓴다.
+    const partner = slug ? getPartnerHospital(slug) : null;
+    return pickGalleryImages({
+      slug,
+      isPartner: hospital?.is_partner ?? false,
+      thumbnail_image: hospital?.thumbnail_image,
+      gallery_images: hospital?.gallery_images,
+      images: hospital?.images,
+      staticImage: partner?.image ?? null,
+      staticGallery: partner?.gallery ?? null,
+    });
   }, [hospital?.is_partner, hospital?.slug, selectedId, hospital?.thumbnail_image, hospital?.gallery_images, hospital?.images]);
 
   const galleryImages = allGalleryImages.slice(0, 5);
