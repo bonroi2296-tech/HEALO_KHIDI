@@ -65,14 +65,14 @@ const BY_PREFIX = {
   seo:  { screen: "검색엔진용 설명", path: null, note: "화면에는 안 보이고 구글 검색 결과에 쓰입니다", noteId: "seoOnly" },
 
   // ── 콘텐츠 파일 문구(2026-09-06 편집기에 편입) — 주소는 아래 dynamicPath 가 slug 로 정한다 ──
-  therapy:  { screen: "치료 안내 상세 · 치료법 카드(모든 암종 화면 공통)", path: "/treatments/female" },
+  therapy:  { screen: "치료 안내 상세 · 치료법 카드(암종마다 5개만 보임)", path: "/treatments" },
   itcrn:    { screen: "치료 안내 상세 · 5축(ITCRN) 설명(모든 암종 화면 공통)", path: "/treatments/female" },
   care:     { screen: "치료 안내 상세 · 수술 후 관리(대장·위암 / 간·췌장암 화면)", path: "/treatments/digest" },
   cancer:    { screen: "치료 안내 상세(암종별)", path: "/treatments" },
   cancerFaq: { screen: "치료 안내 상세 · 자주 묻는 질문(암종별)", path: "/treatments" },
   // 본문은 DB(어드민 병원 번역)가 그리고, 이 파일 문구는 검색 결과·미리보기 카드·구조화데이터에 쓰인다 —
   // 코디가 여기서 고치고 «화면 본문이 안 바뀌네»로 헤매지 않게 비고를 단다.
-  hospital:  { screen: "병원 상세(제휴 병원 소개)", path: "/hospitals", note: "검색 결과·미리보기 카드용 소개입니다 — 병원 상세 본문은 어드민 「병원 번역」에서 고칩니다", noteId: "hospitalMetaOnly" },
+  hospital:  { screen: "병원 상세(제휴 병원 소개)", path: "/hospitals", note: "검색 결과·미리보기 카드용 소개입니다(한국어는 DB 값이 우선) — 병원 상세 본문은 어드민 「병원 번역」에서 고칩니다", noteId: "hospitalMetaOnly" },
 };
 
 // 암종·병원 문구는 키 둘째 마디가 slug 다 → 그 화면 주소를 바로 만든다.

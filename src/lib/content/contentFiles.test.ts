@@ -4,15 +4,18 @@ import {
   CONTENT_FILE_KEYS,
   CONTENT_FILE_ROOTS,
   CONTENT_FILE_LANGS,
+  CONTENT_FILE_THERAPY_REFS,
   getContentFileDefault,
+  therapyPagePath,
 } from "./contentFiles";
+import { getAllPartnerSlugs, getAllPartnerHospitals } from "@/lib/data/partnerHospitals";
 import { mergeContentFiles } from "./contentFileMerge";
 import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
 import { ITCRN_FRAMEWORK } from "@/lib/data/immuneCancerDetails";
 
 describe("콘텐츠 파일 등록부 — 코디가 고칠 수 있는 문구 목록", () => {
   it("치료법·5축·암종·FAQ·수술 후 관리·제휴 병원 문구가 전부 잡히고 키가 겹치지 않는다", () => {
-    expect(CONTENT_FILE_REGISTRY.length).toBeGreaterThan(200);
+    expect(CONTENT_FILE_REGISTRY.length).toBeGreaterThanOrEqual(200);
     expect(CONTENT_FILE_KEYS.size).toBe(CONTENT_FILE_REGISTRY.length);
     for (const prefix of ["therapy", "itcrn", "cancer", "cancerFaq", "care", "hospital"]) {
       expect(CONTENT_FILE_REGISTRY.some((r) => r.prefix === prefix)).toBe(true);
@@ -43,16 +46,42 @@ describe("콘텐츠 파일 등록부 — 코디가 고칠 수 있는 문구 목�
     expect(CONTENT_FILE_KEYS.has("itcrn.immunity.cellular.0")).toBe(false);
   });
 
-  it("이름표는 코드가 아니라 «개체 이름 / 칸 이름»이다", () => {
+  it("이름표는 코드가 아니라 «개체 이름 / 칸 이름»이고, 숫자가 먼저 오는 FAQ 도 번호를 잃지 않는다", () => {
     const r = CONTENT_FILE_REGISTRY.find((x) => x.key === "cancer.female.complications.0.name");
     expect(r?.label).toBe(`${(CONTENT_FILE_ROOTS.cancer as any).female.title.ko} / 합병증1 · 이름`);
-    const h = CONTENT_FILE_REGISTRY.find((x) => x.key === "hospital.immunehospital-magok.description");
-    expect(h?.label.startsWith("면력한방병원 강서점 / ")).toBe(true);
+    // 2026-09-06 리뷰: cancerFaq.female.3.q 가 「여성암 / 질문」으로만 떠 46줄이 서로 구분이 안 됐다
+    const f = CONTENT_FILE_REGISTRY.find((x) => x.key === "cancerFaq.female.3.q");
+    expect(f?.label.endsWith(" / 항목4 · 질문")).toBe(true);
+    expect(f?.whereParts).toEqual({ sectionKey: "cancerFaq", entity: (CONTENT_FILE_ROOTS.cancer as any).female.title.ko, words: [{ f: "items", n: 4 }, { f: "q" }] });
+  });
+
+  it("화면이 안 그리는 칸은 내지 않는다 — therapy.category·mechanism, itcrn.chemoSupport, 병원 address·type", () => {
+    for (const r of CONTENT_FILE_REGISTRY) {
+      expect(/^therapy\.[^.]+\.(category|mechanism)$/.test(r.key), r.key).toBe(false);
+      expect(r.key.startsWith("itcrn.chemoSupport"), r.key).toBe(false);
+      expect(/^hospital\.[^.]+\.(address|type)$/.test(r.key), r.key).toBe(false);
+    }
+    expect(CONTENT_FILE_KEYS.has("therapy.thymosin.description")).toBe(true);
+    expect(CONTENT_FILE_KEYS.has("therapy.thymosin.evidence")).toBe(true);
+  });
+
+  it("제휴 병원은 실제로 열리는 slug(영구이동 제외)만 — 면력 지점은 /hospitals/immune 으로 넘어가 이 문구를 안 읽는다", () => {
+    const live = new Set(getAllPartnerSlugs());
+    const all = getAllPartnerHospitals().map((h: any) => h.slug);
+    expect(all.length).toBeGreaterThan(live.size); // 영구이동 대상이 실제로 있다
+    for (const r of CONTENT_FILE_REGISTRY.filter((x) => x.prefix === "hospital")) expect(live.has(r.id), r.key).toBe(true);
+    expect(CONTENT_FILE_KEYS.has("hospital.immunehospital-magok.description")).toBe(false);
+  });
+
+  it("치료법 「화면에서 보기」는 그 카드를 실제로 그리는 암종 페이지다", () => {
+    expect(therapyPagePath("lowIodideDiet")).toBe("/treatments/thyroid");
+    expect(therapyPagePath("thymosin")).toBe("/treatments/female");
+    expect(therapyPagePath("없는치료법")).toBeNull();
   });
 });
 
 describe("콘텐츠 파일 병합 — 코디 값이 화면에 가는 길", () => {
-  const opt = { roots: CONTENT_FILE_ROOTS, langs: CONTENT_FILE_LANGS };
+  const opt = { roots: CONTENT_FILE_ROOTS, langs: CONTENT_FILE_LANGS, therapyRefs: CONTENT_FILE_THERAPY_REFS };
 
   it("오버라이드가 없으면 파일 값 그대로, 원본은 안 건드린다", () => {
     const m = mergeContentFiles([], opt);
@@ -84,5 +113,25 @@ describe("콘텐츠 파일 병합 — 코디 값이 화면에 가는 길", () =>
     // 다른 치료법 태그는 그대로
     const other = (ITCRN_FRAMEWORK as any).immunity.cellular.find((n: any) => n.ko !== IMMUNE_THERAPIES.thymosin.name.ko);
     expect(m.itcrn.immunity.cellular.find((n: any) => n.ko === other.ko).kz).toBe(other.kz);
+  });
+
+  it("번짐은 «참조 경로»에만 — 우연히 같은 글자인 독립 문구(코디가 따로 고친 것)는 안 건드린다", () => {
+    // 합성 뿌리: 암종 합병증 하나가 치료법 이름과 글자가 같지만 «다른 객체»다
+    const roots: any = {
+      therapy: { thymosin: { name: { ko: "싸이모신α1 요법", ru: "A" } } },
+      itcrn: { immunity: { cellular: [{ ko: "싸이모신α1 요법", ru: "A" }] } },
+      cancer: { female: { complications: [{ name: { ko: "싸이모신α1 요법", ru: "독립" } }] } },
+      cancerFaq: {}, care: {}, hospital: {},
+    };
+    const refs = [{ prefix: "itcrn", path: ["immunity", "cellular", "0"], therapyId: "thymosin" }];
+    const m = mergeContentFiles(
+      [
+        { content_key: "therapy.thymosin.name", lang: "ru", value: "B" },
+        { content_key: "cancer.female.complications.0.name", lang: "ru", value: "코디값" },
+      ],
+      { roots, langs: ["ko", "ru"], therapyRefs: refs }
+    );
+    expect(m.itcrn.immunity.cellular[0].ru).toBe("B"); // 참조 자리는 번진다
+    expect(m.cancers.female.complications[0].name.ru).toBe("코디값"); // 독립 문구는 코디 값 그대로
   });
 });

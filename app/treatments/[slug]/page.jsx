@@ -7,7 +7,7 @@ import {
 } from "@/lib/data/treatments";
 import TreatmentDetailClient from "./TreatmentDetailClient";
 import CancerDetailClient from "./CancerDetailClient";
-import { CANCER_IMAGES } from "@/lib/data/immuneCancerDetails";
+import { CANCER_IMAGES, CANCER_THERAPY_KEYS } from "@/lib/data/immuneCancerDetails";
 // 암종·치료법·5축·FAQ 문구는 코디 편집(content_overrides)이 덮인 사본을 쓴다(2026-09-06) —
 // 파일을 직접 읽으면 코디가 편집기에서 고친 값이 화면·구조화데이터에 안 나온다.
 import { getMergedContentFiles } from "@/lib/content/contentFileOverrides";
@@ -233,7 +233,16 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
         />
         <CancerDetailClient
           slug={slug}
-          content={{ cancer, itcrn: merged.itcrn, therapies: merged.therapies, care: merged.care, faqs }}
+          // 치료법은 이 암종이 그리는 5개만 — 19개 전부 실으면 페이지마다 25KB 가 헛되이 나간다(2026-09-06 리뷰).
+          content={{
+            cancer,
+            itcrn: merged.itcrn,
+            therapies: Object.fromEntries(
+              (CANCER_THERAPY_KEYS[slug] || []).map((id) => [id, merged.therapies[id]]).filter(([, t]) => t)
+            ),
+            care: merged.care,
+            faqs,
+          }}
         />
       </>
     );

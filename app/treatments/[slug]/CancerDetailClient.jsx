@@ -16,28 +16,15 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { localeHref } from "@/lib/i18n/config";
 import { t } from "@/lib/i18n";
 import { priceUnitLabel } from "@/lib/i18n/priceUnit";
-import {
-  CANCER_DETAILS,
-  ITCRN_FRAMEWORK,
-  CANCER_IMAGES,
-  POST_SURGICAL_CARE,
-  CANCER_FAQ,
-} from "@/lib/data/immuneCancerDetails";
-import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
+// 문구(암종·5축·치료법·수술 후 관리·FAQ)는 서버(page.jsx)가 코디 편집을 덮어씌운 사본을 content 로 준다 —
+// 여기서 파일을 직접 import 하면 코디가 고친 값이 안 보이고, 사본과 파일이 번들에 두 벌 실린다(2026-09-06 리뷰).
+import { CANCER_IMAGES, CANCER_THERAPY_KEYS } from "@/lib/data/immuneCancerDetails";
 
 // ── 다국어 표시 문구 ────────────────────────────────────────────
 // CTA(cancerDetail.cta.*)·비용·비자 밴드(cancerDetail.costVisa.*) 카피는 중앙 i18n 사전으로 이동.
 // ⚠️ 비용·비자 카피 톤은 PO 검토 대상(초안). 가격 숫자는 하드코딩 금지 → /cost-calculator로 연결.
 
-// 암종별 관련 치료법 매핑
-const SLUG_THERAPIES = {
-  female: ["thymosin", "nkCell", "highVitaminC", "lymphDrainage", "selenium"],
-  digest: ["thymosin", "lowResidueDiet", "gastrectomyDiet", "hyperthermia", "glutathione"],
-  liver: ["thymosin", "hyperthermia", "placentaExtract", "glutathione", "selenium"],
-  lung: ["thymosin", "infraredHeat", "highVitaminC", "mistletoe", "immunoPlus"],
-  thyroid: ["lowIodideDiet", "thymosin", "lymphDrainage", "selenium", "placentaExtract"],
-  etc: ["nkCell", "hyperthermia", "immunoPlus", "thymosin", "highVitaminC"],
-};
+// 암종별 치료법 카드 목록은 데이터 모듈(CANCER_THERAPY_KEYS) — 편집기 「화면에서 보기」와 같은 표.
 
 // 합병증 → 이미지 매핑 (slug 기준)
 const COMPLICATION_IMAGES = {
@@ -112,23 +99,19 @@ const JOURNEY_STEPS = [
   { num: "05", key: "step5" },
 ];
 
-// content = 서버(page.jsx)가 코디 편집(content_overrides)을 덮어씌워 준 사본. 없으면 파일 기본값(미리보기·옛 호출부).
+// content = 서버(page.jsx)가 코디 편집(content_overrides)을 덮어씌워 준 사본 { cancer, itcrn, therapies(이 암종의 카드만), care, faqs }.
 export default function CancerDetailClient({ slug, content }) {
   const lang = useLang();
   const [openAxis, setOpenAxis] = useState(null);
 
-  const cancer = content?.cancer || CANCER_DETAILS[slug];
-  const itcrn = content?.itcrn || ITCRN_FRAMEWORK;
-  const therapies = content?.therapies || IMMUNE_THERAPIES;
-  const care = content?.care || POST_SURGICAL_CARE;
+  const { cancer, itcrn = {}, therapies = {}, care = {}, faqs = [] } = content || {};
   if (!cancer) return null;
 
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
   const tr = (key) => t(`cancerDetail.${key}`, lang);
 
-  const therapyKeys = SLUG_THERAPIES[slug] || [];
+  const therapyKeys = CANCER_THERAPY_KEYS[slug] || [];
   const complicationImgs = COMPLICATION_IMAGES[slug] || [];
-  const faqs = content?.faqs || CANCER_FAQ[slug] || CANCER_FAQ.etc;
 
   const showPostSurgical = slug === "digest" || slug === "liver";
 

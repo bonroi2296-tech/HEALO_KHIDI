@@ -15,7 +15,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { REGISTRY_KEYS, EDITABLE_LANGS, HOME_CONTENT_REGISTRY, getDefaultValueObject } from "@/lib/content/registry";
 // 콘텐츠 파일 문구(치료법·5축·암종·FAQ·수술 후 관리·제휴 병원) — 2026-09-06 부터 같은 편집기에서 고친다.
-import { CONTENT_FILE_REGISTRY, CONTENT_FILE_KEYS, getContentFileDefault } from "@/lib/content/contentFiles";
+import { CONTENT_FILE_REGISTRY, CONTENT_FILE_KEYS, getContentFileDefault, therapyPagePath } from "@/lib/content/contentFiles";
 import { invalidateContentCache } from "@/lib/content/overrides";
 import { withOldValueDefaults } from "@/lib/content/changeLog";
 import { describeKey } from "@/lib/content/keyLocation";
@@ -30,6 +30,24 @@ const HOME_LABEL = new Map<string, { section: string; label: string }>(
 const FILE_LABEL = new Map<string, { section: string; label: string }>(
   CONTENT_FILE_REGISTRY.map((r: any) => [r.key, { section: r.section, label: r.label }])
 );
+const FILE_PARTS = new Map<string, any>(CONTENT_FILE_REGISTRY.map((r: any) => [r.key, r.whereParts]));
+// 콘텐츠 파일 문구의 「어느 화면·어느 자리」 — describeKey 위에 ①치료법은 «그 카드를 실제로 그리는 암종 페이지» 주소
+// (카드는 암종마다 5개만 그린다) ②코디 언어로 조립할 조각(whereParts)을 얹는다.
+function placeOf(key: string) {
+  const place: any = describeKey(key, homeLabelOf);
+  if (!CONTENT_FILE_KEYS.has(key)) return place;
+  const [head, id] = key.split(".");
+  if (head === "therapy") {
+    const p = therapyPagePath(id);
+    place.path = p;
+    place.reach = p;
+  }
+  place.whereParts = FILE_PARTS.get(key) || null;
+  return place;
+}
+// 검색 결과 상한 안에서 층이 통째로 밀리지 않게 — 사전(≤50)·홈(구역째)·파일(≤60) 을 각자 잘라 넣는다(2026-09-06 리뷰:
+// 「cancer」 한 단어에 파일 165줄이 사전 50줄을 전부 밀어냈다).
+const FILE_MATCH_CAP = 60;
 // 홈·콘텐츠 파일 둘 다 사람 이름표가 있다 — 「어느 화면 / 어느 자리」 조립에 같이 쓴다.
 const homeLabelOf = (k: string) => HOME_LABEL.get(k) || FILE_LABEL.get(k) || null;
 const isLayeredKey = (k: string) => REGISTRY_KEYS.has(k) || CONTENT_FILE_KEYS.has(k);
@@ -76,7 +94,7 @@ export async function GET(request: NextRequest) {
       // 「이게 어느 화면의 무엇인가」를 같이 내려준다 — 코드 이름만으로는 코디가 못 찾는다.
       const withPlace = enriched.map((lg: any) => ({
         ...lg,
-        place: describeKey(lg?.content_key, homeLabelOf),
+        place: placeOf(lg?.content_key),
       }));
       return NextResponse.json({
         ok: true,
@@ -150,7 +168,8 @@ export async function GET(request: NextRequest) {
         if (values) dictMatches.push({ key, section: "화면 텍스트", label: key, values });
       }
 
-      const results = [...homeMatches, ...fileMatches, ...dictMatches].slice(0, 120);
+      const fileTotal = fileMatches.length;
+      const results = [...homeMatches, ...dictMatches, ...fileMatches.slice(0, FILE_MATCH_CAP)].slice(0, 120);
       const merged = results.map((r) => {
         const values: Record<string, string> = {};
         // editedLangs = 코디가 «직접 고친» 언어 목록. 편집기가 줄마다 언어 배지로 표시한다.
@@ -167,7 +186,7 @@ export async function GET(request: NextRequest) {
         // 2026-07-31 PO 지적: 검색 결과가 «costCalc.disclaimer» 같은 코드 이름만 줘서
         // «각각의 텍스트가 어디에 박혀 있는지 찾기가 어렵다». 변경 이력엔 이미 붙어 있던
         // 「어느 화면인가 + 화면 열기」를 검색 결과에도 준다(같은 describeKey 재사용).
-        const place = describeKey(r.key, homeLabelOf);
+        const place = placeOf(r.key);
         // 묶음 제목도 「화면 텍스트」 한 덩어리 대신 화면별로 — 「stage」처럼 넓게 걸리는 말이
         // 수십 줄 나올 때 화면 단위로 갈라져야 눈으로 훑을 수 있다.
         const section =
@@ -179,7 +198,8 @@ export async function GET(request: NextRequest) {
         .map((r, i) => ({ r, i }))
         .sort((a, b) => a.r.section.localeCompare(b.r.section) || a.i - b.i)
         .map(({ r }) => r);
-      return NextResponse.json({ ok: true, results: grouped });
+      // truncated = 상한에 걸려 «못 보여준 줄»이 있다(파일 층). 화면은 검색어를 좁히라는 안내에 쓴다.
+      return NextResponse.json({ ok: true, results: grouped, truncated: fileTotal > FILE_MATCH_CAP || results.length >= 120 });
     }
     return NextResponse.json({ ok: true, results: [] });
   } catch {
