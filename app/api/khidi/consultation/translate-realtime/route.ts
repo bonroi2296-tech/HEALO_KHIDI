@@ -211,6 +211,8 @@ ${text}`,
      *   「얼마나 쓰는지 모른다」가 된다 — 부르는 자리마다 이 헬퍼를 쓴다.
      */
     const gen = async (a: any, extraMeta: Record<string, unknown> = {}) => {
+      // 지연 시간(elapsed_ms) — 2026-09-06 감사: 통역이 몇 초 걸리는지 잰 적이 없었다(시간 칸 부재).
+      const t0 = Date.now();
       const res: any = await rawGen(a);
       void logAiUsage({
         surface: "consult_translate",
@@ -223,6 +225,7 @@ ${text}`,
           source_chars: text.length,
           partial: partial === true,
           finish_reason: res?.finishReason ?? null,
+          elapsed_ms: Date.now() - t0,
           ...extraMeta,
         },
       });
