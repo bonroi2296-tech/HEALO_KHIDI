@@ -823,7 +823,7 @@ add_scenario(doc, {
     '예외 흐름': '• 메일 주소가 없는 소급 등록 케이스 → 환자에게는 못 보내고 코디 알림만\n• 발송 실패 → 기록을 남기지 않아 다음 실행이 재시도\n• 끄기 = env PRE_VISIT_FOLLOWUP_ENABLED=0',
     '화면 경로': 'src/lib/followup/preVisitFollowup.ts · src/lib/email/templates/preVisitFollowup.ts · /app/api/cron/dispatch-surveys',
     'DB 테이블/컬럼': 'case_opinions.released_at(앵커) · reminders_scheduled(reminder_type=pre_visit_followup, payload.phase, status sent|skipped) · inquiries.follow_ups(응답 판정)',
-    '현재 구현 상태': '완료(단위 시험 8건): 도입 첫 실행 예상 — 소견 D+14 구간의 실환자 2명에게 각 1통, 7월 이전 소견 3건은 «지나감»으로만 기록',
+    '현재 구현 상태': '완료(단위 시험 8건) · **발송은 PO 보류로 기본 꺼짐**(2026-09-06 밤 「일단 멈춰」 — 실환자에게 자동 메일이 나가는 것을 보고하자 보류). 켜면 첫 실행에 소견 D+14 구간 실환자 2명에게 각 1통. 판정 로직·기록은 그대로 살아 있다',
 })
 
 add_heading(doc, '18.3 치료 후 사후관리 자동 케이던스 (FN-POST-04)', 2)

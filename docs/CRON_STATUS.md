@@ -15,7 +15,7 @@
 | `/api/cron/detect-cold-leads` | 00:30 | 상담 단계에서 7일 무동작 문의를 코디에게 알림(`COLD_LEAD_DAYS`) | 코디 종 알림 |
 | `/api/cron/daily-deploy` | 06:00 (KST 15:00) | 배포 창구 — 본판 최신 커밋을 production 으로. 판정은 `/api/health` 의 `commit` | Actions 「Daily Deploy」·`/api/health` |
 | `/api/cron/indexnow` | 07:00 | 검색엔진 색인 자동 제출(IndexNow — 빙·얀덱스·네이버). 평일은 3일 안 변경분, 월요일은 전부 | Vercel 크론 로그 `[cron/indexnow]` |
-| `/api/cron/dispatch-surveys` | 09:00 | 만족도 설문 발송(상담 «완료» +24h) + 사후관리 단계별 교육 콘텐츠 발송(D+7/14/30/90/180) + **«방문 전» 케이던스**(소견 전달 D+3·14·30 안부 메일, D+14·30 무응답 코디 알림 — 2026-09-06, 끄기 `PRE_VISIT_FOLLOWUP_ENABLED=0`) | `surveys`·`reminders_scheduled(education_content · pre_visit_followup)` |
+| `/api/cron/dispatch-surveys` | 09:00 | 만족도 설문 발송(상담 «완료» +24h) + 사후관리 단계별 교육 콘텐츠 발송(D+7/14/30/90/180) + **«방문 전» 케이던스**(소견 전달 D+3·14·30 안부 메일, D+14·30 무응답 코디 알림 — 2026-09-06 구현, **⛔ PO 보류로 기본 꺼짐**. 켜기 `PRE_VISIT_FOLLOWUP_ENABLED=1`) | `surveys`·`reminders_scheduled(education_content · pre_visit_followup)` |
 | `/api/cron/detect-silent-patients` | 15:00 | 사후관리 환자가 3일 이상 증상 입력이 없으면 경보(`silence_long`) | 코디 「증상 알림」 |
 | `/api/cron/kpi-snapshot` | 15:05 | 성과지표 일별 스냅샷(`kpi_snapshots`) + 집계 오류 감시 | `/admin/khidi/kpi-dashboard` |
 | `/api/cron/automation` | 16:00 | 플레이북 자동 개선·A/B 확정·해결 뒤 후처리 | `/admin/automation/playbook` |
@@ -41,7 +41,7 @@
 | `KAKAO_BIZ_API_KEY` / `KAKAO_SENDER_KEY` | 카카오 알림톡 | 미도입(없으면 console 모드) |
 | `COLD_LEAD_DAYS` | 식은 문의 판정 일수 | 기본 7 |
 | `CONSULT_RECORDING_ENABLED` | 상담 녹화 켜기 | 기본 꺼짐 |
-| `PRE_VISIT_FOLLOWUP_ENABLED` | 소견 뒤 «방문 전» 케이던스 | 기본 켜짐(0 이면 끔) |
+| `PRE_VISIT_FOLLOWUP_ENABLED` | 소견 뒤 «방문 전» 케이던스 | **기본 꺼짐**(1 이면 켬 — PO 결정 2026-09-06 「일단 멈춰」) |
 | `SYMPTOM_AI_TRIAGE` | 증상 기록 AI 2차 판정 | 기본 켜짐(0 이면 끔) |
 
 ## 리마인더 흐름

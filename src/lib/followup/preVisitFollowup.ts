@@ -18,6 +18,10 @@
  *     이미 코디와 대화 중이다. D+3 안부는 그래도 보낸다.
  *   · 결과(outcome)가 정해졌거나 치료 단계에 들어간 케이스는 대상이 아니다.
  *   · 시험 문의는 대상이 아니다. 메일 주소가 없으면(소급 등록분) 보낼 수 없으니 코디 알림만 남긴다.
+ *   · ⛔ **에이전시 경유 환자(inquiries.agency_id 있음)는 대상이 아니다** — 2026-09-06 PO: «아직은 에이전시 통해
+ *     받은 거고 소통 계속하고 있어서 따로 메일 안 보내도 된다». 그 환자들은 플랫폼 밖(에이전시)으로 대화 중이라
+ *     «무응답»이 아니며, 우리가 직접 메일을 보내면 에이전시와 채널이 겹친다. 직접 접수(웹·메신저) 환자만 본다.
+ *   · 발송 전체는 기본 꺼짐(PRE_VISIT_FOLLOWUP_ENABLED=1 일 때만) — 같은 날 PO 「일단 멈춰」.
  */
 
 import "server-only";
@@ -136,9 +140,11 @@ export async function runPreVisitFollowup(db: SupabaseClient, nowMs: number): Pr
   const ids = [...anchorByInquiry.keys()];
   const { data: inqRows, error: inqErr } = await (db as any)
     .from("inquiries")
-    .select("id, email, first_name, last_name, preferred_language, spoken_language, public_token, outcome, case_status, is_test, follow_ups")
+    .select("id, email, first_name, last_name, preferred_language, spoken_language, public_token, outcome, case_status, is_test, follow_ups, agency_id")
     .in("id", ids)
-    .not("is_test", "is", true);
+    .not("is_test", "is", true)
+    // 에이전시 경유 환자는 에이전시가 소통 중 — 우리가 끼어들지 않는다(PO 2026-09-06)
+    .is("agency_id", null);
   if (inqErr) throw new Error(`inquiries 조회 실패: ${inqErr.message}`);
 
   // 2) 이미 나간·지나간 단계(멱등 키)
