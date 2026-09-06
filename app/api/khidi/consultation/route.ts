@@ -280,6 +280,7 @@ export async function GET(request: NextRequest) {
         scheduled_at,
         started_at,
         ended_at,
+        livekit_duration_seconds,
         status,
         inquiry_id,
         is_test,

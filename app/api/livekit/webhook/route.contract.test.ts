@@ -18,9 +18,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockState: {
   event: any;
   sessionRow?: { id: string; started_at?: string | null } | null;
+  /** consultation_admissions 조회 결과(room_finished 의 «손님 전부 나갔나» 판정용) */
+  admissionRows: Array<{ left_at: string | null; requested_at: string }>;
+  /** 입장 대장 조회를 실패시킨다(502 재시도 유도 계약) */
+  admissionError: { message: string } | null;
+  /** select 에 걸린 필터 기록(테이블별) */
+  selectFilters: Array<{ table: string; field: string; val: any }>;
 } = {
   event: null,
   sessionRow: null,
+  admissionRows: [],
+  admissionError: null,
+  selectFilters: [],
 };
 vi.mock("livekit-server-sdk", () => ({
   WebhookReceiver: class {
@@ -45,28 +54,30 @@ const calls: Call[] = [];
 vi.mock("@/lib/data/supabaseServerClient", () => ({
   getSupabaseServerClient: () => ({
     from: (table: string) => ({
-      select: (_cols: string) => ({
-        eq: (_field: string, _val: any) => ({
-          // 실제 코드는 limit(1) 로 조회한다 — maybeSingle 은 같은 방 이름 행이 2개면 에러를
-          // 내고 data 를 null 로 만들어 "그런 방 없음"과 구별이 안 되기 때문(POSTMORTEMS #105).
-          // 목도 배열을 돌려주는 실제 모양으로 맞춘다.
-          limit: async (_n: number) => ({
-            data: mockState.sessionRow ? [mockState.sessionRow] : [],
-            error: null,
-          }),
-          maybeSingle: async () => ({
-            data: mockState.sessionRow ?? null,
-            error: null,
-          }),
-        }),
-      }),
+      select: (_cols: string) => {
+        // 실제 코드는 limit(1) 로 조회한다 — maybeSingle 은 같은 방 이름 행이 2개면 에러를
+        // 내고 data 를 null 로 만들어 "그런 방 없음"과 구별이 안 되기 때문(POSTMORTEMS #105).
+        // 목도 배열을 돌려주는 실제 모양으로 맞춘다. eq 는 체인(입장 대장은 eq 두 번).
+        const chain: any = {
+          eq: (field: string, val: any) => {
+            mockState.selectFilters.push({ table, field, val });
+            return chain;
+          },
+          limit: async (_n: number) =>
+            table === "consultation_admissions"
+              ? { data: mockState.admissionError ? null : mockState.admissionRows, error: mockState.admissionError }
+              : { data: mockState.sessionRow ? [mockState.sessionRow] : [], error: null },
+          maybeSingle: async () => ({ data: mockState.sessionRow ?? null, error: null }),
+        };
+        return chain;
+      },
       update: (payload: any) => {
         const rec: Call = { table, update: payload, filters: [] };
         calls.push(rec);
         const builder: any = {
           then: (resolve: any) => resolve({ data: null, error: null }),
         };
-        for (const op of ["eq", "is", "lt"]) {
+        for (const op of ["eq", "is", "lt", "or"]) {
           builder[op] = (field: string, val: any) => {
             rec.filters.push({ op, field, val });
             if (op === "eq" && rec.eqField === undefined) {
@@ -106,6 +117,9 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     calls.length = 0;
     mockState.event = null;
     mockState.sessionRow = null;
+    mockState.admissionRows = [];
+    mockState.admissionError = null;
+    mockState.selectFilters.length = 0;
   });
 
   it("room_finished 는 관측용 통화시간만 쓴다(status·실적 컬럼 불변)", async () => {
@@ -309,5 +323,218 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     const res = await POST(makeReq({ event: "recording_finished" }));
     expect((await res.json()).ok).toBe(true);
     expect(calls.length).toBe(0);
+  });
+  // ── 2026-09-06 통화시간 부풀림 2종 회귀 잠금 ─────────────────────────────────────────
+  // 실측: 8/04 실환자 상담 «76,319초(21시간)» — 전날 시험 입장의 started_at 이 남아 있었다.
+  //       9/01 파트너 미팅 «15,324초(4.3시간)» — 손님 전부 나간 뒤 진행자 탭이 좀비로 남았다.
+  //       7/31 파트너 미팅 «324,432초(90시간)» — 같은 좀비.
+
+  it("participant_joined — started_at 이 «이전 방 인스턴스» 것이면 덮어쓰고 종료 표시·길이를 지운다", async () => {
+    const POST = await loadPost();
+    const creationSec = Math.floor(Date.parse("2026-08-04T05:48:00.000Z") / 1000);
+    const joinedSec = Math.floor(Date.parse("2026-08-04T05:53:04.000Z") / 1000);
+    mockState.event = {
+      event: "participant_joined",
+      room: { name: "consult-abc", numParticipants: 2, creationTime: BigInt(creationSec) },
+      participant: { identity: "guest-2" },
+      createdAt: BigInt(joinedSec),
+    };
+
+    const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+
+    expect(calls.length).toBe(1);
+    // LiveKit 시계(event.createdAt)로 기록 — creationTime 과 같은 시계
+    expect(calls[0].update.started_at).toBe("2026-08-04T05:53:04.000Z");
+    // 이전 인스턴스의 종료 표시·길이는 지운다(청소기가 새 방을 다시 볼 수 있게)
+    expect(calls[0].update.livekit_ended_at).toBeNull();
+    expect(calls[0].update.livekit_duration_seconds).toBeNull();
+    expect(calls[0].update.status).toBeUndefined(); // 자동완료 금지 계약 유지
+    // 필터: 방 매칭 + (비어 있거나 OR 이 방 생성 이전이거나)
+    const orFilter = calls[0].filters.find((f) => f.op === "or");
+    expect(orFilter?.field).toBe("started_at.is.null,started_at.lt.2026-08-04T05:48:00Z");
+    expect(calls[0].filters.some((f) => f.op === "is")).toBe(false);
+  });
+
+  it("participant_joined — creationTime 이 안 실려 오면 옛 방식(비어 있을 때만)으로 기록한다", async () => {
+    const POST = await loadPost();
+    mockState.event = {
+      event: "participant_joined",
+      room: { name: "consult-abc", numParticipants: 2 },
+      participant: { identity: "guest-2" },
+    };
+    const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(1);
+    const ops = calls[0].filters.map((f) => `${f.op}:${f.field}`);
+    expect(ops).toContain("is:started_at");
+    expect(calls[0].filters.some((f) => f.op === "or")).toBe(false);
+  });
+
+  it("room_finished — started_at 이 이 방 인스턴스보다 앞이면(혼자 방) 아무것도 안 쓴다 (8/04 21시간 회귀 + 직전 통화 보호)", async () => {
+    const POST = await loadPost();
+    // 전날 시험 입장 시각이 남아 있고, 오늘 방은 그 뒤에 새로 만들어졌다
+    mockState.sessionRow = { id: "sess-stale", started_at: "2026-08-03T09:18:58.000Z" };
+    mockState.event = {
+      event: "room_finished",
+      room: {
+        name: "consult-abc",
+        creationTime: BigInt(Math.floor(Date.parse("2026-08-04T04:26:00.000Z") / 1000)),
+      },
+      createdAt: Math.floor(Date.parse("2026-08-04T06:30:57.000Z") / 1000),
+    };
+
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    // 2명이 된 적 없는 방 → 직전 통화 기록(시작·종료·길이)을 한 글자도 안 건드린다.
+    // (처음 수정안은 길이만 null 로 썼는데, 그러면 어제 30분 실통화가 오늘 혼자 재입장으로 지워진다 — 독립 리뷰)
+    expect(calls.length).toBe(0);
+  });
+
+  it("room_finished — 손님이 전부 나갔으면 마지막 퇴장까지만 통화다 (9/01 4.3시간 좀비 회귀)", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "sess-zombie", started_at: "2026-09-01T09:22:15.000Z" };
+    mockState.admissionRows = [
+      { left_at: "2026-09-01T09:54:23.000Z", requested_at: "2026-09-01T09:20:10.000Z" },
+      { left_at: "2026-09-01T09:54:28.000Z", requested_at: "2026-09-01T09:22:12.000Z" },
+      { left_at: "2026-09-01T09:54:25.000Z", requested_at: "2026-09-01T09:34:12.000Z" },
+    ];
+    mockState.event = {
+      event: "room_finished",
+      room: {
+        name: "meeting-1",
+        creationTime: BigInt(Math.floor(Date.parse("2026-09-01T09:20:00.000Z") / 1000)),
+      },
+      // 3시간 청소기가 닫은 시각
+      createdAt: Math.floor(Date.parse("2026-09-01T13:37:40.000Z") / 1000),
+    };
+
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(1);
+    // 09:22:15 → 09:54:28 = 1933초. 15,324초(4.3시간)가 아니다
+    expect(calls[0].update.livekit_duration_seconds).toBe(1933);
+    // 종료 시각 자체는 관측 그대로(방이 실제로 닫힌 시각)
+    expect(calls[0].update.livekit_ended_at).toBe("2026-09-01T13:37:40.000Z");
+    // 승인된 행만 본다(대기·거절은 방에 들어온 적이 없다)
+    expect(mockState.selectFilters).toContainEqual({ table: "consultation_admissions", field: "status", val: "approved" });
+  });
+
+  it("room_finished — 손님 대장이 비었거나(직원끼리) 한 명이라도 안 나갔으면 종전대로 방 종료까지", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "sess-staff", started_at: "2026-09-01T09:00:00.000Z" };
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "meeting-2" },
+      createdAt: Math.floor(Date.parse("2026-09-01T09:30:00.000Z") / 1000),
+    };
+    let res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.livekit_duration_seconds).toBe(1800);
+
+    // 한 명은 left_at 이 없다(퇴장 웹훅 유실) → 상한을 못 정하므로 종전 값
+    calls.length = 0;
+    mockState.admissionRows = [
+      { left_at: "2026-09-01T09:10:00.000Z", requested_at: "2026-09-01T09:00:00.000Z" },
+      { left_at: null, requested_at: "2026-09-01T09:05:00.000Z" },
+    ];
+    res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.livekit_duration_seconds).toBe(1800);
+  });
+
+  it("room_finished — 손님 대장이 시작보다 «앞»(어제 손님)이면 상한으로 안 쓴다(0초로 뭉개지지 않게)", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "sess-yday", started_at: "2026-09-02T09:00:00.000Z" };
+    mockState.admissionRows = [{ left_at: "2026-09-01T09:54:28.000Z", requested_at: "2026-09-01T09:20:00.000Z" }];
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "meeting-3" },
+      createdAt: Math.floor(Date.parse("2026-09-02T09:20:00.000Z") / 1000),
+    };
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.livekit_duration_seconds).toBe(1200);
+  });
+  it("room_finished — 방 생성과 «같은 초»에 2명이 된 통화는 모름으로 뭉개지 않는다(ms 생성 시각 내림)", async () => {
+    const POST = await loadPost();
+    // started_at 은 초 단위(event.createdAt), creationTimeMs 는 같은 초의 700ms
+    mockState.sessionRow = { id: "sess-same-sec", started_at: "2026-09-02T09:00:00.000Z" };
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "meeting-4", creationTimeMs: BigInt(Date.parse("2026-09-02T09:00:00.700Z")) },
+      createdAt: Math.floor(Date.parse("2026-09-02T09:20:00.000Z") / 1000),
+    };
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.livekit_duration_seconds).toBe(1200);
+  });
+  it("participant_joined — 인원수를 모르는 옛 방식 경로에선 새 인스턴스여도 «비어 있을 때만» (혼자 시험 입장이 직전 실통화를 못 지우게)", async () => {
+    const POST = await loadPost();
+    mockState.event = {
+      event: "participant_joined",
+      room: {
+        name: "consult-abc",
+        // numParticipants 없음 → countKnown=false, creationTime 은 있음
+        creationTime: BigInt(Math.floor(Date.parse("2026-09-02T09:00:00.000Z") / 1000)),
+      },
+      participant: { identity: "staff-1" },
+    };
+    const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(1);
+    expect(calls[0].filters.some((f) => f.op === "or")).toBe(false);
+    expect(calls[0].filters.map((f) => `${f.op}:${f.field}`)).toContain("is:started_at");
+  });
+
+  it("room_finished — 어제 손님 대장(방 생성 전에 나감·퇴장 유실)은 이 인스턴스 판정에서 뺀다", async () => {
+    const POST = await loadPost();
+    const creation = "2026-09-02T09:00:00.000Z";
+    mockState.sessionRow = { id: "sess-mixed", started_at: "2026-09-02T09:01:00.000Z" };
+    mockState.admissionRows = [
+      // 어제 손님: 나갔음(방 생성 전) → 제외
+      { left_at: "2026-09-01T10:00:00.000Z", requested_at: "2026-09-01T09:30:00.000Z" },
+      // 어제 손님: 퇴장 웹훅 유실(left_at 없음), 요청은 하루 전 → 제외(있으면 «전부 나감»이 영영 거짓)
+      { left_at: null, requested_at: "2026-09-01T09:31:00.000Z" },
+      // 오늘 손님: 방 생성 20초 전에 요청(첫 입장자) → 포함, 09:31 에 나감
+      { left_at: "2026-09-02T09:31:00.000Z", requested_at: "2026-09-02T08:59:40.000Z" },
+    ];
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "meeting-5", creationTime: BigInt(Math.floor(Date.parse(creation) / 1000)) },
+      createdAt: Math.floor(Date.parse("2026-09-02T12:05:00.000Z") / 1000), // 청소기
+    };
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.livekit_duration_seconds).toBe(1800); // 09:01 → 09:31
+  });
+
+  it("room_finished — 입장 대장 조회가 실패하면 502 로 재시도를 유도한다(조용히 부풀린 값을 쓰지 않는다)", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "sess-err", started_at: "2026-09-01T09:22:15.000Z" };
+    mockState.admissionError = { message: "connection reset" };
+    mockState.event = {
+      event: "room_finished",
+      room: { name: "meeting-6" },
+      createdAt: Math.floor(Date.parse("2026-09-01T13:37:40.000Z") / 1000),
+    };
+    const res = await POST(makeReq({ event: "room_finished" }));
+    expect(res.status).toBe(502);
+    expect(calls.length).toBe(0);
+  });
+
+  it("participant_left — left_at 도 LiveKit 시계(event.createdAt)로 적는다(재시도돼도 같은 값)", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "session-123" };
+    const leftSec = Math.floor(Date.parse("2026-09-01T09:54:28.000Z") / 1000);
+    mockState.event = {
+      event: "participant_left",
+      room: { name: "khidi-room-1" },
+      participant: { identity: "guest-guest-abc12345-dev1", joinedAt: leftSec - 1800 },
+      createdAt: BigInt(leftSec),
+    };
+    const res = await POST(makeReq({ event: "participant_left" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls[0].update.left_at).toBe("2026-09-01T09:54:28.000Z");
   });
 });
