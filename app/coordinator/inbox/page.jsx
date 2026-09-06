@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import {
   Inbox, User, Globe, AlertCircle, CheckCircle2,
   Calendar, ChevronRight, RefreshCw, MessageSquare,
+  Ban,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { caseDelayDays } from "@/lib/khidi/caseStatus";
@@ -104,16 +105,17 @@ export default function CoordinatorInboxPage() {
   const closedCount = items.length - active.length;
   const filtered = items.filter((item) => {
     if (filter === "closed") return item.outcome === "lost";
+    // 종료된 환자가 다시 글을 남기면(«실은 오고 싶다») 그건 종료 탭에 묻히면 안 된다 — 환자 새 글은 종료와 무관하게 센다.
+    if (filter === "patient_unread") return !!item.patient_unread_since;
     if (item.outcome === "lost") return false;
     if (filter === "step1_only") return item.step1_completed_at && !item.step2_completed_at;
     if (filter === "step2_done") return !!item.step2_completed_at;
-    if (filter === "patient_unread") return !!item.patient_unread_since;
     return true;
   });
 
   const step1OnlyCount = active.filter((i) => i.step1_completed_at && !i.step2_completed_at).length;
-  // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다.
-  const patientUnreadCount = active.filter((i) => !!i.patient_unread_since).length;
+  // 환자가 진행상황 링크로 글을 남겼는데 직원이 아직 안 열어본 건. 서버가 열람 기록과 대조해 준다. 종료된 건 포함.
+  const patientUnreadCount = items.filter((i) => !!i.patient_unread_since).length;
   // 「환자 새 글」 탭을 보다가 마지막 건을 열고 돌아오면 0건 = 탭이 사라진다. 그때 필터가 그 탭에 남아 있으면
   // 빈 화면만 남고 어느 탭도 안 켜져 있다(독립 리뷰 2026-09-05) → «전체»로 되돌린다.
   useEffect(() => {
@@ -367,7 +369,7 @@ export default function CoordinatorInboxPage() {
                             className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-700 shrink-0"
                             title={item.outcome_note || L.inboxClosedBadge}
                           >
-                            🚫 {L.inboxClosedBadge}
+                            <Ban size={12} /> {L.inboxClosedBadge}
                           </span>
                         )}
                       </div>

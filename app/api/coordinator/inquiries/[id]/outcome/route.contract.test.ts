@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const h = vi.hoisted(() => ({ calls: [] as any[], authOk: true }));
+const h = vi.hoisted(() => ({ calls: [] as any[], authOk: true, result: null as any }));
 
 vi.mock("@/lib/auth/requirePortalAuth", () => ({
   requirePortalAuth: async () =>
@@ -16,7 +16,8 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({ supabaseAdmin: { tag: "admin-client"
 vi.mock("@/lib/khidi/inquiryOutcome", () => ({
   setInquiryOutcome: async (db: any, input: any) => {
     h.calls.push({ db, input });
-    return { ok: true, caseStatus: input.outcome === "lost" ? "on_hold" : "consultation" };
+    if (h.result) return h.result;
+    return { ok: true, caseStatus: input.outcome === "lost" ? "on_hold" : "consultation", caseStatusNote: input.outcome === "lost" ? (input.note || "종료(안 옴)") : undefined };
   },
 }));
 
@@ -30,14 +31,14 @@ const req = (body: any) =>
     body: JSON.stringify(body),
   }) as any;
 
-beforeEach(() => { h.calls = []; h.authOk = true; });
+beforeEach(() => { h.calls = []; h.authOk = true; h.result = null; });
 
 describe("coordinator/outcome", () => {
   it("종료: setInquiryOutcome 을 holdOnLost 로 부르고 단계=보류를 돌려준다", async () => {
     const res = await POST(req({ outcome: "lost", note: "안 온다고 함" }), ctx("37"));
     const j = await res.json();
     expect(res.status).toBe(200);
-    expect(j).toEqual({ ok: true, id: 37, outcome: "lost", case_status: "on_hold" });
+    expect(j).toEqual({ ok: true, id: 37, outcome: "lost", case_status: "on_hold", case_status_note: "안 온다고 함", unchanged: false });
     expect(h.calls[0].input).toEqual({ inquiryId: 37, outcome: "lost", note: "안 온다고 함", userId: "u1", holdOnLost: true });
     expect(h.calls[0].db).toEqual({ tag: "admin-client" });
   });
@@ -54,6 +55,17 @@ describe("coordinator/outcome", () => {
       expect((await res.json()).error).toBe("invalid_body");
     }
     expect(h.calls).toHaveLength(0);
+  });
+
+  it("helper 오류는 코드형 상태로 — not_found 404 · already_arrived 409 · update_failed 500", async () => {
+    for (const [error, status] of [["not_found", 404], ["already_arrived", 409], ["update_failed", 500]] as const) {
+      h.result = { ok: false, error, caseStatus: error === "already_arrived" ? "treatment" : null };
+      const res = await POST(req({ outcome: "lost" }), ctx("37"));
+      expect(res.status, error).toBe(status);
+      const j = await res.json();
+      expect(j.error).toBe(error);
+      expect(JSON.stringify(j)).not.toMatch(/message|stack/);
+    }
   });
 
   it("id 가 숫자가 아니면 400, 인증 실패면 그 응답 그대로", async () => {

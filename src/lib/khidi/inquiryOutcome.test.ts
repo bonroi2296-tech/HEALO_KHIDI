@@ -18,7 +18,7 @@ function fakeDb() {
       let op: any = null;
       b.select = () => b;
       b.eq = () => b;
-      b.maybeSingle = async () => ({ data: h.before, error: null });
+      b.maybeSingle = async () => ({ data: h.before, error: null }); // before=null 이면 «없는 문의»
       b.update = (patch: any) => { op = { table, patch }; return b; };
       b.insert = async (row: any) => { h.inserts.push({ table, row }); return { error: null }; };
       b.then = (resolve: any) => { if (op) h.updates.push(op); return resolve({ error: null }); };
@@ -32,7 +32,7 @@ beforeEach(() => { h.before = { case_status: "consultation", outcome: null }; h.
 describe("setInquiryOutcome — 결과 한 곳에서", () => {
   it("코디 「종료(안 옴)」: 결과=lost + 단계=보류 + 이력 «🚫 이탈 처리 — 메모»", async () => {
     const r = await setInquiryOutcome(fakeDb(), { inquiryId: 37, outcome: "lost", note: "  소견 전달 후 안 온다고 함 ", userId: "u1", holdOnLost: true });
-    expect(r).toEqual({ ok: true, caseStatus: "on_hold" });
+    expect(r).toEqual({ ok: true, caseStatus: "on_hold", caseStatusNote: "소견 전달 후 안 온다고 함" });
     const outcomeUpdate = h.updates.find((u) => "outcome" in u.patch)!.patch;
     expect(outcomeUpdate.outcome).toBe("lost");
     expect(outcomeUpdate.outcome_note).toBe("소견 전달 후 안 온다고 함");
@@ -72,6 +72,43 @@ describe("setInquiryOutcome — 결과 한 곳에서", () => {
     const r = await setInquiryOutcome(fakeDb(), { inquiryId: 5, outcome: "admitted", userId: "u2" });
     expect(r).toEqual({ ok: true, caseStatus: "treatment" });
     expect(h.advance).toEqual([{ id: 5, to: "treatment", note: "🎯 유치 확정", uid: "u2" }]);
+    expect(h.inserts).toHaveLength(0);
+  });
+
+  it("없는 문의는 not_found — 0행 갱신을 성공으로 속이지 않는다", async () => {
+    h.before = null;
+    const r = await setInquiryOutcome(fakeDb(), { inquiryId: 999999, outcome: "lost", userId: "u1", holdOnLost: true });
+    expect(r).toEqual({ ok: false, error: "not_found", caseStatus: null });
+    expect(h.updates).toHaveLength(0);
+    expect(h.inserts).toHaveLength(0);
+  });
+
+  it("이미 입국·치료 이후면 코디 종료(holdOnLost)는 already_arrived — 점수판(holdOnLost 없음)은 막지 않는다", async () => {
+    for (const st of ["treatment", "follow_up", "completed"]) {
+      h.before = { case_status: st, outcome: null }; h.updates = [];
+      const r = await setInquiryOutcome(fakeDb(), { inquiryId: 1, outcome: "lost", userId: "u1", holdOnLost: true });
+      expect(r, st).toEqual({ ok: false, error: "already_arrived", caseStatus: st });
+      expect(h.updates).toHaveLength(0);
+    }
+    h.before = { case_status: "completed", outcome: null }; h.updates = [];
+    const r = await setInquiryOutcome(fakeDb(), { inquiryId: 1, outcome: "lost", userId: "u1" });
+    expect(r.ok).toBe(true);
+    expect(r.caseStatus).toBe("completed");
+  });
+
+  it("같은 결과를 다시 보내면 이력·단계는 안 건드린다 — null→null 은 아무것도 안 쓰고, lost→lost 는 메모만", async () => {
+    h.before = { case_status: "on_hold", outcome: null };
+    let r = await setInquiryOutcome(fakeDb(), { inquiryId: 1, outcome: null, userId: "u1", holdOnLost: true });
+    expect(r).toEqual({ ok: true, caseStatus: "on_hold", unchanged: true });
+    expect(h.updates).toHaveLength(0);
+    expect(h.inserts).toHaveLength(0);
+
+    h.before = { case_status: "on_hold", outcome: "lost" };
+    r = await setInquiryOutcome(fakeDb(), { inquiryId: 1, outcome: "lost", note: "새 메모", userId: "u1", holdOnLost: true });
+    expect(r).toEqual({ ok: true, caseStatus: "on_hold", unchanged: true });
+    expect(h.updates).toHaveLength(1);
+    expect(h.updates[0].patch).toEqual(expect.objectContaining({ outcome_note: "새 메모" }));
+    expect("outcome" in h.updates[0].patch).toBe(false);
     expect(h.inserts).toHaveLength(0);
   });
 

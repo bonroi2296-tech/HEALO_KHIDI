@@ -223,7 +223,7 @@ export async function PATCH(request: NextRequest) {
     // admitted 의 단계 전진(입국·치료)·«누가 언제»까지 그쪽이 맡는다. 점수판의 이탈은 단계를 그대로 둔다(holdOnLost 없음).
     const r = await setInquiryOutcome(supabaseAdmin, { inquiryId: Number(inquiryId), outcome, note, userId: auth.userId ?? null });
     if (!r.ok) {
-      const status = r.error === "invalid_outcome" ? 400 : 500;
+      const status = r.error === "invalid_outcome" ? 400 : r.error === "not_found" ? 404 : 500;
       return NextResponse.json({ ok: false, error: r.error ?? "update_failed" }, { status });
     }
 

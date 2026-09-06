@@ -3,6 +3,7 @@
  *
  * POST /api/coordinator/inquiries/[id]/outcome  { outcome: "lost" | null, note?: string }
  *  - "lost": 결과=이탈 + 진행 단계=보류 + 이력 «🚫 이탈 처리». 식은 문의 알림에서 빠지고 목록 «종료» 탭으로 간다.
+ *            이미 입국·치료 이후 단계면 409 already_arrived — «안 온 것»이 아니다.
  *  - null : 결과만 비운다(단계는 코디가 다시 고른다).
  *  - 유치 확정(admitted)은 여기서 못 한다 — 단계를 «입국·치료»로 올리면 자동 집계된다(cases 라우트).
  *
@@ -15,6 +16,8 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { setInquiryOutcome } from "@/lib/khidi/inquiryOutcome";
+
+const ERROR_STATUS: Record<string, number> = { invalid_outcome: 400, not_found: 404, already_arrived: 409, update_failed: 500 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -47,11 +50,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       holdOnLost: true,
     });
     if (!r.ok) {
-      return Response.json({ ok: false, error: r.error ?? "update_failed" }, { status: r.error === "invalid_outcome" ? 400 : 500 });
+      const error = r.error ?? "update_failed";
+      return Response.json({ ok: false, error, case_status: r.caseStatus }, { status: ERROR_STATUS[error] ?? 500 });
     }
     // 전환 집계(이탈 N건)가 걸린 값이라 «누가 언제»를 남긴다.
-    console.info(`[coordinator/outcome] inquiry=${id} outcome=${outcome} by=${auth.email || auth.userId}`);
-    return Response.json({ ok: true, id: Number(id), outcome, case_status: r.caseStatus });
+    console.info(`[coordinator/outcome] inquiry=${id} outcome=${outcome} unchanged=${!!r.unchanged} by=${auth.email || auth.userId}`);
+    return Response.json({
+      ok: true,
+      id: Number(id),
+      outcome,
+      case_status: r.caseStatus,
+      case_status_note: r.caseStatusNote ?? null,
+      unchanged: !!r.unchanged,
+    });
   } catch (err: any) {
     console.error("[coordinator/outcome] error:", err?.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
