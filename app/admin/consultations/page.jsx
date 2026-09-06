@@ -34,6 +34,7 @@ const supabase = createSupabaseBrowserClient();
 const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
 const TR = {
   ko: {
+    callMinutesTpl: "실통화 {min}분",
     errAuth: "인증 오류. 다시 로그인하세요.", errLoadFailedTpl: "상담 로딩 실패: {msg}", errLoadFailed: "상담 로딩 실패",
     errAuthSimple: "인증 오류", errInviteFailedTpl: "상담 링크 생성 실패: {msg}", errInviteFailed: "상담 링크 생성 실패",
     errJoinBlocked: "상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.",
@@ -66,6 +67,7 @@ const TR = {
     toastNewConsultCreated: "상담 예약이 생성되었습니다",
   },
   en: {
+    callMinutesTpl: "Call {min} min",
     errAuth: "Authentication error. Please log in again.", errLoadFailedTpl: "Failed to load consultations: {msg}", errLoadFailed: "Failed to load consultations",
     errAuthSimple: "Authentication error", errInviteFailedTpl: "Failed to create consultation link: {msg}", errInviteFailed: "Failed to create consultation link",
     errJoinBlocked: "Couldn't issue a consultation link, so we stopped before entering. Refresh (or log in again) and try again.",
@@ -98,6 +100,7 @@ const TR = {
     toastNewConsultCreated: "The consultation was scheduled",
   },
   ru: {
+    callMinutesTpl: "Звонок {min} мин",
     errAuth: "Ошибка авторизации. Войдите снова.", errLoadFailedTpl: "Не удалось загрузить консультации: {msg}", errLoadFailed: "Не удалось загрузить консультации",
     errAuthSimple: "Ошибка авторизации", errInviteFailedTpl: "Не удалось создать ссылку на консультацию: {msg}", errInviteFailed: "Не удалось создать ссылку на консультацию",
     errJoinBlocked: "Не удалось выдать ссылку на консультацию, вход остановлен. Обновите страницу (или войдите снова) и попробуйте ещё раз.",
@@ -130,6 +133,7 @@ const TR = {
     toastNewConsultCreated: "Консультация запланирована",
   },
   kz: {
+    callMinutesTpl: "Қоңырау {min} мин",
     errAuth: "Аутентификация қатесі. Қайта кіріңіз.", errLoadFailedTpl: "Кеңестерді жүктеу сәтсіз: {msg}", errLoadFailed: "Кеңестерді жүктеу сәтсіз",
     errAuthSimple: "Аутентификация қатесі", errInviteFailedTpl: "Кеңес сілтемесін жасау сәтсіз: {msg}", errInviteFailed: "Кеңес сілтемесін жасау сәтсіз",
     errJoinBlocked: "Кеңес сілтемесі шығарылмады, кіру тоқтатылды. Бетті жаңартып (немесе қайта кіріп) қайталап көріңіз.",
@@ -162,6 +166,7 @@ const TR = {
     toastNewConsultCreated: "Кеңес жоспарланды",
   },
   zh: {
+    callMinutesTpl: "通话 {min} 分钟",
     errAuth: "身份验证错误，请重新登录。", errLoadFailedTpl: "会诊加载失败：{msg}", errLoadFailed: "会诊加载失败",
     errAuthSimple: "身份验证错误", errInviteFailedTpl: "会诊链接创建失败：{msg}", errInviteFailed: "会诊链接创建失败",
     errJoinBlocked: "会诊链接生成失败，已停止进入。请刷新（或重新登录）后再试。",
@@ -194,6 +199,7 @@ const TR = {
     toastNewConsultCreated: "会诊预约已创建",
   },
   ja: {
+    callMinutesTpl: "通話 {min} 分",
     errAuth: "認証エラー。再度ログインしてください。", errLoadFailedTpl: "相談の読み込みに失敗しました: {msg}", errLoadFailed: "相談の読み込みに失敗しました",
     errAuthSimple: "認証エラー", errInviteFailedTpl: "相談リンクの作成に失敗しました: {msg}", errInviteFailed: "相談リンクの作成に失敗しました",
     errJoinBlocked: "相談リンクを発行できなかったため入室を中止しました。再読み込み（または再ログイン）後、もう一度お試しください。",
@@ -795,6 +801,14 @@ export default function ConsultationsPage() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
+                          {/* 기계가 관측한 실통화 길이(webhook). 2026-09-06 까지 기록만 하고 아무 화면에도
+                              안 보였다 — 21시간·90시간 같은 부풀림을 아무도 못 본 이유. 실적 컬럼이 아니다. */}
+                          {Number.isFinite(consultation.livekit_duration_seconds) &&
+                            consultation.livekit_duration_seconds > 0 && (
+                              <span className="ml-2 text-xs text-gray-500">
+                                · {fmt(tt("callMinutesTpl"), { min: Math.round(consultation.livekit_duration_seconds / 60) })}
+                              </span>
+                            )}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">

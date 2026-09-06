@@ -23,6 +23,26 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { WebhookReceiver } from "livekit-server-sdk";
 
+/**
+ * 방 «인스턴스» 생성 시각(ms). LiveKit 은 같은 이름의 방을 닫았다 다시 열면 새 인스턴스를 만들고
+ * creationTime 을 새로 찍는다 → «어제 시험 입장의 started_at» 이 «오늘 실상담 방» 것인지 가르는 기준.
+ * 값이 안 실려 오면 0(모름) — 호출부는 옛 방식(started_at IS NULL 에만 기록)으로 돈다.
+ */
+function roomCreatedMs(room: any): number {
+  // ⚠️ 초 단위로 내림한다. started_at 은 event.createdAt(초 단위)로 적히므로, 방 생성과 같은 초에
+  //    2명이 됐을 때 ms 짜리 생성 시각과 비교하면 «시작이 생성보다 앞»으로 잘못 판정된다.
+  const ms = Number(room?.creationTimeMs ?? 0);
+  if (Number.isFinite(ms) && ms > 0) return Math.floor(ms / 1000) * 1000;
+  const sec = Number(room?.creationTime ?? 0);
+  return Number.isFinite(sec) && sec > 0 ? Math.floor(sec) * 1000 : 0;
+}
+
+/** 이벤트 생성 시각(ms, LiveKit 시계). 없으면 우리 수신 시각. 재시도해도 같은 값이 나온다. */
+function eventAtMs(event: any): number {
+  const sec = Number(event?.createdAt ?? 0);
+  return Number.isFinite(sec) && sec > 0 ? sec * 1000 : Date.now();
+}
+
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 
@@ -72,10 +92,7 @@ export async function POST(request: NextRequest) {
         //
         // 시각은 event.createdAt(LiveKit 이 이벤트를 만든 시각, 초)을 쓴다 — 우리 수신 시각을
         // 쓰면 LiveKit 이 재시도할 때마다 값이 달라져 같은 통화가 매번 길어진다.
-        const eventAtSec = Number((event as any).createdAt || 0);
-        const endedAtIso = new Date(
-          eventAtSec > 0 ? eventAtSec * 1000 : Date.now()
-        ).toISOString();
+        const endedAtIso = new Date(eventAtMs(event)).toISOString();
 
         const { data: finishedRows, error: finishedErr } = await supabase
           .from("consultation_sessions")
@@ -90,10 +107,41 @@ export async function POST(request: NextRequest) {
         if (finished?.id) {
           // 아무도 안 들어온 방(started_at 없음)은 통화가 없었던 것 → 길이는 null 로 둔다.
           // 0 으로 적으면 «0분 통화했다»로 읽혀 나중에 평균을 왜곡한다.
+          //
+          // 2026-09-06 실측으로 잡은 부풀림 2종(실환자 상담 «21시간», 파트너 미팅 «4.3시간»·«90시간»):
+          //  ① started_at 이 «이전 방 인스턴스» 것 — 전날 시험 입장(2명)에 박힌 시각이 그대로 남아
+          //     오늘 실상담 종료 시각까지 이어 붙었다(8/04 실환자 상담: 실제 ~40분 → 76,319초).
+          //     기준: started_at < 이 방의 creationTime 이면 이 인스턴스에서 «2명이 된 순간»은
+          //     기록된 적이 없다 → 모름(null). (입장 쪽에서 새 인스턴스면 덮어쓰도록 같이 고쳤다.)
+          //  ② 손님이 전부 나간 뒤 진행자 탭 혼자 남아 좀비가 됐고, 3시간 청소기(closeStaleRooms)가
+          //     닫은 시각까지가 통화로 잡혔다(9/01 파트너 미팅: 실제 32분 → 4시간 15분).
+          //     기준: 입장 대장(consultation_admissions)의 손님이 전부 나갔으면(left_at 전부 있음)
+          //     마지막 손님이 나간 시각까지만 통화다 — 혼자 남은 진행자는 통화가 아니다.
+          //     대장이 비었거나(직원끼리 회의) 한 명이라도 left_at 이 없으면 종전대로 방 종료 시각.
           const startedMs = finished.started_at ? Date.parse(finished.started_at) : NaN;
-          const durationSec = Number.isFinite(startedMs)
-            ? Math.max(0, Math.round((Date.parse(endedAtIso) - startedMs) / 1000))
-            : null;
+          const createdMs = roomCreatedMs(event.room);
+          let durationSec: number | null = null;
+          if (Number.isFinite(startedMs) && createdMs > 0 && startedMs < createdMs) {
+            console.warn(
+              `[livekit/webhook] ${roomName} started_at(${finished.started_at}) 이 이 방 인스턴스(${new Date(createdMs).toISOString()}) 이전 → 통화시간 모름(null)`
+            );
+          } else if (Number.isFinite(startedMs)) {
+            let endMs = Date.parse(endedAtIso);
+            const { data: admRows } = await supabase
+              .from("consultation_admissions")
+              .select("left_at")
+              .eq("consultation_id", finished.id)
+              .limit(500);
+            const adm = (admRows as Array<{ left_at: string | null }> | null) || [];
+            if (adm.length && adm.every((a) => a.left_at)) {
+              const lastLeftMs = Math.max(...adm.map((a) => Date.parse(a.left_at as string)));
+              // 마지막 퇴장이 시작보다 «뒤»일 때만 — 앞이면 그 대장은 이전 인스턴스(어제 손님) 것이다.
+              if (Number.isFinite(lastLeftMs) && lastLeftMs > startedMs && lastLeftMs < endMs) {
+                endMs = lastLeftMs;
+              }
+            }
+            durationSec = Math.max(0, Math.round((endMs - startedMs) / 1000));
+          }
           const { error: durErr } = await supabase
             .from("consultation_sessions")
             .update({
@@ -141,12 +189,31 @@ export async function POST(request: NextRequest) {
             `[livekit/webhook] ${roomName} 인원수 값 없음(raw=${String(rawCount)}) → 옛 방식(첫 입장)으로 기록`
           );
         }
-        // 2명이 된 첫 순간에만 기록(.is("started_at", null)) — 중간에 한 명 나갔다 들어와도 안 밀린다.
-        const { error: startErr } = await supabase
+        // 2명이 된 첫 순간에만 기록 — 중간에 한 명 나갔다 들어와도 안 밀린다.
+        // 2026-09-06: «첫 순간»의 기준을 «이 방 인스턴스 안에서»로 좁혔다. 전날 시험 입장(2명)의
+        //   started_at 이 남아 있으면 오늘 실상담은 «시작 없음»으로 남고, 종료 때 통화시간이 하루치로
+        //   부풀었다(8/04 실환자 상담 76,319초). started_at 이 이 방의 creationTime 보다 앞이면
+        //   이전 인스턴스 것이므로 덮어쓰고, 그 인스턴스의 종료 표시·길이도 지운다(청소기가 새 방을
+        //   다시 볼 수 있어야 한다 — livekit_ended_at 이 남아 있으면 후보에서 빠진다).
+        //   creationTime 이 안 실려 오면 옛 방식(비어 있을 때만).
+        // 시각은 LiveKit 시계(event.createdAt)로 — creationTime 과 같은 시계라 비교가 어긋나지 않고,
+        //   재시도돼도 같은 값이다(room_finished 와 같은 이유).
+        const createdMs = roomCreatedMs(event.room);
+        let startQuery = supabase
           .from("consultation_sessions")
-          .update({ started_at: new Date().toISOString() } as any)
-          .eq("livekit_room_name", roomName)
-          .is("started_at", null);
+          .update({
+            started_at: new Date(eventAtMs(event)).toISOString(),
+            livekit_ended_at: null,
+            livekit_duration_seconds: null,
+          } as any)
+          .eq("livekit_room_name", roomName);
+        startQuery =
+          createdMs > 0
+            ? startQuery.or(
+                `started_at.is.null,started_at.lt.${new Date(createdMs).toISOString().replace(/\.\d{3}Z$/, "Z")}`
+              )
+            : startQuery.is("started_at", null);
+        const { error: startErr } = await startQuery;
         if (startErr) {
           // 위 participant_left 와 같은 이유로 실패를 알린다(로그만 남기면 1시간 뒤 증발 =
           // 이 기능이 막으려던 «시작 시각 유실»이 그대로 재발). LiveKit 이 재시도한다.
