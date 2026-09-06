@@ -19,7 +19,8 @@ export interface EducationEmailProps {
   recipientName?: string;
   phaseLabel: string;
   items: EducationEmailItem[];
-  lang?: "ko" | "en" | "ru" | "kk" | "zh" | "ja";
+  /** 내부 코드 kz(카자흐어)·BCP47 kk 둘 다 받는다 — 부르는 쪽이 어느 표기를 넘겨도 같은 문구. */
+  lang?: "ko" | "en" | "ru" | "kz" | "kk" | "zh" | "ja";
 }
 
 const STRINGS: Record<
@@ -60,7 +61,7 @@ const STRINGS: Record<
     disclaimer:
       "Это общая информация о здоровье, а не диагноз или назначение. При появлении симптомов обратитесь к врачу или в местную скорую помощь.",
   },
-  kk: {
+  kz: {
     subject: (p) => `[healwith] ${p} — денсаулық нұсқаулығы`,
     greeting: (n) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
     intro: (p) => `Емнен кейінгі ${p} күтім нұсқаулығын жіберіп отырмыз.`,
@@ -106,7 +107,10 @@ export function renderEducationEmail(props: EducationEmailProps): {
   html: string;
   text: string;
 } {
-  const s = STRINGS[props.lang || "ru"] || STRINGS.ru;
+  // kz(내부 코드)와 kk(BCP47) 는 같은 언어. 2026-09-06 까지는 키가 kk 뿐이라 부르는 쪽(dispatch-surveys 의
+  // normalizeSurveyLang)이 kz→kk 로 바꿔 줘야만 카자흐어였고, 매핑을 빠뜨린 새 호출부는 조용히 러시아어로 떨어지는 덫이었다.
+  const langKey = props.lang === "kk" ? "kz" : props.lang;
+  const s = STRINGS[langKey || "ru"] || STRINGS.ru;
   const name = props.recipientName || "";
   const items = props.items || [];
 

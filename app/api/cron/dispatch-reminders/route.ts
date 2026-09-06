@@ -184,10 +184,11 @@ async function dispatchEmail(
 
   const scheduledAt = session?.scheduled_at ?? row.fire_at;
   const payload = row.payload as Record<string, string>;
-  // 카자흐: 앱·DB 는 활성코드 'kz' 를 쓰지만 리마인더 템플릿 키는 'kk'(설문과 동일 경계 매핑).
-  // 매핑 안 하면 'kz' 가 템플릿에서 'ko' 로 폴백돼 카자흐 환자에게 한국어 리마인더가 발송됨(POSTMORTEMS #23).
+  // 카자흐: 앱·DB 는 활성코드 'kz', BCP47 은 'kk'. 예전엔 템플릿 키가 'kk' 뿐이라 여기서 kz→kk 로 바꿔 줬고,
+  // 안 바꾸면 'kz' 가 템플릿에서 'ko' 로 폴백돼 카자흐 환자에게 한국어 리마인더가 발송됐다(POSTMORTEMS #23).
+  // 2026-09-06 부터 템플릿이 kz·kk 를 다 받고 모르는 값은 ko 로 내리므로, 여기서는 표기를 바꾸지도 거르지도 않는다.
+  // ⚠️ 여기 화이트리스트를 다시 두려면 'kz' 와 'kk' 둘 다 넣어라 — 매핑을 빼면서 옛 목록(kk 만)을 남겼다가 kz 가 ko 로 떨어질 뻔했다(같은 날 잡음).
   const rawLang = (payload.lang ?? session?.patient_language ?? "ko");
-  const lang = (rawLang === "kz" ? "kk" : rawLang) as any;
 
   // 입장 URL
   const baseUrl = siteUrl();
@@ -199,7 +200,7 @@ async function dispatchEmail(
     joinUrl,
     scheduledAt,
     role: payload.role ?? "guest",
-    lang: ["ko", "en", "ru", "kk", "zh", "ja"].includes(lang) ? lang : "ko",
+    lang: rawLang as any, // 템플릿이 kz·kk·미지원 값을 정규화한다(consultationReminder.ts)
   });
 
   const result = await sendEmail({ to: address, subject, html, text });
