@@ -65,6 +65,7 @@ for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
 (function walkHospital(node, prefix) {
   if (!node || typeof node !== "object") return;
   if (LANGS.some((l) => typeof node[l] === "string")) return checkLocalized(`HOSPITAL.${prefix}`, node);
+  if (LANGS.some((l) => Array.isArray(node[l]))) return checkLocalizedArray(`HOSPITAL.${prefix}`, node); // process[].goals 같은 배열 잎
   for (const [k, v] of Object.entries(node)) walkHospital(v, prefix ? `${prefix}.${k}` : k);
 })(IMMUNE_HOSPITAL, "");
 

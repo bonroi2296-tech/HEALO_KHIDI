@@ -27,7 +27,7 @@
  * @property {"locked"|"proposed"} status
  * @property {string} why     왜 이 표기인지 — 코디네이터가 판단할 수 있게 근거를 적는다
  * @property {Record<string,string>} use    언어별 써야 하는 표기
- * @property {Record<string,string[]>} avoid 언어별 쓰면 안 되는 표기(정규식 아님 — 단어 그대로)
+ * @property {Record<string,string[]>} avoid 언어별 쓰면 안 되는 표기(정규식 아님 — 단어 그대로. 끝의 * 만 «어간 매칭» 표식)
  * @property {string[]} [exceptKeys] 이 규칙을 적용하지 않는 사전 키(접두어 일치)
  */
 
@@ -174,7 +174,9 @@ export function glossaryPrompt(lang) {
   if (!rows.length) return "";
   const line = (e) => {
     const use = e.use?.[lang] ? `use "${e.use[lang]}"` : "";
-    const avoid = e.avoid?.[lang]?.length ? ` / never "${e.avoid[lang].join('", "')}"` : "";
+    // 「пациент*」의 * 는 검사기(check-i18n-quality)의 어간 매칭 표식이다 — 모델에겐 «어떤 굴절형이든»으로 풀어 준다.
+    const words = (e.avoid?.[lang] || []).map((w) => (w.endsWith("*") ? `${w.slice(0, -1)} (in any inflected form)` : w));
+    const avoid = words.length ? ` / never "${words.join('", "')}"` : "";
     return `- ${e.ko}: ${use}${avoid}${e.status === "proposed" ? " (preferred)" : " (REQUIRED)"}`;
   };
   return [

@@ -155,7 +155,7 @@ function factTokens(input) {
   // 단위는 «말로 잘 안 옮기는» 물리·기술 단위와 층·인실만 — 분·회·명·단계·개월은 원어민이 «одной минуты·бес кезең»처럼 말로
   // 옮기는 게 자연스러워 넣으면 정상 번역 15건이 빨개졌다(실측). 비교는 «숫자»로만(unit:8) — 단위 표기는 언어마다 달라도 되고,
   // 번역 쪽은 맨 한 자리 수·수사(одн·бір·one·一 …)도 have 로 친다(detectLostFacts).
-  eat(new RegExp(String.raw`(?<!\d)(\d)(?:[.,]\d+)?\s?(?:MHz|㎒|МГц|°C|℃|%|mg|мг|ml|мл|kg|кг|cm|см|mm|мм|층|인실|этаж|қабат|階|层)`, "gi"),
+  eat(new RegExp(String.raw`(?<!\d)(\d)(?!\d)(?:[.,]\d{1,2}(?!\d))?\s?(?:MHz|㎒|МГц|°C|℃|%|mg|мг|ml|мл|kg|кг|cm|см|mm|мм|층|인실|этаж|қабат|階|层)`, "gi"),
     (m) => `unit:${m[1]}`);
 
   // 맨 숫자. 천단위 구분(뒤 3자리)만 «붙이고», 나머지 쉼표·마침표는 «자른다».
@@ -168,17 +168,23 @@ function factTokens(input) {
   return [...new Set(out)];
 }
 
-// 한 자리 수를 말(수사)로 옮긴 것 — 「1인실 → одноместные」「5단계 → бес кезең」. 뜻이 같으면 사실 유실이 아니다.
+// 한 자리 수를 말(수사)로 옮긴 것 — 「1인실 → одноместные」「1인실 → бір орындық палата」. 뜻이 같으면 사실 유실이 아니다.
+// ⚠️ JS 의 \b 는 ASCII 전용이라 키릴에 안 먹는다(독립 리뷰 2026-09-06 실증) → (?<!\p{L}) … (?!\p{L}) 로 단어를 가른다.
+//    그리고 「тр[иех]」처럼 느슨하면 «центре» 가 3 을 살려 준 척한다 → 굴절형을 «전부 나열»한다. 중국어·일본어는 수사 뒤에 양사가
+//    붙을 때만(一个·一つ) — 「一」「に」 같은 낱글자는 아무 문장에나 있다.
+const numWord = (alts) => new RegExp(`(?<!\\p{L})(?:${alts})(?!\\p{L})`, "iu");
+const cjkNum = (digits) => new RegExp(`[${digits}](?=[个人层次周天月位家种间室項つ階回週日か月ヶ種件個名])`, "u");
 const NUMBER_WORDS = {
-  1: /одн[аоиуые]|один|\bбір\b|\bone\b|\bsingle\b|[一１]|ひと|いち/i,
-  2: /дв[аеух]|\bекі\b|\btwo\b|[二两２]|ふた|に/i,
-  3: /тр[иех]|\bүш\b|\bthree\b|[三３]|さん|みっ/i,
-  4: /четыр|\bтөрт\b|\bfour\b|[四４]|よん|し/i,
-  5: /пят|\bбес\b|\bfive\b|[五５]|ご/i,
-  6: /шест|\bалты\b|\bsix\b|[六６]|ろく/i,
-  7: /сем[ьи]|\bжеті\b|\bseven\b|[七７]|なな|しち/i,
-  8: /восем|восьм|\bсегіз\b|\beight\b|[八８]|はち/i,
-  9: /девят|\bтоғыз\b|\bnine\b|[九９]|きゅう/i,
+  // одноместн-·однократн- 같은 «одно-» 합성어만 허용(однако 는 「그러나」라 안 된다)
+  1: [numWord("одноместн\\p{L}*|однократн\\p{L}*|одноразов\\p{L}*|одн(?:а|о|у|ой|им|их|ого|ому|ими)|один|бір|one|single"), cjkNum("一１")],
+  2: [numWord("дв(?:а|е|ух|ум|умя|ое|оих)|екі|two|double"), cjkNum("二两２")],
+  3: [numWord("тр(?:и|ёх|ех|ём|ем|емя|ое)|үш|three"), cjkNum("三３")],
+  4: [numWord("четыр(?:е|ёх|ех|ём|ем|ьмя|о)|төрт|four"), cjkNum("四４")],
+  5: [numWord("пят(?:ь|и|ью|еро)|бес|five"), cjkNum("五５")],
+  6: [numWord("шест(?:ь|и|ью|еро)|алты|six"), cjkNum("六６")],
+  7: [numWord("сем(?:ь|и|ью|еро)|жеті|seven"), cjkNum("七７")],
+  8: [numWord("восем(?:ь|и|ью)|восьм(?:и|ью)|сегіз|eight"), cjkNum("八８")],
+  9: [numWord("девят(?:ь|и|ью)|тоғыз|nine"), cjkNum("九９")],
 };
 
 function detectLostFacts(ko, translated) {
@@ -190,7 +196,7 @@ function detectLostFacts(ko, translated) {
     if (have.has(t)) return false;
     const eq = FACT_EQUIVALENTS.find((e) => e.token === t);
     if (eq && eq.any.some((re) => re.test(translated))) return false; // 말로 옮긴 것 — 통과
-    if (t.startsWith("unit:") && NUMBER_WORDS[t.slice(5)]?.test(String(translated))) return false; // 수사로 옮긴 것 — 통과
+    if (t.startsWith("unit:") && NUMBER_WORDS[t.slice(5)]?.some((re) => re.test(String(translated)))) return false; // 수사로 옮긴 것 — 통과
     return true;
   });
 }
@@ -324,6 +330,12 @@ function selftest() {
     ["미번역 — 키릴 있으면 통과", () => detectUntranslatedLatin("Форма healwith") === false],
     ["사실 유실 — 단위 붙은 한 자리 수(8MHz)도 사실", () => detectLostFacts("8MHz 고주파 온열", "Жоғары жиілікті жылу").length === 1 && detectLostFacts("8MHz 고주파 온열", "8 МГц жоғары жиілікті жылу").length === 0],
     ["사실 유실 — 한 자리 수를 수사로 옮긴 것은 통과(1인실 → одноместные), 아예 빠지면 잡는다", () => detectLostFacts("1인실 기준", "одноместные палаты").length === 0 && detectLostFacts("1인실 기준", "палаты").length === 1],
+    ["사실 유실 — 카자흐어 수사(бір)도 통과(\\b 가 키릴에 안 먹는 문제)", () => detectLostFacts("1인실 기준", "бір орындық палаталар").length === 0],
+    ["사실 유실 — «однако»(그러나)는 1 을 살려 주지 않는다", () => detectLostFacts("1인실 기준", "однако палаты").length === 1],
+    ["사실 유실 — 느슨한 수사 매칭 금지: «центре» 가 3 을 살려 주면 안 된다", () => detectLostFacts("3층 치료실", "лечебные кабинеты в центре").length === 1 && detectLostFacts("3층 치료실", "кабинеты на трёх этажах").length === 0],
+    ["사실 유실 — 중국어·일본어는 수사+양사만(一个 통과, 낱글자 一 는 안 살려 줌)", () => detectLostFacts("1인실", "一个房间").length === 0 && detectLostFacts("1인실", "统一房间").length === 1],
+    ["사실 유실 — 천단위 숫자(1,000mg)는 한 자리 규칙이 삼키지 않는다", () => detectLostFacts("비타민 C 1,000mg", "витамин C 100 мг").length === 1 && detectLostFacts("비타민 C 1,000mg", "витамин C 1000 мг").length === 0],
+    ["배열 잎 평탄화 — {ko:[…]} 도 언어별 문자열로 펴진다", () => { const o = flattenHomeContent({ goals: { ko: ["가", "나"], ru: ["А", "Б"] } }, "x", {}); return o["x.goals"]?.ru === "А · Б"; }],
     ["용어집 어간 매칭 — пациент* 가 격어미 붙은 꼴을 잡는다", () => detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "гастрэктомия пациенттерінде").length === 1 && detectGlossary([{ id: "t", status: "locked", use: { kz: "науқас" }, avoid: { kz: ["пациент*"] } }], "kz", "k", "науқастарында").length === 0],
     ["kz=ru 검출", () => detectKzEqualsRu("Иммунная Клиника Кансо", "Иммунная Клиника Кансо") === true],
     ["kz=ru 공통용어는 통과", () => detectKzEqualsRu("Химиотерапия", "Химиотерапия") === false],
@@ -385,6 +397,15 @@ function flattenHomeContent(node, prefix, out) {
     if (SEEN_LEAVES.has(node)) return out;
     SEEN_LEAVES.add(node);
     out[prefix] = node;
+    return out;
+  }
+  // 배열 잎({ko:[…], en:[…]} — 목표·칩 목록)은 언어별로 이어 붙여 문자열 잎처럼 본다(리뷰 3차: 안 보이던 자리).
+  if (Array.isArray(node.ko) || Array.isArray(node.ru)) {
+    if (SEEN_LEAVES.has(node)) return out;
+    SEEN_LEAVES.add(node);
+    const joined = {};
+    for (const [lang, arr] of Object.entries(node)) if (Array.isArray(arr)) joined[lang] = arr.join(" · ");
+    out[prefix] = joined;
     return out;
   }
   for (const [k, v] of Object.entries(node)) {
