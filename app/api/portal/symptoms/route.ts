@@ -16,7 +16,8 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { findOwnInquiryIdsForUser } from "@/lib/portal/ownInquiries";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { analyzeSymptomsWithAi } from "@/lib/followup/aiTriage";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 /** DB 검사규칙 symptom_reports_report_type_check 가 허용하는 값. 여기 없는 값은 저장이 거부된다. */
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
         payload.additionalNotes || payload.symptoms?.[0]?.notes || undefined,
     };
 
-    const analysis = analyzeSymptoms(report);
+    const analysis = await analyzeSymptomsWithAi(report);
 
     const { data, error } = await supabaseAdmin
       .from("symptom_reports")

@@ -56,6 +56,7 @@ import {
 import { renderEducationEmail } from "@/lib/email/templates/educationContent";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
+import { runPreVisitFollowup, type RunResult as PreVisitResult } from "@/lib/followup/preVisitFollowup";
 import { decryptMaybe, encryptStringNullable } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
@@ -617,6 +618,19 @@ export async function GET(request: NextRequest) {
     console.warn("[cron/dispatch-surveys] unclosed nudge 실패(무시):", err?.message);
   }
 
+  // ── «방문 전» 사후관리 케이던스 (2026-09-06 PO «사후관리 3대 보완») ─────────────────
+  // 소견을 받고 아직 한국에 오지 않은 환자에게 D+3·D+14·D+30 안부·다음 단계 메일 + 무응답 코디 알림.
+  // 같은 크론에 붙인다(새 정기 실행을 만들지 않는다). 실패는 본업을 죽이지 않게 흡수하되 응답에 남긴다.
+  let preVisit: PreVisitResult | { failed: true; error: string } = { casesChecked: 0, sent: 0, skipped: 0, nudged: 0, noEmail: 0, errors: [] };
+  if (process.env.PRE_VISIT_FOLLOWUP_ENABLED !== "0") {
+    try {
+      preVisit = await runPreVisitFollowup(db as any, now);
+    } catch (err: any) {
+      preVisit = { failed: true, error: String(err?.message || err) };
+      console.warn("[cron/dispatch-surveys] pre-visit followup 실패(무시):", err?.message);
+    }
+  }
+
   // KHIDI 데드맨 스위치: KPI 일일 집계 누락 감지(이 cron은 kpi-snapshot과 다른 시간대라
   // kpi-snapshot 트리거가 죽어도 여기서 잡아 Sentry 경보). 본업에 영향 없게 흡수.
   let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
@@ -639,6 +653,7 @@ export async function GET(request: NextRequest) {
     skipped,
     unclosed,
     unclosedCheckFailed,
+    preVisit,
     errors,
     kpiHealth,
     surveyHealth,
