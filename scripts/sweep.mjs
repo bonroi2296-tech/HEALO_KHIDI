@@ -774,6 +774,43 @@ async function 검사_밖에서온관리자접근() {
   );
 }
 
+/**
+ * 공개 병원 표(hospitals.i18n)에 «비어 있는 언어 칸»이 있나.
+ *
+ * 왜 (2026-09-06): 면력한방병원 성동점 행이 ru·kz·zh·ja 설명·전문분야가 비어 있었다 — 같은 지점 3곳은 다 차 있는데
+ *   이 행만 이름·태그·위치뿐이었다. 화면은 정적 파일(partnerHospitals.js)이 이겨서 안 보였지만, 어드민 번역 패널·
+ *   AI 보강기·앞으로 DB 를 읽게 될 화면은 한국어 본문으로 떨어진다. 코드 검사(check:cancer-i18n)는 파일만 보고
+ *   DB 는 아무도 안 봤다. 매일 도는 이 창구가 서비스 열쇠를 갖고 있으니 여기서 잰다.
+ *
+ * 판정: 활성·공개 병원마다 6개 언어의 description(문자열)·specialties(비어 있지 않은 배열)가 있어야 한다.
+ */
+async function 검사_병원표번역빈칸() {
+  const client = sb();
+  if (!client) return add("hospi18n", "공개 병원 표의 번역 빈 칸", "못 잼", "SUPABASE_SERVICE_ROLE_KEY 없음");
+  const { data, error } = await client.from("hospitals").select("slug, is_active, is_published, i18n");
+  if (error) return add("hospi18n", "공개 병원 표의 번역 빈 칸", "못 잼", `조회 실패: ${String(error.message).slice(0, 60)}`);
+  const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
+  const 빈칸 = [];
+  let 병원수 = 0;
+  for (const h of data || []) {
+    if (h.is_active === false || h.is_published === false) continue;
+    병원수++;
+    for (const l of LANGS) {
+      const b = h.i18n?.[l] || {};
+      if (!(typeof b.description === "string" && b.description.trim())) 빈칸.push(`${h.slug}.${l}.description`);
+      if (!(Array.isArray(b.specialties) && b.specialties.length)) 빈칸.push(`${h.slug}.${l}.specialties`);
+    }
+  }
+  add(
+    "hospi18n",
+    "공개 병원 표의 번역 빈 칸",
+    빈칸.length ? "볼 것" : "통과",
+    빈칸.length
+      ? `${빈칸.length}칸 비어 있음 — ${빈칸.slice(0, 6).join(", ")}${빈칸.length > 6 ? " …" : ""} → 어드민 「병원」 번역 패널에서 채워라(정적 파일 partnerHospitals.js 에 같은 병원이 있으면 그 문장 그대로)`
+      : `활성·공개 병원 ${병원수}곳 × 6개 언어 × 2칸 전부 차 있음`,
+  );
+}
+
 const 검사들 = [
   ["where", 검사_재는자리],
   ["pii", 검사_평문개인정보],
@@ -784,6 +821,7 @@ const 검사들 = [
   ["env", 검사_환경변수이름],
   ["deploy", 검사_미배포],
   ["cron", 검사_예약작업],
+  ["hospi18n", 검사_병원표번역빈칸],
   ["app", 검사_앱미반영],
   ["ios", 검사_아이폰미반영],
   ["stale", 검사_묵은막힘],
