@@ -5,7 +5,9 @@ import {
   getHospitalBySlug,
   getHospitalSlugById,
 } from "@/lib/data/hospitals";
-import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
+import { convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
+// 제휴 병원 정적 문구(이름·설명·주소)는 코디 편집이 덮인 사본을 쓴다(2026-09-06).
+import { getMergedContentFiles } from "@/lib/content/contentFileOverrides";
 import HospitalDetailClient from "./HospitalDetailClient";
 import { localeAlternates, getRequestLocale, pickLocalized, ogLocaleFields } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
@@ -48,7 +50,7 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const { locale } = await getRequestLocale();
   const lc = locale || "en";
-  const partner = getPartnerHospital(slug);
+  const partner = (await getMergedContentFiles()).hospitals[slug] || null;
 
   // Try DB first
   const hospital = slug
@@ -145,7 +147,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
 
   const { locale } = await getRequestLocale();
   const lc = locale || "en";
-  const partner = getPartnerHospital(slug);
+  const partner = (await getMergedContentFiles()).hospitals[slug] || null;
 
   // Try DB first
   const hospital = slug

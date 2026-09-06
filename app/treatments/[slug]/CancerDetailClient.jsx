@@ -112,11 +112,15 @@ const JOURNEY_STEPS = [
   { num: "05", key: "step5" },
 ];
 
-export default function CancerDetailClient({ slug }) {
+// content = 서버(page.jsx)가 코디 편집(content_overrides)을 덮어씌워 준 사본. 없으면 파일 기본값(미리보기·옛 호출부).
+export default function CancerDetailClient({ slug, content }) {
   const lang = useLang();
   const [openAxis, setOpenAxis] = useState(null);
 
-  const cancer = CANCER_DETAILS[slug];
+  const cancer = content?.cancer || CANCER_DETAILS[slug];
+  const itcrn = content?.itcrn || ITCRN_FRAMEWORK;
+  const therapies = content?.therapies || IMMUNE_THERAPIES;
+  const care = content?.care || POST_SURGICAL_CARE;
   if (!cancer) return null;
 
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
@@ -124,7 +128,7 @@ export default function CancerDetailClient({ slug }) {
 
   const therapyKeys = SLUG_THERAPIES[slug] || [];
   const complicationImgs = COMPLICATION_IMAGES[slug] || [];
-  const faqs = CANCER_FAQ[slug] || CANCER_FAQ.etc;
+  const faqs = content?.faqs || CANCER_FAQ[slug] || CANCER_FAQ.etc;
 
   const showPostSurgical = slug === "digest" || slug === "liver";
 
@@ -317,7 +321,7 @@ export default function CancerDetailClient({ slug }) {
         {/* 5축 아코디언 */}
         <div className="border-t border-gray-200">
           {ITCRN_KEYS.map((key, idx) => {
-            const axis = ITCRN_FRAMEWORK[key];
+            const axis = itcrn[key];
             if (!axis) return null;
             const isOpen = openAxis === key;
             return (
@@ -399,7 +403,7 @@ export default function CancerDetailClient({ slug }) {
           <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {therapyKeys.map((key, idx) => {
-              const therapy = IMMUNE_THERAPIES[key];
+              const therapy = therapies[key];
               if (!therapy) return null;
               return (
                 <article
@@ -463,19 +467,19 @@ export default function CancerDetailClient({ slug }) {
           </h2>
           <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {Object.entries(POST_SURGICAL_CARE).map(([key, care]) => (
+            {Object.entries(care).map(([key, careItem]) => (
               <div
                 key={key}
                 className="bg-gray-50 border border-gray-200 rounded-xl p-5 md:p-6 text-center"
               >
                 <div className="text-3xl md:text-4xl font-bold text-teal-700 leading-none mb-3">
-                  {care.items}
+                  {careItem.items}
                 </div>
                 <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-1.5">
                   {tr("section.postProtocols")}
                 </div>
                 <h3 className="text-base md:text-lg font-bold text-gray-900 leading-snug">
-                  {l(care.title)}
+                  {l(careItem.title)}
                 </h3>
               </div>
             ))}

@@ -37,7 +37,8 @@
 | **`content_overrides` (DB)** | **262행** | **코디네이터가 백오피스에서 직접** | **화면에서는 이게 사전을 «덮는다»** |
 | `src/lib/content/homeContent.js` | 홈 전체 | 개발 세션 | `home.*` 키의 폴백 기본값 |
 | `src/lib/i18n/coordinator.js` | 658개 문자열 | 개발 세션 | 코디 포털 전용 사전(별도 파일) |
-| 그 밖 코드 126개 파일 | `doctorPhrases`·`immuneSite`·`visaGuide`·`medicalGlossary` 등 | 개발 세션 | 사전 검사가 **안 보는 곳** |
+| **콘텐츠 파일**(`immuneTherapies`·`immuneCancerDetails`·`partnerHospitals`) | 249칸 × 6언어(치료법 51·5축 19·암종 98·FAQ 46·수술후 3·병원 32) | **코디가 콘텐츠 편집기에서 직접**(2026-09-06 편입 — 묶음 제목 「콘텐츠 · …」, 키 `therapy.*`·`itcrn.*`·`cancer.*`·`cancerFaq.*`·`care.*`·`hospital.*`) | 화면은 `getMergedContentFiles()` 사본을 그린다. 언어별 «문자열 배열»(specialties·highlights·focusPrograms)은 아직 편집기 밖 |
+| 그 밖 코드 파일 | `doctorPhrases`·`immuneSite`·`visaGuide`·`medicalGlossary` 등 | 개발 세션 | 사전 검사가 **안 보는 곳** |
 | `consultation_translations` (DB) | 3543행 | AI 실시간 통역 | 화면 문구가 아니라 통역 산출물 |
 | `doc_glossary_terms` (DB) | **0행** | (설계만 있고 안 붙음) | 의료문서 번역의 «학습 용어집» — 코디 수정이 축적될 자리인데 비어 있다 |
 
