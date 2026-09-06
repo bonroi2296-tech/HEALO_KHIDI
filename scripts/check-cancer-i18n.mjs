@@ -72,9 +72,10 @@ for (const [id, t] of Object.entries(IMMUNE_THERAPIES)) {
 
 // ── 제휴 병원 8곳(partnerHospitals.js) — /hospitals/<slug> 상세가 name·type·description·address·specialties·highlights 를 그린다 ──
 // 2026-09-06 실측: address 가 8곳 전부 ru·kz·zh·ja 비어 있었다(같은 «조용한 영어 폴백» 부류).
+// 여섯 칸은 8곳 전부 «있어야» 한다 — 칸 자체가 빠지면(if 로 건너뛰면) 화면엔 그냥 빈 줄이 남아 아무도 모른다(독립 리뷰 2026-09-06).
 for (const h of getAllPartnerHospitals()) {
-  for (const f of ["name", "type", "description", "address"]) if (h[f]) checkLocalized(`PARTNER.${h.slug}.${f}`, h[f]);
-  for (const f of ["specialties", "highlights"]) if (h[f]) checkLocalizedArray(`PARTNER.${h.slug}.${f}`, h[f]);
+  for (const f of ["name", "type", "description", "address"]) checkLocalized(`PARTNER.${h.slug}.${f}`, h[f]);
+  for (const f of ["specialties", "highlights"]) checkLocalizedArray(`PARTNER.${h.slug}.${f}`, h[f]);
 }
 
 for (const [key, care] of Object.entries(POST_SURGICAL_CARE)) {

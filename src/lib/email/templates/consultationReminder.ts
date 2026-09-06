@@ -1,10 +1,12 @@
 /**
  * healwith: 30분 전 상담 리마인더 이메일 템플릿
  *
- * 지원 언어: ko / en / ru / kk / zh / ja
+ * 지원 언어: ko / en / ru / kz(=kk) / zh / ja — 카자흐어는 내부코드 kz·BCP47 kk·"kz-KZ" 어느 표기로 불러도 같다(resolveMailLang).
  * 순수 HTML (React Email 없이 — 이메일 클라이언트 호환성 최대화)
  * 기존 consultationInvite.ts 의 스타일/구조와 통일.
  */
+
+import { resolveMailLang, toBcp47 } from "../mailLang";
 
 export interface ConsultationReminderProps {
   recipientName?: string;
@@ -13,8 +15,8 @@ export interface ConsultationReminderProps {
   role?: string; // patient | doctor | interpreter | coordinator
   doctorName?: string;
   hospitalName?: string;
-  /** 내부 코드 kz(카자흐어)·BCP47 kk 둘 다 받는다. */
-  lang?: "ko" | "en" | "ru" | "kz" | "kk" | "zh" | "ja";
+  /** 언어 — 내부코드(kz)·BCP47(kk)·지역 꼬리("kz-KZ")·대문자 전부 받아 템플릿이 정규화한다. 모르는 값은 ko. */
+  lang?: string;
 }
 
 const STRINGS: Record<
@@ -111,9 +113,8 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
   html: string;
   text: string;
 } {
-  // kz(내부 코드)·kk(BCP47) 는 같은 언어 — 모르는 값이면 ko 로 폴백(카자흐어가 여기서 새면 «한국어 메일»이 간다).
-  const wanted = props.lang === "kk" ? "kz" : props.lang;
-  const langKey = wanted && STRINGS[wanted] ? wanted : "ko";
+  // 표기 정규화는 한 곳(mailLang.ts)에서 — 모르는 값이면 ko 로 폴백(카자흐어가 여기서 새면 «한국어 메일»이 간다).
+  const langKey = resolveMailLang(props.lang, STRINGS, "ko");
   const s = STRINGS[langKey];
   const name = (props.recipientName || "").slice(0, 50);
 
@@ -171,7 +172,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
 
   const html = `
 <!DOCTYPE html>
-<html lang="${langKey}">
+<html lang="${toBcp47(langKey)}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

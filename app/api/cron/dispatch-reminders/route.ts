@@ -28,7 +28,7 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationReminderEmail } from "@/lib/email/templates/consultationReminder";
 import { siteUrl } from "@/lib/siteUrl";
 import { sendKakaoAlimtalk, KAKAO_TEMPLATES } from "@/lib/notifications/kakao";
-import { withLang } from "@/lib/i18n/guestLinkLang";
+import { withLang, normalizeLocaleParam } from "@/lib/i18n/guestLinkLang";
 
 // ── 인증 ─────────────────────────────────────────────────────
 function verifyCronSecret(header: string | null): boolean {
@@ -186,8 +186,9 @@ async function dispatchEmail(
   const payload = row.payload as Record<string, string>;
   // 카자흐: 앱·DB 는 활성코드 'kz', BCP47 은 'kk'. 예전엔 템플릿 키가 'kk' 뿐이라 여기서 kz→kk 로 바꿔 줬고,
   // 안 바꾸면 'kz' 가 템플릿에서 'ko' 로 폴백돼 카자흐 환자에게 한국어 리마인더가 발송됐다(POSTMORTEMS #23).
-  // 2026-09-06 부터 템플릿이 kz·kk 를 다 받고 모르는 값은 ko 로 내리므로, 여기서는 표기를 바꾸지도 거르지도 않는다.
-  // ⚠️ 여기 화이트리스트를 다시 두려면 'kz' 와 'kk' 둘 다 넣어라 — 매핑을 빼면서 옛 목록(kk 만)을 남겼다가 kz 가 ko 로 떨어질 뻔했다(같은 날 잡음).
+  // 2026-09-06 부터 템플릿이 링크와 같은 정규화(normalizeLocaleParam: kz·kk·"kz-KZ"·대문자)를 스스로 하고 모르는 값은
+  // ko 로 내리므로, 여기서는 표기를 바꾸지도 거르지도 않는다 — 링크(?lang=)와 본문 언어가 갈릴 수 없게.
+  // ⚠️ 여기 화이트리스트를 다시 두지 마라 — 매핑을 빼면서 옛 목록(kk 만)을 남겼다가 kz 가 ko 로 떨어질 뻔했다(같은 날 잡음).
   const rawLang = (payload.lang ?? session?.patient_language ?? "ko");
 
   // 입장 URL
@@ -200,7 +201,7 @@ async function dispatchEmail(
     joinUrl,
     scheduledAt,
     role: payload.role ?? "guest",
-    lang: rawLang as any, // 템플릿이 kz·kk·미지원 값을 정규화한다(consultationReminder.ts)
+    lang: rawLang,
   });
 
   const result = await sendEmail({ to: address, subject, html, text });
@@ -273,7 +274,7 @@ async function dispatchInApp(
     zh: { t: "⏰ 30 分钟后开始会诊", b: "视频会诊即将开始，请进入会诊室。" },
     ja: { t: "⏰ 30分後に診察開始", b: "オンライン診察がまもなく始まります。ルームに入室してください。" },
   };
-  const rm = RL[(payload.lang || "").slice(0, 2) === "kk" ? "kz" : payload.lang] || RL.ru;
+  const rm = RL[normalizeLocaleParam(payload.lang) ?? "ru"] || RL.ru; // 메일·링크와 같은 정규화
 
   // ⚠️ 2026-07-28: 예전엔 여기서 notifications 테이블에 **직접 insert** 했다.
   //    그 바람에 «상담 30분 전» — 폰 알림이 가장 필요한 바로 그 알림 — 이

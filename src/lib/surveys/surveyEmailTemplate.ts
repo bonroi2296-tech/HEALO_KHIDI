@@ -2,13 +2,15 @@
  * healwith: 환자 만족도 설문 이메일 템플릿
  *
  * consultationInvite.ts 와 동일한 구조 — 단순 HTML (React Email 없음)
- * 6개 언어: ko / en / ru / kk / zh / ja
+ * 6개 언어: ko / en / ru / kk / zh / ja — 카자흐어는 STRINGS 키가 kk 지만 내부코드 kz·"kz-KZ" 로 불러도 같다(resolveMailLang, 2026-09-06).
  */
+import { resolveMailLang, toBcp47 } from "@/lib/email/mailLang";
 
 export interface SurveyEmailProps {
   recipientName?: string;
   surveyUrl: string;
-  lang?: "ko" | "en" | "ru" | "kk" | "zh" | "ja";
+  /** 언어 — 내부코드(kz)·BCP47(kk)·지역 꼬리·대문자 전부 받아 템플릿이 정규화한다. 모르는 값은 ko. */
+  lang?: string;
 }
 
 const STRINGS = {
@@ -83,14 +85,13 @@ const STRINGS = {
 type Lang = keyof typeof STRINGS;
 
 export function renderSurveyEmail(props: SurveyEmailProps) {
-  const lang: Lang =
-    props.lang && props.lang in STRINGS ? (props.lang as Lang) : "ko";
+  const lang: Lang = resolveMailLang(props.lang, STRINGS, "ko");
   const s = STRINGS[lang];
   const name = (props.recipientName || "").slice(0, 50);
 
   const html = `
 <!DOCTYPE html>
-<html lang="${lang}">
+<html lang="${toBcp47(lang)}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

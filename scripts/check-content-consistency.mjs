@@ -145,8 +145,8 @@ function walk(dir) {
 // ── 1b) zod 언어 검증(z.enum)에 'kk'(BCP47)만 있고 'kz'(활성코드) 누락 차단 ──────
 // 왜: 문의 퍼널 드롭다운·i18n·DB 는 활성코드 'kz' 를 쓰는데, 입력 검증 enum 이 'kk' 만
 //     받아 카자흐어('kz') 문의가 400 거부되던 버그(POSTMORTEMS #23 — 핵심 타겟 카자흐스탄
-//     퍼널 차단). **검증(z.enum)** 만 정밀 타겟 — 이메일/설문 템플릿은 일부러 내부키 'kk' 를
-//     쓰고 경계에서 kz→kk 정규화하므로(resolveRecipient.normalizeSurveyLang) 오탐 제외.
+//     퍼널 차단). **검증(z.enum)** 만 정밀 타겟 — 이메일/설문 템플릿은 2026-09-06 부터 kz·kk 를
+//     다 받는다(src/lib/email/mailLang.ts 의 resolveMailLang; 설문 STRINGS 키만 kk 로 남아 있음) → 오탐 제외.
 //     hreflang 맵({ kz: "kk" })도 kk 가 ISO 정답이라 제외.
 function isLangValidationEnum(line) {
   return /z\.enum\(/.test(line) && /["'](ko|ru|zh|ja)["']/.test(line);

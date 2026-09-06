@@ -1,12 +1,14 @@
 /**
  * healwith: 사후관리 단계별 «건강관리 교육» 안내 메일 (공고 ICT ⑤ — 건강관리 교육)
  *
- * 지원 언어: ko / en / ru / kk / zh / ja (설문 메일과 같은 코드계 — kk = 카자흐).
+ * 지원 언어: ko / en / ru / kz(=kk) / zh / ja — 카자흐어는 내부코드 kz·BCP47 kk·"kz-KZ" 어느 표기로 불러도 같다(resolveMailLang).
  * 순수 HTML — 이메일 클라이언트 호환성 최대화 (consultationReminder.ts 와 같은 규칙).
  *
  * 본문은 education_contents 에서 온다. **의료 지시가 아니라 일반 안내**임을 매 통에 적는다
  * (1인 운영 · 24시간 대응 약속 금지 규칙과 같은 취지).
  */
+
+import { resolveMailLang, toBcp47 } from "../mailLang";
 
 export interface EducationEmailItem {
   categoryLabel: string;
@@ -19,8 +21,8 @@ export interface EducationEmailProps {
   recipientName?: string;
   phaseLabel: string;
   items: EducationEmailItem[];
-  /** 내부 코드 kz(카자흐어)·BCP47 kk 둘 다 받는다 — 부르는 쪽이 어느 표기를 넘겨도 같은 문구. */
-  lang?: "ko" | "en" | "ru" | "kz" | "kk" | "zh" | "ja";
+  /** 언어 — 내부코드(kz)·BCP47(kk)·지역 꼬리("kz-KZ")·대문자 전부 받아 템플릿이 정규화한다. 모르는 값은 ru. */
+  lang?: string;
 }
 
 const STRINGS: Record<
@@ -107,10 +109,10 @@ export function renderEducationEmail(props: EducationEmailProps): {
   html: string;
   text: string;
 } {
-  // kz(내부 코드)와 kk(BCP47) 는 같은 언어. 2026-09-06 까지는 키가 kk 뿐이라 부르는 쪽(dispatch-surveys 의
-  // normalizeSurveyLang)이 kz→kk 로 바꿔 줘야만 카자흐어였고, 매핑을 빠뜨린 새 호출부는 조용히 러시아어로 떨어지는 덫이었다.
-  const langKey = props.lang === "kk" ? "kz" : props.lang;
-  const s = STRINGS[langKey || "ru"] || STRINGS.ru;
+  // 2026-09-06 까지는 키가 kk 뿐이라 부르는 쪽(dispatch-surveys 의 normalizeSurveyLang)이 kz→kk 로 바꿔 줘야만
+  // 카자흐어였고, 매핑을 빠뜨린 새 호출부는 조용히 러시아어로 떨어지는 덫이었다 → 정규화를 템플릿(mailLang.ts)으로.
+  const langKey = resolveMailLang(props.lang, STRINGS, "ru");
+  const s = STRINGS[langKey];
   const name = props.recipientName || "";
   const items = props.items || [];
 
@@ -126,7 +128,7 @@ export function renderEducationEmail(props: EducationEmailProps): {
     )
     .join("");
 
-  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  const html = `<!doctype html><html lang="${toBcp47(langKey)}"><body style="margin:0;padding:24px;background:#f6f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:14px;padding:28px;">
     <p style="margin:0 0 6px;font-size:15px;color:#111827;">${esc(s.greeting(name))}</p>
     <p style="margin:0 0 18px;font-size:14px;color:#4b5563;">${esc(s.intro(props.phaseLabel))}</p>

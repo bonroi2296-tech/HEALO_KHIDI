@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { renderEducationEmail } from "./educationContent";
 import { renderConsultationReminderEmail } from "./consultationReminder";
+import { renderSurveyEmail } from "@/lib/surveys/surveyEmailTemplate";
 
 describe("카자흐어 메일 — kz·kk 둘 다 카자흐어", () => {
   it("교육 메일: kz 와 kk 가 같은 카자흐어 제목, 러시아어 폴백 아님", () => {
@@ -26,6 +27,30 @@ describe("카자흐어 메일 — kz·kk 둘 다 카자흐어", () => {
     expect(kz.subject).toContain("кеңесіңіз");
     expect(kz.html).toContain("Корея уақыты");
     expect(kz.html).not.toContain("한국 표준시");
+    // <html lang> 은 BCP47(kk) — «kz» 는 나라 코드지 언어 태그가 아니다(독립 리뷰 2026-09-06).
+    expect(kz.html).toContain('<html lang="kk">');
+    expect(kk.html).toContain('<html lang="kk">');
+  });
+
+  it("리마인더: DB 가 «kz-KZ»·«KK» 로 저장해도 링크(?lang=kz)와 본문이 같은 언어 — 화면·링크와 같은 정규화", () => {
+    const base = { joinUrl: "https://healwith.co.kr/c/x", scheduledAt: "2026-08-03T06:00:00.000Z" } as any;
+    for (const raw of ["kz-KZ", "KK", "kk-KZ", " Kz "]) {
+      expect(renderConsultationReminderEmail({ ...base, lang: raw }).html, raw).toContain("Корея уақыты");
+    }
+  });
+
+  it("설문 메일(키는 kk): kz 로 불러도 카자흐어, 한국어 폴백 아님", () => {
+    const kz = renderSurveyEmail({ surveyUrl: "https://healwith.co.kr/survey/x", lang: "kz" });
+    const kk = renderSurveyEmail({ surveyUrl: "https://healwith.co.kr/survey/x", lang: "kk" });
+    expect(kz.subject).toBe(kk.subject);
+    expect(kz.subject).not.toContain("만족도");
+    expect(kz.html).toContain('<html lang="kk">');
+  });
+
+  it("교육 메일: <html lang> 도 BCP47, 모르는 값은 러시아어(기존 폴백 유지)", () => {
+    const base = { recipientName: "", phaseLabel: "1 ай", items: [{ title: "t", body: "b", categoryLabel: "c" }] } as any;
+    expect(renderEducationEmail({ ...base, lang: "kz" }).html).toContain('<html lang="kk">');
+    expect(renderEducationEmail({ ...base, lang: "xx" }).subject).toContain("Рекомендации");
   });
 
   it("리마인더: 러시아어는 그대로, 모르는 값·빈 값은 한국어로 내려간다(옛 호출부 화이트리스트를 뺐으니 여기서 잠근다)", () => {

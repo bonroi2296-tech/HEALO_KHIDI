@@ -447,7 +447,8 @@ async function main() {
     ...flattenHomeContent(POST_SURGICAL_CARE, "postSurgical", {}),
     ...flattenHomeContent(ITCRN_FRAMEWORK, "itcrn", {}),
     ...flattenHomeContent(IMMUNE_HOSPITAL, "immuneHospital", {}),
-    ...flattenHomeContent(getAllPartnerHospitals(), "partner", {}),
+    // slug 로 키를 잡아야 결과가 partner.ewha-seoul.address 처럼 읽힌다(배열 그대로면 partner.3.address — 순서 바뀌면 이름도 바뀜).
+    ...flattenHomeContent(Object.fromEntries(getAllPartnerHospitals().map((h) => [h.slug, h])), "partner", {}),
   };
   const DICT = {};
   for (const lang of [SOURCE_LANG, ...TARGET_LANGS]) {
