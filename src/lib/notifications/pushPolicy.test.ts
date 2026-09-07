@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isQuietHour, shouldPush, ignoresQuietHours } from "./pushPolicy";
+import { isQuietHour, shouldPush, ignoresQuietHours, quietHourLangFor } from "./pushPolicy";
 
 /** 주어진 «UTC 시각»을 ms 로. */
 const utc = (h: number, m = 0) => Date.UTC(2026, 6, 28, h, m);
@@ -53,5 +53,19 @@ describe("ignoresQuietHours — 자는 시간에도 깨우는 것", () => {
   it("urgent 만 깨운다", () => {
     expect(ignoresQuietHours("urgent")).toBe(true);
     expect(ignoresQuietHours("high")).toBe(false);
+  });
+});
+
+describe("quietHourLangFor — 직원은 언어와 무관하게 한국 시간", () => {
+  it("러시아어 설정 코디도 서울 사무실 → ko (2026-09-07 실측: 09:30 KST 알림이 모스크바 새벽으로 건너뛰어짐)", () => {
+    expect(quietHourLangFor("coordinator", "ru")).toBe("ko");
+    expect(quietHourLangFor("admin", "ru")).toBe("ko");
+    // 00:30Z = 09:30 KST → 직원은 조용 시간이 아니다
+    expect(isQuietHour(Date.UTC(2026, 8, 7, 0, 30), quietHourLangFor("coordinator", "ru"))).toBe(false);
+  });
+  it("환자·파트너는 종전대로 언어로 현지 시간을 어림한다", () => {
+    expect(quietHourLangFor("patient", "ru")).toBe("ru");
+    expect(quietHourLangFor(null, "kz")).toBe("kz");
+    expect(quietHourLangFor("agency", null)).toBeNull();
   });
 });

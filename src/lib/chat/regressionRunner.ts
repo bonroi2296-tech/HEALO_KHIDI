@@ -85,7 +85,7 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
   const model = google(MODEL_ID) as any;
   const msg = buildRegressionJudgeMessage(query, response, expectedBehavior, language, careReference);
   try {
-    const { text, usage } = await generateText({
+    const { text, usage, response } = await generateText({
       model,
       system: JUDGE_SYSTEM,
       messages: [{ role: "user", content: msg }],
@@ -97,7 +97,9 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
       //    judge.ts 는 callGeminiWithCompat 사다리가 받아줘서 사는 것이다(여긴 사다리가 없다).
       maxOutputTokens: 2048,
     } as any);
-    void logAiUsage({ surface: "regression_judge", model: MODEL_ID, usage, meta: { language } });
+    // response 도 넘긴다 — 별칭이 «실제로 어느 판을 불렀나»(meta.model_version)를 자가시험 회차마다 남긴다.
+    // 2026-09-07 실측: 생성 경로만 잡히는데(STT·트리아지) 이 판사는 response 를 안 넘겨 자가시험 100건이 전부 비어 있었다.
+    void logAiUsage({ surface: "regression_judge", model: MODEL_ID, usage, response, meta: { language } });
     let s = text.trim();
     const m = s.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (m) s = m[1].trim();

@@ -180,33 +180,43 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     expect(calls.length).toBe(0);
   });
 
-  it("participant_joined 는 started_at 만 채운다(status 불변, 첫 입장만)", async () => {
-    // 2026-07-27 계약 «변경». 예전 계약은 "DB 를 아예 안 건드린다(로그만)" 였다.
-    // 그런데 실측에서 세션 54건 전부 started_at 이 NULL 이라 «회의를 실제로 했는지»를
-    // 데이터로 증명할 수 없었다(상태는 계속 scheduled).
-    // 이 파일이 지키려는 원칙은 «DB 금지»가 아니라 «status 자동완료 금지»(K-02 인플레·재입장 차단)다
-    // — 바로 아래 participant_left 도 이미 left_at 을 쓴다. 그 원칙에 맞춰 계약을 조인다:
-    //   ① status 는 절대 안 건드린다   ② 첫 입장에만(started_at IS NULL) 쓴다.
+  it("participant_joined — 인원수 값이 없으면(옛 페이로드) «아직 아님» — 첫 입장 폴백은 2026-09-07 에 뺐다", async () => {
+    // 실측: LiveKit 은 첫 입장 때 numParticipants=0 을 보낸다. «모르면 기록한다» 폴백이 그 0 을 «모름»으로
+    // 읽어 첫 입장에 시작을 찍었고, 2026-07-31 PO 결정(2명부터)이 실서비스에서 한 번도 작동한 적이 없었다.
     const POST = await loadPost();
     mockState.event = {
       event: "participant_joined",
       room: { name: "consult-abc" },
       participant: { identity: "guest-1" },
     };
-
     const res = await POST(makeReq({ event: "participant_joined" }));
     expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(0);
+  });
 
-    expect(calls.length).toBe(1);
-    expect(calls[0].table).toBe("consultation_sessions");
-    expect(calls[0].update.started_at).toBeTruthy();
-    // 🔒 자동완료 금지 계약 — 여기서도 status 는 건드리지 않는다
-    expect(calls[0].update.status).toBeUndefined();
-    // 첫 입장에만 기록: 방 매칭 + started_at 이 아직 비어 있을 때만
-    // (두 번째 참가자가 덮으면 그건 «시작»이 아니다)
-    const ops = calls[0].filters.map((f) => `${f.op}:${f.field}`);
-    expect(ops).toContain("eq:livekit_room_name");
-    expect(ops).toContain("is:started_at");
+  it("participant_joined — 첫 입장의 numParticipants=0(LiveKit 실측 페이로드)도 «아직 아님»", async () => {
+    const POST = await loadPost();
+    mockState.event = {
+      event: "participant_joined",
+      room: { name: "consult-abc", numParticipants: 0 },
+      participant: { identity: "guest-1" },
+    };
+    const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(0);
+  });
+
+  it("participant_joined — LiveKit 에이전트(agent-…) 입장은 2명이 돼도 시작 판정에 안 쓴다", async () => {
+    // 2026-09-07 실측: 에이전트가 방마다 4초 들렀다 간다. 진행자+에이전트=2명으로 시작이 찍히면 환자 대기 시간이 통화로 부푼다.
+    const POST = await loadPost();
+    mockState.event = {
+      event: "participant_joined",
+      room: { name: "consult-abc", numParticipants: 2 },
+      participant: { identity: "agent-AJ_hR4biVAjhfE7" },
+    };
+    const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(0);
   });
 
   it("participant_joined — 혼자 들어온 건 «시작»이 아니다 (테스트 입장이 회의 시작으로 박히던 것)", async () => {
@@ -469,22 +479,20 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     expect((await res.json()).ok).toBe(true);
     expect(calls[0].update.livekit_duration_seconds).toBe(1200);
   });
-  it("participant_joined — 인원수를 모르는 옛 방식 경로에선 새 인스턴스여도 «비어 있을 때만» (혼자 시험 입장이 직전 실통화를 못 지우게)", async () => {
+  it("participant_joined — 인원수를 모르면 creationTime 이 있어도 아무것도 안 쓴다(혼자 시험 입장이 직전 실통화를 못 지우게)", async () => {
     const POST = await loadPost();
     mockState.event = {
       event: "participant_joined",
       room: {
         name: "consult-abc",
-        // numParticipants 없음 → countKnown=false, creationTime 은 있음
+        // numParticipants 없음, creationTime 은 있음
         creationTime: BigInt(Math.floor(Date.parse("2026-09-02T09:00:00.000Z") / 1000)),
       },
       participant: { identity: "staff-1" },
     };
     const res = await POST(makeReq({ event: "participant_joined" }));
     expect((await res.json()).ok).toBe(true);
-    expect(calls.length).toBe(1);
-    expect(calls[0].filters.some((f) => f.op === "or")).toBe(false);
-    expect(calls[0].filters.map((f) => `${f.op}:${f.field}`)).toContain("is:started_at");
+    expect(calls.length).toBe(0);
   });
 
   it("room_finished — 어제 손님 대장(방 생성 전에 나감·퇴장 유실)은 이 인스턴스 판정에서 뺀다", async () => {
