@@ -67,40 +67,29 @@ jobs:
           fi
           rm -f msys-scan.txt
           echo "✓ 신청서 제목·커밋 제목 오염 0건"
-      # 스쿼시 합치기 «제목 함정» (2026-09-07 실사고 #1671): 깃허브는 커밋이 «1개뿐인» 신청서를 스쿼시할 때
-      # 신청서 제목이 아니라 «그 커밋의 제목»을 본판 커밋 제목으로 쓴다(저장소 기본값 «Default message»).
-      # 자동 저장 훅이 턴 끝에 «chore: 작업 자동 저장 (시각)» 커밋을 만들고, 그 위에 설명 커밋 없이 신청서를
-      # 올려 자동머지를 걸면 본판 이력에 «chore: 작업 자동 저장 (#1671)» 이 영구히 박힌다 — 다음 세션이
-      # 무엇이 들어갔는지 이력만 봐선 못 읽는다(실제로 그렇게 됐다: 2cadaf84).
-      # 잡는 조건은 딱 하나: 신청서 커밋 수 == 1 이고 그 제목이 자동 저장 제목. 커밋이 2개 이상이면 깃허브가
-      # 신청서 제목을 쓰므로 통과(자동 저장 커밋이 섞여 있어도 무관).
-      # 고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올린다 — 보통 PROJECT_CONTEXT 중간 저장 한 줄이 그 커밋이다.
-      # ⚠️ 저장소 설정(Settings → General → Pull Requests → Squash merging → «Default to pull request title
-      # and description») 을 바꾸면 이 함정 자체가 없어진다 — 그때는 이 검사를 지워도 된다(PO 클릭 1번).
-      - name: 커밋 1개짜리 신청서의 제목이 «자동 저장» 인가 (스쿼시 제목 함정 차단)
-        if: github.event_name == 'pull_request'
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          N_COMMITS: ${{ github.event.pull_request.commits }}
-        run: |
-          # 체크아웃된 HEAD 는 깃허브가 만든 «합친 척» 커밋(refs/pull/N/merge)이라 신청서 머리 커밋을 직접 본다.
-          title=$(git log -1 --format='%s' "$HEAD_SHA")
-          [ -z "$N_COMMITS" ] && N_COMMITS=$(git rev-list --count "$BASE_SHA".."$HEAD_SHA" 2>/dev/null || true)
-          case "$N_COMMITS" in
-            ''|*[!0-9]*) echo "::error::신청서 커밋 수를 못 셌다(N_COMMITS='$N_COMMITS'). 「못 잼」은 「통과」가 아니다."; exit 1 ;;
-          esac
-          if [ "$N_COMMITS" -eq 1 ] && printf '%s' "$title" | grep -qE '^chore: 작업 자동 저장'; then
-            echo "::error::신청서 커밋이 «$title» 하나뿐이다. 스쿼시하면 이 제목이 본판 이력에 영구히 박힌다."
-            echo "고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올려라(PROJECT_CONTEXT 중간 저장 한 줄이면 된다)."
-            exit 1
-          fi
-          echo "✓ 스쿼시 제목 함정 0건 (커밋 $N_COMMITS 개, 머리: $title)"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      # 스쿼시 «제목 함정» (2026-09-07 실사고 #1671): 깃허브는 커밋이 1개뿐인 신청서를 스쿼시할 때 신청서 제목이
+      # 아니라 «그 커밋 제목»을 본판 제목으로 쓴다. 자동 저장 훅 커밋 위에 설명 커밋 없이 신청서를 올리고 자동머지를
+      # 걸었더니 본판 머리가 «chore: 작업 자동 저장 (…) (#1671)» 이 됐다(2cadaf84). 그 제목은 ①배포 스킵 판정
+      # (scripts/vercel-ignore-build.sh 규칙 0)이 «백업 커밋»으로 보고 창구 배포까지 조용히 건너뛰게 했고(같은 날
+      # 규칙 순서 교정) ②이력만 봐선 무엇이 들어갔는지 못 읽게 한다. 여기서는 «스쿼시 뒤 제목»을 깃허브 규칙대로
+      # 계산해(1개 → 커밋 제목, 2개 이상 → 신청서 제목) 자동 저장 접두어면 막는다. 못 세면 통과가 아니라 실패.
+      # 접두어의 단일 출처 = scripts/lib/autosave-title.sh — 자체 시험이 훅 문구와의 드리프트까지 잰다.
+      - name: 스쿼시 제목 함정 검사 자체 시험 (자동저장 1개=차단 · 설명 커밋=통과 · 못 세면 실패 · 단일 출처 드리프트)
+        run: npm run check:squash-title -- --selftest
+      # 체크아웃된 HEAD 는 깃허브가 만든 «합친 척» 커밋(refs/pull/N/merge)이라 신청서 머리 커밋을 따로 넘긴다.
+      - name: 이 신청서를 스쿼시하면 본판 제목이 «자동 저장» 이 되나 (창구 배포 스킵·이력 오염 차단)
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          N_COMMITS: ${{ github.event.pull_request.commits }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: npm run check:squash-title
       - name: vercel.json 검증 (Hobby 플랜 호환성)
         run: node scripts/validate-vercel-config.js
       # 이 판정이 틀리면 실서비스 배포가 «조용히» 안 나간다 = 가장 비싼 사고. 그래서 차단 게이트.

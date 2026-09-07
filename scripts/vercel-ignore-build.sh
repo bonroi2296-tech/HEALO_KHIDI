@@ -2,8 +2,8 @@
 #
 # Vercel "Ignored Build Step" 스크립트 — 안 볼 배포는 짓지 않는다.
 #
-#   규칙 0. 자동저장(백업) 커밋            → 스킵
-#   규칙 1. [프로덕션] production 브랜치(3시 창구)·[deploy] 커밋이 아니면 → 스킵
+#   규칙 1. [프로덕션] 창구(DEPLOY_WINDOW=1)·production 브랜치·[deploy] 커밋이 아니면 → 스킵
+#   규칙 0. 자동저장(백업) 커밋            → 스킵  (⚠️ 규칙 1 «뒤»에서 본다 — 이유는 그 자리에)
 #   규칙 2. [프리뷰] 기본 완전 차단 — PO 가 요청해 PREVIEW_DAILY_LIMIT 을 올렸을 때만 짓는다
 #   규칙 3. 문서/비앱 파일만 변경          → 스킵
 #
@@ -23,15 +23,11 @@
 
 commit_subject="$(git log -1 --pretty=%s 2>/dev/null)"
 
-# ── 규칙 0. 자동저장(백업) 커밋이면 스킵 ────────────────────────────────────
-# Stop 훅(auto-commit-push.sh)이 작업 중간중간 "chore: 작업 자동 저장 (날짜)"로 백업한다.
-# 아직 작업 중인 미완성 스냅샷이라 아무도 안 본다. 백업 자체는 그대로 — 배포만 건너뛴다.
-case "$commit_subject" in
-  "chore: 작업 자동 저장"*)
-    echo "🛑 자동저장(백업) 커밋 — 배포 스킵. 백업은 그대로 보존됨."
-    exit 0
-    ;;
-esac
+# 자동 저장 커밋 제목 접두어 — 단일 출처(scripts/lib/autosave-title.sh). 못 읽으면 비워 두고
+# 규칙 0 을 건너뛴다 = 짓는 쪽으로 틀린다(모르면 짓는다).
+AUTOSAVE_TITLE_PREFIX=""
+# shellcheck source=lib/autosave-title.sh
+. "$(dirname "$0")/lib/autosave-title.sh" 2>/dev/null || true
 
 # ── 규칙 1. [프로덕션] 「배포 창구」 커밋일 때만 짓는다 ──────────────────────
 # 왜 (2026-07-28 PO 정정): 묶어야 할 건 **머지가 아니라 배포**다.
@@ -77,6 +73,25 @@ if [ "$VERCEL_ENV" = "production" ]; then
   echo "🛑 창구 밖 머지 — 프로덕션 빌드 스킵. 배포는 오후 3시 창구가 한 번에 한다."
   echo "   급하면 커밋 제목에 [deploy] 를 달거나 Actions 에서 Daily Deploy 를 돌려라."
   exit 0
+fi
+
+# ── 규칙 0. 자동저장(백업) 커밋이면 스킵 — 프로덕션 판정 «뒤»에 둔다 ──────────────
+# Stop 훅(auto-commit-push.sh)이 작업 중간중간 "chore: 작업 자동 저장 (날짜)"로 백업한다.
+# 아직 작업 중인 미완성 스냅샷이라 아무도 안 본다. 백업 자체는 그대로 — 배포만 건너뛴다.
+#
+# ⚠️ 왜 프로덕션 블록 «뒤»냐 (2026-09-07 실사고 #1671): 커밋이 1개뿐인 신청서를 스쿼시하면 깃허브가
+#    «그 커밋 제목»을 본판 제목으로 쓴다 → 본판 머리가 "chore: 작업 자동 저장 (…) (#1671)" 이 됐다.
+#    이 규칙이 맨 앞에 있을 땐 창구(DEPLOY_WINDOW=1)·production 가지 배포까지 여기서 스킵돼 그날
+#    실서비스 배포가 «조용히» 사라질 판이었다(재현: 그 제목 + production + DEPLOY_WINDOW=1 → exit 0).
+#    창구가 연 배포는 제목이 뭐든 짓는다 — 「모르면 짓는다」의 자리. 프리뷰·창구 밖 빌드만 이 규칙을 탄다.
+#    (신청서 쪽은 CI 의 check:squash-title 이 그런 제목을 미리 막는다 — 이중 잠금.)
+if [ -n "${AUTOSAVE_TITLE_PREFIX:-}" ]; then
+  case "$commit_subject" in
+    "${AUTOSAVE_TITLE_PREFIX}"*)
+      echo "🛑 자동저장(백업) 커밋 — 배포 스킵. 백업은 그대로 보존됨."
+      exit 0
+      ;;
+  esac
 fi
 
 # ── 규칙 2. [프리뷰] 달라고 했을 때만 짓는다 ────────────────────────────────

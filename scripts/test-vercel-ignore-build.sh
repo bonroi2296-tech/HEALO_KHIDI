@@ -28,9 +28,9 @@ q git clone "$TMP/origin" "$TMP/local"
 q git -C "$TMP/local" config user.email t@t.t
 q git -C "$TMP/local" config user.name t
 
-run() { # run <VERCEL_ENV> <SHA> [브랜치] [프리뷰 하루상한]  → exit code 출력
+run() { # run <VERCEL_ENV> <SHA> [브랜치] [프리뷰 하루상한] [DEPLOY_WINDOW]  → exit code 출력
   ( cd "$TMP/local" && VERCEL_ENV="$1" VERCEL_GIT_COMMIT_SHA="$2" VERCEL_GIT_COMMIT_REF="${3:-main}" \
-      PREVIEW_DAILY_LIMIT="${4:-3}" bash "$SCRIPT" >/dev/null 2>&1; echo $? )
+      PREVIEW_DAILY_LIMIT="${4:-3}" DEPLOY_WINDOW="${5:-}" bash "$SCRIPT" >/dev/null 2>&1; echo $? )
 }
 commit_local() { # commit_local <파일> <제목>
   echo "x$RANDOM" > "$TMP/local/$1"
@@ -50,7 +50,12 @@ chk() { # chk <이름> <실제> <기대>
 
 echo "── 규칙 0: 자동저장 커밋"
 commit_local app.js "chore: 작업 자동 저장 (2026-07-28 11:00)"
-chk "자동저장 = 스킵" "$(run preview "$(head_local)")" 0
+chk "프리뷰 + 자동저장 = 스킵" "$(run preview "$(head_local)")" 0
+# 2026-09-07 실사고(#1671): 커밋 1개짜리 신청서를 스쿼시하면 본판 머리가 «자동저장 제목»이 될 수 있다.
+# 창구가 연 프로덕션 배포는 제목이 뭐든 지어야 한다 — 규칙 0 이 앞에 있으면 그날 배포가 조용히 사라진다.
+chk "프로덕션 + 창구(DEPLOY_WINDOW=1) + 자동저장 제목 = 빌드(구멍 방지)" "$(run production "$(head_local)" main 3 1)" 1
+chk "프로덕션 + production 가지 + 자동저장 제목 = 빌드(구멍 방지)" "$(run production "$(head_local)" production)" 1
+chk "프로덕션 + 창구 밖(main, 표식 없음) + 자동저장 제목 = 스킵" "$(run production "$(head_local)" main)" 0
 
 echo "── 규칙 2·3: 프리뷰"
 commit_local app.js "feat: 코드 고침"
