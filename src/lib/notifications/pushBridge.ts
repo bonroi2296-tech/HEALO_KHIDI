@@ -18,7 +18,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import type { NotificationPriority } from "./inApp";
 // 판단 규칙(무엇을 보낼까 / 지금 보낼까)은 순수 함수라 별도 파일 → 테스트 대상.
-import { isQuietHour, shouldPush, ignoresQuietHours } from "./pushPolicy";
+import { isQuietHour, shouldPush, ignoresQuietHours, quietHourLangFor } from "./pushPolicy";
 
 async function getUserLang(userId: string): Promise<string | null> {
   try {
@@ -28,6 +28,20 @@ async function getUserLang(userId: string): Promise<string | null> {
       .eq("user_id", userId)
       .maybeSingle();
     return (data as any)?.language_preference ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 역할은 auth.users 의 app_metadata.role 이 정본이다(CLAUDE.md 보안 규칙 — user_roles.role 은 옛 값이 남아
+ * 코디 계정이 «patient» 로 적혀 있기도 하다, 2026-09-07 실측). 조용 시간 판정에만 쓰므로 실패하면 null.
+ */
+async function getUserAppRole(userId: string): Promise<string | null> {
+  try {
+    const { data } = await (supabaseAdmin as any).auth.admin.getUserById(userId);
+    const role = (data?.user?.app_metadata as any)?.role;
+    return typeof role === "string" ? role : null;
   } catch {
     return null;
   }
@@ -53,8 +67,9 @@ export async function bridgeToPush(input: PushBridgeInput): Promise<void> {
 
     // urgent(상담 곧 시작 등)는 시간 상관없이 즉시.
     if (!ignoresQuietHours(input.priority)) {
-      const lang = await getUserLang(input.userId);
-      if (isQuietHour(Date.now(), lang)) {
+      const [lang, role] = await Promise.all([getUserLang(input.userId), getUserAppRole(input.userId)]);
+      // 직원은 언어(ru 등)와 무관하게 한국 시간 — 2026-09-07 실측: 09:30 KST 알림이 «모스크바 새벽»으로 건너뛰어졌다.
+      if (isQuietHour(Date.now(), quietHourLangFor(role, lang))) {
         // ponytail: 조용 시간엔 «미루지 않고 건너뛴다». 앱 안 종 아이콘에는 그대로 남으므로
         // 아침에 앱을 열면 보인다. 진짜 «아침에 다시 쏘기»가 필요해지면 대기열 테이블을 만들 것
         // (지금 만들면 테이블 + 정기작업 + 중복방지까지 딸려온다 — 필요해진 뒤에).

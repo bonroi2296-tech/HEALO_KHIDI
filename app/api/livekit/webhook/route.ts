@@ -196,22 +196,25 @@ export async function POST(request: NextRequest) {
         //   ⚠️ 예정 시각(scheduled_at)은 판정에 안 쓴다. 회의는 밀리거나 당겨지기 때문(PO).
         //   ponytail: 「말을 시작한 순간」이 더 정확해 보이지만 마이크를 켜고 말을 안 하거나
         //   음소거로 진행하는 회의가 통째로 누락된다 — 인원수가 값싸고 덜 틀린다.
-        //   ⚠️ 인원수 값이 아예 안 실려 오면(구버전·필드 누락) 예전처럼 첫 입장에 기록한다 —
-        //      「모르면 기록한다」. 조용히 아무것도 안 남기면 통화 길이가 통째로 사라진다.
-        //      어느 길로 갔는지 아래 로그에 남으니, 실회의 뒤 로그로 확인할 수 있다.
+        //   ⚠️ 2026-09-07 실측으로 «모르면 기록한다» 폴백을 뺐다. LiveKit 은 **첫 입장 때 numParticipants=0**
+        //      을 보내고(방 스냅샷이 아직 안 늘어난 상태), 두 번째 입장부터 정확한 값(2)을 보낸다. 폴백이
+        //      «0 = 모름 → 첫 입장에 기록»으로 흘러 2026-07-31 PO 결정(2명부터 시작)이 실서비스에서 한 번도
+        //      작동한 적이 없었다(시험 회의 2건 모두 시작 시각 = 첫 입장). 이제 0·1·미상은 전부 «아직 아님».
+        //   ⚠️ LiveKit 에이전트(identity `agent-…`)는 방마다 자동으로 들렀다 간다(2026-09-07 실측: 4초).
+        //      진행자 혼자 + 에이전트 = 2명으로 «시작»이 찍히면 환자가 오기 전 대기 시간이 통화로 부푼다 →
+        //      에이전트의 입장은 시작 판정에 안 쓴다(환자·직원이 들어올 때 인원수엔 어차피 포함된다).
         const rawCount = (event.room as any)?.numParticipants;
         const numParticipants = Number(rawCount ?? 0);
         const countKnown = Number.isFinite(numParticipants) && numParticipants > 0;
-        if (countKnown && numParticipants < 2) {
-          console.log(
-            `[livekit/webhook] ${participantIdentity} joined ${roomName} — 아직 ${numParticipants}명(혼자) → 시작 아님`
-          );
+        if (typeof participantIdentity === "string" && participantIdentity.startsWith("agent-")) {
+          console.log(`[livekit/webhook] ${participantIdentity} joined ${roomName} — 에이전트 입장은 시작 판정에 안 씀`);
           return Response.json({ ok: true });
         }
-        if (!countKnown) {
-          console.warn(
-            `[livekit/webhook] ${roomName} 인원수 값 없음(raw=${String(rawCount)}) → 옛 방식(첫 입장)으로 기록`
+        if (!countKnown || numParticipants < 2) {
+          console.log(
+            `[livekit/webhook] ${participantIdentity} joined ${roomName} — 인원수 ${String(rawCount)} → 아직 시작 아님(2명부터)`
           );
+          return Response.json({ ok: true });
         }
         // 2명이 된 첫 순간에만 기록 — 중간에 한 명 나갔다 들어와도 안 밀린다.
         // 2026-09-06: «첫 순간»의 기준을 «이 방 인스턴스 안에서»로 좁혔다. 전날 시험 입장(2명)의
@@ -223,6 +226,10 @@ export async function POST(request: NextRequest) {
         // 시각은 LiveKit 시계(event.createdAt)로 — creationTime 과 같은 시계라 비교가 어긋나지 않고,
         //   재시도돼도 같은 값이다(room_finished 와 같은 이유).
         const createdMs = roomCreatedMs(event.room);
+        // creationTime 이 실제로 실려 오는지 로그로 남긴다(2026-09-06 «확인 못 한 것»).
+        console.log(
+          `[livekit/webhook] ${roomName} 2명 됨 → started_at 기록 시도 (creationTime=${createdMs > 0 ? new Date(createdMs).toISOString() : "없음"})`
+        );
         let startQuery = supabase
           .from("consultation_sessions")
           .update({
@@ -231,10 +238,8 @@ export async function POST(request: NextRequest) {
             livekit_duration_seconds: null,
           } as any)
           .eq("livekit_room_name", roomName);
-        // ⚠️ 인원수를 모르는 옛 방식(첫 입장 기록)에선 «새 인스턴스면 덮어쓰기»를 쓰지 않는다 —
-        //    혼자 들어온 시험 입장이 직전 실통화의 기록(종료·길이)을 지울 수 있다(독립 리뷰).
         startQuery =
-          createdMs > 0 && countKnown
+          createdMs > 0
             ? startQuery.or(
                 `started_at.is.null,started_at.lt.${new Date(createdMs).toISOString().replace(/\.\d{3}Z$/, "Z")}`
               )

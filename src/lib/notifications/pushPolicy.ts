@@ -46,6 +46,18 @@ export function shouldPush(priority: PushPriority | undefined | null): boolean {
   return priority === "urgent" || priority === "high";
 }
 
+/**
+ * 조용 시간 판정에 쓸 «언어» — 직원은 언어와 무관하게 한국 시간이다.
+ * 왜(2026-09-07 실측): 식은 문의 알림이 00:30Z(= 09:30 KST) 에 나갔는데 코디 2명·관리자 1명의 폰 알림이
+ *   «조용 시간»으로 건너뛰어졌다. 그들의 언어 설정이 ru 라 모스크바 03:30 으로 본 것이다. 코디는 러시아어를
+ *   쓰지만 서울 사무실에 있다 → 직원(app_metadata.role admin·coordinator)은 항상 ko(UTC+9)로 판정한다.
+ *   환자·파트너는 종전대로 언어로 현지 시간을 어림한다.
+ */
+export const STAFF_ROLES_IN_KOREA = ["admin", "coordinator"];
+export function quietHourLangFor(role: string | null | undefined, lang: string | null | undefined): string | null {
+  return role && STAFF_ROLES_IN_KOREA.includes(role) ? "ko" : (lang ?? null);
+}
+
 /** 조용 시간을 무시하고 즉시 보내야 하는가 (상담 곧 시작 등). */
 export function ignoresQuietHours(priority: PushPriority | undefined | null): boolean {
   return priority === "urgent";
