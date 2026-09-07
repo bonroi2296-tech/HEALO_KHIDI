@@ -67,6 +67,35 @@ jobs:
           fi
           rm -f msys-scan.txt
           echo "✓ 신청서 제목·커밋 제목 오염 0건"
+      # 스쿼시 합치기 «제목 함정» (2026-09-07 실사고 #1671): 깃허브는 커밋이 «1개뿐인» 신청서를 스쿼시할 때
+      # 신청서 제목이 아니라 «그 커밋의 제목»을 본판 커밋 제목으로 쓴다(저장소 기본값 «Default message»).
+      # 자동 저장 훅이 턴 끝에 «chore: 작업 자동 저장 (시각)» 커밋을 만들고, 그 위에 설명 커밋 없이 신청서를
+      # 올려 자동머지를 걸면 본판 이력에 «chore: 작업 자동 저장 (#1671)» 이 영구히 박힌다 — 다음 세션이
+      # 무엇이 들어갔는지 이력만 봐선 못 읽는다(실제로 그렇게 됐다: 2cadaf84).
+      # 잡는 조건은 딱 하나: 신청서 커밋 수 == 1 이고 그 제목이 자동 저장 제목. 커밋이 2개 이상이면 깃허브가
+      # 신청서 제목을 쓰므로 통과(자동 저장 커밋이 섞여 있어도 무관).
+      # 고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올린다 — 보통 PROJECT_CONTEXT 중간 저장 한 줄이 그 커밋이다.
+      # ⚠️ 저장소 설정(Settings → General → Pull Requests → Squash merging → «Default to pull request title
+      # and description») 을 바꾸면 이 함정 자체가 없어진다 — 그때는 이 검사를 지워도 된다(PO 클릭 1번).
+      - name: 커밋 1개짜리 신청서의 제목이 «자동 저장» 인가 (스쿼시 제목 함정 차단)
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          N_COMMITS: ${{ github.event.pull_request.commits }}
+        run: |
+          # 체크아웃된 HEAD 는 깃허브가 만든 «합친 척» 커밋(refs/pull/N/merge)이라 신청서 머리 커밋을 직접 본다.
+          title=$(git log -1 --format='%s' "$HEAD_SHA")
+          [ -z "$N_COMMITS" ] && N_COMMITS=$(git rev-list --count "$BASE_SHA".."$HEAD_SHA" 2>/dev/null || true)
+          case "$N_COMMITS" in
+            ''|*[!0-9]*) echo "::error::신청서 커밋 수를 못 셌다(N_COMMITS='$N_COMMITS'). 「못 잼」은 「통과」가 아니다."; exit 1 ;;
+          esac
+          if [ "$N_COMMITS" -eq 1 ] && printf '%s' "$title" | grep -qE '^chore: 작업 자동 저장'; then
+            echo "::error::신청서 커밋이 «$title» 하나뿐이다. 스쿼시하면 이 제목이 본판 이력에 영구히 박힌다."
+            echo "고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올려라(PROJECT_CONTEXT 중간 저장 한 줄이면 된다)."
+            exit 1
+          fi
+          echo "✓ 스쿼시 제목 함정 0건 (커밋 $N_COMMITS 개, 머리: $title)"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
