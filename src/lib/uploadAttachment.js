@@ -8,8 +8,8 @@
  *   error: file_too_large | invalid_file_type | invalid_file_content | rate_limited | upload_failed
  */
 
-export const MAX_ATTACHMENT_BYTES = 200 * 1024 * 1024;
-export const MAX_ATTACHMENT_MB = 200;
+export const MAX_ATTACHMENT_BYTES = 2000 * 1024 * 1024;
+export const MAX_ATTACHMENT_MB = 2000;
 
 // Vercel 413 등은 JSON 이 아니라 HTML/평문으로 온다. res.json() 을 그냥 부르면 예외가 터져
 // 호출부가 «아무 메시지도 없이» 조용히 실패했다(문의 #60 때 실제로 그랬다).
@@ -111,6 +111,14 @@ export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
 }
 
 // 진행률이 필요하면 XHR(진행 이벤트를 주는 유일한 방법), 아니면 fetch.
+//
+// 🛑 «이어올리기»(TUS)를 넣지 마라 — 2026-09-08 에 만들었다가 뺐다. 두 가지 이유다.
+//    ① 안 돈다: Supabase 의 TUS 창구는 «사용자 권한»으로 동작해서, 서명 토큰(x-signature)으로는
+//       「Invalid Compact JWS」, anon 으로는 저장소 정책에 막힌다("new row violates row-level
+//       security policy"). 공개 문의 창구는 로그인이 없으므로 통과할 길이 없다.
+//    ② 필요 없다: 한 번에 미는 지금 방식으로 300MB 가 24초에 올라간다(실측, 실패 0).
+//    다시 필요해지는 조건은 «회선이 잘 끊기는 곳에서 큰 파일이 반복 실패»할 때다. 그때는
+//    로그인 화면에 한해 사용자 토큰으로 TUS 를 붙일 수 있다.
 function putWithProgress(url, file, contentType, onProgress) {
   const type = contentType || file.type || "application/octet-stream";
   if (!onProgress) {
