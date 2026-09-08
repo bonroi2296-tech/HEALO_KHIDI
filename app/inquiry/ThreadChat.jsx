@@ -8,7 +8,7 @@ import { INSTALL_COPY } from "../InstallPrompt";
 import { isNativeApp } from "@/lib/isNativeApp";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 
 // GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
 const ga = (name, params) => { try { event(name, params); } catch {} };
@@ -1350,7 +1350,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               data-testid="chat-file-input"
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+              accept={UPLOAD_POLICY.medicalDoc.accept}
               className="hidden"
               onChange={(e) => handleFilePick(e.target.files)}
             />
