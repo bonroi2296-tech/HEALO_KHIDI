@@ -147,7 +147,10 @@ export async function POST(request: NextRequest) {
         //    「검사일 순 정렬」이라고 이름 붙인 기능이 실은 파일명 알파벳 순으로 돌았다.
         //    칸을 늘릴 땐 ①스키마 ②이 매퍼 ③아래 attachments — 셋을 같이 봐라.
         docDate: normalizeDocDate(f.docDate),
-        diagnosisText: f.diagnosisText || null,
+        // 🛑 진단명은 «민감정보»다 — 세 줄 위 diagnosisNameRaw 와 같이 암호화한다.
+        //    처음엔 맨몸으로 넣었는데(2026-09-08 독립 리뷰), 판독이 뽑은 병리 진단문이
+        //    그대로 JSONB 에 남는 것이라 형제 칸만 암호화하는 것은 아무 의미가 없다.
+        diagnosisText: enc(f.diagnosisText || null),
       })),
       cdFolder: d.cdFolder ? { ...d.cdFolder, path: d.cdFolder.path && isOwnPath("inquiry", d.cdFolder.path) ? d.cdFolder.path : null, link: safeLink(d.cdFolder.link) } : null,
       consents: toCanonicalConsents(consents),   // intake.consents 와 같은 공용 이름 — 두 표기가 있으면 다음 사람이 잘못 읽는다

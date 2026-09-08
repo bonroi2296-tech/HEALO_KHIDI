@@ -76,19 +76,20 @@ const MAX_WORD = { ko: "최대", en: "up to", ru: "до", kz: "дейін", zh: 
 
 /**
  * 화면에 그대로 붙일 안내 문구.
- *   describeUpload("medicalDoc", "ko") → "PDF · JPG · PNG · WebP · Word · 최대 2GB"
- * kz 는 「2GB дейін」처럼 뒤에 붙는 게 자연스러워 순서를 바꾼다.
+ *   describeUpload("medicalDoc", "ko") → "PDF · JPG · PNG · WebP · Word · 최대 2000MB"
+ * kz 는 「2000MB дейін」처럼 뒤에 붙는 게 자연스러워 순서를 바꾼다.
  *
- * 🛑 «같은 상한을 두 가지 말로» 적지 마라. 사전(dictionary.js)은 이미 「2GB」라고 쓰는데
- *    여기만 「2000MB」였다 — 한 서비스 안에서 두 화면이 서로 다른 숫자를 말하면
- *    사용자는 둘 중 어느 쪽이 진짜인지 알 수 없다(2026-09-08 독립 리뷰).
- *    1024MB 이상은 GB 로, 그 아래는 MB 로 적는다.
+ * 🛑 **상한을 «올림»해서 말하지 마라.** 잠깐 「1024MB 이상은 GB 로」 바꿨다가 되돌렸다 —
+ *    실제 상한은 2000MB 인데 2000/1024 = 1.953 이 「2GB」로 올림돼, 진짜 2GB(2048MB) 파일을
+ *    가진 사람에게 «된다»고 말하고 서버는 거부하게 된다. 상한을 크게 말하는 것은
+ *    작게 말하는 것보다 나쁘다 — 사용자가 몇 분을 올리고 나서 거절당한다(2026-09-08 독립 리뷰).
+ *    ⚠️ 사전(dictionary.js)의 「2GB」 표기 48곳도 같은 이유로 48MB 만큼 과장이다.
+ *       고치려면 6개 언어 문구를 손봐야 해서 여기서는 안 건드렸다 — `docs/KNOWN_ISSUES.md` 참조.
  */
 export function describeUpload(kind, lang = "ko") {
   const p = UPLOAD_POLICY[kind];
   if (!p) return "";
-  const mb = MB(p.maxBytes);
-  const size = mb >= 1024 ? `${Number((mb / 1024).toFixed(1))}GB` : `${mb}MB`;
+  const size = `${MB(p.maxBytes)}MB`;
   const word = MAX_WORD[lang] || MAX_WORD.en;
   const tail = lang === "kz" ? `${size} ${word}` : `${word} ${size}`;
   return `${p.exts.join(" · ")} · ${tail}`;

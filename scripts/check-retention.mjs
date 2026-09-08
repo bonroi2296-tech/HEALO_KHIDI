@@ -5,11 +5,16 @@
 //   src/lib/maintenance/retention.ts 는 그 숫자를 「단일 출처」라고 선언한다.
 //   둘이 어긋나도 아무도 몰랐다 — `check:legal-parity` 는 **줄 수만** 세기 때문이다.
 //
-// 🛑 이 검사가 «못» 잡는 것 (알고 만들었다, 초록불을 과신하지 마라):
-//   같은 날 카자흐어에서 §6 문장 하나가 안 고쳐져 「사본을 보관하지 않는다」와
-//   「영상은 3년 보관」이 한 문서 안에서 부딪쳤다. 그건 «번역 누락»이라 문자열 대조로는
-//   기계적으로 판정할 수 없다(자연어라 오탐·미탐 둘 다 난다). 사람이 볼 몫으로 남긴다.
-//   여기서 잡는 건 **숫자 드리프트**뿐이다.
+// 🛑 «§6 어딘가에 3년이 있나»로 재면 헛것이 된다 (2026-09-08 독립 리뷰가 실증):
+//   처음 판은 그렇게 만들었는데, §6 에는 「계약 5년」·「분쟁 3년」 같은 법정 보관 줄이 이미 있어서
+//   보관기간을 3 → 5 로 바꾸고 방침 문구를 «하나도 안 고쳐도» 초록불이 떴다.
+//   → 그래서 **줄을 지목해서** 잰다: 검사 서류·영상 조항 «그 한 줄»에 그 표기가 있어야 한다.
+//   줄 번호는 ko 에서 찾고 다른 언어엔 같은 번호를 쓴다 — `check:legal-parity` 가 6개 언어의
+//   줄 수가 같음을 이미 보장하므로 번호가 맞아떨어진다. ko 문장이 바뀌어 못 찾으면 **멈춘다**
+//   (조용히 통과하지 않는다 — 그게 이 검사를 처음에 헛것으로 만든 실수였다).
+//
+// 🛑 그래도 «못» 잡는 것: 한 언어의 문장이 통째로 안 고쳐진 «번역 누락».
+//   자연어라 기계로 판정할 수 없다(오탐·미탐 둘 다 난다). 사람이 세어야 한다.
 import { readFileSync } from "node:fs";
 import { getPrivacyPolicy } from "../src/lib/legal/privacyPolicy.js";
 
@@ -22,7 +27,7 @@ function years(key) {
   if (!m) throw new Error(`retention.ts 에서 RETENTION_YEARS.${key} 를 못 읽었다 — 모양이 바뀌었으면 이 검사도 같이 고쳐라`);
   return Number(m[1]);
 }
-const RETENTION_YEARS = {
+let RETENTION_YEARS = {
   patientDocuments: years("patientDocuments"),
   dormantInquiries: years("dormantInquiries"),
   contractRecords: years("contractRecords"),
@@ -30,7 +35,7 @@ const RETENTION_YEARS = {
 
 const labelLine = SRC.match(/patientDocuments:\s*\{([^}]*)\}/);
 if (!labelLine) throw new Error("retention.ts 에서 RETENTION_LABEL.patientDocuments 를 못 읽었다");
-const RETENTION_LABEL = {
+let RETENTION_LABEL = {
   patientDocuments: Object.fromEntries(
     [...labelLine[1].matchAll(/(\w+):\s*"([^"]*)"/g)].map((m) => [m[1], m[2]]),
   ),
@@ -43,21 +48,43 @@ const P = (m) => problems.push(m);
 // 보관기간이 적히는 자리 = §6. 방침 객체는 키별 {title, body[]} 평면 구조다.
 const RETENTION_SECTION = "retention";
 
-function retentionBody(lang) {
-  const doc = getPrivacyPolicy(lang);
-  const sec = doc?.[RETENTION_SECTION];
-  if (!sec || !Array.isArray(sec.body)) return null;
-  return `${sec.title}\n${sec.body.join("\n")}`;
+// ko 본문에서 «검사 서류·영상 자료» 조항이 몇 번째 줄인지 찾는다. 이 표식이 사라지면 멈춘다.
+const KO_MARKER = "검사 서류·영상 자료";
+
+function bodyOf(lang) {
+  const sec = getPrivacyPolicy(lang)?.[RETENTION_SECTION];
+  return Array.isArray(sec?.body) ? sec.body : null;
 }
 
-function run(bodyByLang = null) {
+function imagingBulletIndex() {
+  const ko = bodyOf("ko");
+  if (!ko) throw new Error("방침 ko 의 §6 을 못 읽었다");
+  const i = ko.findIndex((line) => line.includes(KO_MARKER));
+  if (i < 0) {
+    throw new Error(
+      `방침 ko §6 에서 "${KO_MARKER}" 줄을 못 찾았다 — 문구를 바꿨으면 이 검사의 KO_MARKER 도 같이 고쳐라.\n` +
+        "    (조용히 통과시키지 않는다: 줄을 못 지목하면 이 검사는 아무것도 재지 못한다)",
+    );
+  }
+  return i;
+}
+
+/** 그 언어의 «검사 서류·영상 조항 한 줄». 줄 수가 어긋나면 null(= 대조 불가로 잡는다). */
+function imagingBullet(lang, idx) {
+  const body = bodyOf(lang);
+  if (!body) return null;
+  return body[idx] ?? null;
+}
+
+function run(bulletByLang = null) {
   problems.length = 0;
   const label = RETENTION_LABEL.patientDocuments;
+  const idx = bulletByLang ? -1 : imagingBulletIndex();
 
   for (const lang of LANGS) {
-    const text = bodyByLang ? bodyByLang[lang] : retentionBody(lang);
+    const text = bulletByLang ? bulletByLang[lang] : imagingBullet(lang, idx);
     if (text == null) {
-      P(`${lang}: 방침에 §6(${RETENTION_SECTION}) 절이 없다`);
+      P(`${lang}: §6 의 검사 서류·영상 조항(${idx}번째 줄)을 못 찾았다 — 줄 수가 ko 와 다르다(check:legal 도 같이 봐라)`);
       continue;
     }
     const want = label[lang];
@@ -67,7 +94,8 @@ function run(bodyByLang = null) {
     }
     if (!text.includes(want)) {
       P(
-        `${lang}: §6 본문에 보관기간 표기 "${want}" 가 없다.\n` +
+        `${lang}: §6 의 «검사 서류·영상» 조항에 보관기간 표기 "${want}" 가 없다.\n` +
+          `    그 줄: ${String(text).slice(0, 90)}…\n` +
           `    → retention.ts 의 RETENTION_YEARS.patientDocuments(=${RETENTION_YEARS.patientDocuments}년) 를 바꿨다면\n` +
           `      RETENTION_LABEL 과 6개 언어 방침 문구를 «같이» 고쳐라. 한쪽만 고치면 그 자체가 방침 위반이다.`,
       );
@@ -91,11 +119,13 @@ function run(bodyByLang = null) {
 // (규칙: 검사를 만들었으면 그 검사가 진짜 잡는지부터 보여라)
 if (process.argv.includes("--selftest")) {
   const ok = {};
-  for (const l of LANGS) ok[l] = `보관 ${RETENTION_LABEL.patientDocuments[l]} 문구가 들어간 본문`;
+  for (const l of LANGS) ok[l] = `· 검사 서류·영상 자료: ${RETENTION_LABEL.patientDocuments[l]} 보관 뒤 파기`;
+  // 🔑 마지막 칸이 핵심이다: «다른 줄에 그 숫자가 있어도» 통과하면 안 된다.
+  //    처음 판이 딱 그래서 헛것이었다(계약 5년 줄 때문에 5 로 바꿔도 초록불).
   const cases = [
     ["정상 — 통과해야 함", ok, 0],
-    ["카자흐어 문구가 옛 숫자 — 잡아야 함", { ...ok, kz: "보관 5 жыл 문구" }, 1],
-    ["두 언어가 빠짐 — 둘 다 잡아야 함", { ...ok, ru: "없음", ja: "없음" }, 2],
+    ["카자흐어만 옛 숫자 — 잡아야 함", { ...ok, kz: "· Тексеру құжаттары: 5 жыл сақталады" }, 1],
+    ["두 언어가 빠짐 — 둘 다 잡아야 함", { ...ok, ru: "· без срока", ja: "· 期間なし" }, 2],
   ];
   let bad = 0;
   for (const [name, fixture, want] of cases) {
@@ -103,6 +133,24 @@ if (process.argv.includes("--selftest")) {
     const pass = got === want;
     if (!pass) bad++;
     console.log(`  ${pass ? "✅" : "❌"} ${name} (기대 ${want}건 / 실제 ${got}건)`);
+  }
+
+  // 🔑 제일 중요한 시험 — «진짜 방침»을 상대로 잰다.
+  //    보관기간을 3 → 5 로 바꾸고 방침 문구를 하나도 안 고치면 반드시 빨간불이어야 한다.
+  //    처음 판은 여기서 초록불이 떴다(§6 의 「계약 5년」 줄 때문에). 그래서 이 시험이 있다.
+  {
+    const keepY = RETENTION_YEARS, keepL = RETENTION_LABEL;
+    RETENTION_YEARS = { ...keepY, patientDocuments: 5 };
+    RETENTION_LABEL = {
+      patientDocuments: { ko: "5년", en: "5 years", ru: "5 лет", kz: "5 жыл", zh: "5 年", ja: "5 年" },
+    };
+    const got = run().length;
+    RETENTION_YEARS = keepY; RETENTION_LABEL = keepL;
+    const pass = got === LANGS.length;
+    if (!pass) bad++;
+    console.log(
+      `  ${pass ? "✅" : "❌"} 실제 방침 상대: 햇수만 3→5 로 바꾸면 6개 언어 전부 빨간불 (기대 ${LANGS.length}건 / 실제 ${got}건)`,
+    );
   }
   if (bad) {
     console.error("\n[retention] 자기시험 실패 — 이 검사는 결함을 못 잡는다.");

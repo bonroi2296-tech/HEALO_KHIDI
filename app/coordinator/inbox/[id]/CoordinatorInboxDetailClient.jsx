@@ -1611,16 +1611,24 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         //    암 자료는 시간 순서가 곧 진단이다 — 한 환자 영상 7건이 1년 반에 걸쳐 있는데
         //    올린 순서로 보면 전부 같은 시각이라 병이 어떻게 움직였는지가 안 보인다(2026-09-08).
         //    날짜가 없는 것(판독 전이거나 못 읽은 것)은 뒤로 보낸다 — 앞에 두면 «가장 오래된 검사»로
-        //    오해할 수 있다. 같은 날짜끼리는 이름순이라 볼 때마다 순서가 바뀌지 않는다.
+        //    오해할 수 있다.
+        //
+        // 🛑 날짜가 없는 것끼리는 «올라온 순서»를 그대로 둔다. 이름순으로 세우지 마라 —
+        //    이 신청서 이전에 들어온 문의와 코디가 대신 올린 자료에는 검사일이 아예 없어서
+        //    «전부» 이 갈래로 떨어진다. 이름순으로 바꾸면 원래 올린 순서마저 잃고,
+        //    코디가 «알파벳 순서를 병 경과로» 읽게 된다 — 이 카드가 고치려던 바로 그 오해다
+        //    (2026-09-08 독립 리뷰). 원래 자리(index)를 지키면 최소한 «올린 순서»는 남는다.
         const attDate = (a) => (typeof a === "object" && a?.docDate) || "";
-        const attName = (a) => (typeof a === "object" && a?.name) || "";
-        const atts = [...raw].sort((x, y) => {
-          const dx = attDate(x), dy = attDate(y);
-          if (dx && dy && dx !== dy) return dx.localeCompare(dy);
-          if (dx && !dy) return -1;
-          if (!dx && dy) return 1;
-          return attName(x).localeCompare(attName(y));
-        });
+        const atts = raw
+          .map((a, i) => ({ a, i }))
+          .sort((x, y) => {
+            const dx = attDate(x.a), dy = attDate(y.a);
+            if (dx && dy && dx !== dy) return dx.localeCompare(dy);
+            if (dx && !dy) return -1;
+            if (!dx && dy) return 1;
+            return x.i - y.i;          // 같은 날짜끼리·날짜 없는 것끼리는 올라온 순서
+          })
+          .map(({ a }) => a);
         return (
         <Card title={`${L.ibAttachmentsCard} (${atts.length})`}>
           <div className="space-y-2">

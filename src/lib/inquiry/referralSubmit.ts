@@ -85,11 +85,18 @@ export const Schema = z.object({
   mode: z.enum(["quick", "full"]).optional(),
   phone: s(40),
   birthDate: s(20), sex: s(10), nationality: s(10), passportNo: s(60),
-  stage: s(10), diagnosisNameRaw: s(600), icdCode: s(30),
-  diagnosisDate: s(20), onsetDate: s(100),
+  // 🛑 아래 칸들은 **판독(classify-doc)이 자동으로 채운다**(그쪽 `FILLABLE` 목록).
+  //    판독은 값을 3000자로 자른 뒤 넘기므로, 여기 상한이 그보다 작으면 «환자가 적지도 않은 칸»
+  //    때문에 접수 전체가 400 으로 튕긴다 — 환자는 무엇을 고쳐야 할지 알 수도 없다.
+  //    2026-09-08 독립 리뷰: envelope 안쪽만 3000 으로 늘리고 이 윗단을 빠뜨려, 고쳤다던 그 400 이
+  //    diagnosisNameRaw(600) 로 그대로 남아 있었다. **자동으로 채워지는 칸은 주는 쪽에 맞춰라.**
+  //    · 글 칸은 3000 으로 맞춘다(잘라 오므로 절대 안 넘친다)
+  //    · 날짜 칸은 `.catch(null)` — 모양이 틀린 날짜는 어차피 쓸모가 없으니 접수를 막지 말고 버린다
+  stage: s(10), diagnosisNameRaw: s(3000), icdCode: s(30),
+  diagnosisDate: s(20).catch(null), onsetDate: s(100).catch(null),
   chiefComplaint: s(3000), testsAndTreatments: s(3000), localDoctorOpinion: s(3000),
   pastHistory: z.array(z.string().max(40)).max(20).optional(),
-  pastHistoryNote: s(2000), medications: s(2000), familyHistory: s(2000),
+  pastHistoryNote: s(3000), medications: s(3000), familyHistory: s(3000),
   // 환자가 무엇을 받고 싶은가 — 병원에 보낼 의뢰서의 «질문»이 된다.
   // 개인정보가 아니라 고른 목록이므로 암호화 안 한다(코디가 목록에서 바로 보여야 한다).
   referralWants: z.array(z.string().max(20)).max(10).optional(),
@@ -125,7 +132,11 @@ export const Schema = z.object({
     //    그러면 접수 자체가 400 으로 튕기고, 화면엔 「서류를 줄이세요」가 뜬다(서류를
     //    아무리 지워도 안 풀린다). 검사일도 20 자로 뒀다가 「2025-03-26 ~ 2025-09-25」(23자)
     //    같은 «기간» 표기에 걸렸다. **입력을 막지 말고 받아서 아래에서 다듬는다.**
-    docDate: s(40), diagnosisText: s(3000),
+    //    ⚠️ 그래도 «막지 않는다»가 완전해지려면 상한을 넘겼을 때 400 이 아니라 «버리기»여야 한다.
+    //    classify-doc 은 `doc_date` 를 모델이 준 대로 흘려보내므로(형 검사·자르기 없음) 숫자나
+    //    54자짜리 설명문이 올 수 있다 — 그것 때문에 환자가 올린 서류 한 벌이 통째로 거절되면 안 된다.
+    //    `.catch(null)` = 「모양이 틀리면 이 칸만 비운다」. normalizeDocDate 가 어차피 한 번 더 거른다.
+    docDate: s(40).catch(null), diagnosisText: s(3000).catch(null),
   })).max(100).optional(),
   // 🛑 zod 는 스키마에 없는 키를 «조용히» 버린다. 화면은 path(저장소 경로)를 보내는데 여기 없어서
   //    CD 묶음(수백 MB, 40초 묶고 몇 분 올린 것)이 저장소에만 남고 DB 어디에도 연결이 안 됐다
@@ -161,7 +172,16 @@ export function normalizeDocDate(raw: string | null | undefined): string | null 
   const iso = head.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
   const dmy = head.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);   // 러시아·카자흐 서류가 이 모양이다
   if (iso) [, y, m, d] = iso.map(Number) as unknown as [unknown, number, number, number];
-  else if (dmy) { const [, dd, mm, yy] = dmy.map(Number) as unknown as [unknown, number, number, number]; y = yy; m = mm; d = dd; }
+  else if (dmy) {
+    const [, first, second, yy] = dmy.map(Number) as unknown as [unknown, number, number, number];
+    // 🛑 「03/04/2025」는 3월 4일인가 4월 3일인가? **모른다.** 우리는 6개 언어를 상대하고
+    //    영어권 서류는 월이 앞(MM/DD)이다. 앞 숫자가 12 이하면 두 해석이 다 말이 되므로
+    //    «짐작하지 말고 버린다» — 이 값은 코디 화면에서 병 경과의 «순서»가 되기 때문에,
+    //    틀린 날짜 하나가 시간선을 통째로 뒤집는다. 빈 칸은 화면이 날짜를 아예 안 그린다.
+    //    앞 숫자가 13 이상이면 날일 수밖에 없으니(월은 12까지) 그때만 DMY 로 읽는다.
+    if (first <= 12) return null;
+    y = yy; m = second; d = first;
+  }
   else return null;
   if (m < 1 || m > 12 || d < 1 || d > 31) return null;
   // 실재하는 날인지까지 본다 — 2025-02-30 을 통과시키면 «있는 날짜»처럼 줄에 선다.

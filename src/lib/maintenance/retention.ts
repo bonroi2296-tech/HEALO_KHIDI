@@ -83,8 +83,14 @@ function toTime(since: string | Date | null | undefined): number | null {
 /**
  * 파기 예정일 — «달력 기념일»로 잰다.
  *
- * `setFullYear(+N)` 은 2028-02-29 처럼 그 해에 없는 날을 만나면 3월 1일로 넘긴다.
+ * `setUTCFullYear(+N)` 은 2028-02-29 처럼 그 해에 없는 날을 만나면 3월 1일로 넘긴다.
  * 그건 «하루 늦게 지운다»는 뜻이라 안전한 쪽이다 — 짧아지는 것과 달리 위반이 아니다.
+ *
+ * 🛑 **반드시 UTC 로 세라.** 처음엔 `getFullYear`/`setFullYear`(그 기계의 시간대)를 썼는데,
+ *    저장된 값은 UTC 인데 기념일은 현지 달력으로 세는 «섞인 계산»이라 결과가 기계마다 달랐다.
+ *    실측(2026-09-08 독립 리뷰): `TZ=America/Los_Angeles` 로 돌리면 시험 16건 중 2건이 깨지고,
+ *    `Asia/Seoul` 에서는 계약 기록 5년이 **UTC 기념일보다 하루 «빨라진다»** — 법정 최소를
+ *    깎지 않으려고 일수 계산을 버렸는데 시간대로 같은 구멍이 다시 열린 것이다.
  *
  * 날짜를 못 읽으면 **null** 이다(Invalid Date 를 화면에 내보내지 않는다).
  */
@@ -92,7 +98,7 @@ export function expiryDate(since: string | Date | null | undefined, years: numbe
   const t = toTime(since);
   if (t === null) return null;
   const d = new Date(t);
-  d.setFullYear(d.getFullYear() + years);
+  d.setUTCFullYear(d.getUTCFullYear() + years);
   return d;
 }
 
