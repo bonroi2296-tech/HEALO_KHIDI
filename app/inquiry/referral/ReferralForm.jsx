@@ -357,7 +357,9 @@ export default function ReferralForm() {
           code === "rate_limit_exceeded" ? "errTooMany"
           // 서류가 너무 많은 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다 — 뭉치면 엉뚱한 곳을 고친다.
           : code === "too_many_documents" ? "errTooManyDocs"
-          : code === "validation_error" || code === "invalid_json" || code === "broken_encoding" ? "errInvalid"
+          // 깨진 글자는 «칸 형식»과 할 일이 다르다 — 칸을 고치는 게 아니라 붙여넣기를 다시 해야 한다.
+          : code === "broken_encoding" ? "errBroken"
+          : code === "validation_error" || code === "invalid_json" ? "errInvalid"
           : code === "consent_required" ? "errConsent"
           : "errSend", lang));
         return;
