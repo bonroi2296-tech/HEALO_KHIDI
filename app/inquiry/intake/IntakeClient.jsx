@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, UploadCloud, File, X, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import { uploadAttachment } from '@/lib/uploadAttachment';
+import { describeUpload, UPLOAD_POLICY } from '@/lib/uploadPolicy';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 
@@ -93,6 +94,7 @@ export function InquiryIntakePage({ setView }) {
   });
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null); // {index, total, ratio} — 첨부를 올리는 동안만
   const [done, setDone] = useState(false);
   // 못 올라간 첨부 — 완료 화면에서 크게 알린다(토스트로 흘리면 서류가 조용히 사라진다).
   const [failedUploads, setFailedUploads] = useState([]);
@@ -112,9 +114,11 @@ export function InquiryIntakePage({ setView }) {
     }));
   };
 
+  // 여러 개를 한 번에 고를 수 있다. 실제 업로드는 제출 버튼을 누를 때 차례로 일어난다.
   const handleFileChange = (e) => {
-    const f = e.target.files?.[0];
-    if (f) setFiles((prev) => [...prev, f]);
+    const picked = Array.from(e.target.files || []);
+    if (picked.length) setFiles((prev) => [...prev, ...picked]);
+    e.target.value = ''; // 같은 파일을 다시 골라도 onChange 가 뜨게
   };
 
   const handleSubmit = async () => {
@@ -127,8 +131,12 @@ export function InquiryIntakePage({ setView }) {
       let extraPaths = [];
       const failedFiles = [];
       if (files.length) {
-        for (const file of files) {
-          const uploadResult = await uploadAttachment(file);
+        for (const [i, file] of files.entries()) {
+          // 큰 자료는 몇 분 걸린다 — 버튼이 「…」로만 있으면 멈춘 줄 알고 창을 닫는다.
+          setUploadProgress({ index: i + 1, total: files.length, ratio: 0 });
+          const uploadResult = await uploadAttachment(file, {
+            onProgress: (ratio) => setUploadProgress((p) => (p ? { ...p, ratio } : p)),
+          });
           if (uploadResult.ok) extraPaths.push({ path: uploadResult.path, name: uploadResult.name, type: uploadResult.type || null });
           else {
             failedFiles.push({ name: file.name, reason: uploadResult.error || 'upload_failed' });
@@ -181,6 +189,7 @@ export function InquiryIntakePage({ setView }) {
       toast.error(t('intake.saveFailed', langCode));
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -302,7 +311,9 @@ export function InquiryIntakePage({ setView }) {
           <label htmlFor="intake-file" className="flex items-center justify-center gap-2 w-full p-4 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-500 cursor-pointer hover:border-teal-400">
             <UploadCloud size={18} /> {t('intakeForm.upload', langCode)}
           </label>
-          <input id="intake-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*,application/pdf" />
+          <p className="mt-1.5 text-[11px] text-gray-400 text-center">{describeUpload('medicalDoc', langCode)}</p>
+          {/* 안내와 같은 목록을 연다 — 예전엔 사진·PDF 만 열어서 Word 진단서·DICOM·음성 메모가 잠겨 있었다. */}
+          <input id="intake-file" type="file" multiple className="hidden" onChange={handleFileChange} accept={UPLOAD_POLICY.medicalDoc.accept} />
           {files.length > 0 && (
             <div className="mt-2 space-y-1">
               {files.map((f, i) => (
@@ -320,7 +331,11 @@ export function InquiryIntakePage({ setView }) {
           disabled={submitting}
           className="w-full bg-teal-700 text-white py-4 rounded-2xl font-bold text-base hover:bg-teal-800 transition disabled:bg-gray-400"
         >
-          {submitting ? '...' : t('intakeForm.save', langCode)}
+          {submitting
+            ? (uploadProgress
+                ? `${uploadProgress.index}/${uploadProgress.total} · ${Math.round(uploadProgress.ratio * 100)}%`
+                : '...')
+            : t('intakeForm.save', langCode)}
         </button>
       </div>
     </div>
