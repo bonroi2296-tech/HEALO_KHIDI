@@ -21,6 +21,8 @@ export const CANCER_TYPE_LABELS: Record<string, Record<string, string>> = {
   // 신장암은 실제 문의(#60 소견 요청 포함)가 들어와 있는데 목록에 없어서 화면에 "kidney" 가
   // 영어 날것으로 떴다(2026-08-26 발견).
   kidney:      { ko: "신장암", en: "Kidney cancer", ru: "Рак почки", kz: "Бүйрек обыры", zh: "肾癌", ja: "腎がん" },
+  // 2026-09-08 추가: 실제 전립선 케이스(#316)가 선택지가 없어 'other' 로 접수됐다 — 신장암과 같은 부류.
+  prostate:    { ko: "전립선암", en: "Prostate cancer", ru: "Рак предстательной железы", kz: "Қуық асты безі обыры", zh: "前列腺癌", ja: "前立腺がん" },
   other:       { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" },
 };
 
@@ -58,6 +60,7 @@ export const CANCER_TYPE_ICD10: Record<string, { code: string; en: string; note?
   // 부인암은 범위가 넓다(C51~C58). 난소를 대표로 두고 나머지는 사람이 고른다.
   gynecologic: { code: "C56", en: "Malignant neoplasm of ovary", note: "C51-C58" },
   kidney:      { code: "C64", en: "Malignant neoplasm of kidney, except renal pelvis", note: "renal pelvis: C65" },
+  prostate:    { code: "C61", en: "Malignant neoplasm of prostate" },
   // other 는 일부러 비워 둔다 — 「기타」에 코드를 붙이면 틀린 코드를 권하게 된다.
 };
 
