@@ -64,7 +64,17 @@ export async function POST(request: NextRequest) {
 
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ ok: false, error: "validation_error" }, { status: 400 });
+    // 「무엇이 잘못됐나」를 «코드»로만 갈라 준다 — 원문 메시지는 절대 내보내지 않는다(보안 규칙).
+    // 갈라야 하는 이유: 서류를 너무 많이 올린 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다.
+    // 뭉쳐 두었더니 화면이 「이메일 주소를 확인해 주세요」로 옮겼고, 실제로는 첨부 개수가
+    // 넘친 것이라 PO 가 멀쩡한 이메일을 계속 고쳤다(2026-09-08).
+    const tooManyDocs = parsed.error.issues.some(
+      (i) => i.code === "too_big" && i.path[0] === "envelope"
+    );
+    return Response.json(
+      { ok: false, error: tooManyDocs ? "too_many_documents" : "validation_error" },
+      { status: 400 }
+    );
   }
   const d = parsed.data;
 

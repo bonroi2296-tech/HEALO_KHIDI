@@ -114,6 +114,9 @@ const LANGS = [
 function uploadErrorText(code, lang, bytes) {
   if (code === "file_too_large") return tr("upTooBig", lang, { mb: bytes ? formatMB(bytes) : "200MB+" });
   if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
+  // 「한꺼번에 몰림」과 「올리기 실패」는 사람이 할 일이 다르다 — 앞은 기다리면 되고 뒤는 다시 눌러야 한다.
+  // 2026-09-08 실서비스: 서류 44장을 올리다 429 가 8건 났는데 화면엔 「다시 시도해 주세요」만 떴다.
+  if (code === "rate_limited") return tr("upBusy", lang);
   return tr("upFailed", lang);
 }
 /** 화면 문구 한 줄. 값은 사전(referral.tr.*)에서 오고, {n}·{mb} 같은 자리는 여기서 갈아끼운다. */
@@ -339,6 +342,8 @@ export default function ReferralForm() {
         ga(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 1, form: "referral", code: code || "unknown" });
         setSendError(tr(
           code === "rate_limit_exceeded" ? "errTooMany"
+          // 서류가 너무 많은 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다 — 뭉치면 엉뚱한 곳을 고친다.
+          : code === "too_many_documents" ? "errTooManyDocs"
           : code === "validation_error" || code === "invalid_json" || code === "broken_encoding" ? "errInvalid"
           : code === "consent_required" ? "errConsent"
           : "errSend", lang));
