@@ -155,7 +155,7 @@ export default function CoordinatorVoicePage() {
   const busy = phase === "uploading" || phase === "reading" || phase === "saving";
   const errText = {
     not_audio: "음성 파일이 아닙니다. MP3·M4A·WAV·OGG·WebM·AMR 을 올려주세요.",
-    file_too_large: "파일이 너무 큽니다(200MB 넘음).",
+    file_too_large: "파일이 너무 큽니다(2GB 넘음).",
     invalid_file_type: "이 형식은 받지 않습니다.",
     invalid_file_content: "파일 속이 형식과 달라 막혔습니다.",
     too_large: "음성이 너무 깁니다(12MB 넘음). 나눠서 올려주세요.",
@@ -219,7 +219,7 @@ export default function CoordinatorVoicePage() {
             <div className="space-y-1.5">
               <Upload size={22} className="mx-auto text-gray-500" />
               <p className="text-sm font-semibold text-gray-700">여기에 음성을 끌어다 놓거나 눌러서 고르세요</p>
-              <p className="text-xs text-gray-500">{VOICE_LABEL} · 최대 200MB</p>
+              <p className="text-xs text-gray-500">{VOICE_LABEL} · 최대 2GB</p>
             </div>
           )}
         </label>

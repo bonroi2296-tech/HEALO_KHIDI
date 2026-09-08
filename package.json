@@ -32,6 +32,7 @@
     "check:i18n-backport": "node scripts/i18n-backport-overrides.mjs --check",
     "check:locale-links": "node scripts/check-locale-links.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
+    "check:retention": "node scripts/check-retention.mjs --selftest",
     "check:legal-citations": "node scripts/check-legal-citations.mjs --selftest && node scripts/check-legal-citations.mjs",
     "check:metric-honesty": "node scripts/check-metric-honesty.mjs --selftest && node scripts/check-metric-honesty.mjs",
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
