@@ -53,13 +53,22 @@ export async function POST(request: NextRequest) {
       { status: 429, headers: getRateLimitHeaders(rl) });
   }
 
+  // 🔎 접수가 거절될 때마다 «어느 칸 때문인지»를 우리 로그에 남긴다.
+  //    2026-09-08 사고: 실서비스에서 400 이 4번 났는데 로그가 없어서 사유를 알 수 없었고,
+  //    나중에 스키마를 재현해서야 원인(첨부 개수)을 확정했다. 값은 절대 안 찍는다 —
+  //    환자 이름·이메일·진단이 로그에 남으면 그게 개인정보 유출이다. «필드 이름과 위반 종류»만.
+  const rejected = (code: string, detail?: string) => {
+    console.warn(`[/api/inquiries/referral] 접수 거절: ${code}${detail ? ` — ${detail}` : ""}`);
+    return Response.json({ ok: false, error: code }, { status: 400 });
+  };
+
   let body: unknown;
   try { body = await request.json(); }
-  catch { return Response.json({ ok: false, error: "invalid_json" }, { status: 400 }); }
+  catch { return rejected("invalid_json"); }
 
   // CP949 등으로 깨진 한글이 DB·알림메일에 그대로 박히는 걸 막는다(POSTMORTEMS #92).
   if (hasMojibake(body)) {
-    return Response.json({ ok: false, error: "broken_encoding" }, { status: 400 });
+    return rejected("broken_encoding");
   }
 
   const parsed = Schema.safeParse(body);
@@ -71,17 +80,17 @@ export async function POST(request: NextRequest) {
     const tooManyDocs = parsed.error.issues.some(
       (i) => i.code === "too_big" && i.path[0] === "envelope"
     );
-    return Response.json(
-      { ok: false, error: tooManyDocs ? "too_many_documents" : "validation_error" },
-      { status: 400 }
-    );
+    // 로그에는 «어느 칸이 어떤 종류로 틀렸나»만 (값 없이). 다음에 같은 제보가 오면 이 한 줄로 끝난다.
+    const where = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".") || "(root)"}:${i.code}`).join(", ");
+    return rejected(tooManyDocs ? "too_many_documents" : "validation_error", where);
   }
   const d = parsed.data;
 
   // PIPA 필수 동의 서버 재확인 — 화면 관문을 우회한 직접 호출도 막는다.
   const consents = d.consents ?? {};
-  if (REQUIRED_CONSENTS.some((k) => consents[k] !== true)) {
-    return Response.json({ ok: false, error: "consent_required" }, { status: 400 });
+  const missing = REQUIRED_CONSENTS.filter((k) => consents[k] !== true);
+  if (missing.length) {
+    return rejected("consent_required", missing.join(","));
   }
 
   let userId: string | null = null;
