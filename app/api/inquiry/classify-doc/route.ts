@@ -37,6 +37,7 @@ import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
 import { isDiagnosisIcdCode, startsWithEncounterCode } from "@/lib/khidi/medicalLabels";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { renderForAi } from "@/lib/documents/pdfPage";
+import { docxToHtml } from "@/lib/documents/docxHtml";
 
 // 상한이 «둘»이고 서로 다른 것을 재는다 — 섮이지 마라(2026-08-14 PO 혼동):
 //   · 보관 200MB : 브라우저 → 저장소 직행(우리 서버를 안 거친다)
@@ -68,8 +69,16 @@ const AUDIO_TYPES = new Set([
   "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/webm", "audio/amr",
 ]);
 
+// Word(.docx) — 모델은 이 «파일»을 못 삼킨다. 그래서 우리가 글자·표를 뽑아 «글»로 넘긴다.
+// 🛑 못 읽는 게 아니라 «연결을 안 했던» 것이다 (2026-09-08 PO: 「워드 문서 내용은 왜 못읽는데」).
+//    번역 창구(translateDoc.ts)는 진작부터 같은 방식으로 Word 를 읽고 있었는데 판독만 빠져 있었다.
+//    실제 피해: 문의 #94 는 첨부가 이 한 장뿐이라 값이 통째로 비었다 — 그 안에 병명이 있다.
+//    옛 .doc(바이너리)은 mammoth 가 못 뽑는다 — 그건 그대로 미지원.
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 const ACCEPT = new Set([
   "application/pdf", "image/jpeg", "image/png", "image/webp",
+  DOCX_MIME,
   ...AUDIO_TYPES,
 ]);
 
@@ -310,7 +319,7 @@ export async function POST(request: NextRequest) {
 
   // 보낼 조각들. 작은 서류는 원본 그대로(글자 데이터가 살아 있어 정확하다),
   // 큰 서류는 «가벼운 쪽 그림»으로 다시 그려서 보낸다.
-  let parts: Array<{ inline_data: { mime_type: string; data: string } }> = [];
+  let parts: Array<{ inline_data: { mime_type: string; data: string } } | { text: string }> = [];
   let readPages: number | null = null;
   let totalPages: number | null = null;
   try {
@@ -319,7 +328,15 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true, skipped: "internal_error", kind: "unknown" });
     }
     const buf = Buffer.from(await dl.data.arrayBuffer());
-    if (buf.length <= MAX_BYTES) {
+    if (type === DOCX_MIME) {
+      // Word 는 «그림»이 아니라 «글»로 넘긴다. 표도 따라온다(mammoth 가 <table> 로 낸다).
+      const doc = await docxToHtml(buf, path.endsWith(".docx") ? path : `${path}.docx`);
+      if (!doc.ok) return Response.json({ ok: true, skipped: "unsupported_type", kind: "unknown" });
+      // 태그를 걷어 글자만 남긴다 — 모델에게 필요한 건 서식이 아니라 내용이다.
+      const text = doc.html.replace(/<[^>]+>/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 120_000);
+      if (!text) return Response.json({ ok: true, skipped: "unsupported_type", kind: "unknown" });
+      parts = [{ text: `--- 아래는 Word 문서(${path.split("/").pop()})에서 뽑은 글자다 ---\n${text}` }];
+    } else if (buf.length <= MAX_BYTES) {
       parts = [{ inline_data: { mime_type: type, data: buf.toString("base64") } }];
     } else if (isAudio) {
       // 소리는 «쪽으로 다시 그릴» 수가 없다. 12MB 를 넘으면 그대로 접는다
