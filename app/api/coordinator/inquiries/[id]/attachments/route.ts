@@ -22,7 +22,11 @@ import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/
 
 const BUCKET = "attachments";
 const MAX_SIZE = 2000 * 1024 * 1024;
-const MAX_ATTACHMENTS = 20; // 환자 본인 업로드(10) + 코디 대리분 여유
+// 🛑 접수 창구(referralSubmit.ts)와 «같은 수»로 둔다. 2026-09-08 실측: 접수 폼 상한을 100 으로
+//    올려 놓고 여기만 20 이면, 코디가 실제 환자 한 벌을 대신 올릴 때 스무 장째에서 막힌다.
+//    실제 규모: 유방암 케이스 한 벌이 러시아어 원본 21 + 영문 번역 23 + 영상 7 + 의뢰서 1 = 52장,
+//    다른 케이스는 문서만 68장이었다. 20 은 «한 벌»의 절반도 못 받는 수다.
+const MAX_ATTACHMENTS = 100;
 
 const ALLOWED_TYPES = [
   "image/jpeg",
