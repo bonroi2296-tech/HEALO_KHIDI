@@ -64,12 +64,17 @@ const Schema = z.object({
   // 봉투에 올린 서류 — 종류는 «추정»이거나 사용자가 고친 값이다. 사실로 다루지 마라.
   // link: 파일이 200MB 를 넘어 «못 올린» 경우, 사람이 그 자리에서 남긴 대용량 저장소 주소.
   // 안 받으면 화면에만 있고 조용히 버려진다(2026-08-18 실측으로 잡음).
+  // ⚠️ 개수 상한은 «실제 환자 의무기록 한 벌»을 기준으로 잡아라. 30 이던 동안, 서류를 31장 넘게
+  //    올린 사람은 다 올려놓고 마지막 「보내기」에서 400 을 맞았다(2026-09-08 실서비스 4회 연속).
+  //    화면 문구가 그 400 을 「이메일 주소를 확인해 주세요」로 옮겨서 PO 는 이메일을 계속 고쳤다.
+  //    실측: 성공한 문의 #321 은 첨부 13개였고, 그 뒤 62개까지 올리자 매번 실패했다.
+  //    유방암 케이스 한 벌이 PDF 44장이다 — 100 이면 그 두 배를 받는다.
   envelope: z.array(z.object({
     path: s(500), name: s(300), size: z.number().optional(),
     kind: s(40), confidence: z.number().nullable().optional(),
     corrected: z.boolean().optional(),
     link: s(600),
-  })).max(30).optional(),
+  })).max(100).optional(),
   // 🛑 zod 는 스키마에 없는 키를 «조용히» 버린다. 화면은 path(저장소 경로)를 보내는데 여기 없어서
   //    CD 묶음(수백 MB, 40초 묶고 몇 분 올린 것)이 저장소에만 남고 DB 어디에도 연결이 안 됐다
   //    (2026-08-19 독립 리뷰 2명이 동시에 짚음). 코디는 「CD 601개 · 100MB」만 보고 열 수가 없었다.
@@ -106,7 +111,17 @@ export async function POST(request: NextRequest) {
 
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ ok: false, error: "validation_error" }, { status: 400 });
+    // 「무엇이 잘못됐나」를 «코드»로만 갈라 준다 — 원문 메시지는 절대 내보내지 않는다(보안 규칙).
+    // 갈라야 하는 이유: 서류를 너무 많이 올린 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다.
+    // 뭉쳐 두었더니 화면이 「이메일 주소를 확인해 주세요」로 옮겼고, 실제로는 첨부 개수가
+    // 넘친 것이라 PO 가 멀쩡한 이메일을 계속 고쳤다(2026-09-08).
+    const tooManyDocs = parsed.error.issues.some(
+      (i) => i.code === "too_big" && i.path[0] === "envelope"
+    );
+    return Response.json(
+      { ok: false, error: tooManyDocs ? "too_many_documents" : "validation_error" },
+      { status: 400 }
+    );
   }
   const d = parsed.data;
 
