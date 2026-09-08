@@ -24,7 +24,7 @@ import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL, icd10SuggestionFor } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { fullPatientName } from "@/lib/inquiry/patientName";
-import { DOC_FIELD_LABELS } from "@/lib/inquiry/docKinds";
+import { DOC_FIELD_LABELS, docValueBeats } from "@/lib/inquiry/docKinds";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
@@ -693,6 +693,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     results.sort((x, y) => String(x.docDate || "").localeCompare(String(y.docDate || "")));
     const fields = {};
     const from = {};                       // 칸마다 «어느 파일에서 나왔나» — 코디가 원본을 찾아갈 수 있게
+    const fieldKind = {};                  // 칸마다 «어떤 종류의 서류»가 넣었나 — 무게 비교용(화면에는 안 나간다)
     const glossary = [];
     const seenTerm = new Set();
     for (const r of results) {
@@ -707,8 +708,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           from[k] = from[k] ? `${from[k]}, ${r._name}` : r._name;
           continue;
         }
+        // 🛑 «최신이 이긴다»는 같은 종류끼리의 규칙이다. 종류가 다르면 무게가 정한다 —
+        //    조직검사가 확진한 진단명을 나중에 찍은 영상 판독지가 덮으면 안 된다
+        //    (2026-09-08 #316: 접수 창구에서 MRI 판독지가 조직검사의 C61 을 Z04 로 덮었다).
+        if (fields[k] != null && !docValueBeats(k, r.kind, fieldKind[k])) continue;
         fields[k] = v;
         from[k] = r._name;
+        fieldKind[k] = r.kind || null;
       }
       for (const g of r.glossary || []) {
         const key = String(g.term || "").toLowerCase();
