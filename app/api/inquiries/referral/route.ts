@@ -21,7 +21,6 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextRequest, after } from "next/server";
-import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
