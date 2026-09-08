@@ -16,6 +16,7 @@ import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
+import { isSyntheticThread } from "@/lib/chat/syntheticThread";
 import {
   generateChatReply,
   detectHandOff,
@@ -148,6 +149,9 @@ export async function POST(request: NextRequest) {
     const escalateReason = handOff.reason || (hasAttachments ? "attachment_uploaded" : null);
 
     const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
+    // 점검·E2E 대화는 판사에서 뺀다(stream 라우트와 같은 규칙 — 2026-09-06 에 stream 만 고쳐 여기가 반쪽이었다).
+    // 건너뛴 흔적은 아래 답변 metadata 의 judge_skipped 로 남긴다(감시 모수에서 빠져야 헛경보가 없다).
+    const judgeSkipped = isSyntheticThread(threadMeta);
     if (escalate) {
       // 스레드당 1회만 종을 울린다(자료 여러 번 업로드 시 도배 방지).
       const alreadyNotified = !!threadMeta.hand_off_notified;
@@ -216,6 +220,7 @@ export async function POST(request: NextRequest) {
         hasReachableContact: reachable,
         // 이번 턴 첨부 or 과거 첨부 스레드 → "파일 못 읽음" 하드룰 (첨부 내용 환각 방지)
         hasAttachments: hasAttachments || !!threadMeta.has_attachments,
+        isSyntheticTest: judgeSkipped,
       });
       reply = r.reply;
       ragChunks = r.ragChunks;
@@ -262,6 +267,8 @@ export async function POST(request: NextRequest) {
           // 모델을 «안 거치고» 코드가 가로챈 턴이면 그 이름을 남긴다(잡담·화제정정·마스터키).
           // 안 남기면 가로채기 오작동이 정상 답변과 구별이 안 된다 — 2026-08-28 사고가 그것이었다.
           ...(modelBypassKind(_analytics?.ragScoring) ? { bypassed: modelBypassKind(_analytics?.ragScoring) } : {}),
+          // 판사를 «일부러» 건너뛴 턴 표식(점검·E2E). kpi-snapshot 이 이 칸으로 감시 모수를 맞춘다.
+          ...(judgeSkipped ? { judge_skipped: "synthetic" } : {}),
         },
       })
       .select("id")

@@ -21,6 +21,8 @@ export const CANCER_TYPE_LABELS: Record<string, Record<string, string>> = {
   // 신장암은 실제 문의(#60 소견 요청 포함)가 들어와 있는데 목록에 없어서 화면에 "kidney" 가
   // 영어 날것으로 떴다(2026-08-26 발견).
   kidney:      { ko: "신장암", en: "Kidney cancer", ru: "Рак почки", kz: "Бүйрек обыры", zh: "肾癌", ja: "腎がん" },
+  // 2026-09-08 추가: 실제 전립선 케이스(#316)가 선택지가 없어 'other' 로 접수됐다 — 신장암과 같은 부류.
+  prostate:    { ko: "전립선암", en: "Prostate cancer", ru: "Рак предстательной железы", kz: "Қуық асты безі обыры", zh: "前列腺癌", ja: "前立腺がん" },
   other:       { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" },
 };
 
@@ -58,6 +60,7 @@ export const CANCER_TYPE_ICD10: Record<string, { code: string; en: string; note?
   // 부인암은 범위가 넓다(C51~C58). 난소를 대표로 두고 나머지는 사람이 고른다.
   gynecologic: { code: "C56", en: "Malignant neoplasm of ovary", note: "C51-C58" },
   kidney:      { code: "C64", en: "Malignant neoplasm of kidney, except renal pelvis", note: "renal pelvis: C65" },
+  prostate:    { code: "C61", en: "Malignant neoplasm of prostate" },
   // other 는 일부러 비워 둔다 — 「기타」에 코드를 붙이면 틀린 코드를 권하게 된다.
 };
 
@@ -90,6 +93,39 @@ export function normalizeCancerType(value: string | null | undefined): string | 
  * 저장 통로(coordinator/inquiries/[id]/icd-code)가 이걸로 거른다.
  */
 export const ICD10_PATTERN = /^[A-TV-Z][0-9]{2}(\.[0-9A-Z]{1,4})?$/;
+
+/**
+ * 형식은 맞지만 «진단»이 아닌 코드인가 — ICD-10 Z 장(Z00~Z99)은 병이 아니라
+ * 「보건서비스에 접촉한 사유」다. Z04 = "기타 사유에 의한 검사 및 관찰".
+ *
+ * 왜 막나 (2026-09-08 실사고 #316): 러시아 환자의 검사결과지 머리에 «МКБ-10: Z04» 가
+ * 찍혀 있었고, 서류 판독기가 그걸 그대로 베껴 진단코드 칸에 넣었다. 판독기는 시킨 대로
+ * («적힌 코드를 글자 그대로 베껴라») 한 것이지만, 그 칸의 뜻은 «이 환자의 병»이고
+ * 서류에 찍힌 그 코드의 뜻은 «이 검사를 왜 했나»다 — 둘은 다른 것이다.
+ * CIS 검사결과지·의뢰지에는 Z01·Z03·Z04·Z08·Z12 가 머리글로 흔하게 찍힌다.
+ *
+ * 🛑 사람이 손으로 넣는 자리(코디 확정 코드)는 막지 않는다 — 사람은 보고 판단한다.
+ *    막는 건 «기계가 서류에서 베껴 자동으로 채우는» 경로뿐이다.
+ */
+export function isDiagnosisIcdCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  const v = code.trim().toUpperCase();
+  if (!ICD10_PATTERN.test(v)) return false;
+  return v[0] !== "Z";
+}
+
+/**
+ * «진단명» 칸에 진단이 아니라 검사 사유가 들어왔나 — 같은 사고의 다른 칸이다.
+ * #316 은 진단코드뿐 아니라 진단명 칸도 `Z04 Обследование и наблюдение с другими целями`
+ * («기타 목적의 검사 및 관찰»)로 접수됐다. 그대로 두면 병원에 나가는 의뢰서에
+ * 「이 환자의 병 = 검사를 받는 것」이라고 적히게 된다.
+ *
+ * 🛑 Z 코드로 «시작»할 때만 잡는다. 진짜 진단명 안에 Z 코드가 곁들여 적힌 경우
+ *    («C61 … , Z85.46 기왕력») 까지 버리면 진단을 잃는다.
+ */
+export function startsWithEncounterCode(text: string | null | undefined): boolean {
+  return /^\s*Z\d{2}(\.\d{1,4})?\b/i.test(text || "");
+}
 
 /** 암종 → 추천 ICD-10 코드. 추천할 게 없으면 null(「기타」·미등록 값). */
 export function icd10SuggestionFor(

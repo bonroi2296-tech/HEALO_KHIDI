@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { safeLink, toCanonicalConsents, toDateOrNull, CONSENT_KEY_MAP } from "./referralSubmit";
+import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, CONSENT_KEY_MAP } from "./referralSubmit";
 
 describe("의뢰서 접수 — 링크는 http(s) 만", () => {
   it.each([
@@ -48,5 +48,25 @@ describe("의뢰서 접수 — 진단 시기(연-월)를 date 컬럼에", () => 
     ["", null], [null, null], [undefined, null],
   ])("%s → %s", (input, want) => {
     expect(toDateOrNull(input as any)).toBe(want);
+  });
+});
+
+describe("pickFilledFromDocs — 「이 값 기계가 넣었다」 표시를 저장한다", () => {
+  // 2026-09-08 #316: 이 표시가 접수 창구에서 통째로 버려져, 판독기가 넣은 Z04 가
+  //                  환자가 손으로 적은 진단코드처럼 보였다.
+  it("값이 함께 들어온 칸만 남기고, 파일명을 출처로 적는다", () => {
+    const got = pickFilledFromDocs(
+      { icdCode: "КЛИНИКА.pdf", stage: true, chiefComplaint: "없어진칸.pdf" },
+      { icdCode: "C16", stage: "III", chiefComplaint: "" },
+    );
+    expect(got).toEqual({ icdCode: "КЛИНИКА.pdf", stage: "서류" });
+  });
+
+  it("표시가 없거나 남을 게 없으면 null — 빈 껍데기를 저장하지 않는다", () => {
+    expect(pickFilledFromDocs(null, { icdCode: "C16" })).toBeNull();
+    expect(pickFilledFromDocs({}, {})).toBeNull();
+    expect(pickFilledFromDocs({ icdCode: true }, {})).toBeNull();
+    expect(pickFilledFromDocs({ icdCode: false }, { icdCode: "C16" })).toBeNull();
+    expect(pickFilledFromDocs({ pastHistory: true }, { pastHistory: [] })).toBeNull();
   });
 });
