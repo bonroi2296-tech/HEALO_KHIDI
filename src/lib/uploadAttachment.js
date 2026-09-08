@@ -40,14 +40,17 @@ function retryAfterMs(res) {
  * 화면엔 「올리지 못했습니다」만 떠서 사유도 안 보였다. 재시도가 없으면 사람이 몇 장이
  * 올라갔는지 세어 가며 손으로 다시 올려야 한다 — 의료 서류에서 제일 위험한 실패다.
  */
-async function postWithRetry(doFetch, endpoint, body, onWait) {
+async function postWithRetry(doFetch, endpoint, body, onWait, maxRetries = 5) {
   for (let attempt = 0; ; attempt++) {
     const res = await doFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (res.status !== 429 || attempt >= 5) return readJson(res);
+    if (res.status !== 429 || attempt >= maxRetries) {
+      if (onWait) onWait(0); // 기다림이 끝났다 — 화면의 「대기 중」 표시를 거둔다
+      return readJson(res);
+    }
     const wait = retryAfterMs(res);
     // 화면이 「멈췄나」로 읽지 않게 기다리는 중임을 알린다.
     if (onWait) onWait(Math.ceil(wait / 1000));
@@ -95,7 +98,8 @@ export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
         size: file.size,
         ...extra,
       },
-      opts.onWait
+      opts.onWait,
+      10   // sign(5) 보다 끈질기게 — 주석이 말한 것을 실제로 값으로 지킨다
     );
     if (!commit.ok) return commit;
 

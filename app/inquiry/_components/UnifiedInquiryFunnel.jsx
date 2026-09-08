@@ -421,6 +421,8 @@ export default function UnifiedInquiryFunnel() {
 
       const data = await uploadAttachment(file, {
         onProgress: (ratio) => setUploadProgress((p) => (p ? { ...p, ratio } : p)),
+        // 상한에 걸려 기다리는 중이면 화면에 그렇게 적는다 — 안 그러면 멈춘 줄 안다.
+        onWait: (sec) => setUploadProgress((p) => (p ? { ...p, waitSec: sec } : p)),
       });
       if (!data.ok) {
         failed.push(`${file.name}: ${uploadReason(data.error)}`);
@@ -768,7 +770,11 @@ export default function UnifiedInquiryFunnel() {
                     {uploadProgress.total > 1 && `${uploadProgress.index}/${uploadProgress.total} · `}
                     {uploadProgress.name}
                   </span>
-                  <span className="shrink-0">{Math.round(uploadProgress.ratio * 100)}%</span>
+                  <span className="shrink-0">
+                    {uploadProgress.waitSec > 0
+                      ? `${tl("tooManyFiles", lang)} (${uploadProgress.waitSec}s)`
+                      : `${Math.round(uploadProgress.ratio * 100)}%`}
+                  </span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
