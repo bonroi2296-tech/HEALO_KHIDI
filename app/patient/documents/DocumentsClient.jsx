@@ -6,9 +6,13 @@ import { Upload, FileText, AlertCircle, ChevronDown, Trash2 } from 'lucide-react
 import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { uploadDirect, MAX_ATTACHMENT_BYTES } from '@/lib/uploadAttachment';
-import { describeUpload, UPLOAD_POLICY } from '@/lib/uploadPolicy';
+import { uploadDirect } from '@/lib/uploadAttachment';
+import { describeUpload, checkFile, UPLOAD_POLICY } from '@/lib/uploadPolicy';
 import { kstDate } from '@/lib/datetime/kst';
+
+// ponytail: 한 묶음 10개 — 서버 uploadLimiter 가 5분에 20회(파일당 sign+commit 2회)라 그 이상은 어차피 막힌다.
+// 더 받고 싶으면 rateLimiter.ts 의 uploadLimiter 부터 올리고 여기와 사전(patientDocs.tooMany)의 10을 같이 바꾼다.
+const MAX_BATCH = 10;
 
 // DB document_type 코드 → 표시 라벨 키(중앙 사전)
 const DOC_TYPES = [
@@ -46,6 +50,7 @@ export default function DocumentsClient() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [batch, setBatch] = useState({ index: 0, total: 0, name: '' }); // 지금 올리는 파일이 몇 번째인지
   const [docType, setDocType] = useState('medical_record');
   const [description, setDescription] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -92,26 +97,28 @@ export default function DocumentsClient() {
     if (cid) setSelectedConsultId(cid);
   }, []);
 
-  const handleUpload = async (file) => {
-    if (!file) return;
+  // 실패 사유 코드 → 사람이 읽을 문구. 형식·내용 문제는 「뭘 올릴 수 있는지」를 그대로 보여준다
+  // (예전엔 사전에 박힌 「PDF, JPEG, PNG, WebP」를 보여줘서 안내 문구와 어긋났다).
+  const reasonText = (code) => {
+    if (code === 'file_too_large') return t('patientDocs.maxSize', lang);
+    if (code === 'invalid_file_type' || code === 'invalid_file_content') return describeUpload('medicalDoc', lang);
+    return t('patientDocs.error', lang);
+  };
+
+  // 여러 파일을 한 번에 — 하나씩 차례로 올리고(서버 상한이 5분 20회) 끝나면 한 번에 결과를 알린다.
+  const handleUpload = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
     if (!selectedConsultId) {
       setMessage({ type: 'error', text: t('patientDocs.noConsult', lang) });
       return;
     }
 
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.formats', lang)}` });
-      return;
-    }
-    if (file.size > MAX_ATTACHMENT_BYTES) {
-      setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.maxSize', lang)}` });
-      return;
-    }
-
     setUploading(true);
-    setProgress(0);
     setMessage(null);
+    const queue = files.slice(0, MAX_BATCH);
+    const failed = [];
+    let done = 0;
 
     try {
       const supabase = createSupabaseBrowserClient();
@@ -119,24 +126,42 @@ export default function DocumentsClient() {
       const authFetch = (url, init) =>
         fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${session.access_token}` } });
 
-      const result = await uploadDirect(
-        '/api/patient/documents',
-        file,
-        { consultationId: selectedConsultId, documentType: docType, description },
-        { fetch: authFetch, onProgress: setProgress }
-      );
-      if (result.ok) {
-        setMessage({ type: 'success', text: t('patientDocs.success', lang) });
-        setDescription('');
-        fetchDocuments();
-      } else {
-        setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${result.error}` });
+      for (const [i, file] of queue.entries()) {
+        setBatch({ index: i + 1, total: queue.length, name: file.name });
+        setProgress(0);
+        // 화면 검사는 정책 파일(uploadPolicy)이 기준 — 확장자 없는 DICOM 은 형식이 빈 값이라 서버가 내용으로 판정한다.
+        const pre = checkFile('medicalDoc', file);
+        if (!pre.ok) { failed.push(`${file.name}: ${reasonText(pre.error)}`); continue; }
+        try {
+          const result = await uploadDirect(
+            '/api/patient/documents',
+            file,
+            { consultationId: selectedConsultId, documentType: docType, description },
+            { fetch: authFetch, onProgress: setProgress }
+          );
+          if (result.ok) done++;
+          else failed.push(`${file.name}: ${reasonText(result.error)}`);
+        } catch (_e) {
+          failed.push(`${file.name}: ${t('patientDocs.error', lang)}`);
+        }
       }
     } catch (_e) {
-      setMessage({ type: 'error', text: t('patientDocs.error', lang) });
+      failed.push(t('patientDocs.error', lang));
+    }
+
+    const overflow = files.length > MAX_BATCH ? ` · ${t('patientDocs.tooMany', lang)}` : '';
+    if (failed.length === 0) {
+      setMessage({ type: 'success', text: `${t('patientDocs.success', lang)}${done > 1 ? ` (${done})` : ''}${overflow}` });
+    } else {
+      setMessage({ type: 'error', text: `${t('patientDocs.error', lang)} (${failed.length}/${queue.length}): ${failed.join(' · ')}${overflow}` });
+    }
+    if (done > 0) {
+      setDescription('');
+      fetchDocuments();
     }
     setUploading(false);
     setProgress(0);
+    setBatch({ index: 0, total: 0, name: '' });
   };
 
   const [deletingId, setDeletingId] = useState(null);
@@ -167,13 +192,12 @@ export default function DocumentsClient() {
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleUpload(file);
+    handleUpload(e.dataTransfer.files);
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) handleUpload(file);
+    handleUpload(e.target.files);
+    e.target.value = ''; // 같은 파일을 다시 골라도 onChange 가 뜨게
   };
 
   if (!authChecked || loading) {
@@ -269,6 +293,7 @@ export default function DocumentsClient() {
             <input
               ref={fileRef}
               type="file"
+              multiple
               accept={UPLOAD_POLICY.medicalDoc.accept}
               onChange={handleFileSelect}
               className="hidden"
@@ -307,7 +332,12 @@ export default function DocumentsClient() {
           {uploading && (
             <div className="py-3">
               <div className="text-center text-teal-700 font-medium text-sm mb-2">
-                {t('patientDocs.uploading', lang)} {Math.round(progress * 100)}%
+                {t('patientDocs.uploading', lang)}
+                {batch.total > 1 && ` ${batch.index}/${batch.total}`}
+                {' · '}
+                <span className="text-gray-600 font-normal truncate inline-block max-w-[60%] align-bottom">{batch.name}</span>
+                {' · '}
+                {Math.round(progress * 100)}%
               </div>
               {/* 큰 파일은 몇 분 걸린다 — 막대가 없으면 멈춘 줄 알고 나간다. */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

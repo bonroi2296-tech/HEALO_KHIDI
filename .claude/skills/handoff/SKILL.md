@@ -117,8 +117,10 @@ GitHub MCP 도구(`list_pull_requests`, `pull_request_read`로 CI status)를 쓸
 핸드오프를 올릴 때 **신청서를 열어 두고 끝내지 마라.** 올린 즉시 자동머지를 건다:
 
 ```bash
-gh pr merge <번호> --auto --squash
+gh pr merge <번호> --auto --squash --subject "<신청서 제목 그대로>"
 ```
+
+⚠️ `--subject` 를 빼면 **커밋이 1개뿐인 신청서**는 신청서 제목이 아니라 «그 커밋 제목»으로 스쿼시된다 — 자동 저장 커밋 하나뿐이면 본판 제목이 «chore: 작업 자동 저장 (…)» 이 되어 이력만 봐선 무엇이 들어갔는지 못 읽는다(2026-09-07 #1671 실사고). Git Bash 에선 제목이 «/» 로 시작하면 MSYS 가 윈도 경로로 바꿔치기한다(2026-08-27 실사고) — `MSYS_NO_PATHCONV=1` 을 앞에 붙이거나 PowerShell 에서 돌려라. CI `check:squash-title` 이 그런 신청서를 빨간불로 막는다 — 걸리면 설명 커밋을 하나 더 올려라. 상세 = `docs/rules/AUTOMERGE.md` 🏷️.
 
 **왜:** 2026-09-04 하루에 핸드오프 신청서가 **6개** 쌓였다(#1604·1605·1607·1608·1609·1610). 전부
 같은 파일(`docs/PROJECT_CONTEXT.md`) 한 개를 고치는 것이었다. 자동머지를 건 것은 검사가 끝나는 대로
