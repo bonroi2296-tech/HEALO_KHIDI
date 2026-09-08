@@ -618,6 +618,38 @@ export async function GET(request: NextRequest) {
     console.warn("[cron/dispatch-surveys] unclosed nudge 실패(무시):", err?.message);
   }
 
+  // ── 지난 파트너 미팅 자동 만료 (2026-09-08 PO 결정) ───────────────────────
+  // 에이전시·병원 미팅(partner_meeting)은 끝나도 아무도 「완료」를 안 눌러 지난 날짜인 채
+  // 「예정」 탭에 쌓인다(2026-09-08 실측 14건, 2026-07-10~09-01). 환자 상담
+  // (pre_consultation·follow_up)은 사람이 눌러야 실적이 되는 설계라 여기서 절대 건드리지
+  // 않는다 — KHIDI 실적에 애초에 안 세는 partner_meeting 만 넘긴다(src/lib/khidi/countState.ts).
+  // 상태값은 새로 만들지 않고 이미 있는 no_show 를 쓴다(화면 라벨 「무응답」이 6개 언어로 이미 있다).
+  // ponytail: 48시간 유예 — 시차·연장 미팅이 다음 날 「완료」로 눌릴 여지를 준다.
+  let partnerMeetingsExpired = 0;
+  let partnerMeetingExpiryFailed = false;
+  try {
+    const cutoff = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+    const { data: expired, error: expireErr } = await db
+      .from("consultation_sessions")
+      .update({ status: "no_show" })
+      .eq("session_type", "partner_meeting")
+      .eq("status", "scheduled")
+      .lt("scheduled_at", cutoff)
+      .select("id");
+    if (expireErr) throw new Error(expireErr.message);
+    partnerMeetingsExpired = (expired as any[])?.length || 0;
+    if (partnerMeetingsExpired > 0) {
+      // 되돌릴 때 필요하다 — 어느 행을 넘겼는지 로그에 남긴다.
+      console.info(
+        `[cron/dispatch-surveys] 지난 파트너 미팅 ${partnerMeetingsExpired}건 → no_show:`,
+        (expired as any[]).map((r) => r.id).join(",")
+      );
+    }
+  } catch (err: any) {
+    partnerMeetingExpiryFailed = true;
+    console.warn("[cron/dispatch-surveys] 파트너 미팅 자동 만료 실패(무시):", err?.message);
+  }
+
   // ── «방문 전» 사후관리 케이던스 (2026-09-06 PO «사후관리 3대 보완») ─────────────────
   // 소견을 받고 아직 한국에 오지 않은 환자에게 D+3·D+14·D+30 안부·다음 단계 메일 + 무응답 코디 알림.
   // 같은 크론에 붙인다(새 정기 실행을 만들지 않는다). 실패는 본업을 죽이지 않게 흡수하되 응답에 남긴다.
@@ -655,6 +687,8 @@ export async function GET(request: NextRequest) {
     skipped,
     unclosed,
     unclosedCheckFailed,
+    partnerMeetingsExpired,
+    partnerMeetingExpiryFailed,
     preVisit,
     errors,
     kpiHealth,
