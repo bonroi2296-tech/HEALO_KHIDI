@@ -33,7 +33,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const RATE = { windowMs: 60 * 1000, maxRequests: 10, apiName: "claim_submit" };
 
 const BUCKET = "attachments";
-const MAX_SIZE = 200 * 1024 * 1024;
+const MAX_SIZE = 2000 * 1024 * 1024;
 const MAX_ATTACHMENTS = 30; // 환자 본인 + 코디 대리분 + 여기서 추가되는 몫
 const ALLOWED_TYPES = [
   "image/jpeg", "image/png", "image/gif", "image/webp",

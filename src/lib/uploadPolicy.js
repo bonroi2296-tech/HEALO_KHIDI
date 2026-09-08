@@ -9,7 +9,7 @@
  * ⚠️ 여기 값을 바꾸면 서버 쪽 상수(app/api/**)도 같이 봐야 한다 — 서버가 최종 방어선이다.
  */
 
-export const MAX_DOC_BYTES = 200 * 1024 * 1024; // 저장소 전역 상한과 동일(실측 200MB 성공/201MB 거부)
+export const MAX_DOC_BYTES = 2000 * 1024 * 1024; // 저장소 버킷 상한 2048MB 보다 조금 낮게 — 서버가 먼저 걸러야 헛수고가 없다
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 어드민 이미지 — 서버 경유라 Vercel 4.5MB 벽 안쪽
 
 const MB = (b) => Math.round(b / 1024 / 1024);
