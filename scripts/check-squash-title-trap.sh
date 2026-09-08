@@ -13,7 +13,8 @@
 # 무엇을 보나: «스쿼시 뒤 제목»을 저장소 설정(squash_merge_commit_title)대로 계산한다 —
 #   COMMIT_OR_PR_TITLE(깃허브 기본값): 커밋 1개 → 그 커밋 제목 / 2개 이상 → 신청서 제목
 #   PR_TITLE                         : 언제나 신청서 제목
-#   설정은 CI 에서 `gh api repos/<저장소>` 로 읽는다(GH_TOKEN). 못 읽으면 기본값으로 가정하고 그렇게 적는다.
+#   설정은 CI 에서 `gh api repos/<저장소>` 로 읽는다(GH_TOKEN). 못 읽으면(토큰 권한이 모자라면 그 칸이 안 온다)
+#   어느 쪽인지 모르니 «두 후보(커밋 제목·신청서 제목)를 다 본다» — 막는 쪽으로 틀린다.
 #   손으로 돌리거나 자체 시험에선 SQUASH_TITLE_MODE 환경변수로 준다.
 #   그 제목이 자동 저장 접두어(scripts/lib/autosave-title.sh)로 시작하면 빨간불.
 #   커밋 수를 못 세거나 0 이면 «통과»가 아니라 «실패»다(못 잼 ≠ 통과).
@@ -24,7 +25,7 @@
 #   바꾸면 옛 초록이 남는다 — 그건 막지 못한다(제목 편집마다 CI 전체를 다시 돌리는 값이 더 크다).
 #
 # 쓰는 법:
-#   bash scripts/check-squash-title-trap.sh --selftest         # 진짜 잡는지 — 임시 저장소에서 15형 재현 + 훅 문구 드리프트
+#   bash scripts/check-squash-title-trap.sh --selftest         # 진짜 잡는지 — 임시 저장소 재현 + 설정 판독 + 훅 문구 드리프트 (통과/전체 를 찍는다)
 #   HEAD_SHA=… BASE_SHA=… N_COMMITS=… PR_TITLE=… bash scripts/check-squash-title-trap.sh   # CI 신청서 이벤트
 #   (CI 는 npm run check:squash-title 로 부른다. 체크아웃 HEAD 는 깃허브가 만든 «합친 척» 커밋이라
 #    HEAD_SHA 는 pull_request.head.sha 를 따로 받는다.)
@@ -38,7 +39,7 @@ AUTOSAVE_TITLE_PREFIX=""
 . "$ROOT/scripts/lib/autosave-title.sh" 2>/dev/null || { echo "::error::scripts/lib/autosave-title.sh 를 못 읽는다 — 단일 출처가 없으면 판정을 못 한다."; exit 1; }
 [ -n "$AUTOSAVE_TITLE_PREFIX" ] || { echo "::error::AUTOSAVE_TITLE_PREFIX 가 비었다."; exit 1; }
 
-# 저장소의 스쿼시 제목 설정을 알아낸다 → "<모드> <출처>"  (모드 = PR_TITLE | COMMIT_OR_PR_TITLE)
+# 저장소의 스쿼시 제목 설정을 알아낸다 → "<모드> <출처>"  (모드 = PR_TITLE | COMMIT_OR_PR_TITLE | UNKNOWN)
 resolve_mode() {
   local m="${SQUASH_TITLE_MODE:-}" src="환경변수"
   if [ -z "$m" ] && [ -n "${GITHUB_REPOSITORY:-}" ] && command -v gh >/dev/null 2>&1; then
@@ -46,13 +47,13 @@ resolve_mode() {
   fi
   case "$m" in
     PR_TITLE|COMMIT_OR_PR_TITLE) echo "$m $src" ;;
-    *) echo "COMMIT_OR_PR_TITLE 못-읽어-깃허브-기본값-가정" ;;
+    *) echo "UNKNOWN 못-읽어-두-후보-모두-검사" ;;
   esac
 }
 
 # judge <저장소> <HEAD_SHA> <BASE_SHA> <N_COMMITS> <PR_TITLE> <MODE> → 0 통과 / 1 차단 / 2 못 잼
 judge() {
-  local dir="$1" head="$2" base="$3" n="$4" pr_title="$5" mode="$6" head_title effective which
+  local dir="$1" head="$2" base="$3" n="$4" pr_title="$5" mode="$6" head_title
   head_title="$(git -C "$dir" log -1 --format=%s "$head" 2>/dev/null)" || {
     echo "::error::신청서 머리 커밋($head)을 못 읽는다."; return 2; }
   if [ -z "$n" ]; then
@@ -63,23 +64,34 @@ judge() {
     ''|*[!0-9]*) echo "::error::신청서 커밋 수를 못 셌다(N_COMMITS='$n'). 「못 잼」은 「통과」가 아니다."; return 2 ;;
     0) echo "::error::신청서 커밋 수가 0 이다 — 기준(BASE_SHA)이 틀렸거나 합칠 것이 없다. 「못 잼」은 「통과」가 아니다."; return 2 ;;
   esac
+  # 스쿼시 뒤 제목 «후보»를 설정대로 고른다. 설정을 모르면(UNKNOWN) 두 후보를 다 본다 — 막는 쪽으로 틀린다.
+  local -a labels=() titles=()
+  local need_pr=0
   if [ "$mode" = "COMMIT_OR_PR_TITLE" ] && [ "$n" -eq 1 ]; then
-    effective="$head_title"; which="유일한 커밋의 제목"
+    labels+=("유일한 커밋의 제목"); titles+=("$head_title")
+  elif [ "$mode" = "UNKNOWN" ] && [ "$n" -eq 1 ]; then
+    labels+=("유일한 커밋의 제목"); titles+=("$head_title")
+    if [ -n "$pr_title" ]; then labels+=("신청서 제목(설정 미상, 커밋 1 개)"); titles+=("$pr_title"); fi
   else
-    [ -n "$pr_title" ] || { echo "::error::스쿼시 제목이 신청서 제목인데(설정 $mode, 커밋 $n 개) PR_TITLE 이 비었다 — 정할 수 없다."; return 2; }
-    effective="$pr_title"; which="신청서 제목(설정 $mode, 커밋 $n 개)"
+    need_pr=1
   fi
-  case "$effective" in
-    "${AUTOSAVE_TITLE_PREFIX}"*)
-      echo "::error::스쿼시하면 본판 제목이 «$effective» 가 된다($which). 그 제목은 이력을 못 읽게 하고, 창구 밖 배포 판정에서 «백업»으로 취급된다."
-      if [ "$which" = "유일한 커밋의 제목" ]; then
-        echo "고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올려라(PROJECT_CONTEXT 중간 저장 한 줄이면 된다)."
-      else
-        echo "고치는 법: 신청서 제목을 고친 «뒤» 커밋을 하나 더 올려라 — 제목만 고쳐서는 이 검사가 다시 안 돈다."
-      fi
-      return 1 ;;
-  esac
-  echo "✓ 스쿼시 제목 함정 0건 ($which: $effective)"
+  if [ "$need_pr" -eq 1 ]; then
+    [ -n "$pr_title" ] || { echo "::error::스쿼시 제목이 신청서 제목인데(설정 $mode, 커밋 $n 개) PR_TITLE 이 비었다 — 정할 수 없다."; return 2; }
+    labels+=("신청서 제목(설정 $mode, 커밋 $n 개)"); titles+=("$pr_title")
+  fi
+  local k
+  for k in "${!titles[@]}"; do
+    case "${titles[$k]}" in
+      "${AUTOSAVE_TITLE_PREFIX}"*)
+        echo "::error::스쿼시하면 본판 제목이 «${titles[$k]}» 가 된다(${labels[$k]}). 그 제목이 본판에 박히면 이력만 봐선 무엇이 들어갔는지 못 읽는다(#1671)."
+        case "${labels[$k]}" in
+          "유일한 커밋의 제목") echo "고치는 법: 무엇을 바꿨는지 적은 커밋을 하나 더 올려라(PROJECT_CONTEXT 중간 저장 한 줄이면 된다)." ;;
+          *) echo "고치는 법: 신청서 제목을 고친 «뒤» 커밋을 하나 더 올려라 — 제목만 고쳐서는 이 검사가 다시 안 돈다." ;;
+        esac
+        return 1 ;;
+    esac
+  done
+  echo "✓ 스쿼시 제목 함정 0건 ($(IFS=' / '; printf '%s' "${labels[*]}"): ${titles[0]})"
   return 0
 }
 
@@ -94,10 +106,13 @@ selftest() {
     for m in "$@"; do echo "$RANDOM" >> "$tmp/r/a"; q git -C "$tmp/r" commit -am "$m"; done
     git -C "$tmp/r" rev-parse HEAD
   }
+  local pass=0 total=0
+  ok()  { pass=$((pass+1)); total=$((total+1)); printf '  ✅ %s\n' "$1"; }
+  bad() { total=$((total+1)); fail=1; printf '  ❌ %s\n' "$1"; }
   chk() { # chk <이름> <기대> <HEAD> <BASE> <N> <PR_TITLE> [MODE]
     local name="$1" want="$2" got; shift 2
     judge "$tmp/r" "$1" "$2" "$3" "$4" "${5:-COMMIT_OR_PR_TITLE}" >/dev/null 2>&1; got=$?
-    if [ "$got" = "$want" ]; then printf '  ✅ %s\n' "$name"; else printf '  ❌ %s — 결과 %s (기대 %s)\n' "$name" "$got" "$want"; fail=1; fi
+    if [ "$got" = "$want" ]; then ok "$name"; else bad "$name — 결과 $got (기대 $want)"; fi
   }
   local AS="$AUTOSAVE_TITLE_PREFIX (2026-09-07 19:12)"
   local h1 h2 h3 h4 h5
@@ -118,6 +133,11 @@ selftest() {
   chk "자동저장 1개 + 멀쩡한 신청서 제목 = 통과"                     0 "$h1" "$base" 1  "fix: 좋은 제목" PR_TITLE
   chk "설명 커밋 1개 + 자동저장 신청서 제목 = 차단"                   1 "$h3" "$base" 1  "$AS" PR_TITLE
   chk "2개 + 자동저장 신청서 제목 = 차단"                            1 "$h2" "$base" 2  "$AS" PR_TITLE
+  echo "── 설정 UNKNOWN(못 읽음): 두 후보를 다 본다 — 막는 쪽으로 틀린다"
+  chk "자동저장 1개 + 멀쩡한 신청서 제목 = 차단(커밋 제목 후보)"     1 "$h1" "$base" 1  "fix: 좋은 제목" UNKNOWN
+  chk "설명 커밋 1개 + 자동저장 신청서 제목 = 차단(신청서 제목 후보)"  1 "$h3" "$base" 1  "$AS" UNKNOWN
+  chk "설명 커밋 1개 + 멀쩡한 신청서 제목 = 통과"                    0 "$h3" "$base" 1  "feat: 둘 다 멀쩡" UNKNOWN
+  chk "2개 + 자동저장 신청서 제목 = 차단"                            1 "$h2" "$base" 2  "$AS" UNKNOWN
   echo "── 못 잼은 실패"
   chk "커밋 수 비움 → rev-list 로 세서 차단"                         1 "$h1" "$base" "" "fix: x"
   chk "커밋 수가 글자 = 못 잼(실패)"                                 2 "$h1" "$base" "abc" "fix: x"
@@ -127,16 +147,16 @@ selftest() {
   chk "2개인데 신청서 제목 비움 = 못 잼(실패)"                        2 "$h2" "$base" 2 ""
   echo "── 설정 판독"
   local m
-  m="$(SQUASH_TITLE_MODE=PR_TITLE resolve_mode)";                 if [ "$m" = "PR_TITLE 환경변수" ]; then echo "  ✅ 환경변수 PR_TITLE 을 따른다"; else echo "  ❌ 환경변수 PR_TITLE 무시(${m})"; fail=1; fi
-  m="$(SQUASH_TITLE_MODE=엉터리 GITHUB_REPOSITORY= resolve_mode)"; if [ "$m" = "COMMIT_OR_PR_TITLE 못-읽어-깃허브-기본값-가정" ]; then echo "  ✅ 못 읽으면 깃허브 기본값으로 가정하고 그렇게 말한다"; else echo "  ❌ 못 읽을 때 기본값·출처 표기가 아님(${m})"; fail=1; fi
+  m="$(SQUASH_TITLE_MODE=PR_TITLE resolve_mode)";                 if [ "$m" = "PR_TITLE 환경변수" ]; then ok "환경변수 PR_TITLE 을 따른다"; else bad "환경변수 PR_TITLE 무시(${m})"; fi
+  m="$(SQUASH_TITLE_MODE=엉터리 GITHUB_REPOSITORY= resolve_mode)"; if [ "$m" = "UNKNOWN 못-읽어-두-후보-모두-검사" ]; then ok "못 읽으면 UNKNOWN(두 후보 모두 검사)이라고 말한다"; else bad "못 읽을 때 UNKNOWN·출처 표기가 아님(${m})"; fi
   echo "── 단일 출처 드리프트 (훅이 만드는 제목 = 여기 접두어인가)"
   if grep -qF "git commit -m \"${AUTOSAVE_TITLE_PREFIX} (" "$ROOT/.claude/hooks/auto-commit-push.sh"; then
-    echo "  ✅ 훅(auto-commit-push.sh)의 커밋 제목이 단일 출처와 같다"
+    ok "훅(auto-commit-push.sh)의 커밋 제목이 단일 출처와 같다"
   else
-    echo "  ❌ 훅(auto-commit-push.sh)의 커밋 제목이 scripts/lib/autosave-title.sh 와 다르다 — 이 검사가 조용히 «안 잡는 상태»가 된다"; fail=1
+    bad "훅(auto-commit-push.sh)의 커밋 제목이 scripts/lib/autosave-title.sh 와 다르다 — 이 검사가 조용히 «안 잡는 상태»가 된다"
   fi
   echo
-  if [ "$fail" -eq 0 ]; then echo "전부 통과"; else echo "실패 있음"; fi
+  if [ "$fail" -eq 0 ]; then echo "전부 통과 ($pass/$total)"; else echo "실패 있음 ($pass/$total)"; fi
   return "$fail"
 }
 

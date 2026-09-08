@@ -44,10 +44,11 @@ commit_local() { # commit_local <파일> <제목>
 }
 head_local() { git -C "$TMP/local" rev-parse HEAD; }
 
-fail=0
+fail=0; pass=0; total=0
 chk() { # chk <이름> <실제> <기대>
+  total=$((total+1))
   if [ "$2" = "$3" ]; then
-    printf '  ✅ %s\n' "$1"
+    pass=$((pass+1)); printf '  ✅ %s\n' "$1"
   else
     printf '  ❌ %s — exit=%s (기대 %s)\n' "$1" "$2" "$3"; fail=1
   fi
@@ -114,5 +115,5 @@ commit_local app.js "feat: env 를 모르는 상황"
 chk "VERCEL_ENV 비어 있음 = 빌드" "$(run '' "$(head_local)")" 1
 
 echo
-if [ $fail -eq 0 ]; then echo "전부 통과"; else echo "실패 있음"; fi
+if [ $fail -eq 0 ]; then echo "전부 통과 ($pass/$total)"; else echo "실패 있음 ($pass/$total)"; fi
 exit $fail
