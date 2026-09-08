@@ -21,12 +21,50 @@ async function readJson(res) {
   }
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 429 응답이 알려주는 «언제 다시 오라»를 초로. 헤더가 없으면 짧게 잡고 다시 본다. */
+function retryAfterMs(res) {
+  const after = Number(res.headers.get("Retry-After"));
+  if (Number.isFinite(after) && after > 0) return Math.min(after * 1000 + 500, 70_000);
+  const reset = Date.parse(res.headers.get("X-RateLimit-Reset") || "");
+  if (Number.isFinite(reset)) return Math.min(Math.max(reset - Date.now(), 0) + 500, 70_000);
+  return 5_000;
+}
+
+/**
+ * 창구에 요청을 보내되, 분당 상한(429)에 걸리면 창이 열릴 때까지 기다렸다 다시 보낸다.
+ *
+ * 왜: 파일 하나에 이 창구를 «두 번»(sign·commit) 쓴다. 상한이 분당 20회면 실질 상한은
+ * 파일 10개다. 2026-09-08 실서비스에서 실제 환자 서류(PDF 44장)를 올리다 429 가 났고,
+ * 화면엔 「올리지 못했습니다」만 떠서 사유도 안 보였다. 재시도가 없으면 사람이 몇 장이
+ * 올라갔는지 세어 가며 손으로 다시 올려야 한다 — 의료 서류에서 제일 위험한 실패다.
+ */
+async function postWithRetry(doFetch, endpoint, body, onWait, maxRetries = 5) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await doFetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 429 || attempt >= maxRetries) {
+      if (onWait) onWait(0); // 기다림이 끝났다 — 화면의 「대기 중」 표시를 거둔다
+      return readJson(res);
+    }
+    const wait = retryAfterMs(res);
+    // 화면이 「멈췄나」로 읽지 않게 기다리는 중임을 알린다.
+    if (onWait) onWait(Math.ceil(wait / 1000));
+    await sleep(wait);
+  }
+}
+
 /**
  * @param endpoint  sign/commit 두 단계를 모두 받는 API 주소
  * @param file      File 객체
  * @param extra     화면별 부가 필드(consultationId, docType …) — 두 단계 모두에 함께 보냄
  * @param opts.fetch  인증 헤더가 필요한 화면용 fetch 대체 함수
  * @param opts.onProgress  0~1 진행률 콜백 (50MB 업로드는 몇 분 걸린다 — 표시 없으면 멈춘 줄 안다)
+ * @param opts.onWait  분당 상한에 걸려 기다리는 중임을 알리는 콜백(남은 초). 없어도 동작은 같다.
  */
 export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
   const doFetch = opts.fetch || fetch;
@@ -34,12 +72,11 @@ export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
 
   try {
     // 1) 서명 URL 발급
-    const sign = await readJson(
-      await doFetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase: "sign", name: file.name, type: file.type, size: file.size, ...extra }),
-      })
+    const sign = await postWithRetry(
+      doFetch,
+      endpoint,
+      { phase: "sign", name: file.name, type: file.type, size: file.size, ...extra },
+      opts.onWait
     );
     if (!sign.ok) return sign;
 
@@ -48,19 +85,21 @@ export async function uploadDirect(endpoint, file, extra = {}, opts = {}) {
     if (!put.ok) return put;
 
     // 3) 서버가 실제 파일 앞부분을 읽어 위장 검사 (실패하면 서버가 지운다)
-    const commit = await readJson(
-      await doFetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phase: "commit",
-          path: sign.path,
-          name: sign.name,
-          type: sign.type,
-          size: file.size,
-          ...extra,
-        }),
-      })
+    //    ⚠️ 여기서 포기하면 파일은 저장소에 올라가 있는데 기록이 없는 «떠도는 파일»이 된다.
+    //    그래서 commit 은 sign 보다 더 끈질기게 재시도해야 한다.
+    const commit = await postWithRetry(
+      doFetch,
+      endpoint,
+      {
+        phase: "commit",
+        path: sign.path,
+        name: sign.name,
+        type: sign.type,
+        size: file.size,
+        ...extra,
+      },
+      opts.onWait,
+      10   // sign(5) 보다 끈질기게 — 주석이 말한 것을 실제로 값으로 지킨다
     );
     if (!commit.ok) return commit;
 

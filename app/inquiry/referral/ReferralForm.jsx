@@ -114,6 +114,9 @@ const LANGS = [
 function uploadErrorText(code, lang, bytes) {
   if (code === "file_too_large") return tr("upTooBig", lang, { mb: bytes ? formatMB(bytes) : "200MB+" });
   if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
+  // 「한꺼번에 몰림」과 「올리기 실패」는 사람이 할 일이 다르다 — 앞은 기다리면 되고 뒤는 다시 눌러야 한다.
+  // 2026-09-08 실서비스: 서류 44장을 올리다 429 가 8건 났는데 화면엔 「다시 시도해 주세요」만 떴다.
+  if (code === "rate_limited") return tr("upBusy", lang);
   return tr("upFailed", lang);
 }
 /** 화면 문구 한 줄. 값은 사전(referral.tr.*)에서 오고, {n}·{mb} 같은 자리는 여기서 갈아끼운다. */
@@ -352,7 +355,11 @@ export default function ReferralForm() {
         ga(GA_EVENTS.INQUIRY_SUBMIT_FAILED, { step: 1, form: "referral", code: code || "unknown" });
         setSendError(tr(
           code === "rate_limit_exceeded" ? "errTooMany"
-          : code === "validation_error" || code === "invalid_json" || code === "broken_encoding" ? "errInvalid"
+          // 서류가 너무 많은 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다 — 뭉치면 엉뚱한 곳을 고친다.
+          : code === "too_many_documents" ? "errTooManyDocs"
+          // 깨진 글자는 «칸 형식»과 할 일이 다르다 — 칸을 고치는 게 아니라 붙여넣기를 다시 해야 한다.
+          : code === "broken_encoding" ? "errBroken"
+          : code === "validation_error" || code === "invalid_json" ? "errInvalid"
           : code === "consent_required" ? "errConsent"
           : "errSend", lang));
         return;
@@ -1239,6 +1246,8 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
 
       const up = await uploadAttachment(picked[i], {
         onProgress: (r) => patch({ pct: Math.round(r * 100) }),
+        // 상한에 걸려 기다리는 중이면 그 줄에 적는다 — 안 그러면 멈춘 줄 알고 창을 닫는다.
+        onWait: (sec) => patch({ waitSec: sec }),
       });
       if (up?.ok === false) {
         patch({ uploading: false, reading: false, error: up.error || "upload_failed" });
@@ -1366,7 +1375,10 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
             <div className="mt-2">
               <p className="flex items-center gap-2 text-xs text-gray-600">
                 <Loader2 size={13} className="animate-spin" />
-                {tr("uploading", lang, { pct: d.pct || 0 })} · {tr("upWait", lang)}
+                {/* 상한에 걸려 기다리는 중이면 그렇게 말한다 — 「올리는 중 0%」로 멈춰 있으면 창을 닫는다 */}
+                {d.waitSec > 0
+                  ? `${tr("upBusy", lang)} (${d.waitSec}s)`
+                  : `${tr("uploading", lang, { pct: d.pct || 0 })} · ${tr("upWait", lang)}`}
               </p>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200">
                 <div className="h-full rounded-full bg-teal-700 transition-all duration-200"

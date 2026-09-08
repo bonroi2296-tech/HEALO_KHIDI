@@ -402,6 +402,9 @@ export default function UnifiedInquiryFunnel() {
   function uploadReason(code) {
     if (code === "file_too_large") return tl("fileTooLarge", lang);
     if (code === "invalid_file_type" || code === "invalid_file_content") return describeUpload("medicalDoc", lang);
+    // 「몰려서 못 받았다」와 「올리기가 실패했다」는 사람이 할 일이 다르다 — 앞은 기다리면 되고
+    // 뒤는 다시 눌러야 한다. 재시도를 다 쓴 뒤에만 여기까지 온다(2026-09-08 전수 대조로 발견).
+    if (code === "rate_limited") return t("patientDocs.busy", lang);
     return tl("uploadError", lang);
   }
 
@@ -421,6 +424,8 @@ export default function UnifiedInquiryFunnel() {
 
       const data = await uploadAttachment(file, {
         onProgress: (ratio) => setUploadProgress((p) => (p ? { ...p, ratio } : p)),
+        // 상한에 걸려 기다리는 중이면 화면에 그렇게 적는다 — 안 그러면 멈춘 줄 안다.
+        onWait: (sec) => setUploadProgress((p) => (p ? { ...p, waitSec: sec } : p)),
       });
       if (!data.ok) {
         failed.push(`${file.name}: ${uploadReason(data.error)}`);
@@ -768,7 +773,11 @@ export default function UnifiedInquiryFunnel() {
                     {uploadProgress.total > 1 && `${uploadProgress.index}/${uploadProgress.total} · `}
                     {uploadProgress.name}
                   </span>
-                  <span className="shrink-0">{Math.round(uploadProgress.ratio * 100)}%</span>
+                  <span className="shrink-0">
+                    {uploadProgress.waitSec > 0
+                      ? `${tl("tooManyFiles", lang)} (${uploadProgress.waitSec}s)`
+                      : `${Math.round(uploadProgress.ratio * 100)}%`}
+                  </span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
