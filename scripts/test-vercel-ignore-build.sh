@@ -11,6 +11,11 @@
 
 set -u
 SCRIPT="$(cd "$(dirname "$0")" && pwd)/vercel-ignore-build.sh"
+# 자동저장 커밋 제목 접두어 — 손으로 베끼지 않고 단일 출처를 읽는다(훅 문구가 바뀌면 이 시험도 같이 따라간다).
+AUTOSAVE_TITLE_PREFIX=""
+# shellcheck source=lib/autosave-title.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib/autosave-title.sh"
+[ -n "$AUTOSAVE_TITLE_PREFIX" ] || { echo "❌ scripts/lib/autosave-title.sh 를 못 읽었다"; exit 1; }
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -28,9 +33,9 @@ q git clone "$TMP/origin" "$TMP/local"
 q git -C "$TMP/local" config user.email t@t.t
 q git -C "$TMP/local" config user.name t
 
-run() { # run <VERCEL_ENV> <SHA> [브랜치] [프리뷰 하루상한]  → exit code 출력
+run() { # run <VERCEL_ENV> <SHA> [브랜치] [프리뷰 하루상한] [DEPLOY_WINDOW]  → exit code 출력
   ( cd "$TMP/local" && VERCEL_ENV="$1" VERCEL_GIT_COMMIT_SHA="$2" VERCEL_GIT_COMMIT_REF="${3:-main}" \
-      PREVIEW_DAILY_LIMIT="${4:-3}" bash "$SCRIPT" >/dev/null 2>&1; echo $? )
+      PREVIEW_DAILY_LIMIT="${4:-3}" DEPLOY_WINDOW="${5:-}" bash "$SCRIPT" >/dev/null 2>&1; echo $? )
 }
 commit_local() { # commit_local <파일> <제목>
   echo "x$RANDOM" > "$TMP/local/$1"
@@ -39,18 +44,25 @@ commit_local() { # commit_local <파일> <제목>
 }
 head_local() { git -C "$TMP/local" rev-parse HEAD; }
 
-fail=0
+fail=0; pass=0; total=0
 chk() { # chk <이름> <실제> <기대>
+  total=$((total+1))
   if [ "$2" = "$3" ]; then
-    printf '  ✅ %s\n' "$1"
+    pass=$((pass+1)); printf '  ✅ %s\n' "$1"
   else
     printf '  ❌ %s — exit=%s (기대 %s)\n' "$1" "$2" "$3"; fail=1
   fi
 }
 
-echo "── 규칙 0: 자동저장 커밋"
-commit_local app.js "chore: 작업 자동 저장 (2026-07-28 11:00)"
-chk "자동저장 = 스킵" "$(run preview "$(head_local)")" 0
+echo "── 자동저장 제목이 머리 커밋일 때 (옛 «규칙 0» 자리 — 2026-09-07 삭제, 지금은 규칙 1·2 가 판정)"
+# 2026-09-07 실사고(#1671): 커밋 1개짜리 신청서를 스쿼시하면 본판 머리가 «자동저장 제목»이 될 수 있다.
+# 창구가 연 프로덕션 배포는 제목이 뭐든 지어야 한다 — 옛 규칙 0 은 프로덕션 판정보다 앞에서 exit 0 해
+# 그날 배포를 조용히 없앨 판이었다. 아래 4건이 그 구멍을 지킨다(규칙 0 부활도 여기서 걸린다).
+commit_local app.js "$AUTOSAVE_TITLE_PREFIX (2026-07-28 11:00)"
+chk "프리뷰 + 자동저장 제목([preview] 없음) = 스킵(규칙 2)" "$(run preview "$(head_local)")" 0
+chk "프로덕션 + 창구(DEPLOY_WINDOW=1) + 자동저장 제목 = 빌드(구멍 방지)" "$(run production "$(head_local)" main 3 1)" 1
+chk "프로덕션 + production 가지 + 자동저장 제목 = 빌드(구멍 방지)" "$(run production "$(head_local)" production)" 1
+chk "프로덕션 + 창구 밖(main, 표식 없음) + 자동저장 제목 = 스킵(규칙 1)" "$(run production "$(head_local)" main)" 0
 
 echo "── 규칙 2·3: 프리뷰"
 commit_local app.js "feat: 코드 고침"
@@ -103,5 +115,5 @@ commit_local app.js "feat: env 를 모르는 상황"
 chk "VERCEL_ENV 비어 있음 = 빌드" "$(run '' "$(head_local)")" 1
 
 echo
-if [ $fail -eq 0 ]; then echo "전부 통과"; else echo "실패 있음"; fi
+if [ $fail -eq 0 ]; then echo "전부 통과 ($pass/$total)"; else echo "실패 있음 ($pass/$total)"; fi
 exit $fail
