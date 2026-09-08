@@ -9,8 +9,12 @@ import { join } from "node:path";
 import { SECTIONS } from "./referralSchema";
 
 const route = readFileSync(join(__dirname, "../../../app/api/inquiries/referral/route.ts"), "utf8");
-const start = route.indexOf("const Schema = z.object({");
-const body = route.slice(start, route.indexOf("\n});", start));
+// 스키마는 라우트가 아니라 referralSubmit.ts 에 있다 (2026-09-08: 라우트에 두면 시험이 부를 수
+// 없고, 부르라고 export 를 붙이면 App Router 규칙 때문에 빌드가 깨진다).
+const schemaSrc = readFileSync(join(__dirname, "./referralSubmit.ts"), "utf8");
+const start = schemaSrc.indexOf("export const Schema = z.object({");
+if (start < 0) throw new Error("referralSubmit.ts 에서 접수 스키마를 못 찾았다 — 이 검사가 헛돌고 있다");
+const body = schemaSrc.slice(start, schemaSrc.indexOf("\n});", start));
 const zodKeys = new Set([...body.matchAll(/(?:^|[\s,{])([a-zA-Z]\w*)\s*:\s*(?:z\.|s\()/gm)].map((m) => m[1]));
 // intakeData 에 넣는 키(저장까지 이어지는가)
 const saveStart = route.indexOf("const intakeData = {");
@@ -39,7 +43,7 @@ describe("의뢰서 — 화면 칸 ↔ 서버 스키마 ↔ 저장", () => {
 // 🛑 이 저장소는 「스키마에 없는 키는 조용히 버려진다」로 두 번 당했다(cdFolder·nationality).
 //    새 칸을 넣었으면 «실제로 파싱을 통과하는지»를 재라 — 라우트가 버리면 화면은 아무 말도 안 한다.
 describe("접수 스키마 — 「기계가 채운 칸」 표시(autoFilled)가 실제로 통과한다", async () => {
-  const { Schema } = await import("../../../app/api/inquiries/referral/route");
+  const { Schema } = await import("./referralSubmit");
   const base = {
     lastName: "TEST", firstName: "T", email: "t@example.com",
     patientLang: "ru", cancerType: "other",
