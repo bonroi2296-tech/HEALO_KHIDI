@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { Check, ChevronDown, AlertTriangle, Paperclip, X, Loader2 } from "lucide-react";
-import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds } from "@/lib/inquiry/docKinds";
+import { DOC_KINDS, NEEDED_KINDS, kindLabel, missingKinds, docValueBeats } from "@/lib/inquiry/docKinds";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
@@ -143,6 +143,9 @@ export default function ReferralForm() {
   const [autoFilled, setAutoFilled] = useState({});
   // applyAutoFill 안에서 «최신» 표시 상태를 봐야 한다 — state 는 그 시점 값이라 늦다.
   const autoFilledRef = useRef({});
+  // 각 칸을 «어떤 종류의 서류»가 채웠나. 서류가 서로 다르게 말할 때 무게를 재는 데만 쓴다
+  // (화면에도 저장에도 안 나간다) — 2026-09-08 #316: MRI 판독지가 조직검사 진단을 덮어썼다.
+  const autoFillKindRef = useRef({});
   const valuesRef = useRef({});
   // 머리(진행 막대)도 바닥(보내기 버튼)도 «둘 다 화면 밖»일 때만 아래 고정 막대를 띄운다.
   // 실측 2026-08-14: 문서가 4,274px 인데 진행 막대는 346px 에서 끝난다 —
@@ -220,24 +223,34 @@ export default function ReferralForm() {
    * 서류에서 읽어낸 값으로 «빈 칸만» 채운다.
    * 🛑 사람이 이미 쓴 칸은 절대 덮어쓰지 않는다. 우리가 채운 칸끼리는 나중 서류가 이긴다.
    */
-  const applyAutoFill = (fields, srcName) => {
+  const applyAutoFill = (fields, srcName, srcKind) => {
     // ⚠️ setValues 의 updater 안에서 계산한 결과를 «밖에서» 읽으면 안 된다 — updater 는
     //    나중에 돌아서 바깥 변수가 비어 있다(2026-08-14 실측: 칸은 채워지는데 표시가 안 붙었다).
     //    그래서 «지금 값»을 ref 로 보고 여기서 동기적으로 판단한다.
     const cur = valuesRef.current;
     const patch = {};
     const marked = {};
+    const kinds = {};
     for (const [k, v] of Object.entries(fields)) {
       const now = cur[k];
       const empty = now === undefined || now === null || String(now).trim() === "";
+      // 🛑 사람이 쓴 칸은 절대 안 건드린다. 우리가 채운 칸끼리 부딪히면 «서류 종류»로 정한다 —
+      //    예전엔 «나중에 끝난 것»이 이겼는데, 끝나는 순서는 파일 크기가 정한다.
+      //    2026-09-08 #316: 조직검사 사진(180KB)이 넣은 C61 을 MRI 판독지 PDF(4.1MB)가
+      //    Z04(검사를 받은 사유)로 덮어썼다.
+      if (!empty && !autoFilledRef.current[k]) continue;
+      if (!empty && !docValueBeats(k, srcKind, autoFillKindRef.current[k])) continue;
       // 표시는 «어느 서류에서 읽었는지»까지 남긴다 — 코디가 나중에 「이 값 어디서 나왔냐」를
-      // 되짚어야 한다(2026-09-08 #316: 검사결과지의 코드가 환자가 적은 값처럼 보였다).
-      if (empty || autoFilledRef.current[k]) { patch[k] = v; marked[k] = srcName || true; }
+      // 되짚어야 한다(#316: 검사결과지의 코드가 환자가 적은 값처럼 보였다).
+      patch[k] = v;
+      marked[k] = srcName || true;
+      kinds[k] = srcKind || null;
     }
     if (!Object.keys(patch).length) return;
     // 표를 즉시 갱신한다 — 서류 여러 개를 «동시에» 읽으므로, 다음 서류가 이 결과를 보고 판단해야 한다.
     valuesRef.current = { ...cur, ...patch };
     autoFilledRef.current = { ...autoFilledRef.current, ...marked };
+    autoFillKindRef.current = { ...autoFillKindRef.current, ...kinds };
     setValues((p) => ({ ...p, ...patch }));
     setAutoFilled((p) => ({ ...p, ...marked }));
   };
@@ -1258,7 +1271,8 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
         totalPages: r.totalPages ?? null,
       });
       // 읽어낸 값으로 «빈 칸만» 채운다. 사용자가 이미 쓴 건 절대 안 건드린다.
-      if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields, picked[i]?.name || null);
+      // 종류(r.kind)도 같이 넘긴다 — 두 서류가 같은 칸을 다르게 말할 때 무게를 재는 데 쓴다.
+      if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields, picked[i]?.name || null, r.kind || null);
       setBusy((n) => n - 1);
     }
   }

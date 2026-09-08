@@ -75,6 +75,42 @@ export function missingKinds(docs = []) {
 }
 
 /**
+ * 같은 칸을 두 서류가 «서로 다르게» 말할 때 어느 쪽을 믿나.
+ *
+ * 왜 (2026-09-08 #316 실사고): 자동채움은 「나중에 끝난 서류가 이긴다」였다. 조직검사
+ * 사진(180KB)이 먼저 끝나 진단코드에 C61(전립선 선암, Gleason 7)을 넣었는데, 뒤늦게 끝난
+ * MRI 판독지 PDF(4.1MB)가 그 위에 Z04(= 검사를 받은 사유)를 덮어썼다. 서류가 도착한
+ * «순서»는 파일 크기가 정하는데, 진단의 무게는 서류의 «종류»가 정한다.
+ *
+ * 순위는 임상 관행을 그대로 옮긴 것이다:
+ *   · 암 진단을 «확정»하는 것은 조직검사다. 영상은 의심 소견까지만 말한다.
+ *   · 퇴원요약·종합소견서는 의사가 정리한 최종 진단이라 영상보다 무겁다.
+ *   · 신원(이름·생년월일·여권번호)의 정본은 여권이다. 병원 기록의 표기는 자주 다르다.
+ *
+ * 🛑 순위에 없는 종류끼리, 또는 순위가 같으면 예전대로 «나중 것이 이긴다» —
+ *    새 서류를 올렸는데 아무것도 안 바뀌는 것이 더 나쁘다.
+ */
+const DIAGNOSIS_RANK = { pathology: 4, discharge: 3, surgery_record: 2, imaging_report: 1 };
+const IDENTITY_RANK = { passport: 3, discharge: 1 };
+const DIAGNOSIS_FIELDS = new Set(["diagnosisNameRaw", "icdCode", "stage", "diagnosisDate"]);
+const IDENTITY_FIELDS = new Set(["lastName", "firstName", "birthDate", "passportNo", "nationality"]);
+
+/**
+ * 새로 읽은 값이 이미 채워진 값을 «덮어써도 되나».
+ * @param field 칸 이름 · @param incomingKind 새 서류 종류 · @param currentKind 지금 값을 넣은 서류 종류
+ * @returns true = 덮어쓴다
+ */
+export function docValueBeats(field, incomingKind, currentKind) {
+  const rank = DIAGNOSIS_FIELDS.has(field) ? DIAGNOSIS_RANK
+    : IDENTITY_FIELDS.has(field) ? IDENTITY_RANK
+    : null;
+  if (!rank) return true;                       // 순위를 안 두는 칸 — 나중 것이 이긴다
+  const a = rank[incomingKind] || 0;
+  const b = rank[currentKind] || 0;
+  return a >= b;                                 // 같으면 나중 것이 이긴다
+}
+
+/**
  * 판독기가 서류·음성에서 뽑아낸 값의 «사람이 읽는 이름».
  *
  * 왜 여기 두나 (2026-09-04): 같은 표를 코디 문의 상세와 음성 보관함 두 곳이 그린다.
