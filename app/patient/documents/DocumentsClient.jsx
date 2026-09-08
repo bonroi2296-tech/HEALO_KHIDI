@@ -51,6 +51,7 @@ export default function DocumentsClient() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [batch, setBatch] = useState({ index: 0, total: 0, name: '' }); // 지금 올리는 파일이 몇 번째인지
+  const [waitSec, setWaitSec] = useState(0); // 분당 상한에 걸려 기다리는 중이면 남은 초
   const [docType, setDocType] = useState('medical_record');
   const [description, setDescription] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -137,7 +138,7 @@ export default function DocumentsClient() {
             '/api/patient/documents',
             file,
             { consultationId: selectedConsultId, documentType: docType, description },
-            { fetch: authFetch, onProgress: setProgress }
+            { fetch: authFetch, onProgress: setProgress, onWait: setWaitSec }
           );
           if (result.ok) done++;
           else failed.push(`${file.name}: ${reasonText(result.error)}`);
@@ -161,6 +162,7 @@ export default function DocumentsClient() {
     }
     setUploading(false);
     setProgress(0);
+    setWaitSec(0);
     setBatch({ index: 0, total: 0, name: '' });
   };
 
@@ -337,7 +339,8 @@ export default function DocumentsClient() {
                 {' · '}
                 <span className="text-gray-600 font-normal truncate inline-block max-w-[60%] align-bottom">{batch.name}</span>
                 {' · '}
-                {Math.round(progress * 100)}%
+                {/* 상한에 걸려 기다리는 중이면 그렇게 말한다 — 안 그러면 멈춘 줄 알고 창을 닫는다 */}
+                {waitSec > 0 ? `${t('patientDocs.tooMany', lang)} (${waitSec}s)` : `${Math.round(progress * 100)}%`}
               </div>
               {/* 큰 파일은 몇 분 걸린다 — 막대가 없으면 멈춘 줄 알고 나간다. */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

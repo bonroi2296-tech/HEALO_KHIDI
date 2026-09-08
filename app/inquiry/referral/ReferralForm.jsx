@@ -1244,6 +1244,8 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
 
       const up = await uploadAttachment(picked[i], {
         onProgress: (r) => patch({ pct: Math.round(r * 100) }),
+        // 상한에 걸려 기다리는 중이면 그 줄에 적는다 — 안 그러면 멈춘 줄 알고 창을 닫는다.
+        onWait: (sec) => patch({ waitSec: sec }),
       });
       if (up?.ok === false) {
         patch({ uploading: false, reading: false, error: up.error || "upload_failed" });
@@ -1371,7 +1373,10 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
             <div className="mt-2">
               <p className="flex items-center gap-2 text-xs text-gray-600">
                 <Loader2 size={13} className="animate-spin" />
-                {tr("uploading", lang, { pct: d.pct || 0 })} · {tr("upWait", lang)}
+                {/* 상한에 걸려 기다리는 중이면 그렇게 말한다 — 「올리는 중 0%」로 멈춰 있으면 창을 닫는다 */}
+                {d.waitSec > 0
+                  ? `${tr("upBusy", lang)} (${d.waitSec}s)`
+                  : `${tr("uploading", lang, { pct: d.pct || 0 })} · ${tr("upWait", lang)}`}
               </p>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200">
                 <div className="h-full rounded-full bg-teal-700 transition-all duration-200"

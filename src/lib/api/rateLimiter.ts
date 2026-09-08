@@ -108,7 +108,16 @@ export const defaultLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 /** Strict rate limiter for auth routes: 10 req/min */
 export const authLimiter = createRateLimiter({ windowMs: 60_000, max: 10, message: 'Too many auth attempts' });
 
-/** Upload rate limiter: 10 req/5min */
-// 파일 1개당 2회 호출(서명 발급 + 업로드 후 검증)이라 20 = 실질 「5분에 파일 10개」.
-// 2026-08-03 직행 업로드 전환 때 10 → 20. 안 올렸으면 파일 6개째부터 막혔다(전환 전과 동일한 체감 유지).
-export const uploadLimiter = createRateLimiter({ windowMs: 5 * 60_000, max: 20, message: 'Upload rate limit exceeded' });
+/** Upload rate limiter — 로그인 창구 전용(환자 서류함·경과·비자·상담 자료). */
+// 파일 1개당 2회 호출(서명 발급 + 업로드 후 검증)이라 여기 숫자의 «절반»이 실질 파일 상한이다.
+// 2026-08-03 직행 업로드 전환 때 10 → 20.
+//
+// ⚠️ 2026-09-08 상향(20 → 200): 20 이면 실질 「5분에 파일 10개」인데, 같은 날 환자 서류함에
+//    「한 묶음 10개까지」를 연 참이라 **딱 경계에 붙어 있었다**. 한 묶음을 올리고 이어서 또
+//    올리면 두 번째 묶음이 통째로 429 를 맞고, 재시도가 «5분»을 기다린다(창이 5분이라).
+//    공개 창구(attachments_upload)만 고치고 여기를 놓쳤던 것 — 같은 결함의 반쪽이었다.
+//    DELETE 도 같은 통을 쓴다: 올리고 나서 지우면 더 빨리 닿는다.
+//
+// 200 = 5분에 파일 100개. 실제 암환자 의무기록 한 벌이 40~50장이라 두 벌을 이어 올려도 남는다.
+// 🔑 이 통은 «로그인한 사람»만 쓴다(환자·코디·에이전시). 공개 창구보다 관대해도 되는 이유다.
+export const uploadLimiter = createRateLimiter({ windowMs: 5 * 60_000, max: 200, message: 'Upload rate limit exceeded' });
