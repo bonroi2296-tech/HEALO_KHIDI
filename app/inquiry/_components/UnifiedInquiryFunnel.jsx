@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
 import { uploadAttachment } from "@/lib/uploadAttachment";
-import { describeUpload } from "@/lib/uploadPolicy";
+import { describeUpload, checkFile, UPLOAD_POLICY } from "@/lib/uploadPolicy";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
@@ -147,6 +147,7 @@ export default function UnifiedInquiryFunnel() {
   const [inquiryId, setInquiryId] = useState(null);
   const [publicToken, setPublicToken] = useState(null); // step1 응답값 — step2 소유권 증명
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{path, name, type}]
+  const [uploadProgress, setUploadProgress] = useState(null); // {index, total, name, ratio} — 올리는 중일 때만
 
   // 개인정보 동의 (PIPA — 출시 법적 필수: 개인정보·민감정보·국외이전·제3자 제공). marketing 만 선택.
   const [consents, setConsents] = useState({
@@ -396,19 +397,40 @@ export default function UnifiedInquiryFunnel() {
   }
 
   // ─── 파일 업로드 ─────────────────────────────────────────────────
+  // 실패 사유를 「업로드 실패」 한마디로 뭉치지 않는다 — 어느 파일이 왜 안 됐는지 적는다.
+  // 형식 문제는 사전에 박힌 옛 목록이 아니라 실제 정책(uploadPolicy)을 그대로 보여준다.
+  function uploadReason(code) {
+    if (code === "file_too_large") return tl("fileTooLarge", lang);
+    if (code === "invalid_file_type" || code === "invalid_file_content") return describeUpload("medicalDoc", lang);
+    return tl("uploadError", lang);
+  }
+
   async function handleFileAdd(files) {
     const remaining = MAX_ATTACHMENTS - uploadedFiles.length;
     if (remaining <= 0) { setError(tl("tooManyFiles", lang)); return; }
     const toUpload = Array.from(files).slice(0, remaining);
+    if (!toUpload.length) return;
 
-    for (const file of toUpload) {
-      const data = await uploadAttachment(file);
+    setError("");
+    const failed = [];
+    for (const [i, file] of toUpload.entries()) {
+      // 큰 자료는 몇 분 걸린다 — 어디까지 왔는지 안 보이면 멈춘 줄 알고 창을 닫는다.
+      setUploadProgress({ index: i + 1, total: toUpload.length, name: file.name, ratio: 0 });
+      const pre = checkFile("medicalDoc", file);
+      if (!pre.ok) { failed.push(`${file.name}: ${uploadReason(pre.error)}`); continue; }
+
+      const data = await uploadAttachment(file, {
+        onProgress: (ratio) => setUploadProgress((p) => (p ? { ...p, ratio } : p)),
+      });
       if (!data.ok) {
-        setError(tl(data.error === "file_too_large" ? "fileTooLarge" : "uploadError", lang));
+        failed.push(`${file.name}: ${uploadReason(data.error)}`);
         continue;
       }
       setUploadedFiles((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
     }
+    setUploadProgress(null);
+    if (failed.length) setError(failed.join(" · "));
+    else if (files.length > toUpload.length) setError(tl("tooManyFiles", lang));
   }
 
   function handleDrop(e) {
@@ -733,10 +755,29 @@ export default function UnifiedInquiryFunnel() {
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png"
+              // 안내 문구(describeUpload)와 같은 목록을 연다 — 예전엔 4종만 열어서
+              // Word 진단서·DICOM·음성 메모가 파일 고르기 창에서 회색으로 잠겨 있었다.
+              accept={UPLOAD_POLICY.medicalDoc.accept}
               className="hidden"
-              onChange={(e) => handleFileAdd(e.target.files)}
+              onChange={(e) => { handleFileAdd(e.target.files); e.target.value = ""; }}
             />
+            {uploadProgress && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-xs text-teal-800 font-medium mb-1.5">
+                  <span className="truncate pr-2">
+                    {uploadProgress.total > 1 && `${uploadProgress.index}/${uploadProgress.total} · `}
+                    {uploadProgress.name}
+                  </span>
+                  <span className="shrink-0">{Math.round(uploadProgress.ratio * 100)}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-teal-700 rounded-full transition-[width] duration-200"
+                    style={{ width: `${Math.max(2, uploadProgress.ratio * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
             {uploadedFiles.length > 0 && (
               <ul className="mt-3 space-y-2">
                 {uploadedFiles.map((f, i) => (
