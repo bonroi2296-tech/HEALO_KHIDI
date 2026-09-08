@@ -130,6 +130,12 @@ export async function GET(request: NextRequest) {
           //    판사도 안 돈다 — 같이 세면 「인사만 잔뜩 들어온 주」에 답변 많음 + 채점 0 이 되어
           //    판사가 멀쩡한데 critical 경보가 뜬다(오탐). 늑대소년은 감시를 죽인다(#112 근본원인 2).
           .is("metadata->>bypassed", null)
+          // ⚠️ 판사를 «일부러» 건너뛴 턴(점검·E2E)도 빼야 한다 — 2026-09-06 에 그 부류가 생겼는데
+          //    모수를 안 맞춰서, 실환자가 없는 주엔 답변만 쌓이고 채점은 0 이 되어 critical 헛경보가
+          //    예약돼 있었다(2026-09-08 실측: 7일 창 답변 21 · 채점 13 이고 채점은 전부 9/05 이전 것.
+          //    9/13 무렵 채점이 창에서 빠지면 replies 21 · evaluations 0 → ai_judge_zero 발화).
+          //    두 카운터는 «같은 것»을 세야 한다. 표식은 chat/{stream,message} 라우트가 남긴다.
+          .is("metadata->>judge_skipped", null)
           .gte("created_at", sinceAi),
         (supabaseAdmin as any)
           .from("ai_response_evaluations")
