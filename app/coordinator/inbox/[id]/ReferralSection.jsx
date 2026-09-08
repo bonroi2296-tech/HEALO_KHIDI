@@ -82,7 +82,14 @@ function display(f, v, lang) {
  * @param onScan 「빈 칸을 서류에서 찾기」를 눌렀을 때. 판독·합치기는 부모가 한다.
  */
 export default function ReferralSection({ referral, lang, scan, onScan, onSaveScan, saving }) {
-  if (!referral || referral.version !== "referral_v1") return null;
+  // 🛑 version 으로 «자르지» 마라 (2026-09-08 전수조사에서 잡음). 옛 접수 폼으로 들어온 문의는
+  //    이 표시가 없어서 카드가 통째로 안 그려졌고, 그러면 「빈 칸을 서류에서 찾기」 단추도 없다.
+  //    그런데 그 단추가 있어야 저장이 되고, 저장돼야 version 이 세워진다 — 닭과 달걀이라
+  //    옛 문의는 «영영» 판독을 못 쓴다. 실제 피해: 첨부를 가진 실환자 4건(#37·#60·#93·#94,
+  //    서류 13건)이 값이 통째로 빈 채 두 달 가까이 남아 있었다. 그중 #93 은 첨부가 7건이다.
+  //    카드가 「전부 비어 있음」으로 뜨는 건 나쁘지 않다 — 그게 이 카드의 일이다
+  //    (「뭘 더 받아야 하는지 이 카드 하나로 보세요」).
+  if (!referral || typeof referral !== "object") return null;
 
   // 서류에서 읽어 온 값. 환자가 «이미 적은» 칸은 여기서도 안 건드린다 — 빈 칸에만 얹는다
   // (2026-09-04 PO: 「빠진거만 다시 읽게 하거나」).

@@ -113,8 +113,14 @@ export async function GET(
     //    암호화된 칸은 아래에서 복호화한다(referral route 의 enc() 목록과 짝).
     let referral: Record<string, unknown> | null = null;
     {
+      // 🛑 version 으로 «자르지» 마라 (2026-09-08 전수조사에서 잡음). 옛 접수 폼으로 들어온
+      //    문의는 intake_data 가 «빈 객체»라 이 검사에 걸려 null 이 되고, 그러면 코디 화면의
+      //    의뢰서 카드가 통째로 안 그려진다 = 「빈 칸을 서류에서 찾기」 단추도 없다.
+      //    그런데 그 단추로 저장해야 version 이 세워지므로(referral-fill), 옛 문의는 «영영»
+      //    판독을 못 쓴다. 실제 피해: 첨부를 가진 실환자 4건(#37·#60·#93·#94, 서류 13건)이
+      //    값이 통째로 빈 채 두 달 가까이 남아 있었다 — #93 은 첨부가 7건이다.
       const raw = (referralRow.data as any)?.intake_data;
-      if (raw && typeof raw === "object" && raw.version === "referral_v1") referral = raw;
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) referral = raw;
     }
 
     // PII 복호화 (staff 인증 통과 후 서버에서만). 실패해도 나머지는 반환(fail-safe).
