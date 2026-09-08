@@ -666,8 +666,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
    */
   const [docScan, setDocScan] = useState(null);   // null | {loading} | {data} | {error}
   async function scanAllDocs() {
+    // 🛑 음성을 빼지 마라 (2026-09-08 PO: 「음성은 아직도 못 읽는데?」). 판독 자체는 잘 된다 —
+    //    실측으로 왓츠앱 음성 하나에서 진단명·주호소·검사이력·복용약까지 나왔다. 문제는 그 값이
+    //    «의뢰서로 갈 통로»가 없었다는 것이다: 음성은 이 목록에서 빠져 있어 「빈 칸을 서류에서
+    //    찾기」에 안 잡히고, 「음성 정리」 카드는 화면에만 뜨고 저장 단추가 없다.
+    //    코디가 원한 건 «단추 하나로 다 읽는 것»이다(2026-09-04 PO). 음성도 그 하나에 들어간다.
     const list = (inquiry?.attachments || []).filter(
-      (a) => a?.path && !isVoiceFile(a.name || a.path) && !isImagingBundle(a),
+      (a) => a?.path && !isImagingBundle(a),
     );
     if (!list.length) { setDocScan({ error: "no_docs" }); return; }
 
@@ -678,7 +683,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const res = await fetch("/api/inquiry/classify-doc", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ path: a.path, type: a.type || "application/pdf" }),
+          // ⚠️ 저장된 type 은 비어 있을 수 있다(#291 의 .ogg 가 그랬다). 파일 «이름»에서 먼저
+          //    본다 — 음성을 application/pdf 로 보내면 창구가 «지원 안 함»으로 되돌린다.
+          body: JSON.stringify({ path: a.path, type: voiceMime(a.name || a.path) || a.type || "application/pdf" }),
         });
         const j = await res.json();
         if (j?.ok) results.push({ ...j, _name: a.name || a.path });
