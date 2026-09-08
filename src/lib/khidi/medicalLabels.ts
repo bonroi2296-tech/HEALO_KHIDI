@@ -111,6 +111,19 @@ export function isDiagnosisIcdCode(code: string | null | undefined): boolean {
   return v[0] !== "Z";
 }
 
+/**
+ * «진단명» 칸에 진단이 아니라 검사 사유가 들어왔나 — 같은 사고의 다른 칸이다.
+ * #316 은 진단코드뿐 아니라 진단명 칸도 `Z04 Обследование и наблюдение с другими целями`
+ * («기타 목적의 검사 및 관찰»)로 접수됐다. 그대로 두면 병원에 나가는 의뢰서에
+ * 「이 환자의 병 = 검사를 받는 것」이라고 적히게 된다.
+ *
+ * 🛑 Z 코드로 «시작»할 때만 잡는다. 진짜 진단명 안에 Z 코드가 곁들여 적힌 경우
+ *    («C61 … , Z85.46 기왕력») 까지 버리면 진단을 잃는다.
+ */
+export function startsWithEncounterCode(text: string | null | undefined): boolean {
+  return /^\s*Z\d{2}(\.\d{1,4})?\b/i.test(text || "");
+}
+
 /** 암종 → 추천 ICD-10 코드. 추천할 게 없으면 null(「기타」·미등록 값). */
 export function icd10SuggestionFor(
   cancerType: string | null | undefined

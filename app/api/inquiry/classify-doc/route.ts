@@ -34,7 +34,7 @@ import {
 } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
-import { isDiagnosisIcdCode } from "@/lib/khidi/medicalLabels";
+import { isDiagnosisIcdCode, startsWithEncounterCode } from "@/lib/khidi/medicalLabels";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { renderForAi } from "@/lib/documents/pdfPage";
 
@@ -107,6 +107,13 @@ Rules:
 - Copy source wording exactly, in the original language.
 - Codes and staging (ICD, TNM such as cT4N1M1) must be copied CHARACTER BY CHARACTER. Never normalise
   them to a more familiar-looking pattern. A changed letter changes the diagnosis.
+- 🛑 A Z-chapter code (Z00-Z99) is NOT a diagnosis. It states WHY the encounter or the test happened
+  ("Z04 Обследование и наблюдение с другими целями" = examination and observation for other reasons).
+  CIS test reports, referral slips and imaging requests routinely print one in the header next to
+  "МКБ-10". Never return it in "icdCode", and never return it as "diagnosisNameRaw". Measured
+  2026-09-08 (#316): both fields came back as "Z04 …" for a patient whose MRI report described a
+  prostate lesion - the form then said the patient's disease was "an examination". If the document
+  states no actual disease, leave BOTH fields null; the findings still go into "testsAndTreatments".
 - These uploads often bundle several documents from DIFFERENT hospitals and DIFFERENT dates, and they
   can disagree (measured 2026-08-14: the same file said cT4N1M1 on 15.07 and cT3NxM1 on 28.07).
   When they disagree, take the value from the MOST RECENT document. Never merge or average them.
@@ -246,6 +253,9 @@ function cleanFields(raw: any): Record<string, string> {
     // 환자의 병명 자리에 들어갔다). 서류 원문은 diagnosisNameRaw·testsAndTreatments 에
     // 그대로 남으므로 여기서 버려도 정보는 안 사라진다.
     if (k === "icdCode" && !isDiagnosisIcdCode(val)) continue;
+    // 진단명 칸도 같은 사고를 겪는다 — #316 은 여기에도 «Z04 Обследование и наблюдение…»
+    // (기타 목적의 검사 및 관찰)이 들어왔다. 병원에 나가는 의뢰서의 병명 칸이다.
+    if (k === "diagnosisNameRaw" && startsWithEncounterCode(val)) continue;
     // 연락처는 «화면·서버가 받아주는 모양»일 때만 채운다. 모양이 틀린 값을 채우면
     // 칸은 차 있는데 보내기 단추가 막히고, 환자 눈엔 이유가 안 보인다.
     if (k === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) continue;
