@@ -18,14 +18,12 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { uploadLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
 import { issueUploadUrl, verifyUploaded, isOwnPath, normalizeMime } from "@/lib/storage/directUpload";
+import { UPLOAD_POLICY } from "@/lib/uploadPolicy";
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/dicom",
-];
+// 형식 목록은 uploadPolicy 가 단일 출처 — 화면 안내·파일 선택 칸·이 서버 검사가 같은 목록을 본다.
+// (전엔 여기만 5종이라 화면이 「Word·DICOM·음성·TXT 됩니다」라고 안내하고 서버가 거부했다. 2026-09-08)
+// 저장소 documents 통의 allowed_mime_types 와도 맞춰져 있다(실DB 확인 2026-09-08).
+const ALLOWED_TYPES = UPLOAD_POLICY.medicalDoc.mimes;
 
 // 예전엔 20MB 라고 적어놓고 실제로는 4.5MB 에서 끊겼다(서버 경유 방식의 Vercel 본문 한도).
 // 지금은 브라우저 → Storage 직행이라 이 숫자가 진짜 상한이다(실측: 200MB 성공 / 201MB 거부).
