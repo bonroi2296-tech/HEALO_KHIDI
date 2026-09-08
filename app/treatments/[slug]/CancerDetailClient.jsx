@@ -23,13 +23,29 @@ import { CANCER_IMAGES, CANCER_THERAPY_KEYS } from "@/lib/data/immuneCancerDetai
 // 의학 정보 출처 — 애플 심사 1.4.1 (2026-09-07 반려): 의료 정보 화면에는 출처 링크가 «보여야» 한다.
 // 병원 페이지(cancer.immuneSourceUrl)는 데이터에 이미 있었고 화면에만 안 그리고 있었다. NCI 는 암종 일반 정보.
 const IMMUNE_SITE = "https://immunehospital.com";
+// 암종 이름은 6개 언어 — 영어만 넣으면 ru/kz 화면에 영어가 새서 @i18n-leak 시험이 막는다(2026-09-08 실측).
+const NCI_TYPE = {
+  breast: { ko: "유방암", en: "Breast cancer", ru: "Рак молочной железы", kz: "Сүт безі обыры", zh: "乳腺癌", ja: "乳がん" },
+  uterine: { ko: "자궁암", en: "Uterine cancer", ru: "Рак матки", kz: "Жатыр обыры", zh: "子宫癌", ja: "子宮がん" },
+  ovarian: { ko: "난소암", en: "Ovarian cancer", ru: "Рак яичников", kz: "Аналық без обыры", zh: "卵巢癌", ja: "卵巣がん" },
+  colorectal: { ko: "대장암", en: "Colorectal cancer", ru: "Колоректальный рак", kz: "Тік ішек обыры", zh: "结直肠癌", ja: "大腸がん" },
+  stomach: { ko: "위암", en: "Stomach (gastric) cancer", ru: "Рак желудка", kz: "Асқазан обыры", zh: "胃癌", ja: "胃がん" },
+  liver: { ko: "간암", en: "Liver cancer", ru: "Рак печени", kz: "Бауыр обыры", zh: "肝癌", ja: "肝がん" },
+  pancreatic: { ko: "췌장암", en: "Pancreatic cancer", ru: "Рак поджелудочной железы", kz: "Ұйқы безі обыры", zh: "胰腺癌", ja: "膵臓がん" },
+  lung: { ko: "폐암", en: "Lung cancer", ru: "Рак лёгкого", kz: "Өкпе обыры", zh: "肺癌", ja: "肺がん" },
+  thyroid: { ko: "갑상선암", en: "Thyroid cancer", ru: "Рак щитовидной железы", kz: "Қалқанша без обыры", zh: "甲状腺癌", ja: "甲状腺がん" },
+  leukemia: { ko: "백혈병", en: "Leukemia", ru: "Лейкоз", kz: "Лейкоз", zh: "白血病", ja: "白血病" },
+  brain: { ko: "뇌종양", en: "Brain tumors", ru: "Опухоли головного мозга", kz: "Ми ісіктері", zh: "脑肿瘤", ja: "脳腫瘍" },
+  prostate: { ko: "전립선암", en: "Prostate cancer", ru: "Рак предстательной железы", kz: "Қуық асты безі обыры", zh: "前列腺癌", ja: "前立腺がん" },
+  kidney: { ko: "신장암", en: "Kidney cancer", ru: "Рак почки", kz: "Бүйрек обыры", zh: "肾癌", ja: "腎臓がん" },
+};
 const NCI_SOURCES = {
-  female: [["breast", "Breast cancer"], ["uterine", "Uterine cancer"], ["ovarian", "Ovarian cancer"]],
-  digest: [["colorectal", "Colorectal cancer"], ["stomach", "Stomach (gastric) cancer"]],
-  liver: [["liver", "Liver cancer"], ["pancreatic", "Pancreatic cancer"]],
-  lung: [["lung", "Lung cancer"]],
-  thyroid: [["thyroid", "Thyroid cancer"]],
-  etc: [["leukemia", "Leukemia"], ["brain", "Brain tumors"], ["prostate", "Prostate cancer"], ["kidney", "Kidney cancer"]],
+  female: ["breast", "uterine", "ovarian"],
+  digest: ["colorectal", "stomach"],
+  liver: ["liver", "pancreatic"],
+  lung: ["lung"],
+  thyroid: ["thyroid"],
+  etc: ["leukemia", "brain", "prostate", "kidney"],
 };
 
 // ── 다국어 표시 문구 ────────────────────────────────────────────
@@ -578,10 +594,10 @@ export default function CancerDetailClient({ slug, content }) {
                 {tr("sources.hospital")}
               </a>
             </li>
-            {(NCI_SOURCES[slug] || []).map(([key, label]) => (
+            {(NCI_SOURCES[slug] || []).map((key) => (
               <li key={key}>
                 <a href={`https://www.cancer.gov/types/${key}`} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline underline-offset-2">
-                  {tr("sources.nci")} {label}
+                  {tr("sources.nci")} {l(NCI_TYPE[key])}
                 </a>
               </li>
             ))}
