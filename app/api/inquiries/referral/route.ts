@@ -36,10 +36,10 @@ import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceive
 import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
-import { safeLink, toCanonicalConsents, toDateOrNull } from "@/lib/inquiry/referralSubmit";
+import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs } from "@/lib/inquiry/referralSubmit";
 
 const s = (max: number) => z.string().max(max).nullable().optional();
-const Schema = z.object({
+export const Schema = z.object({
   // 접수 문턱 — 화면과 «같은 5칸». 여기를 늘리려면 referralSchema.js 부터 고쳐라.
   lastName: z.string().min(1).max(100),
   firstName: z.string().min(1).max(100),
@@ -77,6 +77,9 @@ const Schema = z.object({
     name: s(300), size: z.number().optional(), count: z.number().optional(), rawSize: z.number().optional(),
     path: s(400), link: s(600),
   }).nullable().optional(),
+  // 어느 칸을 «기계가 서류에서 읽어» 채웠나 — { 칸이름: 서류 파일명 | true }.
+  // 코디 화면(referral-fill)이 쓰는 intake_data._filledFromDocs 와 같은 자리에 넣는다.
+  autoFilled: z.record(z.string().max(60), z.union([z.string().max(300), z.boolean()])).optional(),
 
   consents: z.record(z.string(), z.boolean()).optional(),
   sourceLocale: s(10), referrerHost: s(200), landingPath: s(300),
@@ -165,6 +168,9 @@ export async function POST(request: NextRequest) {
       cdFolder: d.cdFolder ? { ...d.cdFolder, path: d.cdFolder.path && isOwnPath("inquiry", d.cdFolder.path) ? d.cdFolder.path : null, link: safeLink(d.cdFolder.link) } : null,
       consents: toCanonicalConsents(consents),   // intake.consents 와 같은 공용 이름 — 두 표기가 있으면 다음 사람이 잘못 읽는다
       consentAt: new Date().toISOString(),
+      // 「이 값 누가 넣었나」 — 기계가 서류에서 읽은 칸만 남긴다. 코디 화면·브리프가 이걸 보고
+      // 환자가 직접 적은 값과 무게를 가른다. 화면이 보내지 않은 칸(quick 모드)은 자연히 빠진다.
+      _filledFromDocs: pickFilledFromDocs(d.autoFilled, d),
     };
 
     const { data: row, error: insertError } = await supabaseAdmin

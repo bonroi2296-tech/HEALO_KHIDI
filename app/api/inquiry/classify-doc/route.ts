@@ -34,6 +34,7 @@ import {
 } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { DOC_KINDS, isKnownKind } from "@/lib/inquiry/docKinds";
+import { isDiagnosisIcdCode } from "@/lib/khidi/medicalLabels";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { renderForAi } from "@/lib/documents/pdfPage";
 
@@ -240,6 +241,11 @@ function cleanFields(raw: any): Record<string, string> {
     if (k === "sex" && val !== "female" && val !== "male") continue;
     if (k === "stage" && !STAGES.has(val)) continue;
     if (k === "nationality" && !NATIONS.has(val)) continue;   // 목록에 없는 값은 버린다
+    // 진단코드 — 모양이 ICD-10 이고 «진단 코드»일 때만 받는다. 여기엔 검사가 아예 없어서
+    // 모델이 준 문자열이 그대로 의뢰서에 실렸다(2026-09-08 #316: 검사결과지 머리의 Z04 가
+    // 환자의 병명 자리에 들어갔다). 서류 원문은 diagnosisNameRaw·testsAndTreatments 에
+    // 그대로 남으므로 여기서 버려도 정보는 안 사라진다.
+    if (k === "icdCode" && !isDiagnosisIcdCode(val)) continue;
     // 연락처는 «화면·서버가 받아주는 모양»일 때만 채운다. 모양이 틀린 값을 채우면
     // 칸은 차 있는데 보내기 단추가 막히고, 환자 눈엔 이유가 안 보인다.
     if (k === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) continue;

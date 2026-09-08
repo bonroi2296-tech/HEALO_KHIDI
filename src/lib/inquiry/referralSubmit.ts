@@ -28,6 +28,32 @@ export const toCanonicalConsents = (c: Record<string, boolean>): Record<string, 
   Object.fromEntries(Object.entries(c || {}).map(([k, v]) => [CONSENT_KEY_MAP[k] ?? k, v]));
 
 /**
+ * 「이 칸은 기계가 서류에서 읽어 채운 값」 표시를 저장할 모양으로 고른다.
+ * 화면 표시 → { 칸이름: 서류 파일명 } (파일명을 못 받았으면 "서류").
+ *
+ * 🛑 «실제로 값이 함께 들어온 칸»만 남긴다. 환자가 전체 모드에서 서류를 읽혔다가 「상담만」으로
+ *    되돌아가 보내면 값은 빠지고 표시만 남는다 — 그러면 코디 화면에 «비어 있는데 서류에서
+ *    읽었다고 적힌» 칸이 생긴다.
+ *
+ * 왜 필요한가 (2026-09-08 #316): 이 표시가 접수 창구에서 통째로 버려지고 있었다. 검사결과지
+ * 머리에 찍힌 코드를 판독기가 진단코드 칸에 넣었는데, 저장된 뒤에는 그게 환자가 손으로 적은
+ * 값과 구분이 안 됐다. 코디 화면(referral-fill)은 같은 것을 `_filledFromDocs` 에 남기고 있었다.
+ */
+export const pickFilledFromDocs = (
+  marks: Record<string, string | boolean> | null | undefined,
+  values: Record<string, unknown>,
+): Record<string, string> | null => {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(marks || {})) {
+    if (!v) continue;
+    const val = values?.[k];
+    if (val == null || val === "" || (Array.isArray(val) && !val.length)) continue;
+    out[k] = typeof v === "string" && v.trim() ? v.trim().slice(0, 200) : "서류";
+  }
+  return Object.keys(out).length ? out : null;
+};
+
+/**
  * 의뢰서의 진단 시기는 «연-월»(2026-05)이다. cancer_patient_intakes.diagnosis_date 는 date 형이라
  * 그대로 넣으면 거부된다 — 🛑 2026-08-19 실측: 그 한 번의 실패에 «병기까지» 같이 저장이 안 됐다
  * (같은 upsert 라서). 월만 있으면 1일로 채운다. 아무 형식도 아니면 null.

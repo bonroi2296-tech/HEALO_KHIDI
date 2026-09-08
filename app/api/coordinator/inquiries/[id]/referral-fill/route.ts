@@ -23,6 +23,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { isDiagnosisIcdCode } from "@/lib/khidi/medicalLabels";
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 // 접수 창구와 같은 규칙 — 건강정보·PII 는 암호문, 나머지는 평문.
@@ -88,6 +89,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     for (const [key, raw] of Object.entries(incoming)) {
       if (!ALLOWED.has(key)) continue;
       if (isBlank(raw)) continue;
+      // 진단코드는 «진단인 코드»만 받는다 — 판독기가 검사결과지 머리의 Z 코드(검사 사유)를
+      // 병명 자리에 넣는다(2026-09-08 #316). 접수 창구(classify-doc)와 같은 규칙이다.
+      if (key === "icdCode" && !isDiagnosisIcdCode(String(raw))) continue;
       // ① 이미 차 있으면 건드리지 않는다 — 화면이 아니라 여기서 판정한다.
       //    예외는 «모으는 칸»뿐이다(overwrite): 서류를 새로 받으면 검사 목록은 처음부터 다시
       //    만들어야 한다. 덧붙이기가 아니라 통째로 갈아 끼우는 것이라 같은 서류를 두 번 읽어도

@@ -34,3 +34,25 @@ describe("의뢰서 — 화면 칸 ↔ 서버 스키마 ↔ 저장", () => {
     expect(cd).toMatch(/\bpath\s*:/);
   });
 });
+
+// ── 실제 zod 스키마가 값을 통과시키나 (텍스트 대조로는 못 재는 것) ──────────────
+// 🛑 이 저장소는 「스키마에 없는 키는 조용히 버려진다」로 두 번 당했다(cdFolder·nationality).
+//    새 칸을 넣었으면 «실제로 파싱을 통과하는지»를 재라 — 라우트가 버리면 화면은 아무 말도 안 한다.
+describe("접수 스키마 — 「기계가 채운 칸」 표시(autoFilled)가 실제로 통과한다", async () => {
+  const { Schema } = await import("../../../app/api/inquiries/referral/route");
+  const base = {
+    lastName: "TEST", firstName: "T", email: "t@example.com",
+    patientLang: "ru", cancerType: "other",
+    consents: { pipa: true, sensitive: true, thirdParty: true, crossBorder: true },
+  };
+
+  it("파일명·true 두 모양을 다 받는다 (2026-09-08 #316)", () => {
+    const r = Schema.safeParse({ ...base, icdCode: "C16", autoFilled: { icdCode: "КЛИНИКА.pdf", stage: true } });
+    expect(r.success).toBe(true);
+    expect(r.success && r.data.autoFilled).toEqual({ icdCode: "КЛИНИКА.pdf", stage: true });
+  });
+
+  it("없어도 통과한다 — 서류를 안 올린 접수가 막히면 안 된다", () => {
+    expect(Schema.safeParse(base).success).toBe(true);
+  });
+});

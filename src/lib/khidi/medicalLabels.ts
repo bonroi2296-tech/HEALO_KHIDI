@@ -91,6 +91,26 @@ export function normalizeCancerType(value: string | null | undefined): string | 
  */
 export const ICD10_PATTERN = /^[A-TV-Z][0-9]{2}(\.[0-9A-Z]{1,4})?$/;
 
+/**
+ * 형식은 맞지만 «진단»이 아닌 코드인가 — ICD-10 Z 장(Z00~Z99)은 병이 아니라
+ * 「보건서비스에 접촉한 사유」다. Z04 = "기타 사유에 의한 검사 및 관찰".
+ *
+ * 왜 막나 (2026-09-08 실사고 #316): 러시아 환자의 검사결과지 머리에 «МКБ-10: Z04» 가
+ * 찍혀 있었고, 서류 판독기가 그걸 그대로 베껴 진단코드 칸에 넣었다. 판독기는 시킨 대로
+ * («적힌 코드를 글자 그대로 베껴라») 한 것이지만, 그 칸의 뜻은 «이 환자의 병»이고
+ * 서류에 찍힌 그 코드의 뜻은 «이 검사를 왜 했나»다 — 둘은 다른 것이다.
+ * CIS 검사결과지·의뢰지에는 Z01·Z03·Z04·Z08·Z12 가 머리글로 흔하게 찍힌다.
+ *
+ * 🛑 사람이 손으로 넣는 자리(코디 확정 코드)는 막지 않는다 — 사람은 보고 판단한다.
+ *    막는 건 «기계가 서류에서 베껴 자동으로 채우는» 경로뿐이다.
+ */
+export function isDiagnosisIcdCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  const v = code.trim().toUpperCase();
+  if (!ICD10_PATTERN.test(v)) return false;
+  return v[0] !== "Z";
+}
+
 /** 암종 → 추천 ICD-10 코드. 추천할 게 없으면 null(「기타」·미등록 값). */
 export function icd10SuggestionFor(
   cancerType: string | null | undefined
