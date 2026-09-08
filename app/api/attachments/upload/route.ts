@@ -42,8 +42,14 @@ const ALLOWED_TYPES = new Set([
   ...UPLOAD_POLICY.imaging.mimes,
 ]);
 
-// 파일 1개당 sign + commit 2회. 첨부 5개 + 재시도까지 감안해 분당 20회.
-const UPLOAD_RATE = { windowMs: 60 * 1000, maxRequests: 20, apiName: "attachments_upload" };
+// 파일 1개당 sign + commit 2회 — 그래서 여기 숫자의 «절반»이 실질 파일 상한이다.
+// 20 이던 동안 실질 상한은 분당 파일 10개였고, 2026-09-08 실서비스에서 실제 환자 서류
+// (유방암 케이스 PDF 44장)를 올리다 429 가 8건 났다. 화면엔 「올리지 못했습니다」만 떠서
+// 사유도 안 보였다 — 의료 서류가 조용히 빠지는 자리다. 「첨부 5개」를 기준으로 잡은 옛 값이
+// 실제 암환자 의무기록 한 벌(40~50장)과 안 맞았다.
+// 60 = 분당 파일 30개. 남용 방어는 그대로다 — sign 은 서명 URL 만 주고, 실제 저장은
+// 형식·크기·앞머리 검사를 통과해야 한다.
+const UPLOAD_RATE = { windowMs: 60 * 1000, maxRequests: 60, apiName: "attachments_upload" };
 
 export async function POST(request: NextRequest) {
   const rl = checkRateLimit(getClientIp(request), UPLOAD_RATE);

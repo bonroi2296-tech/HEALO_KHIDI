@@ -2139,6 +2139,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "Please keep this window open.",
     "referral.tr.upTooBig": "This file is {mb}, over the 200MB limit here. A coordinator will take it for you — we tell you now so you don't waste time uploading.",
     "referral.tr.upBadType": "This file type can't be uploaded. Please use PDF, images, or Word.",
+    "referral.tr.upBusy": "Too many files at once. Waiting a moment and retrying automatically.",
     "referral.tr.upFailed": "Upload failed. Please try again.",
   },
   ko: {
@@ -4228,6 +4229,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "창을 닫지 말아 주세요.",
     "referral.tr.upTooBig": "이 파일은 {mb}라 여기서는 못 올립니다(최대 200MB). 코디네이터가 대신 받아드릴게요 — 올리는 시간을 버리지 않으시도록 미리 알려드립니다.",
     "referral.tr.upBadType": "이 형식은 올릴 수 없습니다. PDF · 사진 · Word 로 보내주세요.",
+    "referral.tr.upBusy": "한꺼번에 몰려서 잠시 기다리는 중입니다. 자동으로 다시 올립니다.",
     "referral.tr.upFailed": "올리지 못했습니다. 다시 시도해 주세요.",
   },
   zh: {
@@ -6317,6 +6319,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "请不要关闭窗口。",
     "referral.tr.upTooBig": "该文件为{mb}，无法在此上传（最大200MB）。协调员会代为接收。为免您白等，特此提前告知。",
     "referral.tr.upBadType": "该格式无法上传。请以 PDF·图片·Word 格式发送。",
+    "referral.tr.upBusy": "同时上传的文件过多，正在稍候自动重试。",
     "referral.tr.upFailed": "上传失败，请重试。",
   },
   ja: {
@@ -8417,6 +8420,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "画面を閉じないでください。",
     "referral.tr.upTooBig": "このファイルは{mb}あるためここではアップロードできません（最大200MB）。コーディネーターが代わりにお預かりします。アップロードの時間を無駄にしないよう、先にお知らせします。",
     "referral.tr.upBadType": "この形式はアップロードできません。PDF・写真・Word でお送りください。",
+    "referral.tr.upBusy": "一度に多くのファイルが集中しました。少し待って自動で再試行します。",
     "referral.tr.upFailed": "アップロードできませんでした。もう一度お試しください。",
   },
   vi: {
@@ -11002,6 +11006,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "Не закрывайте окно.",
     "referral.tr.upTooBig": "Этот файл — {mb}, это больше лимита в 200 MB. Координатор примет его за вас. Сообщаем сразу, чтобы вы не тратили время на загрузку.",
     "referral.tr.upBadType": "Этот тип файла загрузить нельзя. Используйте PDF, изображения или Word.",
+    "referral.tr.upBusy": "Слишком много файлов сразу. Ждём немного и загружаем снова автоматически.",
     "referral.tr.upFailed": "Не удалось загрузить. Попробуйте ещё раз.",
   },
   kz: {
@@ -13095,6 +13100,7 @@ export const DICTIONARY = {
     "referral.tr.upWait": "Терезені жаппаңыз.",
     "referral.tr.upTooBig": "Бұл файл {mb} болғандықтан мұнда жүктелмейді (ең көбі 200 MB). Үйлестіруші орныңызға қабылдайды — уақытыңыз босқа кетпеуі үшін алдын ала ескертіп отырмыз.",
     "referral.tr.upBadType": "Бұл пішімді жүктеу мүмкін емес. PDF · сурет · Word түрінде жіберіңіз.",
+    "referral.tr.upBusy": "Бір мезгілде тым көп файл. Сәл күтіп, автоматты түрде қайта жүктейміз.",
     "referral.tr.upFailed": "Жүктелмеді. Қайталап көріңіз.",
   },
   ar: {
