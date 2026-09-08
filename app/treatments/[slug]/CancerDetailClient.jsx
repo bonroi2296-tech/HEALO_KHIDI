@@ -20,6 +20,18 @@ import { priceUnitLabel } from "@/lib/i18n/priceUnit";
 // 여기서 파일을 직접 import 하면 코디가 고친 값이 안 보이고, 사본과 파일이 번들에 두 벌 실린다(2026-09-06 리뷰).
 import { CANCER_IMAGES, CANCER_THERAPY_KEYS } from "@/lib/data/immuneCancerDetails";
 
+// 의학 정보 출처 — 애플 심사 1.4.1 (2026-09-07 반려): 의료 정보 화면에는 출처 링크가 «보여야» 한다.
+// 병원 페이지(cancer.immuneSourceUrl)는 데이터에 이미 있었고 화면에만 안 그리고 있었다. NCI 는 암종 일반 정보.
+const IMMUNE_SITE = "https://immunehospital.com";
+const NCI_SOURCES = {
+  female: [["breast", "Breast cancer"], ["uterine", "Uterine cancer"], ["ovarian", "Ovarian cancer"]],
+  digest: [["colorectal", "Colorectal cancer"], ["stomach", "Stomach (gastric) cancer"]],
+  liver: [["liver", "Liver cancer"], ["pancreatic", "Pancreatic cancer"]],
+  lung: [["lung", "Lung cancer"]],
+  thyroid: [["thyroid", "Thyroid cancer"]],
+  etc: [["leukemia", "Leukemia"], ["brain", "Brain tumors"], ["prostate", "Prostate cancer"], ["kidney", "Kidney cancer"]],
+};
+
 // ── 다국어 표시 문구 ────────────────────────────────────────────
 // CTA(cancerDetail.cta.*)·비용·비자 밴드(cancerDetail.costVisa.*) 카피는 중앙 i18n 사전으로 이동.
 // ⚠️ 비용·비자 카피 톤은 PO 검토 대상(초안). 가격 숫자는 하드코딩 금지 → /cost-calculator로 연결.
