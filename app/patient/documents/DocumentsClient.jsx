@@ -103,6 +103,9 @@ export default function DocumentsClient() {
   const reasonText = (code) => {
     if (code === 'file_too_large') return t('patientDocs.maxSize', lang);
     if (code === 'invalid_file_type' || code === 'invalid_file_content') return describeUpload('medicalDoc', lang);
+    // 「몰려서 못 받았다」와 「올리기가 실패했다」는 사람이 할 일이 다르다 — 앞은 기다리면 되고
+    // 뒤는 다시 눌러야 한다. 재시도를 다 쓴 뒤에만 여기까지 온다(2026-09-08 전수 대조로 발견).
+    if (code === 'rate_limited') return t('patientDocs.busy', lang);
     return t('patientDocs.error', lang);
   };
 
