@@ -555,6 +555,28 @@ export default function CancerDetailClient({ slug, content }) {
         </div>
       </section>
 
+      {/* ── 9. 출처 — 애플 1.4.1: 의료 정보에는 사용자가 쉽게 찾는 출처 링크 ── */}
+      <section className="border-t border-gray-100 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <h2 className="text-sm font-bold text-gray-700 mb-2">{tr("sources.title")}</h2>
+          <p className="text-xs text-gray-500 leading-relaxed mb-3">{tr("sources.body")}</p>
+          <ul className="space-y-1.5 text-xs">
+            <li>
+              <a href={IMMUNE_SITE + cancer.immuneSourceUrl} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline underline-offset-2">
+                {tr("sources.hospital")}
+              </a>
+            </li>
+            {(NCI_SOURCES[slug] || []).map(([key, label]) => (
+              <li key={key}>
+                <a href={`https://www.cancer.gov/types/${key}`} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline underline-offset-2">
+                  {tr("sources.nci")} {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* 의료 면책고지 — 매칭·코디네이션만 제공, 치료 결과 미보장 명시 */}
       <div className="border-t border-gray-100 bg-white">
         <p className="max-w-4xl mx-auto px-4 py-5 text-[11px] leading-relaxed text-gray-400 text-center">
