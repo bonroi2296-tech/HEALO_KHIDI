@@ -25,6 +25,10 @@ export const CANCER_TYPES = [
   // 2026-08-06 추가: 신장암 선택지가 없어 실제 신장암(C64) 접수가 'liver'(전이 부위)로 찍혀
   // 의료진 화면에 「간암」으로 보이던 것을 막는다. organ 은 OrganIcon 에 kidney 가 아직 없어 null.
   { value: "kidney", labelKey: "intakeLabels.cancer.kidney", organ: null },
+  // 2026-09-08 추가: 같은 일이 전립선암에서 되풀이됐다. 실제 전립선 케이스(#316, 러시아)가
+  // 선택지가 없어 'other' 로 접수됐다 — 그러면 6개 언어 라벨도, 진단코드 추천(C61)도,
+  // 병원 매칭도 그 케이스만 조용히 건너뛴다. organ 은 OrganIcon 에 아직 없어 null.
+  { value: "prostate", labelKey: "intakeLabels.cancer.prostate", organ: null },
   { value: "other", labelKey: "intakeLabels.cancer.other", organ: null },
 ];
 

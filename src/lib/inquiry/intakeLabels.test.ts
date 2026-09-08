@@ -24,7 +24,9 @@ describe("인테이크 선택지 라벨 이관 (2026-07-27) — 편집기에서 
 
   it("value·organ 코드(DB 저장값)는 그대로다 — 저장 흐름 불변", () => {
     expect(CANCER_TYPES.map((c) => c.value)).toEqual(
-      ["stomach", "liver", "lung", "breast", "thyroid", "colorectal", "pancreatic", "kidney", "other"]
+      // 늘어나는 건 되고(2026-08-06 kidney · 2026-09-08 prostate), 기존 값이 바뀌거나
+      // 사라지는 건 안 된다 — 이미 저장된 문의가 라벨을 잃는다.
+      ["stomach", "liver", "lung", "breast", "thyroid", "colorectal", "pancreatic", "kidney", "prostate", "other"]
     );
     expect((CANCER_TYPES.find((c) => c.value === "breast") as any).organ).toBe("breast");
     expect(TREATMENT_STATES.map((s) => s.value)).toContain("pre_surgery");

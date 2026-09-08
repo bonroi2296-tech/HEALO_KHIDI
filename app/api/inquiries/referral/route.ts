@@ -21,7 +21,6 @@ export const runtime = "nodejs";
 
 import "server-only";
 import { NextRequest, after } from "next/server";
-import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
@@ -36,52 +35,11 @@ import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceive
 import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
-import { safeLink, toCanonicalConsents, toDateOrNull } from "@/lib/inquiry/referralSubmit";
+import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, Schema } from "@/lib/inquiry/referralSubmit";
 
-const s = (max: number) => z.string().max(max).nullable().optional();
-const Schema = z.object({
-  // 접수 문턱 — 화면과 «같은 5칸». 여기를 늘리려면 referralSchema.js 부터 고쳐라.
-  lastName: z.string().min(1).max(100),
-  firstName: z.string().min(1).max(100),
-  email: z.string().email().max(200),
-  patientLang: z.enum(["ko", "en", "ru", "kz", "kk", "zh", "ja"]),   // step1 과 같은 폭 — 낯선 코드는 코디 화면·메일 언어를 깨뜨린다
-  cancerType: z.string().min(1).max(40),
-
-  mode: z.enum(["quick", "full"]).optional(),
-  phone: s(40),
-  birthDate: s(20), sex: s(10), nationality: s(10), passportNo: s(60),
-  stage: s(10), diagnosisNameRaw: s(600), icdCode: s(30),
-  diagnosisDate: s(20), onsetDate: s(100),
-  chiefComplaint: s(3000), testsAndTreatments: s(3000), localDoctorOpinion: s(3000),
-  pastHistory: z.array(z.string().max(40)).max(20).optional(),
-  pastHistoryNote: s(2000), medications: s(2000), familyHistory: s(2000),
-  // 환자가 무엇을 받고 싶은가 — 병원에 보낼 의뢰서의 «질문»이 된다.
-  // 개인정보가 아니라 고른 목록이므로 암호화 안 한다(코디가 목록에서 바로 보여야 한다).
-  referralWants: z.array(z.string().max(20)).max(10).optional(),
-  referralPurpose: s(2000), preferredDate: s(20),
-  dateFlexible: z.boolean().optional(), flightFitness: s(20),
-
-  // 봉투에 올린 서류 — 종류는 «추정»이거나 사용자가 고친 값이다. 사실로 다루지 마라.
-  // link: 파일이 200MB 를 넘어 «못 올린» 경우, 사람이 그 자리에서 남긴 대용량 저장소 주소.
-  // 안 받으면 화면에만 있고 조용히 버려진다(2026-08-18 실측으로 잡음).
-  envelope: z.array(z.object({
-    path: s(500), name: s(300), size: z.number().optional(),
-    kind: s(40), confidence: z.number().nullable().optional(),
-    corrected: z.boolean().optional(),
-    link: s(600),
-  })).max(30).optional(),
-  // 🛑 zod 는 스키마에 없는 키를 «조용히» 버린다. 화면은 path(저장소 경로)를 보내는데 여기 없어서
-  //    CD 묶음(수백 MB, 40초 묶고 몇 분 올린 것)이 저장소에만 남고 DB 어디에도 연결이 안 됐다
-  //    (2026-08-19 독립 리뷰 2명이 동시에 짚음). 코디는 「CD 601개 · 100MB」만 보고 열 수가 없었다.
-  cdFolder: z.object({
-    name: s(300), size: z.number().optional(), count: z.number().optional(), rawSize: z.number().optional(),
-    path: s(400), link: s(600),
-  }).nullable().optional(),
-
-  consents: z.record(z.string(), z.boolean()).optional(),
-  sourceLocale: s(10), referrerHost: s(200), landingPath: s(300),
-  utm: z.record(z.string(), z.string().max(200)).nullable().optional(),
-});
+// 🛑 스키마는 여기 두지 마라 — App Router 라우트 파일은 정해진 이름(POST·runtime …)만
+//    내보낼 수 있어서, 시험이 부르라고 export 를 붙이면 «tsc 는 통과하는데 빌드가 깨진다»
+//    (2026-09-08 실측). 그래서 referralSubmit.ts 에 두고 여기서 가져다 쓴다.
 
 const REQUIRED_CONSENTS = ["pipa", "sensitive", "thirdParty", "crossBorder"];
 
@@ -165,6 +123,9 @@ export async function POST(request: NextRequest) {
       cdFolder: d.cdFolder ? { ...d.cdFolder, path: d.cdFolder.path && isOwnPath("inquiry", d.cdFolder.path) ? d.cdFolder.path : null, link: safeLink(d.cdFolder.link) } : null,
       consents: toCanonicalConsents(consents),   // intake.consents 와 같은 공용 이름 — 두 표기가 있으면 다음 사람이 잘못 읽는다
       consentAt: new Date().toISOString(),
+      // 「이 값 누가 넣었나」 — 기계가 서류에서 읽은 칸만 남긴다. 코디 화면·브리프가 이걸 보고
+      // 환자가 직접 적은 값과 무게를 가른다. 화면이 보내지 않은 칸(quick 모드)은 자연히 빠진다.
+      _filledFromDocs: pickFilledFromDocs(d.autoFilled, d),
     };
 
     const { data: row, error: insertError } = await supabaseAdmin

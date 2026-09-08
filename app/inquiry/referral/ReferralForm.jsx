@@ -220,7 +220,7 @@ export default function ReferralForm() {
    * 서류에서 읽어낸 값으로 «빈 칸만» 채운다.
    * 🛑 사람이 이미 쓴 칸은 절대 덮어쓰지 않는다. 우리가 채운 칸끼리는 나중 서류가 이긴다.
    */
-  const applyAutoFill = (fields) => {
+  const applyAutoFill = (fields, srcName) => {
     // ⚠️ setValues 의 updater 안에서 계산한 결과를 «밖에서» 읽으면 안 된다 — updater 는
     //    나중에 돌아서 바깥 변수가 비어 있다(2026-08-14 실측: 칸은 채워지는데 표시가 안 붙었다).
     //    그래서 «지금 값»을 ref 로 보고 여기서 동기적으로 판단한다.
@@ -230,7 +230,9 @@ export default function ReferralForm() {
     for (const [k, v] of Object.entries(fields)) {
       const now = cur[k];
       const empty = now === undefined || now === null || String(now).trim() === "";
-      if (empty || autoFilledRef.current[k]) { patch[k] = v; marked[k] = true; }
+      // 표시는 «어느 서류에서 읽었는지»까지 남긴다 — 코디가 나중에 「이 값 어디서 나왔냐」를
+      // 되짚어야 한다(2026-09-08 #316: 검사결과지의 코드가 환자가 적은 값처럼 보였다).
+      if (empty || autoFilledRef.current[k]) { patch[k] = v; marked[k] = srcName || true; }
     }
     if (!Object.keys(patch).length) return;
     // 표를 즉시 갱신한다 — 서류 여러 개를 «동시에» 읽으므로, 다음 서류가 이 결과를 보고 판단해야 한다.
@@ -319,6 +321,10 @@ export default function ReferralForm() {
             : dropHiddenValues(values)),
           mode,
           consents,
+          // 🛑 «어느 칸을 기계가 서류에서 읽어 채웠나». 임시저장(localStorage)에는 넣으면서 정작
+          //    서버로는 안 보내고 있었다 — 그래서 접수되는 순간 표시가 사라지고, 코디 화면도
+          //    브리프 AI 도 그 값을 «환자가 손으로 적은 값»으로 읽었다(2026-09-08 #316).
+          autoFilled,
           sourceLocale: lang,
           landingPath: typeof location !== "undefined" ? location.pathname : null,
           referrerHost: typeof document !== "undefined" && document.referrer
@@ -1252,7 +1258,7 @@ function Envelope({ f, lang, docs, onChange, onAutoFill, cd }) {
         totalPages: r.totalPages ?? null,
       });
       // 읽어낸 값으로 «빈 칸만» 채운다. 사용자가 이미 쓴 건 절대 안 건드린다.
-      if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields);
+      if (r.fields && Object.keys(r.fields).length) onAutoFill?.(r.fields, picked[i]?.name || null);
       setBusy((n) => n - 1);
     }
   }

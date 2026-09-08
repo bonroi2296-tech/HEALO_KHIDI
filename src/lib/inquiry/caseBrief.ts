@@ -149,8 +149,10 @@ export function buildContext(inq: any, lang: BriefLang): string {
   lines.push(`today: ${new Date().toISOString().slice(0, 10)}`);
   if (inq?.nationality) lines.push(`nationality: ${inq.nationality}`);
   if (inq?.cancer_type) lines.push(`cancer_type: ${inq.cancer_type}`);
-  // 코디가 확정한 진단코드(inquiries.icd_code). 아래 referral.icdCode 는 «환자가 적은 값»이라
+  // 코디가 확정한 진단코드(inquiries.icd_code). 아래 referral.icdCode 는 «접수 때 들어온 값»이라
   // 둘 다 있으면 나란히 들어간다 — 모델이 어느 쪽이 확정인지 알아야 해서 이름을 갈라 둔다.
+  // ⚠️ referral.* 을 «환자가 적은 값»으로 단정하지 마라. 서류 판독기가 채운 칸이 섞여 있고,
+  //    그건 _filledFromDocs 에만 남는다(아래에서 칸마다 출처를 붙인다. 2026-09-08 #316).
   if (inq?.icd_code) lines.push(`icd_code (confirmed by coordinator): ${inq.icd_code}`);
   if (clean(intake.stage)) lines.push(`stage: ${intake.stage}`);
   if (clean(intake.treatment_state)) lines.push(`treatment_state: ${clean(intake.treatment_state)}`);
@@ -166,10 +168,15 @@ export function buildContext(inq: any, lang: BriefLang): string {
   if (ref) {
     const REF_KEYS = ["diagnosisNameRaw", "icdCode", "stage", "diagnosisDate", "onsetDate", "chiefComplaint", "testsAndTreatments",
       "localDoctorOpinion", "pastHistory", "pastHistoryNote", "medications", "familyHistory", "referralWants", "referralPurpose", "flightFitness"];
+    // 기계가 서류에서 읽어 채운 칸에는 출처를 붙인다 — 환자가 직접 적은 값과 «무게»가 다르다.
+    // 2026-09-08 #316: 검사결과지 머리의 코드가 진단코드 칸에 들어갔는데, 모델에게는 그것이
+    // 환자가 적은 진단으로 보였다. 출처를 알면 모델이 서류 본문과 대조해 짚어낼 수 있다.
+    const fromDocs = ref._filledFromDocs && typeof ref._filledFromDocs === "object" ? ref._filledFromDocs : {};
     for (const k of REF_KEYS) {
       const v = clean(ref[k]);
       if (v == null || v === "" || (Array.isArray(v) && !v.length)) continue;
-      lines.push(`referral.${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
+      const src = typeof fromDocs[k] === "string" ? ` (auto-extracted by OCR from: ${fromDocs[k]} — not written by the patient; verify against the document)` : "";
+      lines.push(`referral.${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}${src}`);
     }
     if (ref.mode === "quick") lines.push("referral.mode: quick (patient chose consultation-only; clinical fields intentionally left empty)");
   }
