@@ -163,6 +163,10 @@ export async function POST(request: NextRequest) {
     thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
       ? thread.metadata
       : {};
+  // 점검·E2E 대화인가 — 판사를 건너뛰는 조건이자, 그 «흔적»을 답변 metadata 에 남기는 조건이다.
+  // 흔적을 안 남기면 감시(kpi-snapshot 의 ai_judge_zero)가 답변은 세고 채점은 못 세서
+  // 「판사가 멈췄다」는 헛경보를 낸다 — 같은 함정을 bypassed 가 이미 한 번 겪었다(#112).
+  const judgeSkipped = isSyntheticThread(threadMeta);
   if (escalate) {
     // 스레드당 1회만 종을 울린다(자료 여러 번 업로드 시 도배 방지).
     const alreadyNotified = !!threadMeta.hand_off_notified;
@@ -264,7 +268,7 @@ export async function POST(request: NextRequest) {
               // 이번 턴 첨부 or 과거 첨부 스레드 → "파일 못 읽음" 하드룰 (첨부 내용 환각 방지)
               hasAttachments: hasAttachments || !!threadMeta.has_attachments,
               // 점검·E2E 대화는 판사에서 뺀다(코디 긴급알림 오발·품질 화면 오염 방지). 판정은 syntheticThread.ts.
-              isSyntheticTest: isSyntheticThread(threadMeta),
+              isSyntheticTest: judgeSkipped,
             }
           );
           aiReply = r.reply;
@@ -327,6 +331,9 @@ export async function POST(request: NextRequest) {
               // 모델을 «안 거치고» 코드가 가로챈 턴이면 그 이름을 남긴다(잡담·화제정정·마스터키).
               // 안 남기면 가로채기 오작동이 정상 답변과 구별이 안 된다 — 2026-08-28 사고가 그것이었다.
               ...(modelBypassKind(analytics?.ragScoring) ? { bypassed: modelBypassKind(analytics?.ragScoring) } : {}),
+              // 판사를 «일부러» 건너뛴 턴이면 그 사실을 남긴다(점검·E2E). 감시가 이 답변을 모수에서 빼야
+              // 「답변은 있는데 채점 0」이 헛경보가 되지 않는다 — kpi-snapshot 이 이 칸으로 거른다.
+              ...(judgeSkipped ? { judge_skipped: "synthetic" } : {}),
             },
           })
           .select("id")
