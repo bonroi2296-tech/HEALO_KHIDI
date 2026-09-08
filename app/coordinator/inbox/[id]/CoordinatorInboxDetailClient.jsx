@@ -666,8 +666,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
    */
   const [docScan, setDocScan] = useState(null);   // null | {loading} | {data} | {error}
   async function scanAllDocs() {
+    // 🛑 음성을 빼지 마라 (2026-09-08 PO: 「음성은 아직도 못 읽는데?」). 판독 자체는 잘 된다 —
+    //    실측으로 왓츠앱 음성 하나에서 진단명·주호소·검사이력·복용약까지 나왔다. 문제는 그 값이
+    //    «의뢰서로 갈 통로»가 없었다는 것이다: 음성은 이 목록에서 빠져 있어 「빈 칸을 서류에서
+    //    찾기」에 안 잡히고, 「음성 정리」 카드는 화면에만 뜨고 저장 단추가 없다.
+    //    코디가 원한 건 «단추 하나로 다 읽는 것»이다(2026-09-04 PO). 음성도 그 하나에 들어간다.
     const list = (inquiry?.attachments || []).filter(
-      (a) => a?.path && !isVoiceFile(a.name || a.path) && !isImagingBundle(a),
+      (a) => a?.path && !isImagingBundle(a),
     );
     if (!list.length) { setDocScan({ error: "no_docs" }); return; }
 
@@ -678,7 +683,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const res = await fetch("/api/inquiry/classify-doc", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ path: a.path, type: a.type || "application/pdf" }),
+          // ⚠️ 저장된 type 은 비어 있을 수 있다(#291 의 .ogg 가 그랬다). 파일 «이름»에서 먼저
+          //    본다 — 음성을 application/pdf 로 보내면 창구가 «지원 안 함»으로 되돌린다.
+          body: JSON.stringify({ path: a.path, type: voiceMime(a.name || a.path) || a.type || "application/pdf" }),
         });
         const j = await res.json();
         if (j?.ok) results.push({ ...j, _name: a.name || a.path });
@@ -733,25 +740,42 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
    * 🛑 «비어 있는 칸인가»는 창구가 다시 판정한다 — 화면이 낡은 값을 들고 있을 수 있다.
    */
   const [fillSaving, setFillSaving] = useState(false);
+
+  /**
+   * 읽어낸 값을 의뢰서에 넣는다. 어디서 읽었든(서류 묶음·한 건) 통로는 하나다.
+   *
+   * 🛑 replaceAccumulated 는 «서류 전부를 한 번에 읽었을 때»만 켠다.
+   *    검사·치료 같은 «모으는 칸»은 통째 교체라, 한 건만 저장하면서 켜면 그 한 건이
+   *    나머지 서류에서 모은 내용을 통째로 지운다. 2026-09-08 실측 사고: 음성 카드에서
+   *    한 건을 저장했더니 #291 의 검사·치료 원문(러시아어 치료 이력)이 음성 요약 116자로
+   *    바뀌었다. 한 건 저장은 «빈 칸만» 채운다.
+   */
+  async function fillReferralWith(fields, from, { replaceAccumulated = false } = {}) {
+    if (!fields || !Object.keys(fields).length) return false;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+      body: JSON.stringify({
+        fields,
+        from,
+        // 서류를 새로 받으면 검사 목록은 처음부터 다시 만들어야 한다 — 덧붙이기가 아니라
+        // 통째 교체라 같은 서류를 두 번 읽어도 내용이 겹치지 않는다.
+        overwrite: replaceAccumulated ? [...ACCUMULATE_FIELDS].filter((k) => fields[k]) : [],
+      }),
+    });
+    const j = await res.json();
+    if (!j?.ok) throw new Error(j?.error || "failed");
+    return true;
+  }
+
   async function saveScanned() {
     if (!docScan?.data) return;
     setFillSaving(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/referral-fill`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        // 모으는 칸은 이미 값이 있어도 갈아 끼운다 — 서류를 새로 받으면 검사 목록을 처음부터
-        // 다시 만들어야 한다. 덧붙이기가 아니라 통째 교체라 두 번 읽어도 겹치지 않는다.
-        body: JSON.stringify({
-          fields: docScan.data.fields,
-          from: docScan.data.from,
-          overwrite: [...ACCUMULATE_FIELDS].filter((k) => docScan.data.fields[k]),
-        }),
-      });
-      const j = await res.json();
-      if (!j?.ok) throw new Error(j?.error || "failed");
+      // 서류를 «전부» 읽어 모은 결과다 — 모으는 칸은 통째로 갈아 끼운다.
+      await fillReferralWith(docScan.data.fields, docScan.data.from, { replaceAccumulated: true });
       setDocScan(null);        // 저장했으면 «찾은 값» 칸은 접는다 — 이제 의뢰서 본문에 있다
       await load();
     } catch (e) {
@@ -759,6 +783,29 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       window.alert("저장하지 못했습니다. 잠시 뒤 다시 눌러주세요.");
     }
     setFillSaving(false);
+  }
+
+  /**
+   * 「음성 정리」·「읽기」 카드에서 «그 한 건»의 값만 바로 의뢰서에 넣는다 (2026-09-08 PO).
+   * 여태 이 카드는 화면에만 뜨고 저장 단추가 없어, 코디가 읽어도 아무 데도 안 남았다.
+   * 🛑 창구가 «빈 칸인가»를 다시 판정한다 — 사람이 적은 칸은 여기서도 안 덮인다.
+   */
+  const [voiceSavingPath, setVoiceSavingPath] = useState(null);
+  async function saveOneDocFields(path, name) {
+    const fields = voiceNotes[path]?.data?.fields;
+    if (!fields || !Object.keys(fields).length) return;
+    setVoiceSavingPath(path);
+    try {
+      const from = Object.fromEntries(Object.keys(fields).map((k) => [k, name || path]));
+      await fillReferralWith(fields, from);
+      await load();
+      // 저장된 값은 이제 의뢰서 본문에 있다 — 카드는 접어 «두 군데에 같은 값»을 안 만든다.
+      setVoiceNotes((p) => ({ ...p, [path]: { ...p[path], saved: true } }));
+    } catch (e) {
+      console.error("[referral-fill] one-doc save error:", e);
+      window.alert("저장하지 못했습니다. 잠시 뒤 다시 눌러주세요.");
+    }
+    setVoiceSavingPath(null);
   }
 
   // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
@@ -1766,7 +1813,21 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                             {/* 서류 종류(v.kind)는 여기 안 적는다 — 이 화면은 브라우저에서 그려지는데
                                 kindLabel 이 쓰는 사전이 클라이언트에 안 실려 한국어 화면에도 영어로 떨어진다
                                 (2026-09-04 실측: 「Other document」). 종류는 위 첨부 줄에 이미 붙어 있다. */}
-                            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">서류에서 읽은 값</p>
+                            <div className="mb-1.5 flex items-center gap-2">
+                              <p className="text-[11px] font-semibold text-gray-600">서류에서 읽은 값</p>
+                              {/* 🛑 읽기만 하고 저장할 자리가 없으면 코디 눈에는 «못 읽는» 것과 같다
+                                  (2026-09-08 PO). 빈 칸만 채우는 판정은 창구가 다시 한다. */}
+                              <button
+                                type="button"
+                                onClick={() => saveOneDocFields(path, name)}
+                                disabled={voiceSavingPath === path || voiceNotes[path]?.saved}
+                                className="ml-auto rounded-md bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
+                              >
+                                {voiceNotes[path]?.saved ? "의뢰서에 넣었습니다"
+                                  : voiceSavingPath === path ? "넣는 중…"
+                                  : "의뢰서 빈 칸에 넣기"}
+                              </button>
+                            </div>
                             <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
                               {Object.entries(v.fields).map(([k, val]) => (
                                 <div key={k} className="flex gap-2 text-xs">
