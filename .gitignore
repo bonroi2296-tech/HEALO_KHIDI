@@ -213,3 +213,10 @@ _병원자료/
 mobile-sweep/
 *.orig-2026*
 android/app/src/debug/
+
+# 🛑 환자 케이스 목록(이관 도구가 읽는 파일) — 절대 커밋 금지.
+#    2026-09-08: 이 목록을 스크립트에 박았다가 공개 저장소에 환자 식별정보가 올라갔다.
+#    ⚠️ 처음엔 `*.cases.json` 만 적었는데 실측(git check-ignore)해 보니 제일 자연스러운 이름인
+#       `cases.json`·`my-cases.json` 이 «안 걸렸다». 도구 사용법이 `--cases <파일>` 이라 이름은 뭐든 온다.
+*cases*.json
+*patients*.json

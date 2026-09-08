@@ -246,7 +246,7 @@ export default function ReferralSection({ referral, lang, scan, onScan, onSaveSc
         </section>
       )}
 
-      {/* 서류 — 종류(AI 추정 또는 사람이 고친 값)·크기·200MB 초과 시 링크. 열람은 첨부 카드에서. */}
+      {/* 서류 — 종류(AI 추정 또는 사람이 고친 값)·크기·2GB 초과 시 링크. 열람은 첨부 카드에서. */}
       {(env.length > 0 || cd) && (
         <div className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{ui("docs", lang)}</p>

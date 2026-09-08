@@ -35,7 +35,7 @@ import { renderInquiryReceivedEmail } from "@/lib/email/templates/inquiryReceive
 import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
-import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, Schema } from "@/lib/inquiry/referralSubmit";
+import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, normalizeDocDate, Schema } from "@/lib/inquiry/referralSubmit";
 
 // 🛑 스키마는 여기 두지 마라 — App Router 라우트 파일은 정해진 이름(POST·runtime …)만
 //    내보낼 수 있어서, 시험이 부르라고 export 를 붙이면 «tsc 는 통과하는데 빌드가 깨진다»
@@ -77,8 +77,12 @@ export async function POST(request: NextRequest) {
     // 갈라야 하는 이유: 서류를 너무 많이 올린 것과 칸 형식이 틀린 것은 사람이 할 일이 정반대다.
     // 뭉쳐 두었더니 화면이 「이메일 주소를 확인해 주세요」로 옮겼고, 실제로는 첨부 개수가
     // 넘친 것이라 PO 가 멀쩡한 이메일을 계속 고쳤다(2026-09-08).
+    // 🛑 «서류가 너무 많다»는 envelope «배열 자체»가 넘쳤을 때뿐이다.
+    //    배열 «안»의 한 칸이 길어서 난 too_big 까지 여기로 넣으면, 사람에게 「서류를 줄이세요」라고
+    //    말하면서 서류를 아무리 지워도 안 풀리는 상태가 된다(2026-09-08 독립 리뷰).
+    //    path 가 ["envelope"] 하나뿐일 때만 «개수»다. ["envelope", 3, "diagnosisText"] 는 «길이»다.
     const tooManyDocs = parsed.error.issues.some(
-      (i) => i.code === "too_big" && i.path[0] === "envelope"
+      (i) => i.code === "too_big" && i.path[0] === "envelope" && i.path.length === 1
     );
     // 로그에는 «어느 칸이 어떤 종류로 틀렸나»만 (값 없이). 다음에 같은 제보가 오면 이 한 줄로 끝난다.
     const where = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".") || "(root)"}:${i.code}`).join(", ");
@@ -137,7 +141,16 @@ export async function POST(request: NextRequest) {
         path: f.path && isOwnPath("inquiry", f.path) ? f.path : null, name: f.name ?? null, size: f.size ?? null,
         kind: f.kind ?? "unknown", confidence: f.confidence ?? null,
         correctedByUser: f.corrected === true,
-        link: safeLink(f.link),   // 200MB 를 넘어 못 올린 경우 사람이 남긴 대용량 저장소 주소
+        link: safeLink(f.link),   // 상한을 넘어 못 올린 경우 사람이 남긴 대용량 저장소 주소
+        // 🛑 이 매퍼는 «새 객체»를 짓는다 — 스키마에 칸을 늘려도 여기 안 적으면 그대로 사라진다.
+        //    2026-09-08 에 실제로 그랬다: docDate 를 스키마에 넣어 놓고 여기서 빠뜨려,
+        //    「검사일 순 정렬」이라고 이름 붙인 기능이 실은 파일명 알파벳 순으로 돌았다.
+        //    칸을 늘릴 땐 ①스키마 ②이 매퍼 ③아래 attachments — 셋을 같이 봐라.
+        docDate: normalizeDocDate(f.docDate),
+        // 🛑 진단명은 «민감정보»다 — 세 줄 위 diagnosisNameRaw 와 같이 암호화한다.
+        //    처음엔 맨몸으로 넣었는데(2026-09-08 독립 리뷰), 판독이 뽑은 병리 진단문이
+        //    그대로 JSONB 에 남는 것이라 형제 칸만 암호화하는 것은 아무 의미가 없다.
+        diagnosisText: enc(f.diagnosisText || null),
       })),
       cdFolder: d.cdFolder ? { ...d.cdFolder, path: d.cdFolder.path && isOwnPath("inquiry", d.cdFolder.path) ? d.cdFolder.path : null, link: safeLink(d.cdFolder.link) } : null,
       consents: toCanonicalConsents(consents),   // intake.consents 와 같은 공용 이름 — 두 표기가 있으면 다음 사람이 잘못 읽는다
@@ -166,7 +179,10 @@ export async function POST(request: NextRequest) {
         // 🛑 경로 없는 항목(올리다 만 것·너무 커서 못 올린 것)은 첨부가 아니다 — 넣으면 코디 화면에
         //    «있는데 못 여는 서류»가 생긴다(독립 리뷰). 링크로 대신한 건 intake_data.envelope 에 남는다.
         attachments: [
-          ...intakeData.envelope.filter((f) => !!f.path).map((f) => ({ path: f.path, name: f.name, kind: f.kind })),
+          // docDate 는 코디 화면이 «검사일 순»으로 세우는 기준이다(없으면 이름순으로 주저앉는다).
+          ...intakeData.envelope
+            .filter((f) => !!f.path)
+            .map((f) => ({ path: f.path, name: f.name, kind: f.kind, docDate: f.docDate ?? null })),
           // CD 묶음(zip)도 첨부다 — 여기 넣어야 코디 첨부 카드에서 열린다
           ...(intakeData.cdFolder?.path ? [{ path: intakeData.cdFolder.path, name: d.cdFolder?.name || "CD.zip", kind: "imaging_file" }] : []),
         ],
