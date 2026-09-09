@@ -9,7 +9,7 @@
  * 🛑 첫 줄(빈 목록 → false)을 지우면 그 사고가 그대로 돌아온다.
  */
 import { describe, it, expect } from "vitest";
-import { isSocialOnly } from "./route";
+import { isSocialOnly } from "@/lib/auth/isSocialOnly";
 
 describe("isSocialOnly", () => {
   it("판정 불가(빈 목록)면 소셜 전용이 아니다 — 일반 재설정 흐름으로 보낸다", () => {
