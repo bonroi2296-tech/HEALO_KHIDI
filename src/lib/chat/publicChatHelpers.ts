@@ -107,7 +107,12 @@ export function threadHasContactPoint(thread: any): boolean {
   return Boolean(thread?.guest_name || thread?.guest_email || thread?.guest_phone);
 }
 
-async function promoteThreadToInquiry(
+/**
+ * 🛑 export 인 이유: «알림을 실제로 부르는가»를 시험으로 지켜야 한다.
+ *    2026-09-09 까지 이 함수는 문의를 만들고도 sendAdminNotification 을 안 불렀다 —
+ *    폼 경로에만 있던 호출이라 메신저로 들어온 실환자는 «새 문의» 알림이 한 통도 안 갔다.
+ */
+export async function promoteThreadToInquiry(
   thread: any,
   intake: any,
   rawEnc: string | null,
@@ -208,6 +213,23 @@ async function promoteThreadToInquiry(
 
     // 접수되면 «들어온 그 채널로» 진행상황 주소를 돌려준다(PO 결정 2026-08-03).
     // 메신저로 온 사람은 이메일이 없을 수 있어 이 채널이 유일한 통로다. 실패해도 접수는 성공.
+    // 🔴 코디·어드민 알림 — 폼 경로(app/api/inquiries/*)와 «같은» 창구를 탄다.
+    //    여기가 비어 있어서 2026-09-09 텔레그램으로 들어온 실환자(#328, 반복 대량 비출혈)에게
+    //    「새 문의」 알림이 한 통도 안 갔다. 웹 폼으로 다시 넣은 세 건만 알림이 울렸다.
+    //    sendAdminNotification 은 내부가 fail-safe 이고 is_test 도 스스로 거른다.
+    try {
+      const { sendAdminNotification } = await import("@/lib/notifications/adminNotifier");
+      await sendAdminNotification({
+        inquiryId: data.id,
+        nationality: thread.guest_country || undefined,
+        treatmentType: intake?.body_part || undefined,
+        contactMethod: isTelegram ? "telegram" : isWhatsApp ? "whatsapp" : "chat",
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      console.warn("[promoteThreadToInquiry] 알림 실패(무시):", e?.message);
+    }
+
     await sendTrackingLinkToMessenger(thread, data.public_token, lang);
   }
 }
