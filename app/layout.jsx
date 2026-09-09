@@ -203,9 +203,20 @@ export default async function RootLayout({ children }) {
   return (
     // suppressHydrationWarning: 브라우저 확장(예: 한글 HWP 뷰어 rhwp 가 data-hwp-extension 주입)이
     // hydration 전에 <html> 속성을 건드려도 경고가 안 뜨게. 확장 종류 무관·안전(루트 태그 한정).
-    <html lang={HTML_LANG[lang] || "en"} suppressHydrationWarning>
+    // translate="no": 브라우저 자동번역(크롬 「이 페이지 번역」)이 텍스트 노드를 통째로 갈아치우면
+    //   React 가 자기 노드를 못 찾아 NotFoundError(insertBefore/removeChild)로 화면이 그 자리에서
+    //   멈춘다. #133 이 「유력 용의자」로 남겨두고 판별 태그를 심어뒀던 그 건이 2026-09-09 실환자
+    //   에게서 판정됐다: 우즈베키스탄 환자가 ru 화면을 uz 로 자동번역해 보다가 의뢰서 제출 순간
+    //   화면이 죽어 같은 건을 3번 다시 냈고(문의 #329·#330·#331), 이어서 진행상황 링크(/claim)도
+    //   43번 터졌다. 증거: 센트리 태그 page_translated=yes·page_lang=uz + 스택 마지막 프레임이
+    //   번역기 주입 코드(app:///executors/101.js HTMLButtonElement.insertBefore).
+    //   우리는 6개 언어를 직접 제공하므로(러시아어 포함) 자동번역을 끄는 손해보다 화면이 죽는
+    //   손해가 크다. 🛑 지우려면 먼저 그 결론이 뒤집혔는지 확인해라.
+    <html lang={HTML_LANG[lang] || "en"} translate="no" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        {/* 위 <html translate="no"> 와 한 짝. 구글 번역은 이 메타도 함께 본다. */}
+        <meta name="google" content="notranslate" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
         {/* 안전영역(노치·상태표시줄·시스템 버튼줄) 여백 스위치가 보는 표식 3개.
