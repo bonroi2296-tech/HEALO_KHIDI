@@ -13,27 +13,40 @@ import { siteUrl } from "@/lib/siteUrl";
 //   화면 응답은 동일하게 유지하므로 enumeration(계정 떠보기) 노출 없음 — 본인 메일함에서만 확인.
 
 // 소셜(구글 등)로만 가입 = email 로그인수단(identity)이 없음 = 비밀번호 없음.
-function isSocialOnly(identities: Array<{ provider?: string }> | null | undefined) {
-  return !(identities || []).some((i) => i?.provider === "email");
+//
+// 🔴 2026-09-09 실측 사고: 예전에는 목록이 «비어 있어도» 소셜 전용으로 읽었다.
+//   `admin.auth.admin.listUsers()` 는 **identities 를 빈 배열로 준다**(getUserById 만 채워 준다).
+//   그래서 이 함수가 **모든 사용자에게 true** 를 돌려줬고, 비밀번호 찾기를 누른 사람은
+//   누구나 「당신은 비밀번호가 없습니다 — 구글로 로그인하세요」 안내를 받았다.
+//   = **비밀번호 재설정이 아무에게도 안 됐다.** (실측: bonroi2296@gmail.com 은
+//     identities 가 email·apple·google 셋인데 listUsers 로는 0개로 보였다.)
+//   → 목록이 비면 «판정 불가»다. 소셜 전용이라고 단정하지 말고 false 를 돌려
+//     일반 재설정 흐름으로 보낸다(그게 안전한 쪽이다 — 아래 호출부 주석의 원래 의도).
+export function isSocialOnly(identities: Array<{ provider?: string }> | null | undefined) {
+  const list = identities || [];
+  if (list.length === 0) return false; // 판정 불가 → 일반 재설정 흐름
+  return !list.some((i) => i?.provider === "email");
 }
 
-// ⚠️ 이 안내가 가리키는 「Google로 로그인」 버튼은 **스토어 앱 안에서는 잠겨 있다**(2026-08-29).
-//    앱은 구글을 앱 밖 브라우저로 내보내는데 PKCE 검증값이 안 따라가서 교환이 깨지기 때문이다
-//    (이유·증거 = src/components/auth/GoogleInAppNotice.jsx). 메일은 앱/웹을 구분할 수 없으므로
-//    «폰 브라우저에서 열어라»를 같이 적는다 — 안 그러면 앱 사용자는 잠긴 버튼 앞에서 끝난다.
-//    네이티브 구글 로그인이 붙으면 이 경고 줄을 지워라.
+// ⚠️ 이 안내가 가리키는 「Google로 로그인」 버튼은 **판에 따라 잠겨 있을 수 있다**.
+//    화면(웹·앱)은 `data-healo-google-native` 로 «이 판에 네이티브 구글 부품이 있나»를 보고
+//    스스로 잠금을 풀지만(`src/index.css` · `useGoogleBlockedInApp`), **메일은 받는 사람의
+//    기기·앱 판을 알 수 없다.** 그래서 단정하지 말고 «회색이면»이라는 조건으로 적는다.
+//    2026-09-09 정정: 예전 문구는 「앱에서는 아직 안 됩니다」라고 단정했는데,
+//    네이티브 구글은 2026-08-29 에 붙었고 안드로이드 판 14 에서 실제로 된다(PO 확인).
+//    그 문구는 되는 사람에게 «안 된다»고 말해 브라우저로 내보내고 있었다.
 function socialHintHtml(loginUrl: string) {
   return `<div style="font-family:system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:0 auto;color:#1f2937;line-height:1.6">
   <h2 style="font-size:18px;margin:0 0 12px">구글 계정으로 로그인해 주세요</h2>
   <p style="margin:0 0 8px">비밀번호 재설정을 요청하셨지만, 회원님은 <b>구글 계정으로 가입</b>하셔서 별도의 비밀번호가 없습니다.</p>
   <p style="margin:0 0 8px">로그인 화면에서 <b>'Google로 로그인'</b> 버튼을 눌러 그대로 들어오시면 됩니다.</p>
-  <p style="margin:0 0 16px;color:#b45309;font-size:14px">⚠️ 힐위드 <b>앱</b>에서는 Google 로그인이 아직 안 됩니다 — 아래 버튼을 <b>폰 브라우저(크롬·사파리)</b>에서 열어 주세요.</p>
+  <p style="margin:0 0 16px;color:#b45309;font-size:14px">앱에서 <b>'Google로 계속하기'</b>가 회색이면 그 판에는 아직 구글 로그인이 없습니다 — 앱을 최신으로 업데이트하시거나, 아래 버튼을 <b>폰 브라우저(크롬·사파리)</b>에서 열어 주세요.</p>
   <p style="margin:0 0 24px"><a href="${loginUrl}" style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">로그인하러 가기</a></p>
   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
   <h3 style="font-size:15px;margin:0 0 8px;color:#374151">Sign in with Google</h3>
   <p style="margin:0 0 8px;color:#6b7280;font-size:14px">You requested a password reset, but your account was created with <b>Google sign-in</b>, so it has no password.</p>
   <p style="margin:0 0 8px;color:#6b7280;font-size:14px">Just click <b>"Sign in with Google"</b> on the login page: <a href="${loginUrl}" style="color:#0d9488">${loginUrl}</a></p>
-  <p style="margin:0;color:#b45309;font-size:14px">⚠️ Google sign-in does not work inside the healwith <b>app</b> yet — please open the link in your phone's browser (Chrome/Safari).</p>
+  <p style="margin:0;color:#b45309;font-size:14px">If <b>"Continue with Google"</b> looks greyed out in the app, that build doesn't have Google sign-in yet — update the app, or open the link in your phone's browser (Chrome/Safari).</p>
 </div>`;
 }
 
@@ -43,13 +56,13 @@ function socialHintText(loginUrl: string) {
     "",
     "비밀번호 재설정을 요청하셨지만, 회원님은 구글 계정으로 가입하셔서 별도의 비밀번호가 없습니다.",
     "로그인 화면에서 'Google로 로그인' 버튼을 눌러 들어오시면 됩니다.",
-    "⚠️ 힐위드 앱에서는 Google 로그인이 아직 안 됩니다 — 아래 주소를 폰 브라우저(크롬·사파리)에서 열어 주세요.",
+    "앱에서 'Google로 계속하기'가 회색이면 그 판에는 아직 구글 로그인이 없습니다 — 앱을 최신으로 업데이트하시거나, 아래 주소를 폰 브라우저(크롬·사파리)에서 열어 주세요.",
     loginUrl,
     "",
     "— Sign in with Google —",
     "Your account was created with Google sign-in, so it has no password.",
     `Click "Sign in with Google" on the login page: ${loginUrl}`,
-    "Note: Google sign-in does not work inside the healwith app yet — open the link in your phone's browser.",
+    "Note: if \"Continue with Google\" looks greyed out in the app, that build doesn't have Google sign-in yet — update the app, or open the link in your phone's browser.",
   ].join("\n");
 }
 
@@ -101,7 +114,15 @@ export async function POST(request: Request) {
       const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
       // listUsers() user 항목이 never로 추론되는 Supabase 타입 이슈 회피(set-admin.ts와 동일)
       const u = (data?.users || []).find((x: any) => (x.email || "").toLowerCase() === email);
-      if (u && isSocialOnly(u.identities)) socialOnly = true;
+      // 🔑 listUsers 는 «누가 있는지»만 준다 — identities 는 늘 빈 배열이다(2026-09-09 실측).
+      //    가입수단을 보려면 반드시 getUserById 로 한 번 더 받아야 한다.
+      //    실측: 같은 사용자가 listUsers 로는 identities 0개, getUserById 로는
+      //          email·apple·google 3개. 이걸 안 하면 모두가 「소셜 전용」이 된다.
+      if (u?.id) {
+        const { data: one } = await admin.auth.admin.getUserById(u.id);
+        const identities = (one?.user as any)?.identities;
+        if (isSocialOnly(identities)) socialOnly = true;
+      }
     } catch {
       /* 판별 실패 → 아래 일반 재설정 흐름 */
     }
