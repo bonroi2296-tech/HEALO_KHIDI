@@ -3014,45 +3014,49 @@ const TEAL600_BASELINE = {
   }
 }
 
-// ── §38) 검색엔진에 나가는 «기준 주소»의 폴백으로 localhost 를 쓰지 마라 ──────────
-// 왜 (실측): 2026-09-09, 실서비스 병원 상세 8곳의 JSON-LD 가 구글에
-//   `"url":"http://localhost:3000/en/hospitals/..."` · `"image":["http://localhost:3000/..."]`
-//   를 광고하고 있었다. 원인은 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"`
-//   인데 **프로덕션에 그 환경변수가 없어서** 폴백이 그대로 나간 것이다.
-//   같은 사고를 이미 겪고 `src/lib/siteUrl.ts` 를 만들어 뒀는데(주석에 경위가 적혀 있다),
-//   병원·암종 상세 두 파일이 그 헬퍼를 안 쓰고 자기 폴백을 들고 있었다.
-// 무엇을 보나: NEXT_PUBLIC_SITE_URL 의 폴백이 localhost 인 자리. 정답은 siteUrl().
-//   ⚠️ 시험 파일은 뺀다 — 거기서는 localhost 가 «시험 대상 값»이라 정상이다.
+// ── §37) 브라우저 자동번역 차단이 루트 레이아웃에서 사라지지 않게 (POSTMORTEMS #133 종결) ──
+// 왜 (실측): 2026-09-09 04:30 KST, 우즈베키스탄 실환자가 러시아어 화면을 크롬 자동번역(uz)으로
+//   보다가 의뢰서 «제출 순간» 화면이 죽었다. 번역기가 텍스트 노드를 갈아치우면 React 가 자기
+//   노드를 못 찾아 NotFoundError(insertBefore/removeChild)를 던지고 그 자리에서 멈춘다.
+//   그 환자는 완료 화면을 못 봐 같은 건을 3번 다시 냈고(문의 #329·#330·#331 — 갈수록 내용이
+//   줄어드는 «점점 대충 다시 넣기» 패턴), 이어서 진행상황 링크(/claim)도 43번 터졌다.
+//   증거: 센트리 태그 page_translated=yes · page_lang=uz · ui_lang=ru-RU + 스택 마지막 프레임이
+//   번역기 주입 코드(app:///executors/101.js HTMLButtonElement.insertBefore, 200.js 는 M_ID).
+//   #133 이 「자동번역이 유력 용의자인지 아직 못 가른다」며 판별 태그만 심어둔 그 건이 이걸로
+//   판정됐다 — 우리 코드가 아니라 자동번역이 진범이다.
+// 무엇을 보나: 루트 <html> 의 translate="no" 와 짝이 되는 <meta name="google" content="notranslate">.
+//   ⚠️ 이건 «부채 동결»이 아니라 «있어야 할 것»이라 개수가 아니라 존재로 판정한다.
 {
-  const files = walk("app").concat(walk("src"))
-    .filter((f) => /\.(jsx?|tsx?)$/.test(f))
-    .filter((f) => !/\.(test|spec)\.[jt]sx?$/.test(f))
-    .filter((f) => !/(^|[\\/])archive[\\/]/.test(f));
-  // 🔑 초판의 구멍 둘을 독립 리뷰가 실증해서 고쳤다(2026-09-09):
-  //   ①**주석을 «줄 앞 두 글자»로만 걸렀다** → `/* … */` 블록주석과 JSX `{/* … */}` 안의
-  //     예시 문구를 진짜 코드로 읽어 오탐이 났다. 같은 파일 §27 이 이미 겪고
-  //     `stripCommentsWholeFile()` 을 만들어 뒀는데 그 교훈을 안 썼다 → 이제 그걸 쓴다.
-  //   ②**한 줄 `||` 형태만 잡았다** → 식을 두 줄로 쪼개거나 `??` 로 쓰면 통과했다.
-  //     즉 «고친 그 줄에 줄바꿈 한 번»이면 가드가 사라졌다 → 줄이 아니라 파일 전체에서
-  //     NEXT_PUBLIC_SITE_URL 뒤 160자 안의 localhost 를 본다.
-  // ⚠️ 예외: app/survey/[token]/page.jsx 는 서버가 «자기 자신»을 부르는 자리라
-  //    프리뷰에선 프리뷰 주소를 써야 한다(같은 파일 §25 가 같은 이유로 예외로 둔 그 파일).
-  const SELF_FETCH_ALLOW = "app/survey/[token]/page.jsx";
-  for (const file of files) {
-    const rel = file.replace(/\\/g, "/");
-    if (rel === "src/lib/siteUrl.ts") continue; // 단일 구현 자신은 예외
-    if (rel === SELF_FETCH_ALLOW) continue; // 자기 자신 호출(위 ⚠️)
-    let raw = "";
-    try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-    const code = stripCommentsWholeFile(raw); // 주석은 통째로 버린다
-    const re = /NEXT_PUBLIC_SITE_URL[\s\S]{0,160}?["'`]https?:\/\/localhost/g;
-    let m;
-    while ((m = re.exec(code)) !== null) {
-      const line = code.slice(0, m.index).split("\n").length;
+  const LAYOUT = "app/layout.jsx";
+  let raw = "";
+  try { raw = readFileSync(join(ROOT, LAYOUT), "utf8"); } catch { raw = ""; }
+  if (!raw) {
+    errors.push(`[자동번역차단] ${LAYOUT} 을 못 읽었다 — 파일이 옮겨졌으면 이 검사(§37)의 경로도 같이 고쳐라.`);
+  } else {
+    // <html …> 여는 태그 안에 translate="no" 가 있어야 한다(다른 태그의 것에 속지 않게).
+    // ⚠️ 주석을 먼저 버린다 — 이 파일 주석에 「<html lang>·hreflang용」·「위 <html translate="no">」
+    //    같은 «글자»가 있어서, 순진하게 첫 <html…> 을 잡으면 주석을 진짜 태그로 읽는다.
+    //    🔑 2026-09-09 독립 리뷰 실증: 초판은 «줄 앞 두 글자»로만 걸러 JSX `{/* … */}` 를 못 버렸고,
+    //       하필 이 커밋이 그런 주석을 새로 심었다. 그 주석이 태그 위로 올라가면 가드가 눈이 먼다
+    //       (재현: 주석을 태그 위로 옮기고 translate="no" 를 지우니 검사가 «통과»했다).
+    //       → 같은 파일 §27 이 만들어 둔 stripCommentsWholeFile() 을 쓴다.
+    const htmlOpenTag = stripCommentsWholeFile(raw).match(/<html\b[^>]*>/);
+    if (!htmlOpenTag || !/\btranslate\s*=\s*["']no["']/.test(htmlOpenTag[0])) {
       errors.push(
-        `[기준주소] ${rel}:${line} — NEXT_PUBLIC_SITE_URL 의 폴백을 localhost 로 두었다. ` +
-          `프로덕션에 그 환경변수가 없으면 이 값이 그대로 구글에 나간다(2026-09-09 실측: 병원 상세 8곳). ` +
-          `siteUrl() from "@/lib/siteUrl" 을 써라 — 환경변수가 비면 실주소로 떨어진다.`
+        `[자동번역차단] ${LAYOUT} 의 루트 <html> 에 translate="no" 가 없다. ` +
+          `크롬 「이 페이지 번역」이 켜지면 React 화면이 NotFoundError 로 죽고 환자가 접수를 못 한다 ` +
+          `(2026-09-09 실환자 1명이 같은 건을 4번 접수, POSTMORTEMS #133). 우리는 6개 언어를 직접 제공하므로 ` +
+          `자동번역을 끄는 손해보다 화면이 죽는 손해가 크다 — 지우려면 그 결론부터 뒤집어라.`
+      );
+    }
+    // ⚠️ 속성 «순서»를 강제하지 마라 — 2026-09-09 독립 리뷰 실증: 초판은 name→content 순서만
+    //    인정해서, 순서만 바꾼 `<meta content="notranslate" name="google" />` 를 「없다」고 막았다.
+    //    태그는 멀쩡한데 오류 문구가 엉뚱한 데를 고치게 만든다 → 한 태그 안에 둘 다 있으면 통과.
+    const metaTag = stripCommentsWholeFile(raw).match(/<meta\b[^>]*\bname=["']google["'][^>]*>/);
+    if (!metaTag || !/\bcontent=["']notranslate["']/.test(metaTag[0])) {
+      errors.push(
+        `[자동번역차단] ${LAYOUT} 에 <meta name="google" content="notranslate" /> 가 없다. ` +
+          `<html translate="no"> 와 한 짝이다(구글 번역은 이 메타도 함께 본다). 둘 중 하나만 두지 마라.`
       );
     }
   }
