@@ -33,6 +33,21 @@ import { siteUrl } from "@/lib/siteUrl";
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
 
+/**
+ * 환자가 자기 말로 쓴 «호소»를 몇 글자까지 남기나.
+ *
+ * 🛑 2026-09-09 실사고. 대량 비출혈 환자의 서술이 1,256자였는데 500자에서 잘려
+ *    「When 」 에서 끊긴 채 저장됐다. 잘려 나간 뒷부분에 «비강 패킹·타 병원 이송·지혈»이
+ *    들어 있었다 — 케이스의 무게를 보여주는 대목이 통째로 사라진 것이다.
+ *    이 값은 코디 화면 요약과 판사 프롬프트로도 흘러가므로, 여기서 자르면 아래가 전부 굶는다.
+ *
+ * ⚠️ 상한 자체는 남긴다(무한정 저장은 다른 문제를 만든다). 다만 «실제 증상 서술이
+ *    통째로 들어갈 만큼»으로 잡는다. 위 실사고가 1,256자였고, 여러 턴에 걸쳐 적는 사람도 있다.
+ */
+export const CHIEF_COMPLAINT_MAX = 4000;
+/** 원문 보관용. 위와 같은 이유이며, 여러 턴을 이어 붙이므로 더 넉넉히 둔다. */
+export const RAW_MESSAGE_MAX = 8000;
+
 // 환자가 자료(검사결과지·사진)를 올렸을 때 접수 확인 멘트 (6개 언어).
 // ⚠️ AI는 의료자료를 판독/진단하지 않음(의료법·안전규칙) → "접수+의료진 검토"로만 안내.
 export const ATTACHMENT_ACK: Record<string, string> = {
@@ -292,7 +307,7 @@ export async function createDraftIntake(
     .join(" ");
 
   const { intake } = createEmptyIntake("ai_agent");
-  intake.chief_complaint = patientTexts.slice(0, 500) || null;
+  intake.chief_complaint = patientTexts.slice(0, CHIEF_COMPLAINT_MAX) || null;
   intake.body_part = bodyPartFromText(patientTexts) ?? null;
   intake.timeline = extractTimelineFromQuery(patientTexts) ?? null;
   intake.budget = extractBudgetFromQuery(patientTexts) ?? null;
@@ -307,7 +322,7 @@ export async function createDraftIntake(
   const missing = computeMissingFields(intake);
   const confidence = computeExtractionConfidence(intake, missing);
 
-  const rawEnc = encryptStringNullable(patientTexts.slice(0, 1000));
+  const rawEnc = encryptStringNullable(patientTexts.slice(0, RAW_MESSAGE_MAX));
 
   // 채널 구분 — 메신저 봇 대화는 source_type 을 분리해 유입경로 분석·집계가 가능하게.
   const sourceType =
