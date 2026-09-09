@@ -13,12 +13,17 @@ import { localeAlternates, getRequestLocale, pickLocalized, ogLocaleFields } fro
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 
+import { siteUrl } from "@/lib/siteUrl";
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const isUuid = (value) => UUID_REGEX.test(String(value || ""));
-const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// 🛑 여기서 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"` 를 다시 쓰지 마라.
+//   실서비스에 그 환경변수가 «없어서» 폴백이 그대로 나갔고, 2026-09-09 실측으로 병원 상세
+//   8곳의 JSON-LD 가 구글에 url·image 를 `http://localhost:3000/...` 로 광고하고 있었다.
+//   기준 주소의 단일 구현은 src/lib/siteUrl.ts — 환경변수가 비면 실주소로 떨어진다.
+const getBaseUrl = () => siteUrl();
 
 // 제휴 병원 메인 이미지(/images/hospitals/<slug>/1.jpg)의 절대 URL.
 // 폴더 규칙 기반 — 제휴 병원에만 사용(일반 디렉토리 병원은 DB 이미지 유지).
@@ -175,13 +180,22 @@ export default async function HospitalDetailPage({ params, searchParams }) {
           : undefined,
       url: canonical,
       areaServed: "KR",
-      aggregateRating: hospital.rating
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: hospital.rating,
-            reviewCount: hospital.reviewsCount || undefined,
-          }
-        : undefined,
+      // ⚠️ 리뷰 «수»가 없으면 별점 자체를 내보내지 않는다.
+      //   구글은 AggregateRating 에 ratingCount/reviewCount 중 하나를 요구하고, 없으면
+      //   「리뷰 스니펫 구조화된 데이터 문제」로 거부한다(2026-09-06 Search Console 경고).
+      //   예전 코드는 reviewCount 를 `|| undefined` 로 떨어뜨려 **별점만 남은 조각**을 보냈다.
+      //   🛑 개수를 지어내서 채우지 마라 — 리뷰가 0건인데 별 5개를 광고하는 꼴이 된다.
+      //   (2026-09-09 실측: DB 의 rating·reviews_count 는 9개 병원 전부 null/0 인데
+      //    실서비스 JSON-LD 에는 ratingValue 5·4.5 가 나가고 있었다. 그 값의 출처는
+      //    아직 못 밝혔다 — 이 가드는 출처와 무관하게 «근거 없는 별점»을 막는다.)
+      aggregateRating:
+        hospital.rating && Number(hospital.reviewsCount) > 0
+          ? {
+              "@type": "AggregateRating",
+              ratingValue: hospital.rating,
+              reviewCount: Number(hospital.reviewsCount),
+            }
+          : undefined,
     };
     const breadcrumb = breadcrumbLd(
       [

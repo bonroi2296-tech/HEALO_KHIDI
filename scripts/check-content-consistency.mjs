@@ -3014,6 +3014,83 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── §37) 브라우저 자동번역 차단이 루트 레이아웃에서 사라지지 않게 (POSTMORTEMS #133 종결) ──
+// 왜 (실측): 2026-09-09 04:30 KST, 우즈베키스탄 실환자가 러시아어 화면을 크롬 자동번역(uz)으로
+//   보다가 의뢰서 «제출 순간» 화면이 죽었다. 번역기가 텍스트 노드를 갈아치우면 React 가 자기
+//   노드를 못 찾아 NotFoundError(insertBefore/removeChild)를 던지고 그 자리에서 멈춘다.
+//   그 환자는 완료 화면을 못 봐 같은 건을 3번 다시 냈고(문의 #329·#330·#331 — 갈수록 내용이
+//   줄어드는 «점점 대충 다시 넣기» 패턴), 이어서 진행상황 링크(/claim)도 43번 터졌다.
+//   증거: 센트리 태그 page_translated=yes · page_lang=uz · ui_lang=ru-RU + 스택 마지막 프레임이
+//   번역기 주입 코드(app:///executors/101.js HTMLButtonElement.insertBefore, 200.js 는 M_ID).
+//   #133 이 「자동번역이 유력 용의자인지 아직 못 가른다」며 판별 태그만 심어둔 그 건이 이걸로
+//   판정됐다 — 우리 코드가 아니라 자동번역이 진범이다.
+// 무엇을 보나: 루트 <html> 의 translate="no" 와 짝이 되는 <meta name="google" content="notranslate">.
+//   ⚠️ 이건 «부채 동결»이 아니라 «있어야 할 것»이라 개수가 아니라 존재로 판정한다.
+{
+  const LAYOUT = "app/layout.jsx";
+  let raw = "";
+  try { raw = readFileSync(join(ROOT, LAYOUT), "utf8"); } catch { raw = ""; }
+  if (!raw) {
+    errors.push(`[자동번역차단] ${LAYOUT} 을 못 읽었다 — 파일이 옮겨졌으면 이 검사(§37)의 경로도 같이 고쳐라.`);
+  } else {
+    // <html …> 여는 태그 한 줄 안에 translate="no" 가 있어야 한다(다른 태그의 것에 속지 않게).
+    // ⚠️ 주석 줄을 먼저 버린다 — 이 파일 18행 주석에 「<html lang>·hreflang용」 이라는 «글자»가
+    //    있어서, 순진하게 첫 <html…> 을 잡으면 그 주석을 진짜 태그로 읽고 오탐이 난다
+    //    (이 가드를 처음 켰을 때 실제로 그렇게 터졌다. 검사도 실측해야 한다는 증거다).
+    const htmlOpenTag = raw
+      .split(/\r?\n/)
+      .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+      .join("\n")
+      .match(/<html\b[^>]*>/);
+    if (!htmlOpenTag || !/\btranslate\s*=\s*["']no["']/.test(htmlOpenTag[0])) {
+      errors.push(
+        `[자동번역차단] ${LAYOUT} 의 루트 <html> 에 translate="no" 가 없다. ` +
+          `크롬 「이 페이지 번역」이 켜지면 React 화면이 NotFoundError 로 죽고 환자가 접수를 못 한다 ` +
+          `(2026-09-09 실환자 1명이 같은 건을 4번 접수, POSTMORTEMS #133). 우리는 6개 언어를 직접 제공하므로 ` +
+          `자동번역을 끄는 손해보다 화면이 죽는 손해가 크다 — 지우려면 그 결론부터 뒤집어라.`
+      );
+    }
+    if (!/<meta\s+name=["']google["']\s+content=["']notranslate["']\s*\/?>/.test(raw)) {
+      errors.push(
+        `[자동번역차단] ${LAYOUT} 에 <meta name="google" content="notranslate" /> 가 없다. ` +
+          `<html translate="no"> 와 한 짝이다(구글 번역은 이 메타도 함께 본다). 둘 중 하나만 두지 마라.`
+      );
+    }
+  }
+}
+
+// ── §38) 검색엔진에 나가는 «기준 주소»의 폴백으로 localhost 를 쓰지 마라 ──────────
+// 왜 (실측): 2026-09-09, 실서비스 병원 상세 8곳의 JSON-LD 가 구글에
+//   `"url":"http://localhost:3000/en/hospitals/..."` · `"image":["http://localhost:3000/..."]`
+//   를 광고하고 있었다. 원인은 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"`
+//   인데 **프로덕션에 그 환경변수가 없어서** 폴백이 그대로 나간 것이다.
+//   같은 사고를 이미 겪고 `src/lib/siteUrl.ts` 를 만들어 뒀는데(주석에 경위가 적혀 있다),
+//   병원·암종 상세 두 파일이 그 헬퍼를 안 쓰고 자기 폴백을 들고 있었다.
+// 무엇을 보나: NEXT_PUBLIC_SITE_URL 의 폴백이 localhost 인 자리. 정답은 siteUrl().
+//   ⚠️ 시험 파일은 뺀다 — 거기서는 localhost 가 «시험 대상 값»이라 정상이다.
+{
+  const files = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f))
+    .filter((f) => !/\.(test|spec)\.[jt]sx?$/.test(f))
+    .filter((f) => !/(^|[\\/])archive[\\/]/.test(f));
+  for (const file of files) {
+    const rel = file.replace(/\\/g, "/");
+    if (rel === "src/lib/siteUrl.ts") continue; // 단일 구현 자신은 예외
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    raw.split(/\r?\n/).forEach((l, i) => {
+      if (/^\s*(\/\/|\*)/.test(l)) return; // 주석 줄은 뺀다(이 사고를 설명하는 주석이 있다)
+      if (!/NEXT_PUBLIC_SITE_URL\s*\|\|\s*["'`]https?:\/\/localhost/.test(l)) return;
+      errors.push(
+        `[기준주소] ${rel}:${i + 1} — NEXT_PUBLIC_SITE_URL 의 폴백을 localhost 로 두었다. ` +
+          `프로덕션에 그 환경변수가 없으면 이 값이 그대로 구글에 나간다(2026-09-09 실측: 병원 상세 8곳). ` +
+          `siteUrl() from "@/lib/siteUrl" 을 써라 — 환경변수가 비면 실주소로 떨어진다.` +
+          `\n    ${l.trim().slice(0, 120)}`
+      );
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
