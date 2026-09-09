@@ -13,12 +13,17 @@ import { localeAlternates, getRequestLocale, pickLocalized, ogLocaleFields } fro
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 import { resolveHospitalFaq } from "@/lib/data/hospitalDefaultFaq";
 
+import { siteUrl } from "@/lib/siteUrl";
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const isUuid = (value) => UUID_REGEX.test(String(value || ""));
-const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// 🛑 여기서 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"` 를 다시 쓰지 마라.
+//   실서비스에 그 환경변수가 «없어서» 폴백이 그대로 나갔고, 2026-09-09 실측으로 병원 상세
+//   8곳의 JSON-LD 가 구글에 url·image 를 `http://localhost:3000/...` 로 광고하고 있었다.
+//   기준 주소의 단일 구현은 src/lib/siteUrl.ts — 환경변수가 비면 실주소로 떨어진다.
+const getBaseUrl = () => siteUrl();
 
 // 제휴 병원 메인 이미지(/images/hospitals/<slug>/1.jpg)의 절대 URL.
 // 폴더 규칙 기반 — 제휴 병원에만 사용(일반 디렉토리 병원은 DB 이미지 유지).
@@ -175,13 +180,29 @@ export default async function HospitalDetailPage({ params, searchParams }) {
           : undefined,
       url: canonical,
       areaServed: "KR",
-      aggregateRating: hospital.rating
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: hospital.rating,
-            reviewCount: hospital.reviewsCount || undefined,
-          }
-        : undefined,
+      // ⚠️ 리뷰 «수»가 없으면 별점 자체를 내보내지 않는다.
+      //   구글은 AggregateRating 에 ratingCount/reviewCount 중 하나를 요구하고, 없으면
+      //   「리뷰 스니펫 구조화된 데이터 문제」로 거부한다(2026-09-06 Search Console 경고).
+      //   예전 코드는 reviewCount 를 `|| undefined` 로 떨어뜨려 **별점만 남은 조각**을 보냈다.
+      //
+      // 🔑 짝은 `ratingCount` 다 — `reviewsCount` 가 아니다(2026-09-09 독립 리뷰가 잡음).
+      //   `src/lib/mapper.js` 의 resolveRating() 이 별점과 «그 별점을 만든 개수»를 함께 돌려주고,
+      //   그게 rating·ratingCount 다. 반면 reviewsCount 는 DB `reviews_count` 원본이고
+      //   9개 병원 전부 0 이라, 그걸 조건으로 쓰면 **이 분기가 영원히 안 걸린다.**
+      //   화면(`HospitalDetailLegacyClient`)도 「별점 (ratingCount)」로 그린다 — 같은 짝을 써야
+      //   «보이는 것»과 «구글에 보내는 것»이 어긋나지 않는다.
+      //
+      // 🛑 개수를 지어내서 채우지 마라. 근거는 external_ratings.google_reviews 의 실제 항목이다.
+      //   ⚠️ 다만 resolveRating() 은 그중 «4점 이상 + 본문 있음 + 숨김 아님»만 골라 평균낸다.
+      //      선별된 평균을 구조화 데이터로 내보내는 것이 옳은지는 따로 볼 문제다(KNOWN_ISSUES).
+      aggregateRating:
+        hospital.rating && Number(hospital.ratingCount) > 0
+          ? {
+              "@type": "AggregateRating",
+              ratingValue: hospital.rating,
+              reviewCount: Number(hospital.ratingCount),
+            }
+          : undefined,
     };
     const breadcrumb = breadcrumbLd(
       [
