@@ -3028,21 +3028,33 @@ const TEAL600_BASELINE = {
     .filter((f) => /\.(jsx?|tsx?)$/.test(f))
     .filter((f) => !/\.(test|spec)\.[jt]sx?$/.test(f))
     .filter((f) => !/(^|[\\/])archive[\\/]/.test(f));
+  // 🔑 초판의 구멍 둘을 독립 리뷰가 실증해서 고쳤다(2026-09-09):
+  //   ①**주석을 «줄 앞 두 글자»로만 걸렀다** → `/* … */` 블록주석과 JSX `{/* … */}` 안의
+  //     예시 문구를 진짜 코드로 읽어 오탐이 났다. 같은 파일 §27 이 이미 겪고
+  //     `stripCommentsWholeFile()` 을 만들어 뒀는데 그 교훈을 안 썼다 → 이제 그걸 쓴다.
+  //   ②**한 줄 `||` 형태만 잡았다** → 식을 두 줄로 쪼개거나 `??` 로 쓰면 통과했다.
+  //     즉 «고친 그 줄에 줄바꿈 한 번»이면 가드가 사라졌다 → 줄이 아니라 파일 전체에서
+  //     NEXT_PUBLIC_SITE_URL 뒤 160자 안의 localhost 를 본다.
+  // ⚠️ 예외: app/survey/[token]/page.jsx 는 서버가 «자기 자신»을 부르는 자리라
+  //    프리뷰에선 프리뷰 주소를 써야 한다(같은 파일 §25 가 같은 이유로 예외로 둔 그 파일).
+  const SELF_FETCH_ALLOW = "app/survey/[token]/page.jsx";
   for (const file of files) {
     const rel = file.replace(/\\/g, "/");
     if (rel === "src/lib/siteUrl.ts") continue; // 단일 구현 자신은 예외
+    if (rel === SELF_FETCH_ALLOW) continue; // 자기 자신 호출(위 ⚠️)
     let raw = "";
     try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-    raw.split(/\r?\n/).forEach((l, i) => {
-      if (/^\s*(\/\/|\*)/.test(l)) return; // 주석 줄은 뺀다(이 사고를 설명하는 주석이 있다)
-      if (!/NEXT_PUBLIC_SITE_URL\s*\|\|\s*["'`]https?:\/\/localhost/.test(l)) return;
+    const code = stripCommentsWholeFile(raw); // 주석은 통째로 버린다
+    const re = /NEXT_PUBLIC_SITE_URL[\s\S]{0,160}?["'`]https?:\/\/localhost/g;
+    let m;
+    while ((m = re.exec(code)) !== null) {
+      const line = code.slice(0, m.index).split("\n").length;
       errors.push(
-        `[기준주소] ${rel}:${i + 1} — NEXT_PUBLIC_SITE_URL 의 폴백을 localhost 로 두었다. ` +
+        `[기준주소] ${rel}:${line} — NEXT_PUBLIC_SITE_URL 의 폴백을 localhost 로 두었다. ` +
           `프로덕션에 그 환경변수가 없으면 이 값이 그대로 구글에 나간다(2026-09-09 실측: 병원 상세 8곳). ` +
-          `siteUrl() from "@/lib/siteUrl" 을 써라 — 환경변수가 비면 실주소로 떨어진다.` +
-          `\n    ${l.trim().slice(0, 120)}`
+          `siteUrl() from "@/lib/siteUrl" 을 써라 — 환경변수가 비면 실주소로 떨어진다.`
       );
-    });
+    }
   }
 }
 
