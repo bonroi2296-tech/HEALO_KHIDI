@@ -82,7 +82,7 @@ const LANGS = [
  // ── referral.tr.barRefMeta
  //    「0%」는 숫자가 아니라 «실패했다»로 읽힌다. 채운 개수로 보여주고, 다음 한 칸을 지목해 준다.
  // ── referral.tr.sizeRule
- //    🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 200MB까지만 받는다고 하자」).
+ //    🛑 규칙은 «미리» 말한다(2026-08-18 PO: 「고민하지 말고 그냥 상한까지만 받는다고 하자」(그때 값은 200MB, 지금은 2GB)).
  //    막힌 뒤에 알려주면 그건 시간을 뺏고 나서 거절하는 것이다.
  // ── referral.tr.pickDocs
  //    🛑 버튼 이름은 «무엇을 고르나»가 아니라 «어떻게 올리나»로(2026-08-18 PO: 그게 더 직관적이다).
@@ -112,7 +112,7 @@ const LANGS = [
 
 /** 서버가 준 오류 코드를 사람 말로. 코드가 그대로 화면에 나가면 안 된다. */
 function uploadErrorText(code, lang, bytes) {
-  if (code === "file_too_large") return tr("upTooBig", lang, { mb: bytes ? formatMB(bytes) : "200MB+" });
+  if (code === "file_too_large") return tr("upTooBig", lang, { mb: bytes ? formatMB(bytes) : "2GB+" });
   if (code === "invalid_file_type" || code === "invalid_file_content") return tr("upBadType", lang);
   // 「한꺼번에 몰림」과 「올리기 실패」는 사람이 할 일이 다르다 — 앞은 기다리면 되고 뒤는 다시 눌러야 한다.
   // 2026-09-08 실서비스: 서류 44장을 올리다 429 가 8건 났는데 화면엔 「다시 시도해 주세요」만 떴다.
@@ -965,7 +965,7 @@ function Toggle({ checked, onClick, label, className = "", testId }) {
  * 「너무 커서 못 올림」이 뜬 «그 자리»에만 나오는 링크 칸.
  *
  * 🛑 상시 칸으로 올리지 마라(2026-08-13 결정): 평소엔 자료가 우리 저장소에 있어야
- *    뷰어가 돌고, 링크는 만료되면 죽는다. 다만 200MB 를 넘어 «막힌 순간»에는
+ *    뷰어가 돌고, 링크는 만료되면 죽는다. 다만 상한(2GB)을 넘어 «막힌 순간»에는
  *    사람이 그 자리에서 끝낼 길이 있어야 한다 — 세브란스 의뢰서도 「대용량은 링크로
  *    보내도 무관」이라고 안내한다. 그래서 막혔을 때만 띄운다.
  */

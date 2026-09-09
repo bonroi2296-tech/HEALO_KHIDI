@@ -1606,7 +1606,29 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람.
           첨부가 0건이어도 카드는 띄운다 — 코디가 «대신 올리는» 통로가 여기 있기 때문. */}
       {(() => {
-        const atts = Array.isArray(inquiry.attachments) ? inquiry.attachments : [];
+        const raw = Array.isArray(inquiry.attachments) ? inquiry.attachments : [];
+        // 🔑 «올린 날짜»가 아니라 «검사한 날짜» 순으로 본다.
+        //    암 자료는 시간 순서가 곧 진단이다 — 한 환자 영상 7건이 1년 반에 걸쳐 있는데
+        //    올린 순서로 보면 전부 같은 시각이라 병이 어떻게 움직였는지가 안 보인다(2026-09-08).
+        //    날짜가 없는 것(판독 전이거나 못 읽은 것)은 뒤로 보낸다 — 앞에 두면 «가장 오래된 검사»로
+        //    오해할 수 있다.
+        //
+        // 🛑 날짜가 없는 것끼리는 «올라온 순서»를 그대로 둔다. 이름순으로 세우지 마라 —
+        //    이 신청서 이전에 들어온 문의와 코디가 대신 올린 자료에는 검사일이 아예 없어서
+        //    «전부» 이 갈래로 떨어진다. 이름순으로 바꾸면 원래 올린 순서마저 잃고,
+        //    코디가 «알파벳 순서를 병 경과로» 읽게 된다 — 이 카드가 고치려던 바로 그 오해다
+        //    (2026-09-08 독립 리뷰). 원래 자리(index)를 지키면 최소한 «올린 순서»는 남는다.
+        const attDate = (a) => (typeof a === "object" && a?.docDate) || "";
+        const atts = raw
+          .map((a, i) => ({ a, i }))
+          .sort((x, y) => {
+            const dx = attDate(x.a), dy = attDate(y.a);
+            if (dx && dy && dx !== dy) return dx.localeCompare(dy);
+            if (dx && !dy) return -1;
+            if (!dx && dy) return 1;
+            return x.i - y.i;          // 같은 날짜끼리·날짜 없는 것끼리는 올라온 순서
+          })
+          .map(({ a }) => a);
         return (
         <Card title={`${L.ibAttachmentsCard} (${atts.length})`}>
           <div className="space-y-2">
@@ -1654,6 +1676,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     >
                       <FileText size={18} className="text-teal-600 shrink-0" />
                       <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
+                      {/* 검사일 — 목록이 이 날짜순으로 서 있다. 없으면 아무것도 안 그린다
+                          (「-」 같은 자리표시자를 두면 «날짜가 없다»가 «검사일이 그날»로 읽힌다). */}
+                      {attDate(a) && (
+                        <span className="text-[11px] tabular-nums text-gray-600 shrink-0">{attDate(a)}</span>
+                      )}
                       {cat && cat !== "other" && (
                         <span className="text-[11px] text-gray-500 shrink-0">{cat}</span>
                       )}

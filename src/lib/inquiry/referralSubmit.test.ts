@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, CONSENT_KEY_MAP } from "./referralSubmit";
+import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, normalizeDocDate, CONSENT_KEY_MAP } from "./referralSubmit";
 
 describe("의뢰서 접수 — 링크는 http(s) 만", () => {
   it.each([
@@ -68,5 +68,39 @@ describe("pickFilledFromDocs — 「이 값 기계가 넣었다」 표시를 저
     expect(pickFilledFromDocs({ icdCode: true }, {})).toBeNull();
     expect(pickFilledFromDocs({ icdCode: false }, { icdCode: "C16" })).toBeNull();
     expect(pickFilledFromDocs({ pastHistory: true }, { pastHistory: [] })).toBeNull();
+  });
+});
+
+describe("normalizeDocDate — 「검사일 순」이 진짜 날짜순이 되게", () => {
+  it.each([
+    ["2025-03-26", "2025-03-26"],
+    ["2025/03/26", "2025-03-26"],
+    ["2025.3.6", "2025-03-06"],
+    ["26.03.2025", "2025-03-26"],      // 앞이 13 이상 = 날일 수밖에 없다
+    ["26/03/2025", "2025-03-26"],
+    ["31.12.2024", "2024-12-31"],
+    ["2025-03-26 ~ 2025-09-25", "2025-03-26"],   // 기간이면 시작일
+    ["2025-03-26T00:00:00Z", "2025-03-26"],
+  ])("%s → %s", (raw, want) => {
+    expect(normalizeDocDate(raw)).toBe(want);
+  });
+
+  it.each([
+    null, undefined, "", "작년 봄", "unknown", "2025-13-01", "2025-02-30", "20250326",
+    // 🛑 어느 쪽이 날인지 모르는 값 — 영어권 서류는 월이 앞(MM/DD)이라 두 해석이 다 말이 된다.
+    //    코디 화면에서 이 값이 병 경과의 «순서»가 되므로 짐작하면 시간선이 뒤집힌다.
+    "03/04/2025", "01.02.2025", "12/12/2025",
+  ])(
+    "못 읽거나 헷갈리면 버린다: %s",
+    (raw) => {
+      // 🛑 짐작해서 넣지 않는다 — 넣는 순간 다음 사람에겐 «검사한 날»이 된다.
+      expect(normalizeDocDate(raw as never)).toBeNull();
+    },
+  );
+
+  it("다듬은 값끼리는 문자열 비교만으로 시간순이 된다 (화면 정렬이 이걸 쓴다)", () => {
+    const raw = ["26.03.2025", "2024-11-02", "2025/09/25"];
+    const sorted = raw.map((r) => normalizeDocDate(r)).sort((a, b) => String(a).localeCompare(String(b)));
+    expect(sorted).toEqual(["2024-11-02", "2025-03-26", "2025-09-25"]);
   });
 });

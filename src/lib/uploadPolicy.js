@@ -76,8 +76,15 @@ const MAX_WORD = { ko: "최대", en: "up to", ru: "до", kz: "дейін", zh: 
 
 /**
  * 화면에 그대로 붙일 안내 문구.
- *   describeUpload("medicalDoc", "ko") → "PDF · JPG · PNG · WebP · Word · 최대 200MB"
- * kz 는 「200MB дейін」처럼 뒤에 붙는 게 자연스러워 순서를 바꾼다.
+ *   describeUpload("medicalDoc", "ko") → "PDF · JPG · PNG · WebP · Word · 최대 2000MB"
+ * kz 는 「2000MB дейін」처럼 뒤에 붙는 게 자연스러워 순서를 바꾼다.
+ *
+ * 🛑 **상한을 «올림»해서 말하지 마라.** 잠깐 「1024MB 이상은 GB 로」 바꿨다가 되돌렸다 —
+ *    실제 상한은 2000MB 인데 2000/1024 = 1.953 이 「2GB」로 올림돼, 진짜 2GB(2048MB) 파일을
+ *    가진 사람에게 «된다»고 말하고 서버는 거부하게 된다. 상한을 크게 말하는 것은
+ *    작게 말하는 것보다 나쁘다 — 사용자가 몇 분을 올리고 나서 거절당한다(2026-09-08 독립 리뷰).
+ *    ⚠️ 사전(dictionary.js)의 「2GB」 표기 48곳도 같은 이유로 48MB 만큼 과장이다.
+ *       고치려면 6개 언어 문구를 손봐야 해서 여기서는 안 건드렸다 — `docs/KNOWN_ISSUES.md` 참조.
  */
 export function describeUpload(kind, lang = "ko") {
   const p = UPLOAD_POLICY[kind];
