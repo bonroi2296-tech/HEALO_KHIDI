@@ -2057,9 +2057,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               </button>
             ))}
           </div>
-          {/* 🛑 항상 보이는 경고 — placeholder 는 글자를 치면 사라지고, 이미 적힌 메모를 고치러
-              들어오면 아예 안 뜬다. 이 칸은 환자 링크 화면(ClaimClient)에 그대로 렌더링된다. */}
-          <p className="text-[11px] text-gray-500">{L.ibCaseNoteVisible}</p>
           <textarea
             value={caseNote}
             onChange={(e) => setCaseNote(e.target.value)}
