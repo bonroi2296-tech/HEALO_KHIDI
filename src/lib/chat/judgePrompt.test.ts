@@ -31,6 +31,7 @@ const base = {
   lang: "ko",
   // 키를 «명시»한다 — JudgeInput.sessionFacts 는 선택 필드가 아니라 필수 키다(반성문 #179).
   sessionFacts: undefined,
+  priorUserTurns: undefined,
 };
 
 /** 판사 프롬프트에서 OFFICIAL REFERENCE 칸만 떼어낸다(응답·질문 때문에 통과하는 걸 막는다). */
@@ -86,6 +87,7 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
       lang: "ko",
       officialReference: CARE_REFERENCE_MINIMAL,
       sessionFacts: undefined,
+      priorUserTurns: undefined,
     });
     const ref = referenceBlock(p);
     expect(ref).toContain("범위 요약");   // 축약판이 실제로 들어갔다
@@ -106,6 +108,7 @@ describe("buildJudgePrompt — 안내자료 주입", () => {
       lang: "ko",
       officialReference: CARE_REFERENCE_MINIMAL,
       sessionFacts: undefined,
+      priorUserTurns: undefined,
     });
     // 자료에 실제로 있는 «돈 표기»를 전부 뽑아, 그중 하나라도 프롬프트에 나오면 실패.
     // ⚠️ 「$ 붙은 것만」 보면 안 된다 — 자료는 범위 윗값에 $ 를 안 붙인다($6,000–18,500).
@@ -186,6 +189,7 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     response: "코디네이터가 이어서 안내해 드리겠습니다.",
     lang: "ko",
     sessionFacts: undefined as string | undefined,
+    priorUserTurns: undefined,
   };
 
   it("🔒 사실 칸의 «네 줄»이 전부 살아 있다 — 한 줄이라도 사라지면 여기가 터진다", () => {
@@ -280,7 +284,10 @@ describe("판사가 세션 상태 사실을 본다 (반성문 #179)", () => {
     const prompt = buildJudgePrompt({ ...neutral, sessionFacts: buildSessionFacts({}) });
 
     it("① 「이 칸도 컨텍스트다」 선언", () => {
-      expect(prompt).toContain("RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 셋 다다");
+      // 2026-09-09 에 PRIOR USER TURNS 가 넷째 칸으로 들어왔다 — 칸 이름과 개수를 같이 잠근다.
+      expect(prompt).toContain(
+        "PRIOR USER TURNS · RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 넷 다다"
+      );
       expect(prompt).toContain("【SESSION FACTS 칸에 대하여】");
     });
 

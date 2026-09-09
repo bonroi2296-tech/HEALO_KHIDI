@@ -56,6 +56,18 @@ export interface JudgeInput {
    *   키를 필수로 두면 **호출부가 늘어나는 순간 컴파일이 막는다** — 텍스트 검사보다 훨씬 강하다.
    *   판사에게 줄 사실이 정말 없는 자리(단위시험 등)는 `sessionFacts: undefined` 라고 «명시»하라.
    */
+  /**
+   * 이 대화에서 «사용자가 앞서 한 말» (이번 query 는 제외). 최신 것이 마지막.
+   *
+   * 왜 (2026-09-09 실사고): 판사는 여태 «마지막 질문 한 줄»만 봤다. 환자가 두 메시지 앞에서
+   * 대량 코피를 길게 서술하고 다음 턴에 "의사들이 진단을 못 내렸다, 무슨 병인지 알고 싶다"라고만
+   * 물었는데, 판사는 앞 서술을 못 봐서 봇의 정확한 답을 «질문에 없는 '출혈' 증상을 지어냈다»고
+   * 62점 환각으로 찍고 코디·어드민 4명에게 경보를 울렸다. 봇이 맞았고 판사가 틀렸다.
+   *
+   * ⚠️ sessionFacts 와 같은 이유로 «키는 필수, 값은 undefined 허용»이다 — 새 호출부가
+   *    이 칸을 빠뜨리면 컴파일이 막는다. 줄 말이 없는 자리는 `priorUserTurns: undefined` 로 명시하라.
+   */
+  priorUserTurns: string | undefined;
   sessionFacts: string | undefined;
   lang: string;
   messageId?: string | null;
@@ -88,7 +100,29 @@ export interface JudgeResult extends JudgeScores {
 export const REFERENCE_BUDGET = 8000;
 
 /** 세션 상태 사실 잘림 한도. 실제로는 5줄 남짓(2026-08-31 기준 ~600자)이라 넉넉하다. */
-export const SESSION_FACTS_BUDGET = 2000;
+export /** 앞선 사용자 발화 예산 — 증상 서술은 길다(실사고의 코피 서술이 1,256자). */
+const PRIOR_TURNS_BUDGET = 2000;
+const SESSION_FACTS_BUDGET = 2000;
+
+/**
+ * 대화에서 «사용자가 앞서 한 말»만 골라 판사에게 줄 한 덩이로. 마지막 사용자 발화(=이번 query)는 뺀다.
+ *
+ * 호출부 두 곳이 «같은 것»을 넘겨야 해서 여기에 둔다. 넘기는 값은 이미 PII 를 가린 messages 다
+ * (generateReply 의 safeMessages) — 이 함수는 가리지 않는다.
+ */
+export function priorUserTurnsFrom(
+  messages: Array<{ role?: string; content?: unknown }> | null | undefined
+): string | undefined {
+  if (!Array.isArray(messages)) return undefined;
+  const texts = messages
+    .filter((m) => m?.role === "user" && typeof m.content === "string")
+    .map((m) => String(m.content).trim())
+    .filter(Boolean);
+  // 마지막 하나는 이번 턴의 질문이라 [사용자 질의] 칸과 겹친다.
+  const prior = texts.slice(0, -1);
+  if (!prior.length) return undefined;
+  return prior.join("\n---\n");
+}
 
 export function buildJudgePrompt(input: JudgeInput): string {
   const contextSection = input.context
@@ -103,6 +137,14 @@ export function buildJudgePrompt(input: JudgeInput): string {
 
   // 세션 상태 사실도 «칸을 따로» 쓴다(위 두 칸과 같은 이유).
   // ⚠️ 지금은 ~600자라 한도에 안 걸리지만 «자르기는 한다» — 사실을 길게 늘리면 조용히 잘린다.
+  // 앞선 사용자 발화 — 「질문에 없는 사실을 지어냈다」 오탐을 막는 유일한 근거다.
+  const priorSection = input.priorUserTurns
+    ? `
+
+[PRIOR USER TURNS — 같은 대화에서 사용자가 앞서 한 말, 오래된 것부터]
+${input.priorUserTurns.slice(0, PRIOR_TURNS_BUDGET)}`
+    : "";
+
   const sessionSection = input.sessionFacts
     ? `\n\n[SESSION FACTS — 이 대화의 실제 상태, 시스템이 응답 생성 시 모델에게 사실로 알려준 것]\n${input.sessionFacts.slice(0, SESSION_FACTS_BUDGET)}`
     : "";
@@ -111,12 +153,21 @@ export function buildJudgePrompt(input: JudgeInput): string {
 
 [사용자 질의]
 ${input.query}
-${contextSection}${referenceSection}${sessionSection}
+${priorSection}${contextSection}${referenceSection}${sessionSection}
 
 [AI 응답]
 ${input.response}
 
-⚠️ 「컨텍스트」의 범위: RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 셋 다다.
+⚠️ 「컨텍스트」의 범위: PRIOR USER TURNS · RETRIEVED CONTEXT · OFFICIAL REFERENCE · SESSION FACTS 넷 다다.
+
+【PRIOR USER TURNS 칸에 대하여】 같은 대화에서 «사용자가 직접 한 말»이다. 응답이 이 칸에 있는
+증상·병력·상황을 되받아 말했다면 **환각이 아니다** — hallucination 으로 찍지 마라.
+🛑 사용자는 증상을 한 턴에 설명하고 다음 턴에는 짧게만 묻는다("그래서 무슨 병이죠?"). 그때
+[사용자 질의] 한 줄만 보면 응답에 나온 증상이 전부 «지어낸 것»으로 보인다. **판정하기 전에 이 칸을
+반드시 먼저 읽어라.** 2026-09-09 실측: 환자가 앞 턴에 대량 코피를 길게 적었는데 판사가 이 칸을
+못 봐서 봇의 정확한 답을 환각(62점)으로 찍고 직원 4명에게 헛경보를 울렸다.
+⚠️ 봐주기는 «사용자가 말한 것을 되받은 경우»에만이다. 사용자가 말하지 않은 병원명·수치·금액·
+진단을 응답이 더했다면 그건 여전히 환각이다.
 
 【SESSION FACTS 칸에 대하여】 이 칸은 이 대화의 «실제 시스템 동작»이다(로그인 여부, 대화가
 어떻게 이어지는지, 서버 즉시 저장, 첨부파일을 못 읽는다는 것 등). 응답이 이 칸의 내용을 그대로

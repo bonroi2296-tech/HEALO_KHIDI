@@ -17,7 +17,7 @@ import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
-import { runJudgeInBackground } from "./judge";
+import { runJudgeInBackground, priorUserTurnsFrom } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
 import { pickCareReference } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
@@ -1380,6 +1380,8 @@ export async function generateChatReply(
       context: judgeContext || undefined,
       officialReference: careReference,
       sessionFacts,
+      // 앞 턴에서 환자가 말한 증상을 판사가 봐야 «지어냈다»는 오탐이 안 난다(2026-09-09).
+      priorUserTurns: priorUserTurnsFrom(safeMessages as any),
       lang,
       messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
       threadId: threadId ?? null,
@@ -1618,6 +1620,8 @@ export async function streamChatReply(
       context: judgeContext || undefined,
       officialReference: careReference,
       sessionFacts,
+      // 앞 턴에서 환자가 말한 증상을 판사가 봐야 «지어냈다»는 오탐이 안 난다(2026-09-09).
+      priorUserTurns: priorUserTurnsFrom(safeMessages as any),
       lang,
       messageId: null,
       threadId: threadId ?? null,
