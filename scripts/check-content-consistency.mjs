@@ -3062,6 +3062,50 @@ const TEAL600_BASELINE = {
   }
 }
 
+// ── §38) 검색엔진에 나가는 «기준 주소»의 폴백으로 localhost 를 쓰지 마라 ──────────
+// 왜 (실측): 2026-09-09, 실서비스 병원 상세 8곳의 JSON-LD 가 구글에
+//   `"url":"http://localhost:3000/en/hospitals/..."` · `"image":["http://localhost:3000/..."]`
+//   를 광고하고 있었다. 원인은 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"`
+//   인데 **프로덕션에 그 환경변수가 없어서** 폴백이 그대로 나간 것이다.
+//   같은 사고를 이미 겪고 `src/lib/siteUrl.ts` 를 만들어 뒀는데(주석에 경위가 적혀 있다),
+//   병원·암종 상세 두 파일이 그 헬퍼를 안 쓰고 자기 폴백을 들고 있었다.
+// 무엇을 보나: NEXT_PUBLIC_SITE_URL 의 폴백이 localhost 인 자리. 정답은 siteUrl().
+//   ⚠️ 시험 파일은 뺀다 — 거기서는 localhost 가 «시험 대상 값»이라 정상이다.
+{
+  const files = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f))
+    .filter((f) => !/\.(test|spec)\.[jt]sx?$/.test(f))
+    .filter((f) => !/(^|[\\/])archive[\\/]/.test(f));
+  // 🔑 초판의 구멍 둘을 독립 리뷰가 실증해서 고쳤다(2026-09-09):
+  //   ①**주석을 «줄 앞 두 글자»로만 걸렀다** → `/* … */` 블록주석과 JSX `{/* … */}` 안의
+  //     예시 문구를 진짜 코드로 읽어 오탐이 났다. 같은 파일 §27 이 이미 겪고
+  //     `stripCommentsWholeFile()` 을 만들어 뒀는데 그 교훈을 안 썼다 → 이제 그걸 쓴다.
+  //   ②**한 줄 `||` 형태만 잡았다** → 식을 두 줄로 쪼개거나 `??` 로 쓰면 통과했다.
+  //     즉 «고친 그 줄에 줄바꿈 한 번»이면 가드가 사라졌다 → 줄이 아니라 파일 전체에서
+  //     NEXT_PUBLIC_SITE_URL 뒤 160자 안의 localhost 를 본다.
+  // ⚠️ 예외: app/survey/[token]/page.jsx 는 서버가 «자기 자신»을 부르는 자리라
+  //    프리뷰에선 프리뷰 주소를 써야 한다(같은 파일 §25 가 같은 이유로 예외로 둔 그 파일).
+  const SELF_FETCH_ALLOW = "app/survey/[token]/page.jsx";
+  for (const file of files) {
+    const rel = file.replace(/\\/g, "/");
+    if (rel === "src/lib/siteUrl.ts") continue; // 단일 구현 자신은 예외
+    if (rel === SELF_FETCH_ALLOW) continue; // 자기 자신 호출(위 ⚠️)
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const code = stripCommentsWholeFile(raw); // 주석은 통째로 버린다
+    const re = /NEXT_PUBLIC_SITE_URL[\s\S]{0,160}?["'`]https?:\/\/localhost/g;
+    let m;
+    while ((m = re.exec(code)) !== null) {
+      const line = code.slice(0, m.index).split("\n").length;
+      errors.push(
+        `[기준주소] ${rel}:${line} — NEXT_PUBLIC_SITE_URL 의 폴백을 localhost 로 두었다. ` +
+          `프로덕션에 그 환경변수가 없으면 이 값이 그대로 구글에 나간다(2026-09-09 실측: 병원 상세 8곳). ` +
+          `siteUrl() from "@/lib/siteUrl" 을 써라 — 환경변수가 비면 실주소로 떨어진다.`
+      );
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
