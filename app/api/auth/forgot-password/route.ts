@@ -24,7 +24,7 @@ import { siteUrl } from "@/lib/siteUrl";
 //     일반 재설정 흐름으로 보낸다(그게 안전한 쪽이다 — 아래 호출부 주석의 원래 의도).
 export function isSocialOnly(identities: Array<{ provider?: string }> | null | undefined) {
   const list = identities || [];
-
+  if (list.length === 0) return false; // 판정 불가 → 일반 재설정 흐름
   return !list.some((i) => i?.provider === "email");
 }
 
