@@ -36,6 +36,7 @@ import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
 import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, normalizeDocDate, Schema } from "@/lib/inquiry/referralSubmit";
+import { CONSENT_VERSION } from "@/lib/legal/consentForms";
 
 // 🛑 스키마는 여기 두지 마라 — App Router 라우트 파일은 정해진 이름(POST·runtime …)만
 //    내보낼 수 있어서, 시험이 부르라고 export 를 붙이면 «tsc 는 통과하는데 빌드가 깨진다»
@@ -155,6 +156,10 @@ export async function POST(request: NextRequest) {
       cdFolder: d.cdFolder ? { ...d.cdFolder, path: d.cdFolder.path && isOwnPath("inquiry", d.cdFolder.path) ? d.cdFolder.path : null, link: safeLink(d.cdFolder.link) } : null,
       consents: toCanonicalConsents(consents),   // intake.consents 와 같은 공용 이름 — 두 표기가 있으면 다음 사람이 잘못 읽는다
       consentAt: new Date().toISOString(),
+      // 🛑 «어느 판 문안에 동의했나»는 시각과 한 쌍이다 — 문안이 바뀌면 예전 동의는 그 판에 대한
+      //    동의가 아니게 되므로, 버전이 없으면 동의 기록만으로는 무엇에 동의한 건지 되짚을 수 없다.
+      //    화면이 보낸 값을 믿지 않고 서버 상수를 찍는다(폼 관문을 건너뛴 직접 호출도 같은 값).
+      consentVersion: CONSENT_VERSION,
       // 「이 값 누가 넣었나」 — 기계가 서류에서 읽은 칸만 남긴다. 코디 화면·브리프가 이걸 보고
       // 환자가 직접 적은 값과 무게를 가른다. 화면이 보내지 않은 칸(quick 모드)은 자연히 빠진다.
       _filledFromDocs: pickFilledFromDocs(d.autoFilled, d),
@@ -186,7 +191,7 @@ export async function POST(request: NextRequest) {
           // CD 묶음(zip)도 첨부다 — 여기 넣어야 코디 첨부 카드에서 열린다
           ...(intakeData.cdFolder?.path ? [{ path: intakeData.cdFolder.path, name: d.cdFolder?.name || "CD.zip", kind: "imaging_file" }] : []),
         ],
-        intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt },
+        intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt, consentVersion: intakeData.consentVersion },
         intake_data: intakeData,
         intake_step: d.mode === "quick" ? "referral_quick" : "referral_full",
         status: "received",

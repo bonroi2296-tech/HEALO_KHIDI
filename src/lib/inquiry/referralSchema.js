@@ -296,7 +296,10 @@ export const SECTIONS = [
 
 ];
 
-/** 동의 — 법(PIPA) 필수 4 + 선택 1. 지금 폼과 같은 값을 그대로 쓴다. */
+/** 동의 — 법(PIPA) 필수 4 + 선택 1. 지금 폼과 같은 값을 그대로 쓴다.
+ *  🛑 여기 문안을 고쳤으면 src/lib/legal/consentForms.js 의 CONSENT_VERSION 도 같이 올려라 —
+ *     접수 라우트가 그 상수를 intake.consentVersion 에 찍는다. 안 올리면 새 문안에 한 동의가
+ *     옛 판 번호로 남아 «무엇에 동의했나»를 되짚을 수 없다. */
 export const CONSENTS = [
   { name: "pipa", required: true, label: K("referral.consent.pipa") },
   { name: "sensitive", required: true, label: K("referral.consent.sensitive") },
