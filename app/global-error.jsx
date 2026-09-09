@@ -10,8 +10,11 @@ export default function GlobalError({ error, reset }) {
       .catch(() => {});
   }, [error]);
 
+  // translate="no": 이 파일은 오류 때 «루트 레이아웃을 통째로 대체»하므로
+  //   app/layout.jsx 의 자동번역 차단을 물려받지 못한다(2026-09-09 독립 리뷰가 잡음).
+  //   화면은 작지만 같은 규약을 지켜 둔다 — 다음 사람이 여기에 내용을 늘릴 수 있다.
   return (
-    <html lang="en">
+    <html lang="en" translate="no">
       <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
         <main style={{ maxWidth: 600, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
           <h1 style={{ fontSize: 48, marginBottom: 8 }}>500</h1>

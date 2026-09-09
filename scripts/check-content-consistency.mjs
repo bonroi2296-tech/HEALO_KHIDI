@@ -3033,15 +3033,14 @@ const TEAL600_BASELINE = {
   if (!raw) {
     errors.push(`[자동번역차단] ${LAYOUT} 을 못 읽었다 — 파일이 옮겨졌으면 이 검사(§37)의 경로도 같이 고쳐라.`);
   } else {
-    // <html …> 여는 태그 한 줄 안에 translate="no" 가 있어야 한다(다른 태그의 것에 속지 않게).
-    // ⚠️ 주석 줄을 먼저 버린다 — 이 파일 18행 주석에 「<html lang>·hreflang용」 이라는 «글자»가
-    //    있어서, 순진하게 첫 <html…> 을 잡으면 그 주석을 진짜 태그로 읽고 오탐이 난다
-    //    (이 가드를 처음 켰을 때 실제로 그렇게 터졌다. 검사도 실측해야 한다는 증거다).
-    const htmlOpenTag = raw
-      .split(/\r?\n/)
-      .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
-      .join("\n")
-      .match(/<html\b[^>]*>/);
+    // <html …> 여는 태그 안에 translate="no" 가 있어야 한다(다른 태그의 것에 속지 않게).
+    // ⚠️ 주석을 먼저 버린다 — 이 파일 주석에 「<html lang>·hreflang용」·「위 <html translate="no">」
+    //    같은 «글자»가 있어서, 순진하게 첫 <html…> 을 잡으면 주석을 진짜 태그로 읽는다.
+    //    🔑 2026-09-09 독립 리뷰 실증: 초판은 «줄 앞 두 글자»로만 걸러 JSX `{/* … */}` 를 못 버렸고,
+    //       하필 이 커밋이 그런 주석을 새로 심었다. 그 주석이 태그 위로 올라가면 가드가 눈이 먼다
+    //       (재현: 주석을 태그 위로 옮기고 translate="no" 를 지우니 검사가 «통과»했다).
+    //       → 같은 파일 §27 이 만들어 둔 stripCommentsWholeFile() 을 쓴다.
+    const htmlOpenTag = stripCommentsWholeFile(raw).match(/<html\b[^>]*>/);
     if (!htmlOpenTag || !/\btranslate\s*=\s*["']no["']/.test(htmlOpenTag[0])) {
       errors.push(
         `[자동번역차단] ${LAYOUT} 의 루트 <html> 에 translate="no" 가 없다. ` +
@@ -3050,7 +3049,11 @@ const TEAL600_BASELINE = {
           `자동번역을 끄는 손해보다 화면이 죽는 손해가 크다 — 지우려면 그 결론부터 뒤집어라.`
       );
     }
-    if (!/<meta\s+name=["']google["']\s+content=["']notranslate["']\s*\/?>/.test(raw)) {
+    // ⚠️ 속성 «순서»를 강제하지 마라 — 2026-09-09 독립 리뷰 실증: 초판은 name→content 순서만
+    //    인정해서, 순서만 바꾼 `<meta content="notranslate" name="google" />` 를 「없다」고 막았다.
+    //    태그는 멀쩡한데 오류 문구가 엉뚱한 데를 고치게 만든다 → 한 태그 안에 둘 다 있으면 통과.
+    const metaTag = stripCommentsWholeFile(raw).match(/<meta\b[^>]*\bname=["']google["'][^>]*>/);
+    if (!metaTag || !/\bcontent=["']notranslate["']/.test(metaTag[0])) {
       errors.push(
         `[자동번역차단] ${LAYOUT} 에 <meta name="google" content="notranslate" /> 가 없다. ` +
           `<html translate="no"> 와 한 짝이다(구글 번역은 이 메타도 함께 본다). 둘 중 하나만 두지 마라.`
