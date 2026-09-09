@@ -9,23 +9,23 @@
  * 🛑 첫 줄(빈 목록 → false)을 지우면 그 사고가 그대로 돌아온다.
  */
 import { describe, it, expect } from "vitest";
-import { isSocialOnly } from "@/lib/auth/isSocialOnly";
+import { shouldSendGoogleSignInHint } from "@/lib/auth/googleSignInHint";
 
-describe("isSocialOnly", () => {
+describe("shouldSendGoogleSignInHint", () => {
   it("판정 불가(빈 목록)면 소셜 전용이 아니다 — 일반 재설정 흐름으로 보낸다", () => {
-    expect(isSocialOnly([])).toBe(false);
-    expect(isSocialOnly(null)).toBe(false);
-    expect(isSocialOnly(undefined)).toBe(false);
+    expect(shouldSendGoogleSignInHint([])).toBe(false);
+    expect(shouldSendGoogleSignInHint(null)).toBe(false);
+    expect(shouldSendGoogleSignInHint(undefined)).toBe(false);
   });
 
   it("email 수단이 있으면 비밀번호가 있는 계정이다", () => {
-    expect(isSocialOnly([{ provider: "email" }])).toBe(false);
+    expect(shouldSendGoogleSignInHint([{ provider: "email" }])).toBe(false);
     // 실측 사례: bonroi2296@gmail.com = email·apple·google 셋
-    expect(isSocialOnly([{ provider: "email" }, { provider: "apple" }, { provider: "google" }])).toBe(false);
+    expect(shouldSendGoogleSignInHint([{ provider: "email" }, { provider: "apple" }, { provider: "google" }])).toBe(false);
   });
 
   it("소셜 수단만 있으면 소셜 전용이다", () => {
-    expect(isSocialOnly([{ provider: "google" }])).toBe(true);
-    expect(isSocialOnly([{ provider: "google" }, { provider: "apple" }])).toBe(true);
+    expect(shouldSendGoogleSignInHint([{ provider: "google" }])).toBe(true);
+    expect(shouldSendGoogleSignInHint([{ provider: "google" }, { provider: "apple" }])).toBe(true);
   });
 });

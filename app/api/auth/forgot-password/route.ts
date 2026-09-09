@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { siteUrl } from "@/lib/siteUrl";
-import { isSocialOnly } from "@/lib/auth/isSocialOnly";
+import { shouldSendGoogleSignInHint } from "@/lib/auth/googleSignInHint";
 
 // 비밀번호 재설정 메일 발송 — 스팸/폭탄 차단을 위해 ①같은 IP ②같은 이메일 횟수제한.
 // 응답은 가입 여부·가입수단과 무관하게 항상 동일(이메일 존재 노출 방지).
@@ -24,13 +24,13 @@ function socialHintHtml(loginUrl: string) {
   return `<div style="font-family:system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:0 auto;color:#1f2937;line-height:1.6">
   <h2 style="font-size:18px;margin:0 0 12px">구글 계정으로 로그인해 주세요</h2>
   <p style="margin:0 0 8px">비밀번호 재설정을 요청하셨지만, 회원님은 <b>구글 계정으로 가입</b>하셔서 별도의 비밀번호가 없습니다.</p>
-  <p style="margin:0 0 8px">로그인 화면에서 <b>'Google로 로그인'</b> 버튼을 눌러 그대로 들어오시면 됩니다.</p>
+  <p style="margin:0 0 8px">로그인 화면에서 <b>'Google로 계속하기'</b> 버튼을 눌러 그대로 들어오시면 됩니다.</p>
   <p style="margin:0 0 16px;color:#b45309;font-size:14px">앱에서 <b>'Google로 계속하기'</b>가 회색이면 그 판에는 아직 구글 로그인이 없습니다 — 앱을 최신으로 업데이트하시거나, 아래 버튼을 <b>폰 브라우저(크롬·사파리)</b>에서 열어 주세요.</p>
   <p style="margin:0 0 24px"><a href="${loginUrl}" style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">로그인하러 가기</a></p>
   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
   <h3 style="font-size:15px;margin:0 0 8px;color:#374151">Sign in with Google</h3>
   <p style="margin:0 0 8px;color:#6b7280;font-size:14px">You requested a password reset, but your account was created with <b>Google sign-in</b>, so it has no password.</p>
-  <p style="margin:0 0 8px;color:#6b7280;font-size:14px">Just click <b>"Sign in with Google"</b> on the login page: <a href="${loginUrl}" style="color:#0d9488">${loginUrl}</a></p>
+  <p style="margin:0 0 8px;color:#6b7280;font-size:14px">Just click <b>"Continue with Google"</b> on the login page: <a href="${loginUrl}" style="color:#0d9488">${loginUrl}</a></p>
   <p style="margin:0;color:#b45309;font-size:14px">If <b>"Continue with Google"</b> looks greyed out in the app, that build doesn't have Google sign-in yet — update the app, or open the link in your phone's browser (Chrome/Safari).</p>
 </div>`;
 }
@@ -40,13 +40,13 @@ function socialHintText(loginUrl: string) {
     "구글 계정으로 로그인해 주세요",
     "",
     "비밀번호 재설정을 요청하셨지만, 회원님은 구글 계정으로 가입하셔서 별도의 비밀번호가 없습니다.",
-    "로그인 화면에서 'Google로 로그인' 버튼을 눌러 들어오시면 됩니다.",
+    "로그인 화면에서 'Google로 계속하기' 버튼을 눌러 들어오시면 됩니다.",
     "앱에서 'Google로 계속하기'가 회색이면 그 판에는 아직 구글 로그인이 없습니다 — 앱을 최신으로 업데이트하시거나, 아래 주소를 폰 브라우저(크롬·사파리)에서 열어 주세요.",
     loginUrl,
     "",
     "— Sign in with Google —",
     "Your account was created with Google sign-in, so it has no password.",
-    `Click "Sign in with Google" on the login page: ${loginUrl}`,
+    `Click "Continue with Google" on the login page: ${loginUrl}`,
     "Note: if \"Continue with Google\" looks greyed out in the app, that build doesn't have Google sign-in yet — update the app, or open the link in your phone's browser.",
   ].join("\n");
 }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   // 가입수단 판별(service_role). 실패하면 일반 재설정 흐름으로 폴백(안전).
   // ponytail: 수십명 규모라 전수 조회. 수천명 되면 auth.users 직접 조회 RPC로 교체.
-  let socialOnly = false;
+  let sendGoogleHint = false;
   if (url && serviceKey) {
     try {
       const admin = createClient(url, serviceKey, {
@@ -106,14 +106,14 @@ export async function POST(request: Request) {
       if (u?.id) {
         const { data: one } = await admin.auth.admin.getUserById(u.id);
         const identities = (one?.user as any)?.identities;
-        if (isSocialOnly(identities)) socialOnly = true;
+        if (shouldSendGoogleSignInHint(identities)) sendGoogleHint = true;
       }
     } catch {
       /* 판별 실패 → 아래 일반 재설정 흐름 */
     }
   }
 
-  if (socialOnly) {
+  if (sendGoogleHint) {
     // 소셜 가입자 → 재설정 메일 대신 '소셜 로그인 쓰세요' 안내(본인 메일함에서만 확인)
     await sendEmail({
       to: email,
