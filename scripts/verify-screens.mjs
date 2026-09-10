@@ -130,6 +130,41 @@ const CHECKS = [
     },
   },
   {
+    group: "어드민이 못 보던 것",
+    title: "브리프가 «병원이 보내온 회신»까지 읽는다",
+    why: "「환자에게 보낼 서류」 칸엔 병원 회신이 들어온다(문의 #316 이대 러시아어 견적서). 브리프가 그 칸을 안 보면 치료법·비용·체류기간이 통째로 빠지고, 더 나쁜 건 «바뀐 게 없다»고 판정해 옛 브리프를 오류 없이 그대로 준다 — 2026-09-10 실측: 코디가 3분 사이 세 번 눌렀는데 갱신 0",
+    as: "coordinator@test.com",
+    url: "/coordinator/inbox/316",
+    shot: "brief-reads-hospital-reply",
+    ready: /환자에게 보낼 서류|케이스/,
+    async run(p) {
+      await p.waitForTimeout(4000);
+      // 브리프를 새로 만들게 부른다(캐시가 있으면 그대로 오지만, 지문이 고쳐졌으면 다시 만들어진다).
+      const r = await p.evaluate(async () => {
+        const res = await fetch("/api/coordinator/inquiries/316/brief", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ lang: "ko" }),
+        });
+        let j = null; try { j = await res.json(); } catch {}
+        return { status: res.status, brief: j?.brief ?? null };
+      });
+      if (r.status !== 200) return { ok: false, note: `브리프 창구가 ${r.status}` };
+      const b = r.brief || {};
+      const all = JSON.stringify(b);
+      // 병원이 제안한 것이 브리프에 들어왔나 — 이 케이스의 회신에만 있는 말로 잰다
+      const fromReply = /병원|이대|EUMC|로봇|전립선|견적/.test(all);
+      // 금액을 사실처럼 옮기지 않았나(원본 확인 문구가 있거나, 큰 금액 숫자가 없어야 한다)
+      const saysCheckOriginal = /원본|확인/.test(all);
+      const rawMoney = /3[,.]?5[0-9]{2}만|4[,.]?0[0-9]{2}만|35[, ]?000[, ]?000|40[, ]?000[, ]?000/.test(all);
+      const ok = fromReply && (saysCheckOriginal || !rawMoney);
+      return {
+        ok,
+        note: `브리프 ${all.length}자 · 병원 회신 반영 ${fromReply ? "있음" : "없음"} · 원본확인 문구 ${saysCheckOriginal ? "있음" : "없음"} · 금액 직접인용 ${rawMoney ? "있음(위험)" : "없음"}`,
+      };
+    },
+  },
+  {
     group: "상대에게 줄 링크",
     title: "케이스 화면에서 「링크 복사 / 왓츠앱으로 보내기」가 보인다",
     why: "왓츠앱·메일로 받은 건도 상대에게 줄 주소가 필요하다",
