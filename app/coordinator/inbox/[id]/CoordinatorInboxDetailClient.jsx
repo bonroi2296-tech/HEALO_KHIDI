@@ -6,13 +6,13 @@
  * /api/portal/inbox/[id] (staff 전용·서버 복호화)로 불러와 표시.
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, Video,
-  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
-  ChevronLeft, ChevronRight, Mic,
+  Send, Copy, Check, ExternalLink, Download, X, ShieldCheck, Sparkles,
+  Mic,
   Ban,
   RotateCcw,
   Target,
@@ -30,6 +30,7 @@ import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from 
 import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel, stageLabel } from "@/lib/inquiry/intakeLabels";
 import { trackingUrl, trackingMessageLine, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import OpinionsSection from "./OpinionsSection";
+import { useDocTranslate, DocTranslateControls, DocTranslateResult } from "./DocTranslate";
 import SharedDocumentsSection from "./SharedDocumentsSection";
 import CaseUpdatesSection from "./CaseUpdatesSection";
 import FollowUpsSection from "./FollowUpsSection";
@@ -39,7 +40,6 @@ import ReferralSection from "./ReferralSection";
 import HospitalReferralSection from "./HospitalReferralSection";
 import { ACCUMULATE_FIELDS } from "@/lib/inquiry/referralSchema";
 import ImagingPanel from "@/components/ImagingPanel";
-import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 
 // 병원 CD(CT) 묶음인가 — 확장자·형식으로 가른다. 맞으면 「영상 보기」로 브라우저 뷰어를 연다.
 function isImagingBundle(a) {
@@ -172,299 +172,6 @@ function Card({ title, children }) {
   );
 }
 
-// HTML 이스케이프(모델 출력을 새 창에 안전 렌더).
-function escHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-// 첨부 번역 출력 언어(코디=한글 / 병원의뢰=영문 / 환자·에이전시=러시아어). 고지문은 출력 언어에 맞춘다.
-const OUT_LANGS = [{ key: "ko", label: "한" }, { key: "en", label: "EN" }, { key: "ru", label: "RU" }];
-const DISCLAIMER = {
-  ko: "원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.",
-  en: "Faithful full translation (not a summary). Verify numbers and reference ranges against the original.",
-  ru: "Дословный полный перевод (не резюме). Сверяйте цифры и референсные значения с оригиналом.",
-};
-const TR_LABEL = { ko: "한글 번역", en: "Translation", ru: "Перевод" };
-
-// 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
-// @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
-function printTranslation(doc, name, lang = "ko", msgPopupBlocked = "") {
-  const sections = (doc.sections || []).map((s) => {
-    let inner = "";
-    if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
-    if (s.note) inner += `<p class="note">${escHtml(s.note)}</p>`;
-    if (Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length) {
-      const head = `<tr>${s.columns.map((c) => `<th>${escHtml(c)}</th>`).join("")}</tr>`;
-      const body = s.rows.map((r) => `<tr>${(r?.cells || []).map((c) => `<td>${escHtml(c)}</td>`).join("")}</tr>`).join("");
-      inner += `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
-    }
-    if (s.text) inner += `<p class="text">${escHtml(s.text)}</p>`;
-    return `<section>${inner}</section>`;
-  }).join("");
-
-  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
-<title>${escHtml(name || doc.docType)} — ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:-apple-system,"Malgun Gothic","Segoe UI",sans-serif;color:#111;margin:24px;font-size:12px}
-h1{font-size:16px;margin:0 0 2px}
-.sub{color:#555;margin:0 0 4px}
-.disc{color:#888;font-size:10px;margin:0 0 16px}
-h2{font-size:13px;margin:18px 0 6px}
-.note{color:#555;white-space:pre-wrap;margin:0 0 6px}
-.text{white-space:pre-wrap;line-height:1.5}
-table{width:100%;border-collapse:collapse;margin:4px 0 8px}
-th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
-th{background:#f3f4f6}
-@media print{body{margin:12mm}tr{page-break-inside:avoid}}
-</style></head><body>
-<h1>${escHtml(doc.docType)}</h1>
-<p class="sub">원본: ${escHtml(name || "")} · healwith ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</p>
-<p class="disc">${escHtml(DISCLAIMER[lang] || DISCLAIMER.ko)}</p>
-${sections}
-</body></html>`;
-
-  const w = window.open("", "_blank");
-  if (!w) { alert(msgPopupBlocked); return; }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { try { w.print(); } catch { /* 사용자가 수동 인쇄 */ } }, 400);
-}
-
-// 외국 검사지 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤(반응형).
-// 기능: 숫자검증(원본 대조) · 수정(코디 교정→저장) · 용어 사전 등록(다음 번역에 반영).
-function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, verify, onSave, onGlossary }) {
-  // 화면 글자는 코디 언어로(번역 결과물의 언어 lang 과는 별개다 — 섞지 말 것).
-  const L = useCoordinatorL();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [gSrc, setGSrc] = useState("");
-  const [gTgt, setGTgt] = useState("");
-  const [gDone, setGDone] = useState(false);
-  const langLabel = (OUT_LANGS.find((o) => o.key === lang) || {}).label || lang;
-  const view = editing && draft ? draft : doc;
-
-  // 쪽 고르기 — 20쪽짜리를 한 줄로 쭉 늘어놓으면 못 본다(PO 요청 2026-08-03).
-  // 번역이 쪽별로 돌아가서 각 칸에 page 가 붙어 있다. 옛 번역엔 없으니 그때는 그냥 다 보여준다.
-  const [pageSel, setPageSel] = useState(1); // 0 = 전체
-  const allSections = view.sections || [];
-  const pageList = [...new Set(allSections.map((s) => s?.page).filter(Boolean))].sort((a, b) => a - b);
-  const curPage = !pageList.length || pageSel === 0 ? 0 : (pageList.includes(pageSel) ? pageSel : pageList[0]);
-  // 편집 저장은 «원래 번호»로 해야 한다 — 걸러낸 순서로 쓰면 엉뚱한 칸이 바뀐다.
-  const shown = allSections
-    .map((s, i) => [s, i])
-    .filter(([s]) => curPage === 0 || s?.page === curPage);
-  // 쪽을 넘기면 «그 쪽의 처음»부터 보이게 맨 위로 올린다. 안 그러면 긴 쪽을 읽고 넘겼을 때
-  // 화면이 그 자리에 남아 새 쪽의 중간부터 보인다(PO 지적 2026-08-10).
-  const topRef = useRef(null);
-  const goPage = (n) => {
-    setPageSel(n);
-    requestAnimationFrame(() => {
-      // 파일 이름 줄까지 보이게 «첨부 카드 통째»로 올린다(PO 2026-08-10). 못 찾으면 번역 카드 머리로.
-      const card = topRef.current?.closest("[data-attachment-card]") || topRef.current;
-      card?.scrollIntoView({ block: "start", behavior: scrollBehavior() });
-    });
-  };
-  const pageStep = (d) => {
-    const at = pageList.indexOf(curPage);
-    const next = pageList[Math.max(0, Math.min(pageList.length - 1, at + d))];
-    if (next) goPage(next);
-  };
-
-  function startEdit() { setDraft(JSON.parse(JSON.stringify(doc))); setEditing(true); }
-  function cancelEdit() { setEditing(false); setDraft(null); }
-  function patch(updater) {
-    setDraft((prev) => { const next = JSON.parse(JSON.stringify(prev)); updater(next); return next; });
-  }
-  async function save() {
-    setSaving(true);
-    await onSave?.(draft);
-    setSaving(false); setEditing(false); setDraft(null);
-  }
-  async function submitGlossary() {
-    const src = gSrc.trim(), tgt = gTgt.trim();
-    if (!src || !tgt) return;
-    await onGlossary?.(src, tgt);
-    setGDone(true); setGSrc(""); setGTgt("");
-    setTimeout(() => setGDone(false), 2500);
-  }
-
-  return (
-    <div>
-      {/* 쪽을 넘겼을 때 돌아올 자리.
-          여유를 크게(6rem) 둔다 — 화면 맨 위에 붙박이 머리띠(약 65px)가 떠 있어서, 여유가 작으면
-          카드 머리와 안내문이 그 밑에 깔려 «중간부터» 보인다(실측 2026-08-10: 여유 1rem 이면 19px 에
-          멈춰 머리띠에 가려짐). */}
-      <div ref={topRef} className="scroll-mt-24" />
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 shrink-0">
-            {doc.docTypeShort}
-          </span>
-          <span className="text-xs text-gray-500 truncate">{doc.docType}</span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {editing ? (
-            <>
-              <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-700 text-white hover:bg-teal-700 transition disabled:opacity-50">
-                {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={13} />} 저장
-              </button>
-              <button onClick={cancelEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
-                <X size={13} /> {L.atCancel}
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={onVerify} disabled={verify?.loading} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition disabled:opacity-50" title={L.atVerifyTitle}>
-                {verify?.loading ? <span className="w-3 h-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /> : <ShieldCheck size={13} />} 숫자검증
-              </button>
-              <button onClick={startEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title={L.atEditNote}>
-                <Pencil size={13} /> {L.atEdit}
-              </button>
-              <button onClick={onPdf} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title={L.atPdfTitle}>
-                <FileText size={13} /> PDF
-              </button>
-              <button onClick={onCopy} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
-                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? L.atCopied : L.atCopy}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* 숫자검증 결과 배너 — 어긋난 항목만 (번역값 / 원본재판독값) 쌍으로 */}
-      {verify && !verify.loading && (
-        verify.error ? (
-          <p className="text-xs text-amber-700 mb-2">{L.atErrVerify}</p>
-        ) : verify.mismatches?.length ? (
-          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mb-2 space-y-1">
-            <div className="font-medium">⚠️ 원본과 다르게 읽힌 숫자 {verify.mismatches.length}곳 — 원본을 직접 확인하세요</div>
-            <ul className="space-y-0.5">
-              {verify.mismatches.map((m, i) => (
-                <li key={i} className="flex flex-wrap gap-x-2">
-                  <span className="text-amber-900">{m.item || L.atItemFallback}</span>
-                  <span>{L.atTranslate} <b>{m.translated}</b> {L.atVerifyReread} <b>{m.source}</b></span>
-                </li>
-              ))}
-            </ul>
-            <div className="text-[11px] text-amber-600">{L.atVerifyWarn}</div>
-          </div>
-        ) : (
-          <p className="text-xs text-teal-700 mb-2">{L.atVerifyOk}</p>
-        )
-      )}
-
-      <p className="text-[11px] text-gray-500 mb-3">
-        {DISCLAIMER[lang] || DISCLAIMER.ko}
-      </p>
-      <div className="space-y-4">
-        {shown.map(([s, si]) => (
-          <div key={si}>
-            {s.title && <div className="text-sm font-semibold text-gray-700 mb-1">{s.title}</div>}
-            {s.note != null && s.note !== "" && (
-              editing ? (
-                <textarea value={s.note} onChange={(e) => patch((d) => { d.sections[si].note = e.target.value; })}
-                  rows={2} className="w-full text-xs text-gray-600 border border-gray-200 rounded px-1.5 py-1 mb-1.5" />
-              ) : (
-                <p className="text-xs text-gray-500 mb-1.5 whitespace-pre-wrap">{s.note}</p>
-              )
-            )}
-            {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
-              <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50 text-gray-500">
-                    <tr>
-                      {s.columns.map((c, ci) => (
-                        <th key={ci} className="text-left font-medium px-2.5 py-1.5 whitespace-nowrap">{c}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.rows.map((r, ri) => (
-                      <tr key={ri} className="border-t border-gray-100">
-                        {(r?.cells || []).map((cell, ci) => (
-                          <td key={ci} className="px-2.5 py-1.5 text-gray-800 align-top">
-                            {editing ? (
-                              <input value={cell ?? ""} onChange={(e) => patch((d) => { d.sections[si].rows[ri].cells[ci] = e.target.value; })}
-                                className="w-full min-w-[5rem] border border-gray-200 rounded px-1 py-0.5 text-xs" />
-                            ) : cell}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {s.text != null && s.text !== "" && (
-              editing ? (
-                <textarea value={s.text} onChange={(e) => patch((d) => { d.sections[si].text = e.target.value; })}
-                  rows={4} className="w-full text-sm text-gray-800 border border-gray-200 rounded px-1.5 py-1" />
-              ) : (
-                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>
-              )
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* 쪽 고르기 — 원본 쪽 번호 그대로. 「전체」는 예전처럼 쭉 이어서 본다(인쇄·복사 전 확인용). */}
-      {pageList.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-gray-100">
-          <button onClick={() => pageStep(-1)} disabled={curPage === 0 || curPage === pageList[0]}
-            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="이전 쪽">
-            <ChevronLeft size={14} />
-          </button>
-          <div className="flex items-center gap-1 flex-wrap">
-            {pageList.map((p) => (
-              <button key={p} onClick={() => goPage(p)}
-                className={`min-w-[1.75rem] px-1.5 py-1 rounded-md border text-xs transition ${
-                  curPage === p ? "border-teal-700 bg-teal-700 text-white font-semibold"
-                               : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => pageStep(1)} disabled={curPage === 0 || curPage === pageList[pageList.length - 1]}
-            className="p-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30" aria-label="다음 쪽">
-            <ChevronRight size={14} />
-          </button>
-          <button onClick={() => goPage(curPage === 0 ? pageList[0] : 0)}
-            className={`ml-1 px-2 py-1 rounded-md border text-xs transition ${
-              curPage === 0 ? "border-teal-700 bg-teal-700 text-white font-semibold"
-                            : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
-            전체
-          </button>
-          <span className="text-[11px] text-gray-500 ml-auto">원본 {pageList.length}쪽</span>
-        </div>
-      )}
-
-      {/* 편집 모드: 용어 사전 등록(원문→대상언어). 다음 번역부터 반영 */}
-      {editing && (
-        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-end gap-2">
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-500 mb-0.5">{L.atGlossarySrc}</span>
-            <input value={gSrc} onChange={(e) => setGSrc(e.target.value)} placeholder={L.atGlossarySrcPh}
-              className="border border-gray-200 rounded px-1.5 py-1 text-xs w-40" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-500 mb-0.5">번역({langLabel})</span>
-            <input value={gTgt} onChange={(e) => setGTgt(e.target.value)} placeholder={L.atGlossaryTgtPh}
-              className="border border-gray-200 rounded px-1.5 py-1 text-xs w-48" />
-          </div>
-          <button onClick={submitGlossary} disabled={!gSrc.trim() || !gTgt.trim()}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition disabled:opacity-40">
-            {L.atGlossaryAdd}
-          </button>
-          {gDone && <span className="text-xs text-teal-700">{L.atGlossaryDone}</span>}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // 「어디서 왔나」 줄의 언어 표기 — 원어로 적어 어느 언어 코디가 봐도 통한다.
 // 사전 모듈을 가져오지 않는다: 이 여섯 줄 때문에 화면에 사전 뭉치를 딸려 보낼 이유가 없다.
@@ -886,99 +593,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setTimeout(() => setBulkDown(null), 1500);
   }
 
-  // 첨부 번역: 외국 검사지를 병원·환자 전달용으로 원문 1:1 번역(요약 아님, 숫자 보존). 출력 언어=ko/en/ru.
-  const [transLoadingKey, setTransLoadingKey] = useState(null); // `${path}::${lang}` 로딩중
-  const [translations, setTranslations] = useState({}); // `${path}::${lang}` -> { doc } | { error }
-  const [attLang, setAttLang] = useState({}); // path -> 선택 출력 언어(기본 ko)
-  const [copiedTransPath, setCopiedTransPath] = useState(null);
-  const [verifyResults, setVerifyResults] = useState({}); // key -> { loading } | { suspicious,... } | { error }
-  const tKey = (path, lg) => `${path}::${lg}`;
-  async function translateAttachment(path, name, lg, force = false) {
-    if (!path) return;
-    const key = tKey(path, lg);
-    setTransLoadingKey(key);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-      const res = await fetch("/api/attachments/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ path: cleanPath, name, lang: lg, force }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.ok && data.doc) {
-        setTranslations((prev) => ({ ...prev, [key]: { doc: data.doc } }));
-        setVerifyResults((prev) => { const n = { ...prev }; delete n[key]; return n; }); // 새 번역 → 낡은 검증 제거
-      } else {
-        setTranslations((prev) => ({ ...prev, [key]: { error: data.error || "translate_failed" } }));
-      }
-    } catch (e) {
-      console.error("[attachment] translate error:", e);
-      setTranslations((prev) => ({ ...prev, [key]: { error: "translate_failed" } }));
-    }
-    setTransLoadingKey(null);
-  }
-
-  // 숫자 되돌림검증: 번역표 숫자를 원본 독립판독과 대조 → 확인 필요 숫자.
-  async function verifyNumbers(path, name, key, doc) {
-    setVerifyResults((p) => ({ ...p, [key]: { loading: true } }));
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setVerifyResults((p) => ({ ...p, [key]: { error: "no_session" } })); return; }
-      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-      const res = await fetch("/api/attachments/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "verify", path: cleanPath, name, doc }),
-      });
-      const d = await res.json().catch(() => ({}));
-      setVerifyResults((p) => ({
-        ...p,
-        [key]: res.ok && d.ok ? { mismatches: d.mismatches || [] } : { error: d.error || "verify_failed" },
-      }));
-    } catch (e) {
-      console.error("[attachment] verify error:", e);
-      setVerifyResults((p) => ({ ...p, [key]: { error: "verify_failed" } }));
-    }
-  }
-
-  // 코디 수정본 저장 → 캐시(edited_doc)에 보존, 화면도 수정본으로 갱신.
-  async function saveEdit(path, lg, key, editedDoc) {
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-      const res = await fetch("/api/attachments/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "save", path: cleanPath, lang: lg, doc: editedDoc }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.ok) setTranslations((prev) => ({ ...prev, [key]: { doc: editedDoc } }));
-    } catch (e) {
-      console.error("[attachment] save error:", e);
-    }
-  }
-
-  // 학습 용어사전 등록(원문→대상언어). 다음 번역부터 프롬프트에 반영.
-  async function addGlossary(lg, src, target) {
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch("/api/attachments/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "glossary", src, [lg]: target }),
-      });
-    } catch (e) {
-      console.error("[attachment] glossary error:", e);
-    }
-  }
+  // 첨부 번역(원문 1:1, 요약 아님) — 상태·서버호출은 ./DocTranslate 로 뺐다.
+  //   「환자에게 보낼 서류」 칸도 같은 것을 쓴다(2026-09-10, 문의 #316). 복붙본을 만들지 말 것.
+  const tr = useDocTranslate();
 
   // 케이스 브리프(AI 초안) — 접수내용+문서를 AI가 정리. 저장 안 함(on-demand), 클릭 시 생성해 화면에만.
   const [brief, setBrief] = useState(null);
@@ -1005,26 +622,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setBriefError(true);
     }
     setBriefLoading(false);
-  }
-
-  // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
-  async function copyTranslation(key, doc) {
-    const lines = [`[${doc.docType}]`, ""];
-    for (const s of doc.sections || []) {
-      lines.push(`■ ${s.title || ""}`);
-      if (s.note) lines.push(s.note);
-      if (Array.isArray(s.columns) && Array.isArray(s.rows)) {
-        lines.push(s.columns.join("\t"));
-        for (const r of s.rows) lines.push((r?.cells || []).join("\t"));
-      }
-      if (s.text) lines.push(s.text);
-      lines.push("");
-    }
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setCopiedTransPath(key);
-      setTimeout(() => setCopiedTransPath(null), 2000);
-    } catch { /* clipboard 미지원 무시 */ }
   }
 
   // 종료(안 옴)·되돌리기 — 결과(outcome)만 코디 라우트로. 종료는 서버가 단계를 «보류»로 내린다(2026-09-06 PO).
@@ -1657,9 +1254,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
-              const curLang = attLang[path] || "ko";        // 선택된 출력 언어
-              const curKey = tKey(path, curLang);            // 현재 언어의 번역 캐시 키
-              const entry = translations[curKey];            // { doc } | { error } | undefined
               return (
                 <div
                   key={path || i}
@@ -1750,36 +1344,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       )}
                       {voiceNotes[path]?.loading ? "읽는 중…" : voiceNotes[path]?.data ? "다시 읽기" : "읽기"}
                     </button>
-                    {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
-                    <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label={L.atLangGroup}>
-                      {OUT_LANGS.map((o) => (
-                        <button
-                          key={o.key}
-                          type="button"
-                          onClick={() => setAttLang((prev) => ({ ...prev, [path]: o.key }))}
-                          className={`px-2 py-1.5 text-xs font-medium transition ${curLang === o.key ? "bg-teal-700 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-                          title={`${o.label} 로 번역`}
-                        >
-                          {o.label}
-                        </button>
-                      ))}
-                    </div>
-                    {/* 변환(병원·환자 전달용 원문 1:1 번역, 선택 언어로) */}
-                    <button
-                      onClick={() => translateAttachment(path, name, curLang, !!entry?.doc)}
-                      disabled={!path || transLoadingKey === curKey}
-                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
-                      title={L.atConvertTitle}
-                    >
-                      {transLoadingKey === curKey ? (
-                        <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Languages size={14} />
-                      )}
-                      <span className="hidden sm:inline">
-                        {entry?.doc ? L.atReconvert : L.atConvert}
-                      </span>
-                    </button>
+                    {/* 출력 언어 고르기(한/영/러) + 번역 — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
+                    <DocTranslateControls tr={tr} path={path} name={name} />
                     {/* 다운로드(원본 파일명으로 바로 저장) */}
                     <button
                       onClick={() => downloadAttachment(path, name)}
@@ -1928,33 +1494,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       </div>
                     );
                   })()}
-                  {/* 번역 결과 패널(선택 언어) */}
-                  {entry && (
+                  {/* 번역 결과 패널(선택 언어) — 화면은 ./DocTranslate 공용 부품 */}
+                  {tr.entryOf(path, tr.langOf(path)) && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
-                      {entry.error ? (
-                        <p className="text-sm text-amber-700">
-                          {entry.error === "unsupported_type"
-                            ? L.atErrFormat
-                            : entry.error === "file_too_large"
-                            ? L.atErrTooBig
-                            : entry.error === "too_long"
-                            ? L.atErrTooLong
-                            : L.atErrTranslate}
-                        </p>
-                      ) : (
-                        <TranslatedDocView
-                          key={curKey}
-                          doc={entry.doc}
-                          lang={curLang}
-                          copied={copiedTransPath === curKey}
-                          onCopy={() => copyTranslation(curKey, entry.doc)}
-                          onPdf={() => printTranslation(entry.doc, name, curLang, L.atErrPopup)}
-                          onVerify={() => verifyNumbers(path, name, curKey, entry.doc)}
-                          verify={verifyResults[curKey]}
-                          onSave={(edited) => saveEdit(path, curLang, curKey, edited)}
-                          onGlossary={(src, target) => addGlossary(curLang, src, target)}
-                        />
-                      )}
+                      <DocTranslateResult tr={tr} path={path} name={name} />
                     </div>
                   )}
                 </div>
