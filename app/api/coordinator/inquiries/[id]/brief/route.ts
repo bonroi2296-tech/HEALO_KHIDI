@@ -23,6 +23,23 @@ const BRIEF_FIELDS = [
   "coordinator_brief", "coordinator_brief_sig",
 ].join(",");
 
+// 「환자에게 보낼 서류」 칸(case_shared_documents)도 브리프가 읽어야 한다.
+// 왜: 칸 이름은 «우리가 보내는» 서류지만 실제로는 **병원이 외국어로 보내온 회신**이 여기 들어온다
+//     (문의 #316 이대 러시아어 견적서). 이걸 안 읽으면 브리프에 치료법·비용·체류기간이 통째로 빠진다.
+// 🔴 2026-09-10 실측: 코디가 견적서를 올린 뒤 브리프를 3분 사이 «세 번» 눌렀는데 갱신이 0이었다.
+//     briefSig 가 inquiries.attachments 만 봐서 「바뀐 게 없다」로 판정했기 때문이다(오류도 안 났다).
+async function loadSharedDocs(inquiryId: number): Promise<{ path: string; name: string; type: string }[]> {
+  const { data, error } = await supabaseAdmin
+    .from("case_shared_documents")
+    .select("storage_path, file_name, mime")
+    .eq("inquiry_id", inquiryId)
+    .order("shared_at", { ascending: true });
+  if (error || !Array.isArray(data)) return [];
+  return data
+    .filter((r: any) => r?.storage_path)
+    .map((r: any) => ({ path: String(r.storage_path), name: String(r.file_name || ""), type: String(r.mime || "") }));
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -72,9 +89,18 @@ export async function POST(
       console.error("[coordinator/brief] decrypt error:", e?.message);
     }
 
+    // 환자가 낸 자료 + 병원이 보내온 회신을 «같이» 읽힌다. 회신은 출처를 알 수 있게 이름 앞에 표시를 붙인다
+    // (모델이 「환자 자료」와 「병원 답변」을 섞어 읽으면 누가 한 말인지 뒤집힌다).
+    const ownAtt = Array.isArray(inquiry?.attachments) ? inquiry.attachments : [];
+    const sharedDocs = await loadSharedDocs(Number(id));
+    const allAtt = [
+      ...ownAtt,
+      ...sharedDocs.map((d) => ({ ...d, name: `[병원 회신] ${d.name}` })),
+    ];
+
     const result = await generateCaseBrief({
       inquiry,
-      attachments: Array.isArray(inquiry?.attachments) ? inquiry.attachments : [],
+      attachments: allAtt,
       lang,
     });
 
@@ -90,7 +116,7 @@ export async function POST(
         const prev = (data as any)?.coordinator_brief;
         const prevSig = (data as any)?.coordinator_brief_sig || "";
         // 첨부가 바뀌었으면 옛 언어 것도 낡았다 → 새로 시작(다음 열람 때 각 언어가 다시 만들어진다).
-        if (prev && prevSig === briefSig(inquiry?.attachments || [], (inquiry as any)?.follow_ups)) {
+        if (prev && prevSig === briefSig(allAtt, (inquiry as any)?.follow_ups)) {
           const dec = decryptStringNullable(prev);
           if (dec) map = readBriefMap(JSON.parse(dec));
         }
@@ -102,7 +128,7 @@ export async function POST(
       // 새 컬럼(coordinator_brief*)은 생성 타입(database.types)에 아직 없어 as any 로 우회(마이그레이션은 적용됨).
       await supabaseAdmin
         .from("inquiries")
-        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || [], (inquiry as any)?.follow_ups) } as any)
+        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(allAtt, (inquiry as any)?.follow_ups) } as any)
         .eq("id", Number(id));
     } catch (e: any) {
       console.error("[coordinator/brief] cache write error:", e?.message);

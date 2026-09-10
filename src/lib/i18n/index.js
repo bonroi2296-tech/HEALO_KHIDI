@@ -28,6 +28,26 @@ function dictOf(lang) {
   return DICTIONARY[lang] || DICTIONARY.en;
 }
 
+/**
+ * 브라우저 사전을 심는다 — 인라인 <script> 가 실행되지 못한 화면을 위한 보완 경로.
+ *
+ * 보통 화면은 layout 이 <head> 에 넣은 인라인 <script> 가 React 보다 먼저 window.__I18N__ 을
+ * 채운다. 그런데 라우트 안에서 notFound() 가 불린 404 는 Next 가 레이아웃을 브라우저에서 다시
+ * 그리고, 그때 React 는 인라인 <script> 를 실행하지 않는다 → 사전이 비어 t() 가 키를 그대로
+ * 그렸다(2026-09-10 실서비스 실측: 푸터에 「footer.tagline」·「nav.about」). 부르는 곳은
+ * app/_components/I18nDict.jsx 이고, 왜 거기여야 하는지는 그 파일 주석에 있다.
+ *
+ * 이미 심겨 있으면 아무 일도 하지 않는다 → 보통 화면에는 영향이 없다.
+ */
+export function applyClientDict(json) {
+  if (!IS_BROWSER || window.__I18N__ || !json) return;
+  try {
+    window.__I18N__ = JSON.parse(json);
+  } catch {
+    // 사전이 깨져도 화면은 떠야 한다 — t() 가 키·영어로 폴백한다.
+  }
+}
+
 /** 최후 폴백 사전(서버=en 원본, 브라우저=이 페이지 언어의 완성본). */
 function fallbackDict() {
   if (IS_BROWSER) {

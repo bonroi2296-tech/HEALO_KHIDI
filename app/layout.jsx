@@ -6,10 +6,13 @@ import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, ogLocaleFields, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
+import { BRAND_ALIASES, BRAND_NAME_FORMS } from "@/lib/seo/brandAliases";
+import { ALL_CANCER_SEARCH_TERMS, ALL_MEASURED_ENTRY_TERMS } from "@/lib/seo/cancerSearchTerms";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
-import { i18nInlineScript } from "@/lib/i18n/inlineScript";
+import { i18nDictJson } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
+import I18nDict from "./_components/I18nDict";
 import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
 
 // 테넌트가 healwith 인가 — 아니면 브랜드 고유 정보(한글 병기·구조화데이터·SNS)를 내보내지 않는다.
@@ -60,8 +63,10 @@ const baseMetadata = {
     ? "healwith(힐위드) — Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up."
     : `${BRAND_EN} — Korean cancer care for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.`,
   keywords: [
-    // 브랜드 (고유어) — 한글 병기는 healwith 전용(네이버 한글 브랜드 검색 대응).
-    ...(IS_DEFAULT_TENANT ? ["healwith", "힐위드"] : [BRAND_EN, tenantBrandName("ko")]),
+    // 브랜드 (고유어) — 「힐위드」·「Хилвиз」처럼 «다르게 적어 검색하는 사람»까지 받는다.
+    //   목록의 단일 출처 = src/lib/seo/brandAliases.js (왜 그 철자들인지도 거기 적혀 있다).
+    //   화이트라벨 테넌트는 자기 이름만 — 남의 브랜드 별칭을 달면 안 된다.
+    ...(IS_DEFAULT_TENANT ? BRAND_NAME_FORMS : [BRAND_EN, tenantBrandName("ko")]),
     // 영어
     "Korea cancer treatment",
     "Korean oncology specialist",
@@ -70,6 +75,13 @@ const baseMetadata = {
     "telemedicine Korea oncology",
     "medical tourism cancer Korea",
     "second opinion Korea oncologist",
+    // 암종별 검색어(러·카자흐) — 일반어보다 전환이 높다. 단일 출처 = src/lib/seo/cancerSearchTerms.js.
+    //   여기에 손으로 베끼지 마라: 암종이 추가되면 그 파일만 채우면 이 줄이 저절로 따라온다.
+    ...(IS_DEFAULT_TENANT ? ALL_CANCER_SEARCH_TERMS : []),
+    // 실측으로 «실제 들어온 것이 확인된» 검색어(2026-09-10 얀덱스·구글). 위 줄과 격이 다르다.
+    //   ⚠️ 여기 넣는 것만으로 순위가 오르지 않는다 — 바로 아래 «лечение рака в Корее» 가
+    //   6월부터 들어 있는데 구글 실측 평균순위 100위다. 순위는 제목·설명·본문이 움직인다.
+    ...(IS_DEFAULT_TENANT ? ALL_MEASURED_ENTRY_TERMS : []),
     // 러시아어 (카자흐·러시아 검색 타겟)
     "лечение рака в Корее",
     "онкология Южная Корея",
@@ -254,8 +266,11 @@ export default async function RootLayout({ children }) {
             같은 조건 3안 비교(로컬 프로덕션 빌드, Lighthouse 모바일 3회, FCP 시뮬):
               외부파일 3894~3942ms / 사전 없음(대조군) 1226~3284ms / 인라인 2440~2482ms.
             인라인이 외부파일보다 FCP 약 1.45초 빠르고 성능 점수도 3~4점 높았다.
-            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것. */}
-        <script dangerouslySetInnerHTML={{ __html: i18nInlineScript(clientLangs, lang) }} />
+            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것.
+
+            ⚠️ 404 처럼 «브라우저에서만 그려지는» 화면에서는 이 인라인 <script> 가 실행되지 않는다
+            → 같은 사전을 렌더 도중에도 심는 I18nDict 로 감쌌다(이유는 그 파일 주석에). */}
+        <I18nDict json={i18nDictJson(clientLangs, lang)} />
         {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭
             ⚠️ 다른 테넌트에서는 **통째로 내보내지 않는다.** 여기 담긴 법인명·주소·SNS 계정은 healwith 것이라
                병원 이름만 갈아끼우면 «사실이 아닌 관계»를 기계가 사실로 받는다(2026-07-28 #1122 에서 고친 부류).
@@ -271,7 +286,8 @@ export default async function RootLayout({ children }) {
                   "@type": "WebSite",
                   "@id": "https://healwith.co.kr/#website",
                   name: "healwith",
-                  alternateName: ["힐위드", "Healwith"],
+                  // 「사람들이 이렇게도 부른다」 칸. 우리가 쓰는 표기가 아니다 — brandAliases.js 머리말 참조.
+                  alternateName: BRAND_ALIASES,
                   url: "https://healwith.co.kr",
                   inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
                   publisher: { "@id": "https://healwith.co.kr/#organization" },
@@ -280,7 +296,8 @@ export default async function RootLayout({ children }) {
                   "@type": "Organization",
                   "@id": "https://healwith.co.kr/#organization",
                   name: "healwith",
-                  alternateName: ["힐위드", "Healwith"],
+                  // 동명이인 구별과 별개다: 이건 «같은 회사를 다르게 적은 것»을 구글에 알리는 칸.
+                  alternateName: BRAND_ALIASES,
                   url: "https://healwith.co.kr",
                   logo: "https://healwith.co.kr/icons/icon-512x512.png",
                   // 동명이인(healwith.com 홍콩 등)과 구별시키는 엔티티 명세. 구글이 "healwith=이 회사"로 못박게.

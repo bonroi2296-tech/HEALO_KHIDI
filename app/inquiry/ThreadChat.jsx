@@ -9,6 +9,7 @@ import { isNativeApp } from "@/lib/isNativeApp";
 import { event, GA_EVENTS } from "@/lib/ga";
 import { uploadAttachment, MAX_ATTACHMENT_MB } from "@/lib/uploadAttachment";
 import { describeUpload, UPLOAD_POLICY } from "@/lib/uploadPolicy";
+import { kstDate } from "@/lib/datetime/kst";
 
 // GA 발화는 어떤 경우에도 화면 동작을 막지 않는다(추적이 기능을 깨뜨리면 안 됨).
 const ga = (name, params) => { try { event(name, params); } catch {} };
@@ -23,7 +24,7 @@ const STALE_SESSION_MS = 24 * 60 * 60 * 1000;
 function formatWhen(iso) {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return kstDate(iso, undefined, { month: "short", day: "numeric" });
   } catch {
     return "";
   }

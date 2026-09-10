@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 // _stage_check)이 받는 값과 «같아야» 한다. 여기 없는 값을 보내면 자동 범위가 안 잡힌다.
 // 표시 문구는 비용 계산기와 같은 사전 키(costCalc.cancers.*)를 그대로 쓴다(중복 번역 방지).
 import { SURGERY_RANGES, SOURCE_DATE } from "@/lib/costs/surgeryRanges";
+import { kstDate } from "@/lib/datetime/kst";
 
 const CANCER_OPTIONS = [
   { value: "stomach", labelKey: "costCalc.cancers.stomach" },
@@ -272,7 +273,7 @@ export default function CostEstimatesListClient() {
                       <p className="text-sm text-gray-500 mt-1">{t("costList.noRange", lang)}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-2">
-                      {t("costList.createdPrefix", lang)} {new Date(est.created_at).toLocaleDateString(dateLocale)}
+                      {t("costList.createdPrefix", lang)} {kstDate(est.created_at, dateLocale)}
                     </p>
                   </div>
                   <span className="text-gray-500 text-sm">→</span>

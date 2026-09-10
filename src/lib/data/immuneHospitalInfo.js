@@ -122,7 +122,7 @@ export const IMMUNE_HOSPITAL = {
       },
       director: {
         name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "Hwang I-jun 代表院长", ja: "ファン・イジュン 代表院長" },
-        photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
+        photo: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png",
       },
       url: "https://immunehospital.com/",
     },
@@ -621,7 +621,7 @@ export const IMMUNE_HOSPITAL = {
       name: { ko: "황이준", en: "Hwang Yi-jun", ru: "Хван Иджун", kz: "Хван Иджун", zh: "Hwang Yi-jun", ja: "ファン・イジュン" },
       role: { ko: "대표원장", en: "Chief Director", ru: "Главный директор", kz: "Бас директор", zh: "代表院长", ja: "代表院長" },
       specialty: { ko: "통합면역 대표원장", en: "Integrative Immunology · Chief Director", ru: "Интегративная иммунология · Главный директор", kz: "Интегративті иммунология · Бас директор", zh: "综合免疫 · 代表院长", ja: "統合免疫 · 代表院長" },
-      photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
+      photo: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png",
       branch: "magok",
     },
     {

@@ -76,6 +76,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         name: r.file_name,
         title: r.title,
         lang: r.lang,
+        // 번역 창구(/api/attachments/translate)가 저장소 경로로 파일을 찾는다.
+        // staff 전용 응답이고 바로 아래 서명 주소도 같이 내려주는 칸이라 새로 여는 문이 아니다.
+        path: r.storage_path,
         mime: r.mime,
         size: r.size_bytes,
         note: r.note,

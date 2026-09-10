@@ -6,12 +6,12 @@ import Link from 'next/link';
 import { useLang } from '@/lib/i18n/LangContext';
 import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { kstDate } from '@/lib/datetime/kst';
 import { scrollBehavior } from '@/lib/a11y/prefersReducedMotion';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
   Upload, ChevronRight, AlertCircle, User, Phone, ArrowRight,
 } from 'lucide-react';
+import { kstDate } from '@/lib/datetime/kst';
 
 const MENU_ITEMS = [
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
@@ -216,7 +216,7 @@ export default function PatientDashboardClient() {
                     <div>
                       <div className="font-medium text-sm">{cancer}</div>
                       <div className="text-xs text-gray-500">
-                        {q.created_at ? new Date(q.created_at).toLocaleDateString(dateLocale(lang)) : '-'}
+                        {q.created_at ? kstDate(q.created_at, dateLocale(lang)) : '-'}
                       </div>
                     </div>
                   </div>

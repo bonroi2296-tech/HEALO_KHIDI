@@ -56,7 +56,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "translate") {
-      const result = await translateMedicalDoc({ path: path!, name, lang, force: body?.force === true });
+      // mimeType: 업로드 때 서버가 magic-byte 까지 검증해 저장해 둔 형식(화면이 그대로 되돌려준다).
+      //   파일명에 확장자가 없으면 이름 추정이 실패한다 — 그때 이 값이 유일한 단서다.
+      //   못 믿을 값이어도 위험하지 않다: 형식이 틀리면 모델이 못 읽고 502 로 끝난다(staff 전용 창구).
+      const mimeType = typeof body?.mimeType === "string" ? body.mimeType : null;
+      const result = await translateMedicalDoc({ path: path!, name, mimeType, lang, force: body?.force === true });
       if (!result.ok) {
         const status = result.error === "unsupported_type" ? 415 : 502;
         return Response.json({ ok: false, error: result.error }, { status });
