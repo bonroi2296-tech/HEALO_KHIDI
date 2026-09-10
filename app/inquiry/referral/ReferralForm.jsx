@@ -421,10 +421,22 @@ export default function ReferralForm() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700">
               <Check size={22} className="text-white" strokeWidth={3} />
             </div>
-            <h1 className="mt-4 text-2xl font-bold text-gray-900">{tr("doneTitle", lang)}</h1>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600 md:text-base">{tr("doneBody", lang)}</p>
+            {/* 같은 이메일로 다시 보내면 서버가 새 건을 만들지 않고 원래 건에 자료만 더한다.
+                그때는 「접수되었습니다」가 아니라 «이미 있다»고 말해야 한다 — 2026-09-08 에 한 분이
+                25분 동안 네 번 보냈는데, 매번 똑같은 완료 화면이 떠서 보내진 줄 몰랐다. */}
+            <h1 className="mt-4 text-2xl font-bold text-gray-900">
+              {tr(sent.alreadyReceived ? "againTitle" : "doneTitle", lang)}
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600 md:text-base">
+              {tr(sent.alreadyReceived ? "againBody" : "doneBody", lang)}
+            </p>
             <p className="mt-5 text-sm text-gray-600">
               {tr("doneNo", lang)} <span data-testid="inquiry-no" className="font-bold text-gray-900 tabular-nums">#{sent.inquiryId}</span>
+              {sent.alreadyReceived && sent.addedAttachments > 0 && (
+                <span className="ml-2 text-gray-500">
+                  · {tr("againAdded", lang, { n: sent.addedAttachments })}
+                </span>
+              )}
             </p>
             {/* 주소는 서버가 만든 걸 그대로 쓴다 — 화면에서 조립하면 실제 경로와 어긋난다
                 (2026-08-14: 「/t/」로 지어냈는데 진짜는 「/claim/」이었다). */}

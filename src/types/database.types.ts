@@ -3098,6 +3098,7 @@ export type Database = {
           cancer_type: string | null
           case_status: string | null
           case_status_note: string | null
+          contact_key: string | null
           case_status_updated_at: string | null
           case_substeps: Json | null
           contact_id: string | null
@@ -3171,6 +3172,7 @@ export type Database = {
           cancer_type?: string | null
           case_status?: string | null
           case_status_note?: string | null
+          contact_key?: string | null
           case_status_updated_at?: string | null
           case_substeps?: Json | null
           contact_id?: string | null
@@ -3244,6 +3246,7 @@ export type Database = {
           cancer_type?: string | null
           case_status?: string | null
           case_status_note?: string | null
+          contact_key?: string | null
           case_status_updated_at?: string | null
           case_substeps?: Json | null
           contact_id?: string | null

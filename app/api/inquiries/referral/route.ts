@@ -36,6 +36,7 @@ import { trackingUrl, toTrackingLang } from "@/lib/inquiry/trackingLink";
 import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
 import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, normalizeDocDate, Schema } from "@/lib/inquiry/referralSubmit";
+import { contactKey, RECENT_INQUIRY_WINDOW_HOURS } from "@/lib/inquiry/contactKey";
 
 // 🛑 스키마는 여기 두지 마라 — App Router 라우트 파일은 정해진 이름(POST·runtime …)만
 //    내보낼 수 있어서, 시험이 부르라고 export 를 붙이면 «tsc 는 통과하는데 빌드가 깨진다»
@@ -160,9 +161,79 @@ export async function POST(request: NextRequest) {
       _filledFromDocs: pickFilledFromDocs(d.autoFilled, d),
     };
 
+    // 첨부 목록 — 새 건에도 쓰고, 재접수 합치기에도 쓴다(한 자리에서 만든다).
+    // 🛑 경로 없는 항목(올리다 만 것·너무 커서 못 올린 것)은 첨부가 아니다 — 넣으면 코디 화면에
+    //    «있는데 못 여는 서류»가 생긴다(독립 리뷰). 링크로 대신한 건 intake_data.envelope 에 남는다.
+    const newAttachments: { path: string | null; name: string | null; kind: string; docDate?: string | null }[] = [
+      // docDate 는 코디 화면이 «검사일 순»으로 세우는 기준이다(없으면 이름순으로 주저앉는다).
+      ...intakeData.envelope
+        .filter((f) => !!f.path)
+        .map((f) => ({ path: f.path, name: f.name, kind: f.kind, docDate: f.docDate ?? null })),
+      // CD 묶음(zip)도 첨부다 — 여기 넣어야 코디 첨부 카드에서 열린다
+      ...(intakeData.cdFolder?.path
+        ? [{ path: intakeData.cdFolder.path, name: d.cdFolder?.name || "CD.zip", kind: "imaging_file" }]
+        : []),
+    ];
+
+    // ── 재접수인가: 같은 이메일로 최근에 이미 보냈나 ──────────────────────────
+    // 2026-09-08 실사고: 한 분이 25분 동안 네 번 보냈다. 화면에 접수번호가 떴는데도
+    // 확신하지 못하고 다시 보낸 것이다. 코디 화면엔 세 명처럼 섰고 메일도 세 통 나갔다.
+    // → 새 건을 만들지 않고 «이미 있는 건»에 자료를 더한 뒤, 그 번호를 그대로 돌려준다.
+    const ckey = contactKey(d.email);
+    type PrevInquiry = { id: number; public_token: string | null; attachments: unknown };
+    let existing: PrevInquiry | null = null;
+    if (ckey) {
+      const since = new Date(Date.now() - RECENT_INQUIRY_WINDOW_HOURS * 3600_000).toISOString();
+      const { data: prev } = await supabaseAdmin
+        .from("inquiries")
+        .select("id, public_token, attachments")
+        .eq("contact_key", ckey)
+        .gte("created_at", since)
+        // 🛑 이미 «종료»로 정리된 건에는 붙이지 마라 — 코디가 닫은 것을 되살리게 된다.
+        .is("outcome", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      existing = (prev as unknown as PrevInquiry | null) ?? null;
+    }
+
+    if (existing) {
+      // 새로 올라온 첨부만 더한다(경로가 같으면 같은 파일이라 안 더한다).
+      const before = Array.isArray(existing.attachments) ? (existing.attachments as any[]) : [];
+      const seen = new Set(before.map((a) => String(a?.path || "")));
+      const added = newAttachments.filter((a) => a.path && !seen.has(String(a.path)));
+
+      const { error: mergeErr } = await supabaseAdmin
+        .from("inquiries")
+        .update({
+          attachments: [...before, ...added],
+          // 사람이 다시 보냈다는 사실 자체를 남긴다 — 코디가 «왜 자료가 늘었나»를 알 수 있게.
+          case_status_note: `${new Date().toISOString().slice(0, 16).replace("T", " ")} 같은 이메일로 다시 접수하셔서 이 건에 합쳤습니다(자료 ${added.length}건 추가).`,
+        })
+        .eq("id", existing.id);
+      if (mergeErr) {
+        console.error("[/api/inquiries/referral] merge error:", mergeErr.message);
+        return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
+      }
+
+      console.log(`[/api/inquiries/referral] 재접수 합침 → #${existing.id} (자료 +${added.length})`);
+      // 🛑 코디 알림·접수확인 메일을 다시 보내지 마라 — 이번 사고에서 메일이 세 통 나갔다.
+      //    화면은 «이미 접수됨»으로 안내하고, 자료가 늘어난 것은 위 메모로 코디가 본다.
+      return Response.json({
+        ok: true,
+        inquiryId: existing.id,
+        alreadyReceived: true,
+        addedAttachments: added.length,
+        trackUrl: existing.public_token
+          ? trackingUrl(siteUrl(), existing.public_token, toTrackingLang(d.patientLang))
+          : null,
+      });
+    }
+
     const { data: row, error: insertError } = await supabaseAdmin
       .from("inquiries")
       .insert({
+        contact_key: ckey,
         first_name: encryptString(d.firstName),
         last_name: enc(d.lastName),
         email: encryptString(d.email),
@@ -176,16 +247,7 @@ export async function POST(request: NextRequest) {
         // 🛑 기본을 true 로 두지 마라 — 환자가 「날짜는 조율 가능합니다」를 안 눌렀는데 코디 화면에
         //    「(조율 가능)」이 붙는다(2026-08-19 실측 #119). 안 눌렀으면 아니오다.
         preferred_date_flex: d.dateFlexible === true,
-        // 🛑 경로 없는 항목(올리다 만 것·너무 커서 못 올린 것)은 첨부가 아니다 — 넣으면 코디 화면에
-        //    «있는데 못 여는 서류»가 생긴다(독립 리뷰). 링크로 대신한 건 intake_data.envelope 에 남는다.
-        attachments: [
-          // docDate 는 코디 화면이 «검사일 순»으로 세우는 기준이다(없으면 이름순으로 주저앉는다).
-          ...intakeData.envelope
-            .filter((f) => !!f.path)
-            .map((f) => ({ path: f.path, name: f.name, kind: f.kind, docDate: f.docDate ?? null })),
-          // CD 묶음(zip)도 첨부다 — 여기 넣어야 코디 첨부 카드에서 열린다
-          ...(intakeData.cdFolder?.path ? [{ path: intakeData.cdFolder.path, name: d.cdFolder?.name || "CD.zip", kind: "imaging_file" }] : []),
-        ],
+        attachments: newAttachments,
         intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt },
         intake_data: intakeData,
         intake_step: d.mode === "quick" ? "referral_quick" : "referral_full",
