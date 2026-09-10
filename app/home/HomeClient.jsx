@@ -90,7 +90,7 @@ const iconOf = (name) => ICON_MAP[name] || Stethoscope;
 // 문구(이름·직함·전문분야)는 HOME_CONTENT.doctors.items — 코디 콘텐츠 편집기에서 수정.
 // 여기엔 사진 등 비문구 메타만 (HOME_CONTENT.doctors.items 와 순서 일치 필수).
 const DOCTORS_META = [
-  { img: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
+  { img: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png" },
   { img: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
   { img: "/immune/doctor/gwangmyeong-dr-bae-giljun.png" },
   { img: "/immune/doctor/seongdong-dr-kang-juan.png" },
