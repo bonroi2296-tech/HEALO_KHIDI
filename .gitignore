@@ -220,3 +220,6 @@ android/app/src/debug/
 #       `cases.json`·`my-cases.json` 이 «안 걸렸다». 도구 사용법이 `--cases <파일>` 이라 이름은 뭐든 온다.
 *cases*.json
 *patients*.json
+
+# 개인 권한 설정 — 저장소에 올리지 않는다
+.claude/settings.local.json
