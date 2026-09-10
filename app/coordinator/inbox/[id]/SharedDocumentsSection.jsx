@@ -50,6 +50,11 @@ const ERR = {
 // 번역 가능한 형식(그림처럼 읽거나 글자를 뽑을 수 있는 것). 옛 .doc 는 둘 다 안 된다.
 // ⚠️ 진짜 판정은 서버(src/lib/documents/translateDoc.ts)가 한다 — 여기선 단추를 흐리게 할 뿐이다.
 const TRANSLATABLE_RE = /\.(pdf|docx|jpe?g|png|webp|gif)$/i;
+const TRANSLATABLE_MIME = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+]);
 
 export default function SharedDocumentsSection({ inquiryId }) {
   const [loading, setLoading] = useState(true);
@@ -210,7 +215,10 @@ function DocRow({ doc, tr, busy, onPatch, onRemove }) {
   };
 
   // 경로가 없으면(옛 응답) 번역 창구를 부를 수 없다 → 단추를 아예 안 띄운다.
-  const canTranslate = !!doc.path && TRANSLATABLE_RE.test(doc.name || "");
+  // 형식 판정은 «업로드 때 서버가 검증해 저장한 mime» 을 먼저 본다 — 파일명에 확장자가 없거나
+  // 이름이 300자 잘림에 걸려 확장자가 날아간 PDF 를 「번역 불가」로 오판하지 않게. 없으면 확장자로.
+  const readableFormat = doc.mime ? TRANSLATABLE_MIME.has(doc.mime) : TRANSLATABLE_RE.test(doc.name || "");
+  const canTranslate = !!doc.path && readableFormat;
 
   return (
     // data-attachment-card: 번역 화면이 쪽을 넘길 때 «줄 통째»로 스크롤해 올릴 자리 표시(첨부 칸과 동일).
@@ -272,11 +280,17 @@ function DocRow({ doc, tr, busy, onPatch, onRemove }) {
             첨부 칸과 «같은» 부품·같은 서버 창구를 쓴다(./DocTranslate). */}
         {canTranslate ? (
           <span className="ml-auto flex items-center gap-1.5">
-            <DocTranslateControls tr={tr} path={doc.path} name={doc.name} />
+            {/* 왼쪽 select 는 «환자에게 보일 서류의 언어»(DB 에 저장), 여기는 «내가 읽을 언어»(화면 전용).
+                한 줄에 언어 고르는 곳이 둘이라 이름표 없이는 헷갈린다 — 러시아어 서류를 한글로 읽으려다
+                왼쪽을 건드리면 환자 화면 분류가 조용히 바뀐다. */}
+            <span className="text-gray-500">읽기</span>
+            <DocTranslateControls tr={tr} path={doc.path} name={doc.name} mime={doc.mime} />
           </span>
-        ) : (
-          <span className="ml-auto text-[11px] text-gray-500" title="이 형식은 기계가 글자를 못 뽑습니다 — 원본을 직접 열어보세요">
-            번역 불가 형식
+        ) : readableFormat ? null : (
+          /* 형식 때문에 못 읽는 경우만 이유를 밝힌다. 경로가 없어서 못 부르는 건 형식 탓이 아니라
+             그걸 「번역 불가 형식」이라 적으면 거짓말이 된다 — 그때는 아무것도 안 그린다. */
+          <span className="ml-auto text-[11px] text-gray-500">
+            번역 불가 형식 — 기계가 글자를 못 뽑습니다. 원본을 직접 열어보세요
           </span>
         )}
       </div>
