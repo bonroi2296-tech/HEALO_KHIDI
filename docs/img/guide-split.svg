@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" role="img" aria-label="담당자가 하는 세 가지와 AI가 알아서 하는 나머지 비교">
+<rect width="360" height="300" fill="#ffffff"/>
+<text x="16" y="24" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">담당자가 하는 건 3가지. 나머지는 AI 몫입니다</text>
+
+<rect x="14" y="40" width="164" height="228" rx="12" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+<text x="96" y="62" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="12" font-weight="700" fill="#0f766e" text-anchor="middle">당신이 하는 것</text>
+<text x="96" y="78" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280" text-anchor="middle">3가지</text>
+<rect x="26" y="94" width="140" height="54" rx="8" fill="#ffffff" stroke="#0f766e"/>
+<circle cx="42" cy="112" r="9" fill="#0f766e"/><text x="42" y="116" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+<text x="58" y="116" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#1f2937">일을 시킨다</text>
+<text x="58" y="132" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="9.5" fill="#6b7280">“메일이 안 온대.</text>
+<text x="58" y="144" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="9.5" fill="#6b7280">원인 찾아 고쳐줘”</text>
+<rect x="26" y="158" width="140" height="55" rx="8" fill="#ffffff" stroke="#0f766e"/>
+<circle cx="42" cy="176" r="9" fill="#0f766e"/><text x="42" y="180" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+<text x="58" y="180" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#1f2937">승인창이 뜨면</text>
+<text x="58" y="193" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#1f2937">대표님께</text>
+<text x="58" y="209" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="9.5" fill="#6b7280">돈·삭제·보안</text>
+<rect x="26" y="223" width="140" height="55" rx="8" fill="#ffffff" stroke="#0f766e"/>
+<circle cx="42" cy="241" r="9" fill="#0f766e"/><text x="42" y="245" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+<text x="58" y="245" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#1f2937">끝낼 때</text>
+<text x="58" y="258" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#1f2937">/handoff</text>
+<text x="58" y="274" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="9.5" fill="#6b7280">한 번만</text>
+<rect x="190" y="40" width="156" height="228" rx="12" fill="#f9fafb" stroke="#d1d5db"/>
+<text x="268" y="62" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="12" font-weight="700" fill="#6b7280" text-anchor="middle">AI 가 알아서 하는 것</text>
+<text x="268" y="78" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280" text-anchor="middle">21가지 — 안 읽어도 됩니다</text>
+<text x="204" y="98" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 쉬운 말로 답하기</text>
+<text x="204" y="112" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 판정부터 말하기</text>
+<text x="204" y="126" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 확인 못 한 것 밝히기</text>
+<text x="204" y="140" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 화면 사진 보여주기</text>
+<text x="204" y="154" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 그림으로 설명하기</text>
+<text x="204" y="168" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 실제로 눌러보고 확인</text>
+<text x="204" y="182" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 폰 화면 재보기</text>
+<text x="204" y="196" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 실서비스 나간 시각 적기</text>
+<text x="204" y="210" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 다른 세션과 중복 확인</text>
+<text x="204" y="224" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 로봇 알림 걸러내기</text>
+<text x="204" y="238" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 버그 재발방지까지</text>
+<text x="204" y="252" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· … 그 외 10가지</text>
+<text x="268" y="286" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#0f766e" text-anchor="middle">안 지키면 AI 잘못입니다</text>
+</svg>
