@@ -275,7 +275,7 @@ function DocRow({ doc, tr, busy, onPatch, onRemove }) {
             <DocTranslateControls tr={tr} path={doc.path} name={doc.name} />
           </span>
         ) : (
-          <span className="ml-auto text-[11px] text-gray-400" title="이 형식은 기계가 글자를 못 뽑습니다 — 원본을 직접 열어보세요">
+          <span className="ml-auto text-[11px] text-gray-500" title="이 형식은 기계가 글자를 못 뽑습니다 — 원본을 직접 열어보세요">
             번역 불가 형식
           </span>
         )}
