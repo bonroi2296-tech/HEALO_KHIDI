@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 356" role="img" aria-label="고쳤다에서 실서비스까지 4단계와 각 단계에서 누가 볼 수 있는지">
+<rect width="360" height="356" fill="#ffffff"/>
+<text x="16" y="24" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">「고쳤다」와 「손님이 본다」는 4단계 차이</text>
+<line x1="28" y1="46" x2="28" y2="300" stroke="#d1d5db" stroke-width="2"/>
+<rect x="44" y="46" width="300" height="58" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+<circle cx="28" cy="75" r="13" fill="#6b7280"/>
+<text x="28" y="80" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+<text x="58" y="69" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">고쳤다</text>
+<text x="58" y="86" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" fill="#6b7280">AI 작업 공간에서 파일만 고침</text>
+<text x="332" y="98" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#6b7280" text-anchor="end">아무도 못 봄</text>
+<polygon points="28,108 24,101 32,101" fill="#d1d5db"/>
+<rect x="44" y="116" width="300" height="58" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+<circle cx="28" cy="145" r="13" fill="#6b7280"/>
+<text x="28" y="150" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+<text x="58" y="139" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">신청서 냈다</text>
+<text x="58" y="156" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" fill="#6b7280">합치기 신청서(PR) → 자동 검사</text>
+<text x="332" y="168" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#6b7280" text-anchor="end">아무도 못 봄</text>
+<polygon points="28,178 24,171 32,171" fill="#d1d5db"/>
+<rect x="44" y="186" width="300" height="58" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+<circle cx="28" cy="215" r="13" fill="#6b7280"/>
+<text x="28" y="220" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+<text x="58" y="209" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">본판에 합쳤다</text>
+<text x="58" y="226" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" fill="#6b7280">main 에 들어감</text>
+<text x="332" y="238" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#b45309" text-anchor="end">아직 손님은 못 봄</text>
+<polygon points="28,248 24,241 32,241" fill="#d1d5db"/>
+<rect x="44" y="256" width="300" height="58" rx="9" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+<circle cx="28" cy="285" r="13" fill="#0f766e"/>
+<text x="28" y="290" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+<text x="58" y="279" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">실서비스에 나갔다</text>
+<text x="58" y="296" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" fill="#6b7280">오후 3시 창구가 그날 것 전부</text>
+<text x="332" y="308" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#0f766e" text-anchor="end">손님이 봅니다</text>
+<rect x="44" y="316" width="300" height="30" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-dasharray="4 3"/>
+<text x="194" y="335" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11" font-weight="700" fill="#0f766e" text-anchor="middle">③ → ④ 는 매일 오후 3시(한국시간) 한 번만</text>
+</svg>
