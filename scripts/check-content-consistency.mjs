@@ -294,17 +294,28 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     if (isPatientApp && HANGUL_JSX_TEXT.test(line) && !NATIVE_COUNTRY_OPTION.test(line)) {
       errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);
     }
-    // ── 1e) scheduled_at 을 timeZone 없이 화면표시 차단 (#45·#69 부류: UTC로 샘) ──────
-    // scheduled_at 을 toLocale*String 으로 찍는데 Asia/Seoul 이 없으면 뷰어 tz(서버=UTC)로 렌더돼
-    // 알마티 환자가 예약시각을 4시간 밀려 보고 상담을 놓친다. 예약시각은 항상 KST 표시가 계약.
+    // ── 1e) 환자·공개 화면에서 «날짜/시각»을 timeZone 없이 찍는 것 차단 (#45·#69 부류) ──────
+    // 서버는 UTC 로 저장한다. Asia/Seoul 을 안 붙이면 뷰어 브라우저 시간대로 렌더돼
+    // 알마티(UTC+5) 환자가 시각을 4시간 밀려 보고, 자정 근처엔 **날짜가 하루 밀린다**.
+    // #69 가 정확히 그것이었다 — 「화상 사전상담 놓침」. 우리 계약은 언제나 KST 표시다.
     // → src/lib/datetime/kst.js 의 kstDate/kstTime/kstDateTime 를 쓸 것(또는 timeZone:"Asia/Seoul" 명시).
-    // 한 줄 패턴만 잡는다(대부분 `new Date(x.scheduled_at).toLocale…`). 변수에 담아 여러 줄로 쓰면 리뷰 몫.
+    //
+    // 🛑 2026-09-10 확대: 원래 이 검사는 «scheduled_at» 한 칸만 봤다. 그래서 created_at·
+    //    updated_at·preferredDate 같은 다른 날짜 칸이 통째로 사각이었고, 환자 화면 21곳이
+    //    거기 있었다(claim 진행상황 6곳·재예약·메시지·비자…). #69 의 가드가 한 칸만 덮은 탓에
+    //    같은 부류가 살아 있었다 → 「날짜를 찍는 것」 전체로 넓힌다.
+    //
+    // 무엇을 «날짜»로 보나: new Date(...) 를 거치거나 toLocaleDate/TimeString 인 것.
+    //    Number(x).toLocaleString(...) 같은 «금액 서식»은 시간대와 무관하므로 뺀다(오탐 0 유지).
+    // 한 줄 패턴만 본다 — 변수에 담아 여러 줄로 쓰면 여전히 리뷰 몫이다(이 검사의 한계).
     if (
-      /scheduled_at/.test(line) &&
+      isPatientApp &&
       /\.toLocale(?:Date|Time)?String\s*\(/.test(line) &&
-      !/Asia\/Seoul/.test(line)
+      !/Asia\/Seoul/.test(line) &&
+      /new Date\(|\.toLocale(?:Date|Time)String\s*\(/.test(line) &&
+      !/(?:Number\([^)]*\)|\.amount|_krw\)?|count)\.toLocaleString/.test(line)
     ) {
-      errors.push(`[시간대] ${file}:${i + 1} — scheduled_at 을 timeZone 없이 표시(UTC로 샘). kstDate/kstTime/kstDateTime(@/lib/datetime/kst) 사용 또는 timeZone:"Asia/Seoul" 명시 (#45·#69)\n    ${line.trim().slice(0, 120)}`);
+      errors.push(`[시간대] ${file}:${i + 1} — 환자에게 보이는 날짜/시각을 timeZone 없이 표시(뷰어 tz 로 샘 · 자정 근처엔 날짜가 하루 밀린다). kstDate/kstTime/kstDateTime(@/lib/datetime/kst) 사용 또는 timeZone:"Asia/Seoul" 명시 (#45·#69)\n    ${line.trim().slice(0, 120)}`);
     }
     for (const f of FORBIDDEN) {
       if (f.re.test(line) && !(f.allow && f.allow.test(file))) errors.push(`[금지토큰] ${file}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);

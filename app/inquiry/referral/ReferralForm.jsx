@@ -30,6 +30,7 @@ import {
   SECTIONS, CONSENTS, LATE_STAGE_NOTICE, LATE_STAGES,
   lab, fieldsByReq, missingIntake, missingForReferral, referralReadiness, nextReferralSection, sanitizeDraftValues,
 } from "@/lib/inquiry/referralSchema";
+import { kstTime } from "@/lib/datetime/kst";
 
 const DRAFT_KEY = "healo_referral_draft_v1";
 // 임시저장엔 여권번호·진단명이 «평문»으로 남는다(브라우저 안). PC방·가족 공용 PC 를 생각해 7일 지나면 버린다.
@@ -641,7 +642,7 @@ export default function ReferralForm() {
           <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-gray-600">
             <span>{tr("autosave", lang)}</span>
             {savedAt && <span className="tabular-nums">{tr("saved", lang, {
-              t: savedAt.toLocaleTimeString(lang === "ko" ? "ko-KR" : "en-GB", { hour: "2-digit", minute: "2-digit" }) })}</span>}
+              t: kstTime(savedAt, lang === "ko" ? "ko-KR" : "en-GB", { hour: "2-digit", minute: "2-digit" }) })}</span>}
           </div>
         </div>
 

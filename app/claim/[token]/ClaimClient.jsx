@@ -20,6 +20,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { t, dateLocale, isKnownLangCode, setLangCookie, LANG_OPTIONS_PRIMARY } from "@/lib/i18n";
 import { DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
 import { uploadDirect } from "@/lib/uploadAttachment";
+import { kstDate } from "@/lib/datetime/kst";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -677,7 +678,7 @@ function SentItems({ items, lang, token }) {
                 <p className="whitespace-pre-wrap break-words text-sm text-gray-800">{h.label}</p>
               )}
               {h.at && (
-                <p className="mt-0.5 text-[11px] text-gray-500">{new Date(h.at).toLocaleDateString(dateLocale(lang))}</p>
+                <p className="mt-0.5 text-[11px] text-gray-500">{kstDate(h.at, dateLocale(lang))}</p>
               )}
             </div>
             {h.mine && (
@@ -712,13 +713,13 @@ function SummaryCard({ preview, lang }) {
     [t("claimPage.agencyLabel", lang), preview.agencyName],
     [
       t("claimPage.receivedAtLabel", lang),
-      preview.createdAt ? new Date(preview.createdAt).toLocaleDateString(dateLocale(lang)) : null,
+      preview.createdAt ? kstDate(preview.createdAt, dateLocale(lang)) : null,
     ],
     // 희망 시기는 «내가 보낸 것»이 아니라 케이스의 성질이라 맨 위 요약에 둔다.
     [
       t("claimPage.intakeWhen", lang),
       preview.preferredDate
-        ? new Date(preview.preferredDate).toLocaleDateString(dateLocale(lang))
+        ? kstDate(preview.preferredDate, dateLocale(lang))
         : preview.preferredDateFlex
           ? t("claimPage.intakeWhenFlex", lang)
           : null,
@@ -825,7 +826,7 @@ function CurrentStep({ progress, lang, selected, selectedLabel, events, startedA
         {/* 단계가 «언제 시작됐나» — 예전엔 이 날짜 하나 때문에 아래에 칸이 하나 서 있었다. */}
         {startedAt && (
           <span className="shrink-0 text-xs text-gray-500">
-            {new Date(startedAt).toLocaleDateString(dateLocale(lang))}
+            {kstDate(startedAt, dateLocale(lang))}
           </span>
         )}
       </div>
@@ -843,7 +844,7 @@ function CurrentStep({ progress, lang, selected, selectedLabel, events, startedA
                 {events.map((e, i) => (
                   <li key={`${e.at}-${i}`}>
                     <span className="mr-2 text-xs text-teal-700">
-                      {e.at ? new Date(e.at).toLocaleDateString(dateLocale(lang)) : ""}
+                      {e.at ? kstDate(e.at, dateLocale(lang)) : ""}
                     </span>
                     <span
                       className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${
@@ -956,7 +957,7 @@ function Documents({ documents, lang, token }) {
           <span className="block break-words text-sm font-semibold text-gray-900">{d.name}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
             {d.lang && <span className="font-medium text-teal-800">{DOC_LANG_LABEL[d.lang] || d.lang}</span>}
-            {d.at && <span>{new Date(d.at).toLocaleDateString(dateLocale(lang))}</span>}
+            {d.at && <span>{kstDate(d.at, dateLocale(lang))}</span>}
             {d.note && <span className="basis-full text-gray-500">{d.note}</span>}
           </span>
         </div>

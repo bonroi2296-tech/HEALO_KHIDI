@@ -18,6 +18,7 @@ import { t, dateLocale } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { uploadDirect } from '@/lib/uploadAttachment';
 import { Upload, Paperclip, Loader2, CheckCircle, FileText } from 'lucide-react';
+import { kstDate } from '@/lib/datetime/kst';
 
 const TYPES = ['test_result', 'imaging', 'clinical_note', 'progress'];
 
@@ -170,7 +171,7 @@ export default function ProgressUploadCard() {
                   {r.note ? <span className="block text-gray-500">{r.note}</span> : null}
                 </span>
                 <span className="text-xs text-gray-500 shrink-0">
-                  {new Date(r.created_at).toLocaleDateString(dateLocale(lang))}
+                  {kstDate(r.created_at, dateLocale(lang))}
                 </span>
               </li>
             ))}

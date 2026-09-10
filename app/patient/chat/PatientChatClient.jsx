@@ -18,6 +18,7 @@ import {
   MessageSquare, Shield, Globe, Database, AlertCircle,
   Building2, Wallet, Clock, FileText, MapPin, ExternalLink,
 } from 'lucide-react';
+import { kstDate } from '@/lib/datetime/kst';
 
 // ─── Source Tier Badge ───
 
@@ -436,7 +437,7 @@ export default function PatientChatClient() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {new Date(th.updated_at || th.created_at).toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', {
+                  {kstDate(th.updated_at || th.created_at, lang === 'ko' ? 'ko-KR' : 'en-US', {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                 </p>

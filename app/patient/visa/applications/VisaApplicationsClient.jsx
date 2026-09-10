@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+import { kstDate } from "@/lib/datetime/kst";
 
 // 신청 상태 — key 는 DB status 값(로직 키, 그대로 유지). 색상만 여기, 표시 라벨(6개 언어)은
 // 중앙 i18n 사전 visaApps.status.* 키로 이동.
@@ -266,7 +267,7 @@ export default function VisaApplicationsClient() {
                       {app.duration_days && (
                         <span>{t("visaApps.stayLabel", lang)}: {app.duration_days}{t("visaApps.daysSuffix", lang)}</span>
                       )}
-                      <span>{t("visaApps.createdLabel", lang)}: {new Date(app.created_at).toLocaleDateString(dateLocale)}</span>
+                      <span>{t("visaApps.createdLabel", lang)}: {kstDate(app.created_at, dateLocale)}</span>
                     </div>
                   </div>
                   <span className="text-gray-500 text-sm">→</span>
