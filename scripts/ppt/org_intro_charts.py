@@ -43,7 +43,7 @@ os.makedirs(OUT, exist_ok=True)
 
 def save(fig, name):
     p = os.path.join(OUT, name)
-    fig.savefig(p, dpi=200, bbox_inches="tight", pad_inches=0.02, facecolor="white")
+    fig.savefig(p, dpi=200, bbox_inches="tight", pad_inches=0.02, facecolor=WHITE)
     plt.close(fig)
     print("chart:", name)
 
@@ -87,8 +87,8 @@ def chart_mix():
         ax.text(left + v / 2, 0, label, ha="center", va="center", linespacing=1.5,
                 fontproperties=BOLD, fontsize=11.5, color=ink)
         left += v
-    # 흰 배경에서 밝은 회색 칸도 형태가 보이도록 막대 전체에 규격 선색 윤곽을 두른다
-    ax.barh(0, 100, height=0.74, color="none", edgecolor=LINE, linewidth=1)
+    # 흰 칸은 규격 선색 윤곽으로만 형태를 낸다(칸 사이는 흰 틈 2px 유지)
+    ax.barh(0, 54.1, height=0.74, color="none", edgecolor=LINE, linewidth=1)
     ax.set_xlim(0, 100)
     ax.set_ylim(-0.5, 0.5)
     ax.set_xticks([])
@@ -99,5 +99,5 @@ def chart_mix():
 
 
 if __name__ == "__main__":
-    chart_funnel()
+    # chart_funnel() — 500배 차이를 선형 막대에 담아 강조가 사라져 폐기(숫자 카드로 대체)
     chart_mix()
