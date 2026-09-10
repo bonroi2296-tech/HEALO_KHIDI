@@ -7,6 +7,7 @@ import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, ogLocaleFields, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
 import { BRAND_ALIASES, BRAND_NAME_FORMS } from "@/lib/seo/brandAliases";
+import { ALL_CANCER_SEARCH_TERMS } from "@/lib/seo/cancerSearchTerms";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
@@ -73,6 +74,9 @@ const baseMetadata = {
     "telemedicine Korea oncology",
     "medical tourism cancer Korea",
     "second opinion Korea oncologist",
+    // 암종별 검색어(러·카자흐) — 일반어보다 전환이 높다. 단일 출처 = src/lib/seo/cancerSearchTerms.js.
+    //   여기에 손으로 베끼지 마라: 암종이 추가되면 그 파일만 채우면 이 줄이 저절로 따라온다.
+    ...(IS_DEFAULT_TENANT ? ALL_CANCER_SEARCH_TERMS : []),
     // 러시아어 (카자흐·러시아 검색 타겟)
     "лечение рака в Корее",
     "онкология Южная Корея",
