@@ -227,7 +227,7 @@ export const IMMUNE_PAGES = {
       {
         name: { ko: "황이준", en: "Dr. Hwang I-jun", ru: "Д-р Хван И-джун", kz: "Д-р Хван И-джун", zh: "황이준", ja: "ファン・イジュン" },
         title: { ko: "강서점 대표원장", en: "Gangseo Director", ru: "Кансо Главный врач", kz: "Кансо Бас дәрігер", zh: "江西院区 代表院长", ja: "江西院 代表院長" },
-        photo: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png",
+        photo: "/immune/doctor/gangeo-dr-hwang-ijun-v3.png",
       },
       {
         name: { ko: "이우석", en: "Dr. Lee Woo-seok", ru: "Д-р Ли У-сок", kz: "Д-р Ли У-сок", zh: "이우석", ja: "イ・ウソク" },
