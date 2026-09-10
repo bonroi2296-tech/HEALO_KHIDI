@@ -49,7 +49,7 @@ export const IMMUNE_PHOTOS = {
   bannerSeason: "/immune/site/uploads/banners/6895825b600130.26433858.jpg",
 
   // 의료진 — self-host (핫링크 금지: 병원이 원본 교체/삭제하면 깨짐. 실제로 강주안 URL 死亡 확인됨)
-  drHwang: "/immune/doctor/gangeo-dr-hwang-ijun.png",     // 황이준 대표원장
+  drHwang: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png",     // 황이준 대표원장
   drLee: "/immune/doctor/gangeo-dr-lee-useok.jpg",        // 이우석 양방대표
   drIm: "/immune/doctor/gangeo-dr-im-jisung.jpg",         // 임지성 의무원장
   drKimJ: "/immune/doctor/gangeo-dr-kim-jiyoung.jpg",     // 김지영
