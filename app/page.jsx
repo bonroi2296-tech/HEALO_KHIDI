@@ -3,6 +3,7 @@ import { localizedMeta } from "@/lib/i18n/metadata";
 import { partnerHospitalLdList, websiteLd, ORG_ID } from "@/lib/seo/structuredData";
 import { getMergedHomeContent } from "@/lib/content/overrides";
 import { applyTenantBrand, isDefaultTenant, tenantBrandName } from "@/lib/tenant";
+import { ALL_CANCER_SEARCH_TERMS, ALL_MEASURED_ENTRY_TERMS } from "@/lib/seo/cancerSearchTerms";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
@@ -41,7 +42,12 @@ const baseMeta = {
     "второе мнение онколога Корея",
     "лучшие онкологические клиники Кореи",
     "сколько стоит лечение рака в Корее",
-    "лечение рака желудка в Корее",
+    // 암종별·실측 검색어는 단일 출처에서 온다 — src/lib/seo/cancerSearchTerms.js.
+    //   2026-09-10 실측 사고: 여기에 «лечение рака желудка в Корее» 를 손으로 베껴 뒀는데,
+    //   Next 는 페이지 metadata 가 레이아웃 것을 «덮어쓴다». 그래서 layout.jsx 의 단일 출처를
+    //   고쳐도 «홈에서는 아무 일도 일어나지 않았다». 베낀 줄은 지우고 여기서도 같은 출처를 편다.
+    ...(isDefaultTenant() ? ALL_CANCER_SEARCH_TERMS : []),
+    ...(isDefaultTenant() ? ALL_MEASURED_ENTRY_TERMS : []),
     // 카자흐어 (Yandex KZ)
     "Кореядағы онкологиялық емдеу",
     "Корея медициналық туризм",

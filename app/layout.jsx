@@ -7,7 +7,7 @@ import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, ogLocaleFields, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
 import { BRAND_ALIASES, BRAND_NAME_FORMS } from "@/lib/seo/brandAliases";
-import { ALL_CANCER_SEARCH_TERMS } from "@/lib/seo/cancerSearchTerms";
+import { ALL_CANCER_SEARCH_TERMS, ALL_MEASURED_ENTRY_TERMS } from "@/lib/seo/cancerSearchTerms";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
@@ -77,6 +77,10 @@ const baseMetadata = {
     // 암종별 검색어(러·카자흐) — 일반어보다 전환이 높다. 단일 출처 = src/lib/seo/cancerSearchTerms.js.
     //   여기에 손으로 베끼지 마라: 암종이 추가되면 그 파일만 채우면 이 줄이 저절로 따라온다.
     ...(IS_DEFAULT_TENANT ? ALL_CANCER_SEARCH_TERMS : []),
+    // 실측으로 «실제 들어온 것이 확인된» 검색어(2026-09-10 얀덱스·구글). 위 줄과 격이 다르다.
+    //   ⚠️ 여기 넣는 것만으로 순위가 오르지 않는다 — 바로 아래 «лечение рака в Корее» 가
+    //   6월부터 들어 있는데 구글 실측 평균순위 100위다. 순위는 제목·설명·본문이 움직인다.
+    ...(IS_DEFAULT_TENANT ? ALL_MEASURED_ENTRY_TERMS : []),
     // 러시아어 (카자흐·러시아 검색 타겟)
     "лечение рака в Корее",
     "онкология Южная Корея",
