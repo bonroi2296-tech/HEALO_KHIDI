@@ -191,7 +191,18 @@ const XSS_INNERHTML_BASELINE = {
   // 5 → 6 (2026-08-03): 늘어난 1건은 head 의 「스토어 앱 웹뷰인가」 표식 스크립트.
   // 감사 결과 안전 — 통짜 문자열 상수 하나이고 변수·요청값·사용자 입력이 **한 글자도 안 섞인다**
   // (읽는 건 navigator.userAgent 뿐이고, 쓰는 건 고정값 "1" 한 개). 나머지 5건은 기존 감사분.
-  "app/layout.jsx": 6,
+  // 6 → 5 (2026-09-10): 사전 주입 <script> 하나가 app/_components/I18nDict.jsx 로 옮겨갔다.
+  //   줄어든 만큼 기준선도 내린다 — 안 내리면 그 자리에 새 것이 하나 들어와도 검사가 안 짖는다.
+  "app/layout.jsx": 5,
+  // 0 → 1 (2026-09-10): 위에서 옮겨온 방문자 언어 사전 주입 스크립트.
+  // 감사 결과 안전 — 넣는 값은 **서버가 소스 파일에서 지어낸 사전 JSON** 하나뿐이다
+  // (src/lib/i18n/inlineScript.js 의 i18nDictJson). 출처는 저장소 안 dictionary.js 이고
+  // 요청값·사용자 입력이 한 글자도 안 섞인다. 게다가 JSON.stringify 뒤 <script> 를 깨뜨릴 수 있는
+  // 글자(<, U+2028, U+2029)를 유니코드 이스케이프로 바꾼다 → "</script>" 가 만들어질 수 없다
+  // (재발 검사: src/lib/i18n/inlineScript.test.ts).
+  // ⚠️ 코디가 편집하는 콘텐츠(CMS 오버라이드)는 이 길로 안 온다 — 그건 I18nOverridesApply 가
+  //    React prop 으로 넘겨 이스케이프된다. 여기에 «사람이 입력한 값»을 새로 섞지 마라.
+  "app/_components/I18nDict.jsx": 1,
   "app/care-journey/page.jsx": 1,
   "app/insurance/page.jsx": 1,
   "app/cost-calculator/page.jsx": 1,
