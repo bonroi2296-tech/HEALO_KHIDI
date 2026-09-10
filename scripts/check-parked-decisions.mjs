@@ -99,6 +99,10 @@ function deadPaths(memDir) {
     const raw = readFileSync(join(memDir, f), "utf8");
     for (const m of raw.matchAll(RE)) {
       const ref = m[1];
+      // 「그 파일은 삭제됐다」고 적어둔 기록까지 잡으면 헛경보다 — 그건 낡은 참조가 아니라 «정확한 기록»이다.
+      // 첫 실행 4건 중 2건이 이것이었다(Turnstile.jsx·designMode.js 는 본문이 스스로 「삭제됨」이라 적고 있었다).
+      const around = raw.slice(Math.max(0, m.index - 90), m.index + 60);
+      if (/삭제됨|삭제 완료|삭제됐|폐기|제거됨|제거됐|없는 파일/.test(around)) continue;
       // 「docs/*.md」·「docs/.../x.md」 같은 축약 표기는 진짜 경로가 아니다 — 첫 실행에서 헛경보 2건이 이것이었다.
       if (ref.includes("*") || ref.includes("...")) continue;
       if (existsSync(ref)) continue;
