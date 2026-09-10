@@ -10,8 +10,9 @@ import { BRAND_ALIASES, BRAND_NAME_FORMS } from "@/lib/seo/brandAliases";
 import { ALL_CANCER_SEARCH_TERMS, ALL_MEASURED_ENTRY_TERMS } from "@/lib/seo/cancerSearchTerms";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
-import { i18nInlineScript } from "@/lib/i18n/inlineScript";
+import { i18nDictJson } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
+import I18nDict from "./_components/I18nDict";
 import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
 
 // 테넌트가 healwith 인가 — 아니면 브랜드 고유 정보(한글 병기·구조화데이터·SNS)를 내보내지 않는다.
@@ -265,8 +266,11 @@ export default async function RootLayout({ children }) {
             같은 조건 3안 비교(로컬 프로덕션 빌드, Lighthouse 모바일 3회, FCP 시뮬):
               외부파일 3894~3942ms / 사전 없음(대조군) 1226~3284ms / 인라인 2440~2482ms.
             인라인이 외부파일보다 FCP 약 1.45초 빠르고 성능 점수도 3~4점 높았다.
-            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것. */}
-        <script dangerouslySetInnerHTML={{ __html: i18nInlineScript(clientLangs, lang) }} />
+            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것.
+
+            ⚠️ 404 처럼 «브라우저에서만 그려지는» 화면에서는 이 인라인 <script> 가 실행되지 않는다
+            → 같은 사전을 렌더 도중에도 심는 I18nDict 로 감쌌다(이유는 그 파일 주석에). */}
+        <I18nDict json={i18nDictJson(clientLangs, lang)} />
         {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭
             ⚠️ 다른 테넌트에서는 **통째로 내보내지 않는다.** 여기 담긴 법인명·주소·SNS 계정은 healwith 것이라
                병원 이름만 갈아끼우면 «사실이 아닌 관계»를 기계가 사실로 받는다(2026-07-28 #1122 에서 고친 부류).
