@@ -637,7 +637,7 @@ export const IMMUNE_SITE = {
     {
       name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван И-джун", kz: "Д-р Хван И-джун", zh: "황이준 代表院长", ja: "ファン・イジュン代表院長" },
       title: { ko: "강서점 대표원장", en: "Director, Gangseo", ru: "Главный врач, Кансо", kz: "Бас дәрігер, Кансо", zh: "江西院区代表院长", ja: "江西院 代表院長" },
-      photo: "/immune/doctor/gangeo-dr-hwang-ijun-v2.png",
+      photo: "/immune/doctor/gangeo-dr-hwang-ijun-v3.png",
     },
     {
       name: { ko: "유형진 대표원장", en: "Dr. Yoo Hyeong-jin", ru: "Д-р Ю Хён-джин", kz: "Д-р Ю Хён-джин", zh: "유형진 代表院长", ja: "ユ・ヒョンジン代表院長" },
