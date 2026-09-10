@@ -195,6 +195,18 @@ const nextConfig = {
               //   CSP 에 없으면 브라우저가 그 전송만 막고 콘솔에만 조용히 남는다 — GA 화면에는
               //   "데이터 없음"이 아니라 «그 지역만 빠진 숫자»로 보여 알아채기가 특히 어렵다.
               //   → 와일드카드로 계열 호스트를 함께 연다.
+              //
+              //   🛑 **`https://www.google.com` 은 «일부러» 안 연다 — 콘솔에 뜨는 그 빨간 줄은 헛경보다.**
+              //   GA4 는 「구글 시그널(Google Signals)」이 켜져 있으면 같은 이벤트를
+              //   `www.google.com/g/collect` 로 «한 번 더» 보낸다. 그 경로는 측정용이 아니라
+              //   **광고 개인화·기기 간 연결용**이다.
+              //   2026-09-10 실측(`/ru/treatments`): 막힌 것은 www.google.com 쪽뿐이고
+              //   `www.google-analytics.com/g/collect` 로는 2건이 정상 전송됐다 →
+              //   **GA 리포트 숫자는 유실되지 않는다.**
+              //   그리고 우리 주소는 `/ru/treatments`·`/liver` 처럼 **그 자체가 병명**이라,
+              //   이 경로를 열면 「이 사람은 폐암을 찾는다」가 광고 프로필로 넘어간다
+              //   (메타 픽셀에서 두 겹 방어를 친 것과 같은 이유 — `src/lib/ga.ts` 주석 참조).
+              //   → **콘솔에서 이 오류를 보고 CSP 에 www.google.com 을 추가하지 마라.**
               // mc.yandex.ru: 러시아/CIS 핵심시장용 Yandex Metrica. AnalyticsWrapper 에 코드는 이미
               //   있으나 CSP 에 없어 env 를 넣어도 동작하지 않는 상태였다(스크립트 로드부터 차단).
               // integrations.livekit.io: 화상상담 잡음 제거(Krisp)가 켜질 때 여기로 요청을 보낸다.
