@@ -33,6 +33,21 @@ import { siteUrl } from "@/lib/siteUrl";
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
 
+/**
+ * 환자가 자기 말로 쓴 «호소»를 몇 글자까지 남기나.
+ *
+ * 🛑 2026-09-09 실사고. 대량 비출혈 환자의 서술이 1,256자였는데 500자에서 잘려
+ *    「When 」 에서 끊긴 채 저장됐다. 잘려 나간 뒷부분에 «비강 패킹·타 병원 이송·지혈»이
+ *    들어 있었다 — 케이스의 무게를 보여주는 대목이 통째로 사라진 것이다.
+ *    이 값은 코디 화면 요약과 판사 프롬프트로도 흘러가므로, 여기서 자르면 아래가 전부 굶는다.
+ *
+ * ⚠️ 상한 자체는 남긴다(무한정 저장은 다른 문제를 만든다). 다만 «실제 증상 서술이
+ *    통째로 들어갈 만큼»으로 잡는다. 위 실사고가 1,256자였고, 여러 턴에 걸쳐 적는 사람도 있다.
+ */
+export const CHIEF_COMPLAINT_MAX = 4000;
+/** 원문 보관용. 위와 같은 이유이며, 여러 턴을 이어 붙이므로 더 넉넉히 둔다. */
+export const RAW_MESSAGE_MAX = 8000;
+
 // 환자가 자료(검사결과지·사진)를 올렸을 때 접수 확인 멘트 (6개 언어).
 // ⚠️ AI는 의료자료를 판독/진단하지 않음(의료법·안전규칙) → "접수+의료진 검토"로만 안내.
 export const ATTACHMENT_ACK: Record<string, string> = {
@@ -107,7 +122,12 @@ export function threadHasContactPoint(thread: any): boolean {
   return Boolean(thread?.guest_name || thread?.guest_email || thread?.guest_phone);
 }
 
-async function promoteThreadToInquiry(
+/**
+ * 🛑 export 인 이유: «알림을 실제로 부르는가»를 시험으로 지켜야 한다.
+ *    2026-09-09 까지 이 함수는 문의를 만들고도 sendAdminNotification 을 안 불렀다 —
+ *    폼 경로에만 있던 호출이라 메신저로 들어온 실환자는 «새 문의» 알림이 한 통도 안 갔다.
+ */
+export async function promoteThreadToInquiry(
   thread: any,
   intake: any,
   rawEnc: string | null,
@@ -208,6 +228,23 @@ async function promoteThreadToInquiry(
 
     // 접수되면 «들어온 그 채널로» 진행상황 주소를 돌려준다(PO 결정 2026-08-03).
     // 메신저로 온 사람은 이메일이 없을 수 있어 이 채널이 유일한 통로다. 실패해도 접수는 성공.
+    // 🔴 코디·어드민 알림 — 폼 경로(app/api/inquiries/*)와 «같은» 창구를 탄다.
+    //    여기가 비어 있어서 2026-09-09 텔레그램으로 들어온 실환자(#328, 반복 대량 비출혈)에게
+    //    「새 문의」 알림이 한 통도 안 갔다. 웹 폼으로 다시 넣은 세 건만 알림이 울렸다.
+    //    sendAdminNotification 은 내부가 fail-safe 이고 is_test 도 스스로 거른다.
+    try {
+      const { sendAdminNotification } = await import("@/lib/notifications/adminNotifier");
+      await sendAdminNotification({
+        inquiryId: data.id,
+        nationality: thread.guest_country || undefined,
+        treatmentType: intake?.body_part || undefined,
+        contactMethod: isTelegram ? "telegram" : isWhatsApp ? "whatsapp" : "chat",
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      console.warn("[promoteThreadToInquiry] 알림 실패(무시):", e?.message);
+    }
+
     await sendTrackingLinkToMessenger(thread, data.public_token, lang);
   }
 }
@@ -270,7 +307,7 @@ export async function createDraftIntake(
     .join(" ");
 
   const { intake } = createEmptyIntake("ai_agent");
-  intake.chief_complaint = patientTexts.slice(0, 500) || null;
+  intake.chief_complaint = patientTexts.slice(0, CHIEF_COMPLAINT_MAX) || null;
   intake.body_part = bodyPartFromText(patientTexts) ?? null;
   intake.timeline = extractTimelineFromQuery(patientTexts) ?? null;
   intake.budget = extractBudgetFromQuery(patientTexts) ?? null;
@@ -285,7 +322,7 @@ export async function createDraftIntake(
   const missing = computeMissingFields(intake);
   const confidence = computeExtractionConfidence(intake, missing);
 
-  const rawEnc = encryptStringNullable(patientTexts.slice(0, 1000));
+  const rawEnc = encryptStringNullable(patientTexts.slice(0, RAW_MESSAGE_MAX));
 
   // 채널 구분 — 메신저 봇 대화는 source_type 을 분리해 유입경로 분석·집계가 가능하게.
   const sourceType =

@@ -14,6 +14,8 @@ import { getMergedContentFiles } from "@/lib/content/contentFileOverrides";
 import { localeAlternates, getRequestLocale, ogLocaleFields } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
+import { siteUrl } from "@/lib/siteUrl";
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -51,8 +53,11 @@ const CANCER_KEYWORDS = {
 };
 
 const isUuid = (value) => UUID_REGEX.test(String(value || ""));
-const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// 🛑 여기서 `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"` 를 다시 쓰지 마라.
+//   실서비스에 그 환경변수가 «없어서» 폴백이 그대로 나갔고, 2026-09-09 실측으로 병원 상세
+//   8곳의 JSON-LD 가 구글에 url·image 를 `http://localhost:3000/...` 로 광고하고 있었다.
+//   기준 주소의 단일 구현은 src/lib/siteUrl.ts — 환경변수가 비면 실주소로 떨어진다.
+const getBaseUrl = () => siteUrl();
 
 // 암종 페이지 정적 사전 생성
 export async function generateStaticParams() {

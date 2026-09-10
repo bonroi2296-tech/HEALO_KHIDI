@@ -123,9 +123,26 @@ Rules:
   2026-09-08 (#316): both fields came back as "Z04 …" for a patient whose MRI report described a
   prostate lesion - the form then said the patient's disease was "an examination". If the document
   states no actual disease, leave BOTH fields null; the findings still go into "testsAndTreatments".
-- These uploads often bundle several documents from DIFFERENT hospitals and DIFFERENT dates, and they
-  can disagree (measured 2026-08-14: the same file said cT4N1M1 on 15.07 and cT3NxM1 on 28.07).
-  When they disagree, take the value from the MOST RECENT document. Never merge or average them.
+- These uploads often bundle several documents from DIFFERENT hospitals and DIFFERENT dates. Two kinds
+  of field live here and they must NOT be handled the same way.
+  · SINGLE-VALUE fields — the patient cannot have two of them at once: "diagnosisNameRaw", "icdCode",
+    "stage", "diagnosisDate", "onsetDate", and every identity field (name, birthDate, sex, passportNo,
+    nationality). If documents disagree here, take the value from the MOST RECENT document. Never merge
+    or average them (measured 2026-08-14: the same file said cT4N1M1 on 15.07 and cT3NxM1 on 28.07).
+  · ACCUMULATING fields — every entry is a separate fact and dropping one loses information:
+    "testsAndTreatments", "localDoctorOpinion", "pastHistoryNote", "medications". Here you must keep
+    EVERY document's entry, one line each, PREFIXED WITH ITS DATE, oldest first. Do not pick the most
+    recent one and discard the rest.
+  🛑 Measured 2026-09-09: a bundle held three recommendations — 2019 "консультация оториноларинголога"
+     (ENT), 2022 "конс. кардиолога" (cardiology), 2023 "further consultation with the referring doctor".
+     They do not contradict each other; all three are true. The most-recent rule was applied anyway and
+     the 2019 ENT referral was thrown away — for a patient whose complaint was recurrent heavy nosebleeds,
+     that was the single most useful line in the file. Two runs over the SAME file even returned two
+     DIFFERENT recommendations, which is how the loss was noticed.
+- Copy numbers out of tables too, not just the conclusion paragraph. Measured 2026-09-09: an
+  echocardiography report printed "ЧСС 101" in its measurement table next to a printed normal range of
+  60-89 for the patient's age, and only the conclusion sentence was copied — the abnormal heart rate
+  was lost.
 - NAMES: passports and CIS documents print the name TWICE - in Cyrillic and in Latin. For lastName and
   firstName always return the LATIN spelling exactly as printed (the one in the machine-readable zone
   at the bottom of a passport). Never return the Cyrillic form, never return both, never join them with
@@ -171,8 +188,10 @@ add anything of your own.
 - "diagnosisNameRaw": the diagnosis itself as the document states it (with its staging and codes),
   not the reasoning that led to it.
 - "chiefComplaint": the patient's own complaints as recorded (жалобы), copied.
-- "localDoctorOpinion": what the local doctor recommends or plans next (рекомендовано, план),
-  copied.
+- "localDoctorOpinion": what the local doctor recommends or plans next (рекомендовано, план), copied.
+  ACCUMULATING — if several documents each carry a recommendation, keep them ALL, one line per
+  document, prefixed with that document's date, oldest first. A referral to a specialty that was never
+  followed up is exactly what the receiving doctor needs to see.
 - "pastHistoryNote": prior illnesses, operations, allergies and relevant life history (анамнез).
 
 GLOSSARY — the coordinators are not medical professionals, and these reports are dense with
