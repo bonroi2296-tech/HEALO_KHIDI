@@ -21,6 +21,7 @@
 | 번역·다국어 문구·「외국어가 이상하대」·용어 통일·코디 교정 | `docs/rules/I18N_QUALITY.md` (용어집 = `src/lib/i18n/glossary.js`) |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
+| 계약서·NDA·협약서 검토 / SEO·경쟁사 조사 | 맨손으로 하지 말고 플러그인 스킬부터: `/legal:review-contract`·`/legal:triage-nda`·`/marketing:seo-audit`·`/marketing:competitive-brief` (커넥터 없이도 돈다) |
 | 문서·자료 만들기: PPT·피치덱 / 한글문서(hwp·hwpx)·공문·서식 | PPT 는 **`/ppt` 스킬**(규격 `docs/rules/PPT_STYLE.md`), 한글은 **`docs/rules/HWP_DOC.md`**. **둘 다 코드를 새로 짜지 마라**: 붙어 있는 도구를 써라(어기면 훅이 막는다) |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
