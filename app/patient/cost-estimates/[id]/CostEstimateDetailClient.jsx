@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+import { kstDateTime } from "@/lib/datetime/kst";
 
 function fmtKRW(n) {
   if (n == null) return "—";
@@ -147,7 +148,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {t("costDetail.statusLabel", lang)}: {STATUS_KEYS.includes(estimate.status) ? t(`costDetail.status.${estimate.status}`, lang) : estimate.status} ·{" "}
-            {new Date(estimate.created_at).toLocaleString("ko-KR")} {t("costDetail.createdSuffix", lang)}
+            {kstDateTime(estimate.created_at, "ko-KR")} {t("costDetail.createdSuffix", lang)}
           </p>
         </div>
       </div>
@@ -226,7 +227,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {estimate.status === "accepted" && (
         <section className="mt-6 border border-green-200 bg-green-50 rounded-lg p-5">
           <p className="text-sm text-green-900">
-            ✓ {new Date(estimate.patient_accepted_at).toLocaleString("ko-KR")} {t("costDetail.acceptedSuffix", lang)}
+            ✓ {kstDateTime(estimate.patient_accepted_at, "ko-KR")} {t("costDetail.acceptedSuffix", lang)}
           </p>
         </section>
       )}

@@ -121,6 +121,7 @@ import {
   dedupeAgainstShown,
   isSameSpeakerRun,
 } from "@/lib/consultation/transcriptOrder";
+import { kstTime } from "@/lib/datetime/kst";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -4575,7 +4576,7 @@ export default function ConsultationRoomPage() {
                                 </span>
                               )}
                               <span className="text-[10px] text-gray-600 shrink-0">
-                                {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
+                                {kstTime(trans.created_at, "ko-KR", {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                   second: "2-digit",
