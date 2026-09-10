@@ -6,6 +6,7 @@ import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, ogLocaleFields, getRequestLocale, getUiLocale } from "@/lib/i18n/metadata";
+import { BRAND_ALIASES, BRAND_NAME_FORMS } from "@/lib/seo/brandAliases";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
@@ -60,8 +61,10 @@ const baseMetadata = {
     ? "healwith(힐위드) — Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up."
     : `${BRAND_EN} — Korean cancer care for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.`,
   keywords: [
-    // 브랜드 (고유어) — 한글 병기는 healwith 전용(네이버 한글 브랜드 검색 대응).
-    ...(IS_DEFAULT_TENANT ? ["healwith", "힐위드"] : [BRAND_EN, tenantBrandName("ko")]),
+    // 브랜드 (고유어) — 「힐위드」·「Хилвиз」처럼 «다르게 적어 검색하는 사람»까지 받는다.
+    //   목록의 단일 출처 = src/lib/seo/brandAliases.js (왜 그 철자들인지도 거기 적혀 있다).
+    //   화이트라벨 테넌트는 자기 이름만 — 남의 브랜드 별칭을 달면 안 된다.
+    ...(IS_DEFAULT_TENANT ? BRAND_NAME_FORMS : [BRAND_EN, tenantBrandName("ko")]),
     // 영어
     "Korea cancer treatment",
     "Korean oncology specialist",
@@ -271,7 +274,8 @@ export default async function RootLayout({ children }) {
                   "@type": "WebSite",
                   "@id": "https://healwith.co.kr/#website",
                   name: "healwith",
-                  alternateName: ["힐위드", "Healwith"],
+                  // 「사람들이 이렇게도 부른다」 칸. 우리가 쓰는 표기가 아니다 — brandAliases.js 머리말 참조.
+                  alternateName: BRAND_ALIASES,
                   url: "https://healwith.co.kr",
                   inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
                   publisher: { "@id": "https://healwith.co.kr/#organization" },
@@ -280,7 +284,8 @@ export default async function RootLayout({ children }) {
                   "@type": "Organization",
                   "@id": "https://healwith.co.kr/#organization",
                   name: "healwith",
-                  alternateName: ["힐위드", "Healwith"],
+                  // 동명이인 구별과 별개다: 이건 «같은 회사를 다르게 적은 것»을 구글에 알리는 칸.
+                  alternateName: BRAND_ALIASES,
                   url: "https://healwith.co.kr",
                   logo: "https://healwith.co.kr/icons/icon-512x512.png",
                   // 동명이인(healwith.com 홍콩 등)과 구별시키는 엔티티 명세. 구글이 "healwith=이 회사"로 못박게.
