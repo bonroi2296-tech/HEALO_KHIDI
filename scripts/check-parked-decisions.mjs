@@ -69,12 +69,49 @@ function main() {
     found.push({ name, desc: desc.slice(0, 90) });
   }
 
+  deadPaths(MEM_DIR);
+
   if (!found.length) return;
   console.log("");
   console.log("## 🗃 기억에만 있는 할 일 — 목록에 옮겨라");
   console.log("  기억파일은 어떤 검사기도 안 본다. 여기 뜬 건 **8일 묻혔던 2026-07-23 화상상담 4건과 같은 자리**다.");
   for (const f of found) console.log(`  · ${f.name} — ${f.desc}`);
   console.log("  → 아직 유효하면 docs/KNOWN_ISSUES.md 에 한 줄 등재(언제 다시 볼지 날짜 포함), 끝난 거면 기억파일을 고쳐라.");
+}
+
+
+/**
+ * 기억이 가리키는 저장소 경로가 실제로 있나 (2026-09-10 신설)
+ *
+ * 왜: 기억파일이 `docs/audit/ZERO_ROW_FEATURES_2026-08-20.md` 를 「여기 지도가 있다」고
+ *   가리켰는데, 그 파일은 **본판에 없었다** — 2026-08-20 에 작업본에만 커밋되고 신청서가
+ *   만들어진 적이 없어서 3주 동안 아무도 열 수 없었다(2026-09-10 실제로 찾다가 발각).
+ *   `check:rules` 는 **CLAUDE.md 가 가리키는 문서**만 보고 기억파일은 안 본다 — 그 구멍이다.
+ *
+ * 성격: 위와 같이 **경고만 한다**. 옛 기록이 사라진 파일을 가리키는 것은 정상일 수 있다.
+ */
+function deadPaths(memDir) {
+  // 백틱으로 감싼 저장소 경로만 본다 — 맨몸 문자열까지 잡으면 헛경보가 는다.
+  const RE = /`((?:docs|scripts|src|app|migrations)\/[^`\s]+\.(?:md|mjs|ts|tsx|js|jsx|sql))`/g;
+  const dead = new Map();
+  for (const f of readdirSync(memDir)) {
+    if (!f.endsWith(".md")) continue;
+    const raw = readFileSync(join(memDir, f), "utf8");
+    for (const m of raw.matchAll(RE)) {
+      const ref = m[1];
+      // 「docs/*.md」·「docs/.../x.md」 같은 축약 표기는 진짜 경로가 아니다 — 첫 실행에서 헛경보 2건이 이것이었다.
+      if (ref.includes("*") || ref.includes("...")) continue;
+      if (existsSync(ref)) continue;
+      if (!dead.has(ref)) dead.set(ref, []);
+      if (!dead.get(ref).includes(f)) dead.get(ref).push(f);
+    }
+  }
+  if (!dead.size) return;
+  console.log("");
+  console.log("## 🕳 기억이 «없는 파일»을 가리킨다");
+  console.log("  다음 세션이 그 경로를 열려다 못 연다. 작업본에만 있고 본판에 안 올라온 것일 수 있다.");
+  for (const [ref, files] of dead) console.log(`  · ${ref} ← ${files.join(", ")}`);
+  console.log("  → 본판에 건져 오거나(그 커밋을 찾아 체리픽), 이미 필요 없으면 기억파일에서 경로를 지워라.");
 }
 
 main();
