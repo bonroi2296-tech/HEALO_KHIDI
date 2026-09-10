@@ -220,3 +220,6 @@ android/app/src/debug/
 #       `cases.json`·`my-cases.json` 이 «안 걸렸다». 도구 사용법이 `--cases <파일>` 이라 이름은 뭐든 온다.
 *cases*.json
 *patients*.json
+
+# 발표자료용 화면 캡처·회의 사진 (사람 얼굴 포함, 재생성 가능하므로 저장소에 두지 않는다)
+docs/presentations/shots/
