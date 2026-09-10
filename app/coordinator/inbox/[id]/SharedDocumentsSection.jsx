@@ -13,6 +13,12 @@
  * ⚠️ 올린다고 바로 안 나간다 — «보이기»를 켠 것만 환자에게 보인다. 그 링크는 왓츠앱으로
  *    굴러다닐 수 있어서, 실수 한 번이 곧 유출이 되지 않게 두 단계로 나눴다.
  *
+ * 📄 번역 (2026-09-10, 문의 #316): 이 칸은 «우리가 보내는» 서류함이지만, 실제로는 **병원이
+ *   외국어로 보내온 회신**이 여기 올라온다(이대 EUMC 가 러시아어로 보낸 진료비 견적서).
+ *   그걸 코디·PO 가 못 읽으면 환자에게 그대로 흘려보내게 된다 → 첨부 칸과 «같은» 번역 부품을
+ *   줄마다 붙였다(./DocTranslate). 서버 창구는 원래부터 두 칸을 구분하지 않았다 —
+ *   같은 attachments 버킷, 같은 inquiry/ 경로. 없던 건 화면뿐이었다.
+ *
  * 자체 완결형(부모 CoordinatorInboxDetailClient 는 한 줄만 삽입).
  */
 
@@ -21,6 +27,7 @@ import { Send, FileText, Loader2, Trash2, Eye, EyeOff, Upload } from "lucide-rea
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadDirect } from "@/lib/uploadAttachment";
 import { DOC_LANGS, DOC_LANG_LABEL } from "@/lib/documents/sharedDocMeta";
+import { useDocTranslate, DocTranslateControls, DocTranslateResult } from "./DocTranslate";
 
 // ponytail: 이 블록의 문구는 한국어 고정 — 옆 OpinionsSection 도 절반이 그렇다.
 // 코디 화면을 러시아어로 쓰는 사람이 생기면 그때 coordinatorL 로 옮긴다.
@@ -40,6 +47,10 @@ const ERR = {
   too_many_files: "서류는 20개까지입니다",
 };
 
+// 번역 가능한 형식(그림처럼 읽거나 글자를 뽑을 수 있는 것). 옛 .doc 는 둘 다 안 된다.
+// ⚠️ 진짜 판정은 서버(src/lib/documents/translateDoc.ts)가 한다 — 여기선 단추를 흐리게 할 뿐이다.
+const TRANSLATABLE_RE = /\.(pdf|docx|jpe?g|png|webp|gif)$/i;
+
 export default function SharedDocumentsSection({ inquiryId }) {
   const [loading, setLoading] = useState(true);
   const [docs, setDocs] = useState([]);
@@ -47,6 +58,8 @@ export default function SharedDocumentsSection({ inquiryId }) {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  // 번역 상태는 여기 한 곳에 둔다 — 줄마다 따로 잡으면 목록을 다시 불러올 때 번역이 날아간다.
+  const tr = useDocTranslate();
 
   const load = useCallback(async () => {
     try {
@@ -157,6 +170,7 @@ export default function SharedDocumentsSection({ inquiryId }) {
                 <DocRow
                   key={d.id}
                   doc={d}
+                  tr={tr}
                   busy={busyId === d.id}
                   onPatch={patch}
                   onRemove={() => remove(d)}
@@ -180,7 +194,7 @@ export default function SharedDocumentsSection({ inquiryId }) {
  * 서류 한 줄 — 한 줄에 다 담는다(이름·언어·보이기·지우기).
  * 예전엔 한 건이 세로로 컸는데, 언어별 사본까지 올리면 화면이 끝없이 길어졌다(2026-08-05 PO).
  */
-function DocRow({ doc, busy, onPatch, onRemove }) {
+function DocRow({ doc, tr, busy, onPatch, onRemove }) {
   const [title, setTitle] = useState(doc.title || "");
   const [dirty, setDirty] = useState(false);
 
@@ -195,8 +209,12 @@ function DocRow({ doc, busy, onPatch, onRemove }) {
     onPatch(doc.id, { title });
   };
 
+  // 경로가 없으면(옛 응답) 번역 창구를 부를 수 없다 → 단추를 아예 안 띄운다.
+  const canTranslate = !!doc.path && TRANSLATABLE_RE.test(doc.name || "");
+
   return (
-    <li className={`px-3 py-2 ${doc.visible ? "bg-teal-50/60" : "bg-white"}`}>
+    // data-attachment-card: 번역 화면이 쪽을 넘길 때 «줄 통째»로 스크롤해 올릴 자리 표시(첨부 칸과 동일).
+    <li data-attachment-card className={`scroll-mt-24 px-3 py-2 ${doc.visible ? "bg-teal-50/60" : "bg-white"}`}>
       <div className="flex items-center gap-2">
         <FileText size={14} className="shrink-0 text-teal-700" />
         <input
@@ -240,7 +258,7 @@ function DocRow({ doc, busy, onPatch, onRemove }) {
           <Trash2 size={13} />
         </button>
       </div>
-      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 pl-6 text-[11px] text-gray-500">
+      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 pl-6 text-[11px] text-gray-500">
         {doc.url ? (
           <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
             {doc.name}
@@ -250,7 +268,25 @@ function DocRow({ doc, busy, onPatch, onRemove }) {
         )}
         <span aria-hidden="true">·</span>
         <span>{doc.visible ? "환자에게 보임" : "아직 안 보임"}</span>
+        {/* 읽기(원문 1:1 번역) — 병원이 외국어로 보내온 회신을 코디가 읽을 수 있게.
+            첨부 칸과 «같은» 부품·같은 서버 창구를 쓴다(./DocTranslate). */}
+        {canTranslate ? (
+          <span className="ml-auto flex items-center gap-1.5">
+            <DocTranslateControls tr={tr} path={doc.path} name={doc.name} />
+          </span>
+        ) : (
+          <span className="ml-auto text-[11px] text-gray-400" title="이 형식은 기계가 글자를 못 뽑습니다 — 원본을 직접 열어보세요">
+            번역 불가 형식
+          </span>
+        )}
       </div>
+
+      {/* 번역 결과 — 줄 밑에 펼친다(다른 화면으로 안 넘어간다). */}
+      {canTranslate && tr.entryOf(doc.path, tr.langOf(doc.path)) && (
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-3">
+          <DocTranslateResult tr={tr} path={doc.path} name={doc.name} />
+        </div>
+      )}
     </li>
   );
 }
