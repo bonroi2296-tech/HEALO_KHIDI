@@ -101,6 +101,35 @@ const CHECKS = [
     },
   },
   {
+    group: "어드민이 못 보던 것",
+    title: "「환자에게 보낼 서류」 칸에도 번역 단추가 붙어 있다",
+    why: "이 칸엔 병원이 «외국어로 보내온 회신»이 들어온다(문의 #316 이대 러시아어 견적서). 못 읽으면 그대로 환자에게 흘려보낸다. 단추는 줄의 path 로 파일을 찾으므로 응답에서 path 가 빠지면 «오류 없이 조용히» 사라진다",
+    as: "coordinator@test.com",
+    url: "/coordinator/inbox/316",
+    shot: "shared-doc-translate",
+    ready: /환자에게 보낼 서류/,
+    async run(p) {
+      await p.waitForTimeout(8000);
+      const head = p.locator("h2", { hasText: "환자에게 보낼 서류" }).first();
+      if (!(await head.count())) return { ok: false, note: "「환자에게 보낼 서류」 칸이 없다" };
+      await head.scrollIntoViewIfNeeded().catch(() => {});
+      const box = head.locator("xpath=..");
+      const txt = await box.innerText();
+      const hasRow = /[.](pdf|doc|docx|jpg|jpeg|png)/i.test(txt);
+      if (!hasRow) return { ok: false, note: "이 케이스에 서류가 한 줄도 없어 잴 수 없다(다른 케이스로 바꿔라)" };
+      // 단추는 «글자»가 아니라 식별자로 찾는다 — 「변환」 글자는 좁은 화면에서 숨는다(hidden sm:inline).
+      const langGroup = await box.locator('[role="group"][aria-label]').count();
+      const langBtn = await box.locator('button[title*="로 번역"]').count();
+      const convert = await box.locator('button[title*="원문 그대로"]').count();
+      const cantRead = /번역 불가 형식/.test(txt);
+      const ok = (langBtn >= 2 && convert > 0) || cantRead;
+      return {
+        ok,
+        note: `서류 줄 있음 · 언어 단추 ${langBtn}개(묶음 ${langGroup}) · 변환 단추 ${convert}개${cantRead ? " · 「번역 불가 형식」 표시 있음" : ""}`,
+      };
+    },
+  },
+  {
     group: "상대에게 줄 링크",
     title: "케이스 화면에서 「링크 복사 / 왓츠앱으로 보내기」가 보인다",
     why: "왓츠앱·메일로 받은 건도 상대에게 줄 주소가 필요하다",
