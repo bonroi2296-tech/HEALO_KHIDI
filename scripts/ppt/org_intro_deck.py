@@ -1,38 +1,45 @@
 # -*- coding: utf-8 -*-
-"""기관 협력 제안서 (범용) — 한국관광공사 해외지사·유관기관 방문용.
+"""출장용 소개 제안서 — 뼈대(축)를 골라 만든다.
 
-특정 병원·에이전시에 맞춘 자료가 아니라, 처음 만나는 기관에 회사와 서비스를
-설명하고 협력의 문을 여는 «범용» 소개서다. 발표용 + 인쇄 배포용 겸용.
+  python scripts/ppt/org_intro_deck.py time    # A판 「시간」 축 (기본)
+  python scripts/ppt/org_intro_deck.py path    # B판 「비어 있는 통로」 축
+  python scripts/ppt/org_intro_deck.py both    # C판 둘을 이어붙인 판
 
-규격: docs/rules/PPT_STYLE.md (BeyondK 톤 · teal) — beyondk_style 이 집행한다.
-쓰기: python scripts/ppt/org_intro_deck.py
+축이 다른 것은 앞부분(문제 제기) 2~3장뿐이고, 뒤(우리가 하는 일·네트워크·협력)는 공통이다.
+기관용 시장 통계는 PO 지시로 «한 장만» 넣는다(2026-09-10).
+규격: docs/rules/PPT_STYLE.md — beyondk_style 이 집행한다.
 """
+import io
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import beyondk_style as B  # noqa: E402
 
+MODE = (sys.argv[1] if len(sys.argv) > 1 else "time").lower()
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHOTS = os.path.join(ROOT, "docs", "presentations", "shots")
-OUT_DIR = r"C:\Users\user\Desktop\healwith_기관제안서_260910_claude"
-OUT = os.path.join(OUT_DIR, "healwith_기관협력제안서_260910_claude.pptx")
+OUT_DIR = os.path.join(os.path.expanduser("~"), "Desktop",
+                       "healwith_기관제안서_260910_claude")
+OUT = os.path.join(OUT_DIR, "healwith_제안서_%s_260910_claude.pptx" % MODE)
 
 W = B.W
 M = B.MARGIN
 
 prs = B.deck()
 
-# ── 1. 표지 ────────────────────────────────────────────────────────────
-B.cover(
-    prs,
-    "기관 협력 제안 · 2026",
-    ["카자흐스탄·CIS 암환자를", "한국 의료로 잇습니다"],
-    "본로이(Bonroi) · 외국인환자 유치업 등록기관 · 서비스 healwith",
-    "2026년 9월 · healwith.co.kr",
-)
+# ── 표지 ───────────────────────────────────────────────────────────────
+COVER = {
+    "time": (["환자가 잃는 것은", "돈이 아니라 시간입니다"],
+             "카자흐스탄·CIS 암환자를 한국 의료로 잇습니다"),
+    "path": (["카자흐스탄·CIS 암환자를", "한국 의료로 잇습니다"],
+             "수요가 아니라 통로가 비어 있습니다"),
+    "both": (["환자가 잃는 것은", "돈이 아니라 시간입니다"],
+             "카자흐스탄·CIS 암환자를 한국 의료로 잇습니다"),
+}[MODE]
+B.cover(prs, "기관·파트너 협력 제안 · 2026", COVER[0], COVER[1],
+        "본로이(Bonroi) · 외국인환자 유치업 등록 A-2026-01-02-06761 · 2026년 9월")
 
-# ── 2. 챕터 ────────────────────────────────────────────────────────────
 B.chapter(prs, "Who we are")
 
 # ── 3. 우리는 누구인가 ─────────────────────────────────────────────────
@@ -60,89 +67,19 @@ B.table(s, [
 
 B.band(s, "▶ 등록과 보증보험은 법정 요건이고, 국책과제 수행과 자체 특허가 저희의 차별점입니다")
 
-# ── 4. 챕터 ────────────────────────────────────────────────────────────
-B.chapter(prs, "The problem")
 
-# ── 5. 카자흐스탄 암환자의 현실 ────────────────────────────────────────
-s = B.content(
-    prs, "WHY",
-    "카자흐스탄 암환자는 스스로 길을 찾고 있습니다",
-    "국가가 해결해 주는 몫은 아주 작고, 나머지는 환자와 가족이 감당합니다.",
-)
-cw3 = (W - M * 2 - 20 * 2) / 3
-for i, (v, l, sub, acc) in enumerate([
-    ("3~4만 명", "연간 신규 암 진단", "출처에 따라 3만 또는 4만", False),
-    ("약 6,000명", "치료 위해 해외로 출국", "자비 포함 · 목적지 전체", False),
-    ("약 80명", "국가 예산의 해외치료 지원", "신규 진단의 0.3% 미만", True),
-]):
-    B.stat(s, M + i * (cw3 + 20), 170, cw3, v, l, sub, accent=acc)
+_D = os.path.dirname(os.path.abspath(__file__))
+def _part(name):
+    exec(io.open(os.path.join(_D, "_deck_%s.py.txt" % name), encoding="utf-8").read(), globals())
 
-tf = B.text(s, M, 292, W - M * 2, 130)
-B.line(tf, "환자와 의료계가 공개적으로 말한 어려움", 12, B.BLACK, B.XBOLD, first=True)
-for t in [
-    "항암 치료를 받으려면 새벽 5~6시에 도착해 줄을 서야 한다 (환자 증언)",
-    "유전자 검사가 필요하다는 안내를 못 받아 스스로 검사했고, 그 결과가 치료를 바꿨다",
-    "규정상 진단 18영업일·치료개시 30일이나 준수율은 80%대에 머문다",
-    "해외로 나가는 성인의 30~35%는 첨단치료가 아니라 «일상적 치료» 목적이다",
-]:
-    B.line(tf, "· " + t, 11, B.BODY, B.REG, before=6)
-
-B.band(s, "▶ 진단은 되는데 그다음이 막혀 있습니다. 환자는 스스로 해외를 알아봅니다")
-B.note(s, "출처: Tengrinews 종양진료 실태 취재 · Azattyq Rýhy 국립과학종양센터 부이사장 인터뷰(2025-02) · egov.kz 해외치료 쿼터 안내")
-
-# ── 6. 그런데 한국으로는 오지 않는다 ───────────────────────────────────
-s = B.content(
-    prs, "THE GAP",
-    "그런데 한국행으로는 거의 이어지지 않습니다",
-    "수요가 없어서가 아니라, 중증 환자를 안전하게 잇는 통로가 비어 있기 때문입니다.",
-)
-B.table(s, [
-    ["지표", "수치", "읽는 법"],
-    ["방한 외국인환자 총계 (2025)", "201만 1,822명", "사상 첫 200만 명 돌파"],
-    ["카자흐스탄 (2025)", "1만 5,188명 · 13위", "11위→13위 하락, 증가율은 최저"],
-    ["러시아 (2025)", "약 2만 명 · 11위", "9위→11위 하락, 피부과로 이동"],
-    ["카자흐스탄 환자의 진료 성격", "내과·검진 중심", "중증(암)은 아직 연결되지 않음"],
-    ["카자흐스탄의 에이전시 경유 비율", "63.7%", "2019년 기준 · 개인 중개 의존 구조"],
-], M, 172, [238, 146, 222], row_h=27)
-
-B.stat(s, 702, 178, 186, "23.4%", "카자흐 방한객 중", "의료 목적 (언론 보도 기준)", accent=True)
-
-tf = B.text(s, M, 356, W - M * 2, 80)
-B.rich(tf, [
-    ("한국보건산업진흥원은 카자흐스탄을 ", B.REG, B.BODY),
-    ("「치료형 고액 소비 국가」", B.XBOLD, B.BLACK),
-    ("로 분류합니다. 미용·시술 중심인 다른 상위국과 달리 ", B.REG, B.BODY),
-    ("종합병원·내과 중심으로 무겁고 비싼 치료", B.XBOLD, B.BLACK),
-    ("를 받으러 온다는 뜻입니다.", B.REG, B.BODY),
-], size=11.5, first=True)
-
-B.band(s, "▶ 건수가 아니라 «성격»으로 승부하는 시장입니다. 비어 있는 것은 수요가 아니라 통로입니다")
-B.note(s, "출처: 보건복지부 「2025년 외국인 환자 유치 200만 돌파」 보도자료 · 한국보건산업진흥원 「2024 신용카드 데이터로 본 외국인환자 소비패턴 분석」(2025-12) · 「외국인환자 유치 비즈니스 가이드」")
-
-# ── 7. 시장 구조 — 미용이 4분의 3인 시장에서 우리는 어디에 있나 ─────────
-s = B.content(
-    prs, "MARKET",
-    "외국인환자 의료비의 72%가 피부·성형입니다",
-    "2026년 상반기 외국인환자 «카드결제» 의료업종 1조 4,203억 원의 진료과 구성입니다.",
-)
-mix = os.path.join(SHOTS, "chart_specialty_mix.png")
-if os.path.exists(mix):
-    B.picture(s, mix, M, 186, w=816, border=False)
-
-tf = B.text(s, M, 340, W - M * 2, 130)
-B.line(tf, "우리는 나머지 27.9% 안에서도 가장 무거운 쪽을 맡습니다", 12, B.BLACK, B.HEAVY, first=True)
-for t in [
-    "피부·성형은 이미 경쟁이 포화 상태이고, 대형 에이전시가 촘촘하게 들어가 있습니다.",
-    "반면 암 같은 중증 치료는 상담·통역·기록·사후관리가 모두 필요해서 진입 장벽이 높고, 그래서 아무도 통로를 만들지 않았습니다.",
-    "저희가 카자흐스탄 암환자만 겨냥해 사전상담부터 사후관리까지 전 과정을 만든 이유입니다.",
-]:
-    B.line(tf, t, 11, B.BODY, B.REG, before=10)
-
-B.band(s, "▶ 큰 시장을 좇지 않고, 비어 있는 자리를 깊게 팝니다")
-B.note(s, "출처: 한국보건산업진흥원 「2026 상반기 외국인환자 카드 데이터」(2026-08-30 발표, 언론 보도 기준). 피부과 54.1% + 성형외과 18.0% = 72.1%.")
-
-# ── 8. 챕터 ────────────────────────────────────────────────────────────
-B.chapter(prs, "What we do")
+if MODE == "time":
+    _part("time")
+elif MODE == "path":
+    _part("path")
+else:
+    _part("time")
+    _part("path")
+_part("market")
 
 # ── 9. 환자 여정 6단계 ─────────────────────────────────────────────────
 s = B.content(
@@ -313,6 +250,7 @@ B.table(s, [
 B.band(s, "▶ 오늘 나눈 이야기를 정리해 다시 연락드리겠습니다. 감사합니다", y=420)
 B.note(s, "서비스명은 상표권 출원 과정에서 기존 명칭에서 healwith 로 변경했습니다. 일부 현장 사진·현수막에 변경 전 명칭이 남아 있습니다.")
 
+
 os.makedirs(OUT_DIR, exist_ok=True)
 B.save(prs, OUT)
-print("saved:", OUT, len(prs.slides._sldIdLst), "slides")
+print("saved:", os.path.basename(OUT), len(prs.slides._sldIdLst), "slides")
