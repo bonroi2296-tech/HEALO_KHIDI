@@ -141,10 +141,15 @@ s = B.content(
     "말이 오가는 동안 자막으로 옮깁니다",
     "상대가 말하면 듣는 사람의 언어로 자막이 뜨고, 오간 말이 번역돼 기록에 남습니다.",
 )
-room = os.path.join(SHOTS, "ui_consult_mock.png")
+# ⚠️ 예전 목업(ui_consult_mock.png)은 «원문 줄 + 번역 줄» 두 칸에 같은 러시아어 문장이
+#    들어가 있어 번역이 아무 일도 안 한 화면으로 보였다. 실제 통역봇은 번역문만 보내고
+#    화면에는 「상대 말 → 내 언어」 한 줄이 뜬다 → 실제 구조대로 다시 그렸다
+#    (scripts/ppt/org_intro_mock_caption.py, 2026-09-11).
+room = os.path.join(SHOTS, "mock_consult_caption_ru.png")
 if os.path.exists(room):
     B.picture(s, room, M, 186, w=516)
-B.caption(s, "원격상담 화면. 위는 의료진의 발화, 아래는 실시간 번역", M, 448, 516, size=9)
+B.caption(s, "자막 화면 예시. 의료진이 한국어로 말하면 환자 화면에는 러시아어 자막이 뜹니다",
+          M, 448, 516, size=9)
 
 tf = B.text(s, M + 548, 190, W - M * 2 - 548, 260)
 for i, (t, ds) in enumerate([
@@ -156,8 +161,8 @@ for i, (t, ds) in enumerate([
     for j, d in enumerate(ds):
         B.line(tf, d, 10, B.BODY, B.REG, before=(3 if j == 0 else 0))
 
-B.band(s, "▶ AI 자막은 참고용입니다. 의학적 판단은 의료진이 직접 확인합니다", y=474)
-B.note(s, "특허 10-2745881(EMR 연동 플랫폼) · 10-2868334(AI 기반 중개 시스템) 보유. 중요한 진료 대화에는 통역 인력을 함께 배정합니다.", y=520)
+B.band(s, "▶ AI 자막은 참고용입니다. 의학적 판단은 의료진이 직접 확인합니다", y=468)
+B.note(s, "특허 10-2745881(EMR 연동 플랫폼) · 10-2868334(AI 기반 중개 시스템) 보유. 중요한 진료 대화에는 통역 인력을 함께 배정합니다. 위 화면은 기능을 설명하기 위한 예시이며 실제 통화를 촬영한 것이 아닙니다.", y=510)
 
 # ── 12. 플랫폼이 제공하는 화면 ─────────────────────────────────────────
 # ⚠️ 예전엔 화면 6장을 224pt 칸에 줄여 넣었는데 본문이 4pt 수준이라 안 읽혔다
