@@ -297,9 +297,13 @@ export const SECTIONS = [
 ];
 
 /** 동의 — 법(PIPA) 필수 4 + 선택 1. 지금 폼과 같은 값을 그대로 쓴다.
- *  🛑 여기 문안을 고쳤으면 src/lib/legal/consentForms.js 의 CONSENT_VERSION 도 같이 올려라 —
- *     접수 라우트가 그 상수를 intake.consentVersion 에 찍는다. 안 올리면 새 문안에 한 동의가
- *     옛 판 번호로 남아 «무엇에 동의했나»를 되짚을 수 없다. */
+ *  🛑 여기 문안을 고쳤으면 판 번호를 «두 곳» 같이 올려라 —
+ *     ①src/lib/legal/consentForms.js 의 CONSENT_VERSION (이 의뢰서 경로가 찍는 값)
+ *     ②app/inquiry/_components/UnifiedInquiryFunnel.jsx 의 하드코딩된 consentVersion
+ *     안 올리면 새 문안에 한 동의가 옛 판 번호로 남아 «무엇에 동의했나»를 되짚을 수 없다.
+ *  ⚠️ 두 화면의 문안이 «이미 다르다»(이 파일은 여권번호를 포함, 퍼널은 미포함). 그런데 둘 다
+ *     "2.0.0" 을 남긴다 — 즉 판 번호만으론 두 경로가 안 갈린다. 갈리려면 intake_step 을 같이 봐라.
+ *     상세·갈래는 docs/KNOWN_ISSUES.md 「동의 판 번호 하나가 서로 다른 두 문안을 가리킨다」. */
 export const CONSENTS = [
   { name: "pipa", required: true, label: K("referral.consent.pipa") },
   { name: "sensitive", required: true, label: K("referral.consent.sensitive") },
