@@ -144,7 +144,7 @@ export default function HomeClient({ content } = {}) {
       <section className="relative text-white overflow-hidden">
         {/* 📸 교체: 실제 병원/의료진 사진 (1920x1080 이상) */}
         <div className="absolute inset-0">
-          <Image src={PLACEHOLDER.heroBg} alt="" fill priority fetchPriority="high" quality={55} sizes="100vw" className="object-cover" />
+          <Image src={PLACEHOLDER.heroBg} alt={l(L.hero?.imageAlt) || ""} fill priority fetchPriority="high" quality={55} sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-teal-900/90 to-slate-900/95" />
         </div>
         {/* Glow effects */}
