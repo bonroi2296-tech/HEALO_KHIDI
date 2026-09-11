@@ -267,7 +267,9 @@ def band(s, txt, y=468, size=11):
 
 
 def note(s, txt, y=505):
-    tf = text(s, MARGIN + 6, y, W - MARGIN * 2, 20)
+    # 폭에서 12pt 를 뺀다: 시작점이 MARGIN+6 이므로 그만큼 빼야 오른쪽 끝이
+    # 본문 오른쪽 경계(W-MARGIN)에 맞는다. 안 빼면 키릴 긴 낱말이 여백을 넘는다.
+    tf = text(s, MARGIN + 6, y, W - MARGIN * 2 - 12, 20)
     line(tf, txt, 8.5, MUTED, LIGHT, first=True)
 
 

@@ -221,5 +221,7 @@ android/app/src/debug/
 *cases*.json
 *patients*.json
 
+# 발표자료용 화면 캡처·회의 사진 (사람 얼굴 포함, 재생성 가능하므로 저장소에 두지 않는다)
+docs/presentations/shots/
 # 개인 권한 설정 — 저장소에 올리지 않는다
 .claude/settings.local.json

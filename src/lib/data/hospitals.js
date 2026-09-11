@@ -117,8 +117,11 @@ export const getHospitalSlugById = async (id) => {
   const { data, error } = await supabaseServer
     .from("hospitals")
     .select("slug")
+    // maybeSingle: 없는 UUID 로 들어오는 건 «오류»가 아니라 «없음»이다. single() 은 0행을
+    // 400 으로 던져서 (2026-08-10~09-08 실서비스 로그) 정상적인 404 경로가 오류로 찍혔다.
+    // 병원 id 는 PK 라 2행 이상은 구조적으로 불가능하니(2026-09-10 실측: 9행/고유 9) 0행만 남는다.
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     logError("[getHospitalSlugById]", error);
