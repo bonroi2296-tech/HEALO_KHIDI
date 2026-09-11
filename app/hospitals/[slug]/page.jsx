@@ -184,6 +184,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
       //   구글은 AggregateRating 에 ratingCount/reviewCount 중 하나를 요구하고, 없으면
       //   「리뷰 스니펫 구조화된 데이터 문제」로 거부한다(2026-09-06 Search Console 경고).
       //   예전 코드는 reviewCount 를 `|| undefined` 로 떨어뜨려 **별점만 남은 조각**을 보냈다.
+<<<<<<< Updated upstream
       //
       // 🔑 짝은 `ratingCount` 다 — `reviewsCount` 가 아니다(2026-09-09 독립 리뷰가 잡음).
       //   `src/lib/mapper.js` 의 resolveRating() 이 별점과 «그 별점을 만든 개수»를 함께 돌려주고,
@@ -201,6 +202,18 @@ export default async function HospitalDetailPage({ params, searchParams }) {
               "@type": "AggregateRating",
               ratingValue: hospital.rating,
               reviewCount: Number(hospital.ratingCount),
+=======
+      //   🛑 개수를 지어내서 채우지 마라 — 리뷰가 0건인데 별 5개를 광고하는 꼴이 된다.
+      //   (2026-09-09 실측: DB 의 rating·reviews_count 는 9개 병원 전부 null/0 인데
+      //    실서비스 JSON-LD 에는 ratingValue 5·4.5 가 나가고 있었다. 그 값의 출처는
+      //    아직 못 밝혔다 — 이 가드는 출처와 무관하게 «근거 없는 별점»을 막는다.)
+      aggregateRating:
+        hospital.rating && Number(hospital.reviewsCount) > 0
+          ? {
+              "@type": "AggregateRating",
+              ratingValue: hospital.rating,
+              reviewCount: Number(hospital.reviewsCount),
+>>>>>>> Stashed changes
             }
           : undefined,
     };
