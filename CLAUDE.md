@@ -23,6 +23,7 @@
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
 | **코드 아닌 일**: 계약·SEO·디자인·영업·정산·운영·환자응대 | 맨손으로 하지 마라. 어느 스킬·도구를 집을지 = **`docs/rules/TOOLBOX.md`** |
 | 문서·자료 만들기: PPT·피치덱 / 한글문서(hwp·hwpx)·공문·서식 | PPT 는 **`/ppt` 스킬**(규격 `docs/rules/PPT_STYLE.md`), 한글은 **`docs/rules/HWP_DOC.md`**. **둘 다 코드를 새로 짜지 마라**: 붙어 있는 도구를 써라(어기면 훅이 막는다) |
+| **PO·상대가 «들고 쓸» 산출물** 만들기: 안내서·안건·체크리스트·인쇄물·PDF | `docs/rules/DELIVERABLES.md` |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
 | 보안 상세 체크리스트 | `docs/SECURITY_CHECKLIST.md` |
