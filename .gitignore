@@ -225,3 +225,6 @@ android/app/src/debug/
 docs/presentations/shots/
 # 개인 권한 설정 — 저장소에 올리지 않는다
 .claude/settings.local.json
+
+# 보고서 미리보기 임시 폴더 — 세션이 만들었다 지운다
+.tmp-report-view/
