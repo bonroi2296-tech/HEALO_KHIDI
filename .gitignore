@@ -223,3 +223,4 @@ android/app/src/debug/
 
 # 개인 권한 설정 — 저장소에 올리지 않는다
 .claude/settings.local.json
+.tmp-report-view/
