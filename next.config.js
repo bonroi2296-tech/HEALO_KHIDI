@@ -424,6 +424,16 @@ const nextConfig = {
       // /kz/for-kazakh-patients 와 맨 /kk 가 들어와 «카자흐 환자가 길을 잃는 주소» 둘을 랜딩으로 보낸다.
       { source: "/kz/for-kazakh-patients", destination: "/kk/for-kazakh-patients", permanent: true },
       { source: "/kk", destination: "/kk/for-kazakh-patients", permanent: true },
+      // SNS 프로필 링크의 단일 창구(2026-09-11). 인스타·틱톡은 앱 안 브라우저가 출처를 지워서
+      // 유입이 전부 (direct) 로 섞인다 — GA4 90일 유입 13개 경로에 인스타·틱톡이 «한 건도» 없었다.
+      // 프로필에는 utm 이 안 보이는 짧은 주소만 노출하고(환자 눈에 피싱처럼 보이면 안 된다) 꼬리표는 여기서 붙인다.
+      // 채널을 가르지 않고 하나로 둔 건 «SNS 에서 오긴 오나»가 먼저이기 때문이다(PO 결정).
+      // 나중에 채널별로 갈라야 하면 /s/ig 식으로 늘리면 된다. permanent=false(307) — 목적지를 바꿀 수 있어야 한다.
+      {
+        source: "/s",
+        destination: "/ru?utm_source=social&utm_medium=social&utm_campaign=profile",
+        permanent: false,
+      },
     ];
   },
 };
