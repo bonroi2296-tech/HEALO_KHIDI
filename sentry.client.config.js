@@ -83,6 +83,22 @@ if (SENTRY_DSN && typeof window !== "undefined") {
             ...event.tags,
             // 크롬/엣지가 번역을 적용하면 <html> 에 translated-ltr|rtl 이 붙는다
             page_translated: /\btranslated-(ltr|rtl)\b/.test(el.className) ? "yes" : "no",
+            // ⚠️ 위 태그 하나로는 이제 못 가른다 (2026-09-11 보강).
+            //   translated-ltr 은 크롬·엣지 «내장» 번역기만 남기는 표식인데, 2026-09-09 에
+            //   <html translate="no"> 로 그 내장 번역기를 막았다(반성문 #188). 그래서 앞으로 남는
+            //   번역 사고는 전부 «그 표식을 안 남기는» 번역기에서 온다 — 얀덱스 브라우저(카자흐·
+            //   러시아 주 사용층)·구글 번역 확장·삼성 인터넷. 옛 태그만 보면 전부 "no" 로 찍혀
+            //   «다음 1건이면 판정된다»던 장치가 조용히 죽는다.
+            //   판별법: 번역기는 글자를 <font> 로 갈아끼운다(얀덱스는 ya-tr-span, 구글 확장은 배너).
+            //   우리 화면은 <font> 를 한 번도 안 만든다(2026-09-11 전수 확인 — index.css 에 있는
+            //   건 «주입된» font 를 꾸미는 규칙뿐이다) → 하나라도 있으면 밖에서 들어온 것이다.
+            dom_translated: (() => {
+              try {
+                return document.querySelector("font, ya-tr-span, .goog-te-banner-frame") ? "yes" : "no";
+              } catch {
+                return "unknown";
+              }
+            })(),
             page_lang: el.lang || "unknown",       // 페이지가 선언한 언어
             ui_lang: navigator.language || "unknown", // 브라우저 UI 언어 — 둘이 다르면 번역기가 뜬다
           };
