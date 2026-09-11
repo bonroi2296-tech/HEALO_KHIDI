@@ -24,6 +24,7 @@
     "optimize:images": "node scripts/optimize-images.mjs",
     "audit:images": "node scripts/optimize-images.mjs --check",
     "check:env": "node scripts/check-env.js",
+    "check:ads": "node scripts/check-ad-landings.mjs",
     "check:i18n": "node scripts/check-i18n-coverage.mjs --fail-on-missing",
     "check:upload-policy": "node scripts/check-upload-policy.mjs --selftest",
     "check:error-messages": "node scripts/check-error-messages.mjs --selftest",
