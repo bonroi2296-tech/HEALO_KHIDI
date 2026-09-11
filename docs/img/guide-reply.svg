@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 372" role="img" aria-label="AI 응답이 어떤 모양으로 오는지와 각 칸이 무엇인지">
+<rect width="360" height="372" fill="#ffffff"/>
+<text x="16" y="24" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="13" font-weight="700" fill="#1f2937">AI 답은 이 모양으로 옵니다 — 없는 칸이 있으면 규칙 위반</text>
+
+<rect x="14" y="38" width="250" height="316" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+
+<rect x="26" y="52" width="226" height="40" rx="7" fill="#f0fdfa" stroke="#0f766e"/>
+<text x="36" y="70" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="11.5" font-weight="700" fill="#0f766e">문제 있음 — 제가 고칩니다</text>
+<text x="36" y="85" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">메일이 안 나가던 원인은 …</text>
+
+<text x="36" y="116" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#1f2937">확인한 것</text>
+<text x="36" y="132" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 실제로 문의를 넣어 메일 도착 확인</text>
+<text x="36" y="147" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 러시아어 화면에서도 동일</text>
+
+<text x="36" y="174" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#b45309">확인 못 한 것</text>
+<text x="36" y="190" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 실기기 아이폰 — 기기가 없음</text>
+
+<line x1="26" y1="208" x2="252" y2="208" stroke="#d1d5db" stroke-dasharray="3 3"/>
+
+<text x="36" y="228" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#1f2937">어디서 보이나</text>
+<text x="36" y="244" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 관리자 → 문의 목록 (로그인 필요)</text>
+<text x="36" y="259" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">· 실서비스 반영: 오늘 오후 3시</text>
+
+<rect x="26" y="276" width="226" height="34" rx="7" fill="#f3f4f6"/>
+<text x="36" y="297" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10.5" font-weight="700" fill="#1f2937">사장님 손 갈 건 없습니다</text>
+
+<text x="36" y="330" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" fill="#6b7280">다음 걸음 ① … ② …</text>
+
+<line x1="264" y1="72" x2="300" y2="72" stroke="#0f766e" stroke-width="1.5"/>
+<text x="304" y="69" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#0f766e">첫 줄은</text>
+<text x="304" y="81" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#0f766e">판정</text>
+
+<line x1="264" y1="155" x2="300" y2="155" stroke="#b45309" stroke-width="1.5"/>
+<text x="304" y="152" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#b45309">두 칸이</text>
+<text x="304" y="164" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#b45309">한 묶음</text>
+
+<line x1="264" y1="293" x2="300" y2="293" stroke="#1f2937" stroke-width="1.5"/>
+<text x="304" y="290" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#1f2937">내가 할</text>
+<text x="304" y="302" font-family='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif' font-size="10" font-weight="700" fill="#1f2937">일</text>
+</svg>

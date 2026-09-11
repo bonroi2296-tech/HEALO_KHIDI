@@ -352,22 +352,36 @@ export function useDocTranslate() {
     return res.ok && data.ok ? data : { ok: false, error: data.error || "request_failed" };
   }
 
-  /** 원문 1:1 번역(요약 아님). force=true 면 캐시 무시하고 다시 돌린다. */
-  async function translate(path, name, lg, force = false) {
+  /**
+   * 실패했다고 «이미 읽고 있던 번역»을 지우지 않는다.
+   * 왜: 코디가 러시아어 견적서를 펼쳐 놓고 읽는 중에 다른 탭에서 로그아웃되면(또는 토큰 갱신 실패)
+   *     「재변환」 한 번에 표·소견이 통째로 사라지고 오류 한 줄만 남는다. 옛 인라인 코드는
+   *     세션이 없으면 아무것도 안 건드리고 빠져나갔다 — 그 안전함을 지키되, 모든 실패로 넓혔다.
+   *     처음 번역이면(=보여줄 게 없으면) 그때는 오류를 띄워야 한다.
+   */
+  function failEntry(key, error) {
+    setEntries((prev) => (prev[key]?.doc ? prev : { ...prev, [key]: { error } }));
+  }
+
+  /**
+   * 원문 1:1 번역(요약 아님). force=true 면 캐시 무시하고 다시 돌린다.
+   * mime: 업로드 때 서버가 검증해 저장해 둔 형식. 파일명에 확장자가 없어도 이걸로 읽어낸다.
+   */
+  async function translate(path, name, lg, force = false, mime = null) {
     if (!path) return;
     const key = tKey(path, lg);
     setLoadingKey(key);
     try {
-      const d = await post({ path: cleanOf(path), name, lang: lg, force });
+      const d = await post({ path: cleanOf(path), name, lang: lg, force, mimeType: mime || undefined });
       if (d.ok && d.doc) {
         setEntries((prev) => ({ ...prev, [key]: { doc: d.doc } }));
         setVerifyByKey((prev) => { const n = { ...prev }; delete n[key]; return n; }); // 새 번역 → 낡은 검증 제거
       } else {
-        setEntries((prev) => ({ ...prev, [key]: { error: d.error || "translate_failed" } }));
+        failEntry(key, d.error || "translate_failed");
       }
     } catch (e) {
       console.error("[docTranslate] translate:", e);
-      setEntries((prev) => ({ ...prev, [key]: { error: "translate_failed" } }));
+      failEntry(key, "translate_failed");
     }
     setLoadingKey(null);
   }
@@ -450,6 +464,8 @@ export function DocTranslateResult({ tr, path, name }) {
           ? L.atErrTooBig
           : entry.error === "too_long"
           ? L.atErrTooLong
+          : entry.error === "no_session"
+          ? L.atErrSession
           : L.atErrTranslate}
       </p>
     );
@@ -475,7 +491,7 @@ export function DocTranslateResult({ tr, path, name }) {
  * 출력 언어 고르기(한/영/러) + 번역 단추 — 두 칸이 같은 모양을 쓴다.
  * 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어.
  */
-export function DocTranslateControls({ tr, path, name, disabled = false }) {
+export function DocTranslateControls({ tr, path, name, mime = null }) {
   const L = useCoordinatorL();
   const lg = tr.langOf(path);
   const key = tr.tKey(path, lg);
@@ -490,6 +506,7 @@ export function DocTranslateControls({ tr, path, name, disabled = false }) {
             key={o.key}
             type="button"
             onClick={() => tr.setLang(path, o.key)}
+            aria-pressed={lg === o.key}
             className={`px-2 py-1.5 text-xs font-medium transition ${lg === o.key ? "bg-teal-700 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
             title={`${o.label} 로 번역`}
           >
@@ -499,8 +516,8 @@ export function DocTranslateControls({ tr, path, name, disabled = false }) {
       </div>
       <button
         type="button"
-        onClick={() => tr.translate(path, name, lg, !!entry?.doc)}
-        disabled={!path || busy || disabled}
+        onClick={() => tr.translate(path, name, lg, !!entry?.doc, mime)}
+        disabled={!path || busy}
         className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
         title={L.atConvertTitle}
       >

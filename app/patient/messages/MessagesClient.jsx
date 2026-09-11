@@ -7,6 +7,7 @@ import { useLang } from "@/lib/i18n/LangContext";
 import { t, dateLocale } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
+import { kstDate, kstDateTime } from "@/lib/datetime/kst";
 
 // DB actor_type 코드 → 표시 라벨 키(중앙 사전). 코드값은 서버/DB 비교용이라 그대로 두고
 // 라벨만 t() 경유. 알 수 없는 actor_type 은 기존과 동일하게 system 라벨로 폴백.
@@ -314,7 +315,7 @@ function ThreadRow({ thread, active, onClick, lang }) {
         {subject}
       </div>
       <div className="text-xs text-gray-500 tabular-nums mt-0.5">
-        {new Date(thread.updated_at).toLocaleDateString(dateLocale(lang))}
+        {kstDate(thread.updated_at, dateLocale(lang))}
       </div>
     </button>
   );
@@ -328,7 +329,7 @@ function MessageBubble({ message, user, lang }) {
     <div className={`flex mb-4 ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] md:max-w-[70%] ${isMine ? "text-right" : "text-left"}`}>
         <div className="text-xs text-gray-500 mb-1.5">
-          {who} · <span className="tabular-nums">{new Date(message.created_at).toLocaleString(dateLocale(lang))}</span>
+          {who} · <span className="tabular-nums">{kstDateTime(message.created_at, dateLocale(lang))}</span>
         </div>
         <div
           className={`inline-block px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words text-left ${

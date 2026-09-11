@@ -26,3 +26,30 @@ for (const [loc, title, htmlLang] of CASES) {
     await ctx.close();
   });
 }
+
+/**
+ * 위 검사가 못 잡던 «다른 길»의 404 — 라우트는 있는데 안의 notFound() 가 불린 경우.
+ *
+ * 2026-09-10 실서비스 실측: /ru/hospitals/<없는 uuid> 는 Next 가 서버 HTML 로 빈 껍데기
+ * (<html id="__next_error__">)만 보내고 레이아웃을 브라우저에서 다시 그린다. 그때 React 는
+ * 인라인 <script> 를 실행하지 않아 window.__I18N__ 이 비었고, 푸터가 값 대신 키를 그렸다
+ * (「footer.tagline」·「footer.company」·「nav.about」…). 위 loop 는 «없는 주소»만 열어서
+ * 이 길을 한 번도 안 지나갔다 — 그래서 못 잡았다.
+ */
+const KEY_LEAK = /\b(footer|nav|btn|common)\.[a-zA-Z][a-zA-Z.]+/;
+
+for (const [loc, title, htmlLang] of CASES) {
+  test(`@smoke @i18n-leak /${loc}/hospitals/<없는 slug> — 화면에 번역 키가 안 보인다`, async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await ctx.newPage();
+    const resp = await page.goto(`/${loc}/hospitals/no-such-hospital-${Date.now()}`);
+    expect(resp?.status(), "404 여야 한다(200 이면 라우팅이 바뀐 것)").toBe(404);
+    await expect(page.locator("h1")).toHaveText(title);
+    await expect(page.locator("html")).toHaveAttribute("lang", htmlLang);
+    // 푸터까지 그려진 뒤에 본다 — 이 화면은 브라우저에서 그려지므로 곧바로 읽으면 이르다.
+    await expect(page.locator("footer")).toBeVisible({ timeout: 20_000 });
+    const body = (await page.locator("body").innerText()) || "";
+    expect(body.match(KEY_LEAK)?.[0] ?? null, "번역 키가 글자 그대로 노출됐다").toBeNull();
+    await ctx.close();
+  });
+}

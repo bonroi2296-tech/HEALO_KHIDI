@@ -1,5 +1,6 @@
 import { getRequestLocale, localeAlternates, ogLocaleFields } from "@/lib/i18n/metadata";
 import { absoluteUrl, ORG_ID } from "@/lib/seo/structuredData";
+import { MEASURED_ENTRY_TERMS } from "@/lib/seo/cancerSearchTerms";
 import CostCalculatorClient from "./CostCalculatorClient";
 
 // ─────────────────────────────────────────────────────────────
@@ -20,6 +21,10 @@ const KEYWORDS = [
   "лечение рака в Корее цена", "стоимость лечения рака в Корее", "лечение в Корее из Алматы",
   "лечение в Корее без визы", "한국 암치료 비용", "cost of cancer treatment in Korea",
   "Кореяда қатерлі ісікті емдеу құны", "韩国癌症治疗费用", "韓国 がん治療 費用",
+  // 실측으로 «실제 들어온 것이 확인된» 비용 문구 — 단일 출처 = src/lib/seo/cancerSearchTerms.js.
+  //   위 줄들은 전부 «стоимость/цена»(비용, 명사) 꼴인데 사람은 «сколько стоит»(얼마인가)로 친다.
+  //   여기 손으로 베끼지 마라: 다음 실측이 들어오면 그 파일만 고치면 이 줄이 따라온다.
+  ...MEASURED_ENTRY_TERMS.cost,
 ];
 
 export async function generateMetadata() {

@@ -5,6 +5,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { t } from '@/lib/i18n';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 import { getVisaChecklist } from '@/lib/visa/visaGuide';
+import { kstDate } from '@/lib/datetime/kst';
 
 // 화면 문구는 중앙 i18n 사전 patientRebooking.* 키(6개 활성언어 ko·en·ru·kz·zh·ja)
 
@@ -110,7 +111,7 @@ export default function RebookingClient() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString(lang === 'ko' ? 'ko-KR' : lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : lang === 'ru' || lang === 'kz' ? 'ru-RU' : 'en-US', {
+    return kstDate(dateStr, lang === 'ko' ? 'ko-KR' : lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : lang === 'ru' || lang === 'kz' ? 'ru-RU' : 'en-US', {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   };

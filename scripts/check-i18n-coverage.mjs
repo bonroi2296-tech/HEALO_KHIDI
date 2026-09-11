@@ -121,11 +121,17 @@ if (!CHECK_ALL) {
   console.log("\n(--all 플래그로 전 언어 체크 가능)");
 }
 
-if (FAIL_ON_MISSING && anyMissing) {
+// 통과·불통과를 가르는 건 «ru·kz 뿐»이다. 나머지 언어(vi·th·ar…)는 영어 폴백이 정상 동작이라
+// 일부러 8% 상태로 둔다. --all 로 그 언어들까지 훑을 때 anyMissing 을 그대로 쓰면 ru·kz 가
+// 100% 인데도 "ru 또는 kz 누락"이라는 거짓 실패가 났다(2026-09-10 실측).
+const GATE_LANGS = ["ru", "kz"];
+const gateFailing = results.filter((r) => GATE_LANGS.includes(r.lang) && r.missing > 0);
+
+if (FAIL_ON_MISSING && gateFailing.length > 0) {
   console.error(
-    "\n[FAIL] ru 또는 kz 번역 누락 있음 (--fail-on-missing). CI 통과 불가."
+    `\n[FAIL] ${gateFailing.map((r) => `${r.lang}(${r.missing}개)`).join(", ")} 번역 누락 (--fail-on-missing). CI 통과 불가.`
   );
   process.exit(1);
-} else if (!anyMissing) {
+} else if (gateFailing.length === 0) {
   console.log("\n[OK] ru/kz 커버리지 100% ✓");
 }

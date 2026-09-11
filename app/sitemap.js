@@ -21,11 +21,13 @@ export const dynamic = "force-dynamic";
 // 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
 // now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
 // ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
+// 2026-09-11: /specialties/korean-medicine 의 검색 제목·설명을 6개 언어로 새로 씀
+//   (서치콘솔 실측상 비브랜드 검색으로 순위가 잡히는 유일한 화면인데 설명이 40자짜리 홈 카드 부제였다).
 // 2026-09-05: 암종 상세 6쪽(/treatments/{female,digest,liver,lung,thyroid,etc}) 5축·JSON-LD 를 6개 언어로(#1647).
 //   ⚠️ IndexNow 크론(/api/cron/indexnow)이 평일엔 이 날짜가 3일 안일 때만 정적 페이지를 보낸다 — 정적 페이지를
 //   의미 있게 고친 PR 은 이 날짜를 «같이» 올려라(안 올리면 월요일 전체 제출까지 엔진이 모른다).
 //   (2026-08-20: 전 페이지 내부 링크를 언어별 주소로 교체 #1428)
-const STATIC_LASTMOD = new Date("2026-09-05");
+const STATIC_LASTMOD = new Date("2026-09-11");
 
 // kz(내부코드) → kk(BCP47). hreflang 표기용.
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { kstDate, kstTime } from "@/lib/datetime/kst";
 import {
   Video,
   Calendar,
@@ -15,6 +14,7 @@ import {
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { kstDate, kstTime } from "@/lib/datetime/kst";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -156,7 +156,7 @@ export default function PatientConsultationsClient() {
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
                         {q.created_at
-                          ? new Date(q.created_at).toLocaleDateString(localeOf(lang))
+                          ? kstDate(q.created_at, localeOf(lang))
                           : "—"}
                       </span>
                       {q.step2_completed_at ? (

@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { kstDateTime } from "@/lib/datetime/kst";
+import { kstDate, kstDateTime } from "@/lib/datetime/kst";
 import { scrollBehavior } from "@/lib/a11y/prefersReducedMotion";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
@@ -1024,7 +1024,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-500">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}
-                    {c.case_status_updated_at && <span>{tt("updatedLabel")} {new Date(c.case_status_updated_at).toLocaleDateString()}</span>}
+                    {c.case_status_updated_at && <span>{tt("updatedLabel")} {kstDate(c.case_status_updated_at)}</span>}
                   </div>
                 </button>
 
@@ -1077,7 +1077,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                           {c.timeline.map((tl, i) => (
                             <li key={i} className="ml-4">
                               <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
-                              <div className="text-[11px] text-gray-500">{new Date(tl.at).toLocaleDateString()}</div>
+                              <div className="text-[11px] text-gray-500">{kstDate(tl.at)}</div>
                               <div className="text-sm text-gray-700" title={noteIsTr(tl.note) ? tl.note : undefined}><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${trNote(tl.note)}` : ""}{noteIsTr(tl.note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}</div>
                             </li>
                           ))}
@@ -1200,7 +1200,7 @@ function PatientActivity({ a, tt }) {
                   {it.kind === "request" ? tt("actRequest") : it.kind === "symptom" ? `${tt("actSymptom")} · ${tt(URG_KEY[it.urgency] || "urg_low")}` : tt("actNote")}
                 </span>
                 {it.kind === "symptom" && it.severity != null && <span>{tt("actSeverity")} {it.severity}/10</span>}
-                <span>{it.at ? new Date(it.at).toLocaleDateString() : ""}</span>
+                <span>{it.at ? kstDate(it.at) : ""}</span>
               </div>
               {it.text && <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{it.text}</p>}
             </li>
@@ -1269,7 +1269,7 @@ function CaseActions({ c, tt, onDone }) {
                     {[fmtKRW(e.total_krw), fmtUSD(e.total_usd)].filter(Boolean).join(" · ") || `${tt("estNo")} ${e.quotation_no || ""}`}
                   </div>
                   <div className="text-[11px] text-emerald-700/70">
-                    {e.quotation_no ? `${tt("estNo")} ${e.quotation_no} · ` : ""}{e.issued_at ? new Date(e.issued_at).toLocaleDateString() : ""}
+                    {e.quotation_no ? `${tt("estNo")} ${e.quotation_no} · ` : ""}{e.issued_at ? kstDate(e.issued_at) : ""}
                   </div>
                 </div>
                 {e.pdf_url && <a href={e.pdf_url} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-600 text-white font-semibold hover:bg-emerald-700">{tt("estView")}</a>}
@@ -1511,7 +1511,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                <span className="text-[10px] text-gray-600 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
+                <span className="text-[10px] text-gray-600 mb-1 px-1">{who} · {kstDateTime(m.created_at)}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                   mine ? "bg-teal-700 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
                 }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>
@@ -1615,7 +1615,7 @@ function ClinicProgressPanel({ inquiryId, tt }) {
                 {r.note ? ` — ${r.note}` : ""}
               </span>
               <span className="flex items-center gap-2 shrink-0">
-                <span className="text-gray-500">{new Date(r.created_at).toLocaleDateString()}</span>
+                <span className="text-gray-500">{kstDate(r.created_at)}</span>
                 {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline">{tt("progressView")}</a>}
               </span>
             </div>
