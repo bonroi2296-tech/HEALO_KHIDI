@@ -4,12 +4,17 @@ import { mapHospitalRow, mapTreatmentRow } from "../mapper";
 import { supabaseAnonServer as supabaseServer } from "@/lib/supabase/server";
 import { logError } from "../logger";
 
+// ⚠️ `i18n` 을 빼지 마라. 2026-09-11 에 목록이 서버 렌더로 바뀌면서(#1775) 이 칸이 없어
+//   `/hospitals` 영어 화면에 병원 이름·주소·소개가 «한국어 원본»으로 18건 새어 나갔다.
+//   `mapHospitalRow(r, lang)` → `localize()` 가 `record.i18n[lang][field]` 를 보는데
+//   그 칸을 안 가져오면 폴백이 끝까지 내려가 원본(한국어)을 준다.
 const HOSPITAL_SELECT =
-  "id, slug, name, location_en, location_kr, address_detail, description, tags, rating, reviews_count, images, latitude, longitude, operating_hours, doctor_profile";
+  "id, slug, name, location_en, location_kr, address_detail, description, tags, rating, reviews_count, images, latitude, longitude, operating_hours, doctor_profile, i18n";
 const HOSPITAL_LIST_SELECT = "id, slug, created_at, updated_at";
 // 상세페이지 전용 — 목록보다 칸이 많다. 상세는 서버가 첫 화면을 «글자까지» 그려서 보내야 하고
 // (안 그러면 JS 안 돌리는 검색·AI 로봇이 「불러오는 중」만 읽고 간다),
-// 언어별 이름·설명은 i18n 칸이 있어야 나온다. 목록 조회는 가볍게 두려고 일부러 나눠 놨다.
+// 언어별 이름·설명은 i18n 칸이 있어야 나온다. 목록도 2026-09-11 부터 서버가 글자를 그려
+// 보내므로 목록 SELECT 에도 i18n 을 넣었다(그 전엔 브라우저가 따로 채워서 없어도 됐다).
 const HOSPITAL_DETAIL_SELECT =
   "id, slug, name, location_kr, location_en, address_detail, website, description, images, thumbnail_image, gallery_images, tags, rating, reviews_count, doctor_profile, latitude, longitude, operating_hours, certifications, medical_equipment, insurance_accepted, insurance_details, annual_surgery_count, establishment_date, doctor_count, external_ratings, specialties, amenities, supported_languages, faq, i18n, is_partner";
 
