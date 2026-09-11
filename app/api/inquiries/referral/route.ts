@@ -37,6 +37,7 @@ import { siteUrl } from "@/lib/siteUrl";
 import { isOwnPath } from "@/lib/storage/directUpload";
 import { safeLink, toCanonicalConsents, toDateOrNull, pickFilledFromDocs, normalizeDocDate, Schema } from "@/lib/inquiry/referralSubmit";
 import { contactKey, RECENT_INQUIRY_WINDOW_HOURS } from "@/lib/inquiry/contactKey";
+import { CONSENT_VERSION } from "@/lib/legal/consentForms";
 
 // 🛑 스키마는 여기 두지 마라 — App Router 라우트 파일은 정해진 이름(POST·runtime …)만
 //    내보낼 수 있어서, 시험이 부르라고 export 를 붙이면 «tsc 는 통과하는데 빌드가 깨진다»
@@ -248,7 +249,11 @@ export async function POST(request: NextRequest) {
         //    「(조율 가능)」이 붙는다(2026-08-19 실측 #119). 안 눌렀으면 아니오다.
         preferred_date_flex: d.dateFlexible === true,
         attachments: newAttachments,
-        intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt },
+        // 🛑 «어느 판 문안에 동의했나»는 동의 시각과 한 쌍이다 — 문안이 바뀌면 예전 동의는 그 판에 대한
+        //    동의가 아니게 되므로, 판 번호가 없으면 동의 기록만으로는 무엇에 동의한 건지 되짚을 수 없다.
+        //    화면이 보낸 값을 믿지 않고 서버 상수를 찍는다(폼 관문을 건너뛴 직접 호출도 같은 값이 남는다).
+        //    코디 화면(CoordinatorInboxDetailClient)이 intake.consentVersion 을 이미 그린다.
+        intake: { consents: toCanonicalConsents(consents), consentAt: intakeData.consentAt, consentVersion: CONSENT_VERSION },
         intake_data: intakeData,
         intake_step: d.mode === "quick" ? "referral_quick" : "referral_full",
         status: "received",
