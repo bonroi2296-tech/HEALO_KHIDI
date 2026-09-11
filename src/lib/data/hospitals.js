@@ -13,7 +13,12 @@ const HOSPITAL_LIST_SELECT = "id, slug, created_at, updated_at";
 const HOSPITAL_DETAIL_SELECT =
   "id, slug, name, location_kr, location_en, address_detail, website, description, images, thumbnail_image, gallery_images, tags, rating, reviews_count, doctor_profile, latitude, longitude, operating_hours, certifications, medical_equipment, insurance_accepted, insurance_details, annual_surgery_count, establishment_date, doctor_count, external_ratings, specialties, amenities, supported_languages, faq, i18n, is_partner";
 
-export const getFeaturedHospitals = async (limit = 6) => {
+// lang 을 받는 이유는 getHospitalById 와 같다 — 이 결과가 «/hospitals 목록의 서버 첫 화면»으로 쓰인다.
+// 2026-09-11: 목록 화면의 파트너 칸이 브라우저 useEffect 로만 채워져, 서버 HTML 에 병원 상세 링크가
+//   «면력 한 개»뿐이었다(사이트맵엔 5개). JS 를 거의 안 돌리는 얀덱스 쪽에서 특히 손해였고,
+//   구글에서도 /ru·/ja 의 세브란스 상세가 「발견됐는데 크롤 안 됨」으로 남아 있었다.
+//   상세페이지는 이미 서버가 글자까지 그려 보내는데(위 HOSPITAL_DETAIL_SELECT 주석) 목록만 빠져 있었다.
+export const getFeaturedHospitals = async (limit = 6, lang) => {
   const { data, error } = await supabaseServer
     .from("hospitals")
     .select(HOSPITAL_SELECT)
@@ -27,7 +32,7 @@ export const getFeaturedHospitals = async (limit = 6) => {
     return [];
   }
 
-  return (data || []).map(mapHospitalRow).filter(Boolean);
+  return (data || []).map((r) => mapHospitalRow(r, lang)).filter(Boolean);
 };
 
 export const getAllHospitals = async () => {

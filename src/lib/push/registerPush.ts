@@ -35,6 +35,19 @@ export function buildRegisterRequest(
   };
 }
 
+/**
+ * 권한이 안 떨어졌을 때 «오류 수집기로 보낼 일인가»를 가른다. (순수 함수 — 단위시험 대상)
+ *
+ * `denied` = 앱이 제대로 물었고 사람이 싫다고 답한 것이다. 고칠 코드가 없는데 미해결 이슈로
+ * 영원히 남아, 진짜 고장이 왔을 때 아무도 목록을 안 보게 만든다(실서비스 Sentry
+ * JAVASCRIPT-NEXTJS-G 가 그렇게 쌓여 있었다 — 2026-09-11 정리).
+ * 나머지는 보낸다. 특히 requestPermissions() 를 부른 «뒤에도» prompt 면 OS 가 물음창을
+ * 아예 안 띄운 것이라 사람 선택이 아니라 우리 쪽 결함 신호다.
+ */
+export function shouldReportPermissionProblem(receive: string): boolean {
+  return receive !== "granted" && receive !== "denied";
+}
+
 /** 알림 등록이 막힌 이유를 남긴다 — 조용히 실패하면 폰을 뜯어보기 전엔 알 수가 없다. */
 function reportPushProblem(reason: string): void {
   console.warn("[push]", reason);
@@ -72,7 +85,20 @@ export async function registerPushNotifications(): Promise<void> {
   if (perm.receive !== "granted") {
     // 조용한 실패를 없앤다 (2026-07-31): 「앱은 깔았는데 왜 알림이 안 오지」를 여태 볼 방법이
     // 없었다 — 기기 표가 비어 있어도 원인이 «권한 거부»인지 «등록 실패»인지 알 수 없었다.
-    reportPushProblem(`권한 없음(${perm.receive})`);
+    //
+    // ⚠️ 단 «사용자가 거부한 것»(denied)은 오류 수집기로 안 보낸다 (2026-09-11).
+    //    그건 앱이 제대로 물었고 사람이 싫다고 답한 «정상 동작»이다. 고칠 코드가 없는데
+    //    미해결 이슈로 영원히 남아, 진짜 고장이 왔을 때 아무도 목록을 안 보게 만든다.
+    //    (실서비스 Sentry JAVASCRIPT-NEXTJS-G: iOS 1건이 그대로 미해결로 쌓여 있었다.)
+    //    거부율이 궁금하면 「앱 설치 수 대비 등록된 기기 토큰 수」로 재라 — 그게 원래 자다.
+    //
+    // 🛑 나머지는 그대로 보낸다. 특히 requestPermissions() 를 부른 «뒤에도» prompt 면
+    //    OS 가 물음창을 아예 안 띄운 것이다 — 그건 사람 선택이 아니라 우리 쪽 결함 신호다.
+    if (shouldReportPermissionProblem(perm.receive)) {
+      reportPushProblem(`권한 없음(${perm.receive})`);
+    } else {
+      console.warn("[push] 권한 없음(denied) — 사용자가 거부함(정상 동작, 수집 안 함)");
+    }
     return;
   }
 

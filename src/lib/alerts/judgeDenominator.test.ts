@@ -56,3 +56,32 @@ describe("판사 건너뜀과 감시 모수는 짝이다 (회귀 잠금)", () =>
     expect(countQuery("ai_response_evaluations")).not.toMatch(/judge_skipped/);
   });
 });
+
+// 2026-09-11 추가. 위 「두 카운터는 같은 것을 세야 한다」를 저장률 판정에도 건다.
+// 사고: ai_judge_save_gap 이 판사 «호출 수»(ai_usage_events)를 모수로 썼는데, 호출 기록은
+// 스레드를 참조하지 않아 영원히 남고 채점 행은 스레드와 함께 지워진다(ON DELETE CASCADE).
+// 점검 도구(smoke-chat·chat-eval-cleanup)가 제 스레드를 치울 때마다 유령 간극이 쌓여
+// 실서비스 경보 7건이 전부 헛것이었다. 모수가 다시 그쪽으로 돌아가면 여기서 막는다.
+describe("저장률 판정의 모수는 «지워질 때 같이 지워지는 쪽»이어야 한다 (회귀 잠금)", () => {
+  const DEADMAN = read("src/lib/alerts/deadman.ts");
+  /** ai_judge_save_gap 판정 블록만 잘라낸다. */
+  const block = (() => {
+    const i = DEADMAN.indexOf("replies >= JUDGE_SAVE_MIN_REPLIES");
+    expect(i, "저장률 판정이 답변 수(JUDGE_SAVE_MIN_REPLIES)를 안 쓴다").toBeGreaterThan(-1);
+    const j = DEADMAN.indexOf("});", DEADMAN.indexOf('key: "ai_judge_save_gap"'));
+    return DEADMAN.slice(i, j);
+  })();
+
+  it("비율 계산에 판사 호출 수(aiJudgeCalls)가 끼어들지 않는다", () => {
+    // details 의 참고값(aiJudgeCallsRaw)은 허용 — 판정식에 들어가는 것만 막는다.
+    const decision = block.slice(0, block.indexOf("details:"));
+    expect(decision).not.toContain("aiJudgeCalls");
+    expect(decision).toMatch(/evaluations < replies \* JUDGE_SAVE_RATE_FLOOR/);
+  });
+
+  it("답변·채점 두 집계가 같은 창(sinceAi)을 본다 — 창이 어긋나면 비율이 거짓이 된다", () => {
+    for (const table of ["chat_messages", "ai_response_evaluations"]) {
+      expect(KPI.slice(KPI.indexOf(`.from("${table}")`))).toMatch(/\.gte\("created_at", sinceAi\)/);
+    }
+  });
+});
