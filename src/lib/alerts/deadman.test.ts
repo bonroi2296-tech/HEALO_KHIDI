@@ -89,21 +89,22 @@ describe("evaluateDeadman — 탐지는 되는데 통보가 안 됨", () => {
   });
 });
 
-// 판사를 «불렀는데» 채점이 안 남는 것 (2026-08-28 2차 훑기에서 발견)
-// 실측: 최근 이틀 판사 호출 77건 · 채점 저장 47건 = 39% 유실. 로그에만 남고 DB엔 흔적이 없었다.
-describe("evaluateDeadman — 부르고도 결과를 잃는 중", () => {
-  it("호출 77건에 저장 47건이면 warning (발견 당시 실측값)", () => {
-    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 77, aiEvaluations: 47 });
+// 채점이 «있어야 할 자리»에 없는 것 (2026-08-28 2차 훑기에서 발견 → 2026-09-11 모수 교정)
+// 모수는 판사 «호출 수»가 아니라 «채점 대상 답변 수»다. 이유는 아래 블록의 회귀 시험에 적었다.
+describe("evaluateDeadman — 채점이 있어야 할 자리에 없다", () => {
+  it("답변 77건에 채점 47건이면 warning", () => {
+    const a = evaluateDeadman({ ...OK, aiReplies: 77, aiEvaluations: 47 });
     const hit = a.find((x) => x.key === "ai_judge_save_gap");
     expect(hit?.severity).toBe("warning");
     expect(hit?.details.savedPct).toBe(61);
+    expect(hit?.details.aiReplies).toBe(77);
   });
   it("저장률이 높으면 조용", () => {
-    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 50, aiEvaluations: 48 });
+    const a = evaluateDeadman({ ...OK, aiReplies: 50, aiEvaluations: 48 });
     expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
   });
-  it("호출이 적으면(<20) 안 본다 — 표본 부족에선 비율이 요동친다", () => {
-    const a = evaluateDeadman({ ...OK, aiJudgeCalls: 9, aiEvaluations: 1 });
+  it("답변이 적으면(<10) 안 본다 — 표본 부족에선 비율이 요동친다", () => {
+    const a = evaluateDeadman({ ...OK, aiReplies: 9, aiEvaluations: 1 });
     expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
   });
   it("채점이 0이면 ai_judge_zero 쪽에 맡기고 여기선 안 울린다 — 중복 경보 방지", () => {
@@ -113,5 +114,26 @@ describe("evaluateDeadman — 부르고도 결과를 잃는 중", () => {
   });
   it("값을 안 넘기면 기존 판정만 돈다", () => {
     expect(evaluateDeadman(OK)).toHaveLength(0);
+  });
+});
+
+// ⬇️ 이 블록이 이번 수정의 «존재 이유»다. 지우지 마라.
+// 실서비스 경보 [ALERT:deadman_coverage] 7건(2026-09-05~09-10, Sentry JAVASCRIPT-NEXTJS-M)의
+// 정체가 이것이었다: 판사 호출 기록(ai_usage_events)은 스레드를 참조하지 않아 영원히 남는데
+// 채점 행(ai_response_evaluations)은 chat_threads 에 ON DELETE CASCADE 로 매달려 있어
+// 점검 도구가 제 스레드를 치우면 «채점만» 사라진다. 그래서 호출을 모수로 쓰면 치울 때마다
+// 유령 간극이 생긴다. 2026-09-11 실측(30일): 호출 215 vs 채점 대상 답변 82 — 호출이 모수의 2.6배.
+describe("삭제된 스레드가 만든 유령 간극은 경보를 만들지 않는다 (반성문 #195 회귀)", () => {
+  it("점검 스레드를 치워 호출만 잔뜩 남아도, 답변 대비 채점이 멀쩡하면 조용하다", () => {
+    // 실환자 답변 20건 전부 채점됨. 그 위에 «치워진» 점검 대화의 호출 200건이 얹혀 있는 상황.
+    const a = evaluateDeadman({ ...OK, aiReplies: 20, aiEvaluations: 20, aiJudgeCalls: 220 });
+    expect(a.some((x) => x.key === "ai_judge_save_gap")).toBe(false);
+  });
+  it("거꾸로, 호출 기록이 통째로 없어도 답변 대비 채점이 비면 경보가 뜬다", () => {
+    // 판사를 «부르지도 못한» 갈래(fire-and-forget 유실)는 호출 기록조차 안 남는다.
+    // 옛 판정(호출 기준)은 이 부류를 원천적으로 못 봤다.
+    const a = evaluateDeadman({ ...OK, aiReplies: 20, aiEvaluations: 5, aiJudgeCalls: 0 });
+    const hit = a.find((x) => x.key === "ai_judge_save_gap");
+    expect(hit?.details.savedPct).toBe(25);
   });
 });

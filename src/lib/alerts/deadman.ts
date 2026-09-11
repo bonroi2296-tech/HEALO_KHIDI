@@ -30,8 +30,16 @@ export interface DeadmanInput {
   aiQualityAlertsSent?: number;
   /**
    * 최근 윈도 판사 «호출» 수 (ai_usage_events surface='judge').
-   * 이건 모델을 실제로 부른 횟수다. 부른 뒤 JSON 파싱이나 저장에서 깨지면
-   * aiEvaluations 에 안 들어간다 — 그 차이가 곧 «조용한 실패»다.
+   *
+   * 🛑 **판정에 쓰지 마라 — 사람이 읽을 참고값이다.** 이 숫자는 채점 수와 «같은 것»을 세지 않는다:
+   *   ai_response_evaluations 는 chat_threads 에 ON DELETE CASCADE 로 매달려 있어서 스레드가
+   *   지워지면 «채점 행이 같이 사라진다». 그런데 ai_usage_events 는 스레드를 참조하지 않아 그대로 남는다.
+   *   점검·평가 도구(scripts/smoke-chat.mjs·chat-eval-cleanup.mjs)는 끝나고 제 스레드를 지우므로,
+   *   그 차이만큼 «부르고 잃은 것처럼» 보이는 유령 간극이 매일 쌓인다.
+   *   2026-09-11 실측(30일): 판사 호출 215건인데 «채점될 수 있는 답변»은 82건 — 호출이 모수의 2.6배다.
+   *   한 답변당 판사는 한 번만 도는데(호출부 2곳, 각 1회) 호출이 모수를 넘는다는 건 그 초과분이
+   *   «지금은 존재하지 않는 답변»에 붙은 것이라는 뜻이다. 즉 잃은 게 아니라 치워진 것이다.
+   *   그래서 저장률 판정의 모수는 aiReplies 로 옮겼다(답변과 채점은 둘 다 스레드와 함께 지워진다 = 대칭).
    * ⚠️ 자가시험은 surface='regression_judge' 로 따로 기록되므로 여기 안 섞인다(2026-08-28 확인).
    */
   aiJudgeCalls?: number;
@@ -61,9 +69,9 @@ export function daysBetween(a: string, b: string): number {
 export const SURVEY_ZERO_MIN_COMPLETED = 3;
 /** AI 답변이 이 수 이상인데 채점 0건이면 판사가 죽은 것으로 본다. */
 export const JUDGE_ZERO_MIN_REPLIES = 10;
-/** 판사 호출이 이 수 이상일 때만 저장률을 본다(표본이 적으면 비율이 요동친다). */
-export const JUDGE_SAVE_MIN_CALLS = 20;
-/** 호출 대비 채점 저장이 이 비율 미만이면 «부르고도 결과를 잃는 중»으로 본다. */
+/** 채점 대상 답변이 이 수 이상일 때만 저장률을 본다(표본이 적으면 비율이 요동친다). */
+export const JUDGE_SAVE_MIN_REPLIES = 10;
+/** 답변 대비 채점 저장이 이 비율 미만이면 «채점이 있어야 할 자리에 없다»로 본다. */
 export const JUDGE_SAVE_RATE_FLOOR = 0.8;
 /** 문제 표시가 이 수 이상 붙었는데 알림 0건이면 통보 경로가 죽은 것으로 본다. */
 export const QUALITY_ALERT_ZERO_MIN_FLAGGED = 3;
@@ -132,25 +140,36 @@ export function evaluateDeadman(input: DeadmanInput): DeadmanAlert[] {
     });
   }
 
-  // 5) 판사를 «불렀는데» 채점이 안 남는다 = 조용한 실패
-  //    2026-08-28 실측: 최근 이틀 판사 호출 77건인데 채점 저장은 47건(39% 유실).
-  //    evaluateResponse 는 JSON 파싱이 깨지면 null 을 돌려주고 runJudgeInBackground 는
-  //    그걸 조용히 삼킨다: 로그에만 남고 DB 에는 «아무 흔적도» 없다.
-  //    ⚠️ 원인(파싱 실패인지 저장 실패인지)은 아직 미규명이다. 값을 추측으로 고치지 말고
-  //    먼저 «보이게» 만든다: 이 경보가 며칠 쌓이면 어느 쪽인지 데이터가 말해준다.
+  // 5) 채점이 «있어야 할 자리»에 없다 = 판사가 부분적으로 죽어 있다
+  //    답변은 남았는데 그 답변의 채점이 없는 상태다. 갈래는 셋이고 전부 화면상 «정상»과 구별이 안 된다:
+  //      ①판사를 부르지도 못함(fire-and-forget 이라 함수 인스턴스가 먼저 회수되면 그냥 사라진다)
+  //      ②불렀는데 JSON 파싱 실패 → evaluateResponse 가 null 반환, DB 에 흔적 0
+  //      ③채점 insert 실패 → console.warn 만 남는다
+  //
+  //    ⚠️ 모수는 **답변 수**다. 판사 «호출 수»(aiJudgeCalls)로 재던 것을 2026-09-11 에 옮겼다:
+  //    호출 기록(ai_usage_events)은 스레드를 참조하지 않아 영구히 남는데 채점 행은 스레드와 함께
+  //    지워져서(ON DELETE CASCADE), 점검 도구가 제 스레드를 치울 때마다 «부르고 잃은 것처럼» 보이는
+  //    유령 간극이 생겼다. 실서비스 경보 7건이 전부 그것이었다(반성문 #195).
+  //    답변과 채점은 둘 다 스레드와 함께 사라지므로 서로 대칭이다 — 치워도 비율이 안 흔들린다.
   //    evaluations === 0 인 경우는 ai_judge_zero 가 이미 잡으므로 여기선 뺀다(중복 경보 방지).
-  const judgeCalls = input.aiJudgeCalls ?? 0;
   if (
-    judgeCalls >= JUDGE_SAVE_MIN_CALLS &&
+    replies >= JUDGE_SAVE_MIN_REPLIES &&
     evaluations > 0 &&
-    evaluations < judgeCalls * JUDGE_SAVE_RATE_FLOOR
+    evaluations < replies * JUDGE_SAVE_RATE_FLOOR
   ) {
-    const pct = Math.round((evaluations / judgeCalls) * 100);
+    const pct = Math.round((evaluations / replies) * 100);
     alerts.push({
       key: "ai_judge_save_gap",
       severity: "warning",
-      message: `판사를 ${judgeCalls}번 불렀는데 채점은 ${evaluations}건만 남았습니다(${pct}%). 부르고도 결과를 잃는 중입니다`,
-      details: { aiJudgeCalls: judgeCalls, aiEvaluations: evaluations, savedPct: pct },
+      message: `채점 대상 답변 ${replies}건인데 채점은 ${evaluations}건만 남았습니다(${pct}%). 채점이 있어야 할 자리에 없습니다`,
+      details: {
+        aiReplies: replies,
+        aiEvaluations: evaluations,
+        savedPct: pct,
+        // 참고값(판정에 안 씀) — «부르지도 못함»과 «부르고 잃음»을 사람이 가를 때만 본다.
+        // 지워진 스레드의 호출까지 들어 있어 답변 수보다 클 수 있다. 위 주석 참고.
+        aiJudgeCallsRaw: input.aiJudgeCalls ?? 0,
+      },
     });
   }
 

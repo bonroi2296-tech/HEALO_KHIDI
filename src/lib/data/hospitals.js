@@ -4,16 +4,26 @@ import { mapHospitalRow, mapTreatmentRow } from "../mapper";
 import { supabaseAnonServer as supabaseServer } from "@/lib/supabase/server";
 import { logError } from "../logger";
 
+// ⚠️ `i18n` 을 빼지 마라. 2026-09-11 에 목록이 서버 렌더로 바뀌면서(#1775) 이 칸이 없어
+//   `/hospitals` 영어 화면에 병원 이름·주소·소개가 «한국어 원본»으로 18건 새어 나갔다.
+//   `mapHospitalRow(r, lang)` → `localize()` 가 `record.i18n[lang][field]` 를 보는데
+//   그 칸을 안 가져오면 폴백이 끝까지 내려가 원본(한국어)을 준다.
 const HOSPITAL_SELECT =
-  "id, slug, name, location_en, location_kr, address_detail, description, tags, rating, reviews_count, images, latitude, longitude, operating_hours, doctor_profile";
+  "id, slug, name, location_en, location_kr, address_detail, description, tags, rating, reviews_count, images, latitude, longitude, operating_hours, doctor_profile, i18n";
 const HOSPITAL_LIST_SELECT = "id, slug, created_at, updated_at";
 // 상세페이지 전용 — 목록보다 칸이 많다. 상세는 서버가 첫 화면을 «글자까지» 그려서 보내야 하고
 // (안 그러면 JS 안 돌리는 검색·AI 로봇이 「불러오는 중」만 읽고 간다),
-// 언어별 이름·설명은 i18n 칸이 있어야 나온다. 목록 조회는 가볍게 두려고 일부러 나눠 놨다.
+// 언어별 이름·설명은 i18n 칸이 있어야 나온다. 목록도 2026-09-11 부터 서버가 글자를 그려
+// 보내므로 목록 SELECT 에도 i18n 을 넣었다(그 전엔 브라우저가 따로 채워서 없어도 됐다).
 const HOSPITAL_DETAIL_SELECT =
   "id, slug, name, location_kr, location_en, address_detail, website, description, images, thumbnail_image, gallery_images, tags, rating, reviews_count, doctor_profile, latitude, longitude, operating_hours, certifications, medical_equipment, insurance_accepted, insurance_details, annual_surgery_count, establishment_date, doctor_count, external_ratings, specialties, amenities, supported_languages, faq, i18n, is_partner";
 
-export const getFeaturedHospitals = async (limit = 6) => {
+// lang 을 받는 이유는 getHospitalById 와 같다 — 이 결과가 «/hospitals 목록의 서버 첫 화면»으로 쓰인다.
+// 2026-09-11: 목록 화면의 파트너 칸이 브라우저 useEffect 로만 채워져, 서버 HTML 에 병원 상세 링크가
+//   «면력 한 개»뿐이었다(사이트맵엔 5개). JS 를 거의 안 돌리는 얀덱스 쪽에서 특히 손해였고,
+//   구글에서도 /ru·/ja 의 세브란스 상세가 「발견됐는데 크롤 안 됨」으로 남아 있었다.
+//   상세페이지는 이미 서버가 글자까지 그려 보내는데(위 HOSPITAL_DETAIL_SELECT 주석) 목록만 빠져 있었다.
+export const getFeaturedHospitals = async (limit = 6, lang) => {
   const { data, error } = await supabaseServer
     .from("hospitals")
     .select(HOSPITAL_SELECT)
@@ -27,7 +37,7 @@ export const getFeaturedHospitals = async (limit = 6) => {
     return [];
   }
 
-  return (data || []).map(mapHospitalRow).filter(Boolean);
+  return (data || []).map((r) => mapHospitalRow(r, lang)).filter(Boolean);
 };
 
 export const getAllHospitals = async () => {
