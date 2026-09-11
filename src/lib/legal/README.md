@@ -11,8 +11,15 @@
 | `medicalDisclaimer.js` | 의료 면책 고지 (6개 언어) | 의료법, SaMD 회피 |
 | `consentForms.js` | 동의 항목 데이터 구조 | PIPA §15/17/22/23/28-8 |
 
-> ⚠️ `consentForms.js` 는 **2026-08-14 기준 아무데서도 import 하지 않는 죽은 파일**이다. 실제 화면 동의는
-> 정식 문의 폼(`app/inquiry/_components/UnifiedInquiryFunnel.jsx`, 필수 4 + 선택 1)과 로봇 채팅(`app/inquiry/ThreadChat.jsx`, 1개)에 있고,
+> ⚠️ **2026-09-11 정정 — 더 이상 죽은 파일이 아니다.** `app/api/inquiries/referral/route.ts` 가 `CONSENT_VERSION` 을
+> 가져다 `intake.consentVersion` 에 찍는다(신청서 [#1790](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1790)).
+> 다만 **`CONSENT_ITEMS` 배열(7개)은 여전히 아무도 안 읽는다** — 살아난 건 `CONSENT_VERSION` 상수 하나뿐이다.
+> 🛑 그래서 **이 파일의 항목 7개와 화면이 보여주는 5개가 다르다**. 「여기 적혀 있으니 동의를 받은 것」으로 읽지 마라.
+> 상세·갈래 = `docs/KNOWN_ISSUES.md` 「동의 판 번호 하나가 서로 다른 두 문안을 가리킨다」.
+>
+> ~~2026-08-14 기준 아무데서도 import 하지 않는 죽은 파일~~. 실제 화면 동의는
+> 정식 문의 폼(`app/inquiry/_components/UnifiedInquiryFunnel.jsx`, 필수 4 + 선택 1)·의뢰서 폼(`app/inquiry/referral/ReferralForm.jsx`, 필수 4 + 선택 1, **문안이 퍼널과 다르다**)과
+> 로봇 채팅(`app/inquiry/ThreadChat.jsx`, 1개)에 있고,
 > 기록은 `inquiries.intake.consents` 에 남는다(**`intake_data` 아님** — 칸 이름이 비슷해 실제로 오판한 적 있음).
 
 ## ✍️ 문서 작성 원칙 (2026-08-14 추가)

@@ -22,9 +22,9 @@
   - **SNS 짧은 주소 세션(낮)** — 신청서 [#1781](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1781) 하나를 합치고 끊겼다. **어느 핸드오프에도 단 한 줄도 안 적혀 있었다.** 이 세션이 「A 의 일부인가 별개인가」부터 판정이 필요했고, 파일 겹침 0 · 갈라진 자리 · 두 신청서가 서로를 한 번도 언급 안 함으로 **별개 세션**으로 갈랐다(어느 세션이었는지는 확정 못 했다).
 · 🧹 **작업본 4개를 정리했다.**
   - `work/handoff-sentry` — 내용을 건져 본판으로. 신청서 #1778 은 **그대로 합치면 안 됐다**(4번 함정).
-  - `docs/handoff-0911-kztrip2` — 신청서 [#1788](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1788) 은 닫혔고 같은 내용이 [#1789](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1789) 로 들어가 있다. 문구 차이 4곳까지 대조해 잃은 게 없음을 확인하고 삭제.
-  - `fix/hosp-i18n-backup` — **충돌 표시(`<<<<<<< Updated upstream`)가 그대로 든 망가진 워킹트리 백업**이었다. 실제 고침(병원 목록 i18n)은 [#1780](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1780) 으로 이미 본판에 있다. `.gitignore` 한 줄만 건지고 삭제.
-  - `fix/seo-localhost-in-jsonld` — 2026-09-09 이후 신청서 없이 방치되던 것. **주인을 찾았다**: 2026-09-09 SEO 세션이고, 그 세션의 고침(`d6b6f5e0`)은 본판이 이미 흡수했다(파일 내용 대조로 확인 — 별점 짝 `ratingCount`·기준주소 가드·시간대 가드 전부 일치). 남은 고유 고침 1건만 건지고 삭제.
+  - `docs/handoff-0911-kztrip2` — 신청서 [#1788](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1788) 은 닫혔고 같은 내용이 [#1789](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1789) 로 들어가 있다. 문구 차이 4곳까지 대조해 잃은 게 없음을 확인했다. **지우려 했으나 못 지웠다**(아래 4번).
+  - `fix/hosp-i18n-backup` — **충돌 표시(`<<<<<<< Updated upstream`)가 그대로 든 망가진 워킹트리 백업**이었다. 실제 고침(병원 목록 i18n)은 [#1780](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1780) 으로 이미 본판에 있다. `.gitignore` 한 줄만 건졌다. **지우려 했으나 못 지웠다**(아래 4번).
+  - `fix/seo-localhost-in-jsonld` — 2026-09-09 이후 신청서 없이 방치되던 것. **주인을 찾았다**: 2026-09-09 SEO 세션이고, 그 세션의 고침(`d6b6f5e0`)은 본판이 이미 흡수했다(파일 내용 대조로 확인 — 별점 짝 `ratingCount`·기준주소 가드·시간대 가드 전부 일치). 남은 고유 고침 1건만 건졌다. **지우려 했으나 못 지웠다**(아래 4번).
 · 🔴 **지우기 전 대조에서 「본판에 안 간 고침」 1건을 건졌다** — `/api/inquiries/referral` 이 `intake.consentVersion` 을 안 찍고 있었다. 코디 화면은 그 칸을 이미 그리고, 6개 언어 딱지도 있고, `CONSENT_VERSION` 상수도 있는데 **아무도 안 쓰고 있었다**. 옛 경로(`step1`)는 찍는다 — 새 경로만 빠져 있었다. 서버 상수로 찍게 고쳤다.
 · 🔴 **문서-현실 드리프트 1건을 고쳤다** — `docs/KNOWN_ISSUES.md` 의 NK세포치료 항목이 2026-07-29 판 그대로였다. 「`female`·`etc` 두 그룹만 위험」이라고 적혀 있었는데 실제는 **6개 암종 × 3개 언어 18쪽 전부**이고, 고칠 위치 줄번호 4개도 전부 옛 것이었다(`immuneTherapies.js:73` → `:100` 등). **그대로 뒀으면 다음 사람이 「나머지 4개는 안전하다」로 읽고 광고를 켠다.**
 · ✅ **밀려 있던 「직전 미검증분」 3건을 그 자리에서 실측해 닫았다**(아래 6번).
@@ -51,7 +51,8 @@
 ### 4. 주의·함정
 
 · 🛑 **신청서 #1778 처럼 「회전 전에 갈라진 문서 작업본」을 그냥 합치지 마라.** `PROJECT_CONTEXT.md` 는 `handoff:rotate` 가 오래된 블록을 보관소로 내린다. 회전 전에 갈라진 가지는 **내려간 블록을 아직 들고 있어서**, 합치면 그게 되살아난다. 판정법: `git diff --stat origin/main...<가지> -- docs/PROJECT_CONTEXT.md` 에 **세 자리 이상 «추가»**가 찍히면 그 가지는 회전 전 것이다.
-· 🛑 **지운 작업본 4개의 커밋 번호 — 되살리려면 이것으로 `git checkout <SHA>`**:
+· 🔴 **작업본 4개를 «지우려 했으나 못 지웠다» — 이 상자에 지울 권한이 없다.** `git push origin --delete` 는 대리 서버가 삼켜 «Everything up-to-date» 만 돌려주고(지워지지 않는다), GitHub API 직접 호출은 **HTTP 403** 이다. **네 개 다 원격에 그대로 있고, 지우는 건 PO 손이거나 권한 있는 세션 몫이다.** 판정은 끝나 있으니 내용을 다시 보지 마라 — 아래 넷은 «본판이 이미 다 흡수했음을 파일 단위로 대조한 것»이다.
+· 🛑 **그 작업본 4개의 커밋 번호 — 되살리거나 지울 때 이것으로 (`git checkout <SHA>`)**:
   · `work/handoff-sentry` = `3b682f053cd9ed0ec6a2b375ae63fbab6664ca91`
   · `docs/handoff-0911-kztrip2` = `549e6eb4a02cc974c919b904b16664b1313817a6`
   · `fix/hosp-i18n-backup` = `e4ca3dd1362f4ef06c12eb01104399ba2bff0caf`
@@ -68,7 +69,8 @@
 3. **애플 1.0.2 · Play 한국어 검토 결과 확인** → 통과했으면 「힐위드」로 두 스토어 검색해서 순위를 PO 에게 알려라.
 4. 🛑 **카자흐 출장(2026-09-13)이 이틀 뒤다** — 제안서 PO 손 5건(3번)을 PO 에게 한 번에 물어 닫아라. 대표번호만 받으면 두 판을 1분 안에 다시 뽑는다.
 5. 🟠 **SNS 프로필 4곳의 링크를 짧은 주소로 바꿔라**(인스타·페북·틱톡·유튜브). 크롬으로 어시가 할 수 있다 — 2026-09-11 밤 세션이 같은 방식으로 페북·인스타 작성 화면까지 들어갔다. 바꾸기 전엔 [#1781](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1781) 이 0원짜리다.
-6. ⚪ **복원한 세션 4건의 남은 일**은 [`docs/archive/PROJECT_CONTEXT_handoffs.md`](archive/PROJECT_CONTEXT_handoffs.md) 맨 위 네 블록의 5번 칸에 있다(서치콘솔/SEO · SNS 짧은 주소 · 광고 · 센트리).
+6. 🟠 **원격 작업본 4개를 지워라**(위 4번 목록). 이 세션은 권한이 없어 못 지웠다 — `git push origin --delete` 도 GitHub API 도 막혔다. 권한 있는 상자에서 지우거나 PO 가 깃허브 화면에서 지우면 된다. **내용 판정은 끝났다**(넷 다 본판이 흡수).
+7. ⚪ **복원한 세션 4건의 남은 일**은 [`docs/archive/PROJECT_CONTEXT_handoffs.md`](archive/PROJECT_CONTEXT_handoffs.md) 맨 위 네 블록의 5번 칸에 있다(서치콘솔/SEO · SNS 짧은 주소 · 광고 · 센트리).
 
 ### 6. 검증 상태
 
@@ -80,6 +82,7 @@
 · ✅ 단위시험 `src/lib/inquiry/` **18파일 180건 전부 통과**(`consentVersion` 을 넣은 뒤).
 · ✅ `check:content` · `check:handoff` · `check:rules` 통과.
 · ✅ **작업본 4개 전수 대조** — 파일 단위로 본판과 대조해 「안 간 것」을 찾았다. `fix/seo-localhost-in-jsonld` 는 7개 파일을 하나씩 봤고, 그중 실제로 안 간 것은 `consentVersion` 하나뿐이었다(`page.jsx` 는 본판과 동일, 시간대 가드·기준주소 가드는 본판이 더 넓은 판을 갖고 있다).
+· ❌ **작업본 4개 삭제는 «못 했다»** — `git push origin --delete` 4회(대리 서버가 삼킴) · GitHub API `DELETE /git/refs/heads/*` 4회(전부 HTTP 403) 둘 다 실패했고, `git ls-remote --heads origin` 으로 넷 다 그대로 있는 것을 확인했다. **판정만 끝났고 실행이 안 된 상태다.**
 · ❌ **`consentVersion` 이 실제 접수에서 DB 에 찍히는지는 못 쟀다.** 실서비스에 시험 문의를 넣으면 실적 숫자가 오염된다(광고 세션이 같은 이유로 UTM 검증을 못 했다). **배포 뒤 실환자 접수가 한 건 들어오면 `inquiries.intake->>'consentVersion'` 을 확인하는 것이 남은 검증이다.**
 · ❌ **복원한 핸드오프 4건은 「그 세션이 기록에 그렇게 남겼다」이지 「내가 재서 맞았다」가 아니다.** 각 블록 6번에 그 경계를 적어 뒀다.
 · ➖ **`npm run check:ads` 는 안 돌렸다** — 네트워크를 타는 검사이고 광고를 켜기 «전»에 도는 것으로 자리가 잡혀 있다. 이 세션은 광고를 안 켰다.
