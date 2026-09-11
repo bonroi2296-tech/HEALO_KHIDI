@@ -151,7 +151,11 @@ export async function GET(request: NextRequest) {
           .select("id", { count: "exact", head: true })
           .eq("type", "ai_quality_alert")
           .gte("created_at", sinceAi),
-        // ③판사를 «불렀는데» 채점이 안 남는다 = 조용한 실패.
+        // ③판사 호출 수 — **참고값이다. 경보 판정에 쓰지 마라**(deadman.ts 의 aiJudgeCalls 주석 참고).
+        //    ai_usage_events 는 스레드를 참조하지 않아 영원히 남는데, 채점 행은 chat_threads 에
+        //    ON DELETE CASCADE 로 매달려 있어 점검 도구가 제 스레드를 치우면 «채점만» 사라진다.
+        //    그래서 이 숫자를 모수로 쓰면 치울 때마다 유령 간극이 생긴다(2026-09-11 교정, 반성문 #195).
+        //    저장률 판정의 모수는 위 «답변» 집계다 — 답변과 채점은 둘 다 스레드와 함께 지워져 대칭이다.
         //    surface='judge' 는 라이브 채점만이다(자가시험은 'regression_judge' 로 따로 기록).
         (supabaseAdmin as any)
           .from("ai_usage_events")
