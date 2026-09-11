@@ -681,6 +681,14 @@ AI 채팅에서 승격되는 문의(`src/lib/chat/publicChatHelpers.ts`)는 **�
 
 ## 🛑 지우면 안 되는 가지 3개 — 특히 **KHIDI 중간평가 증빙 132MB 가 가지 «하나»에만 있다** (2026-08-31 발견)
 
+> 🔴 **2026-09-11 — 이 표가 지켜지지 않았다. 셋 중 «둘»이 실제로 지워졌고, 되살렸다.** (반성문 #197)
+> · 지워진 것: `fix/push-notification-icon` · `claude/cloud-hospital-business-model-ft66ln`. 2026-09-11 저녁 세션이 *「본판보다 낡아 합치면 되돌리기가 된다」* 는 이유로 지웠다 — **맞는 말이지만 그 가지의 값어치는 «합칠 코드»가 아니라 «본판에 없는 파일»이었다.**
+> · 되살린 커밋(같은 자리로 복구 완료, 내용 대조 확인 — `docs/presentations` 61파일 132.2MB · 화면사진 56장):
+>   · `fix/push-notification-icon` = `f2c0397a6d55143fc7e9f57b76b3e90ce63945d2`
+>   · `claude/cloud-hospital-business-model-ft66ln` = `9254dac8252d23083dc5f5e9a059fcd31a45d0a7`
+> · 🔧 **문지기를 고쳤다**: `.claude/hooks/guard-destructive.mjs` 가 `git branch -D`(로컬)만 보고 **`git push origin --delete`(원격)는 안 보고 있었다.** 이제 원격 가지 삭제는 실행 직전에 확인 창이 뜬다(삭제 4형태 전부 붙잡는 것·정상 푸시 오탐 0 을 실측).
+> · 🔑 **판정 규칙**: 가지의 값어치를 «미합류 커밋 수»로만 재지 마라. `git ls-tree -r --name-only <가지>` 와 본판을 `comm` 으로 대조해 **본판에 아예 없는 파일**이 있는지부터 봐라.
+
 > 가지 정리를 하다 «하마터면 지울 뻔한» 것들이다. 정리하는 사람은 이 표를 먼저 봐라.
 >
 > 🔒 **이 표는 기계가 읽는다 (2026-09-05).** 세션 시작 훅(`.claude/hooks/session-orient.sh` 의 `protected_refs`)이

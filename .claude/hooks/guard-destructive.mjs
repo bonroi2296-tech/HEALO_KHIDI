@@ -99,6 +99,16 @@ function main(ev) {
       [/git\s+push\b[^|;&]*(--force\b(?!-with-lease)|(^|\s)-f(\s|$))/, "강제 푸시(--force) — 원격 저장소 기록이 덮어써집니다"],
       [/rm\s+-[a-zA-Z]*r[a-zA-Z]*f|rm\s+-[a-zA-Z]*f[a-zA-Z]*r/, "rm -rf — 폴더 통째 삭제"],
       [/git\s+branch\s+(-D|--delete\s+--force)/, "작업본(브랜치) 강제 삭제"],
+      // 🔴 2026-09-11 실사고로 추가 — 이 줄이 없어서 «보호 가지» 2개가 지워졌다.
+      //   그날 정리 세션들이 `git push origin --delete <가지>` 를 썼는데, 위의 `git branch -D`
+      //   패턴은 «로컬» 삭제만 본다. 원격 삭제는 문지기를 그냥 통과했고,
+      //   docs/KNOWN_ISSUES.md 「지우면 안 되는 가지」에 🛑 로 박혀 있던
+      //   fix/push-notification-icon(KHIDI 증빙 132MB·61파일)과
+      //   claude/cloud-hospital-business-model-ft66ln(면력 입주판 70파일)이 사라졌다.
+      //   (되살렸다 — 깃허브가 커밋을 아직 안 치웠던 덕이고, 시간이 더 갔으면 영영 못 찾는다.)
+      // 🔑 로컬 삭제보다 원격 삭제가 훨씬 위험하다: 로컬은 reflog 가 남지만 원격은 그것도 없다.
+      [/git\s+push\b[^|;&]*(--delete\b|(^|\s)-d\b)/, "원격 작업본(브랜치) 삭제 — 되돌릴 reflog 가 없습니다"],
+      [/git\s+push\b[^|;&]*\s:(refs\/heads\/)?\S/, "원격 작업본(브랜치) 삭제(`push origin :가지` 형태) — 되돌릴 reflog 가 없습니다"],
       [/git\s+(clean\s+-[a-zA-Z]*f|reset\s+--hard)/, "작업 내용 되돌리기(git reset --hard / clean -f) — 저장 안 한 변경이 사라집니다"],
       [/supabase\s+db\s+reset/, "로컬 데이터베이스 초기화"],
       [/\bpsql\b[\s\S]*\b(DROP|TRUNCATE|DELETE\s+FROM)\b/i, "psql 로 직접 데이터 파괴"],
