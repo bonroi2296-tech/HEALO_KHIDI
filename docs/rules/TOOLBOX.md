@@ -73,7 +73,10 @@
 | 경쟁사 조사 (시너스파크·클라우드호스피탈) | `/marketing:competitive-brief` |
 | 광고 돌린다 | `/marketing:campaign-plan` — 단 예산·문구는 PO 리드 |
 | 블로그·랜딩·메일 초안 | `/marketing:draft-content` — 단 **카피 톤은 PO 리드**(기억) |
+| **SNS 에 올린다·예약한다·성과 본다** (인스타·유튜브·페북·틱톡) | **`Postiz`** (2026-09-11 추가) — 28개 판에 예약 발행·성과 집계. ⚠️ 무엇을 올릴지는 PO 결정 |
+| **이 카피가 우리 톤인가** | **`Brand Voice`** (2026-09-11 추가) — 기존 글에서 톤을 뽑아 규칙으로 만들고 새 글을 대조한다. ⚠️ **톤을 «정하는» 건 PO 다.** 이 스킬은 «어긋났는지 재는» 자리에만 쓴다 |
 > 실측 자료는 `docs/data/search-queries-*.md`, 검색어 단일 출처는 `src/lib/seo/cancerSearchTerms.js`.
+> 유입 현황을 실제 숫자로 보려면 GA4(§4) 를 같이 켜라 — 2026-09-11 부터 어시가 직접 읽는다.
 
 ### 화면·디자인
 | 이런 일이 오면 | 집을 것 |
@@ -261,3 +264,11 @@ KHIDI 입찰공고는 사이트가 화면을 스크립트로 그려서 MCP 로�
 
 **쳐다보지 않아도 되는 칸**: 금융(미국·인도 결제)·CRM(HubSpot·세일즈포스·Apollo — 1인에겐 과하다)·Jira/Asana/Linear ·
 **Gamma·Brightdeck**(PPT 생성인데 우리 teal 규격을 깬다 — `/ppt` 스킬을 두고 이걸 쓰면 안 된다).
+
+**플러그인 칸도 같이 훑었다 (PO 지적으로 다시 봄).**
+「내 것」에 **이미 21개**가 깔려 있다 — Anthropic 12종(engineering·marketing·legal·design·sales·finance·data·operations·
+product-management·customer-support·human-resources·small-business) + 파트너 9종(Bright Data·Figma·SearchFit SEO·
+PDF Viewer·Desktop Commander·Canva·Security Guidance + 오늘 넣은 둘). **즉 §1 지도의 스킬들은 처음부터 손에 있었다.**
+그날 새로 넣은 것은 **Postiz**(SNS)·**Brand Voice**(톤) 둘뿐이고, 나머지는 「없어서 못 쓴 것」이 아니라 **「있는 줄 모르고 안 쓴 것」**이다.
+⚠️ 안 넣은 것과 이유: `theme-factory`(우리 PPT 깔과 부딪힌다) · `mcp-builder`·`internal-comms`(쓸 자리가 드물다) ·
+`Enterprise Search`·`Bio Research`·`Zoom`·`Miro`·`Unity`·금융 3종(우리 일이 아니다).
