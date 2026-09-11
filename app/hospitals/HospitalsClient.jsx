@@ -234,10 +234,11 @@ function DoctorCard({ doc, l, lang, onSelect }) {
 }
 
 /* ───────────────── Main Component ───────────────── */
-export default function HospitalsClient() {
+export default function HospitalsClient({ initialPartners = [] }) {
   const router = useRouter();
   const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
-  const [partnerHospitals, setPartnerHospitals] = useState([]);
+  // 서버가 미리 그려 넘긴 목록으로 시작한다(봇이 읽는 첫 HTML 에 링크가 있어야 한다 — page.jsx 주석).
+  const [partnerHospitals, setPartnerHospitals] = useState(initialPartners);
   const [expandedBranch, setExpandedBranch] = useState('gangseo');
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
