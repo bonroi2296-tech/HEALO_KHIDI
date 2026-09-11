@@ -21,6 +21,7 @@
 | 번역·다국어 문구·「외국어가 이상하대」·용어 통일·코디 교정 | `docs/rules/I18N_QUALITY.md` (용어집 = `src/lib/i18n/glossary.js`) |
 | 라우트·페이지·URL 구조·어드민 메뉴·화면 위치 찾기 | `docs/rules/PROJECT_MAP.md` |
 | 프리뷰·스크린샷·브라우저·로그인 뒤 화면 눈으로 보기 | `docs/rules/PREVIEW.md` |
+| **코드 아닌 일**: 계약·SEO·디자인·영업·정산·운영·환자응대 | 맨손으로 하지 마라. 어느 스킬·도구를 집을지 = **`docs/rules/TOOLBOX.md`** |
 | 문서·자료 만들기: PPT·피치덱 / 한글문서(hwp·hwpx)·공문·서식 | PPT 는 **`/ppt` 스킬**(규격 `docs/rules/PPT_STYLE.md`), 한글은 **`docs/rules/HWP_DOC.md`**. **둘 다 코드를 새로 짜지 마라**: 붙어 있는 도구를 써라(어기면 훅이 막는다) |
 | KHIDI·중간평가·성과지표·유치 건수·만족도·발표 | `docs/rules/KHIDI.md` · `docs/KHIDI_중간보고_베이스.md` |
 | 병렬 세션·worktree·영역 배분·다른 세션에 일 떼주기 | `docs/PARALLEL_SESSIONS.md` |
@@ -75,12 +76,8 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 - "야 이거 ~~함" "~인디?" 같은 말투에 맞춰서 대응
 - **선택지를 내밀 땐 양쪽의 이득·비용을 실측 숫자로 먼저** 적고 그다음 버튼 (상세: `docs/rules/AUTOMERGE.md`)
 
-> 📌 **2026-08-25 변경.** 말투는 **`~/.claude/output-styles/fluent-korean.md`** 스타일이 맡는다.
-> 훅(`.claude/hooks/plain-korean.sh`)은 **말투 항목 2개만 빼고 나머지 26개 규칙 그대로 살아 있다** —
-> 🚦묻기 전 관문 · 버튼으로만 묻기 · 한 응답에 1개 · 재탕 금지 · 판정으로 시작 ·
-> 「확인한 것 / 확인 못 한 것」 칸 · 다음 세 걸음 · 화면 고친 턴은 그림 한 장.
-> 즉 **말투는 스타일, 일하는 방식은 훅**이다. 고칠 일이 있으면 각자 제 자리를 고쳐라(여기 베끼지 말 것).
-> 되돌릴 일이 생기면 `git log -- .claude/` 로. (옛 `*.orig-20260825` 백업은 저장소에 커밋된 적이 없다 — PO PC 로컬에만 있다. 2026-08-31 실측 정정)
+> 📌 **말투는 `~/.claude/output-styles/fluent-korean.md` 스타일, 일하는 방식은 훅(`.claude/hooks/plain-korean.sh`)이 맡는다** (2026-08-25 분리). 고칠 일이 있으면 각자 제 자리를 고쳐라(여기 베끼지 말 것).
+> 되돌릴 일이 생기면 `git log -- .claude/` 로. (옛 `*.orig-20260825` 백업은 PO PC 로컬에만 있다.)
 
 ---
 
